@@ -12,10 +12,14 @@ import java.nio.file.Files;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.bloom.KMerBloomIndex.ByteRingBuffer;
 import org.metagene.genestrip.util.CGAT;
 
 public class FastqBloomFilter {
+	protected final Log logger = LogFactory.getLog(getClass());
+
 	private final KMerBloomIndex index;
 	private final double positiveRatio;
 	private final int minPosCount;
@@ -23,7 +27,7 @@ public class FastqBloomFilter {
 	private final byte[][] readBuffer;
 	private final int[] c;
 	private final int bufferSize;
-	
+
 	public FastqBloomFilter(KMerBloomIndex index, double positiveRatio, int minPosCount, int maxReadSize) {
 		bufferSize = 4096 * 8;
 		this.index = index;
@@ -31,40 +35,25 @@ public class FastqBloomFilter {
 		this.minPosCount = minPosCount;
 		byteRingBuffer = new ByteRingBuffer(index.getK());
 		readBuffer = new byte[4][maxReadSize];
-		c = new int[4];		
+		c = new int[4];
 	}
 
-	public void runFilter(File fastgz, boolean writeIndexed, boolean writeNotIndexed) throws IOException {
-
+	public void runFilter(File fastgz, File filteredFile, File restFile) throws IOException {
 		MyFileInputStream fStream = new MyFileInputStream(fastgz);
-//		BufferedInputStream bStream = new BufferedInputStream(fStream, bufferSize);
 		GZIPInputStream gStream = new GZIPInputStream(fStream, bufferSize);
 
-		String name = fastgz.getName();
-		int dot = name.lastIndexOf(".");
-		String indexedName;
-		String notIndexedName;
-		if (dot != -1) {
-			indexedName = name.substring(0, dot) + "_indexed" + name.substring(dot, name.length());
-			notIndexedName = name.substring(0, dot) + "_not_indexed" + name.substring(dot, name.length());
-		} else {
-			indexedName = name + "_indexed";
-			notIndexedName = name + "_not_indexed";
-		}
-
 		BufferedOutputStream bIndexed = null;
-		if (writeIndexed) {
-			FileOutputStream indexed = new FileOutputStream(new File(indexedName));
+		if (filteredFile != null) {
+			FileOutputStream indexed = new FileOutputStream(filteredFile);
 			GZIPOutputStream gIndexed = new GZIPOutputStream(indexed, bufferSize, false);
 			bIndexed = new BufferedOutputStream(gIndexed, bufferSize);
 		}
 		BufferedOutputStream bNotIndexed = null;
-		if (writeNotIndexed) {
-			FileOutputStream notIndexed = new FileOutputStream(new File(notIndexedName));
+		if (restFile != null) {
+			FileOutputStream notIndexed = new FileOutputStream(restFile);
 			GZIPOutputStream gNotIndexed = new GZIPOutputStream(notIndexed, bufferSize, false);
-			bNotIndexed = new BufferedOutputStream(gNotIndexed, bufferSize);			
+			bNotIndexed = new BufferedOutputStream(gNotIndexed, bufferSize);
 		}
-
 
 		long fastqFileSize = Files.size(fastgz.toPath());
 
@@ -72,15 +61,12 @@ public class FastqBloomFilter {
 
 		gStream.close();
 		if (bIndexed != null) {
-			bIndexed.close();			
+			bIndexed.close();
 		}
-		if (bNotIndexed != null) {			
+		if (bNotIndexed != null) {
 			bNotIndexed.close();
 		}
 	}
-	
-	
-	
 
 	private void runFilter(InputStream fastqStream, OutputStream indexed, OutputStream notIndexed, long fastqFileSize,
 			MyFileInputStream fStream) throws IOException {
@@ -103,8 +89,7 @@ public class FastqBloomFilter {
 			for (count = 0; count < size; count++) {
 				if (line == 2) {
 					bite = CGAT.CGAT_TO_UPPER_CASE[buffer[count]];
-				}
-				else {
+				} else {
 					bite = buffer[count];
 				}
 				lReadBuffer[line][lc[line]++] = bite;
@@ -115,9 +100,8 @@ public class FastqBloomFilter {
 					} else if (line == 4) {
 						line = 0;
 						if (res) {
-							out = indexed;							
-						}
-						else {
+							out = indexed;
+						} else {
 							out = notIndexed;
 							notIndexedC++;
 						}
@@ -129,19 +113,21 @@ public class FastqBloomFilter {
 						}
 						lc[3] = lc[2] = lc[1] = lc[0] = 0;
 						total++;
-						if (total % 1000 == 0) {
-							double ratio = fStream.bRead / (double) fastqFileSize;
-							long stopTime = System.currentTimeMillis();
+						if (logger.isInfoEnabled()) {
+							if (total % 1000 == 0) {
+								double ratio = fStream.bRead / (double) fastqFileSize;
+								long stopTime = System.currentTimeMillis();
 
-							double diff = (stopTime - startTime);
-							double totalTime = diff / ratio;
-							double totalHours = totalTime / 1000 / 60 / 60;
+								double diff = (stopTime - startTime);
+								double totalTime = diff / ratio;
+								double totalHours = totalTime / 1000 / 60 / 60;
 
-							System.out.println("Elapse hours:" + diff / 1000 / 60 / 60);
-							System.out.println("Estimated total hours:" + totalHours);
-							System.out.println("Reads processed: " + total);
-							System.out.println("Not indexed: " + notIndexedC);
-							System.out.println("Not indexed ratio:" + ((double) notIndexedC) / total);
+								logger.info("Elapse hours:" + diff / 1000 / 60 / 60);
+								logger.info("Estimated total hours:" + totalHours);
+								logger.info("Reads processed: " + total);
+								logger.info("Not indexed: " + notIndexedC);
+								logger.info("Not indexed ratio:" + ((double) notIndexedC) / total);
+							}
 						}
 					}
 				}
@@ -154,8 +140,8 @@ public class FastqBloomFilter {
 		int negCounter = 0;
 		int startAt = index.getK() - 1;
 		int max = readSize - startAt;
-		int posCounterThrehold = minPosCount;
-		if (posCounterThrehold <= 0) {
+		int posCounterThrehold = 0;
+		if (minPosCount <= 0) {
 			posCounterThrehold = (int) (max * positiveRatio);
 		}
 		int negCounterThreshold = max - posCounterThrehold;
@@ -165,12 +151,20 @@ public class FastqBloomFilter {
 			if (i >= startAt) {
 				if (index.contains(byteRingBuffer)) {
 					counter++;
-					if (counter >= posCounterThrehold || counter >= minPosCount) {
+					if (minPosCount > 0) {
+						if (counter >= minPosCount) {
+							return true;
+						}
+					} else if (counter >= posCounterThrehold) {
 						return true;
 					}
 				} else {
 					negCounter++;
-					if (negCounter > negCounterThreshold) {
+					if (minPosCount > 0) {
+						if (counter >= max - minPosCount) {
+							return true;
+						}
+					} else if (negCounter > negCounterThreshold) {
 						return false;
 					}
 				}
