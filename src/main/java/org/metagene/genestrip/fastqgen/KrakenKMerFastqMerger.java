@@ -26,14 +26,21 @@ public class KrakenKMerFastqMerger {
 			System.err.println(readProbs);
 		}
 	};
+	
+	private final byte[] krakenChars;
+	private final byte[] readDescriptor;
+	private final byte[] read;
+	private final byte[] readProbs;
+	
+	public KrakenKMerFastqMerger(int maxReadSizeBytes) {
+		krakenChars = new byte[2048];
+		readDescriptor = new byte[2048];
+		read = new byte[maxReadSizeBytes];
+		readProbs = new byte[maxReadSizeBytes];		
+	}
 
 	public Map<String, Integer> process(InputStream bufferedInFromKraken, InputStream bufferedInFastQ,
 			FilterListener update) throws IOException {
-		byte[] krakenChars = new byte[2048];
-		byte[] readDescriptor = new byte[2048];
-		byte[] read = new byte[2 * 4096];
-		byte[] readProbs = new byte[2 * 4096];
-
 		DigitTrieNode root = new DigitTrieNode();
 
 		int krakenPos;

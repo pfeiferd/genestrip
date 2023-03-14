@@ -179,8 +179,9 @@ public class Generator extends Maker<Project> {
 				@Override
 				protected void makeFile(File file) {
 					try {
-						new FastqBloomFilter(KMerBloomIndex.load(project.getBloomFilterFile()), 0.5d, 0, 0)
-								.runFilter(project.getFastqFile(), true, false);
+						new FastqBloomFilter(KMerBloomIndex.load(project.getBloomFilterFile()),
+								config.getPosRatioFilter(), config.getMinPosCountFilter(), config.getMaxReadSizeBytes())
+										.runFilter(project.getFastqFile(), file, null);
 					} catch (ClassNotFoundException e) {
 						throw new RuntimeException(e);
 					} catch (IOException e) {

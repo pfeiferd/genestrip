@@ -60,7 +60,7 @@ public class KMerTrieTestCase extends TestCase {
 					}
 				}));
 
-		KrakenKMerFastqMerger krakenFilter = new KrakenKMerFastqMerger();
+		KrakenKMerFastqMerger krakenFilter = new KrakenKMerFastqMerger(project.getConfig().getMaxReadSizeBytes());
 
 		KrakenKMerFastqMerger.print(krakenFilter.process(new BufferedInputStream(new FileInputStream(fromKraken)),
 				new BufferedInputStream(gStream), filter), System.out);
@@ -74,8 +74,8 @@ public class KMerTrieTestCase extends TestCase {
 		checkTrie(fromKraken, bartHReads, krakenFilter, trie, bloomFilter, nodes);
 	}
 
-	private void checkTrie(File fromKraken, File reads, KrakenKMerFastqMerger krakenFilter,
-			KMerTrie<String> trie, BloomFilter<byte[]> bloomFilter, Set<TaxIdNode> nodes) throws IOException {
+	private void checkTrie(File fromKraken, File reads, KrakenKMerFastqMerger krakenFilter, KMerTrie<String> trie,
+			BloomFilter<byte[]> bloomFilter, Set<TaxIdNode> nodes) throws IOException {
 		FileInputStream fStream2 = new FileInputStream(reads);
 		GZIPInputStream gStream2 = new GZIPInputStream(fStream2, 4096);
 

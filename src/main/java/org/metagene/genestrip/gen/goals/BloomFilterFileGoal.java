@@ -48,7 +48,8 @@ public class BloomFilterFileGoal extends FileListGoal {
 					bloomIndex.putDirectKMer(read, 0);
 				}
 			});
-			KrakenKMerFastqMerger krakenKMerFastqMerger = new KrakenKMerFastqMerger();
+			KrakenKMerFastqMerger krakenKMerFastqMerger = new KrakenKMerFastqMerger(
+					project.getConfig().getMaxReadSizeBytes());
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Reading file " + project.getKrakenOutFile());

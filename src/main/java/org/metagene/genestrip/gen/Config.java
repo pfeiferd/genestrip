@@ -24,7 +24,19 @@ public class Config {
 	public File getBaseDir() {
 		return baseDir;
 	}
+	
+	public int getMaxReadSizeBytes() {
+		return Integer.valueOf(properties.getProperty("maxReadSizeBytes", "8192"));
+	}
+	
+	public int getMinPosCountFilter() {
+		return Integer.valueOf(properties.getProperty("minPosCountFilter", "1"));
+	}
 
+	public double getPosRatioFilter() {
+		return Double.valueOf(properties.getProperty("posRatioFilter", "0.2"));
+	}
+	
 	public String getKrakenBinFolder() {
 		return properties.getProperty("krakenBinFolder");
 	}
