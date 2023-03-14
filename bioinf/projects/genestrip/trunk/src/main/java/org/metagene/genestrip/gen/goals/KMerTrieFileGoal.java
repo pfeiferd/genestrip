@@ -37,8 +37,10 @@ public class KMerTrieFileGoal extends FileListGoal {
 				taxIds.add(node.getTaxId());
 			}
 
-			FilterListener filter = KrakenKMerFastqMerger.createFilterByTaxId(taxIds, KrakenKMerFastqMerger.fillKMerTrie(trie, null));
-			KrakenKMerFastqMerger krakenKMerFastqMerger = new KrakenKMerFastqMerger();
+			FilterListener filter = KrakenKMerFastqMerger.createFilterByTaxId(taxIds,
+					KrakenKMerFastqMerger.fillKMerTrie(trie, null));
+			KrakenKMerFastqMerger krakenKMerFastqMerger = new KrakenKMerFastqMerger(
+					project.getConfig().getMaxReadSizeBytes());
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Reading file " + project.getKrakenOutFile());
@@ -48,7 +50,7 @@ public class KMerTrieFileGoal extends FileListGoal {
 			GZIPInputStream gStream = new GZIPInputStream(fStream, 4096);
 			krakenKMerFastqMerger.process(new BufferedInputStream(new FileInputStream(project.getKrakenOutFile())),
 					new BufferedInputStream(gStream), filter);
-						
+
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Trie entries: " + trie.getEntries());
 				getLogger().info("File save " + trieFile);

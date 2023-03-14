@@ -38,7 +38,8 @@ public class KrakenFastqFileGoal extends FileListGoal {
 
 			FilterListener filter = KrakenKMerFastqMerger.createFilterByTaxIdNodes(taxNodesGoal.get(),
 					KrakenKMerFastqMerger.createFastQOutputFilterByTaxId(filteredOut, null));
-			KrakenKMerFastqMerger krakenKMerFastqMerger = new KrakenKMerFastqMerger();
+			KrakenKMerFastqMerger krakenKMerFastqMerger = new KrakenKMerFastqMerger(
+					project.getConfig().getMaxReadSizeBytes());
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Reading file " + project.getKrakenOutFile());
