@@ -1,0 +1,125 @@
+package org.metagene.genestrip.tax;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVRecord;
+import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+
+
+public class AssemblySummaryReader {
+	public static final String ASSEMLY_SUM = "assembly_summary_genbank.txt";
+	
+	private final File baseDir;
+	private final TaxTree taxTree;
+
+	public AssemblySummaryReader(File baseDir, TaxTree taxTree) throws IOException {
+		this.baseDir = baseDir;
+		this.taxTree = taxTree;
+	}
+
+	public List<FTPEntryWithQuality> getRelevantEntriesAsList(FTPEntryQuality minQuality, Set<TaxIdNode> filter)
+			throws IOException {
+		List<FTPEntryWithQuality> res = new ArrayList<AssemblySummaryReader.FTPEntryWithQuality>();
+
+		Map<TaxIdNode, List<FTPEntryWithQuality>> entries = getRelevantEntries(taxTree, filter);
+		for (List<FTPEntryWithQuality> values : entries.values()) {
+			for (FTPEntryWithQuality entry : values) {
+				if (minQuality == null || !entry.getQuality().below(minQuality)) {
+					res.add(entry);
+				}
+			}
+		}
+		return res;
+	}
+
+	public Map<TaxIdNode, List<FTPEntryWithQuality>> getRelevantEntries(TaxTree taxTree, Set<TaxIdNode> filter)
+			throws IOException {
+		Map<TaxIdNode, List<FTPEntryWithQuality>> result = new HashMap<TaxIdNode, List<FTPEntryWithQuality>>();
+
+		Reader in = new InputStreamReader(new FileInputStream(new File(baseDir, ASSEMLY_SUM)));
+		CSVFormat format = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#').setDelimiter('\t')
+				.setRecordSeparator('\n').build();
+		Iterable<CSVRecord> records = format.parse(in);
+
+		for (CSVRecord record : records) {
+			String taxid = record.get(5);
+			String complete = record.get(11);
+			String latest = record.get(10);
+			String ftp = record.get(19);
+
+			TaxIdNode node = taxTree.getNodeByTaxId(taxid);
+			if (node != null && (filter == null || filter.contains(node))) {
+				FTPEntryQuality quality = FTPEntryQuality.fromString(complete, latest);
+				if (!FTPEntryQuality.NONE.equals(quality)) {
+					List<FTPEntryWithQuality> entry = result.get(node);
+					if (entry == null) {
+						entry = new ArrayList<FTPEntryWithQuality>();
+						result.put(node, entry);
+					}
+					FTPEntryWithQuality ewq = new FTPEntryWithQuality(ftp, quality);
+					entry.add(ewq);
+				}
+			}
+		}
+
+		return result;
+	}
+
+	public static class FTPEntryWithQuality {
+		private final String ftpURL;
+		private final String fileName;
+		private final FTPEntryQuality quality;
+
+		public FTPEntryWithQuality(String ftpURL, FTPEntryQuality quality) {
+			this.ftpURL = ftpURL;
+			this.quality = quality;
+			this.fileName = ftpURL.substring(ftpURL.lastIndexOf('/') + 1) + "_genomic.fna.gz";
+		}
+
+		public String getFtpURL() {
+			return ftpURL;
+		}
+
+		public FTPEntryQuality getQuality() {
+			return quality;
+		}
+
+		public String getFileName() {
+			return fileName;
+		}
+	}
+
+	public enum FTPEntryQuality {
+		COMLPETE_LATEST, COMPLETE, LATEST, NONE;
+
+		public boolean below(FTPEntryQuality q) {
+			return this.ordinal() > q.ordinal();
+		}
+
+		public static FTPEntryQuality fromString(String complete, String latest) {
+			if ("Complete Genome".equals(complete)) {
+				if ("latest".equals(latest)) {
+					return COMLPETE_LATEST;
+				} else {
+					return COMPLETE;
+				}
+			} else {
+				if ("latest".equals(latest)) {
+					return LATEST;
+				} else {
+					return NONE;
+				}
+			}
+		}
+	}
+}
