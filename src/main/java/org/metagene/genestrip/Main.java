@@ -16,7 +16,7 @@ import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
 public class Main {
 	private final Options options;
 	private GSProject project;
-	private Config config;
+	private GSConfig config;
 	private String target;
 	private String[] restArgs;
 	private GSMaker generator;
@@ -30,7 +30,7 @@ public class Main {
 			CommandLine line = new DefaultParser().parse(options, args);
 
 			String baseDir = line.getOptionValue("d", "./data");
-			config = new Config(new File(baseDir));
+			config = new GSConfig(new File(baseDir));
 
 			String db = line.getOptionValue("db", null);
 			String kmer = line.getOptionValue("k", "0");
