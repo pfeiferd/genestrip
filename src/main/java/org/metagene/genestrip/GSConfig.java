@@ -25,6 +25,10 @@ public class GSConfig {
 		return baseDir;
 	}
 	
+	public boolean isWriteDumpedFastq() {
+		return Boolean.valueOf(properties.getProperty("writeDumpedFastq", "false"));
+	}
+	
 	public int getMaxReadSizeBytes() {
 		return Integer.valueOf(properties.getProperty("maxReadSizeBytes", "8192"));
 	}

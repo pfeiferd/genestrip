@@ -190,7 +190,7 @@ public class GSMaker extends Maker<GSProject> {
 								getProject().getConfig().getPosRatioFilter(),
 								getProject().getConfig().getMinPosCountFilter(),
 								getProject().getConfig().getMaxReadSizeBytes()).runFilter(getProject().getFastqFile(),
-										file, null);
+										file, getProject().getDumpFastqFile());
 					} catch (IOException | ClassNotFoundException e) {
 						throw new RuntimeException(e);
 					}
@@ -205,8 +205,9 @@ public class GSMaker extends Maker<GSProject> {
 					try {
 						@SuppressWarnings("unchecked")
 						KMerTrie<String> trie = (KMerTrie<String>) KMerTrie.load(getProject().getTrieFile());
-						Map<String, Long> res = new FastqTrieClassifier(trie, getProject().getConfig().getMaxReadSizeBytes())
-								.runClassifier(project.getFilteredFastqFile());
+						Map<String, Long> res = new FastqTrieClassifier(trie,
+								getProject().getConfig().getMaxReadSizeBytes())
+										.runClassifier(project.getFilteredFastqFile());
 						FileOutputStream out = new FileOutputStream(project.getTaxCountsFile());
 						CountingDigitTrie.print(res, out);
 						out.close();

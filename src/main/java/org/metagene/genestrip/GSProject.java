@@ -11,28 +11,35 @@ public class GSProject {
 	private final FTPEntryQuality fastaQuality;
 	private final int kMserSize;
 	private final File fastqFile;
+	private final File resFolder;
 
-	public GSProject(GSConfig config, String name, FTPEntryQuality fastaQuality, int kMerSize, String krakenDB, File fastqFile) {
+	public GSProject(GSConfig config, String name, FTPEntryQuality fastaQuality, int kMerSize, String krakenDB,
+			File fastqFile, File resFolder) {
 		this.config = config;
 		this.name = name;
 		this.fastaQuality = fastaQuality;
 		this.kMserSize = kMerSize;
 		this.krakenDB = krakenDB;
 		this.fastqFile = fastqFile;
+		this.resFolder = resFolder != null ? resFolder : new File(getProjectsDir(), name + "/res");
 	}
-	
+
 	public File getFastqFile() {
 		return fastqFile;
 	}
-	
+
 	public File getFilteredFastqFile() {
-		return new File(getResultsDir(), "Filtered_" + fastqFile.getName());
+		return getConfig().isWriteDumpedFastq() ? new File(getResultsDir(), "Filtered_" + fastqFile.getName()) : null;
+	}
+
+	public File getDumpFastqFile() {
+		return new File(getResultsDir(), "Dumped_" + fastqFile.getName());
 	}
 
 	public File getTaxCountsFile() {
-		return new File(getResultsDir(), "Counts_" + fastqFile.getName() + ".csv");		
+		return new File(getResultsDir(), "Counts_" + fastqFile.getName() + ".csv");
 	}
-	
+
 	public GSConfig getConfig() {
 		return config;
 	}
@@ -56,7 +63,7 @@ public class GSProject {
 	public String getName() {
 		return name;
 	}
-	
+
 	public File getProjectsDir() {
 		return new File(config.getBaseDir(), "/projects");
 	}
@@ -76,9 +83,9 @@ public class GSProject {
 	public File getTaxIdsFile() {
 		return new File(getProjectsDir(), name + "/taxids.txt");
 	}
-	
+
 	public File getResultsDir() {
-		return new File(getProjectsDir(), name + "/res");		
+		return resFolder;
 	}
 
 	public File getKmerFastqFile() {
