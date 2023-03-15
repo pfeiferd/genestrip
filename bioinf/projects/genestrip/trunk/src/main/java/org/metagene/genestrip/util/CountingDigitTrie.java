@@ -1,5 +1,7 @@
 package org.metagene.genestrip.util;
 
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.Map;
 
 public class CountingDigitTrie {
@@ -66,5 +68,15 @@ public class CountingDigitTrie {
 			}
 		}
 	}
+	
+	public static void print(Map<String, Long> map, OutputStream out) {
+		PrintStream pOut = new PrintStream(out);
+
+		for (String taxid : map.keySet()) {
+			pOut.print(taxid);
+			pOut.print(';');
+			pOut.println(map.get(taxid));
+		}
+	}	
 }
 

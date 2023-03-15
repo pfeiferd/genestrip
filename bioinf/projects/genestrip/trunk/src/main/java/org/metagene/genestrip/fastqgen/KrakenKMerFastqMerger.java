@@ -109,16 +109,6 @@ public class KrakenKMerFastqMerger {
 		return map;
 	}
 
-	public static void print(Map<String, Long> map, OutputStream out) {
-		PrintStream pOut = new PrintStream(out);
-
-		for (String taxid : map.keySet()) {
-			pOut.print(taxid);
-			pOut.print(';');
-			pOut.println(map.get(taxid));
-		}
-	}
-
 	public static FilterListener createFilterByTaxIdNodes(Set<TaxIdNode> taxIdNodes, FilterListener delegate) {
 		Set<String> taxIds = new HashSet<String>();
 		for (TaxIdNode node : taxIdNodes) {

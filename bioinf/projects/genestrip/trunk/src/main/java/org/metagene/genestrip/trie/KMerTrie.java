@@ -1,12 +1,18 @@
 package org.metagene.genestrip.trie;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+
+import org.metagene.genestrip.bloom.KMerBloomIndex;
 
 @SuppressWarnings("serial")
 public class KMerTrie<V extends Serializable> implements Serializable {
@@ -287,5 +293,13 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 				new BufferedOutputStream(new GZIPOutputStream(new FileOutputStream(trieFile))));
 		oOut.writeObject(this);
 		oOut.close();
+	}
+	
+	public static KMerTrie<?> load(File filterFile) throws IOException, ClassNotFoundException {
+		ObjectInputStream oOut = new ObjectInputStream(
+				new BufferedInputStream(new GZIPInputStream(new FileInputStream(filterFile))));
+		KMerTrie<?> res = (KMerTrie<?>) oOut.readObject();
+		oOut.close();
+		return res;
 	}
 }

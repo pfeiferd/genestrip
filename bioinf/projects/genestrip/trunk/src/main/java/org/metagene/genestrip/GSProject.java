@@ -28,6 +28,10 @@ public class GSProject {
 	public File getFilteredFastqFile() {
 		return new File(getResultsDir(), "Filtered_" + fastqFile.getName());
 	}
+
+	public File getTaxCountsFile() {
+		return new File(getResultsDir(), "Counts_" + fastqFile.getName() + ".csv");		
+	}
 	
 	public GSConfig getConfig() {
 		return config;
