@@ -8,10 +8,10 @@ import java.util.Random;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
+import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.Main;
 import org.metagene.genestrip.fastqgen.KrakenKMerFastqMerger;
 import org.metagene.genestrip.fastqgen.KrakenKMerFastqMerger.FilterListener;
-import org.metagene.genestrip.gen.Main;
-import org.metagene.genestrip.gen.GSProject;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 

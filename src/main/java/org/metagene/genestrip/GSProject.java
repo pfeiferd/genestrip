@@ -1,4 +1,4 @@
-package org.metagene.genestrip.gen;
+package org.metagene.genestrip;
 
 import java.io.File;
 
