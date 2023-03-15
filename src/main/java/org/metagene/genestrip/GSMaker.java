@@ -1,9 +1,11 @@
 package org.metagene.genestrip;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.metagene.genestrip.bloom.FastqBloomFilter;
@@ -27,6 +29,9 @@ import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryWithQuality;
 import org.metagene.genestrip.tax.TaxIdCollector;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.trie.FastqTrieClassifier;
+import org.metagene.genestrip.trie.KMerTrie;
+import org.metagene.genestrip.util.CountingDigitTrie;
 
 public class GSMaker extends Maker<GSProject> {
 	public GSMaker(GSProject project) {
@@ -34,7 +39,7 @@ public class GSMaker extends Maker<GSProject> {
 	}
 
 	protected void createGoals(GSProject project) {
-		GSConfig config = project.getConfig();
+//		GSConfig config = project.getConfig();
 
 		List<File> projectDirs = Arrays.asList(project.getFastasDir(), project.getFastqsDir(), project.getFiltersDir(),
 				project.getResultsDir());
@@ -53,13 +58,13 @@ public class GSMaker extends Maker<GSProject> {
 		ObjectGoal<TaxTree, GSProject> taxTreeGoal = new ObjectGoal<TaxTree, GSProject>(project, "taxtree", taxDBGoal) {
 			@Override
 			public void makeThis() {
-				set(new TaxTree(config.getCommonBaseDir()));
+				set(new TaxTree(getProject().getConfig().getCommonBaseDir()));
 			}
 		};
 		registerGoal(taxTreeGoal);
 
-		ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal = new ObjectGoal<Set<TaxIdNode>, GSProject>(project, "taxids",
-				taxTreeGoal) {
+		ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal = new ObjectGoal<Set<TaxIdNode>, GSProject>(project,
+				"taxids", taxTreeGoal) {
 			@Override
 			public void makeThis() {
 				try {
@@ -96,8 +101,8 @@ public class GSMaker extends Maker<GSProject> {
 			@Override
 			public void makeThis() {
 				try {
-					AssemblySummaryReader assemblySummaryReader = new AssemblySummaryReader(config.getCommonBaseDir(),
-							taxTreeGoal.get());
+					AssemblySummaryReader assemblySummaryReader = new AssemblySummaryReader(
+							getProject().getConfig().getCommonBaseDir(), taxTreeGoal.get());
 					List<FTPEntryWithQuality> entries = assemblySummaryReader
 							.getRelevantEntriesAsList(project.getFastaQuality(), taxNodesGoal.get());
 					set(entries);
@@ -116,12 +121,13 @@ public class GSMaker extends Maker<GSProject> {
 				fastaDownloadGoal);
 		registerGoal(kmerFastqGoal);
 
-		Goal<GSProject> krakenOutGoal = new FileListGoal<GSProject>(project, "krakenout", kmerFastqGoal, projectSetupGoal) {
+		Goal<GSProject> krakenOutGoal = new FileListGoal<GSProject>(project, "krakenout", kmerFastqGoal,
+				projectSetupGoal) {
 			@Override
 			protected void makeFile(File krakenOut) {
 				File fastq = getProject().getKmerFastqFile();
-				KrakenExecutor krakenExecutor = new KrakenExecutor(config.getKrakenBinFolder(),
-						config.getKrakenExecExpr());
+				KrakenExecutor krakenExecutor = new KrakenExecutor(getProject().getConfig().getKrakenBinFolder(),
+						getProject().getConfig().getKrakenExecExpr());
 				if (getLogger().isInfoEnabled()) {
 					String execLine = krakenExecutor.genExecLine(getProject().getKrakenDB(), fastq);
 					getLogger().info("Run kraken with " + execLine);
@@ -181,16 +187,35 @@ public class GSMaker extends Maker<GSProject> {
 				protected void makeFile(File file) {
 					try {
 						new FastqBloomFilter(KMerBloomIndex.load(getProject().getBloomFilterFile()),
-								config.getPosRatioFilter(), config.getMinPosCountFilter(), config.getMaxReadSizeBytes())
-										.runFilter(getProject().getFastqFile(), file, null);
-					} catch (ClassNotFoundException e) {
-						throw new RuntimeException(e);
-					} catch (IOException e) {
+								getProject().getConfig().getPosRatioFilter(),
+								getProject().getConfig().getMinPosCountFilter(),
+								getProject().getConfig().getMaxReadSizeBytes()).runFilter(getProject().getFastqFile(),
+										file, null);
+					} catch (IOException | ClassNotFoundException e) {
 						throw new RuntimeException(e);
 					}
 				}
 			};
 			registerGoal(filterGoal);
+
+			Goal<GSProject> classifyGoal = new FileListGoal<GSProject>(project, "classify", project.getTaxCountsFile(),
+					trieGoal) {
+				@Override
+				protected void makeFile(File file) {
+					try {
+						@SuppressWarnings("unchecked")
+						KMerTrie<String> trie = (KMerTrie<String>) KMerTrie.load(getProject().getTrieFile());
+						Map<String, Long> res = new FastqTrieClassifier(trie, getProject().getConfig().getMaxReadSizeBytes())
+								.runClassifier(project.getFilteredFastqFile());
+						FileOutputStream out = new FileOutputStream(project.getTaxCountsFile());
+						CountingDigitTrie.print(res, out);
+						out.close();
+					} catch (IOException | ClassNotFoundException e) {
+						throw new RuntimeException(e);
+					}
+				}
+			};
+			registerGoal(classifyGoal);
 		}
 	}
 }

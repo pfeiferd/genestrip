@@ -14,6 +14,7 @@ import org.metagene.genestrip.fastqgen.KrakenKMerFastqMerger;
 import org.metagene.genestrip.fastqgen.KrakenKMerFastqMerger.FilterListener;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.CountingDigitTrie;
 
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnel;
@@ -63,7 +64,7 @@ public class KMerTrieTestCase extends TestCase {
 
 		KrakenKMerFastqMerger krakenFilter = new KrakenKMerFastqMerger(project.getConfig().getMaxReadSizeBytes());
 
-		KrakenKMerFastqMerger.print(krakenFilter.process(new BufferedInputStream(new FileInputStream(fromKraken)),
+		CountingDigitTrie.print(krakenFilter.process(new BufferedInputStream(new FileInputStream(fromKraken)),
 				new BufferedInputStream(gStream), filter), System.out);
 
 		// Test uncompressed:
