@@ -50,6 +50,7 @@ public class Main {
 				fastqFile = new File(fastqName);
 			}
 			
+			restArgs = line.getArgs();
 			String projectName = restArgs[0];
 			File resFolder = null;
 			
@@ -58,7 +59,6 @@ public class Main {
 				resFolder = new File(resStr);
 			}
 			
-			restArgs = line.getArgs();
 			project = new GSProject(config, projectName, q, k, db, fastqFile, resFolder);
 			generator = new GSMaker(getProject());
 		} catch (IOException e) {

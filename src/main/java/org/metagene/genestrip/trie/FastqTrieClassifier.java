@@ -62,7 +62,7 @@ public class FastqTrieClassifier {
 		for (size = fastqStream.read(buffer); size != -1; size = fastqStream.read(buffer)) {
 			for (count = 0; count < size; count++) {
 				if (line == 2) {
-					bite = CGAT.CGAT_TO_UPPER_CASE[buffer[count]];
+					bite = CGAT.cgatToUpperCase(buffer[count]);
 				} else {
 					bite = buffer[count];
 				}

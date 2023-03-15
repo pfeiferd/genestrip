@@ -42,7 +42,7 @@ public class FastaIndexer {
 					}
 					infoLine = false;
 				} else if (!infoLine) {
-					index.put(CGAT.CGAT_TO_UPPER_CASE[bite]);
+					index.put(CGAT.cgatToUpperCase(bite));
 //					count++;
 //					if (count % 10000000 == 0) {
 //						double ratio = (double) count / index.getExpectedInsertions();
