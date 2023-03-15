@@ -48,7 +48,8 @@ public class KMerTrieTestCase extends TestCase {
 		BloomFilter<byte[]> bloomFilter = BloomFilter.create(funnel, 5 * 1000 * 1000, 0.00001);
 
 		@SuppressWarnings("unchecked")
-		ObjectGoal<Set<TaxIdNode>> taxNodesGoal = (ObjectGoal<Set<TaxIdNode>>) main.getGenerator().getGoal("taxids");
+		ObjectGoal<Set<TaxIdNode>, Project> taxNodesGoal = (ObjectGoal<Set<TaxIdNode>, Project>) main.getGenerator()
+				.getGoal("taxids");
 		Set<TaxIdNode> nodes = taxNodesGoal.get();
 
 		FilterListener filter = KrakenKMerFastqMerger.createFilterByTaxIdNodes(nodes,

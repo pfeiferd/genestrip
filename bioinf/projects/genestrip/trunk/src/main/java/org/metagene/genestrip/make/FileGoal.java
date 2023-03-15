@@ -4,15 +4,17 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-public abstract class FileGoal extends Goal {
+public abstract class FileGoal<P> extends Goal<P> {
 	private final boolean allowEmptyFiles;
 
-	public FileGoal(String name, Goal... dependencies) {
-		this(name, false, dependencies);
+	@SafeVarargs
+	public FileGoal(P project, String name, Goal<P>... dependencies) {
+		this(project, name, false, dependencies);
 	}
 
-	public FileGoal(String name, boolean allowEmptyFiles, Goal... dependencies) {
-		super(name, dependencies);
+	@SafeVarargs
+	public FileGoal(P project, String name, boolean allowEmptyFiles, Goal<P>... dependencies) {
+		super(project, name, dependencies);
 		this.allowEmptyFiles = allowEmptyFiles;
 	}
 

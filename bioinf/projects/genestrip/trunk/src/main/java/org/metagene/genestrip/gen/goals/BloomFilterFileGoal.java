@@ -17,15 +17,14 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-public class BloomFilterFileGoal extends FileListGoal {
-	private final Project project;
-	private final ObjectGoal<Set<TaxIdNode>> taxNodesGoal;
+public class BloomFilterFileGoal extends FileListGoal<Project> {
+	private final ObjectGoal<Set<TaxIdNode>, Project> taxNodesGoal;
 	private final KMerFastqGoal kMerFastqGoal;
 
-	public BloomFilterFileGoal(Project project, KMerFastqGoal kMerFastqGoal, ObjectGoal<Set<TaxIdNode>> taxNodesGoal,
-			Goal... deps) {
-		super("bloomgen", project.getBloomFilterFile(), deps);
-		this.project = project;
+	@SafeVarargs
+	public BloomFilterFileGoal(Project project, KMerFastqGoal kMerFastqGoal,
+			ObjectGoal<Set<TaxIdNode>, Project> taxNodesGoal, Goal<Project>... deps) {
+		super(project, "bloomgen", project.getBloomFilterFile(), deps);
 		this.taxNodesGoal = taxNodesGoal;
 		this.kMerFastqGoal = kMerFastqGoal;
 	}
@@ -33,7 +32,7 @@ public class BloomFilterFileGoal extends FileListGoal {
 	@Override
 	protected void makeFile(File bloomFilterFile) {
 		try {
-			KMerBloomIndex bloomIndex = new KMerBloomIndex(bloomFilterFile.getName(), project.getkMserSize(),
+			KMerBloomIndex bloomIndex = new KMerBloomIndex(bloomFilterFile.getName(), getProject().getkMserSize(),
 					kMerFastqGoal.getAddedKmers(), 0.0001, null);
 
 			Set<String> taxIds = new HashSet<String>();
@@ -49,15 +48,15 @@ public class BloomFilterFileGoal extends FileListGoal {
 				}
 			});
 			KrakenKMerFastqMerger krakenKMerFastqMerger = new KrakenKMerFastqMerger(
-					project.getConfig().getMaxReadSizeBytes());
+					getProject().getConfig().getMaxReadSizeBytes());
 
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Reading file " + project.getKrakenOutFile());
-				getLogger().info("Reading file " + project.getKmerFastqFile());
+				getLogger().info("Reading file " + getProject().getKrakenOutFile());
+				getLogger().info("Reading file " + getProject().getKmerFastqFile());
 			}
-			FileInputStream fStream = new FileInputStream(project.getKmerFastqFile());
+			FileInputStream fStream = new FileInputStream(getProject().getKmerFastqFile());
 			GZIPInputStream gStream = new GZIPInputStream(fStream, 4096);
-			krakenKMerFastqMerger.process(new BufferedInputStream(new FileInputStream(project.getKrakenOutFile())),
+			krakenKMerFastqMerger.process(new BufferedInputStream(new FileInputStream(getProject().getKrakenOutFile())),
 					new BufferedInputStream(gStream), filter);
 
 			if (getLogger().isInfoEnabled()) {

@@ -12,15 +12,17 @@ import java.nio.channels.ReadableByteChannel;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 
-public abstract class FileDownloadGoal extends FileGoal {
+public abstract class FileDownloadGoal<P> extends FileGoal<P> {
 	private final String baseFTPURL;
 	private final String httpBaseURL;
 	private final boolean useHttp;
 
 	private FTPClient ftpClient;
 
-	public FileDownloadGoal(String name, String baseFTPURL, String httpBaseURL, boolean useHttp, Goal... deps) {
-		super(name, deps);
+	@SafeVarargs
+	public FileDownloadGoal(P project, String name, String baseFTPURL, String httpBaseURL, boolean useHttp,
+			Goal<P>... deps) {
+		super(project, name, deps);
 		this.baseFTPURL = baseFTPURL;
 		this.httpBaseURL = httpBaseURL;
 		this.useHttp = useHttp;
@@ -55,7 +57,7 @@ public abstract class FileDownloadGoal extends FileGoal {
 	protected void connectLoginAndConfigure(FTPClient ftpClient) throws IOException {
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("FTP Connect " + getBaseFTPURL());
-		}		
+		}
 		ftpClient.connect(getBaseFTPURL());
 		login(ftpClient);
 		ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
@@ -64,7 +66,7 @@ public abstract class FileDownloadGoal extends FileGoal {
 	protected void login(FTPClient ftpClient) throws IOException {
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("FTP Login " + getLogin());
-		}		
+		}
 		ftpClient.login(getLogin(), getPassword());
 	}
 
@@ -83,12 +85,12 @@ public abstract class FileDownloadGoal extends FileGoal {
 
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("File save " + file.toString());
-		}		
+		}
 		OutputStream out = new BufferedOutputStream(new FileOutputStream(file));
 		ftpClient.changeWorkingDirectory(ftpFolder);
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("FTP download " + baseFTPURL + ftpFolder + "/" + fileName);
-		}		
+		}
 		if (!ftpClient.retrieveFile(fileName, out)) {
 			out.close();
 			file.delete();
@@ -102,11 +104,11 @@ public abstract class FileDownloadGoal extends FileGoal {
 		String url = buildHttpURL(path, fileName);
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("HTTP download " + url);
-		}		
+		}
 		ReadableByteChannel readableByteChannel = Channels.newChannel(new URL(url).openStream());
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("File save " + file.toString());
-		}		
+		}
 		FileOutputStream out = new FileOutputStream(file);
 		out.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
 		out.close();
@@ -144,9 +146,9 @@ public abstract class FileDownloadGoal extends FileGoal {
 			}
 		}
 	}
-	
+
 	@Override
 	public String toString() {
-		return "download file goal: "+ getName();
+		return "download file goal: " + getName();
 	}
 }
