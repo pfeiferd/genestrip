@@ -7,7 +7,7 @@ import java.util.Properties;
 
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
 
-public class Config {
+public class GSConfig {
 	public static final String CONFIG_PROPERTIES = "Config.properties";
 	public static final String NCBI_URL = "ftp.ncbi.nih.gov";
 	public static final String NCBI_HTTP_BASE_URL = "https://ftp.ncbi.nlm.nih.gov";
@@ -15,7 +15,7 @@ public class Config {
 	private final File baseDir;
 	private final Properties properties;
 
-	public Config(File baseDir) throws IOException {
+	public GSConfig(File baseDir) throws IOException {
 		this.baseDir = baseDir;
 		this.properties = new Properties();
 		properties.load(new FileInputStream(new File(baseDir, CONFIG_PROPERTIES)));
