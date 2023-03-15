@@ -7,7 +7,7 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.util.zip.GZIPInputStream;
 
-import org.metagene.genestrip.gen.GSProject;
+import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.ObjectGoal;
 
 public class FastasSizeGoal extends ObjectGoal<Long, GSProject> {
