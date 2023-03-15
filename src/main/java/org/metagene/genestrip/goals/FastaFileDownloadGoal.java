@@ -27,9 +27,9 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 		this.entryGoal = entryGoal;
 		baseURLLen = project.getConfig().getHttpBaseURL().length();
 	}
-
+	
 	@Override
-	public List<File> getFiles() {
+	protected List<File> getFiles() {
 		if (files == null) {
 			files = new ArrayList<File>();
 			fileToDir = new HashMap<String, String>();

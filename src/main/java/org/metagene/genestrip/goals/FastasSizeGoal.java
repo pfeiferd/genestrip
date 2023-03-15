@@ -26,7 +26,7 @@ public class FastasSizeGoal extends ObjectGoal<Long, GSProject> {
 		long cSizeSum = 0;
 		long uSizeSum = 0;
 
-		for (File file : fastaFileDownloadGoal.getFiles()) {
+		for (File file : fastaFileDownloadGoal.getAvailableFiles()) {
 			if (i == maxCheckForGuess) {
 				break;
 			}
@@ -40,7 +40,7 @@ public class FastasSizeGoal extends ObjectGoal<Long, GSProject> {
 			double cRate = ((double) uSizeSum) / cSizeSum;
 
 			long sizeSum = 0;
-			for (File file : fastaFileDownloadGoal.getFiles()) {
+			for (File file : fastaFileDownloadGoal.getAvailableFiles()) {
 				sizeSum += file.length();
 			}
 			set((long) (sizeSum * cRate));

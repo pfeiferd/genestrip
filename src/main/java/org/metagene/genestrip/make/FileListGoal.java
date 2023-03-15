@@ -7,12 +7,7 @@ import java.util.List;
 
 public abstract class FileListGoal<P> extends FileGoal<P> {
 	private final List<File> files;
-	
-	@SafeVarargs
-	public FileListGoal(P project, String name, Goal<P>... dependencies) {
-		this(project, name, null, false, dependencies);
-	}
-	
+		
 	@SafeVarargs
 	public FileListGoal(P project, String name, File file, Goal<P>... dependencies) {
 		this(project, name, Collections.singletonList(file), false, dependencies);

@@ -2,12 +2,15 @@ package org.metagene.genestrip.make;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
@@ -19,6 +22,10 @@ public abstract class FileDownloadGoal<P> extends FileGoal<P> {
 
 	private FTPClient ftpClient;
 
+	private List<File> availableFiles;
+
+	private final boolean ignoreMissing = true;
+
 	@SafeVarargs
 	public FileDownloadGoal(P project, String name, String baseFTPURL, String httpBaseURL, boolean useHttp,
 			Goal<P>... deps) {
@@ -26,6 +33,11 @@ public abstract class FileDownloadGoal<P> extends FileGoal<P> {
 		this.baseFTPURL = baseFTPURL;
 		this.httpBaseURL = httpBaseURL;
 		this.useHttp = useHttp;
+		availableFiles = new ArrayList<File>();
+	}
+
+	public List<File> getAvailableFiles() {
+		return availableFiles;
 	}
 
 	public boolean isUseHttp() {
@@ -123,14 +135,34 @@ public abstract class FileDownloadGoal<P> extends FileGoal<P> {
 		if (!isUseHttp()) {
 			ftpClient = createFTPClient();
 		}
+		availableFiles.clear();
+	}
+
+	@Override
+	public boolean isMade(File file) {
+		boolean res = super.isMade(file);
+		if (res && !availableFiles.contains(file)) {
+			availableFiles.add(file);
+		}
+		return res;
 	}
 
 	@Override
 	protected void makeFile(File file) throws IOException {
-		if (isUseHttp()) {
-			httpDownload(file, getFTPDir(file), file.getName());
-		} else {
-			ftpDownload(ftpClient, file, getFTPDir(file), file.getName());
+		try {
+			if (isUseHttp()) {
+				httpDownload(file, getFTPDir(file), file.getName());
+			} else {
+				ftpDownload(ftpClient, file, getFTPDir(file), file.getName());
+			}
+			if (!availableFiles.contains(file)) {
+				availableFiles.add(file);
+			}
+		} catch (FileNotFoundException e) {
+			if (!ignoreMissing) {
+				throw e;
+			}
+			getLogger().warn("Missing file for download " + buildHttpURL(getFTPDir(file), file.getName()));
 		}
 	}
 
