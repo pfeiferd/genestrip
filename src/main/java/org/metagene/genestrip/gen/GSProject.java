@@ -4,7 +4,7 @@ import java.io.File;
 
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
 
-public class Project {
+public class GSProject {
 	private final Config config;
 	private final String name;
 	private final String krakenDB;
@@ -12,7 +12,7 @@ public class Project {
 	private final int kMserSize;
 	private final File fastqFile;
 
-	public Project(Config config, String name, FTPEntryQuality fastaQuality, int kMerSize, String krakenDB, File fastqFile) {
+	public GSProject(Config config, String name, FTPEntryQuality fastaQuality, int kMerSize, String krakenDB, File fastqFile) {
 		this.config = config;
 		this.name = name;
 		this.fastaQuality = fastaQuality;

@@ -4,18 +4,18 @@ import java.io.File;
 import java.io.IOException;
 
 import org.metagene.genestrip.fastqgen.KMerFastqGenerator;
-import org.metagene.genestrip.gen.Project;
+import org.metagene.genestrip.gen.GSProject;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 
-public class KMerFastqGoal extends FileListGoal<Project> {
+public class KMerFastqGoal extends FileListGoal<GSProject> {
 	private long addedKmers;
 	private final FastasSizeGoal fastasSizeGoal;
 	private final FastaFileDownloadGoal fastaDownloadGoal;
 
 	@SafeVarargs
-	public KMerFastqGoal(Project project, FastasSizeGoal fastasSizeGoal, FastaFileDownloadGoal fastaDownloadGoal,
-			Goal<Project>... dependencies) {
+	public KMerFastqGoal(GSProject project, FastasSizeGoal fastasSizeGoal, FastaFileDownloadGoal fastaDownloadGoal,
+			Goal<GSProject>... dependencies) {
 		super(project, "kmerfastqgen", project.getKmerFastqFile(), dependencies);
 		this.fastasSizeGoal = fastasSizeGoal;
 		this.fastaDownloadGoal = fastaDownloadGoal;

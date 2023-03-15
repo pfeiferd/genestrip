@@ -11,19 +11,19 @@ import java.util.zip.GZIPInputStream;
 import org.metagene.genestrip.bloom.KMerBloomIndex;
 import org.metagene.genestrip.fastqgen.KrakenKMerFastqMerger;
 import org.metagene.genestrip.fastqgen.KrakenKMerFastqMerger.FilterListener;
-import org.metagene.genestrip.gen.Project;
+import org.metagene.genestrip.gen.GSProject;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-public class BloomFilterFileGoal extends FileListGoal<Project> {
-	private final ObjectGoal<Set<TaxIdNode>, Project> taxNodesGoal;
+public class BloomFilterFileGoal extends FileListGoal<GSProject> {
+	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final KMerFastqGoal kMerFastqGoal;
 
 	@SafeVarargs
-	public BloomFilterFileGoal(Project project, KMerFastqGoal kMerFastqGoal,
-			ObjectGoal<Set<TaxIdNode>, Project> taxNodesGoal, Goal<Project>... deps) {
+	public BloomFilterFileGoal(GSProject project, KMerFastqGoal kMerFastqGoal,
+			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, Goal<GSProject>... deps) {
 		super(project, "bloomgen", project.getBloomFilterFile(), deps);
 		this.taxNodesGoal = taxNodesGoal;
 		this.kMerFastqGoal = kMerFastqGoal;

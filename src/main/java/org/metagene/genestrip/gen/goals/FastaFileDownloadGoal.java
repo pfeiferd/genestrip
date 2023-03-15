@@ -6,22 +6,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.metagene.genestrip.gen.Project;
+import org.metagene.genestrip.gen.GSProject;
 import org.metagene.genestrip.make.FileDownloadGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryWithQuality;
 
-public class FastaFileDownloadGoal extends FileDownloadGoal<Project> {
-	private final ObjectGoal<List<FTPEntryWithQuality>, Project> entryGoal;
+public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
+	private final ObjectGoal<List<FTPEntryWithQuality>, GSProject> entryGoal;
 	private final int baseURLLen;
 
 	private List<File> files;
 	private Map<String, String> fileToDir;
 
 	@SafeVarargs
-	public FastaFileDownloadGoal(Project project,
-			ObjectGoal<List<FTPEntryWithQuality>, Project> entryGoal, Goal<Project>... deps) {
+	public FastaFileDownloadGoal(GSProject project,
+			ObjectGoal<List<FTPEntryWithQuality>, GSProject> entryGoal, Goal<GSProject>... deps) {
 		super(project, "fastasdownload", project.getConfig().getFtpBaseURL(), project.getConfig().getHttpBaseURL(),
 				project.getConfig().isUseHttp(), deps);
 		this.entryGoal = entryGoal;

@@ -11,7 +11,7 @@ import java.util.zip.GZIPInputStream;
 import org.metagene.genestrip.fastqgen.KrakenKMerFastqMerger;
 import org.metagene.genestrip.fastqgen.KrakenKMerFastqMerger.FilterListener;
 import org.metagene.genestrip.gen.Main;
-import org.metagene.genestrip.gen.Project;
+import org.metagene.genestrip.gen.GSProject;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
@@ -26,7 +26,7 @@ public class KMerTrieTestCase extends TestCase {
 		Main main = new Main();
 		main.parseAndRun(new String[] { "bart_h" });
 
-		Project project = main.getProject();
+		GSProject project = main.getProject();
 
 		File bartHReads = project.getKmerFastqFile();
 		FileInputStream fStream = new FileInputStream(bartHReads);
@@ -48,7 +48,7 @@ public class KMerTrieTestCase extends TestCase {
 		BloomFilter<byte[]> bloomFilter = BloomFilter.create(funnel, 5 * 1000 * 1000, 0.00001);
 
 		@SuppressWarnings("unchecked")
-		ObjectGoal<Set<TaxIdNode>, Project> taxNodesGoal = (ObjectGoal<Set<TaxIdNode>, Project>) main.getGenerator()
+		ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal = (ObjectGoal<Set<TaxIdNode>, GSProject>) main.getGenerator()
 				.getGoal("taxids");
 		Set<TaxIdNode> nodes = taxNodesGoal.get();
 

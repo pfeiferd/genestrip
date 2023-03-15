@@ -15,11 +15,11 @@ import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
 
 public class Main {
 	private final Options options;
-	private Project project;
+	private GSProject project;
 	private Config config;
 	private String target;
 	private String[] restArgs;
-	private Generator generator;
+	private GSMaker generator;
 
 	public Main() {
 		options = createOptions();
@@ -51,8 +51,8 @@ public class Main {
 			}
 
 			restArgs = line.getArgs();
-			project = new Project(config, restArgs[0], q, k, db, fastqFile);
-			generator = new Generator(getProject());
+			project = new GSProject(config, restArgs[0], q, k, db, fastqFile);
+			generator = new GSMaker(getProject());
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -62,7 +62,7 @@ public class Main {
 		return target;
 	}
 
-	public Project getProject() {
+	public GSProject getProject() {
 		return project;
 	}
 
@@ -151,7 +151,7 @@ public class Main {
 		}
 	}
 
-	public Generator getGenerator() {
+	public GSMaker getGenerator() {
 		return generator;
 	}
 
