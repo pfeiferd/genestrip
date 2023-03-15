@@ -177,6 +177,8 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 	}
 
 	public static class SmallNode implements Serializable {
+		private static final long serialVersionUID = 1L;
+		
 		private byte pos0;
 		private byte pos1;
 		private byte pos2;
