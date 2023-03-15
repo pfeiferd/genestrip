@@ -12,18 +12,18 @@ import java.util.zip.GZIPOutputStream;
 
 import org.metagene.genestrip.fastqgen.KrakenKMerFastqMerger;
 import org.metagene.genestrip.fastqgen.KrakenKMerFastqMerger.FilterListener;
-import org.metagene.genestrip.gen.Project;
+import org.metagene.genestrip.gen.GSProject;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-public class KrakenFastqFileGoal extends FileListGoal<Project> {
-	private final ObjectGoal<Set<TaxIdNode>, Project> taxNodesGoal;
+public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
+	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 
 	@SafeVarargs
-	public KrakenFastqFileGoal(Project project, ObjectGoal<Set<TaxIdNode>, Project> taxNodesGoal,
-			Goal<Project>... deps) {
+	public KrakenFastqFileGoal(GSProject project, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
+			Goal<GSProject>... deps) {
 		super(project, "krakenfastq", project.getFilteredKmerFastqFile(), deps);
 		this.taxNodesGoal = taxNodesGoal;
 	}

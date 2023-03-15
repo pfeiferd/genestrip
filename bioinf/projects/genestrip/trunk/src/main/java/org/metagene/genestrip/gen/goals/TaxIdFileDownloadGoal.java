@@ -10,17 +10,17 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import org.metagene.genestrip.gen.Project;
+import org.metagene.genestrip.gen.GSProject;
 import org.metagene.genestrip.make.FileDownloadGoal;
 import org.metagene.genestrip.tax.TaxTree;
 
-public class TaxIdFileDownloadGoal extends FileDownloadGoal<Project> {
+public class TaxIdFileDownloadGoal extends FileDownloadGoal<GSProject> {
 	public static final String TAX_DMP_ZIP = "taxdmp.zip";
 	public static final String FTP_DIR = "/pub/taxonomy";
 
 	private final List<File> files;
 
-	public TaxIdFileDownloadGoal(Project project, String name) {
+	public TaxIdFileDownloadGoal(GSProject project, String name) {
 		super(project, name, project.getConfig().getFtpBaseURL(), project.getConfig().getHttpBaseURL(),
 				project.getConfig().isUseHttp());
 		files = new ArrayList<File>();

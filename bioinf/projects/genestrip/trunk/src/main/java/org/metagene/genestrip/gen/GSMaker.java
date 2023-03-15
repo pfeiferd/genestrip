@@ -28,18 +28,18 @@ import org.metagene.genestrip.tax.TaxIdCollector;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-public class Generator extends Maker<Project> {
-	public Generator(Project project) {
+public class GSMaker extends Maker<GSProject> {
+	public GSMaker(GSProject project) {
 		super(project);
 	}
 
-	protected void createGoals(Project project) {
+	protected void createGoals(GSProject project) {
 		Config config = project.getConfig();
 
 		List<File> projectDirs = Arrays.asList(project.getFastasDir(), project.getFastqsDir(), project.getFiltersDir(),
 				project.getResultsDir());
 
-		Goal<Project> projectSetupGoal = new FileListGoal<Project>(project, "setup", projectDirs) {
+		Goal<GSProject> projectSetupGoal = new FileListGoal<GSProject>(project, "setup", projectDirs) {
 			@Override
 			protected void makeFile(File file) throws IOException {
 				file.mkdir();
@@ -47,10 +47,10 @@ public class Generator extends Maker<Project> {
 		};
 		registerGoal(projectSetupGoal);
 
-		Goal<Project> taxDBGoal = new TaxIdFileDownloadGoal(project, "taxdownload");
+		Goal<GSProject> taxDBGoal = new TaxIdFileDownloadGoal(project, "taxdownload");
 		registerGoal(taxDBGoal);
 
-		ObjectGoal<TaxTree, Project> taxTreeGoal = new ObjectGoal<TaxTree, Project>(project, "taxtree", taxDBGoal) {
+		ObjectGoal<TaxTree, GSProject> taxTreeGoal = new ObjectGoal<TaxTree, GSProject>(project, "taxtree", taxDBGoal) {
 			@Override
 			public void makeThis() {
 				set(new TaxTree(config.getCommonBaseDir()));
@@ -58,7 +58,7 @@ public class Generator extends Maker<Project> {
 		};
 		registerGoal(taxTreeGoal);
 
-		ObjectGoal<Set<TaxIdNode>, Project> taxNodesGoal = new ObjectGoal<Set<TaxIdNode>, Project>(project, "taxids",
+		ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal = new ObjectGoal<Set<TaxIdNode>, GSProject>(project, "taxids",
 				taxTreeGoal) {
 			@Override
 			public void makeThis() {
@@ -80,10 +80,10 @@ public class Generator extends Maker<Project> {
 		};
 		registerGoal(taxNodesGoal);
 
-		FileGoal<Project> assemblyGoal = new AssemblyFileDownloadGoal(project);
+		FileGoal<GSProject> assemblyGoal = new AssemblyFileDownloadGoal(project);
 		registerGoal(assemblyGoal);
 
-		Goal<Project> commonGoal = new Goal<Project>(project, "common", assemblyGoal, taxDBGoal) {
+		Goal<GSProject> commonGoal = new Goal<GSProject>(project, "common", assemblyGoal, taxDBGoal) {
 			@Override
 			public boolean isMade() {
 				return false;
@@ -91,7 +91,7 @@ public class Generator extends Maker<Project> {
 		};
 		registerGoal(commonGoal);
 
-		ObjectGoal<List<FTPEntryWithQuality>, Project> fastaFilesGoal = new ObjectGoal<List<FTPEntryWithQuality>, Project>(
+		ObjectGoal<List<FTPEntryWithQuality>, GSProject> fastaFilesGoal = new ObjectGoal<List<FTPEntryWithQuality>, GSProject>(
 				project, "fastafiles", assemblyGoal, taxNodesGoal) {
 			@Override
 			public void makeThis() {
@@ -116,7 +116,7 @@ public class Generator extends Maker<Project> {
 				fastaDownloadGoal);
 		registerGoal(kmerFastqGoal);
 
-		Goal<Project> krakenOutGoal = new FileListGoal<Project>(project, "krakenout", kmerFastqGoal, projectSetupGoal) {
+		Goal<GSProject> krakenOutGoal = new FileListGoal<GSProject>(project, "krakenout", kmerFastqGoal, projectSetupGoal) {
 			@Override
 			protected void makeFile(File krakenOut) {
 				File fastq = getProject().getKmerFastqFile();
@@ -138,18 +138,18 @@ public class Generator extends Maker<Project> {
 		};
 		registerGoal(krakenOutGoal);
 
-		Goal<Project> trieGoal = new KMerTrieFileGoal(project, taxNodesGoal, krakenOutGoal, kmerFastqGoal,
+		Goal<GSProject> trieGoal = new KMerTrieFileGoal(project, taxNodesGoal, krakenOutGoal, kmerFastqGoal,
 				projectSetupGoal);
 		registerGoal(trieGoal);
 
-		Goal<Project> krakenFastqGoal = new KrakenFastqFileGoal(project, taxNodesGoal, projectSetupGoal);
+		Goal<GSProject> krakenFastqGoal = new KrakenFastqFileGoal(project, taxNodesGoal, projectSetupGoal);
 		registerGoal(krakenFastqGoal);
 
-		Goal<Project> bloomFilterFileGoal = new BloomFilterFileGoal(project, kmerFastqGoal, taxNodesGoal,
+		Goal<GSProject> bloomFilterFileGoal = new BloomFilterFileGoal(project, kmerFastqGoal, taxNodesGoal,
 				projectSetupGoal, kmerFastqGoal);
 		registerGoal(bloomFilterFileGoal);
 
-		Goal<Project> showGoals = new Goal<Project>(project, "show") {
+		Goal<GSProject> showGoals = new Goal<GSProject>(project, "show") {
 			@Override
 			public boolean isMade() {
 				return false;
@@ -162,7 +162,7 @@ public class Generator extends Maker<Project> {
 		};
 		registerGoal(showGoals);
 
-		Goal<Project> all = new Goal<Project>(project, "genall", trieGoal, krakenFastqGoal, bloomFilterFileGoal) {
+		Goal<GSProject> all = new Goal<GSProject>(project, "genall", trieGoal, krakenFastqGoal, bloomFilterFileGoal) {
 			@Override
 			public boolean isMade() {
 				return false;
@@ -175,7 +175,7 @@ public class Generator extends Maker<Project> {
 		registerDefaultGoal(all);
 
 		if (project.getFastqFile() != null) {
-			Goal<Project> filterGoal = new FileListGoal<Project>(project, "filter", project.getFilteredFastqFile(),
+			Goal<GSProject> filterGoal = new FileListGoal<GSProject>(project, "filter", project.getFilteredFastqFile(),
 					bloomFilterFileGoal) {
 				@Override
 				protected void makeFile(File file) {
