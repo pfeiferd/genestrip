@@ -121,8 +121,8 @@ public class GSMaker extends Maker<GSProject> {
 				fastaDownloadGoal);
 		registerGoal(kmerFastqGoal);
 
-		Goal<GSProject> krakenOutGoal = new FileListGoal<GSProject>(project, "krakenout", kmerFastqGoal,
-				projectSetupGoal) {
+		Goal<GSProject> krakenOutGoal = new FileListGoal<GSProject>(project, "krakenout", project.getKrakenOutFile(),
+				kmerFastqGoal, projectSetupGoal) {
 			@Override
 			protected void makeFile(File krakenOut) {
 				File fastq = getProject().getKmerFastqFile();
@@ -206,8 +206,7 @@ public class GSMaker extends Maker<GSProject> {
 						@SuppressWarnings("unchecked")
 						KMerTrie<String> trie = (KMerTrie<String>) KMerTrie.load(getProject().getTrieFile());
 						Map<String, Long> res = new FastqTrieClassifier(trie,
-								getProject().getConfig().getMaxReadSizeBytes())
-										.runClassifier(project.getFilteredFastqFile());
+								getProject().getConfig().getMaxReadSizeBytes()).runClassifier(project.getFastqFile());
 						FileOutputStream out = new FileOutputStream(project.getTaxCountsFile());
 						CountingDigitTrie.print(res, out);
 						out.close();

@@ -12,6 +12,8 @@ import java.io.Serializable;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.metagene.genestrip.util.CGAT;
+
 public class KMerTrie<V extends Serializable> implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
@@ -74,7 +76,10 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 			pos = 0;
 			mult = 1;
 			for (j = 0; j < factor && i + j < len; j++) {
-				byte c = nseq[start + i + j];
+				byte c = CGAT.cgatToUpperCase(nseq[start + i + j]);
+				if (jumpTable[c] == -1) {
+					throw new IllegalArgumentException("Not a CGAT sequence");
+				}
 				pos += jumpTable[c] * mult;
 				mult *= 4;
 			}
@@ -107,7 +112,10 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 			pos = 0;
 			mult = 1;
 			for (j = 0; j < factor && i + j < len; j++) {
-				byte c = nseq[start + i + j];
+				byte c = CGAT.cgatToUpperCase(nseq[start + i + j]);
+				if (jumpTable[c] == -1) {
+					return null;
+				}
 				pos += jumpTable[c] * mult;
 				mult *= 4;
 			}

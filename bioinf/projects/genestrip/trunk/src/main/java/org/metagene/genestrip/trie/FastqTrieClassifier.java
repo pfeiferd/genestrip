@@ -30,6 +30,10 @@ public class FastqTrieClassifier {
 	}
 
 	public Map<String, Long> runClassifier(File fastgz) throws IOException {
+		if (logger.isInfoEnabled()) {
+			logger.info("Reading file " + fastgz);
+		}
+		
 		ByteCountingFileInputStream fStream = new ByteCountingFileInputStream(fastgz);
 		GZIPInputStream gStream = new GZIPInputStream(fStream, bufferSize);
 
@@ -38,6 +42,9 @@ public class FastqTrieClassifier {
 		Map<String, Long> res = runClassifier(gStream, fastqFileSize, fStream);
 
 		gStream.close();
+		if (logger.isInfoEnabled()) {
+			logger.info("Read file " + fastgz);
+		}
 
 		return res;
 	}
@@ -76,7 +83,7 @@ public class FastqTrieClassifier {
 						lc[3] = lc[2] = lc[1] = lc[0] = 0;
 						total++;
 						if (logger.isInfoEnabled()) {
-							if (total % 1000 == 0) {
+							if (total % 100000 == 0) {
 								double ratio = fStream.getBytesRead() / (double) fastqFileSize;
 								long stopTime = System.currentTimeMillis();
 

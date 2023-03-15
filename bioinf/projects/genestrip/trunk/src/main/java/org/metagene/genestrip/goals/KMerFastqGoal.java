@@ -28,7 +28,7 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 				getLogger().info("File generate " + fastq);
 			}
 			KMerFastqGenerator generator = new KMerFastqGenerator(getProject().getkMserSize());
-			addedKmers = generator.run(fastaDownloadGoal.getFiles(), fastq, getProject().getName(),
+			addedKmers = generator.run(fastaDownloadGoal.getAvailableFiles(), fastq, getProject().getName(),
 					fastasSizeGoal.get());
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Entered KMers: " + addedKmers);
