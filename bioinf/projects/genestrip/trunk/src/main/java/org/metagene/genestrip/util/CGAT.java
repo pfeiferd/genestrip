@@ -1,7 +1,7 @@
 package org.metagene.genestrip.util;
 
 public class CGAT {
-	public static final byte[] CGAT_TO_UPPER_CASE = new byte[256];
+	private static final byte[] CGAT_TO_UPPER_CASE = new byte[Byte.MAX_VALUE + 1];
 	{
 		for (int i = 0; i < CGAT_TO_UPPER_CASE.length; i++) {
 			CGAT_TO_UPPER_CASE[i] = (byte) i;
@@ -12,8 +12,11 @@ public class CGAT {
 		CGAT_TO_UPPER_CASE['t'] = 'T';
 	}
 
-	public byte cgatToUpperCase(byte bite) {
-		return CGAT_TO_UPPER_CASE[bite];
+	public static byte cgatToUpperCase(byte c) {
+		if (c == 'C' || c == 'G' || c == 'A' || c == 'T') {
+			return CGAT_TO_UPPER_CASE[c];
+		}
+		return c;
 	}
 
 	public static boolean isCGAT(byte c) {

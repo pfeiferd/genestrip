@@ -29,11 +29,11 @@ public class GSProject {
 	}
 
 	public File getFilteredFastqFile() {
-		return getConfig().isWriteDumpedFastq() ? new File(getResultsDir(), "Filtered_" + fastqFile.getName()) : null;
+		return new File(getResultsDir(), "Filtered_" + fastqFile.getName());
 	}
 
 	public File getDumpFastqFile() {
-		return new File(getResultsDir(), "Dumped_" + fastqFile.getName());
+		return getConfig().isWriteDumpedFastq() ? new File(getResultsDir(), "Dumped_" + fastqFile.getName()) : null;
 	}
 
 	public File getTaxCountsFile() {

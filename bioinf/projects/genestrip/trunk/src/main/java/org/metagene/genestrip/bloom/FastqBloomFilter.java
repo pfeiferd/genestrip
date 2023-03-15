@@ -1,5 +1,6 @@
 package org.metagene.genestrip.bloom;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -39,7 +40,7 @@ public class FastqBloomFilter {
 
 	public void runFilter(File fastgz, File filteredFile, File restFile) throws IOException {
 		ByteCountingFileInputStream fStream = new ByteCountingFileInputStream(fastgz);
-		GZIPInputStream gStream = new GZIPInputStream(fStream, bufferSize);
+		GZIPInputStream gStream = new GZIPInputStream(new BufferedInputStream(fStream, 10 * bufferSize), bufferSize);
 
 		BufferedOutputStream bIndexed = null;
 		if (filteredFile != null) {
@@ -87,7 +88,7 @@ public class FastqBloomFilter {
 		for (size = fastqStream.read(buffer); size != -1; size = fastqStream.read(buffer)) {
 			for (count = 0; count < size; count++) {
 				if (line == 2) {
-					bite = CGAT.CGAT_TO_UPPER_CASE[buffer[count]];
+					bite = CGAT.cgatToUpperCase(buffer[count]);
 				} else {
 					bite = buffer[count];
 				}
@@ -113,7 +114,7 @@ public class FastqBloomFilter {
 						lc[3] = lc[2] = lc[1] = lc[0] = 0;
 						total++;
 						if (logger.isInfoEnabled()) {
-							if (total % 1000 == 0) {
+							if (total % 100000 == 0) {
 								double ratio = fStream.getBytesRead() / (double) fastqFileSize;
 								long stopTime = System.currentTimeMillis();
 
@@ -121,7 +122,7 @@ public class FastqBloomFilter {
 								double totalTime = diff / ratio;
 								double totalHours = totalTime / 1000 / 60 / 60;
 
-								logger.info("Elapse hours:" + diff / 1000 / 60 / 60);
+								logger.info("Elapsed hours:" + diff / 1000 / 60 / 60);
 								logger.info("Estimated total hours:" + totalHours);
 								logger.info("Reads processed: " + total);
 								logger.info("Not indexed: " + notIndexedC);

@@ -12,8 +12,9 @@ import java.io.Serializable;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-@SuppressWarnings("serial")
 public class KMerTrie<V extends Serializable> implements Serializable {
+	private static final long serialVersionUID = 1L;
+	
 	private final int factor;
 	private final int len;
 	private final Object[] root;
