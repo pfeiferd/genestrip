@@ -8,16 +8,15 @@ import org.metagene.genestrip.gen.Project;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 
-public class KMerFastqGoal extends FileListGoal {
-	private final Project project;
+public class KMerFastqGoal extends FileListGoal<Project> {
 	private long addedKmers;
 	private final FastasSizeGoal fastasSizeGoal;
 	private final FastaFileDownloadGoal fastaDownloadGoal;
 
-	public KMerFastqGoal(Project project, FastasSizeGoal fastasSizeGoal,
-			FastaFileDownloadGoal fastaDownloadGoal, Goal... dependencies) {
-		super("kmerfastqgen", project.getKmerFastqFile(), dependencies);
-		this.project = project;
+	@SafeVarargs
+	public KMerFastqGoal(Project project, FastasSizeGoal fastasSizeGoal, FastaFileDownloadGoal fastaDownloadGoal,
+			Goal<Project>... dependencies) {
+		super(project, "kmerfastqgen", project.getKmerFastqFile(), dependencies);
 		this.fastasSizeGoal = fastasSizeGoal;
 		this.fastaDownloadGoal = fastaDownloadGoal;
 	}
@@ -28,8 +27,9 @@ public class KMerFastqGoal extends FileListGoal {
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("File generate " + fastq);
 			}
-			KMerFastqGenerator generator = new KMerFastqGenerator(project.getkMserSize());
-			addedKmers = generator.run(fastaDownloadGoal.getFiles(), fastq, project.getName(), fastasSizeGoal.get());
+			KMerFastqGenerator generator = new KMerFastqGenerator(getProject().getkMserSize());
+			addedKmers = generator.run(fastaDownloadGoal.getFiles(), fastq, getProject().getName(),
+					fastasSizeGoal.get());
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Entered KMers: " + addedKmers);
 				getLogger().info("File generated " + fastq);
@@ -38,7 +38,7 @@ public class KMerFastqGoal extends FileListGoal {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	public long getAddedKmers() {
 		return addedKmers;
 	}

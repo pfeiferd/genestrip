@@ -10,11 +10,11 @@ import org.apache.commons.logging.LogFactory;
 public abstract class Maker<P> {
 	private final Log logger = LogFactory.getLog(Maker.class);
 	
-	private final Map<String, Goal> goalsByName;
+	private final Map<String, Goal<P>> goalsByName;
 	private String defaultGoalName;
 
 	public Maker(P project) {
-		goalsByName = new HashMap<String, Goal>();
+		goalsByName = new HashMap<String, Goal<P>>();
 		createGoals(project);
 	}
 
@@ -22,7 +22,7 @@ public abstract class Maker<P> {
 		return logger;
 	}
 	
-	protected void registerDefaultGoal(Goal goal) {
+	protected void registerDefaultGoal(Goal<P> goal) {
 		registerGoal(goal);
 		if (defaultGoalName != null) {
 			throw new IllegalStateException("duplicate default goal");			
@@ -30,7 +30,7 @@ public abstract class Maker<P> {
 		defaultGoalName = goal.getName();
 	}
 	
-	protected void registerGoal(Goal goal) {
+	protected void registerGoal(Goal<P> goal) {
 		if (goalsByName.get(goal.getName()) != null) {
 			throw new IllegalStateException("duplicate goal name");
 		}
@@ -41,7 +41,7 @@ public abstract class Maker<P> {
 		return goalsByName.keySet();
 	}
 	
-	public Goal getGoal(String name) {
+	public Goal<P> getGoal(String name) {
 		return goalsByName.get(name);
 	}
 	

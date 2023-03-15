@@ -7,14 +7,15 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.util.zip.GZIPInputStream;
 
+import org.metagene.genestrip.gen.Project;
 import org.metagene.genestrip.make.ObjectGoal;
 
-public class FastasSizeGoal extends ObjectGoal<Long> {
+public class FastasSizeGoal extends ObjectGoal<Long, Project> {
 	private final FastaFileDownloadGoal fastaFileDownloadGoal;
 	private final int maxCheckForGuess;
 
-	public FastasSizeGoal(FastaFileDownloadGoal fastaDownloadGoal) {
-		super("fastassize");
+	public FastasSizeGoal(Project project, FastaFileDownloadGoal fastaDownloadGoal) {
+		super(project, "fastassize");
 		this.fastaFileDownloadGoal = fastaDownloadGoal;
 		maxCheckForGuess = 10;
 	}

@@ -39,7 +39,7 @@ public class Generator extends Maker<Project> {
 		List<File> projectDirs = Arrays.asList(project.getFastasDir(), project.getFastqsDir(), project.getFiltersDir(),
 				project.getResultsDir());
 
-		Goal projectSetupGoal = new FileListGoal("setup", projectDirs) {
+		Goal<Project> projectSetupGoal = new FileListGoal<Project>(project, "setup", projectDirs) {
 			@Override
 			protected void makeFile(File file) throws IOException {
 				file.mkdir();
@@ -47,10 +47,10 @@ public class Generator extends Maker<Project> {
 		};
 		registerGoal(projectSetupGoal);
 
-		Goal taxDBGoal = new TaxIdFileDownloadGoal("taxdownload", config);
+		Goal<Project> taxDBGoal = new TaxIdFileDownloadGoal(project, "taxdownload");
 		registerGoal(taxDBGoal);
 
-		ObjectGoal<TaxTree> taxTreeGoal = new ObjectGoal<TaxTree>("taxtree", taxDBGoal) {
+		ObjectGoal<TaxTree, Project> taxTreeGoal = new ObjectGoal<TaxTree, Project>(project, "taxtree", taxDBGoal) {
 			@Override
 			public void makeThis() {
 				set(new TaxTree(config.getCommonBaseDir()));
@@ -58,12 +58,13 @@ public class Generator extends Maker<Project> {
 		};
 		registerGoal(taxTreeGoal);
 
-		ObjectGoal<Set<TaxIdNode>> taxNodesGoal = new ObjectGoal<Set<TaxIdNode>>("taxids", taxTreeGoal) {
+		ObjectGoal<Set<TaxIdNode>, Project> taxNodesGoal = new ObjectGoal<Set<TaxIdNode>, Project>(project, "taxids",
+				taxTreeGoal) {
 			@Override
 			public void makeThis() {
 				try {
 					TaxIdCollector taxIdCollector = new TaxIdCollector(taxTreeGoal.get());
-					Set<TaxIdNode> taxIdNodes = taxIdCollector.readFromFile(project.getTaxIdsFile());
+					Set<TaxIdNode> taxIdNodes = taxIdCollector.readFromFile(getProject().getTaxIdsFile());
 					if (getLogger().isInfoEnabled()) {
 						getLogger().info("Requested tax ids: " + taxIdNodes);
 					}
@@ -79,10 +80,10 @@ public class Generator extends Maker<Project> {
 		};
 		registerGoal(taxNodesGoal);
 
-		FileGoal assemblyGoal = new AssemblyFileDownloadGoal(config);
+		FileGoal<Project> assemblyGoal = new AssemblyFileDownloadGoal(project);
 		registerGoal(assemblyGoal);
 
-		Goal commonGoal = new Goal("common", assemblyGoal, taxDBGoal) {
+		Goal<Project> commonGoal = new Goal<Project>(project, "common", assemblyGoal, taxDBGoal) {
 			@Override
 			public boolean isMade() {
 				return false;
@@ -90,8 +91,8 @@ public class Generator extends Maker<Project> {
 		};
 		registerGoal(commonGoal);
 
-		ObjectGoal<List<FTPEntryWithQuality>> fastaFilesGoal = new ObjectGoal<List<FTPEntryWithQuality>>("fastafiles",
-				assemblyGoal, taxNodesGoal) {
+		ObjectGoal<List<FTPEntryWithQuality>, Project> fastaFilesGoal = new ObjectGoal<List<FTPEntryWithQuality>, Project>(
+				project, "fastafiles", assemblyGoal, taxNodesGoal) {
 			@Override
 			public void makeThis() {
 				try {
@@ -106,29 +107,27 @@ public class Generator extends Maker<Project> {
 			}
 		};
 
-		FastaFileDownloadGoal fastaDownloadGoal = new FastaFileDownloadGoal(config, project.getFastasDir(),
-				fastaFilesGoal, projectSetupGoal);
+		FastaFileDownloadGoal fastaDownloadGoal = new FastaFileDownloadGoal(project, fastaFilesGoal, projectSetupGoal);
 		registerGoal(fastaDownloadGoal);
 
-		FastasSizeGoal fastasSizeGoal = new FastasSizeGoal(fastaDownloadGoal);
+		FastasSizeGoal fastasSizeGoal = new FastasSizeGoal(project, fastaDownloadGoal);
 
 		KMerFastqGoal kmerFastqGoal = new KMerFastqGoal(project, fastasSizeGoal, fastaDownloadGoal, projectSetupGoal,
 				fastaDownloadGoal);
 		registerGoal(kmerFastqGoal);
 
-		Goal krakenOutGoal = new FileListGoal("krakenout", project.getKrakenOutFile(), kmerFastqGoal,
-				projectSetupGoal) {
+		Goal<Project> krakenOutGoal = new FileListGoal<Project>(project, "krakenout", kmerFastqGoal, projectSetupGoal) {
 			@Override
 			protected void makeFile(File krakenOut) {
-				File fastq = project.getKmerFastqFile();
+				File fastq = getProject().getKmerFastqFile();
 				KrakenExecutor krakenExecutor = new KrakenExecutor(config.getKrakenBinFolder(),
 						config.getKrakenExecExpr());
 				if (getLogger().isInfoEnabled()) {
-					String execLine = krakenExecutor.genExecLine(project.getKrakenDB(), fastq);
+					String execLine = krakenExecutor.genExecLine(getProject().getKrakenDB(), fastq);
 					getLogger().info("Run kraken with " + execLine);
 				}
 				try {
-					krakenExecutor.execute(project.getKrakenDB(), fastq, krakenOut);
+					krakenExecutor.execute(getProject().getKrakenDB(), fastq, krakenOut);
 				} catch (InterruptedException | IOException e) {
 					throw new RuntimeException(e);
 				}
@@ -139,17 +138,18 @@ public class Generator extends Maker<Project> {
 		};
 		registerGoal(krakenOutGoal);
 
-		Goal trieGoal = new KMerTrieFileGoal(project, taxNodesGoal, krakenOutGoal, kmerFastqGoal, projectSetupGoal);
+		Goal<Project> trieGoal = new KMerTrieFileGoal(project, taxNodesGoal, krakenOutGoal, kmerFastqGoal,
+				projectSetupGoal);
 		registerGoal(trieGoal);
 
-		Goal krakenFastqGoal = new KrakenFastqFileGoal(project, taxNodesGoal, projectSetupGoal);
+		Goal<Project> krakenFastqGoal = new KrakenFastqFileGoal(project, taxNodesGoal, projectSetupGoal);
 		registerGoal(krakenFastqGoal);
 
-		Goal bloomFilterFileGoal = new BloomFilterFileGoal(project, kmerFastqGoal, taxNodesGoal, projectSetupGoal,
-				kmerFastqGoal);
+		Goal<Project> bloomFilterFileGoal = new BloomFilterFileGoal(project, kmerFastqGoal, taxNodesGoal,
+				projectSetupGoal, kmerFastqGoal);
 		registerGoal(bloomFilterFileGoal);
 
-		Goal showGoals = new Goal("show") {
+		Goal<Project> showGoals = new Goal<Project>(project, "show") {
 			@Override
 			public boolean isMade() {
 				return false;
@@ -162,7 +162,7 @@ public class Generator extends Maker<Project> {
 		};
 		registerGoal(showGoals);
 
-		Goal all = new Goal("genall", trieGoal, krakenFastqGoal, bloomFilterFileGoal) {
+		Goal<Project> all = new Goal<Project>(project, "genall", trieGoal, krakenFastqGoal, bloomFilterFileGoal) {
 			@Override
 			public boolean isMade() {
 				return false;
@@ -175,13 +175,14 @@ public class Generator extends Maker<Project> {
 		registerDefaultGoal(all);
 
 		if (project.getFastqFile() != null) {
-			Goal filterGoal = new FileListGoal("filter", project.getFilteredFastqFile(), bloomFilterFileGoal) {
+			Goal<Project> filterGoal = new FileListGoal<Project>(project, "filter", project.getFilteredFastqFile(),
+					bloomFilterFileGoal) {
 				@Override
 				protected void makeFile(File file) {
 					try {
-						new FastqBloomFilter(KMerBloomIndex.load(project.getBloomFilterFile()),
+						new FastqBloomFilter(KMerBloomIndex.load(getProject().getBloomFilterFile()),
 								config.getPosRatioFilter(), config.getMinPosCountFilter(), config.getMaxReadSizeBytes())
-										.runFilter(project.getFastqFile(), file, null);
+										.runFilter(getProject().getFastqFile(), file, null);
 					} catch (ClassNotFoundException e) {
 						throw new RuntimeException(e);
 					} catch (IOException e) {

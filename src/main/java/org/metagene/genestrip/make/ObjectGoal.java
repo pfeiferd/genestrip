@@ -1,10 +1,11 @@
 package org.metagene.genestrip.make;
 
-public abstract class ObjectGoal<T> extends Goal {
+public abstract class ObjectGoal<T,P> extends Goal<P> {
 	private T object;
 	
-	public ObjectGoal(String name, Goal... dependencies) {
-		super(name, dependencies);
+	@SafeVarargs
+	public ObjectGoal(P project, String name, Goal<P>... dependencies) {
+		super(project, name, dependencies);
 	}
 	
 	public T get() {

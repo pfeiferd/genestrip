@@ -18,13 +18,13 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-public class KrakenFastqFileGoal extends FileListGoal {
-	private final Project project;
-	private final ObjectGoal<Set<TaxIdNode>> taxNodesGoal;
+public class KrakenFastqFileGoal extends FileListGoal<Project> {
+	private final ObjectGoal<Set<TaxIdNode>, Project> taxNodesGoal;
 
-	public KrakenFastqFileGoal(Project project, ObjectGoal<Set<TaxIdNode>> taxNodesGoal, Goal... deps) {
-		super("krakenfastq", project.getFilteredKmerFastqFile(), deps);
-		this.project = project;
+	@SafeVarargs
+	public KrakenFastqFileGoal(Project project, ObjectGoal<Set<TaxIdNode>, Project> taxNodesGoal,
+			Goal<Project>... deps) {
+		super(project, "krakenfastq", project.getFilteredKmerFastqFile(), deps);
 		this.taxNodesGoal = taxNodesGoal;
 	}
 
@@ -39,20 +39,20 @@ public class KrakenFastqFileGoal extends FileListGoal {
 			FilterListener filter = KrakenKMerFastqMerger.createFilterByTaxIdNodes(taxNodesGoal.get(),
 					KrakenKMerFastqMerger.createFastQOutputFilterByTaxId(filteredOut, null));
 			KrakenKMerFastqMerger krakenKMerFastqMerger = new KrakenKMerFastqMerger(
-					project.getConfig().getMaxReadSizeBytes());
+					getProject().getConfig().getMaxReadSizeBytes());
 
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Reading file " + project.getKrakenOutFile());
-				getLogger().info("Reading file " + project.getKmerFastqFile());
+				getLogger().info("Reading file " + getProject().getKrakenOutFile());
+				getLogger().info("Reading file " + getProject().getKmerFastqFile());
 			}
-			FileInputStream fStream = new FileInputStream(project.getKmerFastqFile());
+			FileInputStream fStream = new FileInputStream(getProject().getKmerFastqFile());
 			GZIPInputStream gStream = new GZIPInputStream(fStream, 4096);
-			krakenKMerFastqMerger.process(new BufferedInputStream(new FileInputStream(project.getKrakenOutFile())),
+			krakenKMerFastqMerger.process(new BufferedInputStream(new FileInputStream(getProject().getKrakenOutFile())),
 					new BufferedInputStream(gStream), filter);
 
 			filteredOut.close();
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Written file " + project.getFilteredKmerFastqFile());
+				getLogger().info("Written file " + getProject().getFilteredKmerFastqFile());
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);

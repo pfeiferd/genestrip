@@ -5,22 +5,29 @@ import java.util.Arrays;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public abstract class Goal {
+public abstract class Goal<P> {
 	private final Log logger = LogFactory.getLog(getClass());
 
 	private final String name;
-	private final Goal[] dependencies;
+	private final Goal<P>[] dependencies;
+	private final P project;
 
-	public Goal(String name, Goal... dependencies) {
+	@SafeVarargs
+	public Goal(P project, String name, Goal<P>... dependencies) {
 		this.name = name;
 		this.dependencies = dependencies;
+		this.project = project;
+	}
+	
+	public P getProject() {
+		return project;
 	}
 
 	public String getName() {
 		return name;
 	}
 
-	public Goal[] getDependencies() {
+	public Goal<P>[] getDependencies() {
 		return dependencies;
 	}
 
@@ -37,7 +44,7 @@ public abstract class Goal {
 				getLogger().info("Dependencies " + Arrays.toString(dependencies));
 			}
 			startMake();
-			for (Goal dep : dependencies) {
+			for (Goal<P> dep : dependencies) {
 				if (!dep.isMade()) {
 					dep.make();
 				}
@@ -75,7 +82,7 @@ public abstract class Goal {
 			getLogger().info("Cleaning " + this);
 			getLogger().info("Dependencies " + Arrays.toString(dependencies));
 		}
-		for (Goal dep : dependencies) {
+		for (Goal<P> dep : dependencies) {
 			dep.clean();
 		}
 		if (getLogger().isInfoEnabled()) {

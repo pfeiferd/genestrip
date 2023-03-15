@@ -5,23 +5,27 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public abstract class FileListGoal extends FileGoal {
+public abstract class FileListGoal<P> extends FileGoal<P> {
 	private final List<File> files;
 	
-	public FileListGoal(String name, Goal... dependencies) {
-		this(name, null, false, dependencies);
+	@SafeVarargs
+	public FileListGoal(P project, String name, Goal<P>... dependencies) {
+		this(project, name, null, false, dependencies);
 	}
 	
-	public FileListGoal(String name, File file, Goal... dependencies) {
-		this(name, Collections.singletonList(file), false, dependencies);
+	@SafeVarargs
+	public FileListGoal(P project, String name, File file, Goal<P>... dependencies) {
+		this(project, name, Collections.singletonList(file), false, dependencies);
 	}
 	
-	public FileListGoal(String name, List<File> files, Goal... dependencies) {
-		this(name, files, false, dependencies);
+	@SafeVarargs
+	public FileListGoal(P project, String name, List<File> files, Goal<P>... dependencies) {
+		this(project, name, files, false, dependencies);
 	}
 	
-	public FileListGoal(String name, List<File> files, boolean allowEmptyFiles, Goal... dependencies) {
-		super(name, dependencies);
+	@SafeVarargs
+	public FileListGoal(P project, String name, List<File> files, boolean allowEmptyFiles, Goal<P>... dependencies) {
+		super(project, name, dependencies);
 		this.files = files != null ? new ArrayList<File>(files) : new ArrayList<File>();
 	}
 	
