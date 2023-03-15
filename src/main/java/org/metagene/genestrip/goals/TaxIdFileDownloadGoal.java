@@ -1,4 +1,4 @@
-package org.metagene.genestrip.gen.goals;
+package org.metagene.genestrip.goals;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
