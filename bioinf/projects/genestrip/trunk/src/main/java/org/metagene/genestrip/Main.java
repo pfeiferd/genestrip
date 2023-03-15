@@ -49,9 +49,17 @@ public class Main {
 			if (fastqName != null) {
 				fastqFile = new File(fastqName);
 			}
-
+			
+			String projectName = restArgs[0];
+			File resFolder = null;
+			
+			String resStr = line.getOptionValue("r");
+			if (resStr != null) {
+				resFolder = new File(resStr);
+			}
+			
 			restArgs = line.getArgs();
-			project = new GSProject(config, restArgs[0], q, k, db, fastqFile);
+			project = new GSProject(config, projectName, q, k, db, fastqFile, resFolder);
 			generator = new GSMaker(getProject());
 		} catch (IOException e) {
 			throw new RuntimeException(e);
@@ -102,12 +110,16 @@ public class Main {
 		Option target = Option.builder("t").hasArg().argName("target")
 				.desc("Generation target ('make', 'clean', 'cleanall'), default is 'make'.").build();
 		options.addOption(target);
-
+		
 		Option fastq = Option.builder("f").hasArg().argName("fastq file")
 				.desc("Fastq file in case of filtering or classfication (regarding goals 'filter' and 'classify').")
 				.build();
 		options.addOption(fastq);
 
+		Option resFolder = Option.builder("r").hasArg().argName("path")
+				.desc("Store folder files created via goals 'filter' and 'classify', default is '<base directory >/projects/<project name>/res'.").build();
+		options.addOption(resFolder);
+		
 		return options;
 	}
 
