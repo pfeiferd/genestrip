@@ -96,7 +96,7 @@ public class FastqBloomFilter {
 				if (bite == '\n') {
 					line++;
 					if (line == 2) {
-						res = classifyRead(lReadBuffer[1], lc[1] - 1);
+						res = isFilterRead(lReadBuffer[1], lc[1] - 1);
 					} else if (line == 4) {
 						line = 0;
 						if (res) {
@@ -135,7 +135,7 @@ public class FastqBloomFilter {
 		}
 	}
 
-	public boolean classifyRead(byte[] read, int readSize) {
+	public boolean isFilterRead(byte[] read, int readSize) {
 		int counter = 0;
 		int negCounter = 0;
 		int startAt = index.getK() - 1;
