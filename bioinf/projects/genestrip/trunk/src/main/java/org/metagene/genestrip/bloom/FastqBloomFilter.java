@@ -2,8 +2,6 @@ package org.metagene.genestrip.bloom;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,6 +13,7 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.bloom.KMerBloomIndex.ByteRingBuffer;
+import org.metagene.genestrip.util.ByteCountingFileInputStream;
 import org.metagene.genestrip.util.CGAT;
 
 public class FastqBloomFilter {
@@ -39,7 +38,7 @@ public class FastqBloomFilter {
 	}
 
 	public void runFilter(File fastgz, File filteredFile, File restFile) throws IOException {
-		MyFileInputStream fStream = new MyFileInputStream(fastgz);
+		ByteCountingFileInputStream fStream = new ByteCountingFileInputStream(fastgz);
 		GZIPInputStream gStream = new GZIPInputStream(fStream, bufferSize);
 
 		BufferedOutputStream bIndexed = null;
@@ -69,7 +68,7 @@ public class FastqBloomFilter {
 	}
 
 	private void runFilter(InputStream fastqStream, OutputStream indexed, OutputStream notIndexed, long fastqFileSize,
-			MyFileInputStream fStream) throws IOException {
+			ByteCountingFileInputStream fStream) throws IOException {
 		int line = 0;
 		boolean res = false;
 		long total = 0;
@@ -96,7 +95,7 @@ public class FastqBloomFilter {
 				if (bite == '\n') {
 					line++;
 					if (line == 2) {
-						res = isFilterRead(lReadBuffer[1], lc[1] - 1);
+						res = isAcceptRead(lReadBuffer[1], lc[1] - 1);
 					} else if (line == 4) {
 						line = 0;
 						if (res) {
@@ -115,7 +114,7 @@ public class FastqBloomFilter {
 						total++;
 						if (logger.isInfoEnabled()) {
 							if (total % 1000 == 0) {
-								double ratio = fStream.bRead / (double) fastqFileSize;
+								double ratio = fStream.getBytesRead() / (double) fastqFileSize;
 								long stopTime = System.currentTimeMillis();
 
 								double diff = (stopTime - startTime);
@@ -135,7 +134,7 @@ public class FastqBloomFilter {
 		}
 	}
 
-	public boolean isFilterRead(byte[] read, int readSize) {
+	public boolean isAcceptRead(byte[] read, int readSize) {
 		int counter = 0;
 		int negCounter = 0;
 		int startAt = index.getK() - 1;
@@ -172,35 +171,5 @@ public class FastqBloomFilter {
 		}
 
 		return false;
-	}
-
-	public static class MyFileInputStream extends FileInputStream {
-		private int bRead;
-
-		public MyFileInputStream(File file) throws FileNotFoundException {
-			super(file);
-		}
-
-		@Override
-		public int read() throws IOException {
-			bRead++;
-			return super.read();
-		}
-
-		@Override
-		public int read(byte[] b) throws IOException {
-			bRead += b.length;
-			return super.read(b);
-		}
-
-		@Override
-		public int read(byte[] b, int off, int len) throws IOException {
-			bRead += len;
-			return super.read(b, off, len);
-		}
-
-		public int getbRead() {
-			return bRead;
-		}
 	}
 }

@@ -11,6 +11,7 @@ import java.util.Set;
 
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.KMerTrie;
+import org.metagene.genestrip.util.CountingDigitTrie;
 
 public class KrakenKMerFastqMerger {
 	public static FilterListener STD_ERR_DEFAULT_UPDATE = new FilterListener() {
@@ -39,9 +40,9 @@ public class KrakenKMerFastqMerger {
 		readProbs = new byte[maxReadSizeBytes];		
 	}
 
-	public Map<String, Integer> process(InputStream bufferedInFromKraken, InputStream bufferedInFastQ,
+	public Map<String, Long> process(InputStream bufferedInFromKraken, InputStream bufferedInFastQ,
 			FilterListener update) throws IOException {
-		DigitTrieNode root = new DigitTrieNode();
+		CountingDigitTrie root = new CountingDigitTrie();
 
 		int krakenPos;
 		long readCount = 0;
@@ -103,64 +104,18 @@ public class KrakenKMerFastqMerger {
 		bufferedInFastQ.close();
 		bufferedInFromKraken.close();
 
-		Map<String, Integer> map = new HashMap<String, Integer>();
+		Map<String, Long> map = new HashMap<String, Long>();
 		root.collect(map);
 		return map;
 	}
 
-	public static void print(Map<String, Integer> map, OutputStream out) {
+	public static void print(Map<String, Long> map, OutputStream out) {
 		PrintStream pOut = new PrintStream(out);
 
 		for (String taxid : map.keySet()) {
 			pOut.print(taxid);
 			pOut.print(';');
 			pOut.println(map.get(taxid));
-		}
-	}
-
-	// This Trie avoids generating useless key string objects when analyzing the
-	// input stream.
-	// It is very memory and time efficient...
-	private class DigitTrieNode {
-		private DigitTrieNode[] children;
-		int value;
-		String taxId;
-
-		public DigitTrieNode() {
-		}
-
-		public String inc(byte[] seq, int start, int end) {
-			int index;
-			DigitTrieNode node = this, child;
-			for (int i = start; i <= end; i++, node = child) {
-				index = seq[i] - '0';
-				if (node.children == null) {
-					node.children = new DigitTrieNode[10];
-				}
-				child = node.children[index];
-				if (child == null) {
-					child = new DigitTrieNode();
-					node.children[index] = child;
-				}
-			}
-			node.value++;
-			if (node.value == 1) {
-				node.taxId = new String(seq, start, end - start + 1);
-			}
-			return node.taxId;
-		}
-
-		public void collect(Map<String, Integer> map) {
-			if (value > 0) {
-				map.put(taxId, value);
-			}
-			if (children != null) {
-				for (int k = 0; k < children.length; k++) {
-					if (children[k] != null) {
-						children[k].collect(map);
-					}
-				}
-			}
 		}
 	}
 
