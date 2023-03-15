@@ -12,8 +12,6 @@ import java.io.Serializable;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-import org.metagene.genestrip.bloom.KMerBloomIndex;
-
 @SuppressWarnings("serial")
 public class KMerTrie<V extends Serializable> implements Serializable {
 	private final int factor;
