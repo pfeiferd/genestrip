@@ -14,7 +14,7 @@ public class AssemblyFileDownloadGoal extends FileDownloadGoal<GSProject> {
 	private final List<File> files;
 	
 	public AssemblyFileDownloadGoal(GSProject project) {
-		super(project, "assemblydownload", project.getConfig().getFtpBaseURL(), project.getConfig().getHttpBaseURL(), project.getConfig().isUseHttp());
+		super(project, "assemblydownload");
 		files = Collections.singletonList(new File(project.getConfig().getCommonBaseDir(), AssemblySummaryReader.ASSEMLY_SUM));
 	}
 	

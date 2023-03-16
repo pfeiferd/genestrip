@@ -25,6 +25,10 @@ public class GSConfig {
 		return baseDir;
 	}
 	
+	public boolean isIgnoreMissingFastas() {
+		return Boolean.valueOf(properties.getProperty("ignoreMissingFastas", "false"));
+	}
+	
 	public boolean isWriteDumpedFastq() {
 		return Boolean.valueOf(properties.getProperty("writeDumpedFastq", "false"));
 	}

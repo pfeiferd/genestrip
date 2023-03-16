@@ -2,9 +2,10 @@ package org.metagene.genestrip;
 
 import java.io.File;
 
+import org.metagene.genestrip.make.FileDownloadGoal.DownloadProject;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
 
-public class GSProject {
+public class GSProject implements DownloadProject {
 	private final GSConfig config;
 	private final String name;
 	private final String krakenDB;
@@ -26,6 +27,26 @@ public class GSProject {
 
 	public File getFastqFile() {
 		return fastqFile;
+	}
+	
+	@Override
+	public boolean isIgnoreMissingFiles() {
+		return getConfig().isIgnoreMissingFastas();
+	}
+	
+	@Override
+	public String getBaseFTPURL() {
+		return getConfig().getFtpBaseURL();
+	}
+	
+	@Override
+	public String getHttpBaseURL() {
+		return getConfig().getHttpBaseURL();
+	}
+	
+	@Override
+	public boolean isUseHttp() {
+		return getConfig().isUseHttp();
 	}
 
 	public File getFilteredFastqFile() {

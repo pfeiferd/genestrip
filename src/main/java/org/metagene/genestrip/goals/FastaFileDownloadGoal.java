@@ -22,8 +22,7 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 	@SafeVarargs
 	public FastaFileDownloadGoal(GSProject project,
 			ObjectGoal<List<FTPEntryWithQuality>, GSProject> entryGoal, Goal<GSProject>... deps) {
-		super(project, "fastasdownload", project.getConfig().getFtpBaseURL(), project.getConfig().getHttpBaseURL(),
-				project.getConfig().isUseHttp(), deps);
+		super(project, "fastasdownload", deps);
 		this.entryGoal = entryGoal;
 		baseURLLen = project.getConfig().getHttpBaseURL().length();
 	}

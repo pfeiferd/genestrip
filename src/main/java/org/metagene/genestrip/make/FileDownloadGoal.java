@@ -14,42 +14,20 @@ import java.util.List;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
+import org.metagene.genestrip.make.FileDownloadGoal.DownloadProject;
 
-public abstract class FileDownloadGoal<P> extends FileGoal<P> {
-	private final String baseFTPURL;
-	private final String httpBaseURL;
-	private final boolean useHttp;
-
+public abstract class FileDownloadGoal<P extends DownloadProject> extends FileGoal<P> {
 	private FTPClient ftpClient;
-
 	private List<File> availableFiles;
 
-	private final boolean ignoreMissing = true;
-
 	@SafeVarargs
-	public FileDownloadGoal(P project, String name, String baseFTPURL, String httpBaseURL, boolean useHttp,
-			Goal<P>... deps) {
+	public FileDownloadGoal(P project, String name, Goal<P>... deps) {
 		super(project, name, deps);
-		this.baseFTPURL = baseFTPURL;
-		this.httpBaseURL = httpBaseURL;
-		this.useHttp = useHttp;
 		availableFiles = new ArrayList<File>();
 	}
 
 	public List<File> getAvailableFiles() {
 		return availableFiles;
-	}
-
-	public boolean isUseHttp() {
-		return useHttp;
-	}
-
-	protected String getBaseFTPURL() {
-		return baseFTPURL;
-	}
-
-	public String getHttpBaseURL() {
-		return httpBaseURL;
 	}
 
 	public FTPClient createFTPClient() {
@@ -68,9 +46,9 @@ public abstract class FileDownloadGoal<P> extends FileGoal<P> {
 
 	protected void connectLoginAndConfigure(FTPClient ftpClient) throws IOException {
 		if (getLogger().isInfoEnabled()) {
-			getLogger().info("FTP Connect " + getBaseFTPURL());
+			getLogger().info("FTP Connect " + getProject().getBaseFTPURL());
 		}
-		ftpClient.connect(getBaseFTPURL());
+		ftpClient.connect(getProject().getBaseFTPURL());
 		login(ftpClient);
 		ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
 	}
@@ -90,7 +68,7 @@ public abstract class FileDownloadGoal<P> extends FileGoal<P> {
 		return "anonymous";
 	}
 
-	protected void ftpDownload(FTPClient ftpClient, File file, String ftpFolder, String fileName) throws IOException {
+	protected void ftpDownload(FTPClient ftpClient, File file) throws IOException {
 		if (!ftpClient.isConnected()) {
 			connectLoginAndConfigure(ftpClient);
 		}
@@ -99,21 +77,21 @@ public abstract class FileDownloadGoal<P> extends FileGoal<P> {
 			getLogger().info("File save " + file.toString());
 		}
 		OutputStream out = new BufferedOutputStream(new FileOutputStream(file));
-		ftpClient.changeWorkingDirectory(ftpFolder);
+		ftpClient.changeWorkingDirectory(getFTPDir(file));
 		if (getLogger().isInfoEnabled()) {
-			getLogger().info("FTP download " + baseFTPURL + ftpFolder + "/" + fileName);
+			getLogger().info("FTP download " + buildFTPURL(file));
 		}
-		if (!ftpClient.retrieveFile(fileName, out)) {
+		if (!ftpClient.retrieveFile(file.getName(), out)) {
 			out.close();
 			file.delete();
-			throw new IllegalStateException("Could not fully download " + fileName);
+			throw new IllegalStateException("Could not fully download " + file.getName());
 		} else {
 			out.close();
 		}
 	}
 
-	protected void httpDownload(File file, String path, String fileName) throws IOException {
-		String url = buildHttpURL(path, fileName);
+	protected void httpDownload(File file) throws IOException {
+		String url = buildHttpURL(file);
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("HTTP download " + url);
 		}
@@ -126,13 +104,17 @@ public abstract class FileDownloadGoal<P> extends FileGoal<P> {
 		out.close();
 	}
 
-	protected String buildHttpURL(String path, String file) {
-		return getHttpBaseURL() + path + "/" + file;
+	protected String buildHttpURL(File file) {
+		return getProject().getHttpBaseURL() + getFTPDir(file) + "/" + file.getName();
+	}
+
+	protected String buildFTPURL(File file) {
+		return getProject().getBaseFTPURL() + getFTPDir(file) + "/" + file.getName();
 	}
 
 	@Override
 	protected void startMake() {
-		if (!isUseHttp()) {
+		if (!getProject().isUseHttp()) {
 			ftpClient = createFTPClient();
 		}
 		availableFiles.clear();
@@ -150,19 +132,23 @@ public abstract class FileDownloadGoal<P> extends FileGoal<P> {
 	@Override
 	protected void makeFile(File file) throws IOException {
 		try {
-			if (isUseHttp()) {
-				httpDownload(file, getFTPDir(file), file.getName());
+			if (getProject().isUseHttp()) {
+				httpDownload(file);
 			} else {
-				ftpDownload(ftpClient, file, getFTPDir(file), file.getName());
+				ftpDownload(ftpClient, file);
 			}
 			if (!availableFiles.contains(file)) {
 				availableFiles.add(file);
 			}
 		} catch (FileNotFoundException e) {
-			if (!ignoreMissing) {
+			if (!getProject().isIgnoreMissingFiles()) {
 				throw e;
 			}
-			getLogger().warn("Missing file for download " + buildHttpURL(getFTPDir(file), file.getName()));
+			if (getProject().isUseHttp()) {
+				getLogger().warn("Missing file for download " + buildHttpURL(file));
+			} else {
+				getLogger().warn("Missing file for download " + buildFTPURL(file));
+			}
 		}
 	}
 
@@ -182,5 +168,15 @@ public abstract class FileDownloadGoal<P> extends FileGoal<P> {
 	@Override
 	public String toString() {
 		return "download file goal: " + getName();
+	}
+
+	public interface DownloadProject {
+		public boolean isUseHttp();
+
+		public String getBaseFTPURL();
+
+		public String getHttpBaseURL();
+
+		public boolean isIgnoreMissingFiles();
 	}
 }

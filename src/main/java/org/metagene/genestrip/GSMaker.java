@@ -39,8 +39,6 @@ public class GSMaker extends Maker<GSProject> {
 	}
 
 	protected void createGoals(GSProject project) {
-//		GSConfig config = project.getConfig();
-
 		List<File> projectDirs = Arrays.asList(project.getFastasDir(), project.getFastqsDir(), project.getFiltersDir(),
 				project.getResultsDir());
 
