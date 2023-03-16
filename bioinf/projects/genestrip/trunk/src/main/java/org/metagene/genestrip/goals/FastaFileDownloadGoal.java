@@ -20,27 +20,36 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 	private Map<String, String> fileToDir;
 
 	@SafeVarargs
-	public FastaFileDownloadGoal(GSProject project,
-			ObjectGoal<List<FTPEntryWithQuality>, GSProject> entryGoal, Goal<GSProject>... deps) {
+	public FastaFileDownloadGoal(GSProject project, ObjectGoal<List<FTPEntryWithQuality>, GSProject> entryGoal,
+			Goal<GSProject>... deps) {
 		super(project, "fastasdownload", deps);
 		this.entryGoal = entryGoal;
 		baseURLLen = project.getConfig().getHttpBaseURL().length();
 	}
-	
+
 	@Override
 	protected List<File> getFiles() {
 		if (files == null) {
 			files = new ArrayList<File>();
 			fileToDir = new HashMap<String, String>();
 			for (FTPEntryWithQuality entry : entryGoal.get()) {
-				files.add(new File(getProject().getFastasDir(), entry.getFileName()));
-				fileToDir.put(entry.getFileName(), getFtpDirFromURL(entry.getFtpURL()));
+				String dir = getFtpDirFromURL(entry.getFtpURL());
+				if (dir != null) {
+					files.add(new File(getProject().getFastasDir(), entry.getFileName()));
+					fileToDir.put(entry.getFileName(), getFtpDirFromURL(entry.getFtpURL()));
+				}
+			}
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("Number of Fasta files to download: " + files.size());
 			}
 		}
 		return files;
 	}
 
 	protected String getFtpDirFromURL(String url) {
+		if (url.length() <= baseURLLen) {
+			return null;
+		}
 		return url.substring(baseURLLen);
 
 	}

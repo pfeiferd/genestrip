@@ -8,35 +8,27 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.KMerTrie;
 import org.metagene.genestrip.util.CountingDigitTrie;
 
 public class KrakenKMerFastqMerger {
-	public static FilterListener STD_ERR_DEFAULT_UPDATE = new FilterListener() {
-		@Override
-		public void newTaxidForRead(long readCount, String taxid, byte[] readDescriptor, byte[] read,
-				byte[] readProbs) {
-			System.err.print("Read: ");
-			System.err.println(readCount);
-			System.err.print("New taxid returned: ");
-			System.err.println(taxid);
-			System.err.println(readDescriptor);
-			System.err.println(read);
-			System.err.println(readProbs);
-		}
-	};
-	
+	public static FilterListener STD_ERR_DEFAULT_UPDATE=new FilterListener(){@Override public void newTaxidForRead(long readCount,String taxid,byte[]readDescriptor,byte[]read,byte[]readProbs){System.err.print("Read: ");System.err.println(readCount);System.err.print("New taxid returned: ");System.err.println(taxid);System.err.println(readDescriptor);System.err.println(read);System.err.println(readProbs);}};
+
+	protected static final Log logger = LogFactory.getLog(KrakenKMerFastqMerger.class);
+
 	private final byte[] krakenChars;
 	private final byte[] readDescriptor;
 	private final byte[] read;
 	private final byte[] readProbs;
-	
+
 	public KrakenKMerFastqMerger(int maxReadSizeBytes) {
 		krakenChars = new byte[2048];
 		readDescriptor = new byte[2048];
 		read = new byte[maxReadSizeBytes];
-		readProbs = new byte[maxReadSizeBytes];		
+		readProbs = new byte[maxReadSizeBytes];
 	}
 
 	public Map<String, Long> process(InputStream bufferedInFromKraken, InputStream bufferedInFastQ,
@@ -165,6 +157,12 @@ public class KrakenKMerFastqMerger {
 			public void newTaxidForRead(long readCount, String taxid, byte[] readDescriptor, byte[] read,
 					byte[] readProbs) {
 				trie.put(read, 0, taxid);
+				if (readCount % 10000 == 0) {
+					if (logger.isInfoEnabled()) {
+						logger.info("Trie entries:" + trie.getEntries());
+						logger.info("Trie put ratio:" + ((double) trie.getEntries() / readCount));
+					}
+				}
 				if (delegate != null) {
 					delegate.newTaxidForRead(readCount, taxid, readDescriptor, read, readProbs);
 				}
