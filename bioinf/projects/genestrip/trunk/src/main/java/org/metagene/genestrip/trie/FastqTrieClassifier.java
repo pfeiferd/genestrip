@@ -62,7 +62,7 @@ public class FastqTrieClassifier {
 		byte bite;
 		byte[][] lReadBuffer = readBuffer;
 		int[] lc = c;
-		long notIndexedC = 0;
+		long indexedC = 0;
 
 		CountingDigitTrie root = new CountingDigitTrie();
 
@@ -77,7 +77,9 @@ public class FastqTrieClassifier {
 				if (bite == '\n') {
 					line++;
 					if (line == 2) {
-						classifyRead(lReadBuffer[1], lc[1] - 1, root);
+						if (classifyRead(lReadBuffer[1], lc[1] - 1, root)) {
+							indexedC++;
+						}
 					} else if (line == 4) {
 						line = 0;
 						lc[3] = lc[2] = lc[1] = lc[0] = 0;
@@ -94,8 +96,8 @@ public class FastqTrieClassifier {
 								logger.info("Elapse hours:" + diff / 1000 / 60 / 60);
 								logger.info("Estimated total hours:" + totalHours);
 								logger.info("Reads processed: " + total);
-								logger.info("Not indexed: " + notIndexedC);
-								logger.info("Not indexed ratio:" + ((double) notIndexedC) / total);
+								logger.info("Indexed: " + indexedC);
+								logger.info("Indexed ratio:" + ((double) indexedC) / total);
 							}
 						}
 					}
@@ -108,13 +110,16 @@ public class FastqTrieClassifier {
 		return counts;
 	}
 
-	public void classifyRead(byte[] read, int readSize, CountingDigitTrie countingDigitTrie) {
+	public boolean classifyRead(byte[] read, int readSize, CountingDigitTrie countingDigitTrie) {
 		int max = readSize - trie.getLen() + 1;
+		boolean found = false;
 		for (int i = 0; i < max; i++) {
 			String res = trie.get(read, i);
 			if (res != null) {
+				found = true;
 				countingDigitTrie.inc(res);
 			}
 		}
+		return found;
 	}
 }
