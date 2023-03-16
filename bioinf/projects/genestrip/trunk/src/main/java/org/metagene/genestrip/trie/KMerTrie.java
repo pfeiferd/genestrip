@@ -8,6 +8,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -124,8 +125,8 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 			} else {
 				SmallNode sn = (SmallNode) node;
 				node = null;
-				if (sn.getPos(snPosIndex) == pos) {
-					snPosIndex = sn.nextPosIndex(snPosIndex);
+				if (sn.getPosVal(snPosIndex) == pos) {
+					snPosIndex = sn.nextPos(snPosIndex);
 					if (snPosIndex == 0) {
 						node = sn.next;
 					} else {
@@ -261,7 +262,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 			return new SmallNode(pos, this);
 		}
 
-		public int getPos(int posIndex) {
+		public byte getPosVal(int posIndex) {
 			if (posIndex == 0) {
 				return pos0;
 			}
@@ -289,10 +290,49 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 			throw new IllegalArgumentException("Inavlid pos index");
 		}
 
-		public int nextPosIndex(int posIndex) {
+		public int nextPos(int posIndex) {
 			int next = (posIndex + 1) % 8;
-			return getPos(next) == -1 ? 0 : next;
+			return getPosVal(next) == -1 ? 0 : next;
 		}
+	}
+
+	public void writeAsJSON(PrintStream out) {
+		writeAsJSONHelp(out, root);
+	}
+
+	protected void writeAsJSONHelp(PrintStream out, Object node) {
+		if (node instanceof Object[]) {
+			Object[] array = (Object[]) node;
+			out.print('[');
+			for (int i = 0; i < array.length; i++) {
+				if (i != 0) {
+					out.print(',');
+				}
+				writeAsJSONHelp(out, array[i]);
+			}
+			out.print(']');
+		} else if (node instanceof SmallNode) {
+			out.print('[');
+			out.print('\"');
+			SmallNode sn = (SmallNode) node;
+			for (int pos = 0; pos != -1; pos = sn.nextPos(pos)) {
+				out.print((char) sn.getPosVal(pos));
+			}
+			out.print('\"');
+			out.print(',');
+			writeAsJSONHelp(out, sn.next);
+			out.print(']');
+		} else if (node instanceof String) {
+			out.print('\"');
+			out.print(node);
+			out.print('\"');
+		} else {
+			valueToJSON(out, node);
+		}
+	}
+	
+	protected void valueToJSON(PrintStream out, Object value) {
+		out.print(value);
 	}
 
 	public void save(File trieFile) throws IOException {
