@@ -16,7 +16,7 @@ import org.metagene.genestrip.util.CGAT;
 
 public class KMerTrie<V extends Serializable> implements Serializable {
 	private static final long serialVersionUID = 1L;
-	
+
 	private final int factor;
 	private final int len;
 	private final Object[] root;
@@ -33,7 +33,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		if (factor > 3 || factor < 1) {
 			throw new IllegalArgumentException("factor must be >= 1 and <= 3");
 		}
-		jumpTable = new int[256];
+		jumpTable = new int[Byte.MAX_VALUE];
 		for (int i = 0; i < jumpTable.length; i++) {
 			jumpTable[i] = -1;
 		}
@@ -56,7 +56,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 	public int getLen() {
 		return len;
 	}
-	
+
 	public long getEntries() {
 		return entries;
 	}
@@ -77,7 +77,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 			mult = 1;
 			for (j = 0; j < factor && i + j < len; j++) {
 				byte c = CGAT.cgatToUpperCase(nseq[start + i + j]);
-				if (jumpTable[c] == -1) {
+				if (c < 0 || jumpTable[c] == -1) {
 					throw new IllegalArgumentException("Not a CGAT sequence");
 				}
 				pos += jumpTable[c] * mult;
@@ -108,12 +108,12 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		int j = 0;
 		int snPosIndex = 0;
 
-		for (int i = 0; i < len; i += factor) {
+		for (int i = 0; i < len && node != null; i += factor) {
 			pos = 0;
 			mult = 1;
 			for (j = 0; j < factor && i + j < len; j++) {
 				byte c = CGAT.cgatToUpperCase(nseq[start + i + j]);
-				if (jumpTable[c] == -1) {
+				if (c < 0 || jumpTable[c] == -1) {
 					return null;
 				}
 				pos += jumpTable[c] * mult;
@@ -121,7 +121,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 			}
 			if (node instanceof Object[]) {
 				node = ((Object[]) node)[pos];
-			} else if (node instanceof SmallNode) {
+			} else {
 				SmallNode sn = (SmallNode) node;
 				node = null;
 				if (sn.getPos(snPosIndex) == pos) {
@@ -133,16 +133,14 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 					}
 				}
 			}
-			if (node == null) {
-				return null;
-			}
 		}
-		if (node instanceof Object[]) {
+		if (node == null) {
+			return null;
+		} else if (node instanceof Object[]) {
 			return (V) ((Object[]) node)[pos];
-		} else if (node instanceof SmallNode) {
+		} else {
 			return (V) ((SmallNode) node).next;
 		}
-		return null;
 	}
 
 	public void compress() {
@@ -186,7 +184,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 
 	public static class SmallNode implements Serializable {
 		private static final long serialVersionUID = 1L;
-		
+
 		private byte pos0;
 		private byte pos1;
 		private byte pos2;
@@ -296,14 +294,14 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 			return getPos(next) == -1 ? 0 : next;
 		}
 	}
-	
+
 	public void save(File trieFile) throws IOException {
 		ObjectOutputStream oOut = new ObjectOutputStream(
 				new BufferedOutputStream(new GZIPOutputStream(new FileOutputStream(trieFile))));
 		oOut.writeObject(this);
 		oOut.close();
 	}
-	
+
 	public static KMerTrie<?> load(File filterFile) throws IOException, ClassNotFoundException {
 		ObjectInputStream oOut = new ObjectInputStream(
 				new BufferedInputStream(new GZIPInputStream(new FileInputStream(filterFile))));
