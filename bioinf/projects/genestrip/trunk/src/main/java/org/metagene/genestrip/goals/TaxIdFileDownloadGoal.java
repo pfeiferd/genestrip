@@ -21,8 +21,7 @@ public class TaxIdFileDownloadGoal extends FileDownloadGoal<GSProject> {
 	private final List<File> files;
 
 	public TaxIdFileDownloadGoal(GSProject project, String name) {
-		super(project, name, project.getConfig().getFtpBaseURL(), project.getConfig().getHttpBaseURL(),
-				project.getConfig().isUseHttp());
+		super(project, name);
 		files = new ArrayList<File>();
 		files.add(new File(getProject().getConfig().getCommonBaseDir(), TaxTree.NODES_DMP));
 		files.add(new File(getProject().getConfig().getCommonBaseDir(), TaxTree.NAMES_DMP));
@@ -58,10 +57,10 @@ public class TaxIdFileDownloadGoal extends FileDownloadGoal<GSProject> {
 			zipFile.delete();
 		}
 		if (!zipFile.exists()) {
-			if (isUseHttp()) {
-				httpDownload(zipFile, getFTPDir(zipFile), TAX_DMP_ZIP);
+			if (getProject().isUseHttp()) {
+				httpDownload(zipFile);
 			} else {
-				ftpDownload(getFtpClient(), zipFile, getFTPDir(zipFile), TAX_DMP_ZIP);
+				ftpDownload(getFtpClient(), zipFile);
 			}
 		}
 
