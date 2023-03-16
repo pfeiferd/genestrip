@@ -74,6 +74,7 @@ public class GSMaker extends Maker<GSProject> {
 					taxIdNodes = taxIdCollector.withDescendants(taxIdNodes);
 					if (getLogger().isInfoEnabled()) {
 						getLogger().info("Completed tax ids: " + taxIdNodes);
+						getLogger().info("Number of completed tax ids: " + taxIdNodes.size());
 					}
 					set(taxIdNodes);
 				} catch (IOException e) {

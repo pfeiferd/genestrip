@@ -16,8 +16,8 @@ public abstract class ObjectGoal<T,P> extends Goal<P> {
 	}
 	
 	protected void set(T object) {
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Setting " + this + " to " + object);
+		if (getLogger().isDebugEnabled()) {
+			getLogger().debug("Setting " + this + " to " + object);
 		}
 		this.object = object;
 	}

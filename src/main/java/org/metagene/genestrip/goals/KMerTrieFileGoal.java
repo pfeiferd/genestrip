@@ -29,7 +29,7 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 	@Override
 	protected void makeFile(File trieFile) {
 		try {
-			KMerTrie<String> trie = new KMerTrie<String>(getProject().getkMserSize());
+			KMerTrie<String> trie = new KMerTrie<String>(1, getProject().getkMserSize(), false);
 
 			Set<String> taxIds = new HashSet<String>();
 			for (TaxIdNode node : taxNodesGoal.get()) {
