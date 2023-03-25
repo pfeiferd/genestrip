@@ -43,37 +43,45 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
-	private final KMerFastqGoal kMerFastqGoal;
+	private final BloomFilterSizeGoal sizeGoal;
 
 	@SafeVarargs
-	public BloomFilterFileGoal(GSProject project, KMerFastqGoal kMerFastqGoal,
+	public BloomFilterFileGoal(GSProject project, BloomFilterSizeGoal sizeGoal,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, Goal<GSProject>... deps) {
 		super(project, "bloomgen", project.getBloomFilterFile(), deps);
 		this.taxNodesGoal = taxNodesGoal;
-		this.kMerFastqGoal = kMerFastqGoal;
+		this.sizeGoal = sizeGoal;
 	}
 
 	@Override
 	protected void makeFile(File bloomFilterFile) {
 		try {
 			KMerBloomIndex bloomIndex = new KMerBloomIndex(bloomFilterFile.getName(), getProject().getkMserSize(),
-					kMerFastqGoal.getAddedKmers(), 0.0001, null);
+					sizeGoal.get(), 0.00001, null);
 
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Number of k-mers for " + bloomIndex + ": " + kMerFastqGoal.getAddedKmers());
-				getLogger().info("Bloom filter array size of " + bloomIndex + ": " + bloomIndex.getBitSize() / 8 / 1024 + "KB");
+				getLogger().info("Number of k-mers for " + bloomIndex + ": " + sizeGoal.get());
+				getLogger().info(
+						"Bloom filter array size of " + bloomIndex + ": " + bloomIndex.getBitSize() / 8 / 1024 + "KB");
 			}
-			
+
 			Set<String> taxIds = new HashSet<String>();
 			for (TaxIdNode node : taxNodesGoal.get()) {
 				taxIds.add(node.getTaxId());
 			}
-
+			
 			FilterListener filter = KrakenKMerFastqMerger.createFilterByTaxId(taxIds, new FilterListener() {
+				private long counter = 0;
+				
 				@Override
 				public void newTaxidForRead(long readCount, String taxid, byte[] readDescriptor, byte[] read,
 						byte[] readProbs) {
 					bloomIndex.putDirectKMer(read, 0);
+					if (++counter % 10000 == 0) {
+						if (getLogger().isInfoEnabled()) {
+							getLogger().info("Added kmers to bloom filter: " + counter);
+						}
+					}
 				}
 			});
 			KrakenKMerFastqMerger krakenKMerFastqMerger = new KrakenKMerFastqMerger(
