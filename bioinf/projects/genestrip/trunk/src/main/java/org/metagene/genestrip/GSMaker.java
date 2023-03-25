@@ -37,6 +37,7 @@ import org.metagene.genestrip.bloom.KMerBloomIndex;
 import org.metagene.genestrip.fastqgen.KrakenExecutor;
 import org.metagene.genestrip.goals.AssemblyFileDownloadGoal;
 import org.metagene.genestrip.goals.BloomFilterFileGoal;
+import org.metagene.genestrip.goals.BloomFilterSizeGoal;
 import org.metagene.genestrip.goals.FastaFileDownloadGoal;
 import org.metagene.genestrip.goals.FastasSizeGoal;
 import org.metagene.genestrip.goals.KMerFastqGoal;
@@ -145,7 +146,7 @@ public class GSMaker extends Maker<GSProject> {
 		registerGoal(kmerFastqGoal);
 
 		Goal<GSProject> krakenOutGoal = new FileListGoal<GSProject>(project, "krakenout", project.getKrakenOutFile(),
-				kmerFastqGoal, projectSetupGoal) {
+				kmerFastqGoal) {
 			@Override
 			protected void makeFile(File krakenOut) {
 				File fastq = getProject().getKmerFastqFile();
@@ -174,8 +175,11 @@ public class GSMaker extends Maker<GSProject> {
 		Goal<GSProject> krakenFastqGoal = new KrakenFastqFileGoal(project, taxNodesGoal, projectSetupGoal);
 		registerGoal(krakenFastqGoal);
 
-		Goal<GSProject> bloomFilterFileGoal = new BloomFilterFileGoal(project, kmerFastqGoal, taxNodesGoal,
-				projectSetupGoal, kmerFastqGoal);
+		BloomFilterSizeGoal bloomFilterSizeGoal = new BloomFilterSizeGoal(project, taxNodesGoal, krakenOutGoal);
+		registerGoal(bloomFilterSizeGoal);
+
+		Goal<GSProject> bloomFilterFileGoal = new BloomFilterFileGoal(project, bloomFilterSizeGoal, taxNodesGoal,
+				krakenOutGoal, kmerFastqGoal, taxNodesGoal, bloomFilterSizeGoal);
 		registerGoal(bloomFilterFileGoal);
 
 		Goal<GSProject> showGoals = new Goal<GSProject>(project, "show") {

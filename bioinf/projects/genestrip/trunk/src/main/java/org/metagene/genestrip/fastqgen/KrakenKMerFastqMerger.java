@@ -39,7 +39,19 @@ import org.metagene.genestrip.trie.KMerTrie;
 import org.metagene.genestrip.util.CountingDigitTrie;
 
 public class KrakenKMerFastqMerger {
-	public static FilterListener STD_ERR_DEFAULT_UPDATE=new FilterListener(){@Override public void newTaxidForRead(long readCount,String taxid,byte[]readDescriptor,byte[]read,byte[]readProbs){System.err.print("Read: ");System.err.println(readCount);System.err.print("New taxid returned: ");System.err.println(taxid);System.err.println(readDescriptor);System.err.println(read);System.err.println(readProbs);}};
+	public static FilterListener STD_ERR_DEFAULT_UPDATE = new FilterListener() {
+		@Override
+		public void newTaxidForRead(long readCount, String taxid, byte[] readDescriptor, byte[] read,
+				byte[] readProbs) {
+			System.err.print("Read: ");
+			System.err.println(readCount);
+			System.err.print("New taxid returned: ");
+			System.err.println(taxid);
+			System.err.println(readDescriptor);
+			System.err.println(read);
+			System.err.println(readProbs);
+		}
+	};
 
 	protected static final Log logger = LogFactory.getLog(KrakenKMerFastqMerger.class);
 
@@ -61,32 +73,33 @@ public class KrakenKMerFastqMerger {
 
 		int krakenPos;
 		long readCount = 0;
-		for (int c = bufferedInFromKraken.read(), d = bufferedInFastQ.read(); c != -1
-				&& d != -1; c = bufferedInFromKraken.read(), d = bufferedInFastQ.read()) {
+		for (int c = bufferedInFromKraken.read(), d = bufferedInFastQ == null ? 0 : bufferedInFastQ.read(); c != -1
+				&& d != -1; c = bufferedInFromKraken.read(), d = bufferedInFastQ == null ? 0 : bufferedInFastQ.read()) {
 			for (krakenPos = 0; c != -1 && c != '\n'; krakenPos++) {
 				krakenChars[krakenPos] = (byte) c;
 				c = bufferedInFromKraken.read();
 			}
 
-			for (int pos = 0; d != -1 && d != '\n'; pos++) {
-				readDescriptor[pos] = (byte) d;
+			if (bufferedInFastQ != null) {
+				for (int pos = 0; d != -1 && d != '\n'; pos++) {
+					readDescriptor[pos] = (byte) d;
+					d = bufferedInFastQ.read();
+				}
 				d = bufferedInFastQ.read();
-			}
-
-			d = bufferedInFastQ.read();
-			for (int pos = 0; d != -1 && d != '\n'; pos++) {
-				read[pos] = (byte) d;
+				for (int pos = 0; d != -1 && d != '\n'; pos++) {
+					read[pos] = (byte) d;
+					d = bufferedInFastQ.read();
+				}
+				// Ignore line with "+...":
 				d = bufferedInFastQ.read();
-			}
-			// Ignore line with "+...":
-			d = bufferedInFastQ.read();
-			for (; d != -1 && d != '\n';) {
+				for (; d != -1 && d != '\n';) {
+					d = bufferedInFastQ.read();
+				}
 				d = bufferedInFastQ.read();
-			}
-			d = bufferedInFastQ.read();
-			for (int pos = 0; d != -1 && d != '\n'; pos++) {
-				readProbs[pos] = (byte) d;
-				d = bufferedInFastQ.read();
+				for (int pos = 0; d != -1 && d != '\n'; pos++) {
+					readProbs[pos] = (byte) d;
+					d = bufferedInFastQ.read();
+				}
 			}
 			readCount++;
 			krakenPos--;
@@ -102,21 +115,25 @@ public class KrakenKMerFastqMerger {
 			}
 			String taxid = root.inc(krakenChars, start + 1, end - 2);
 
-			int i;
-			for (i = 1; i < krakenChars.length && krakenChars[i + 1] != '\t'; i++) {
-				if (krakenChars[i + 1] != readDescriptor[i]) {
-					throw new IllegalStateException("In consistent files for read " + readCount);
+			if (bufferedInFastQ != null) {
+				int i;
+				for (i = 1; i < krakenChars.length && krakenChars[i + 1] != '\t'; i++) {
+					if (krakenChars[i + 1] != readDescriptor[i]) {
+						throw new IllegalStateException("In consistent files for read " + readCount);
+					}
 				}
-			}
-			if (i == krakenChars.length) {
-				throw new IllegalStateException("In consistent kraken output...");
+				if (i == krakenChars.length) {
+					throw new IllegalStateException("In consistent kraken output...");
+				}
 			}
 
 			if (taxid != null && update != null) {
 				update.newTaxidForRead(readCount, taxid, readDescriptor, read, readProbs);
 			}
 		}
-		bufferedInFastQ.close();
+		if (bufferedInFastQ != null) {
+			bufferedInFastQ.close();
+		}
 		bufferedInFromKraken.close();
 
 		Map<String, Long> map = new HashMap<String, Long>();
