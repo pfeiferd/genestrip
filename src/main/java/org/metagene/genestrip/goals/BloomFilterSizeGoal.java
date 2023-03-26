@@ -31,8 +31,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.kraken.MergeListener;
 import org.metagene.genestrip.kraken.KrakenKMerFastqMerger;
-import org.metagene.genestrip.kraken.KrakenKMerFastqMerger.FilterListener;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
@@ -56,7 +56,7 @@ public class BloomFilterSizeGoal extends ObjectGoal<Long, GSProject> {
 				taxIds.add(node.getTaxId());
 			}
 
-			FilterListener filter = KrakenKMerFastqMerger.createFilterByTaxId(taxIds, new FilterListener() {
+			MergeListener filter = MergeListener.createFilterByTaxId(taxIds, new MergeListener() {
 				@Override
 				public void newTaxidForRead(long readCount, String taxid, byte[] readDescriptor, byte[] read,
 						byte[] readProbs) {

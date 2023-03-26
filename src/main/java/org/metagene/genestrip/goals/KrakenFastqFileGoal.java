@@ -35,8 +35,8 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.kraken.MergeListener;
 import org.metagene.genestrip.kraken.KrakenKMerFastqMerger;
-import org.metagene.genestrip.kraken.KrakenKMerFastqMerger.FilterListener;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -60,8 +60,8 @@ public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
 			}
 			PrintStream filteredOut = new PrintStream(new GZIPOutputStream(new FileOutputStream(fastq), 4096));
 
-			FilterListener filter = KrakenKMerFastqMerger.createFilterByTaxIdNodes(taxNodesGoal.get(),
-					KrakenKMerFastqMerger.createFastQOutputFilterByTaxId(filteredOut, null));
+			MergeListener filter = MergeListener.createFilterByTaxIdNodes(taxNodesGoal.get(),
+					MergeListener.createFastQOutputFilterByTaxId(filteredOut, null));
 			KrakenKMerFastqMerger krakenKMerFastqMerger = new KrakenKMerFastqMerger(
 					getProject().getConfig().getMaxReadSizeBytes());
 
