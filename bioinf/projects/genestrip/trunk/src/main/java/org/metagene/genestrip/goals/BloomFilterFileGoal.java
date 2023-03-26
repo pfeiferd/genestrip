@@ -34,8 +34,8 @@ import java.util.zip.GZIPInputStream;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.bloom.KMerBloomIndex;
+import org.metagene.genestrip.kraken.MergeListener;
 import org.metagene.genestrip.kraken.KrakenKMerFastqMerger;
-import org.metagene.genestrip.kraken.KrakenKMerFastqMerger.FilterListener;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -70,7 +70,7 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 				taxIds.add(node.getTaxId());
 			}
 			
-			FilterListener filter = KrakenKMerFastqMerger.createFilterByTaxId(taxIds, new FilterListener() {
+			MergeListener filter = MergeListener.createFilterByTaxId(taxIds, new MergeListener() {
 				private long counter = 0;
 				
 				@Override

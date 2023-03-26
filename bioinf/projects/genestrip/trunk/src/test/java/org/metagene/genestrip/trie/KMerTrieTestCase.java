@@ -34,8 +34,8 @@ import java.util.zip.GZIPInputStream;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.Main;
+import org.metagene.genestrip.kraken.MergeListener;
 import org.metagene.genestrip.kraken.KrakenKMerFastqMerger;
-import org.metagene.genestrip.kraken.KrakenKMerFastqMerger.FilterListener;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.CountingDigitTrie;
@@ -77,8 +77,8 @@ public class KMerTrieTestCase extends TestCase {
 				.getGoal("taxids");
 		Set<TaxIdNode> nodes = taxNodesGoal.get();
 
-		FilterListener filter = KrakenKMerFastqMerger.createFilterByTaxIdNodes(nodes,
-				KrakenKMerFastqMerger.fillKMerTrie(trie, new FilterListener() {
+		MergeListener filter = MergeListener.createFilterByTaxIdNodes(nodes,
+				MergeListener.fillKMerTrie(trie, new MergeListener() {
 					@Override
 					public void newTaxidForRead(long readCount, String taxid, byte[] readDescriptor, byte[] read,
 							byte[] readProbs) {
@@ -108,7 +108,7 @@ public class KMerTrieTestCase extends TestCase {
 		// Positive Test:
 		krakenFilter.process(new BufferedInputStream(new FileInputStream(fromKraken)),
 				new BufferedInputStream(gStream2),
-				KrakenKMerFastqMerger.createFilterByTaxIdNodes(nodes, new FilterListener() {
+				MergeListener.createFilterByTaxIdNodes(nodes, new MergeListener() {
 					@Override
 					public void newTaxidForRead(long readCount, String taxid, byte[] readDescriptor, byte[] read,
 							byte[] readProbs) {

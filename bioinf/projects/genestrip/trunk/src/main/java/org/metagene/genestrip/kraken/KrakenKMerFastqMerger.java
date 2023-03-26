@@ -26,33 +26,14 @@ package org.metagene.genestrip.kraken;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintStream;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.trie.KMerTrie;
 import org.metagene.genestrip.util.CountingDigitTrie;
 
 public class KrakenKMerFastqMerger {
-	public static FilterListener STD_ERR_DEFAULT_UPDATE = new FilterListener() {
-		@Override
-		public void newTaxidForRead(long readCount, String taxid, byte[] readDescriptor, byte[] read,
-				byte[] readProbs) {
-			System.err.print("Read: ");
-			System.err.println(readCount);
-			System.err.print("New taxid returned: ");
-			System.err.println(taxid);
-			System.err.println(readDescriptor);
-			System.err.println(read);
-			System.err.println(readProbs);
-		}
-	};
-
 	protected static final Log logger = LogFactory.getLog(KrakenKMerFastqMerger.class);
 
 	private final byte[] krakenChars;
@@ -68,7 +49,7 @@ public class KrakenKMerFastqMerger {
 	}
 
 	public Map<String, Long> process(InputStream bufferedInFromKraken, InputStream bufferedInFastQ,
-			FilterListener update) throws IOException {
+			MergeListener update) throws IOException {
 		CountingDigitTrie root = new CountingDigitTrie();
 
 		int krakenPos;
@@ -139,79 +120,5 @@ public class KrakenKMerFastqMerger {
 		Map<String, Long> map = new HashMap<String, Long>();
 		root.collect(map);
 		return map;
-	}
-
-	public static FilterListener createFilterByTaxIdNodes(Set<TaxIdNode> taxIdNodes, FilterListener delegate) {
-		Set<String> taxIds = new HashSet<String>();
-		for (TaxIdNode node : taxIdNodes) {
-			taxIds.add(node.getTaxId());
-		}
-		return createExcludeTaxIds(taxIds, delegate);
-	}
-
-	public static FilterListener createFilterByTaxId(final Set<String> taxIds, final FilterListener delegate) {
-		return new FilterListener() {
-			@Override
-			public void newTaxidForRead(long readCount, String taxid, byte[] readDescriptor, byte[] read,
-					byte[] readProbs) {
-				if (taxIds.contains(taxid)) {
-					delegate.newTaxidForRead(readCount, taxid, readDescriptor, read, readProbs);
-				}
-			}
-		};
-	}
-
-	public static FilterListener createExcludeTaxIds(final Set<String> taxIds, final FilterListener delegate) {
-		return new FilterListener() {
-			@Override
-			public void newTaxidForRead(long readCount, String taxid, byte[] readDescriptor, byte[] read,
-					byte[] readProbs) {
-				if (!taxIds.contains(taxid)) {
-					delegate.newTaxidForRead(readCount, taxid, readDescriptor, read, readProbs);
-				}
-			}
-		};
-	}
-
-	public static FilterListener createFastQOutputFilterByTaxId(PrintStream printStream, FilterListener delegate) {
-		return new FilterListener() {
-			@Override
-			public void newTaxidForRead(long readCount, String taxid, byte[] readDescriptor, byte[] read,
-					byte[] readProbs) {
-				printStream.print(readDescriptor);
-				printStream.print(":taxid:");
-				printStream.println(taxid);
-				printStream.println(read);
-				printStream.println("+");
-				printStream.println(readProbs);
-
-				if (delegate != null) {
-					delegate.newTaxidForRead(readCount, taxid, readDescriptor, read, readProbs);
-				}
-			}
-		};
-	}
-
-	public static FilterListener fillKMerTrie(KMerTrie<String> trie, FilterListener delegate) {
-		return new FilterListener() {
-			@Override
-			public void newTaxidForRead(long readCount, String taxid, byte[] readDescriptor, byte[] read,
-					byte[] readProbs) {
-				trie.put(read, 0, taxid);
-				if (readCount % 10000 == 0) {
-					if (logger.isInfoEnabled()) {
-						logger.info("Trie entries:" + trie.getEntries());
-						logger.info("Trie put ratio:" + ((double) trie.getEntries() / readCount));
-					}
-				}
-				if (delegate != null) {
-					delegate.newTaxidForRead(readCount, taxid, readDescriptor, read, readProbs);
-				}
-			}
-		};
-	}
-
-	public interface FilterListener {
-		public void newTaxidForRead(long readCount, String taxid, byte[] readDescriptor, byte[] read, byte[] readProbs);
 	}
 }
