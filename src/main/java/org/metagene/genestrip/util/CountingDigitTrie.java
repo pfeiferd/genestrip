@@ -60,6 +60,10 @@ public class CountingDigitTrie {
 	}
 	
 	public String inc(byte[] seq, int start, int end) {
+		return add(seq, start, end, 1);
+	}
+	
+	public String add(byte[] seq, int start, int end, int add) {
 		int index;
 		CountingDigitTrie node = this, child;
 		for (int i = start; i <= end; i++, node = child) {
@@ -73,7 +77,7 @@ public class CountingDigitTrie {
 				node.children[index] = child;
 			}
 		}
-		node.value++;
+		node.value+=add;
 		if (node.value == 1) {
 			node.digits = new String(seq, start, end - start + 1);
 		}
