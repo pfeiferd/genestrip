@@ -34,7 +34,6 @@ import java.util.Set;
 
 import org.metagene.genestrip.bloom.FastqBloomFilter;
 import org.metagene.genestrip.bloom.KMerBloomIndex;
-import org.metagene.genestrip.fastqgen.KrakenExecutor;
 import org.metagene.genestrip.goals.AssemblyFileDownloadGoal;
 import org.metagene.genestrip.goals.BloomFilterFileGoal;
 import org.metagene.genestrip.goals.BloomFilterSizeGoal;
@@ -44,6 +43,7 @@ import org.metagene.genestrip.goals.KMerFastqGoal;
 import org.metagene.genestrip.goals.KMerTrieFileGoal;
 import org.metagene.genestrip.goals.KrakenFastqFileGoal;
 import org.metagene.genestrip.goals.TaxIdFileDownloadGoal;
+import org.metagene.genestrip.kraken.KrakenExecutor;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;

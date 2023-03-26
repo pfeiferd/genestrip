@@ -22,7 +22,7 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.fastqgen;
+package org.metagene.genestrip.kraken;
 
 import java.io.IOException;
 import java.io.InputStream;
