@@ -1,5 +1,5 @@
 package org.metagene.genestrip.kraken;
 
 public interface KrakenResultListener {
-	public void newClassInfo(long lineCount, String taxid, int fr, byte[] readDescriptor);
+	public void newTaxIdForRead(long lineCount, byte[] readDescriptor, String krakenTaxid, int bps, String kmerTaxid, int hitLength);
 }
