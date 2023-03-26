@@ -27,6 +27,7 @@ package org.metagene.genestrip.fastqgen;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.text.MessageFormat;
@@ -46,14 +47,18 @@ public class KrakenExecutor {
 	
 	public void execute(String database, File fastq, File outFile) throws InterruptedException, IOException {
 		Process process = Runtime.getRuntime().exec(genExecLine(database, fastq.getAbsoluteFile()));
-		// TODO: Better write to gzipped stream?
-		ReadableByteChannel readableByteChannel = Channels.newChannel(process.getInputStream());
-		FileOutputStream out = new FileOutputStream(outFile);
-		out.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
-		out.close();
+		handleOutputStream(process.getInputStream(), outFile);
 		int res = process.waitFor();
 		if (res != 0) {
 			throw new IllegalStateException("Kraken terminated unsuccesfully");
 		}
+	}
+	
+	protected void handleOutputStream(InputStream stream, File outFile) throws IOException{
+		// TODO: Better write to gzipped stream?
+		ReadableByteChannel readableByteChannel = Channels.newChannel(stream);
+		FileOutputStream out = new FileOutputStream(outFile);
+		out.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+		out.close();		
 	}
 }
