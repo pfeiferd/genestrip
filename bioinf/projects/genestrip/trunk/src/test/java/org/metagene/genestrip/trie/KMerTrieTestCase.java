@@ -34,8 +34,8 @@ import java.util.zip.GZIPInputStream;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.Main;
-import org.metagene.genestrip.fastqgen.KrakenKMerFastqMerger;
-import org.metagene.genestrip.fastqgen.KrakenKMerFastqMerger.FilterListener;
+import org.metagene.genestrip.kraken.KrakenKMerFastqMerger;
+import org.metagene.genestrip.kraken.KrakenKMerFastqMerger.FilterListener;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.CountingDigitTrie;
