@@ -17,7 +17,7 @@ import org.metagene.genestrip.util.CountingDigitTrie;
 public class KrakenResCountGoal extends FileListGoal<GSProject> {
 	@SafeVarargs
 	public KrakenResCountGoal(GSProject project, Goal<GSProject>... dependencies) {
-		super(project, "krakenrescount", project.getTaxCountsFile(), dependencies);
+		super(project, "krakenrescount", project.getTaxCountsFile("krakenrescount"), dependencies);
 	}
 	
 	@Override

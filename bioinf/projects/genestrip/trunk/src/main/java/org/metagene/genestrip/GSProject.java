@@ -81,8 +81,8 @@ public class GSProject implements DownloadProject {
 		return getConfig().isWriteDumpedFastq() ? new File(getResultsDir(), "Dumped_" + fastqFile.getName()) : null;
 	}
 
-	public File getTaxCountsFile() {
-		return new File(getResultsDir(), "Counts_" + fastqFile.getName() + ".csv");
+	public File getTaxCountsFile(String goalname) {
+		return new File(getResultsDir(), goalname + "_Counts_" + fastqFile.getName() + ".csv");
 	}
 
 	public GSConfig getConfig() {

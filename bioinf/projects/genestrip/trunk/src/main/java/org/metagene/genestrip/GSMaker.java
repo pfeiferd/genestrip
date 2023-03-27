@@ -42,6 +42,7 @@ import org.metagene.genestrip.goals.FastasSizeGoal;
 import org.metagene.genestrip.goals.KMerFastqGoal;
 import org.metagene.genestrip.goals.KMerTrieFileGoal;
 import org.metagene.genestrip.goals.KrakenFastqFileGoal;
+import org.metagene.genestrip.goals.KrakenResCountGoal;
 import org.metagene.genestrip.goals.TaxIdFileDownloadGoal;
 import org.metagene.genestrip.kraken.KrakenExecutor;
 import org.metagene.genestrip.make.FileGoal;
@@ -225,16 +226,17 @@ public class GSMaker extends Maker<GSProject> {
 			};
 			registerGoal(filterGoal);
 
-			Goal<GSProject> classifyGoal = new FileListGoal<GSProject>(project, "classify", project.getTaxCountsFile(),
-					trieGoal) {
+			Goal<GSProject> classifyGoal = new FileListGoal<GSProject>(project, "classify",
+					project.getTaxCountsFile("classify"), trieGoal) {
 				@Override
 				protected void makeFile(File file) {
 					try {
 						@SuppressWarnings("unchecked")
 						KMerTrie<String> trie = (KMerTrie<String>) KMerTrie.load(getProject().getTrieFile());
 						Map<String, Long> res = new FastqTrieClassifier(trie,
-								getProject().getConfig().getMaxReadSizeBytes()).runClassifier(project.getFastqFile());
-						FileOutputStream out = new FileOutputStream(project.getTaxCountsFile());
+								getProject().getConfig().getMaxReadSizeBytes())
+										.runClassifier(getProject().getFastqFile());
+						FileOutputStream out = new FileOutputStream(file);
 						CountingDigitTrie.print(res, out);
 						out.close();
 					} catch (IOException | ClassNotFoundException e) {
@@ -243,6 +245,9 @@ public class GSMaker extends Maker<GSProject> {
 				}
 			};
 			registerGoal(classifyGoal);
+			
+			Goal<GSProject> krakenResCountGoal = new KrakenResCountGoal(project);
+			registerGoal(krakenResCountGoal);
 		}
 	}
 }
