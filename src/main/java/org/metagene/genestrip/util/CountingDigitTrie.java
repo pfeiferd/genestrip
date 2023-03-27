@@ -78,12 +78,32 @@ public class CountingDigitTrie {
 			}
 		}
 		node.value+=add;
-		if (node.value == 1) {
+		if (node.digits == null) {
 			node.digits = new String(seq, start, end - start + 1);
 		}
 		return node.digits;
 	}
 
+	public String get(byte[] seq, int start, int end) {
+		int index;
+		CountingDigitTrie node = this, child;
+		for (int i = start; i <= end; i++, node = child) {
+			index = seq[i] - '0';
+			if (node.children == null) {
+				node.children = new CountingDigitTrie[10];
+			}
+			child = node.children[index];
+			if (child == null) {
+				child = new CountingDigitTrie();
+				node.children[index] = child;
+			}
+		}
+		if (node.digits == null) {
+			node.digits = new String(seq, start, end - start + 1);
+		}
+		return node.digits;
+	}
+	
 	public void collect(Map<String, Long> map) {
 		if (value > 0) {
 			map.put(digits, value);
