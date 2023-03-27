@@ -62,25 +62,29 @@ public class KrakenKMerFastqMerger {
 			}
 
 			if (bufferedInFastQ != null) {
-				for (int pos = 0; d != -1 && d != '\n'; pos++) {
+				int pos;
+				for (pos = 0; d != -1 && d != '\n'; pos++) {
 					readDescriptor[pos] = (byte) d;
 					d = bufferedInFastQ.read();
 				}
+				readDescriptor[pos] = 0;
 				d = bufferedInFastQ.read();
-				for (int pos = 0; d != -1 && d != '\n'; pos++) {
+				for (pos = 0; d != -1 && d != '\n'; pos++) {
 					read[pos] = (byte) d;
 					d = bufferedInFastQ.read();
 				}
+				read[pos] = 0;
 				// Ignore line with "+...":
 				d = bufferedInFastQ.read();
 				for (; d != -1 && d != '\n';) {
 					d = bufferedInFastQ.read();
 				}
 				d = bufferedInFastQ.read();
-				for (int pos = 0; d != -1 && d != '\n'; pos++) {
+				for (pos = 0; d != -1 && d != '\n'; pos++) {
 					readProbs[pos] = (byte) d;
 					d = bufferedInFastQ.read();
 				}
+				readProbs[pos] = 0;
 			}
 			readCount++;
 			krakenPos--;
