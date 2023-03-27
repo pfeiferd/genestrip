@@ -27,6 +27,7 @@ package org.metagene.genestrip;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -236,7 +237,7 @@ public class GSMaker extends Maker<GSProject> {
 						Map<String, Long> res = new FastqTrieClassifier(trie,
 								getProject().getConfig().getMaxReadSizeBytes())
 										.runClassifier(getProject().getFastqFile());
-						FileOutputStream out = new FileOutputStream(file);
+						PrintStream out = new PrintStream(new FileOutputStream(file));
 						CountingDigitTrie.print(res, out);
 						out.close();
 					} catch (IOException | ClassNotFoundException e) {

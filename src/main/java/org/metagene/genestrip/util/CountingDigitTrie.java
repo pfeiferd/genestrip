@@ -24,7 +24,6 @@
  */
 package org.metagene.genestrip.util;
 
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.Map;
 
@@ -37,6 +36,10 @@ public class CountingDigitTrie {
 	}
 
 	public String inc(String digits) {
+		return add(digits, 1);
+	}
+
+	public String add(String digits, int add) {
 		int index;
 		int end = digits.length();
 		CountingDigitTrie node = this, child;
@@ -51,18 +54,18 @@ public class CountingDigitTrie {
 				node.children[index] = child;
 			}
 		}
-		node.value++;
-		if (node.value == 1) {
+		node.value += add;
+		if (node.digits == null) {
 			node.digits = digits;
 		}
-		
+
 		return node.digits;
 	}
-	
+
 	public String inc(byte[] seq, int start, int end) {
 		return add(seq, start, end, 1);
 	}
-	
+
 	public String add(byte[] seq, int start, int end, int add) {
 		int index;
 		CountingDigitTrie node = this, child;
@@ -77,7 +80,7 @@ public class CountingDigitTrie {
 				node.children[index] = child;
 			}
 		}
-		node.value+=add;
+		node.value += add;
 		if (node.digits == null) {
 			node.digits = new String(seq, start, end - start + 1);
 		}
@@ -103,9 +106,9 @@ public class CountingDigitTrie {
 		}
 		return node.digits;
 	}
-	
+
 	public void collect(Map<String, Long> map) {
-		if (value > 0) {
+		if (digits != null) {
 			map.put(digits, value);
 		}
 		if (children != null) {
@@ -116,15 +119,12 @@ public class CountingDigitTrie {
 			}
 		}
 	}
-	
-	public static void print(Map<String, Long> map, OutputStream out) {
-		PrintStream pOut = new PrintStream(out);
 
+	public static void print(Map<String, Long> map, PrintStream pOut) {
 		for (String taxid : map.keySet()) {
 			pOut.print(taxid);
 			pOut.print(';');
 			pOut.println(map.get(taxid));
 		}
-	}	
+	}
 }
-
