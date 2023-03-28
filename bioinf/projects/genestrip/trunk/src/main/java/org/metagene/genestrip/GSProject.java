@@ -37,9 +37,10 @@ public class GSProject implements DownloadProject {
 	private final int kMserSize;
 	private final File fastqFile;
 	private final File resFolder;
+	private final boolean useKrakenOutFilter;
 
 	public GSProject(GSConfig config, String name, FTPEntryQuality fastaQuality, int kMerSize, String krakenDB,
-			File fastqFile, File resFolder) {
+			File fastqFile, File resFolder, boolean useKrakenOutFilter) {
 		this.config = config;
 		this.name = name;
 		this.fastaQuality = fastaQuality;
@@ -47,6 +48,7 @@ public class GSProject implements DownloadProject {
 		this.krakenDB = krakenDB;
 		this.fastqFile = fastqFile;
 		this.resFolder = resFolder != null ? resFolder : new File(getProjectsDir(), name + "/res");
+		this.useKrakenOutFilter = useKrakenOutFilter;
 	}
 
 	public File getFastqFile() {
@@ -151,5 +153,9 @@ public class GSProject implements DownloadProject {
 
 	public File getBloomFilterFile() {
 		return new File(getFiltersDir(), getName() + "_k" + getkMserSize() + "_BloomFilter.ser.gz");
+	}
+	
+	public boolean isUseKrakenOutFilter() {
+		return useKrakenOutFilter;
 	}
 }

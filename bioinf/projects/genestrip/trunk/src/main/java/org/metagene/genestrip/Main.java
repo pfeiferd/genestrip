@@ -67,23 +67,25 @@ public class Main {
 			}
 
 			target = line.getOptionValue("t", "make");
-			
+
 			String fastqName = line.getOptionValue("f");
 			File fastqFile = null;
 			if (fastqName != null) {
 				fastqFile = new File(fastqName);
 			}
 			
+			boolean ignoreKrakenOutFilter = line.hasOption('i');
+
 			restArgs = line.getArgs();
 			String projectName = restArgs[0];
 			File resFolder = null;
-			
+
 			String resStr = line.getOptionValue("r");
 			if (resStr != null) {
 				resFolder = new File(resStr);
 			}
-			
-			project = new GSProject(config, projectName, q, k, db, fastqFile, resFolder);
+
+			project = new GSProject(config, projectName, q, k, db, fastqFile, resFolder, !ignoreKrakenOutFilter);
 			generator = new GSMaker(getProject());
 		} catch (IOException e) {
 			throw new RuntimeException(e);
@@ -134,16 +136,22 @@ public class Main {
 		Option target = Option.builder("t").hasArg().argName("target")
 				.desc("Generation target ('make', 'clean', 'cleanall'), default is 'make'.").build();
 		options.addOption(target);
-		
-		Option fastq = Option.builder("f").hasArg().argName("fastq file")
+
+		Option fastq = Option.builder("f").hasArg().argName("fqfile")
 				.desc("Fastq file in case of filtering or classfication (regarding goals 'filter' and 'classify').")
 				.build();
 		options.addOption(fastq);
 
-		Option resFolder = Option.builder("r").hasArg().argName("path")
-				.desc("Store folder files created via goals 'filter' and 'classify', default is '<base directory >/projects/<project name>/res'.").build();
+		Option ignoreKrakenOutFilter = Option.builder("i").argName("ignoretaxids").desc(
+				"Whether to ignore taxids from project when running goal 'krakenrescount'. If set only taxids from project will be counted in result file, default is 'don't ignore'.")
+				.build();
+		options.addOption(ignoreKrakenOutFilter);
+
+		Option resFolder = Option.builder("r").hasArg().argName("path").desc(
+				"Store folder files created via goals 'filter' and 'classify', default is '<base directory >/projects/<project name>/res'.")
+				.build();
 		options.addOption(resFolder);
-		
+
 		return options;
 	}
 
