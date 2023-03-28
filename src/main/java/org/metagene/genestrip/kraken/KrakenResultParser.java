@@ -124,8 +124,10 @@ public class KrakenResultParser {
 		int result = 0;
 		for (int i = start; i < end; i++) {
 			int digit = data[i] - '0';
-			if ((digit < 0) || (digit > 9))
+			if ((digit < 0) || (digit > 9)) {
+				System.out.println(new String(data));
 				throw new NumberFormatException();
+			}
 			result *= 10;
 			result += digit;
 		}
