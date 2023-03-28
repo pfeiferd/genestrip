@@ -248,8 +248,8 @@ public class GSMaker extends Maker<GSProject> {
 			registerGoal(classifyGoal);
 
 			Goal<GSProject> krakenResCountGoal = project.isUseKrakenOutFilter()
-					? new KrakenResCountGoal(project, taxNodesGoal, taxNodesGoal)
-					: new KrakenResCountGoal(project, null);
+					? new KrakenResCountGoal(project, taxNodesGoal, taxNodesGoal, projectSetupGoal)
+					: new KrakenResCountGoal(project, null, projectSetupGoal);
 			registerGoal(krakenResCountGoal);
 		}
 	}
