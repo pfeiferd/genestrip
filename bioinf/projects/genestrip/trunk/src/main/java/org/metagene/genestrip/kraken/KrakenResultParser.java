@@ -103,7 +103,7 @@ public class KrakenResultParser {
 					startPos = i + 1;
 				}
 			}
-			if (startPos < krakenPos) {
+			if (startPos < krakenPos && fr) {
 				if (checkDigits(krakenChars, startPos, frStartPos - 2)) {
 					int frN = byteArrayToInt(krakenChars, frStartPos, krakenPos);
 					String taxidStr = root.add(krakenChars, startPos, frStartPos - 2, frN);
