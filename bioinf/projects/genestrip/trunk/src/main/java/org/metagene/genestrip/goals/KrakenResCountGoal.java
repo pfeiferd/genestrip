@@ -88,7 +88,7 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 			CountingDigitTrie.print(map, out);
 
 			map.clear();
-			out.println("taxid;classifactions");
+			out.println("taxid;classifications");
 			classCountTrie.collect(map);
 			CountingDigitTrie.print(map, out);
 
