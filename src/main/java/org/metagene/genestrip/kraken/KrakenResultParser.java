@@ -91,23 +91,26 @@ public class KrakenResultParser {
 					fr = true;
 					frStartPos = i + 1;
 				} else if (fr && krakenChars[i] == ' ') {
-					int frN = byteArrayToInt(krakenChars, frStartPos, i);
-					String taxidStr = root.add(krakenChars, startPos, frStartPos - 2, frN);
+					if (checkDigits(krakenChars, startPos, frStartPos - 2)) {
+						int frN = byteArrayToInt(krakenChars, frStartPos, i);
+						String taxidStr = root.add(krakenChars, startPos, frStartPos - 2, frN);
 
-					if (listener != null) {
-						listener.newTaxIdForRead(readCount, readDescriptor, classTaxid, bps, taxidStr, frN);
+						if (listener != null) {
+							listener.newTaxIdForRead(readCount, readDescriptor, classTaxid, bps, taxidStr, frN);
+						}
 					}
 
 					startPos = i + 1;
 				}
 			}
-			int frN = byteArrayToInt(krakenChars, frStartPos, krakenPos);
-			String taxidStr = root.add(krakenChars, startPos, frStartPos - 2, frN);
+			if (checkDigits(krakenChars, startPos, frStartPos - 2)) {
+				int frN = byteArrayToInt(krakenChars, frStartPos, krakenPos);
+				String taxidStr = root.add(krakenChars, startPos, frStartPos - 2, frN);
 
-			if (listener != null) {
-				listener.newTaxIdForRead(readCount, readDescriptor, classTaxid, bps, taxidStr, frN);
+				if (listener != null) {
+					listener.newTaxIdForRead(readCount, readDescriptor, classTaxid, bps, taxidStr, frN);
+				}
 			}
-
 			readCount++;
 		}
 		bufferedInFromKraken.close();
@@ -127,5 +130,14 @@ public class KrakenResultParser {
 			result += digit;
 		}
 		return result;
+	}
+
+	private boolean checkDigits(byte[] data, int start, int end) {
+		for (int i = start; i <= end; i++) {
+			if (data[i] < '0' || data[i] > '9') {
+				return false;
+			}
+		}
+		return true;
 	}
 }
