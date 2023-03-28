@@ -103,12 +103,14 @@ public class KrakenResultParser {
 					startPos = i + 1;
 				}
 			}
-			if (checkDigits(krakenChars, startPos, frStartPos - 2)) {
-				int frN = byteArrayToInt(krakenChars, frStartPos, krakenPos);
-				String taxidStr = root.add(krakenChars, startPos, frStartPos - 2, frN);
+			if (startPos < krakenPos) {
+				if (checkDigits(krakenChars, startPos, frStartPos - 2)) {
+					int frN = byteArrayToInt(krakenChars, frStartPos, krakenPos);
+					String taxidStr = root.add(krakenChars, startPos, frStartPos - 2, frN);
 
-				if (listener != null) {
-					listener.newTaxIdForRead(readCount, readDescriptor, classTaxid, bps, taxidStr, frN);
+					if (listener != null) {
+						listener.newTaxIdForRead(readCount, readDescriptor, classTaxid, bps, taxidStr, frN);
+					}
 				}
 			}
 			readCount++;
