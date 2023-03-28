@@ -43,7 +43,7 @@ public class CountingDigitTrie {
 		int index;
 		int end = digits.length();
 		CountingDigitTrie node = this, child;
-		for (int i = 0; i < end; i++) {
+		for (int i = 0; i < end; i++, node = child) {
 			index = digits.charAt(i) - '0';
 			if (node.children == null) {
 				node.children = new CountingDigitTrie[10];
