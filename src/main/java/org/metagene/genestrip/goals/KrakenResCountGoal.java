@@ -19,6 +19,7 @@ import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.ByteArrayToString;
 import org.metagene.genestrip.util.CountingDigitTrie;
 
 public class KrakenResCountGoal extends FileListGoal<GSProject> {
@@ -59,9 +60,10 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 
 					@Override
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, String krakenTaxid, int bps,
-							String kmerTaxid, int hitLength) {
+							String kmerTaxid, int hitLength, byte[] output) {
 						if (taxIds == null || taxIds.contains(kmerTaxid)) {
 							kmerCountTrie.add(kmerTaxid, hitLength);
+							System.out.println(ByteArrayToString.toString(output));
 						}
 						if (lineCount != lastLine) {
 							lastLine = lineCount;

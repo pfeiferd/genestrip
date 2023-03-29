@@ -53,6 +53,10 @@ public class GSConfig {
 		return Boolean.valueOf(properties.getProperty("ignoreMissingFastas", "false"));
 	}
 	
+	public boolean isUseGenBank() {
+		return Boolean.valueOf(properties.getProperty("useGenBank", "false"));		
+	}
+	
 	public boolean isWriteDumpedFastq() {
 		return Boolean.valueOf(properties.getProperty("writeDumpedFastq", "false"));
 	}
@@ -83,7 +87,7 @@ public class GSConfig {
 
 	public FTPEntryQuality getFastaQuality() {
 		String qs = properties.getProperty("fastaQuality");
-		return qs == null ? FTPEntryQuality.COMLPETE_LATEST : FTPEntryQuality.valueOf(qs);
+		return qs == null ? FTPEntryQuality.COMPLETE_LATEST : FTPEntryQuality.valueOf(qs);
 	}
 
 	public String getFtpBaseURL() {

@@ -128,7 +128,8 @@ public class GSMaker extends Maker<GSProject> {
 			public void makeThis() {
 				try {
 					AssemblySummaryReader assemblySummaryReader = new AssemblySummaryReader(
-							getProject().getConfig().getCommonBaseDir(), taxTreeGoal.get());
+							getProject().getConfig().getCommonBaseDir(), getProject().getConfig().isUseGenBank(),
+							taxTreeGoal.get());
 					List<FTPEntryWithQuality> entries = assemblySummaryReader
 							.getRelevantEntriesAsList(project.getFastaQuality(), taxNodesGoal.get());
 					set(entries);

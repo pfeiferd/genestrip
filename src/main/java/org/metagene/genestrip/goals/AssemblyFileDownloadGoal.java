@@ -33,22 +33,25 @@ import org.metagene.genestrip.make.FileDownloadGoal;
 import org.metagene.genestrip.tax.AssemblySummaryReader;
 
 public class AssemblyFileDownloadGoal extends FileDownloadGoal<GSProject> {
-	public static final String FTP_DIR = "/genomes/ASSEMBLY_REPORTS";
-	
+	public static final String FTP_DIR_GENBANK = "/genomes/genbank";
+	public static final String FTP_DIR_REFSEQ = "/genomes/refseq";
+
 	private final List<File> files;
-	
+
 	public AssemblyFileDownloadGoal(GSProject project) {
 		super(project, "assemblydownload");
-		files = Collections.singletonList(new File(project.getConfig().getCommonBaseDir(), AssemblySummaryReader.ASSEMLY_SUM));
+		files = Collections.singletonList(new File(project.getConfig().getCommonBaseDir(),
+				project.getConfig().isUseGenBank() ? AssemblySummaryReader.ASSEMLY_SUM_GENBANK
+						: AssemblySummaryReader.ASSEMLY_SUM_REFSEQ));
 	}
-	
+
 	@Override
 	protected List<File> getFiles() {
 		return files;
 	}
-	
+
 	@Override
 	protected String getFTPDir(File file) {
-		return FTP_DIR;
+		return getProject().getConfig().isUseGenBank() ? FTP_DIR_GENBANK : FTP_DIR_REFSEQ;
 	}
 }

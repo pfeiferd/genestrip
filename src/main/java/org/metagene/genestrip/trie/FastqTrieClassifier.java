@@ -34,6 +34,7 @@ import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.metagene.genestrip.util.ByteArrayToString;
 import org.metagene.genestrip.util.ByteCountingFileInputStream;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CountingDigitTrie;
@@ -101,29 +102,29 @@ public class FastqTrieClassifier {
 				if (bite == '\n') {
 					line++;
 					if (line == 2) {
-						if (classifyRead(lReadBuffer[1], lc[1] - 1, root)) {
+						if (classifyRead(lReadBuffer[0], lReadBuffer[1], lc[1] - 1, root)) {
 							indexedC++;
 						}
 					} else if (line == 4) {
 						line = 0;
 						lc[3] = lc[2] = lc[1] = lc[0] = 0;
 						total++;
-						if (logger.isInfoEnabled()) {
-							if (total % 100000 == 0) {
-								double ratio = fStream.getBytesRead() / (double) fastqFileSize;
-								long stopTime = System.currentTimeMillis();
-
-								double diff = (stopTime - startTime);
-								double totalTime = diff / ratio;
-								double totalHours = totalTime / 1000 / 60 / 60;
-
-								logger.info("Elapse hours:" + diff / 1000 / 60 / 60);
-								logger.info("Estimated total hours:" + totalHours);
-								logger.info("Reads processed: " + total);
-								logger.info("Indexed: " + indexedC);
-								logger.info("Indexed ratio:" + ((double) indexedC) / total);
-							}
-						}
+//						if (logger.isInfoEnabled()) {
+//							if (total % 100000 == 0) {
+//								double ratio = fStream.getBytesRead() / (double) fastqFileSize;
+//								long stopTime = System.currentTimeMillis();
+//
+//								double diff = (stopTime - startTime);
+//								double totalTime = diff / ratio;
+//								double totalHours = totalTime / 1000 / 60 / 60;
+//
+//								logger.info("Elapse hours:" + diff / 1000 / 60 / 60);
+//								logger.info("Estimated total hours:" + totalHours);
+//								logger.info("Reads processed: " + total);
+//								logger.info("Indexed: " + indexedC);
+//								logger.info("Indexed ratio:" + ((double) indexedC) / total);
+//							}
+//						}
 					}
 				}
 			}
@@ -134,7 +135,7 @@ public class FastqTrieClassifier {
 		return counts;
 	}
 
-	public boolean classifyRead(byte[] read, int readSize, CountingDigitTrie countingDigitTrie) {
+	public boolean classifyRead(byte[] descriptor, byte[] read, int readSize, CountingDigitTrie countingDigitTrie) {
 		int max = readSize - trie.getLen() + 1;
 		boolean found = false;
 		for (int i = 0; i < max; i++) {
@@ -142,6 +143,7 @@ public class FastqTrieClassifier {
 			if (res != null) {
 				found = true;
 				countingDigitTrie.inc(res);
+				System.out.println(ByteArrayToString.toString(descriptor));
 			}
 		}
 		return found;
