@@ -96,7 +96,7 @@ public class KrakenResultParser {
 						String taxidStr = root.add(krakenChars, startPos, frStartPos - 2, frN);
 
 						if (listener != null) {
-							listener.newTaxIdForRead(readCount, readDescriptor, classTaxid, bps, taxidStr, frN);
+							listener.newTaxIdForRead(readCount, readDescriptor, classTaxid, bps, taxidStr, frN, krakenChars);
 						}
 					}
 
@@ -109,7 +109,7 @@ public class KrakenResultParser {
 					String taxidStr = root.add(krakenChars, startPos, frStartPos - 2, frN);
 
 					if (listener != null) {
-						listener.newTaxIdForRead(readCount, readDescriptor, classTaxid, bps, taxidStr, frN);
+						listener.newTaxIdForRead(readCount, readDescriptor, classTaxid, bps, taxidStr, frN, krakenChars);
 					}
 				}
 			}

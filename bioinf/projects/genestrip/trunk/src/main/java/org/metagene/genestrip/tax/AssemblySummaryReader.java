@@ -41,14 +41,21 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 
 public class AssemblySummaryReader {
-	public static final String ASSEMLY_SUM = "assembly_summary_genbank.txt";
+	public static final String ASSEMLY_SUM_REFSEQ = "assembly_summary_refseq.txt";
+	public static final String ASSEMLY_SUM_GENBANK = "assembly_summary_genbank.txt";
 	
 	private final File baseDir;
 	private final TaxTree taxTree;
+	private final String assFileName;
 
-	public AssemblySummaryReader(File baseDir, TaxTree taxTree) throws IOException {
+	public AssemblySummaryReader(File baseDir, boolean genBank, TaxTree taxTree) throws IOException {
+		this(baseDir, genBank ? ASSEMLY_SUM_GENBANK : ASSEMLY_SUM_REFSEQ, taxTree);
+	}
+	
+	public AssemblySummaryReader(File baseDir, String assFileName, TaxTree taxTree) throws IOException {
 		this.baseDir = baseDir;
 		this.taxTree = taxTree;
+		this.assFileName = assFileName;
 	}
 
 	public List<FTPEntryWithQuality> getRelevantEntriesAsList(FTPEntryQuality minQuality, Set<TaxIdNode> filter)
@@ -70,7 +77,7 @@ public class AssemblySummaryReader {
 			throws IOException {
 		Map<TaxIdNode, List<FTPEntryWithQuality>> result = new HashMap<TaxIdNode, List<FTPEntryWithQuality>>();
 
-		Reader in = new InputStreamReader(new FileInputStream(new File(baseDir, ASSEMLY_SUM)));
+		Reader in = new InputStreamReader(new FileInputStream(new File(baseDir, assFileName)));
 		CSVFormat format = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#').setDelimiter('\t')
 				.setRecordSeparator('\n').build();
 		Iterable<CSVRecord> records = format.parse(in);
@@ -124,7 +131,7 @@ public class AssemblySummaryReader {
 	}
 
 	public enum FTPEntryQuality {
-		COMLPETE_LATEST, COMPLETE, LATEST, NONE;
+		COMPLETE_LATEST, COMPLETE, LATEST, NONE;
 
 		public boolean below(FTPEntryQuality q) {
 			return this.ordinal() > q.ordinal();
@@ -133,7 +140,7 @@ public class AssemblySummaryReader {
 		public static FTPEntryQuality fromString(String complete, String latest) {
 			if ("Complete Genome".equals(complete)) {
 				if ("latest".equals(latest)) {
-					return COMLPETE_LATEST;
+					return COMPLETE_LATEST;
 				} else {
 					return COMPLETE;
 				}
