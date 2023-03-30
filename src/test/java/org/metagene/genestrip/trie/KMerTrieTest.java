@@ -112,7 +112,7 @@ public class KMerTrieTest extends TestCase {
 					@Override
 					public void newTaxidForRead(long readCount, String taxid, byte[] readDescriptor, byte[] read,
 							byte[] readProbs) {
-						assertEquals(taxid, trie.get(read, 0));
+						assertEquals(taxid, trie.get(read, 0, false));
 					}
 				}));
 
@@ -126,7 +126,7 @@ public class KMerTrieTest extends TestCase {
 				read[j] = cgat[random.nextInt(4)];
 			}
 			if (!bloomFilter.mightContain(read)) {
-				assertNull(trie.get(read, 0));
+				assertNull(trie.get(read, 0, false));
 			}
 		}
 	}
