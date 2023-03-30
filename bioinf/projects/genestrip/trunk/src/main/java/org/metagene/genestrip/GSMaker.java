@@ -175,7 +175,8 @@ public class GSMaker extends Maker<GSProject> {
 				projectSetupGoal);
 		registerGoal(trieGoal);
 
-		Goal<GSProject> krakenFastqGoal = new KrakenFastqFileGoal(project, taxNodesGoal, projectSetupGoal);
+		Goal<GSProject> krakenFastqGoal = new KrakenFastqFileGoal(project, taxNodesGoal, projectSetupGoal, taxNodesGoal,
+				krakenOutGoal, kmerFastqGoal);
 		registerGoal(krakenFastqGoal);
 
 		BloomFilterSizeGoal bloomFilterSizeGoal = new BloomFilterSizeGoal(project, taxNodesGoal, krakenOutGoal);

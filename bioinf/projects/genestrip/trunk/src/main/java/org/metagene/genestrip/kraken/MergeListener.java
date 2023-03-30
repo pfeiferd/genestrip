@@ -30,6 +30,7 @@ import java.util.Set;
 
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.KMerTrie;
+import org.metagene.genestrip.util.ByteArrayToString;
 
 public interface MergeListener {
 	MergeListener STD_ERR_DEFAULT_UPDATE = new MergeListener() {
@@ -72,7 +73,7 @@ public interface MergeListener {
 		for (TaxIdNode node : taxIdNodes) {
 			taxIds.add(node.getTaxId());
 		}
-		return createExcludeTaxIds(taxIds, delegate);
+		return createFilterByTaxId(taxIds, delegate);
 	}
 
 	public static MergeListener createFastQOutputFilterByTaxId(PrintStream printStream, MergeListener delegate) {
@@ -80,26 +81,16 @@ public interface MergeListener {
 			@Override
 			public void newTaxidForRead(long readCount, String taxid, byte[] readDescriptor, byte[] read,
 					byte[] readProbs) {
-				printStream.print(readDescriptor);
+				ByteArrayToString.print(readDescriptor, printStream);
 				printStream.print(":taxid:");
 				printStream.println(taxid);
-				printStream.println(read);
+				ByteArrayToString.print(read, printStream);
+				printStream.println();
 				printStream.println("+");
-				printStream.println(readProbs);
+				ByteArrayToString.print(readProbs, printStream);
+				printStream.println();
 	
 				if (delegate != null) {
-					delegate.newTaxidForRead(readCount, taxid, readDescriptor, read, readProbs);
-				}
-			}
-		};
-	}
-
-	public static MergeListener createExcludeTaxIds(final Set<String> taxIds, final MergeListener delegate) {
-		return new MergeListener() {
-			@Override
-			public void newTaxidForRead(long readCount, String taxid, byte[] readDescriptor, byte[] read,
-					byte[] readProbs) {
-				if (!taxIds.contains(taxid)) {
 					delegate.newTaxidForRead(readCount, taxid, readDescriptor, read, readProbs);
 				}
 			}
