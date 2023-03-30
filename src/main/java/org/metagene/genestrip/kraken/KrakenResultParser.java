@@ -55,6 +55,7 @@ public class KrakenResultParser {
 				krakenChars[krakenPos] = (byte) c;
 				c = bufferedInFromKraken.read();
 			}
+			krakenChars[krakenPos] = 0;
 
 			boolean start = true;
 			boolean descriptor = false;
