@@ -45,7 +45,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 	private final int factor;
 	private final int len;
 	private final Object[] root;
-	private final int[] jumpTable;
+	private final int[] jumpTable, jumpTable2;
 	private final boolean allowDoubleEntry;
 	private boolean compressed;
 	private long entries;
@@ -67,6 +67,15 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		jumpTable['A'] = 2;
 		jumpTable['T'] = 3;
 
+		jumpTable2 = new int[Byte.MAX_VALUE];
+		for (int i = 0; i < jumpTable2.length; i++) {
+			jumpTable2[i] = -1;
+		}
+		jumpTable2['C'] = 1;
+		jumpTable2['G'] = 0;
+		jumpTable2['A'] = 3;
+		jumpTable2['T'] = 2;
+		
 		this.factor = factor;
 		this.len = len;
 		this.allowDoubleEntry = allowDoubleEntry;
@@ -125,23 +134,24 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public V get(byte[] nseq, int start) {
+	public V get(byte[] nseq, int start, boolean reverse) {
 		Object node = root;
 
 		int mult;
 		int pos = 0;
 		int j = 0;
 		int snPosIndex = 0;
+		int[] jt = reverse ? jumpTable : jumpTable2;
 
 		for (int i = 0; i < len && node != null; i += factor) {
 			pos = 0;
 			mult = 1;
 			for (j = 0; j < factor && i + j < len; j++) {
-				byte c = CGAT.cgatToUpperCase(nseq[start + i + j]);
-				if (c < 0 || jumpTable[c] == -1) {
+				byte c = CGAT.cgatToUpperCase(nseq[start + (reverse ? (i + j) : (len - i - j - 1))]);
+				if (c < 0 || jt[c] == -1) {
 					return null;
 				}
-				pos += jumpTable[c] * mult;
+				pos += jt[c] * mult;
 				mult *= 4;
 			}
 			if (node instanceof Object[]) {
