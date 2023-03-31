@@ -93,10 +93,10 @@ public class TaxIdCollector {
 	
 	private void completeFilterlist(Set<TaxIdNode> filter, TaxIdNode node) {
 		if (node != null) {
+			filter.add(node);
 			List<TaxIdNode> subNodes = node.getSubNodes();
 			if (subNodes != null) {
 				for (TaxIdNode subNode : subNodes) {
-					filter.add(subNode);
 					completeFilterlist(filter, subNode);
 				}
 			}
