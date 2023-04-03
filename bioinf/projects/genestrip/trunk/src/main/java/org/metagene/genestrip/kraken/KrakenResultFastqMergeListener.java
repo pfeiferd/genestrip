@@ -105,7 +105,6 @@ public interface KrakenResultFastqMergeListener {
 				if (taxIds.contains(kmerTaxid)) {
 					delegate.newTaxIdForRead(lineCount, readDescriptor, read, readProbs, krakenTaxid, bps, kmerTaxid,
 							hitLength, output);
-					;
 				}
 			}
 		};

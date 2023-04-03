@@ -141,15 +141,15 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		int pos = 0;
 		int j = 0;
 		int snPosIndex = 0;
-		int[] jt = reverse ? jumpTable : jumpTable2;
+		int[] jt = reverse ? jumpTable2 : jumpTable;
 
 		for (int i = 0; i < len && node != null; i += factor) {
 			pos = 0;
 			mult = 1;
 			for (j = 0; j < factor && i + j < len; j++) {
-				byte c = CGAT.cgatToUpperCase(nseq[start + (reverse ? (i + j) : (len - i - j - 1))]);
+				byte c = CGAT.cgatToUpperCase(nseq[start + (reverse ? (len - i - j - 1) : (i + j))]);
 				if (c < 0 || jt[c] == -1) {
-					return null;
+					throw new IllegalArgumentException("Not a CGAT sequence");
 				}
 				pos += jt[c] * mult;
 				mult *= 4;

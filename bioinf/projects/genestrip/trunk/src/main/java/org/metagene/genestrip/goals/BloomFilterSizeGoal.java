@@ -31,8 +31,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.kraken.MergeListener;
-import org.metagene.genestrip.kraken.KrakenKMerFastqMerger;
+import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
+import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
@@ -56,14 +56,16 @@ public class BloomFilterSizeGoal extends ObjectGoal<Long, GSProject> {
 				taxIds.add(node.getTaxId());
 			}
 
-			MergeListener filter = MergeListener.createFilterByTaxId(taxIds, new MergeListener() {
-				@Override
-				public void newTaxidForRead(long readCount, String taxid, byte[] readDescriptor, byte[] read,
-						byte[] readProbs) {
-					counter[0]++;
-				}
-			});
-			KrakenKMerFastqMerger krakenKMerFastqMerger = new KrakenKMerFastqMerger(
+			KrakenResultFastqMergeListener filter = KrakenResultFastqMergeListener.createFilterByTaxId(taxIds,
+					new KrakenResultFastqMergeListener() {
+						@Override
+						public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read,
+								byte[] readProbs, String krakenTaxid, int bps, String kmerTaxid, int hitLength,
+								byte[] output) {
+							counter[0]++;
+						}
+					});
+			KrakenResultFastqMerger krakenKMerFastqMerger = new KrakenResultFastqMerger(
 					getProject().getConfig().getMaxReadSizeBytes());
 
 			if (getLogger().isInfoEnabled()) {

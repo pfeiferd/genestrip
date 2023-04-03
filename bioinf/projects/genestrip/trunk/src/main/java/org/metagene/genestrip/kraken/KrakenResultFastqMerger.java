@@ -34,7 +34,7 @@ import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.util.CountingDigitTrie;
 
 public class KrakenResultFastqMerger {
-	protected static final Log logger = LogFactory.getLog(KrakenKMerFastqMerger.class);
+	protected static final Log logger = LogFactory.getLog(KrakenResultFastqMerger.class);
 
 	private final byte[] krakenChars;
 	private final byte[] readDescriptor, outReadDescriptor;
@@ -58,6 +58,9 @@ public class KrakenResultFastqMerger {
 		for (int c = bufferedInFromKraken.read(), d = bufferedInFastQ == null ? 0 : bufferedInFastQ.read(); c != -1
 				&& d != -1; c = bufferedInFromKraken.read(), d = bufferedInFastQ == null ? 0 : bufferedInFastQ.read()) {
 			for (krakenPos = 0; c != -1 && c != '\n'; krakenPos++) {
+				while (c == 0) {
+					c = bufferedInFromKraken.read();
+				}
 				krakenChars[krakenPos] = (byte) c;
 				c = bufferedInFromKraken.read();
 			}
@@ -109,8 +112,8 @@ public class KrakenResultFastqMerger {
 
 						if (bufferedInFastQ != null) {
 							int j;
-							for (j = 1; j < outReadDescriptor.length && outReadDescriptor[j] != '0'; j++) {
-								if (outReadDescriptor[j] != readDescriptor[j]) {
+							for (j = 2; j < outReadDescriptor.length && outReadDescriptor[j] != 0; j++) {
+								if (outReadDescriptor[j] != readDescriptor[j - 1]) {
 									throw new IllegalStateException("In consistent files for read " + readCount);
 								}
 							}
