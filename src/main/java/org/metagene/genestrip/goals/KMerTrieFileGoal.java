@@ -33,8 +33,8 @@ import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.kraken.MergeListener;
-import org.metagene.genestrip.kraken.KrakenKMerFastqMerger;
+import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
+import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -60,9 +60,9 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 				taxIds.add(node.getTaxId());
 			}
 
-			MergeListener filter = MergeListener.createFilterByTaxId(taxIds,
-					MergeListener.fillKMerTrie(trie, null));
-			KrakenKMerFastqMerger krakenKMerFastqMerger = new KrakenKMerFastqMerger(
+			KrakenResultFastqMergeListener filter = KrakenResultFastqMergeListener.createFilterByTaxId(taxIds,
+					KrakenResultFastqMergeListener.fillKMerTrie(trie, null));
+			KrakenResultFastqMerger krakenKMerFastqMerger = new KrakenResultFastqMerger(
 					getProject().getConfig().getMaxReadSizeBytes());
 
 			if (getLogger().isInfoEnabled()) {

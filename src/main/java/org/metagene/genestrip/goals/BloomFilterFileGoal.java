@@ -34,8 +34,8 @@ import java.util.zip.GZIPInputStream;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.bloom.KMerBloomIndex;
-import org.metagene.genestrip.kraken.MergeListener;
-import org.metagene.genestrip.kraken.KrakenKMerFastqMerger;
+import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
+import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -69,22 +69,24 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 			for (TaxIdNode node : taxNodesGoal.get()) {
 				taxIds.add(node.getTaxId());
 			}
-			
-			MergeListener filter = MergeListener.createFilterByTaxId(taxIds, new MergeListener() {
-				private long counter = 0;
-				
-				@Override
-				public void newTaxidForRead(long readCount, String taxid, byte[] readDescriptor, byte[] read,
-						byte[] readProbs) {
-					bloomIndex.putDirectKMer(read, 0);
-					if (++counter % 10000 == 0) {
-						if (getLogger().isInfoEnabled()) {
-							getLogger().info("Added kmers to bloom filter: " + counter);
+
+			KrakenResultFastqMergeListener filter = KrakenResultFastqMergeListener.createFilterByTaxId(taxIds,
+					new KrakenResultFastqMergeListener() {
+						private long counter = 0;
+
+						@Override
+						public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read,
+								byte[] readProbs, String krakenTaxid, int bps, String kmerTaxid, int hitLength,
+								byte[] output) {
+							bloomIndex.putDirectKMer(read, 0);
+							if (++counter % 10000 == 0) {
+								if (getLogger().isInfoEnabled()) {
+									getLogger().info("Added kmers to bloom filter: " + counter);
+								}
+							}
 						}
-					}
-				}
-			});
-			KrakenKMerFastqMerger krakenKMerFastqMerger = new KrakenKMerFastqMerger(
+					});
+			KrakenResultFastqMerger krakenKMerFastqMerger = new KrakenResultFastqMerger(
 					getProject().getConfig().getMaxReadSizeBytes());
 
 			if (getLogger().isInfoEnabled()) {
