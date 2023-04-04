@@ -34,18 +34,21 @@ import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.FileDownloadGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.tax.AssemblySummaryReader;
+import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryWithQuality;
+import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
-	private final ObjectGoal<List<FTPEntryWithQuality>, GSProject> entryGoal;
+	private final ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> entryGoal;
 	private final int baseURLLen;
 
 	private List<File> files;
 	private Map<String, String> fileToDir;
 
 	@SafeVarargs
-	public FastaFileDownloadGoal(GSProject project, ObjectGoal<List<FTPEntryWithQuality>, GSProject> entryGoal,
-			Goal<GSProject>... deps) {
+	public FastaFileDownloadGoal(GSProject project,
+			ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> entryGoal, Goal<GSProject>... deps) {
 		super(project, "fastasdownload", deps);
 		this.entryGoal = entryGoal;
 		baseURLLen = project.getConfig().getHttpBaseURL().length();
@@ -56,7 +59,8 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 		if (files == null) {
 			files = new ArrayList<File>();
 			fileToDir = new HashMap<String, String>();
-			for (FTPEntryWithQuality entry : entryGoal.get()) {
+			for (FTPEntryWithQuality entry : getRelevantEntriesAsList(getProject().getConfig().getFastaQuality(),
+					entryGoal.get())) {
 				String dir = getFtpDirFromURL(entry.getFtpURL());
 				if (dir != null) {
 					files.add(new File(getProject().getFastasDir(), entry.getFileName()));
@@ -68,6 +72,20 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 			}
 		}
 		return files;
+	}
+
+	private List<FTPEntryWithQuality> getRelevantEntriesAsList(FTPEntryQuality minQuality,
+			Map<TaxIdNode, List<FTPEntryWithQuality>> entries) {
+		List<FTPEntryWithQuality> res = new ArrayList<AssemblySummaryReader.FTPEntryWithQuality>();
+
+		for (List<FTPEntryWithQuality> values : entries.values()) {
+			for (FTPEntryWithQuality entry : values) {
+				if (minQuality == null || !entry.getQuality().below(minQuality)) {
+					res.add(entry);
+				}
+			}
+		}
+		return res;
 	}
 
 	protected String getFtpDirFromURL(String url) {

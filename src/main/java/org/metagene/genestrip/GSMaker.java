@@ -122,7 +122,7 @@ public class GSMaker extends Maker<GSProject> {
 		};
 		registerGoal(commonGoal);
 
-		ObjectGoal<List<FTPEntryWithQuality>, GSProject> fastaFilesGoal = new ObjectGoal<List<FTPEntryWithQuality>, GSProject>(
+		ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fastaFilesGoal = new ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject>(
 				project, "fastafiles", assemblyGoal, taxNodesGoal) {
 			@Override
 			public void makeThis() {
@@ -130,8 +130,8 @@ public class GSMaker extends Maker<GSProject> {
 					AssemblySummaryReader assemblySummaryReader = new AssemblySummaryReader(
 							getProject().getConfig().getCommonBaseDir(), getProject().getConfig().isUseGenBank(),
 							taxTreeGoal.get());
-					List<FTPEntryWithQuality> entries = assemblySummaryReader
-							.getRelevantEntriesAsList(project.getFastaQuality(), taxNodesGoal.get());
+					Map<TaxIdNode, List<FTPEntryWithQuality>> entries = assemblySummaryReader
+							.getRelevantEntries(taxNodesGoal.get());
 					set(entries);
 				} catch (IOException e) {
 					throw new RuntimeException(e);

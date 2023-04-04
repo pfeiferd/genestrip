@@ -37,8 +37,8 @@ import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.metagene.genestrip.bloom.KMerBloomIndex.ByteRingBuffer;
 import org.metagene.genestrip.util.ByteCountingFileInputStream;
+import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.CGAT;
 
 public class FastqBloomFilter {
@@ -47,7 +47,7 @@ public class FastqBloomFilter {
 	private final KMerBloomIndex index;
 	private final double positiveRatio;
 	private final int minPosCount;
-	private final ByteRingBuffer byteRingBuffer;
+	private final CGATRingBuffer byteRingBuffer;
 	private final byte[][] readBuffer;
 	private final int[] c;
 	private final int bufferSize;
@@ -57,7 +57,7 @@ public class FastqBloomFilter {
 		this.index = index;
 		this.positiveRatio = positiveRatio;
 		this.minPosCount = minPosCount;
-		byteRingBuffer = new ByteRingBuffer(index.getK());
+		byteRingBuffer = new CGATRingBuffer(index.getK());
 		readBuffer = new byte[4][maxReadSize];
 		c = new int[4];
 	}
@@ -162,8 +162,7 @@ public class FastqBloomFilter {
 	public boolean isAcceptRead(byte[] read, int readSize) {
 		int counter = 0;
 		int negCounter = 0;
-		int startAt = index.getK() - 1;
-		int max = readSize - startAt;
+		int max = readSize - index.getK() - 1;
 		int posCounterThrehold = 0;
 		if (minPosCount <= 0) {
 			posCounterThrehold = (int) (max * positiveRatio);
@@ -172,7 +171,7 @@ public class FastqBloomFilter {
 
 		for (int i = 0; i < readSize; i++) {
 			byteRingBuffer.put(read[i]);
-			if (i >= startAt) {
+			if (byteRingBuffer.filled) {
 				if (index.contains(byteRingBuffer)) {
 					counter++;
 					if (minPosCount > 0) {

@@ -22,17 +22,18 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.bloom;
+package org.metagene.genestrip.trie;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.util.zip.GZIPInputStream;
 
-import org.metagene.genestrip.util.CGAT;
+import org.metagene.genestrip.util.CGATRingBuffer;
 
-public class FastaIndexer {
+public class FastaTrieCleaner<T extends Serializable> {
 	protected InputStream getFastaGZStream(File file) throws IOException {
 		FileInputStream fStream = new FileInputStream(file);
 		GZIPInputStream gStream = new GZIPInputStream(fStream, 4096);
@@ -40,12 +41,17 @@ public class FastaIndexer {
 		return gStream;
 	}
 
-	public void fillIndex(KMerBloomIndex index, File file, byte[] buffer) throws IOException {
+	public void fillIndex(KMerTrie<T> trie, T value, File file, byte[] buffer, CGATRingBuffer ringBuffer)
+			throws IOException {
 		InputStream inputStream = getFastaGZStream(file);
-		fillIndexHelp(index, inputStream, buffer);
+		fillIndexHelp(trie, value, inputStream, buffer, ringBuffer);
 	}
 
-	private void fillIndexHelp(KMerBloomIndex index, InputStream inputStream, byte[] buffer) throws IOException {
+	private void fillIndexHelp(KMerTrie<T> trie, T value, InputStream inputStream, byte[] buffer,
+			CGATRingBuffer ringBuffer) throws IOException {
+		if (ringBuffer.getSize() != trie.getLen()) {
+			throw new IllegalArgumentException("trie and ring buffer must have equal size");
+		}
 //		long count = 0;
 		byte bite;
 
@@ -59,12 +65,24 @@ public class FastaIndexer {
 				if (bite == '>') {
 					infoLine = true;
 				} else if (bite == '\n') {
-					if (infoLine) {
-						index.resetPut();
-					}
 					infoLine = false;
+					if (infoLine) {
+						ringBuffer.reset();
+					}
 				} else if (!infoLine) {
-					index.put(CGAT.cgatToUpperCase(bite));
+					ringBuffer.put(bite);
+					if (ringBuffer.filled && ringBuffer.isCGAT()) {
+						String res = trie.get(ringBuffer, false);
+						if (value.equals(res)) {
+							trie.put(ringBuffer, null);
+						}
+						else {
+							String res = trie.get(ringBuffer, true);
+							if (value.equals(res)) {
+								trie.put(ringBuffer, null, true);
+							}
+						}
+					}
 //					count++;
 //					if (count % 10000000 == 0) {
 //						double ratio = (double) count / index.getExpectedInsertions();

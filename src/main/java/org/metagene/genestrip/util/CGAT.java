@@ -26,6 +26,7 @@ package org.metagene.genestrip.util;
 
 public class CGAT {
 	private static final byte[] CGAT_TO_UPPER_CASE = new byte[256];
+	private static final byte[] CGAT_COMPLEMENT = new byte[127];
 
 	static {
 		for (int i = 0; i < CGAT_TO_UPPER_CASE.length; i++) {
@@ -35,6 +36,14 @@ public class CGAT {
 		CGAT_TO_UPPER_CASE[128 + 'g'] = 'G';
 		CGAT_TO_UPPER_CASE[128 + 'a'] = 'A';
 		CGAT_TO_UPPER_CASE[128 + 't'] = 'T';
+		
+		for (int i = 0; i < CGAT_COMPLEMENT.length; i++) {
+			CGAT_COMPLEMENT[i] = -1;
+		}
+		CGAT_COMPLEMENT['C'] = 'G';
+		CGAT_COMPLEMENT['G'] = 'C';
+		CGAT_COMPLEMENT['A'] = 'T';
+		CGAT_COMPLEMENT['T'] = 'A';
 	}
 
 	public static byte cgatToUpperCase(byte c) {
@@ -43,5 +52,9 @@ public class CGAT {
 
 	public static boolean isCGAT(byte c) {
 		return c == 'C' || c == 'G' || c == 'A' || c == 'T';
+	}
+	
+	public static byte toComplement(byte c) {
+		return CGAT_COMPLEMENT[c];
 	}
 }

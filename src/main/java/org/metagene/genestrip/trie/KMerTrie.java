@@ -34,10 +34,12 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.metagene.genestrip.util.CGAT;
+import org.metagene.genestrip.util.CGATRingBuffer;
 
 public class KMerTrie<V extends Serializable> implements Serializable {
 	private static final long serialVersionUID = 1L;
@@ -95,6 +97,45 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		return entries;
 	}
 
+	public void put(CGATRingBuffer buffer, V value) {
+		if (compressed) {
+			throw new IllegalStateException("Cant insert in compressed trie");
+		}
+
+		Object[] node = root;
+
+		int mult;
+		int pos = 0;
+		int j = 0;
+
+		for (int i = 0; i < len; i += factor) {
+			pos = 0;
+			mult = 1;
+			for (j = 0; j < factor && i + j < len; j++) {
+				byte c = buffer.get(i + j);
+				if (c < 0 || jumpTable[c] == -1) {
+					throw new IllegalArgumentException("Not a CGAT sequence");
+				}
+				pos += jumpTable[c] * mult;
+				mult *= 4;
+			}
+			Object[] next = (Object[]) node[pos];
+			if (next == null) {
+				next = new Object[root.length];
+				node[pos] = next;
+			}
+			node = next;
+		}
+		if (!allowDoubleEntry && node[pos] != null) {
+			throw new IllegalStateException("double entry " + node[pos] + " " + value);
+		}
+		if (node[pos] == null) {
+			entries++;
+		}
+		node[pos] = value;
+	}
+	
+	
 	public void put(byte[] nseq, int start, V value) {
 		if (compressed) {
 			throw new IllegalStateException("Cant insert in compressed trie");
@@ -132,6 +173,30 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		}
 		node[pos] = value;
 	}
+	
+	public void visit(byte[] kmer, KMerTrieVisitor visitor) {
+		if (compressed) {
+			throw new IllegalStateException("Cant collect values on compressed trie (yet)");
+		}
+		collectValuesHelp(root, 0, kmer, visitor);
+	}
+	
+	@SuppressWarnings("unchecked")
+	private void collectValuesHelp(Object node, int pos, byte[] kmer, KMerTrieVisitor visitor) {
+		if (pos == len) {
+			basket.add((V) node);
+		}
+		else if (node instanceof Object[]) {
+			Object[] arr = (Object[]) node;
+			for (int i = 0; i < arr.length; i++) {
+				collectValuesHelp(basket, arr[i], pos + 1);
+			}
+		}
+		else {
+			throw new IllegalStateException("no value / no tree node");
+		}
+	}
+	
 
 	@SuppressWarnings("unchecked")
 	public V get(byte[] nseq, int start, boolean reverse) {
