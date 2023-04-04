@@ -43,9 +43,10 @@ import org.metagene.genestrip.goals.FastasSizeGoal;
 import org.metagene.genestrip.goals.KMerFastqGoal;
 import org.metagene.genestrip.goals.KMerTrieFileGoal;
 import org.metagene.genestrip.goals.KrakenFastqFileGoal;
+import org.metagene.genestrip.goals.KrakenOutGoal;
 import org.metagene.genestrip.goals.KrakenResCountGoal;
 import org.metagene.genestrip.goals.TaxIdFileDownloadGoal;
-import org.metagene.genestrip.kraken.KrakenExecutor;
+import org.metagene.genestrip.goals.TrieFromKrakenResGoal;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
@@ -148,27 +149,8 @@ public class GSMaker extends Maker<GSProject> {
 				fastaDownloadGoal);
 		registerGoal(kmerFastqGoal);
 
-		Goal<GSProject> krakenOutGoal = new FileListGoal<GSProject>(project, "krakenout", project.getKrakenOutFile(),
-				kmerFastqGoal) {
-			@Override
-			protected void makeFile(File krakenOut) {
-				File fastq = getProject().getKmerFastqFile();
-				KrakenExecutor krakenExecutor = new KrakenExecutor(getProject().getConfig().getKrakenBinFolder(),
-						getProject().getConfig().getKrakenExecExpr());
-				if (getLogger().isInfoEnabled()) {
-					String execLine = krakenExecutor.genExecLine(getProject().getKrakenDB(), fastq);
-					getLogger().info("Run kraken with " + execLine);
-				}
-				try {
-					krakenExecutor.execute(getProject().getKrakenDB(), fastq, krakenOut);
-				} catch (InterruptedException | IOException e) {
-					throw new RuntimeException(e);
-				}
-				if (getLogger().isInfoEnabled()) {
-					getLogger().info("Finished kraken");
-				}
-			}
-		};
+		Goal<GSProject> krakenOutGoal = new KrakenOutGoal(project, "kmerkrakenout", project.getKrakenOutFile(),
+				kmerFastqGoal);
 		registerGoal(krakenOutGoal);
 
 		Goal<GSProject> trieGoal = new KMerTrieFileGoal(project, taxNodesGoal, krakenOutGoal, kmerFastqGoal,
@@ -253,6 +235,14 @@ public class GSMaker extends Maker<GSProject> {
 					? new KrakenResCountGoal(project, taxNodesGoal, taxNodesGoal, projectSetupGoal)
 					: new KrakenResCountGoal(project, null, projectSetupGoal);
 			registerGoal(krakenResCountGoal);
+
+			Goal<GSProject> fastqKrakenOutGoal = new KrakenOutGoal(project, "fastqkrakenout",
+					project.getFastqKrakenOutFile(), kmerFastqGoal);
+			registerGoal(fastqKrakenOutGoal);
+
+			Goal<GSProject> trieFromKrakenResGoal = new TrieFromKrakenResGoal(project, taxNodesGoal, fastaFilesGoal,
+					taxNodesGoal, fastaFilesGoal, fastqKrakenOutGoal);
+			registerGoal(trieFromKrakenResGoal);
 		}
 	}
 }

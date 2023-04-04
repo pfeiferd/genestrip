@@ -55,6 +55,10 @@ public class GSProject implements DownloadProject {
 		return fastqFile;
 	}
 	
+	public File getFastqKrakenOutFile() {
+		return new File(getFastqsDir(), fastqFile.getName() + getkMserSize() + "_fromKraken.out.txt");
+	}
+	
 	@Override
 	public boolean isIgnoreMissingFiles() {
 		return getConfig().isIgnoreMissingFastas();
