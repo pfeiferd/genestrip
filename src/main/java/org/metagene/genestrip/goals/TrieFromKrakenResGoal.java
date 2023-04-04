@@ -49,7 +49,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<String>, GSProjec
 			FileInputStream fStream = new FileInputStream(getProject().getFastqFile());
 			GZIPInputStream gStream = new GZIPInputStream(fStream, 4096);
 
-			merger.process(new BufferedInputStream(new FileInputStream(getProject().getKrakenOutFile())), gStream,
+			merger.process(new BufferedInputStream(new FileInputStream(getProject().getFastqKrakenOutFile())), gStream,
 					KrakenResultFastqMergeListener.createFilterByTaxIdNodes(nodes,
 							new KrakenResultFastqMergeListener() {
 
