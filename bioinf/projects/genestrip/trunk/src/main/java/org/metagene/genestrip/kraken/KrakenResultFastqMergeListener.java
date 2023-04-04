@@ -34,14 +34,14 @@ import org.metagene.genestrip.util.ByteArrayToString;
 
 public interface KrakenResultFastqMergeListener {
 	public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-			String krakenTaxid, int bps, String kmerTaxid, int hitLength, byte[] output);
+			String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output);
 
 	public static KrakenResultFastqMergeListener fillKMerTrie(KMerTrie<String> trie,
 			KrakenResultFastqMergeListener delegate) {
 		return new KrakenResultFastqMergeListener() {
 			@Override
 			public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-					String krakenTaxid, int bps, String kmerTaxid, int hitLength, byte[] output) {
+					String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
 				trie.put(read, 0, kmerTaxid);
 				if (lineCount % 10000 == 0) {
 					if (KrakenKMerFastqMerger.logger.isInfoEnabled()) {
@@ -50,7 +50,7 @@ public interface KrakenResultFastqMergeListener {
 					}
 				}
 				if (delegate != null) {
-					delegate.newTaxIdForRead(lineCount, readDescriptor, read, readProbs, krakenTaxid, bps, kmerTaxid,
+					delegate.newTaxIdForRead(lineCount, readDescriptor, read, readProbs, krakenTaxid, bps, pos, kmerTaxid,
 							hitLength, output);
 				}
 			}
@@ -73,7 +73,7 @@ public interface KrakenResultFastqMergeListener {
 			
 			@Override
 			public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-					String krakenTaxid, int bps, String kmerTaxid, int hitLength, byte[] output) {
+					String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
 				if (lastLineCount == lineCount) {
 					throw new IllegalStateException("too many k-mers for read");
 				}
@@ -88,7 +88,7 @@ public interface KrakenResultFastqMergeListener {
 				printStream.println();
 
 				if (delegate != null) {
-					delegate.newTaxIdForRead(lineCount, readDescriptor, read, readProbs, krakenTaxid, bps, kmerTaxid,
+					delegate.newTaxIdForRead(lineCount, readDescriptor, read, readProbs, krakenTaxid, bps, pos, kmerTaxid,
 							hitLength, output);
 					;
 				}
@@ -101,9 +101,9 @@ public interface KrakenResultFastqMergeListener {
 		return new KrakenResultFastqMergeListener() {
 			@Override
 			public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-					String krakenTaxid, int bps, String kmerTaxid, int hitLength, byte[] output) {
+					String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
 				if (taxIds.contains(kmerTaxid)) {
-					delegate.newTaxIdForRead(lineCount, readDescriptor, read, readProbs, krakenTaxid, bps, kmerTaxid,
+					delegate.newTaxIdForRead(lineCount, readDescriptor, read, readProbs, krakenTaxid, bps, pos, kmerTaxid,
 							hitLength, output);
 				}
 			}

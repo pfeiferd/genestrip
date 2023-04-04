@@ -76,7 +76,7 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 
 						@Override
 						public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read,
-								byte[] readProbs, String krakenTaxid, int bps, String kmerTaxid, int hitLength,
+								byte[] readProbs, String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength,
 								byte[] output) {
 							bloomIndex.putDirectKMer(read, 0);
 							if (++counter % 10000 == 0) {

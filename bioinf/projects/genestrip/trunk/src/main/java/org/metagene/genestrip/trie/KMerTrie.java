@@ -48,6 +48,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 	private final int len;
 	private final Object[] root;
 	private final int[] jumpTable, jumpTable2;
+	private final byte[] decodeTable;
 	private final boolean allowDoubleEntry;
 	private boolean compressed;
 	private long entries;
@@ -60,6 +61,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		if (factor > 3 || factor < 1) {
 			throw new IllegalArgumentException("factor must be >= 1 and <= 3");
 		}
+
 		jumpTable = new int[Byte.MAX_VALUE];
 		for (int i = 0; i < jumpTable.length; i++) {
 			jumpTable[i] = -1;
@@ -77,7 +79,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		jumpTable2['G'] = 0;
 		jumpTable2['A'] = 3;
 		jumpTable2['T'] = 2;
-		
+
 		this.factor = factor;
 		this.len = len;
 		this.allowDoubleEntry = allowDoubleEntry;
@@ -87,6 +89,8 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 			size *= 4;
 		}
 		root = new Object[size];
+		
+		decodeTable = new byte[size];
 	}
 
 	public int getLen() {
@@ -97,7 +101,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		return entries;
 	}
 
-	public void put(CGATRingBuffer buffer, V value) {
+	public void put(CGATRingBuffer buffer, V value, boolean reverse) {
 		if (compressed) {
 			throw new IllegalStateException("Cant insert in compressed trie");
 		}
@@ -107,16 +111,17 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		int mult;
 		int pos = 0;
 		int j = 0;
+		int[] jt = reverse ? jumpTable2 : jumpTable;
 
 		for (int i = 0; i < len; i += factor) {
 			pos = 0;
 			mult = 1;
 			for (j = 0; j < factor && i + j < len; j++) {
-				byte c = buffer.get(i + j);
-				if (c < 0 || jumpTable[c] == -1) {
+				byte c = buffer.get(reverse ? (len - i - j - 1) : (i + j));
+				if (c < 0 || jt[c] == -1) {
 					throw new IllegalArgumentException("Not a CGAT sequence");
 				}
-				pos += jumpTable[c] * mult;
+				pos += jt[c] * mult;
 				mult *= 4;
 			}
 			Object[] next = (Object[]) node[pos];
@@ -134,8 +139,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		}
 		node[pos] = value;
 	}
-	
-	
+
 	public void put(byte[] nseq, int start, V value) {
 		if (compressed) {
 			throw new IllegalStateException("Cant insert in compressed trie");
@@ -173,30 +177,84 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		}
 		node[pos] = value;
 	}
-	
-	public void visit(byte[] kmer, KMerTrieVisitor visitor) {
+
+	public void visit(byte[] kmer, KMerTrieVisitor<V> visitor) {
 		if (compressed) {
 			throw new IllegalStateException("Cant collect values on compressed trie (yet)");
 		}
 		collectValuesHelp(root, 0, kmer, visitor);
 	}
-	
+
 	@SuppressWarnings("unchecked")
-	private void collectValuesHelp(Object node, int pos, byte[] kmer, KMerTrieVisitor visitor) {
-		if (pos == len) {
-			basket.add((V) node);
-		}
-		else if (node instanceof Object[]) {
+	private void collectValuesHelp(Object node, int pos, byte[] kmer, KMerTrieVisitor<V> visitor) {
+		if (pos >= len) {
+			visitor.nextValue(this, kmer, (V) node);
+		} else if (node == null) {
+			return;
+		} else if (node instanceof Object[]) {
 			Object[] arr = (Object[]) node;
-			for (int i = 0; i < arr.length; i++) {
-				collectValuesHelp(basket, arr[i], pos + 1);
+			int index = 0;
+			
+			
+				for (int i = 0; i < arr.length; i += factor) {
+					int mod = 1;
+					for (int j = 0; j < factor; j++) {
+						kmer[pos + j] = decodeTable[i % mod];
+						mod *= factor;
+					}
+					collectValuesHelp(arr[index], pos + factor, kmer, visitor);
+					index++;
+				}
 			}
-		}
-		else {
+		} else {
 			throw new IllegalStateException("no value / no tree node");
 		}
 	}
-	
+
+	@SuppressWarnings("unchecked")
+	public V get(CGATRingBuffer buffer, boolean reverse) {
+		Object node = root;
+
+		int mult;
+		int pos = 0;
+		int j = 0;
+		int snPosIndex = 0;
+		int[] jt = reverse ? jumpTable2 : jumpTable;
+
+		for (int i = 0; i < len && node != null; i += factor) {
+			pos = 0;
+			mult = 1;
+			for (j = 0; j < factor && i + j < len; j++) {
+				byte c = buffer.get(reverse ? (len - i - j - 1) : (i + j));
+				if (c < 0 || jt[c] == -1) {
+					throw new IllegalArgumentException("Not a CGAT sequence");
+				}
+				pos += jt[c] * mult;
+				mult *= 4;
+			}
+			if (node instanceof Object[]) {
+				node = ((Object[]) node)[pos];
+			} else {
+				SmallNode sn = (SmallNode) node;
+				node = null;
+				if (sn.getPosVal(snPosIndex) == pos) {
+					snPosIndex = sn.nextPos(snPosIndex);
+					if (snPosIndex == 0) {
+						node = sn.next;
+					} else {
+						node = sn;
+					}
+				}
+			}
+		}
+		if (node == null) {
+			return null;
+		} else if (node instanceof Object[]) {
+			return (V) ((Object[]) node)[pos];
+		} else {
+			return (V) ((SmallNode) node).next;
+		}
+	}
 
 	@SuppressWarnings("unchecked")
 	public V get(byte[] nseq, int start, boolean reverse) {
@@ -429,7 +487,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 			valueToJSON(out, node);
 		}
 	}
-	
+
 	protected void valueToJSON(PrintStream out, Object value) {
 		out.print(value);
 	}
@@ -447,5 +505,9 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		KMerTrie<?> res = (KMerTrie<?>) oOut.readObject();
 		oOut.close();
 		return res;
+	}
+
+	public interface KMerTrieVisitor<V extends Serializable> {
+		public void nextValue(KMerTrie<V> trie, byte[] kmer, V value);
 	}
 }

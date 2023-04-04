@@ -41,13 +41,14 @@ public class FastaTrieCleaner<T extends Serializable> {
 		return gStream;
 	}
 
-	public void fillIndex(KMerTrie<T> trie, T value, File file, byte[] buffer, CGATRingBuffer ringBuffer)
+	public void cleanTrie(KMerTrie<T> trie, T value, File file, byte[] buffer, CGATRingBuffer ringBuffer)
 			throws IOException {
 		InputStream inputStream = getFastaGZStream(file);
-		fillIndexHelp(trie, value, inputStream, buffer, ringBuffer);
+		cleanTrieHelp(trie, value, inputStream, buffer, ringBuffer);
 	}
 
-	private void fillIndexHelp(KMerTrie<T> trie, T value, InputStream inputStream, byte[] buffer,
+	// value must not be null...
+	private void cleanTrieHelp(KMerTrie<T> trie, T value, InputStream inputStream, byte[] buffer,
 			CGATRingBuffer ringBuffer) throws IOException {
 		if (ringBuffer.getSize() != trie.getLen()) {
 			throw new IllegalArgumentException("trie and ring buffer must have equal size");
@@ -72,12 +73,12 @@ public class FastaTrieCleaner<T extends Serializable> {
 				} else if (!infoLine) {
 					ringBuffer.put(bite);
 					if (ringBuffer.filled && ringBuffer.isCGAT()) {
-						String res = trie.get(ringBuffer, false);
+						T res = trie.get(ringBuffer, false);
 						if (value.equals(res)) {
-							trie.put(ringBuffer, null);
+							trie.put(ringBuffer, null, false);
 						}
 						else {
-							String res = trie.get(ringBuffer, true);
+							res = trie.get(ringBuffer, true);
 							if (value.equals(res)) {
 								trie.put(ringBuffer, null, true);
 							}
