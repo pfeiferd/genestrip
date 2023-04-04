@@ -19,6 +19,8 @@ import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryWithQuality;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.FastaTrieCleaner;
 import org.metagene.genestrip.trie.KMerTrie;
+import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
+import org.metagene.genestrip.util.ByteArrayToString;
 import org.metagene.genestrip.util.CGATRingBuffer;
 
 public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<String>, GSProject> {
@@ -83,6 +85,14 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<String>, GSProjec
 					}
 				}
 			}
+			
+			trie.visit(new KMerTrieVisitor<String>() {
+				@Override
+				public void nextValue(KMerTrie<String> trie, byte[] kmer, String value) {
+					ByteArrayToString.print(kmer, System.out);
+					System.out.println();
+				}
+			});
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
