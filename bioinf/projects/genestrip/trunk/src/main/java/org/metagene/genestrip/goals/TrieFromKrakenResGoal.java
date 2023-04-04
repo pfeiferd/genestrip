@@ -39,7 +39,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<String>, GSProjec
 	@Override
 	public void makeThis() {
 		try {
-			KMerTrie<String> trie = new KMerTrie<String>(getProject().getkMserSize());
+			KMerTrie<String> trie = new KMerTrie<String>(2, getProject().getkMserSize(), true);
 			Set<TaxIdNode> nodes = taxNodesGoal.get();
 			byte[] kmer = new byte[trie.getLen()];
 
@@ -61,6 +61,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<String>, GSProjec
 										for (int i = 0; i < kmer.length; i++) {
 											kmer[i] = read[pos + j + i];
 										}
+										ByteArrayToString.print(kmer, System.out);
 										trie.put(kmer, 0, kmerTaxid);
 									}
 								}
@@ -93,6 +94,8 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<String>, GSProjec
 					System.out.println();
 				}
 			});
+			
+			set(trie);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

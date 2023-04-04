@@ -73,11 +73,13 @@ public class FastaTrieCleaner<T extends Serializable> {
 					if (ringBuffer.filled && ringBuffer.isCGAT()) {
 						T res = trie.get(ringBuffer, false);
 						if (value.equals(res)) {
+							System.out.println("Removing " + ringBuffer);
 							trie.put(ringBuffer, null, false);
 						}
 						else {
 							res = trie.get(ringBuffer, true);
 							if (value.equals(res)) {
+								System.out.println("Removing " + ringBuffer);
 								trie.put(ringBuffer, null, true);
 							}
 						}
