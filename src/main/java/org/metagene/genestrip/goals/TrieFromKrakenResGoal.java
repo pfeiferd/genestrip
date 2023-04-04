@@ -53,11 +53,11 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<String>, GSProjec
 
 								@Override
 								public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read,
-										byte[] readProbs, String krakenTaxid, int bps, String kmerTaxid, int hitLength,
+										byte[] readProbs, String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength,
 										byte[] output) {
 									for (int j = 0; j < hitLength; j++) {
 										for (int i = 0; i < kmer.length; i++) {
-											kmer[i] = read[post + j + i];
+											kmer[i] = read[pos + j + i];
 										}
 										trie.put(kmer, 0, kmerTaxid);
 									}
@@ -78,7 +78,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<String>, GSProjec
 
 						File file = new File(getProject().getFastasDir(), entry.getFileName());
 						if (file.exists()) {
-							fastaTrieCleaner.fillIndex(trie, node.getTaxId(), file, buffer, ringBuffer);
+							fastaTrieCleaner.cleanTrie(trie, node.getTaxId(), file, buffer, ringBuffer);
 						}
 					}
 				}

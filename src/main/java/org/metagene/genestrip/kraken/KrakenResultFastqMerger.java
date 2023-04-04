@@ -101,6 +101,8 @@ public class KrakenResultFastqMerger {
 			int bps = 0;
 			int startPos = 0;
 			int frStartPos = 0;
+			
+			int readPos = 0;
 			for (int i = 0; i < krakenPos; i++) {
 				if (krakenChars[i] == '\t') {
 					if (start) {
@@ -145,9 +147,10 @@ public class KrakenResultFastqMerger {
 						String taxidStr = root.add(krakenChars, startPos, frStartPos - 2, frN);
 
 						if (listener != null) {
-							listener.newTaxIdForRead(readCount, readDescriptor, read, readProbs, classTaxid, bps,
+							listener.newTaxIdForRead(readCount, readDescriptor, read, readProbs, classTaxid, bps, readPos,
 									taxidStr, frN, krakenChars);
 						}
+						readPos += frN;
 					}
 
 					startPos = i + 1;
@@ -159,7 +162,7 @@ public class KrakenResultFastqMerger {
 					String taxidStr = root.add(krakenChars, startPos, frStartPos - 2, frN);
 
 					if (listener != null) {
-						listener.newTaxIdForRead(readCount, readDescriptor, read, readProbs, classTaxid, bps, taxidStr,
+						listener.newTaxIdForRead(readCount, readDescriptor, read, readProbs, classTaxid, bps, readPos, taxidStr,
 								frN, krakenChars);
 					}
 				}
