@@ -39,11 +39,10 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-
 public class AssemblySummaryReader {
 	public static final String ASSEMLY_SUM_REFSEQ = "assembly_summary_refseq.txt";
 	public static final String ASSEMLY_SUM_GENBANK = "assembly_summary_genbank.txt";
-	
+
 	private final File baseDir;
 	private final TaxTree taxTree;
 	private final String assFileName;
@@ -51,30 +50,14 @@ public class AssemblySummaryReader {
 	public AssemblySummaryReader(File baseDir, boolean genBank, TaxTree taxTree) throws IOException {
 		this(baseDir, genBank ? ASSEMLY_SUM_GENBANK : ASSEMLY_SUM_REFSEQ, taxTree);
 	}
-	
+
 	public AssemblySummaryReader(File baseDir, String assFileName, TaxTree taxTree) throws IOException {
 		this.baseDir = baseDir;
 		this.taxTree = taxTree;
 		this.assFileName = assFileName;
 	}
 
-	public List<FTPEntryWithQuality> getRelevantEntriesAsList(FTPEntryQuality minQuality, Set<TaxIdNode> filter)
-			throws IOException {
-		List<FTPEntryWithQuality> res = new ArrayList<AssemblySummaryReader.FTPEntryWithQuality>();
-
-		Map<TaxIdNode, List<FTPEntryWithQuality>> entries = getRelevantEntries(taxTree, filter);
-		for (List<FTPEntryWithQuality> values : entries.values()) {
-			for (FTPEntryWithQuality entry : values) {
-				if (minQuality == null || !entry.getQuality().below(minQuality)) {
-					res.add(entry);
-				}
-			}
-		}
-		return res;
-	}
-
-	public Map<TaxIdNode, List<FTPEntryWithQuality>> getRelevantEntries(TaxTree taxTree, Set<TaxIdNode> filter)
-			throws IOException {
+	public Map<TaxIdNode, List<FTPEntryWithQuality>> getRelevantEntries(Set<TaxIdNode> filter) throws IOException {
 		Map<TaxIdNode, List<FTPEntryWithQuality>> result = new HashMap<TaxIdNode, List<FTPEntryWithQuality>>();
 
 		Reader in = new InputStreamReader(new FileInputStream(new File(baseDir, assFileName)));

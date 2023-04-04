@@ -35,8 +35,8 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.bloom.KMerBloomIndex;
-import org.metagene.genestrip.bloom.KMerBloomIndex.ByteRingBuffer;
 import org.metagene.genestrip.bloom.KMerBloomIndex.PutListener;
+import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.bloom.FastaIndexer;
 
 public class KMerFastqGenerator {
@@ -70,12 +70,14 @@ public class KMerFastqGenerator {
 		}
 
 		FastaIndexer fastaIndexer = new FastaIndexer();
+		byte[] buffer = new byte[4096 * 8];
+
 		for (File fasta : fastaFiles) {
 			if (fasta.exists()) {
 				if (getLogger().isInfoEnabled()) {
 					getLogger().info("File read " + fasta.toString());
 				}
-				fastaIndexer.fillIndex(index, fasta);
+				fastaIndexer.fillIndex(index, fasta, buffer);
 			} else {
 				throw new IllegalStateException("Missing fasta file " + fasta);
 			}
@@ -109,7 +111,7 @@ public class KMerFastqGenerator {
 		}
 
 		@Override
-		public void newEntry(ByteRingBuffer buffer) {
+		public void newEntry(CGATRingBuffer buffer) {
 			added++;
 			printBeforeRead();
 			buffer.toStream(printStream);
@@ -118,7 +120,7 @@ public class KMerFastqGenerator {
 		}
 
 		@Override
-		public void oldEntry(ByteRingBuffer buffer) {
+		public void oldEntry(CGATRingBuffer buffer) {
 			hits++;
 			if (getLogger().isInfoEnabled()) {
 				if (hits % 100000 == 0) {

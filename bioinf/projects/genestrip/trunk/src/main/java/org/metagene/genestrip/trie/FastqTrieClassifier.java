@@ -34,7 +34,6 @@ import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.metagene.genestrip.util.ByteArrayToString;
 import org.metagene.genestrip.util.ByteCountingFileInputStream;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CountingDigitTrie;

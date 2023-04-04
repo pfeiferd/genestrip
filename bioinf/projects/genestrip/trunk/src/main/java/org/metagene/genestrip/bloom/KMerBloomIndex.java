@@ -32,11 +32,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+
+import org.metagene.genestrip.util.CGATRingBuffer;
 
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnel;
@@ -52,25 +53,24 @@ public class KMerBloomIndex implements Serializable {
 	private final long expectedInsertions;
 	private final double expectedFpp;
 
-	private final BloomFilter<ByteRingBuffer> index;
-	private final ByteRingBuffer byteRingBuffer;
+	private final BloomFilter<CGATRingBuffer> index;
+	private final CGATRingBuffer byteRingBuffer;
 
 	private long n;
-	private long m;
 
 	private PutListener putListener;
 
 	public KMerBloomIndex(String name, int k, long expectedInsertions, double expectedFpp, PutListener putListener) {
 		this.name = name;
 		this.k = k;
-		this.n = this.m = 0;
+		this.n = 0;
 		this.creationDate = new Date();
 		this.expectedInsertions = expectedInsertions;
 		this.expectedFpp = expectedFpp;
 		this.putListener = putListener;
 
 		index = BloomFilter.create(new MyFunnel(), expectedInsertions, expectedFpp);
-		byteRingBuffer = new ByteRingBuffer(k);
+		byteRingBuffer = new CGATRingBuffer(k);
 	}
 
 	public void putDirectKMer(byte[] kMer, int start) {
@@ -82,30 +82,27 @@ public class KMerBloomIndex implements Serializable {
 	public void put(byte bite) {
 		byteRingBuffer.directPut = null;
 		byteRingBuffer.put(bite);
-		m++;
-		if (m >= k) {
-			if (byteRingBuffer.isCGAT()) {
-				if (putListener != null) {
-					if (!index.mightContain(byteRingBuffer)) {
-						putListener.newEntry(byteRingBuffer);
-						index.put(byteRingBuffer);
-						n++;
-					} else {
-						putListener.oldEntry(byteRingBuffer);
-					}
-				} else {
+		if (byteRingBuffer.filled && byteRingBuffer.isCGAT()) {
+			if (putListener != null) {
+				if (!index.mightContain(byteRingBuffer)) {
+					putListener.newEntry(byteRingBuffer);
 					index.put(byteRingBuffer);
 					n++;
+				} else {
+					putListener.oldEntry(byteRingBuffer);
 				}
+			} else {
+				index.put(byteRingBuffer);
+				n++;
 			}
 		}
 	}
 
 	public void resetPut() {
-		m = 0;
+		byteRingBuffer.reset();
 	}
 
-	public boolean contains(ByteRingBuffer byteRingBuffer) {
+	public boolean contains(CGATRingBuffer byteRingBuffer) {
 		return index.mightContain(byteRingBuffer);
 	}
 
@@ -139,11 +136,11 @@ public class KMerBloomIndex implements Serializable {
 		return (long) (-n * Math.log(p) / (Math.log(2) * Math.log(2)));
 	}
 
-	private static class MyFunnel implements Funnel<ByteRingBuffer> {
+	private static class MyFunnel implements Funnel<CGATRingBuffer> {
 		private static final long serialVersionUID = 1L;
 
 		@Override
-		public void funnel(ByteRingBuffer from, PrimitiveSink into) {
+		public void funnel(CGATRingBuffer from, PrimitiveSink into) {
 			if (from.directPut != null) {
 				int max = from.data.length + from.directPutStart;
 				for (int i = from.directPutStart; i < max; i++) {
@@ -154,62 +151,6 @@ public class KMerBloomIndex implements Serializable {
 				for (int i = 0; i < size; i++) {
 					into.putByte((byte) from.data[(from.end + i) % size]);
 				}
-			}
-		}
-	}
-
-	public static class ByteRingBuffer implements Serializable {
-		private static final long serialVersionUID = 1L;
-
-		private int end;
-		private byte[] data;
-
-		private byte[] directPut;
-		private int directPutStart;
-
-		private int invalidCPos;
-
-		public ByteRingBuffer(int size) {
-			data = new byte[size];
-			end = 0;
-			invalidCPos = 0;
-		}
-
-		public void put(byte c) {
-			data[end] = c;
-			if (c != 'C' && c != 'G' && c != 'A' && c != 'T') {
-				invalidCPos = data.length;
-			} else if (invalidCPos > 0) {
-				invalidCPos--;
-			}
-			end = (end + 1) % data.length;
-		}
-
-		public int getSize() {
-			return data.length;
-		}
-
-		public byte get(int index) {
-			return data[(end + index) % data.length];
-		}
-
-		public String toString() {
-			StringBuilder builder = new StringBuilder();
-
-			for (int i = 0; i < data.length; i++) {
-				builder.append((char) get(i));
-			}
-
-			return builder.toString();
-		}
-
-		public boolean isCGAT() {
-			return invalidCPos == 0;
-		}
-
-		public void toStream(PrintStream stream) {
-			for (int i = 0; i < data.length; i++) {
-				stream.append((char) get(i));
 			}
 		}
 	}
@@ -230,8 +171,8 @@ public class KMerBloomIndex implements Serializable {
 	}
 
 	public interface PutListener {
-		public void newEntry(ByteRingBuffer buffer);
+		public void newEntry(CGATRingBuffer buffer);
 
-		public void oldEntry(ByteRingBuffer buffer);
+		public void oldEntry(CGATRingBuffer buffer);
 	}
 }
