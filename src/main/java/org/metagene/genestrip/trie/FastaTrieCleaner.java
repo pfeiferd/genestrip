@@ -53,10 +53,8 @@ public class FastaTrieCleaner<T extends Serializable> {
 		if (ringBuffer.getSize() != trie.getLen()) {
 			throw new IllegalArgumentException("trie and ring buffer must have equal size");
 		}
-//		long count = 0;
 		byte bite;
 
-//		long startTime = System.currentTimeMillis();
 		boolean infoLine = false;
 		int i;
 
@@ -84,18 +82,6 @@ public class FastaTrieCleaner<T extends Serializable> {
 							}
 						}
 					}
-//					count++;
-//					if (count % 10000000 == 0) {
-//						double ratio = (double) count / index.getExpectedInsertions();
-//						long stopTime = System.currentTimeMillis();
-//
-//						double diff = (stopTime - startTime);
-//						double totalTime = diff / ratio;
-//						double totalHours = totalTime / 1000 / 60 / 60;
-//
-//						System.out.println("Elapse hours:" + diff / 1000 / 60 / 60);
-//						System.out.println("Estimated total hours:" + totalHours);
-//					}
 				}
 			}
 		}

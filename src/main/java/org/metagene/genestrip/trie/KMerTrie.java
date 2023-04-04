@@ -61,6 +61,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		if (factor > 3 || factor < 1) {
 			throw new IllegalArgumentException("factor must be >= 1 and <= 3");
 		}
+		decodeTable = new byte[] { 'C', 'G', 'A', 'T' };
 
 		jumpTable = new int[Byte.MAX_VALUE];
 		for (int i = 0; i < jumpTable.length; i++) {
@@ -89,8 +90,6 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 			size *= 4;
 		}
 		root = new Object[size];
-		
-		decodeTable = new byte[size];
 	}
 
 	public int getLen() {
@@ -178,11 +177,11 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		node[pos] = value;
 	}
 
-	public void visit(byte[] kmer, KMerTrieVisitor<V> visitor) {
+	public void visit(KMerTrieVisitor<V> visitor) {
 		if (compressed) {
 			throw new IllegalStateException("Cant collect values on compressed trie (yet)");
 		}
-		collectValuesHelp(root, 0, kmer, visitor);
+		collectValuesHelp(root, 0, new byte[len], visitor);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -193,18 +192,14 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 			return;
 		} else if (node instanceof Object[]) {
 			Object[] arr = (Object[]) node;
-			int index = 0;
-			
-			
-				for (int i = 0; i < arr.length; i += factor) {
-					int mod = 1;
-					for (int j = 0; j < factor; j++) {
-						kmer[pos + j] = decodeTable[i % mod];
-						mod *= factor;
-					}
-					collectValuesHelp(arr[index], pos + factor, kmer, visitor);
-					index++;
+
+			for (int i = 0; i < arr.length; i += factor) {
+				int div = 1;
+				for (int j = 0; j < factor; j++) {
+					kmer[pos + j] = decodeTable[(i / div) % factor];
+					div *= 4;
 				}
+				collectValuesHelp(arr[i], pos + factor, kmer, visitor);
 			}
 		} else {
 			throw new IllegalStateException("no value / no tree node");

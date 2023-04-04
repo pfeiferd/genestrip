@@ -44,9 +44,9 @@ public interface KrakenResultFastqMergeListener {
 					String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
 				trie.put(read, 0, kmerTaxid);
 				if (lineCount % 10000 == 0) {
-					if (KrakenKMerFastqMerger.logger.isInfoEnabled()) {
-						KrakenKMerFastqMerger.logger.info("Trie entries:" + trie.getEntries());
-						KrakenKMerFastqMerger.logger.info("Trie put ratio:" + ((double) trie.getEntries() / lineCount));
+					if (KrakenResultFastqMerger.logger.isInfoEnabled()) {
+						KrakenResultFastqMerger.logger.info("Trie entries:" + trie.getEntries());
+						KrakenResultFastqMerger.logger.info("Trie put ratio:" + ((double) trie.getEntries() / lineCount));
 					}
 				}
 				if (delegate != null) {
