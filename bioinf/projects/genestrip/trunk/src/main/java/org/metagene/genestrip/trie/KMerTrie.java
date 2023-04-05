@@ -37,6 +37,7 @@ import java.io.Serializable;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.metagene.genestrip.util.ByteArrayToString;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATRingBuffer;
 
@@ -122,12 +123,14 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 				pos += jt[c] * mult;
 				mult *= 4;
 			}
-			Object[] next = (Object[]) node[pos];
-			if (next == null) {
-				next = new Object[root.length];
-				node[pos] = next;
+			if (i < len - 1) {
+				Object[] next = (Object[]) node[pos];
+				if (next == null) {
+					next = new Object[root.length];
+					node[pos] = next;
+				}
+				node = next;
 			}
-			node = next;
 		}
 		if (!allowDoubleEntry && node[pos] != null) {
 			throw new IllegalStateException("double entry " + node[pos] + " " + value);
@@ -160,12 +163,14 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 				pos += jumpTable[c] * mult;
 				mult *= 4;
 			}
-			Object[] next = (Object[]) node[pos];
-			if (next == null) {
-				next = new Object[root.length];
-				node[pos] = next;
+			if (i < len - 1) {
+				Object[] next = (Object[]) node[pos];
+				if (next == null) {
+					next = new Object[root.length];
+					node[pos] = next;
+				}
+				node = next;
 			}
-			node = next;
 		}
 		if (!allowDoubleEntry && node[pos] != null) {
 			throw new IllegalStateException("double entry " + node[pos] + " " + value);
@@ -192,10 +197,10 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		} else if (node instanceof Object[]) {
 			Object[] arr = (Object[]) node;
 
-			for (int i = 0; i < arr.length; i += factor) {
+			for (int i = 0; i < arr.length; i++) {
 				int div = 1;
-				for (int j = 0; j < factor; j++) {
-					kmer[pos + j] = decodeTable[(i / div) % factor];
+				for (int j = 0; j < factor && pos + j < len; j++) {
+					kmer[pos + j] = decodeTable[(i / div) % 4];
 					div *= 4;
 				}
 				collectValuesHelp(arr[i], pos + factor, kmer, visitor);
@@ -241,13 +246,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 				}
 			}
 		}
-		if (node == null) {
-			return null;
-		} else if (node instanceof Object[]) {
-			return (V) ((Object[]) node)[pos];
-		} else {
-			return (V) ((SmallNode) node).next;
-		}
+		return (V) node;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -286,13 +285,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 				}
 			}
 		}
-		if (node == null) {
-			return null;
-		} else if (node instanceof Object[]) {
-			return (V) ((Object[]) node)[pos];
-		} else {
-			return (V) ((SmallNode) node).next;
-		}
+		return (V) node;
 	}
 
 	public void compress() {
