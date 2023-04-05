@@ -137,36 +137,37 @@ public class KMerTrieTest extends TestCase {
 			}
 		}
 	}
-	
+
 	public void testVisit() {
-		KMerTrie<Integer> trie = new KMerTrie<Integer>(2, 35, false);
-		Map<List<Byte>, Integer> checkMap = new HashMap<List<Byte>, Integer>();
 
 		byte[] cgat = { 'C', 'G', 'A', 'T' };
 		Random random = new Random(42);
 
-		byte[] read = new byte[trie.getLen()];
-		for (int i = 1; i < 1000; i++) {
-			for (int j = 0; j < trie.getLen(); j++) {
-				read[j] = cgat[random.nextInt(4)];
-			}
-			trie.put(read, 0, i);
+		for (int k = 0; k < 2; k++) {
+			KMerTrie<Integer> trie = new KMerTrie<Integer>(2, 35, false);
+			Map<List<Byte>, Integer> checkMap = new HashMap<List<Byte>, Integer>();
+			byte[] read = new byte[trie.getLen()];
+			for (int i = 1; i < 1000; i++) {
+				for (int j = 0; j < trie.getLen(); j++) {
+					read[j] = cgat[random.nextInt(4)];
+				}
+				trie.put(read, 0, i, k == 0);
 
-			checkMap.put(byteArrayToList(read), i);
-		}
-		
-		trie.visit(new KMerTrieVisitor<Integer>() {
-			@Override
-			public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
-				List<Byte> key = byteArrayToList(kmer);
-				assertEquals(value,checkMap.get(key));
-				checkMap.remove(key);
+				checkMap.put(byteArrayToList(read), i);
 			}
-		});
-		
-		assertTrue(checkMap.isEmpty());
+
+			trie.visit(new KMerTrieVisitor<Integer>() {
+				@Override
+				public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
+					List<Byte> key = byteArrayToList(kmer);
+					assertEquals(value, checkMap.get(key));
+					checkMap.remove(key);
+				}
+			}, k == 0);
+			assertTrue(checkMap.isEmpty());
+		}
 	}
-	
+
 	private List<Byte> byteArrayToList(byte[] arr) {
 		List<Byte> res = new ArrayList<Byte>();
 		for (int i = 0; i < arr.length; i++) {
