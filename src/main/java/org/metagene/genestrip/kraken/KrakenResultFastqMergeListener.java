@@ -66,7 +66,7 @@ public interface KrakenResultFastqMergeListener {
 			@Override
 			public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
 					String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
-				trie.put(read, 0, kmerTaxid);
+				trie.put(read, 0, kmerTaxid, false);
 				if (lineCount % 10000 == 0) {
 					if (KrakenResultFastqMerger.logger.isInfoEnabled()) {
 						KrakenResultFastqMerger.logger.info("Trie entries:" + trie.getEntries());

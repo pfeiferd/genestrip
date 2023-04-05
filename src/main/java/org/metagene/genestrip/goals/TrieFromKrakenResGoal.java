@@ -72,7 +72,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<String>, GSProjec
 										System.out.println(kmerTaxid);
 										ByteArrayToString.print(kmer, System.out);
 										System.out.println();
-										trie.put(kmer, 0, kmerTaxid);
+										trie.put(kmer, 0, kmerTaxid, false);
 									}
 								}
 							}));

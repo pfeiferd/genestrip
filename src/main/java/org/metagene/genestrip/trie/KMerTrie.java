@@ -47,7 +47,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 	private final int len;
 	private final Object[] root;
 	private final int[] jumpTable, jumpTable2;
-	private final byte[] decodeTable;
+	private final byte[] decodeTable, decodeTable2;
 	private final boolean allowDoubleEntry;
 	private boolean compressed;
 	private long entries;
@@ -61,6 +61,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 			throw new IllegalArgumentException("factor must be >= 1 and <= 3");
 		}
 		decodeTable = new byte[] { 'C', 'G', 'A', 'T' };
+		decodeTable2 = new byte[] { 'G', 'C', 'T', 'A' };
 
 		jumpTable = new int[Byte.MAX_VALUE];
 		for (int i = 0; i < jumpTable.length; i++) {
@@ -140,7 +141,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		node[pos] = value;
 	}
 
-	public void put(byte[] nseq, int start, V value) {
+	public void put(byte[] nseq, int start, V value, boolean reverse) {
 		if (compressed) {
 			throw new IllegalStateException("Cant insert in compressed trie");
 		}
@@ -150,16 +151,17 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		int mult;
 		int pos = 0;
 		int j = 0;
+		int[] jt = reverse ? jumpTable2 : jumpTable;
 
 		for (int i = 0; i < len; i += factor) {
 			pos = 0;
 			mult = 1;
 			for (j = 0; j < factor && i + j < len; j++) {
-				byte c = CGAT.cgatToUpperCase(nseq[start + i + j]);
-				if (c < 0 || jumpTable[c] == -1) {
+				byte c = CGAT.cgatToUpperCase(nseq[start + (reverse ? (len - i - j - 1) : (i + j))]);
+				if (c < 0 || jt[c] == -1) {
 					throw new IllegalArgumentException("Not a CGAT sequence");
 				}
-				pos += jumpTable[c] * mult;
+				pos += jt[c] * mult;
 				mult *= 4;
 			}
 			if (i < len - 1) {
@@ -180,15 +182,15 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		node[pos] = value;
 	}
 
-	public void visit(KMerTrieVisitor<V> visitor) {
+	public void visit(KMerTrieVisitor<V> visitor, boolean reverse) {
 		if (compressed) {
 			throw new IllegalStateException("Cant collect values on compressed trie (yet)");
 		}
-		collectValuesHelp(root, 0, new byte[len], visitor);
+		collectValuesHelp(root, 0, new byte[len], visitor, reverse);
 	}
 
 	@SuppressWarnings("unchecked")
-	private void collectValuesHelp(Object node, int pos, byte[] kmer, KMerTrieVisitor<V> visitor) {
+	private void collectValuesHelp(Object node, int pos, byte[] kmer, KMerTrieVisitor<V> visitor, boolean reverse) {
 		if (pos >= len) {
 			visitor.nextValue(this, kmer, (V) node);
 		} else if (node == null) {
@@ -199,10 +201,11 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 			for (int i = 0; i < arr.length; i++) {
 				int div = 1;
 				for (int j = 0; j < factor && pos + j < len; j++) {
-					kmer[pos + j] = decodeTable[(i / div) % 4];
+					kmer[reverse ? (len - 1 - pos - j) : (pos + j)] = (reverse ? decodeTable2 : decodeTable)[(i / div)
+							% 4];
 					div *= 4;
 				}
-				collectValuesHelp(arr[i], pos + factor, kmer, visitor);
+				collectValuesHelp(arr[i], pos + factor, kmer, visitor, reverse);
 			}
 		} else {
 			throw new IllegalStateException("no value / no tree node");
