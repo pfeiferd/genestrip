@@ -106,7 +106,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<String>, GSProjec
 					ByteArrayToString.print(kmer, System.out);
 					System.out.println();
 				}
-			});
+			}, false);
 
 			set(trie);
 		} catch (IOException e) {
