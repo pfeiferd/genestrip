@@ -48,20 +48,30 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<String>, GSProjec
 
 			FileInputStream fStream = new FileInputStream(getProject().getFastqFile());
 			GZIPInputStream gStream = new GZIPInputStream(fStream, 4096);
+			
+			KrakenResultFastqMergeListener printListener = KrakenResultFastqMergeListener.createPrintListener(System.out, null);
 
 			merger.process(new BufferedInputStream(new FileInputStream(getProject().getFastqKrakenOutFile())), gStream,
-					KrakenResultFastqMergeListener.createFilterByTaxIdNodes(nodes,
-							new KrakenResultFastqMergeListener() {
-
+					KrakenResultFastqMergeListener.createFilterByTaxIdNodes(nodes, new KrakenResultFastqMergeListener() {
+								private long lastLineCount = -1;
+								
 								@Override
 								public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read,
-										byte[] readProbs, String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength,
-										byte[] output) {
+										byte[] readProbs, String krakenTaxid, int bps, int pos, String kmerTaxid,
+										int hitLength, byte[] output) {
+									if (lastLineCount != lineCount) {
+										lastLineCount = lineCount;
+										printListener.newTaxIdForRead(lineCount, readDescriptor, read, readProbs, krakenTaxid, bps, pos, kmerTaxid,
+												hitLength, output);
+									}
 									for (int j = 0; j < hitLength; j++) {
 										for (int i = 0; i < kmer.length; i++) {
 											kmer[i] = read[pos + j + i];
 										}
+										System.out.println("Position:  " + pos);
+										System.out.println(kmerTaxid);
 										ByteArrayToString.print(kmer, System.out);
+										System.out.println();
 										trie.put(kmer, 0, kmerTaxid);
 									}
 								}
@@ -80,13 +90,16 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<String>, GSProjec
 					if (minQuality == null || !entry.getQuality().below(minQuality)) {
 
 						File file = new File(getProject().getFastasDir(), entry.getFileName());
+						if (getLogger().isInfoEnabled()) {
+							getLogger().info("Cleaning via file " + file);
+						}
 						if (file.exists()) {
 							fastaTrieCleaner.cleanTrie(trie, node.getTaxId(), file, buffer, ringBuffer);
 						}
 					}
 				}
 			}
-			
+
 			trie.visit(new KMerTrieVisitor<String>() {
 				@Override
 				public void nextValue(KMerTrie<String> trie, byte[] kmer, String value) {
@@ -94,7 +107,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<String>, GSProjec
 					System.out.println();
 				}
 			});
-			
+
 			set(trie);
 		} catch (IOException e) {
 			throw new RuntimeException(e);

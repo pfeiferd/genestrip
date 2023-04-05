@@ -35,6 +35,30 @@ import org.metagene.genestrip.util.ByteArrayToString;
 public interface KrakenResultFastqMergeListener {
 	public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
 			String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output);
+	
+	public static KrakenResultFastqMergeListener createPrintListener(PrintStream out, KrakenResultFastqMergeListener delegate) {
+		return new KrakenResultFastqMergeListener() {		
+			@Override
+			public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
+					String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
+				out.println("Line: " + lineCount);
+				ByteArrayToString.print(readDescriptor, out);
+				out.println();
+				ByteArrayToString.print(read, out);
+				out.println();
+				out.println("+");
+				ByteArrayToString.print(readProbs, out);
+				out.println();
+				ByteArrayToString.print(output, out);
+				out.println();
+				
+				if (delegate != null) {
+					delegate.newTaxIdForRead(lineCount, readDescriptor, read, readProbs, krakenTaxid, bps, pos, kmerTaxid,
+							hitLength, output);
+				}
+			}
+		};
+	}
 
 	public static KrakenResultFastqMergeListener fillKMerTrie(KMerTrie<String> trie,
 			KrakenResultFastqMergeListener delegate) {
