@@ -28,6 +28,7 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -139,34 +140,38 @@ public class KMerTrieTest extends TestCase {
 	
 	public void testVisit() {
 		KMerTrie<Integer> trie = new KMerTrie<Integer>(2, 35, false);
-		Map<List<Object>, Integer> checkMap = new HashMap<List<Object>, Integer>();
+		Map<List<Byte>, Integer> checkMap = new HashMap<List<Byte>, Integer>();
 
 		byte[] cgat = { 'C', 'G', 'A', 'T' };
 		Random random = new Random(42);
 
+		byte[] read = new byte[trie.getLen()];
 		for (int i = 1; i < 1000; i++) {
-			byte[] read = new byte[trie.getLen()];
 			for (int j = 0; j < trie.getLen(); j++) {
 				read[j] = cgat[random.nextInt(4)];
 			}
-			if (i == 356) {
-				System.out.println(ByteArrayToString.toString(read));				
-			}
 			trie.put(read, 0, i);
 
-			checkMap.put(Arrays.asList(read), i);
+			checkMap.put(byteArrayToList(read), i);
 		}
 		
 		trie.visit(new KMerTrieVisitor<Integer>() {
 			@Override
 			public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
-				System.out.println(ByteArrayToString.toString(kmer));
-				List<Object> key = Arrays.asList(kmer);
+				List<Byte> key = byteArrayToList(kmer);
 				assertEquals(value,checkMap.get(key));
 				checkMap.remove(key);
 			}
 		});
 		
 		assertTrue(checkMap.isEmpty());
+	}
+	
+	private List<Byte> byteArrayToList(byte[] arr) {
+		List<Byte> res = new ArrayList<Byte>();
+		for (int i = 0; i < arr.length; i++) {
+			res.add(arr[i]);
+		}
+		return res;
 	}
 }
