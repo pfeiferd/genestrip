@@ -95,7 +95,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 										System.out.println(kmerTaxid);
 										ByteArrayToString.print(kmer, System.out);
 										System.out.println();
-										
+
 										TaxidWithCount tc = trie.get(kmer, 0, false);
 										if (tc == null) {
 											tc = new TaxidWithCount(kmerTaxid);
@@ -120,24 +120,26 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 
 			for (TaxIdNode node : nodes) {
 				matchingTaxId[0] = node.getTaxId();
-				
+
 				List<FTPEntryWithQuality> entryList = fastaFilesGoal.get().get(node);
 
-				for (FTPEntryWithQuality entry : entryList) {
-					if (minQuality == null || !entry.getQuality().below(minQuality)) {
+				if (entryList != null) {
+					for (FTPEntryWithQuality entry : entryList) {
+						if (minQuality == null || !entry.getQuality().below(minQuality)) {
 
-						File file = new File(getProject().getFastasDir(), entry.getFileName());
-						if (getLogger().isInfoEnabled()) {
-							getLogger().info("Cleaning via file " + file);
-						}
-						if (file.exists()) {
-							fastaTrieCleaner.cleanTrie(trie, file, buffer, ringBuffer);
+							File file = new File(getProject().getFastasDir(), entry.getFileName());
+							if (getLogger().isInfoEnabled()) {
+								getLogger().info("Cleaning via file " + file);
+							}
+							if (file.exists()) {
+								fastaTrieCleaner.cleanTrie(trie, file, buffer, ringBuffer);
+							}
 						}
 					}
 				}
 			}
 
-			trie.visit(new KMerTrieVisitor<TaxidWithCount>() {				
+			trie.visit(new KMerTrieVisitor<TaxidWithCount>() {
 				@Override
 				public void nextValue(KMerTrie<TaxidWithCount> trie, byte[] kmer, TaxidWithCount value) {
 					ByteArrayToString.print(kmer, System.out);
@@ -150,25 +152,25 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	@SuppressWarnings("serial")
 	public static class TaxidWithCount implements Serializable {
 		private int count;
 		private final String taxid;
-		
+
 		public TaxidWithCount(String taxid) {
 			this.taxid = taxid;
 			count = 0;
 		}
-		
+
 		public void inc() {
 			count++;
 		}
-		
+
 		public int getCount() {
 			return count;
 		}
-		
+
 		public String getTaxid() {
 			return taxid;
 		}
