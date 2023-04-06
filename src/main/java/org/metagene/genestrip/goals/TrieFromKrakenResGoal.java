@@ -26,11 +26,13 @@ package org.metagene.genestrip.goals;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.goals.TrieFromKrakenResGoal.TaxidWithCount;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
 import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
 import org.metagene.genestrip.make.Goal;
@@ -45,7 +47,7 @@ import org.metagene.genestrip.util.ByteArrayToString;
 import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.StreamProvider;
 
-public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<String>, GSProject> {
+public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fastaFilesGoal;
 
@@ -61,7 +63,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<String>, GSProjec
 	@Override
 	public void makeThis() {
 		try {
-			KMerTrie<String> trie = new KMerTrie<String>(2, getProject().getkMserSize(), true);
+			KMerTrie<TaxidWithCount> trie = new KMerTrie<TaxidWithCount>(getProject().getkMserSize());
 			Set<TaxIdNode> nodes = taxNodesGoal.get();
 			byte[] kmer = new byte[trie.getLen()];
 
@@ -93,18 +95,32 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<String>, GSProjec
 										System.out.println(kmerTaxid);
 										ByteArrayToString.print(kmer, System.out);
 										System.out.println();
-										trie.put(kmer, 0, kmerTaxid, false);
+										
+										TaxidWithCount tc = trie.get(kmer, 0, false);
+										if (tc == null) {
+											tc = new TaxidWithCount(kmerTaxid);
+											trie.put(kmer, 0, tc, false);
+										}
+										tc.inc();
 									}
 								}
 							}));
 
-			FastaTrieCleaner<String> fastaTrieCleaner = new FastaTrieCleaner<String>();
+			String[] matchingTaxId = new String[1];
+			FastaTrieCleaner<TaxidWithCount> fastaTrieCleaner = new FastaTrieCleaner<TaxidWithCount>() {
+				@Override
+				protected boolean isMatchingValue(TaxidWithCount value) {
+					return matchingTaxId[0].equals(value.taxid);
+				}
+			};
 
 			FTPEntryQuality minQuality = getProject().getConfig().getFastaQuality();
 			CGATRingBuffer ringBuffer = new CGATRingBuffer(trie.getLen());
 			byte[] buffer = new byte[4096 * 8];
 
 			for (TaxIdNode node : nodes) {
+				matchingTaxId[0] = node.getTaxId();
+				
 				List<FTPEntryWithQuality> entryList = fastaFilesGoal.get().get(node);
 
 				for (FTPEntryWithQuality entry : entryList) {
@@ -115,15 +131,15 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<String>, GSProjec
 							getLogger().info("Cleaning via file " + file);
 						}
 						if (file.exists()) {
-							fastaTrieCleaner.cleanTrie(trie, node.getTaxId(), file, buffer, ringBuffer);
+							fastaTrieCleaner.cleanTrie(trie, file, buffer, ringBuffer);
 						}
 					}
 				}
 			}
 
-			trie.visit(new KMerTrieVisitor<String>() {
+			trie.visit(new KMerTrieVisitor<TaxidWithCount>() {				
 				@Override
-				public void nextValue(KMerTrie<String> trie, byte[] kmer, String value) {
+				public void nextValue(KMerTrie<TaxidWithCount> trie, byte[] kmer, TaxidWithCount value) {
 					ByteArrayToString.print(kmer, System.out);
 					System.out.println();
 				}
@@ -132,6 +148,29 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<String>, GSProjec
 			set(trie);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
+		}
+	}
+	
+	@SuppressWarnings("serial")
+	public static class TaxidWithCount implements Serializable {
+		private int count;
+		private final String taxid;
+		
+		public TaxidWithCount(String taxid) {
+			this.taxid = taxid;
+			count = 0;
+		}
+		
+		public void inc() {
+			count++;
+		}
+		
+		public int getCount() {
+			return count;
+		}
+		
+		public String getTaxid() {
+			return taxid;
 		}
 	}
 }
