@@ -56,7 +56,7 @@ public class GSProject implements DownloadProject {
 	}
 	
 	public File getFastqKrakenOutFile() {
-		return new File(getFastqsDir(), fastqFile.getName() + getkMserSize() + "_fromKraken.out.txt");
+		return new File(getKrakenOutDir(), fastqFile.getName() + getkMserSize() + "_fromKraken.out.txt.gz");
 	}
 	
 	@Override
@@ -80,11 +80,11 @@ public class GSProject implements DownloadProject {
 	}
 
 	public File getFilteredFastqFile() {
-		return new File(getResultsDir(), "Filtered_" + fastqFile.getName());
+		return new File(getResultsDir(), "Filtered_" + fastqFile.getName() + ".gz");
 	}
 
 	public File getDumpFastqFile() {
-		return getConfig().isWriteDumpedFastq() ? new File(getResultsDir(), "Dumped_" + fastqFile.getName()) : null;
+		return getConfig().isWriteDumpedFastq() ? new File(getResultsDir(), "Dumped_" + fastqFile.getName() + ".gz") : null;
 	}
 
 	public File getTaxCountsFile(String goalname) {
@@ -130,6 +130,10 @@ public class GSProject implements DownloadProject {
 	public File getFiltersDir() {
 		return new File(getProjectsDir(), name + "/filters");
 	}
+	
+	public File getKrakenOutDir() {
+		return new File(getProjectsDir(), name + "/kraken");
+	}
 
 	public File getTaxIdsFile() {
 		return new File(getProjectsDir(), name + "/taxids.txt");
@@ -144,7 +148,7 @@ public class GSProject implements DownloadProject {
 	}
 
 	public File getKrakenOutFile() {
-		return new File(getFastqsDir(), getName() + "_k" + getkMserSize() + "_fromKraken.out.txt");
+		return new File(getKrakenOutDir(), getName() + "_k" + getkMserSize() + "_fromKraken.out.txt.gz");
 	}
 
 	public File getFilteredKmerFastqFile() {
