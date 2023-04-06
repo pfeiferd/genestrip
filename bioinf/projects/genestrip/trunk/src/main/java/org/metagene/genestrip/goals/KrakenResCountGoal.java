@@ -50,9 +50,9 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 
 	@SafeVarargs
-	public KrakenResCountGoal(GSProject project, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
+	public KrakenResCountGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
 			Goal<GSProject>... dependencies) {
-		super(project, "krakenrescount", project.getTaxCountsFile("krakenrescount"), dependencies);
+		super(project, name, project.getTaxCountsFile(name), dependencies);
 		this.taxNodesGoal = taxNodesGoal;
 	}
 

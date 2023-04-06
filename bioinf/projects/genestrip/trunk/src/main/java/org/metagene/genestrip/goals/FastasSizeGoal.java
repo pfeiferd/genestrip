@@ -36,8 +36,8 @@ public class FastasSizeGoal extends ObjectGoal<Long, GSProject> {
 	private final FastaFileDownloadGoal fastaFileDownloadGoal;
 	private final int maxCheckForGuess;
 
-	public FastasSizeGoal(GSProject project, FastaFileDownloadGoal fastaDownloadGoal) {
-		super(project, "fastassize");
+	public FastasSizeGoal(GSProject project, String name, FastaFileDownloadGoal fastaDownloadGoal) {
+		super(project, name);
 		this.fastaFileDownloadGoal = fastaDownloadGoal;
 		maxCheckForGuess = 10;
 	}

@@ -38,8 +38,8 @@ public class AssemblyFileDownloadGoal extends FileDownloadGoal<GSProject> {
 
 	private final List<File> files;
 
-	public AssemblyFileDownloadGoal(GSProject project) {
-		super(project, "assemblydownload");
+	public AssemblyFileDownloadGoal(GSProject project, String name) {
+		super(project, name);
 		files = Collections.singletonList(new File(project.getConfig().getCommonBaseDir(),
 				project.getConfig().isUseGenBank() ? AssemblySummaryReader.ASSEMLY_SUM_GENBANK
 						: AssemblySummaryReader.ASSEMLY_SUM_REFSEQ));

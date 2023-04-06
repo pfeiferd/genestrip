@@ -47,9 +47,9 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 	private Map<String, String> fileToDir;
 
 	@SafeVarargs
-	public FastaFileDownloadGoal(GSProject project,
+	public FastaFileDownloadGoal(GSProject project, String name,
 			ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> entryGoal, Goal<GSProject>... deps) {
-		super(project, "fastasdownload", deps);
+		super(project, name, deps);
 		this.entryGoal = entryGoal;
 		baseURLLen = project.getConfig().getHttpBaseURL().length();
 	}

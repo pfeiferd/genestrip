@@ -40,9 +40,9 @@ public class BloomFilterSizeGoal extends ObjectGoal<Long, GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 
 	@SafeVarargs
-	public BloomFilterSizeGoal(GSProject project, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
+	public BloomFilterSizeGoal(GSProject project, String name,ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
 			Goal<GSProject>... dependencies) {
-		super(project, "bloomsize", dependencies);
+		super(project, name, dependencies);
 		this.taxNodesGoal = taxNodesGoal;
 	}
 
