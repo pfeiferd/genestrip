@@ -43,9 +43,9 @@ public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 
 	@SafeVarargs
-	public KrakenFastqFileGoal(GSProject project, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
+	public KrakenFastqFileGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
 			Goal<GSProject>... deps) {
-		super(project, "krakenfastq", project.getFilteredKmerFastqFile(), deps);
+		super(project, name, project.getFilteredKmerFastqFile(), deps);
 		this.taxNodesGoal = taxNodesGoal;
 	}
 

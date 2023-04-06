@@ -38,9 +38,9 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 	private final FastaFileDownloadGoal fastaDownloadGoal;
 
 	@SafeVarargs
-	public KMerFastqGoal(GSProject project, FastasSizeGoal fastasSizeGoal, FastaFileDownloadGoal fastaDownloadGoal,
+	public KMerFastqGoal(GSProject project, String name, FastasSizeGoal fastasSizeGoal, FastaFileDownloadGoal fastaDownloadGoal,
 			Goal<GSProject>... dependencies) {
-		super(project, "kmerfastqgen", project.getKmerFastqFile(), dependencies);
+		super(project, name, project.getKmerFastqFile(), dependencies);
 		this.fastasSizeGoal = fastasSizeGoal;
 		this.fastaDownloadGoal = fastaDownloadGoal;
 	}

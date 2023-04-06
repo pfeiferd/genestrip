@@ -112,7 +112,7 @@ public class GSMaker extends Maker<GSProject> {
 		};
 		registerGoal(taxNodesGoal);
 
-		FileGoal<GSProject> assemblyGoal = new AssemblyFileDownloadGoal(project);
+		FileGoal<GSProject> assemblyGoal = new AssemblyFileDownloadGoal(project, "assemblydownload");
 		registerGoal(assemblyGoal);
 
 		Goal<GSProject> commonGoal = new Goal<GSProject>(project, "common", assemblyGoal, taxDBGoal) {
@@ -140,32 +140,34 @@ public class GSMaker extends Maker<GSProject> {
 			}
 		};
 
-		FastaFileDownloadGoal fastaDownloadGoal = new FastaFileDownloadGoal(project, fastaFilesGoal, projectSetupGoal);
+		FastaFileDownloadGoal fastaDownloadGoal = new FastaFileDownloadGoal(project, "fastasdownload", fastaFilesGoal,
+				projectSetupGoal);
 		registerGoal(fastaDownloadGoal);
 
-		FastasSizeGoal fastasSizeGoal = new FastasSizeGoal(project, fastaDownloadGoal);
+		FastasSizeGoal fastasSizeGoal = new FastasSizeGoal(project, "fastassize", fastaDownloadGoal);
 
-		KMerFastqGoal kmerFastqGoal = new KMerFastqGoal(project, fastasSizeGoal, fastaDownloadGoal, projectSetupGoal,
-				fastaDownloadGoal);
+		KMerFastqGoal kmerFastqGoal = new KMerFastqGoal(project, "kmerfastqgen", fastasSizeGoal, fastaDownloadGoal,
+				projectSetupGoal, fastaDownloadGoal);
 		registerGoal(kmerFastqGoal);
 
 		Goal<GSProject> krakenOutGoal = new KrakenOutGoal(project, "kmerkrakenout", project.getKmerFastqFile(),
 				project.getKrakenOutFile(), kmerFastqGoal);
 		registerGoal(krakenOutGoal);
 
-		Goal<GSProject> trieGoal = new KMerTrieFileGoal(project, taxNodesGoal, krakenOutGoal, kmerFastqGoal,
+		Goal<GSProject> trieGoal = new KMerTrieFileGoal(project, "triegen", taxNodesGoal, krakenOutGoal, kmerFastqGoal,
 				projectSetupGoal);
 		registerGoal(trieGoal);
 
-		Goal<GSProject> krakenFastqGoal = new KrakenFastqFileGoal(project, taxNodesGoal, projectSetupGoal, taxNodesGoal,
-				krakenOutGoal, kmerFastqGoal);
+		Goal<GSProject> krakenFastqGoal = new KrakenFastqFileGoal(project, "krakenfastq", taxNodesGoal,
+				projectSetupGoal, taxNodesGoal, krakenOutGoal, kmerFastqGoal);
 		registerGoal(krakenFastqGoal);
 
-		BloomFilterSizeGoal bloomFilterSizeGoal = new BloomFilterSizeGoal(project, taxNodesGoal, krakenOutGoal);
+		BloomFilterSizeGoal bloomFilterSizeGoal = new BloomFilterSizeGoal(project, "bloomsize", taxNodesGoal,
+				krakenOutGoal);
 		registerGoal(bloomFilterSizeGoal);
 
-		Goal<GSProject> bloomFilterFileGoal = new BloomFilterFileGoal(project, bloomFilterSizeGoal, taxNodesGoal,
-				krakenOutGoal, kmerFastqGoal, taxNodesGoal, bloomFilterSizeGoal);
+		Goal<GSProject> bloomFilterFileGoal = new BloomFilterFileGoal(project, "bloomgen", bloomFilterSizeGoal,
+				taxNodesGoal, krakenOutGoal, kmerFastqGoal, taxNodesGoal, bloomFilterSizeGoal);
 		registerGoal(bloomFilterFileGoal);
 
 		Goal<GSProject> showGoals = new Goal<GSProject>(project, "show") {
@@ -232,8 +234,8 @@ public class GSMaker extends Maker<GSProject> {
 			registerGoal(classifyGoal);
 
 			Goal<GSProject> krakenResCountGoal = project.isUseKrakenOutFilter()
-					? new KrakenResCountGoal(project, taxNodesGoal, taxNodesGoal, projectSetupGoal)
-					: new KrakenResCountGoal(project, null, projectSetupGoal);
+					? new KrakenResCountGoal(project, "krakenrescount", taxNodesGoal, taxNodesGoal, projectSetupGoal)
+					: new KrakenResCountGoal(project, "krakenrescount", null, projectSetupGoal);
 			registerGoal(krakenResCountGoal);
 
 			Goal<GSProject> fastqKrakenOutGoal = new KrakenOutGoal(project, "fastqkrakenout", project.getFastqFile(),

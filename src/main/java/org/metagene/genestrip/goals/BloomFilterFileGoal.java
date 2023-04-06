@@ -44,9 +44,9 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 	private final BloomFilterSizeGoal sizeGoal;
 
 	@SafeVarargs
-	public BloomFilterFileGoal(GSProject project, BloomFilterSizeGoal sizeGoal,
+	public BloomFilterFileGoal(GSProject project, String name, BloomFilterSizeGoal sizeGoal,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, Goal<GSProject>... deps) {
-		super(project, "bloomgen", project.getBloomFilterFile(), deps);
+		super(project, name, project.getBloomFilterFile(), deps);
 		this.taxNodesGoal = taxNodesGoal;
 		this.sizeGoal = sizeGoal;
 	}

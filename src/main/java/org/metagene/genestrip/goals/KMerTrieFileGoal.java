@@ -43,8 +43,9 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 
 	@SafeVarargs
-	public KMerTrieFileGoal(GSProject project, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, Goal<GSProject>... deps) {
-		super(project, "triegen", project.getTrieFile(), deps);
+	public KMerTrieFileGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
+			Goal<GSProject>... deps) {
+		super(project, name, project.getTrieFile(), deps);
 		this.taxNodesGoal = taxNodesGoal;
 	}
 
