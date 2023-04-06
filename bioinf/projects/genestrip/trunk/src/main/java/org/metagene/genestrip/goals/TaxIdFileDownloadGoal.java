@@ -24,11 +24,10 @@
  */
 package org.metagene.genestrip.goals;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -37,6 +36,7 @@ import java.util.zip.ZipInputStream;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.FileDownloadGoal;
 import org.metagene.genestrip.tax.TaxTree;
+import org.metagene.genestrip.util.StreamProvider;
 
 public class TaxIdFileDownloadGoal extends FileDownloadGoal<GSProject> {
 	public static final String TAX_DMP_ZIP = "taxdmp.zip";
@@ -100,7 +100,7 @@ public class TaxIdFileDownloadGoal extends FileDownloadGoal<GSProject> {
 				if (getLogger().isInfoEnabled()) {
 					getLogger().info("File save " + file.toString());
 				}
-				BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file));
+				OutputStream out = StreamProvider.getOutputStreamForFile(file);
 				int len;
 				while ((len = zis.read(buffer)) > 0) {
 					out.write(buffer, 0, len);

@@ -25,14 +25,12 @@
 package org.metagene.genestrip.goals;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
-import java.util.zip.GZIPInputStream;
+import java.io.InputStream;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.util.StreamProvider;
 
 public class FastasSizeGoal extends ObjectGoal<Long, GSProject> {
 	private final FastaFileDownloadGoal fastaFileDownloadGoal;
@@ -73,12 +71,9 @@ public class FastasSizeGoal extends ObjectGoal<Long, GSProject> {
 
 	protected long getUncompressedSize(File file) {
 		try {
-			ReadableByteChannel fc;
-			fc = Channels.newChannel(new FileInputStream(file));
-			GZIPInputStream gis = new GZIPInputStream(Channels.newInputStream(fc));
+			InputStream stream = StreamProvider.getInputStreamForFile(file);
 			long uSize;
-			for (uSize = 0; gis.read() != -1; uSize++) {
-			}
+			for (uSize = 0; stream.read() != -1; uSize++);
 			return uSize;
 		} catch (IOException e) {
 			throw new RuntimeException(e);

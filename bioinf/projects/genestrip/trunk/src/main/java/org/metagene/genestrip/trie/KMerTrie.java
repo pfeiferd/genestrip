@@ -24,21 +24,16 @@
  */
 package org.metagene.genestrip.trie;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATRingBuffer;
+import org.metagene.genestrip.util.StreamProvider;
 
 public class KMerTrie<V extends Serializable> implements Serializable {
 	private static final long serialVersionUID = 1L;
@@ -482,15 +477,13 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 	}
 
 	public void save(File trieFile) throws IOException {
-		ObjectOutputStream oOut = new ObjectOutputStream(
-				new BufferedOutputStream(new GZIPOutputStream(new FileOutputStream(trieFile))));
+		ObjectOutputStream oOut = new ObjectOutputStream(StreamProvider.getOutputStreamForFile(trieFile));
 		oOut.writeObject(this);
 		oOut.close();
 	}
 
 	public static KMerTrie<?> load(File filterFile) throws IOException, ClassNotFoundException {
-		ObjectInputStream oOut = new ObjectInputStream(
-				new BufferedInputStream(new GZIPInputStream(new FileInputStream(filterFile))));
+		ObjectInputStream oOut = new ObjectInputStream(StreamProvider.getInputStreamForFile(filterFile));
 		KMerTrie<?> res = (KMerTrie<?>) oOut.readObject();
 		oOut.close();
 		return res;

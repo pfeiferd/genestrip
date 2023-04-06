@@ -24,7 +24,6 @@
  */
 package org.metagene.genestrip.make;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -39,6 +38,7 @@ import java.util.List;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.metagene.genestrip.make.FileDownloadGoal.DownloadProject;
+import org.metagene.genestrip.util.StreamProvider;
 
 public abstract class FileDownloadGoal<P extends DownloadProject> extends FileGoal<P> {
 	private FTPClient ftpClient;
@@ -100,7 +100,7 @@ public abstract class FileDownloadGoal<P extends DownloadProject> extends FileGo
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("File save " + file.toString());
 		}
-		OutputStream out = new BufferedOutputStream(new FileOutputStream(file));
+		OutputStream out = StreamProvider.getOutputStreamForFile(file, true);
 		ftpClient.changeWorkingDirectory(getFTPDir(file));
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("FTP download " + buildFTPURL(file));

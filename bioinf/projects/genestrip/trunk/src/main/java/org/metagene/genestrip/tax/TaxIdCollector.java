@@ -26,8 +26,8 @@ package org.metagene.genestrip.tax;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.StreamProvider;
 
 
 public class TaxIdCollector {
@@ -47,7 +48,7 @@ public class TaxIdCollector {
 	public Set<TaxIdNode> readFromFile(File file) throws IOException {
 		Set<TaxIdNode> res = new HashSet<TaxIdNode>();
 
-		FileInputStream stream = new FileInputStream(file);
+		InputStream stream = StreamProvider.getInputStreamForFile(file);
 
 		try (BufferedReader br = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
 			String line = null;

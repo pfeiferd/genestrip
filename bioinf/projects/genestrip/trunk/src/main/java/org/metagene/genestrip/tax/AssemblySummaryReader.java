@@ -38,6 +38,7 @@ import java.util.Set;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.StreamProvider;
 
 public class AssemblySummaryReader {
 	public static final String ASSEMLY_SUM_REFSEQ = "assembly_summary_refseq.txt";
@@ -60,7 +61,7 @@ public class AssemblySummaryReader {
 	public Map<TaxIdNode, List<FTPEntryWithQuality>> getRelevantEntries(Set<TaxIdNode> filter) throws IOException {
 		Map<TaxIdNode, List<FTPEntryWithQuality>> result = new HashMap<TaxIdNode, List<FTPEntryWithQuality>>();
 
-		Reader in = new InputStreamReader(new FileInputStream(new File(baseDir, assFileName)));
+		Reader in = new InputStreamReader(StreamProvider.getInputStreamForFile(new File(baseDir, assFileName)));
 		CSVFormat format = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#').setDelimiter('\t')
 				.setRecordSeparator('\n').build();
 		Iterable<CSVRecord> records = format.parse(in);

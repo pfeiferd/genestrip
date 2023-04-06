@@ -26,13 +26,9 @@ package org.metagene.genestrip.goals;
 
 import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Set;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
@@ -41,6 +37,7 @@ import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.StreamProvider;
 
 public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
@@ -58,9 +55,10 @@ public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Writing file " + fastq);
 			}
-			PrintStream filteredOut = new PrintStream(new GZIPOutputStream(new FileOutputStream(fastq), 4096));
+			PrintStream filteredOut = new PrintStream(StreamProvider.getOutputStreamForFile(fastq));
 
-			KrakenResultFastqMergeListener filter = KrakenResultFastqMergeListener.createFilterByTaxIdNodes(taxNodesGoal.get(),
+			KrakenResultFastqMergeListener filter = KrakenResultFastqMergeListener.createFilterByTaxIdNodes(
+					taxNodesGoal.get(),
 					KrakenResultFastqMergeListener.createFastQOutputFilterByTaxId(filteredOut, null));
 			KrakenResultFastqMerger krakenKMerFastqMerger = new KrakenResultFastqMerger(
 					getProject().getConfig().getMaxReadSizeBytes());
@@ -69,10 +67,9 @@ public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
 				getLogger().info("Reading file " + getProject().getKrakenOutFile());
 				getLogger().info("Reading file " + getProject().getKmerFastqFile());
 			}
-			FileInputStream fStream = new FileInputStream(getProject().getKmerFastqFile());
-			GZIPInputStream gStream = new GZIPInputStream(fStream, 4096);
-			krakenKMerFastqMerger.process(new BufferedInputStream(new FileInputStream(getProject().getKrakenOutFile())),
-					new BufferedInputStream(gStream), filter);
+			krakenKMerFastqMerger.process(
+					new BufferedInputStream(StreamProvider.getInputStreamForFile(getProject().getKrakenOutFile())),
+					StreamProvider.getInputStreamForFile(getProject().getKmerFastqFile()), filter);
 
 			filteredOut.close();
 			if (getLogger().isInfoEnabled()) {

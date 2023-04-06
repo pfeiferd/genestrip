@@ -2,7 +2,6 @@ package org.metagene.genestrip.goals;
 
 import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -21,6 +20,7 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayToString;
 import org.metagene.genestrip.util.CountingDigitTrie;
+import org.metagene.genestrip.util.StreamProvider;
 
 public class KrakenResCountGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
@@ -84,7 +84,7 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 		try {
 			krakenExecutor.execute(getProject().getKrakenDB(), getProject().getFastqFile(), null);
 
-			PrintStream out = new PrintStream(new FileOutputStream(file));
+			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
 
 			Map<String, Long> map = new HashMap<String, Long>();
 			out.println("taxid;kmers");

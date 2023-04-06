@@ -24,20 +24,15 @@
  */
 package org.metagene.genestrip.bloom;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Date;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import org.metagene.genestrip.util.CGATRingBuffer;
+import org.metagene.genestrip.util.StreamProvider;
 
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnel;
@@ -156,15 +151,13 @@ public class KMerBloomIndex implements Serializable {
 	}
 
 	public void save(File filterFile) throws IOException {
-		ObjectOutputStream oOut = new ObjectOutputStream(
-				new BufferedOutputStream(new GZIPOutputStream(new FileOutputStream(filterFile))));
+		ObjectOutputStream oOut = new ObjectOutputStream(StreamProvider.getOutputStreamForFile(filterFile));
 		oOut.writeObject(this);
 		oOut.close();
 	}
 
 	public static KMerBloomIndex load(File filterFile) throws IOException, ClassNotFoundException {
-		ObjectInputStream oOut = new ObjectInputStream(
-				new BufferedInputStream(new GZIPInputStream(new FileInputStream(filterFile))));
+		ObjectInputStream oOut = new ObjectInputStream(StreamProvider.getInputStreamForFile(filterFile));
 		KMerBloomIndex res = (KMerBloomIndex) oOut.readObject();
 		oOut.close();
 		return res;

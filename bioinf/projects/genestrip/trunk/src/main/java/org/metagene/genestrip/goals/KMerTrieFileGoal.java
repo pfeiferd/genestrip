@@ -24,13 +24,10 @@
  */
 package org.metagene.genestrip.goals;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.zip.GZIPInputStream;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
@@ -40,6 +37,7 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.KMerTrie;
+import org.metagene.genestrip.util.StreamProvider;
 
 public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
@@ -69,10 +67,8 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 				getLogger().info("Reading file " + getProject().getKrakenOutFile());
 				getLogger().info("Reading file " + getProject().getKmerFastqFile());
 			}
-			FileInputStream fStream = new FileInputStream(getProject().getKmerFastqFile());
-			GZIPInputStream gStream = new GZIPInputStream(fStream, 4096);
-			krakenKMerFastqMerger.process(new BufferedInputStream(new FileInputStream(getProject().getKrakenOutFile())),
-					new BufferedInputStream(gStream), filter);
+			krakenKMerFastqMerger.process(StreamProvider.getInputStreamForFile(getProject().getKrakenOutFile()),
+					StreamProvider.getInputStreamForFile(getProject().getKmerFastqFile()), filter);
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Trie entries: " + trie.getEntries());
