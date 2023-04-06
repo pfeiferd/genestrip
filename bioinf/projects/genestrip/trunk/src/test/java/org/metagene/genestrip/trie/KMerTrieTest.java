@@ -130,7 +130,6 @@ public class KMerTrieTest extends TestCase {
 	}
 
 	public void testVisit() {
-
 		byte[] cgat = { 'C', 'G', 'A', 'T' };
 		Random random = new Random(42);
 
