@@ -28,8 +28,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.metagene.genestrip.bloom.FastqBloomFilter;
@@ -46,6 +48,7 @@ import org.metagene.genestrip.goals.KrakenOutGoal;
 import org.metagene.genestrip.goals.KrakenResCountGoal;
 import org.metagene.genestrip.goals.TaxIdFileDownloadGoal;
 import org.metagene.genestrip.goals.TrieFromKrakenResGoal;
+import org.metagene.genestrip.goals.TrieFromKrakenResGoal.TaxidWithCount;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
@@ -58,6 +61,8 @@ import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.FastqTrieClassifier;
 import org.metagene.genestrip.trie.KMerTrie;
+import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
+import org.metagene.genestrip.util.ByteArrayToString;
 import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 
@@ -242,9 +247,47 @@ public class GSMaker extends Maker<GSProject> {
 					project.getFastqKrakenOutFile());
 			registerGoal(fastqKrakenOutGoal);
 
-			Goal<GSProject> trieFromKrakenResGoal = new TrieFromKrakenResGoal(project, taxNodesGoal, fastaFilesGoal,
+			ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> trieFromKrakenResGoal = new TrieFromKrakenResGoal(project, taxNodesGoal, fastaFilesGoal,
 					taxNodesGoal, fastaFilesGoal, fastqKrakenOutGoal);
 			registerGoal(trieFromKrakenResGoal);
+			
+			Goal<GSProject> krakenResErrorGoal = new FileListGoal<GSProject>(project, "krakenreserr", project.getKrakenErrFile(), trieFromKrakenResGoal) {
+				@Override
+				protected void makeFile(File file) throws IOException {
+					final PrintStream ps = new PrintStream(StreamProvider.getOutputStreamForFile(file));
+					
+					ps.println("taxid;count;kmer");
+					KMerTrie<TaxidWithCount> trie = trieFromKrakenResGoal.get();
+					Map<String, Integer> errPerTaxid = new HashMap<String, Integer>();
+					
+					trie.visit(new KMerTrieVisitor<TrieFromKrakenResGoal.TaxidWithCount>() {						
+						@Override
+						public void nextValue(KMerTrie<TaxidWithCount> trie, byte[] kmer, TaxidWithCount value) {
+							if (value != null) {
+								ps.print(value.getTaxid());
+								ps.print(';');
+								ps.print(value.getCount());
+								ps.print(';');
+								ByteArrayToString.print(kmer, ps);
+								ps.println(';');
+								Integer res = errPerTaxid.get(value.getTaxid());
+								res = (res == null) ? value.getCount() : res + value.getCount();
+								errPerTaxid.put(value.getTaxid(), res);
+							}
+						}
+					}, false);
+					ps.println("taxid;aggregated count");
+					for (Entry<String, Integer> entry : errPerTaxid.entrySet()) {
+						ps.print(entry.getKey());
+						ps.print(';');
+						ps.println(entry.getValue());
+						ps.println(';');
+					}
+					
+					ps.close();
+				}
+			};
+			registerGoal(krakenResErrorGoal);
 		}
 	}
 }
