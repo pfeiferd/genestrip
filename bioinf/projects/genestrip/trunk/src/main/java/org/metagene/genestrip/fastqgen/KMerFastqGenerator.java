@@ -25,20 +25,18 @@
 package org.metagene.genestrip.fastqgen;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.List;
-import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.metagene.genestrip.bloom.FastaIndexer;
 import org.metagene.genestrip.bloom.KMerBloomIndex;
 import org.metagene.genestrip.bloom.KMerBloomIndex.PutListener;
 import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.StreamProvider;
-import org.metagene.genestrip.bloom.FastaIndexer;
 
 public class KMerFastqGenerator {
 	private final Log logger = LogFactory.getLog(KMerFastqGenerator.class);
