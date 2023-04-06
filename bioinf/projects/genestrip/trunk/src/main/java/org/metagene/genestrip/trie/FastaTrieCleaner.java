@@ -32,15 +32,16 @@ import java.io.Serializable;
 import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.StreamProvider;
 
-public class FastaTrieCleaner<T extends Serializable> {
-	public void cleanTrie(KMerTrie<T> trie, T value, File file, byte[] buffer, CGATRingBuffer ringBuffer)
+public abstract class FastaTrieCleaner<T extends Serializable> {
+	public void cleanTrie(KMerTrie<T> trie, File file, byte[] buffer, CGATRingBuffer ringBuffer)
 			throws IOException {
 		InputStream inputStream = StreamProvider.getInputStreamForFile(file);
-		cleanTrieHelp(trie, value, inputStream, buffer, ringBuffer);
+		cleanTrieHelp(trie, inputStream, buffer, ringBuffer);
+		inputStream.close();
 	}
 
 	// value must not be null...
-	private void cleanTrieHelp(KMerTrie<T> trie, T value, InputStream inputStream, byte[] buffer,
+	public void cleanTrieHelp(KMerTrie<T> trie, InputStream inputStream, byte[] buffer,
 			CGATRingBuffer ringBuffer) throws IOException {
 		if (ringBuffer.getSize() != trie.getLen()) {
 			throw new IllegalArgumentException("trie and ring buffer must have equal size");
@@ -67,7 +68,7 @@ public class FastaTrieCleaner<T extends Serializable> {
 						if (res != null) {
 							System.out.println(res + ": Found " + ringBuffer);							
 						}
-						if (value.equals(res)) {
+						if (isMatchingValue(res)) {
 							System.out.println("Removing " + ringBuffer);
 							trie.put(ringBuffer, null, false);
 						}
@@ -76,7 +77,7 @@ public class FastaTrieCleaner<T extends Serializable> {
 							if (res != null) {
 								System.out.println(res + ": Found reverse " + ringBuffer);							
 							}
-							if (value.equals(res)) {
+							if (isMatchingValue(res)) {
 								System.out.println("Removing " + ringBuffer);
 								trie.put(ringBuffer, null, true);
 							}
@@ -85,7 +86,7 @@ public class FastaTrieCleaner<T extends Serializable> {
 				}
 			}
 		}
-
-		inputStream.close();
 	}
+	
+	protected abstract boolean isMatchingValue(T value);
 }
