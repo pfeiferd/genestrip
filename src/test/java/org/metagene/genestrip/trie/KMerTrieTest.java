@@ -24,18 +24,14 @@
  */
 package org.metagene.genestrip.trie;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.zip.GZIPInputStream;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.Main;
@@ -44,8 +40,8 @@ import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
-import org.metagene.genestrip.util.ByteArrayToString;
 import org.metagene.genestrip.util.CountingDigitTrie;
+import org.metagene.genestrip.util.StreamProvider;
 
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnel;
@@ -61,8 +57,6 @@ public class KMerTrieTest extends TestCase {
 		GSProject project = main.getProject();
 
 		File bartHReads = project.getKmerFastqFile();
-		FileInputStream fStream = new FileInputStream(bartHReads);
-		GZIPInputStream gStream = new GZIPInputStream(fStream, 4096);
 
 		File fromKraken = project.getKrakenOutFile();
 
@@ -95,8 +89,8 @@ public class KMerTrieTest extends TestCase {
 
 		KrakenResultFastqMerger krakenFilter = new KrakenResultFastqMerger(project.getConfig().getMaxReadSizeBytes());
 
-		CountingDigitTrie.print(krakenFilter.process(new BufferedInputStream(new FileInputStream(fromKraken)),
-				new BufferedInputStream(gStream), filter), System.out);
+		CountingDigitTrie.print(krakenFilter.process(StreamProvider.getInputStreamForFile(fromKraken),
+				StreamProvider.getInputStreamForFile(bartHReads), filter), System.out);
 
 		// Test uncompressed:
 		checkTrie(fromKraken, bartHReads, krakenFilter, trie, bloomFilter, nodes);
@@ -109,12 +103,9 @@ public class KMerTrieTest extends TestCase {
 
 	private void checkTrie(File fromKraken, File reads, KrakenResultFastqMerger krakenFilter, KMerTrie<String> trie,
 			BloomFilter<byte[]> bloomFilter, Set<TaxIdNode> nodes) throws IOException {
-		FileInputStream fStream2 = new FileInputStream(reads);
-		GZIPInputStream gStream2 = new GZIPInputStream(fStream2, 4096);
-
 		// Positive Test:
-		krakenFilter.process(new BufferedInputStream(new FileInputStream(fromKraken)),
-				new BufferedInputStream(gStream2),
+		krakenFilter.process(StreamProvider.getInputStreamForFile(fromKraken),
+				StreamProvider.getInputStreamForFile(reads),
 				KrakenResultFastqMergeListener.createFilterByTaxIdNodes(nodes, new KrakenResultFastqMergeListener() {
 					@Override
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,

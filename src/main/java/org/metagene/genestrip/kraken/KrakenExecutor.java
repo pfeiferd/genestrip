@@ -25,26 +25,27 @@
 package org.metagene.genestrip.kraken;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
+import java.io.OutputStream;
 import java.text.MessageFormat;
+
+import org.apache.commons.io.IOUtils;
+import org.metagene.genestrip.util.StreamProvider;
 
 public class KrakenExecutor {
 	private final String binFolder;
 	private final String execCommand;
-	
+
 	public KrakenExecutor(String binFolder, String execCommand) {
 		this.execCommand = execCommand;
 		this.binFolder = binFolder;
 	}
-	
+
 	public String genExecLine(String database, File fastq) {
 		return MessageFormat.format(execCommand, binFolder, database, fastq);
 	}
-	
+
 	public void execute(String database, File fastq, File outFile) throws InterruptedException, IOException {
 		Process process = Runtime.getRuntime().exec(genExecLine(database, fastq.getAbsoluteFile()));
 		handleOutputStream(process.getInputStream(), outFile);
@@ -53,12 +54,10 @@ public class KrakenExecutor {
 			throw new IllegalStateException("Kraken terminated unsuccesfully");
 		}
 	}
-	
-	protected void handleOutputStream(InputStream stream, File outFile) throws IOException{
-		// TODO: Better write to gzipped stream?
-		ReadableByteChannel readableByteChannel = Channels.newChannel(stream);
-		FileOutputStream out = new FileOutputStream(outFile);
-		out.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
-		out.close();		
+
+	protected void handleOutputStream(InputStream stream, File outFile) throws IOException {
+		OutputStream out = StreamProvider.getOutputStreamForFile(outFile);
+		IOUtils.copyLarge(stream, out);
+		out.close();
 	}
 }

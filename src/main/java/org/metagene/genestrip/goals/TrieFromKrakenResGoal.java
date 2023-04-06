@@ -1,13 +1,10 @@
 package org.metagene.genestrip.goals;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.zip.GZIPInputStream;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
@@ -22,6 +19,7 @@ import org.metagene.genestrip.trie.KMerTrie;
 import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
 import org.metagene.genestrip.util.ByteArrayToString;
 import org.metagene.genestrip.util.CGATRingBuffer;
+import org.metagene.genestrip.util.StreamProvider;
 
 public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<String>, GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
@@ -46,23 +44,22 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<String>, GSProjec
 			KrakenResultFastqMerger merger = new KrakenResultFastqMerger(
 					getProject().getConfig().getMaxReadSizeBytes());
 
-			FileInputStream fStream = new FileInputStream(getProject().getFastqFile());
-			GZIPInputStream gStream = new GZIPInputStream(fStream, 4096);
-			
-			KrakenResultFastqMergeListener printListener = KrakenResultFastqMergeListener.createPrintListener(System.out, null);
+			KrakenResultFastqMergeListener printListener = KrakenResultFastqMergeListener
+					.createPrintListener(System.out, null);
 
-			merger.process(new BufferedInputStream(new FileInputStream(getProject().getFastqKrakenOutFile())), gStream,
-					KrakenResultFastqMergeListener.createFilterByTaxIdNodes(nodes, new KrakenResultFastqMergeListener() {
+			merger.process(StreamProvider.getInputStreamForFile((getProject().getFastqKrakenOutFile())),
+					StreamProvider.getInputStreamForFile(getProject().getFastqFile()), KrakenResultFastqMergeListener
+							.createFilterByTaxIdNodes(nodes, new KrakenResultFastqMergeListener() {
 								private long lastLineCount = -1;
-								
+
 								@Override
 								public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read,
 										byte[] readProbs, String krakenTaxid, int bps, int pos, String kmerTaxid,
 										int hitLength, byte[] output) {
 									if (lastLineCount != lineCount) {
 										lastLineCount = lineCount;
-										printListener.newTaxIdForRead(lineCount, readDescriptor, read, readProbs, krakenTaxid, bps, pos, kmerTaxid,
-												hitLength, output);
+										printListener.newTaxIdForRead(lineCount, readDescriptor, read, readProbs,
+												krakenTaxid, bps, pos, kmerTaxid, hitLength, output);
 									}
 									for (int j = 0; j < hitLength; j++) {
 										for (int i = 0; i < kmer.length; i++) {

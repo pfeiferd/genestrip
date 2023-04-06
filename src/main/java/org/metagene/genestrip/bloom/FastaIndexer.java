@@ -25,24 +25,15 @@
 package org.metagene.genestrip.bloom;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.zip.GZIPInputStream;
 
 import org.metagene.genestrip.util.CGAT;
+import org.metagene.genestrip.util.StreamProvider;
 
 public class FastaIndexer {
-	protected InputStream getFastaGZStream(File file) throws IOException {
-		FileInputStream fStream = new FileInputStream(file);
-		GZIPInputStream gStream = new GZIPInputStream(fStream, 4096);
-
-		return gStream;
-	}
-
 	public void fillIndex(KMerBloomIndex index, File file, byte[] buffer) throws IOException {
-		InputStream inputStream = getFastaGZStream(file);
-		fillIndexHelp(index, inputStream, buffer);
+		fillIndexHelp(index, StreamProvider.getInputStreamForFile(file), buffer);
 	}
 
 	private void fillIndexHelp(KMerBloomIndex index, InputStream inputStream, byte[] buffer) throws IOException {

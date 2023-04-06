@@ -38,6 +38,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.metagene.genestrip.util.StreamProvider;
+
 public class TaxTree {
 	public static final String NODES_DMP = "nodes.dmp";
 	public static final String NAMES_DMP = "names.dmp";
@@ -68,11 +70,11 @@ public class TaxTree {
 	}
 	
 	protected InputStream createNodesResource(File path) throws IOException {
-		return new FileInputStream(new File(path, NODES_DMP));
+		return StreamProvider.getInputStreamForFile(new File(path, NODES_DMP));
 	}
 	
 	protected InputStream createNamesResource(File path) throws IOException {
-		return new FileInputStream(new File(path, NAMES_DMP));
+		return StreamProvider.getInputStreamForFile(new File(path, NAMES_DMP));
 	}
 
 	protected void readNamesFromStream(InputStream stream, Map<String, TaxIdNode> taxIdToNode) throws IOException {

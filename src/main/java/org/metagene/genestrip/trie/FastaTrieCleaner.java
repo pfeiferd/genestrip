@@ -25,25 +25,17 @@
 package org.metagene.genestrip.trie;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
-import java.util.zip.GZIPInputStream;
 
 import org.metagene.genestrip.util.CGATRingBuffer;
+import org.metagene.genestrip.util.StreamProvider;
 
 public class FastaTrieCleaner<T extends Serializable> {
-	protected InputStream getFastaGZStream(File file) throws IOException {
-		FileInputStream fStream = new FileInputStream(file);
-		GZIPInputStream gStream = new GZIPInputStream(fStream, 4096);
-
-		return gStream;
-	}
-
 	public void cleanTrie(KMerTrie<T> trie, T value, File file, byte[] buffer, CGATRingBuffer ringBuffer)
 			throws IOException {
-		InputStream inputStream = getFastaGZStream(file);
+		InputStream inputStream = StreamProvider.getInputStreamForFile(file);
 		cleanTrieHelp(trie, value, inputStream, buffer, ringBuffer);
 	}
 

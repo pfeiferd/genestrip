@@ -24,22 +24,18 @@
  */
 package org.metagene.genestrip.bloom;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.metagene.genestrip.util.ByteCountingFileInputStream;
-import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.CGAT;
+import org.metagene.genestrip.util.CGATRingBuffer;
+import org.metagene.genestrip.util.StreamProvider;
+import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
 public class FastqBloomFilter {
 	protected final Log logger = LogFactory.getLog(getClass());
@@ -63,27 +59,22 @@ public class FastqBloomFilter {
 	}
 
 	public void runFilter(File fastgz, File filteredFile, File restFile) throws IOException {
-		ByteCountingFileInputStream fStream = new ByteCountingFileInputStream(fastgz);
-		GZIPInputStream gStream = new GZIPInputStream(new BufferedInputStream(fStream, 10 * bufferSize), bufferSize);
+		ByteCountingInputStreamAccess access = StreamProvider.getByteCountingInputStreamForFile(restFile, false);
 
-		BufferedOutputStream bIndexed = null;
+		OutputStream bIndexed = null;
 		if (filteredFile != null) {
-			FileOutputStream indexed = new FileOutputStream(filteredFile);
-			GZIPOutputStream gIndexed = new GZIPOutputStream(indexed, bufferSize, false);
-			bIndexed = new BufferedOutputStream(gIndexed, bufferSize);
+			bIndexed = StreamProvider.getOutputStreamForFile(filteredFile);
 		}
-		BufferedOutputStream bNotIndexed = null;
+		OutputStream bNotIndexed = null;
 		if (restFile != null) {
-			FileOutputStream notIndexed = new FileOutputStream(restFile);
-			GZIPOutputStream gNotIndexed = new GZIPOutputStream(notIndexed, bufferSize, false);
-			bNotIndexed = new BufferedOutputStream(gNotIndexed, bufferSize);
+			bNotIndexed = StreamProvider.getOutputStreamForFile(restFile);
 		}
 
 		long fastqFileSize = Files.size(fastgz.toPath());
 
-		runFilter(gStream, bIndexed, bNotIndexed, fastqFileSize, fStream);
+		runFilter(access.getInputStream(), bIndexed, bNotIndexed, fastqFileSize, access);
 
-		gStream.close();
+		access.getInputStream().close();
 		if (bIndexed != null) {
 			bIndexed.close();
 		}
@@ -93,7 +84,7 @@ public class FastqBloomFilter {
 	}
 
 	private void runFilter(InputStream fastqStream, OutputStream indexed, OutputStream notIndexed, long fastqFileSize,
-			ByteCountingFileInputStream fStream) throws IOException {
+			ByteCountingInputStreamAccess byteCountAccess) throws IOException {
 		int line = 0;
 		boolean res = false;
 		long total = 0;
@@ -139,7 +130,7 @@ public class FastqBloomFilter {
 						total++;
 						if (logger.isInfoEnabled()) {
 							if (total % 100000 == 0) {
-								double ratio = fStream.getBytesRead() / (double) fastqFileSize;
+								double ratio = byteCountAccess.getBytesRead() / (double) fastqFileSize;
 								long stopTime = System.currentTimeMillis();
 
 								double diff = (stopTime - startTime);

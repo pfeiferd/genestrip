@@ -37,6 +37,7 @@ import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.bloom.KMerBloomIndex;
 import org.metagene.genestrip.bloom.KMerBloomIndex.PutListener;
 import org.metagene.genestrip.util.CGATRingBuffer;
+import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.bloom.FastaIndexer;
 
 public class KMerFastqGenerator {
@@ -60,9 +61,7 @@ public class KMerFastqGenerator {
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("File create " + fastq.toString());
 		}
-		FileOutputStream fStream = new FileOutputStream(fastq);
-		GZIPOutputStream gStream = new GZIPOutputStream(fStream, 4096);
-		FastQWriter fastQWriter = new FastQWriter(name, gStream);
+		FastQWriter fastQWriter = new FastQWriter(name, StreamProvider.getOutputStreamForFile(fastq));
 		KMerBloomIndex index = new KMerBloomIndex(name, getKmerSize(), expectedSize, 0.0001, fastQWriter);
 		
 		if (getLogger().isInfoEnabled()) {
