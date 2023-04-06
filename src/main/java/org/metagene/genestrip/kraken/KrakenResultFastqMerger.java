@@ -55,6 +55,7 @@ public class KrakenResultFastqMerger {
 
 		int krakenPos;
 		long readCount = 0;
+		// TODO: Improve speed by reducing read calls and using array as buffer.
 		for (int c = bufferedInFromKraken.read(), d = bufferedInFastQ == null ? 0 : bufferedInFastQ.read(); c != -1
 				&& d != -1; c = bufferedInFromKraken.read(), d = bufferedInFastQ == null ? 0 : bufferedInFastQ.read()) {
 			for (krakenPos = 0; c != -1 && c != '\n'; krakenPos++) {
