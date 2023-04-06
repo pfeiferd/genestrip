@@ -68,7 +68,7 @@ public class GSMaker extends Maker<GSProject> {
 
 	protected void createGoals(GSProject project) {
 		List<File> projectDirs = Arrays.asList(project.getFastasDir(), project.getFastqsDir(), project.getFiltersDir(),
-				project.getResultsDir());
+				project.getKrakenOutDir(), project.getResultsDir());
 
 		Goal<GSProject> projectSetupGoal = new FileListGoal<GSProject>(project, "setup", projectDirs) {
 			@Override
