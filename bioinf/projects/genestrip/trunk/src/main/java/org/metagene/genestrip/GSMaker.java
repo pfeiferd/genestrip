@@ -248,7 +248,7 @@ public class GSMaker extends Maker<GSProject> {
 			registerGoal(fastqKrakenOutGoal);
 
 			ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> trieFromKrakenResGoal = new TrieFromKrakenResGoal(project, taxNodesGoal, fastaFilesGoal,
-					taxNodesGoal, fastaFilesGoal, fastqKrakenOutGoal);
+					taxNodesGoal, fastaDownloadGoal, fastaDownloadGoal, fastqKrakenOutGoal);
 			registerGoal(trieFromKrakenResGoal);
 			
 			Goal<GSProject> krakenResErrorGoal = new FileListGoal<GSProject>(project, "krakenreserr", project.getKrakenErrFile(), trieFromKrakenResGoal) {
