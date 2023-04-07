@@ -31,6 +31,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
+import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -38,11 +40,11 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.KMerTrie;
 import org.metagene.genestrip.util.StreamProvider;
 
-public class KMerTrieFileGoal extends FileListGoal<GSProject> {
+public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 
 	@SafeVarargs
-	public KMerTrieFileGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
+	public KMerFastqTrieFileGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
 			Goal<GSProject>... deps) {
 		super(project, name, project.getTrieFile(), deps);
 		this.taxNodesGoal = taxNodesGoal;
@@ -58,12 +60,21 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 				taxIds.add(node.getTaxId());
 			}
 
+			KrakenResultFastqMergeListener filter = KrakenResultFastqMergeListener.createFilterByTaxId(taxIds,
+					KrakenResultFastqMergeListener.fillKMerTrie(trie, null));
+			KrakenResultFastqMerger krakenKMerFastqMerger = new KrakenResultFastqMerger(
+					getProject().getConfig().getMaxReadSizeBytes());
+
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Reading file " + getProject().getFastqKrakenOutFile());
+				getLogger().info("Reading file " + getProject().getKrakenOutFile());
+				getLogger().info("Reading file " + getProject().getKmerFastqFile());
 			}
 			
-			InputStream stream1 = StreamProvider.getInputStreamForFile(getProject().getFastqKrakenOutFile());
+			InputStream stream1 = StreamProvider.getInputStreamForFile(getProject().getKrakenOutFile());
+			InputStream stream2 = StreamProvider.getInputStreamForFile(getProject().getKmerFastqFile());			
+			krakenKMerFastqMerger.process(stream1, stream1, filter);
 			stream1.close();
+			stream2.close();
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Trie entries: " + trie.getEntries());
