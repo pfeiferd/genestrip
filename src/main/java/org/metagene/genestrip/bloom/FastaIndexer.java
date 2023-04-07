@@ -33,7 +33,9 @@ import org.metagene.genestrip.util.StreamProvider;
 
 public class FastaIndexer {
 	public void fillIndex(KMerBloomIndex index, File file, byte[] buffer) throws IOException {
-		fillIndexHelp(index, StreamProvider.getInputStreamForFile(file), buffer);
+		InputStream inputStream = StreamProvider.getInputStreamForFile(file);
+		fillIndexHelp(index, inputStream, buffer);
+		inputStream.close();
 	}
 
 	private void fillIndexHelp(KMerBloomIndex index, InputStream inputStream, byte[] buffer) throws IOException {
@@ -71,7 +73,5 @@ public class FastaIndexer {
 				}
 			}
 		}
-
-		inputStream.close();
 	}
 }
