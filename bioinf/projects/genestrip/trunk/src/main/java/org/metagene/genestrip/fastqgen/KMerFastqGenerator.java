@@ -35,6 +35,7 @@ import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.bloom.FastaIndexer;
 import org.metagene.genestrip.bloom.KMerBloomIndex;
 import org.metagene.genestrip.bloom.KMerBloomIndex.PutListener;
+import org.metagene.genestrip.util.BufferedLineReader;
 import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.StreamProvider;
 
@@ -67,7 +68,7 @@ public class KMerFastqGenerator {
 		}
 
 		FastaIndexer fastaIndexer = new FastaIndexer();
-		byte[] buffer = new byte[4096 * 8];
+		byte[] buffer = new byte[BufferedLineReader.getBufferSize()];
 
 		for (File fasta : fastaFiles) {
 			if (fasta.exists()) {
