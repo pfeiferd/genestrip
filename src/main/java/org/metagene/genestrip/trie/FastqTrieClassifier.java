@@ -34,6 +34,7 @@ import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.metagene.genestrip.util.BufferedLineReader;
 import org.metagene.genestrip.util.ByteCountingFileInputStream;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CountingDigitTrie;
@@ -47,7 +48,7 @@ public class FastqTrieClassifier {
 	private final int bufferSize;
 
 	public FastqTrieClassifier(KMerTrie<String> trie, int maxReadSize) {
-		bufferSize = 4096 * 8;
+		bufferSize = BufferedLineReader.getBufferSize();
 		this.trie = trie;
 		readBuffer = new byte[4][maxReadSize];
 		c = new int[4];
@@ -136,7 +137,7 @@ public class FastqTrieClassifier {
 		return counts;
 	}
 
-	public boolean classifyRead(byte[] descriptor, byte[] read, int readSize, CountingDigitTrie countingDigitTrie, boolean reverse) {
+	protected boolean classifyRead(byte[] descriptor, byte[] read, int readSize, CountingDigitTrie countingDigitTrie, boolean reverse) {
 		int max = readSize - trie.getLen() + 1;
 		boolean found = false;
 		for (int i = 0; i < max; i++) {
