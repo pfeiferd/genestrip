@@ -31,6 +31,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
+import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -47,7 +49,7 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 		super(project, name, project.getTrieFile(), deps);
 		this.taxNodesGoal = taxNodesGoal;
 	}
-
+	
 	@Override
 	protected void makeFile(File trieFile) {
 		try {
@@ -58,12 +60,21 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 				taxIds.add(node.getTaxId());
 			}
 
+			KrakenResultFastqMergeListener filter = KrakenResultFastqMergeListener.createFilterByTaxId(taxIds,
+					KrakenResultFastqMergeListener.fillKMerTrie(trie, null));
+			KrakenResultFastqMerger krakenKMerFastqMerger = new KrakenResultFastqMerger(
+					getProject().getConfig().getMaxReadSizeBytes());
+
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Reading file " + getProject().getFastqKrakenOutFile());
+				getLogger().info("Reading file " + getProject().getKrakenOutFile());
+				getLogger().info("Reading file " + getProject().getKmerFastqFile());
 			}
 			
-			InputStream stream1 = StreamProvider.getInputStreamForFile(getProject().getFastqKrakenOutFile());
+			InputStream stream1 = StreamProvider.getInputStreamForFile(getProject().getKrakenOutFile());
+			InputStream stream2 = StreamProvider.getInputStreamForFile(getProject().getKmerFastqFile());			
+			krakenKMerFastqMerger.process(stream1, stream1, filter);
 			stream1.close();
+			stream2.close();
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Trie entries: " + trie.getEntries());
@@ -78,5 +89,4 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 			throw new RuntimeException(e);
 		}
 	}
-
 }
