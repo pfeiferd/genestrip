@@ -26,6 +26,7 @@ package org.metagene.genestrip.goals;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -91,8 +92,12 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 				getLogger().info("Reading file " + getProject().getKrakenOutFile());
 				getLogger().info("Reading file " + getProject().getKmerFastqFile());
 			}
-			krakenKMerFastqMerger.process(StreamProvider.getInputStreamForFile(getProject().getKrakenOutFile()),
-					StreamProvider.getInputStreamForFile(getProject().getKmerFastqFile()), filter);
+
+			InputStream stream1 = StreamProvider.getInputStreamForFile(getProject().getKrakenOutFile());
+			InputStream stream2 = StreamProvider.getInputStreamForFile(getProject().getKmerFastqFile());
+			krakenKMerFastqMerger.process(stream1, stream1, filter);
+			stream1.close();
+			stream2.close();
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("File save " + bloomFilterFile);
