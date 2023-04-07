@@ -24,9 +24,9 @@
  */
 package org.metagene.genestrip.goals;
 
-import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.Set;
 
@@ -67,9 +67,11 @@ public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
 				getLogger().info("Reading file " + getProject().getKrakenOutFile());
 				getLogger().info("Reading file " + getProject().getKmerFastqFile());
 			}
-			krakenKMerFastqMerger.process(
-					new BufferedInputStream(StreamProvider.getInputStreamForFile(getProject().getKrakenOutFile())),
-					StreamProvider.getInputStreamForFile(getProject().getKmerFastqFile()), filter);
+			InputStream stream1 = StreamProvider.getInputStreamForFile(getProject().getKrakenOutFile());
+			InputStream stream2 = StreamProvider.getInputStreamForFile(getProject().getKmerFastqFile());			
+			krakenKMerFastqMerger.process(stream1, stream1, filter);
+			stream1.close();
+			stream2.close();
 
 			filteredOut.close();
 			if (getLogger().isInfoEnabled()) {

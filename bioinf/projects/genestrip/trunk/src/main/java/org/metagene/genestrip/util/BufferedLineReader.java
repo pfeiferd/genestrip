@@ -22,6 +22,10 @@ public class BufferedLineReader {
 	private InputStream stream;
 	private int bufferFill;
 
+	public BufferedLineReader() {
+		this(null);
+	}
+	
 	public BufferedLineReader(InputStream stream) {
 		this(stream, bufferSize);
 	}

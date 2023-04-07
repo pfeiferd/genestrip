@@ -26,6 +26,7 @@ package org.metagene.genestrip.goals;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
@@ -73,8 +74,9 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 			KrakenResultFastqMergeListener printListener = KrakenResultFastqMergeListener
 					.createPrintListener(System.out, null);
 
-			merger.process(StreamProvider.getInputStreamForFile((getProject().getFastqKrakenOutFile())),
-					StreamProvider.getInputStreamForFile(getProject().getFastqFile()), KrakenResultFastqMergeListener
+			InputStream stream1 = StreamProvider.getInputStreamForFile(getProject().getKrakenOutFile());
+			InputStream stream2 = StreamProvider.getInputStreamForFile(getProject().getFastqFile());			
+			merger.process(stream1, stream2, KrakenResultFastqMergeListener
 							.createFilterByTaxIdNodes(nodes, new KrakenResultFastqMergeListener() {
 								private long lastLineCount = -1;
 
@@ -105,6 +107,8 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 									}
 								}
 							}));
+			stream1.close();
+			stream2.close();
 
 			String[] matchingTaxId = new String[1];
 			FastaTrieCleaner<TaxidWithCount> fastaTrieCleaner = new FastaTrieCleaner<TaxidWithCount>() {

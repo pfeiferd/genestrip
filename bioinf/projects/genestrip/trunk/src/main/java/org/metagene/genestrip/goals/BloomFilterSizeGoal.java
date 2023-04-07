@@ -25,6 +25,7 @@
 package org.metagene.genestrip.goals;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -40,7 +41,7 @@ public class BloomFilterSizeGoal extends ObjectGoal<Long, GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 
 	@SafeVarargs
-	public BloomFilterSizeGoal(GSProject project, String name,ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
+	public BloomFilterSizeGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
 			Goal<GSProject>... dependencies) {
 		super(project, name, dependencies);
 		this.taxNodesGoal = taxNodesGoal;
@@ -70,8 +71,10 @@ public class BloomFilterSizeGoal extends ObjectGoal<Long, GSProject> {
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Reading file " + getProject().getKrakenOutFile());
 			}
-			krakenKMerFastqMerger.process(StreamProvider.getInputStreamForFile(getProject().getKrakenOutFile()), null,
-					filter);
+			InputStream stream = StreamProvider.getInputStreamForFile(getProject().getKrakenOutFile());
+			krakenKMerFastqMerger.process(stream, null, filter);
+			stream.close();
+
 			set(counter[0]);
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Count for kmer kraken out with taxids: " + counter[0]);
