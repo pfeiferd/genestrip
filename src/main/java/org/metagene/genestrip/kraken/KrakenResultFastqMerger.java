@@ -32,6 +32,7 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.util.BufferedLineReader;
+import org.metagene.genestrip.util.ByteArrayToString;
 import org.metagene.genestrip.util.CountingDigitTrie;
 
 public class KrakenResultFastqMerger {
@@ -79,16 +80,16 @@ public class KrakenResultFastqMerger {
 
 		for (krakenPos = bufferedLineReaderKraken
 				.nextLine(krakenChars); krakenPos > 0; krakenPos = bufferedLineReaderKraken.nextLine(krakenChars)) {
-			krakenChars[krakenPos] = 0;
+			krakenChars[krakenPos - 1] = 0;
 
 			if (bufferedInFastQ != null) {
 				pos = bufferedLineReaderFastQ.nextLine(readDescriptor);
-				readDescriptor[pos] = 0;
+				readDescriptor[pos - 1] = 0;
 				pos = bufferedLineReaderFastQ.nextLine(read);
-				read[pos] = 0;
-				pos = bufferedLineReaderFastQ.nextLine(readProbs); // Ignoring line 3.
+				read[pos - 1] = 0;
+				bufferedLineReaderFastQ.skipLine(); // Ignoring line 3.
 				pos = bufferedLineReaderFastQ.nextLine(readProbs);
-				readProbs[pos] = 0;
+				readProbs[pos - 1] = 0;
 			}
 
 			start = true;
@@ -99,20 +100,20 @@ public class KrakenResultFastqMerger {
 			startPos = 0;
 			frStartPos = 0;
 			readPos = 0;
-			
-			for (int i = 0; i < krakenPos; i++) {
+
+			for (int i = 0; i < krakenPos - 1; i++) {
 				if (krakenChars[i] == '\t') {
 					if (start) {
 						start = false;
 						descriptor = true;
 					} else if (descriptor) {
 						descriptor = false;
-						outReadDescriptor[i] = 0;
+						outReadDescriptor[i - 2] = 0;
 
 						if (bufferedInFastQ != null) {
 							int j;
-							for (j = 2; j < outReadDescriptor.length && outReadDescriptor[j] != 0; j++) {
-								if (outReadDescriptor[j] != readDescriptor[j - 1]) {
+							for (j = 0; j < outReadDescriptor.length && outReadDescriptor[j] != 0; j++) {
+								if (outReadDescriptor[j] != readDescriptor[j + 1]) {
 									throw new IllegalStateException("In consistent files for read " + readCount);
 								}
 							}
@@ -134,34 +135,30 @@ public class KrakenResultFastqMerger {
 						startPos = i + 1;
 					}
 				} else if (descriptor) {
-					outReadDescriptor[i] = krakenChars[i];
+					outReadDescriptor[i - 2] = krakenChars[i];
 				} else if (krakenChars[i] == ':') {
 					fr = true;
 					frStartPos = i + 1;
 				} else if (fr && krakenChars[i] == ' ') {
-					if (checkDigits(krakenChars, startPos, frStartPos - 2)) {
-						int frN = byteArrayToInt(krakenChars, frStartPos, i);
-						String taxidStr = root.add(krakenChars, startPos, frStartPos - 2, frN);
-
-						if (listener != null) {
-							listener.newTaxIdForRead(readCount, readDescriptor, read, readProbs, classTaxid, bps,
-									readPos, taxidStr, frN, krakenChars);
-						}
-						readPos += frN;
-					}
-
-					startPos = i + 1;
-				}
-			}
-			if (startPos < krakenPos && fr) {
-				if (checkDigits(krakenChars, startPos, frStartPos - 2)) {
-					int frN = byteArrayToInt(krakenChars, frStartPos, krakenPos);
+					int frN = byteArrayToInt(krakenChars, frStartPos, i);
 					String taxidStr = root.add(krakenChars, startPos, frStartPos - 2, frN);
 
 					if (listener != null) {
 						listener.newTaxIdForRead(readCount, readDescriptor, read, readProbs, classTaxid, bps, readPos,
 								taxidStr, frN, krakenChars);
 					}
+					readPos += frN;
+
+					startPos = i + 1;
+				}
+			}
+			if (startPos < krakenPos - 1 && fr) {
+				int frN = byteArrayToInt(krakenChars, frStartPos, krakenPos - 1);
+				String taxidStr = root.add(krakenChars, startPos, frStartPos - 2, frN);
+
+				if (listener != null) {
+					listener.newTaxIdForRead(readCount, readDescriptor, read, readProbs, classTaxid, bps, readPos,
+							taxidStr, frN, krakenChars);
 				}
 			}
 			readCount++;

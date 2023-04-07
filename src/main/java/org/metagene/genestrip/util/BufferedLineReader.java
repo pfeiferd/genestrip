@@ -41,13 +41,37 @@ public class BufferedLineReader {
 		this.stream = stream;
 	}
 
+	public int skipLine() throws IOException {
+		int size = 0;
+		while (bufferFill != -1) {
+			if (pos < bufferFill) {
+				byte c = -1;
+				for (size = 0; pos < bufferFill && c != '\n'; size++, pos++) {
+					c = buffer[pos];
+				}
+				if (c == '\n') {
+					return size;
+				}
+			}
+			if (pos == bufferFill && bufferFill < buffer.length) {
+				return size;
+			}
+			bufferFill = stream.read(buffer);
+			pos = 0;
+		}
+		return size;
+	}
+	
 	public int nextLine(byte[] target) throws IOException {
 		int size = 0;
 		while (bufferFill != -1) {
 			if (pos < bufferFill) {
 				byte c = -1;
-				for (size = 0; size < target.length && pos < bufferFill && c != '\n'; size++, pos++) {
+				for (; size < target.length && pos < bufferFill && c != '\n'; pos++) {
 					target[size] = c = buffer[pos];
+					if (c != 0) {
+						size++;
+					}
 				}
 				if (size == target.length || c == '\n') {
 					return size;
