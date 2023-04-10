@@ -32,6 +32,7 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.util.BufferedLineReader;
+import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CountingDigitTrie;
 
 public class KrakenResultFastqMerger {
@@ -130,7 +131,7 @@ public class KrakenResultFastqMerger {
 						startPos = i + 1;
 					} else if (readSize) {
 						readSize = false;
-						bps = byteArrayToInt(krakenChars, startPos, i);
+						bps = ByteArrayUtil.byteArrayToInt(krakenChars, startPos, i);
 						startPos = i + 1;
 					}
 				} else if (descriptor) {
@@ -139,7 +140,7 @@ public class KrakenResultFastqMerger {
 					fr = true;
 					frStartPos = i + 1;
 				} else if (fr && krakenChars[i] == ' ') {
-					int frN = byteArrayToInt(krakenChars, frStartPos, i);
+					int frN = ByteArrayUtil.byteArrayToInt(krakenChars, frStartPos, i);
 					String taxidStr = root.add(krakenChars, startPos, frStartPos - 2, frN);
 
 					if (listener != null) {
@@ -152,7 +153,7 @@ public class KrakenResultFastqMerger {
 				}
 			}
 			if (startPos < krakenPos - 1 && fr) {
-				int frN = byteArrayToInt(krakenChars, frStartPos, krakenPos - 1);
+				int frN = ByteArrayUtil.byteArrayToInt(krakenChars, frStartPos, krakenPos - 1);
 				String taxidStr = root.add(krakenChars, startPos, frStartPos - 2, frN);
 
 				if (listener != null) {
@@ -166,19 +167,5 @@ public class KrakenResultFastqMerger {
 		Map<String, Long> map = new HashMap<String, Long>();
 		root.collect(map);
 		return map;
-	}
-
-	private int byteArrayToInt(byte[] data, int start, int end) throws NumberFormatException {
-		int result = 0;
-		for (int i = start; i < end; i++) {
-			int digit = data[i] - '0';
-			if ((digit < 0) || (digit > 9)) {
-				System.out.println(new String(data));
-				throw new NumberFormatException();
-			}
-			result *= 10;
-			result += digit;
-		}
-		return result;
 	}
 }
