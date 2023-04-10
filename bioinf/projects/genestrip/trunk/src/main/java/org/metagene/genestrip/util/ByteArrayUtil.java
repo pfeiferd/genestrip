@@ -45,4 +45,14 @@ public class ByteArrayUtil {
 			ps.print((char) array[i]);
 		}
 	}
+	
+
+	public boolean checkDigits(byte[] data, int start, int end) {
+		for (int i = start; i <= end; i++) {
+			if (data[i] < '0' || data[i] > '9') {
+				return false;
+			}
+		}
+		return true;
+	}	
 }
