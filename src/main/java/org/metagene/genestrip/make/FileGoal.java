@@ -87,7 +87,7 @@ public abstract class FileGoal<P> extends Goal<P> {
 
 	@Override
 	public void cleanThis() {
-		for (File file : getFiles()) {
+		for (File file : getFilesToClean()) {
 			if (file.exists()) {
 				if (getLogger().isInfoEnabled()) {
 					getLogger().info("Deleting file " + file);
@@ -95,6 +95,10 @@ public abstract class FileGoal<P> extends Goal<P> {
 				file.delete();
 			}
 		}
+	}
+	
+	protected List<File> getFilesToClean() {
+		return getFiles();
 	}
 
 	@Override
