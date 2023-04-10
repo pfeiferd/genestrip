@@ -36,10 +36,11 @@ public class FastasSizeGoal extends ObjectGoal<Long, GSProject> {
 	private final FastaFileDownloadGoal fastaFileDownloadGoal;
 	private final int maxCheckForGuess;
 
-	public FastasSizeGoal(GSProject project, String name, FastaFileDownloadGoal fastaDownloadGoal) {
+	public FastasSizeGoal(GSProject project, String name, int maxCheckForGuess,
+			FastaFileDownloadGoal fastaDownloadGoal) {
 		super(project, name);
 		this.fastaFileDownloadGoal = fastaDownloadGoal;
-		maxCheckForGuess = 10;
+		this.maxCheckForGuess = maxCheckForGuess;
 	}
 
 	@Override
@@ -73,7 +74,8 @@ public class FastasSizeGoal extends ObjectGoal<Long, GSProject> {
 		try {
 			InputStream stream = StreamProvider.getInputStreamForFile(file);
 			long uSize;
-			for (uSize = 0; stream.read() != -1; uSize++);
+			for (uSize = 0; stream.read() != -1; uSize++)
+				;
 			return uSize;
 		} catch (IOException e) {
 			throw new RuntimeException(e);
