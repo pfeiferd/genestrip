@@ -35,7 +35,6 @@ import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.bloom.FastaIndexer;
 import org.metagene.genestrip.bloom.KMerBloomIndex;
 import org.metagene.genestrip.bloom.KMerBloomIndex.PutListener;
-import org.metagene.genestrip.util.BufferedLineReader;
 import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.StreamProvider;
 
@@ -58,7 +57,7 @@ public class KMerFastqGenerator {
 
 	public long run(List<File> fastaFiles, File fastq, String name, long expectedSize) throws IOException {
 		if (getLogger().isInfoEnabled()) {
-			getLogger().info("File create " + fastq.toString());
+			getLogger().info("Create fastq file " + fastq);
 		}
 		FastQWriter fastQWriter = new FastQWriter(name, StreamProvider.getOutputStreamForFile(fastq));
 		KMerBloomIndex index = new KMerBloomIndex(name, getKmerSize(), expectedSize, 0.0001, fastQWriter);
@@ -71,9 +70,6 @@ public class KMerFastqGenerator {
 
 		for (File fasta : fastaFiles) {
 			if (fasta.exists()) {
-				if (getLogger().isInfoEnabled()) {
-					getLogger().info("File read " + fasta.toString());
-				}
 				fastaIndexer.readFasta(fasta);
 			} else {
 				throw new IllegalStateException("Missing fasta file " + fasta);
