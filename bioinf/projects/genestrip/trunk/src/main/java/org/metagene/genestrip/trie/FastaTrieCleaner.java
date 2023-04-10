@@ -24,69 +24,46 @@
  */
 package org.metagene.genestrip.trie;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.Serializable;
 
+import org.metagene.genestrip.fastq.AbstractFastaReader;
 import org.metagene.genestrip.util.CGATRingBuffer;
-import org.metagene.genestrip.util.StreamProvider;
 
-public abstract class FastaTrieCleaner<T extends Serializable> {
-	public void cleanTrie(KMerTrie<T> trie, File file, byte[] buffer, CGATRingBuffer ringBuffer)
-			throws IOException {
-		InputStream inputStream = StreamProvider.getInputStreamForFile(file);
-		cleanTrieHelp(trie, inputStream, buffer, ringBuffer);
-		inputStream.close();
+public abstract class FastaTrieCleaner<T extends Serializable> extends AbstractFastaReader {
+	private final KMerTrie<T> trie;
+	private final CGATRingBuffer ringBuffer;
+
+	public FastaTrieCleaner(KMerTrie<T> trie, CGATRingBuffer ringBuffer, int bufferSize) {
+		super(bufferSize);
+		this.trie = trie;
+		this.ringBuffer = ringBuffer;
 	}
 
-	// value must not be null...
-	public void cleanTrieHelp(KMerTrie<T> trie, InputStream inputStream, byte[] buffer,
-			CGATRingBuffer ringBuffer) throws IOException {
-		if (ringBuffer.getSize() != trie.getLen()) {
-			throw new IllegalArgumentException("trie and ring buffer must have equal size");
-		}
-		byte bite;
-
-		boolean infoLine = false;
-		int i;
-
-		for (int size = inputStream.read(buffer); size != -1; size = inputStream.read(buffer)) {
-			for (i = 0; i < size; i++) {
-				bite = buffer[i];
-				if (bite == '>') {
-					infoLine = true;
-				} else if (bite == '\n') {
-					infoLine = false;
-					if (infoLine) {
-						ringBuffer.reset();
+	@Override
+	protected void dataLine() {
+		for (int i = 0; i < size - 1; i++) {
+			ringBuffer.put(target[i]);
+			if (ringBuffer.filled && ringBuffer.isCGAT()) {
+				T res = trie.get(ringBuffer, false);
+				if (res != null) {
+					System.out.println(res + ": Found " + ringBuffer);
+				}
+				if (isMatchingValue(res)) {
+					System.out.println("Removing " + ringBuffer);
+					trie.put(ringBuffer, null, false);
+				} else {
+					res = trie.get(ringBuffer, true);
+					if (res != null) {
+						System.out.println(res + ": Found reverse " + ringBuffer);
 					}
-				} else if (!infoLine) {
-					ringBuffer.put(bite);
-					if (ringBuffer.filled && ringBuffer.isCGAT()) {
-						T res = trie.get(ringBuffer, false);
-						if (res != null) {
-							System.out.println(res + ": Found " + ringBuffer);							
-						}
-						if (isMatchingValue(res)) {
-							System.out.println("Removing " + ringBuffer);
-							trie.put(ringBuffer, null, false);
-						}
-						else {
-							res = trie.get(ringBuffer, true);
-							if (res != null) {
-								System.out.println(res + ": Found reverse " + ringBuffer);							
-							}
-							if (isMatchingValue(res)) {
-								System.out.println("Removing " + ringBuffer);
-								trie.put(ringBuffer, null, true);
-							}
-						}
+					if (isMatchingValue(res)) {
+						System.out.println("Removing " + ringBuffer);
+						trie.put(ringBuffer, null, true);
 					}
 				}
 			}
 		}
 	}
-	
+
 	protected abstract boolean isMatchingValue(T value);
 }
