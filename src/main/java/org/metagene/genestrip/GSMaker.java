@@ -212,8 +212,8 @@ public class GSMaker extends Maker<GSProject> {
 				protected void makeFile(File file) {
 					try {
 						new FastqBloomFilter(KMerBloomIndex.load(getProject().getBloomFilterFile()),
-								getProject().getConfig().getPosRatioFilter(),
 								getProject().getConfig().getMinPosCountFilter(),
+								getProject().getConfig().getPosRatioFilter(),
 								getProject().getConfig().getMaxReadSizeBytes()).runFilter(getProject().getFastqFile(),
 										file, getProject().getDumpFastqFile());
 					} catch (IOException | ClassNotFoundException e) {
