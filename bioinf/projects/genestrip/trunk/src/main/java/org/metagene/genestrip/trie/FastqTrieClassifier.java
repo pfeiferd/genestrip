@@ -26,15 +26,13 @@ package org.metagene.genestrip.trie;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.metagene.genestrip.util.BufferedLineReader;
-import org.metagene.genestrip.util.CGAT;
+import org.metagene.genestrip.fastq.AbstractFastqReader;
 import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
@@ -43,108 +41,73 @@ public class FastqTrieClassifier {
 	protected final Log logger = LogFactory.getLog(getClass());
 
 	private final KMerTrie<String> trie;
-	private final byte[][] readBuffer;
-	private final int[] c;
-	private final int bufferSize;
+	private final AbstractFastqReader fastqReader;
+	
+	private CountingDigitTrie root;
+	private ByteCountingInputStreamAccess byteCountAccess;
+	private long fastqFileSize;
+	private long startTime;
+	private long total;
+	private long indexedC;
 
 	public FastqTrieClassifier(KMerTrie<String> trie, int maxReadSize) {
-		bufferSize = BufferedLineReader.getBufferSize();
 		this.trie = trie;
-		readBuffer = new byte[4][maxReadSize];
-		c = new int[4];
-	}
 
-	public Map<String, Long> runClassifier(File fastgz) throws IOException {
-		if (logger.isInfoEnabled()) {
-			logger.info("Reading file " + fastgz);
-		}
-		
-		ByteCountingInputStreamAccess access = StreamProvider.getByteCountingInputStreamForFile(fastgz, false);
-		
-		long fastqFileSize = Files.size(fastgz.toPath());
-
-		Map<String, Long> res = runClassifier(access, fastqFileSize);
-
-		access.getInputStream().close();
-		if (logger.isInfoEnabled()) {
-			logger.info("Read file " + fastgz);
-		}
-
-		return res;
-	}
-
-	private Map<String, Long> runClassifier(ByteCountingInputStreamAccess access, long fastqFileSize)
-			throws IOException {
-		int line = 0;
-		long total = 0;
-
-		long startTime = System.currentTimeMillis();
-
-		byte[] buffer = new byte[bufferSize];
-
-		int size, count;
-		byte bite;
-		byte[][] lReadBuffer = readBuffer;
-		int[] lc = c;
-		long indexedC = 0;
-
-		CountingDigitTrie root = new CountingDigitTrie();
-		InputStream fastqStream = access.getInputStream();
-
-		for (size = fastqStream.read(buffer); size != -1; size = fastqStream.read(buffer)) {
-			for (count = 0; count < size; count++) {
-				if (line == 2) {
-					bite = CGAT.cgatToUpperCase(buffer[count]);
-				} else {
-					bite = buffer[count];
+		fastqReader = new AbstractFastqReader(maxReadSize) {
+			@Override
+			protected void nextEntry() throws IOException {
+				boolean res = classifyRead(read, readSize - 1, false);
+				res |= classifyRead(read, readSize - 1, true);						
+				if (res) {
+					indexedC++;
 				}
-				lReadBuffer[line][lc[line]++] = bite;
-				if (bite == '\n') {
-					line++;
-					if (line == 2) {
-						boolean res = classifyRead(lReadBuffer[0], lReadBuffer[1], lc[1] - 1, root, false);
-						res |= classifyRead(lReadBuffer[0], lReadBuffer[1], lc[1] - 1, root, true);						
-						if (res) {
-							indexedC++;
-						}
-					} else if (line == 4) {
-						line = 0;
-						lc[3] = lc[2] = lc[1] = lc[0] = 0;
-						total++;
-						if (logger.isInfoEnabled()) {
-							if (total % 100000 == 0) {
-								double ratio = access.getBytesRead() / (double) fastqFileSize;
-								long stopTime = System.currentTimeMillis();
+				total++;
+				if (logger.isInfoEnabled()) {
+					if (total % 100000 == 0) {
+						double ratio = byteCountAccess.getBytesRead() / (double) fastqFileSize;
+						long stopTime = System.currentTimeMillis();
 
-								double diff = (stopTime - startTime);
-								double totalTime = diff / ratio;
-								double totalHours = totalTime / 1000 / 60 / 60;
+						double diff = (stopTime - startTime);
+						double totalTime = diff / ratio;
+						double totalHours = totalTime / 1000 / 60 / 60;
 
-								logger.info("Elapse hours:" + diff / 1000 / 60 / 60);
-								logger.info("Estimated total hours:" + totalHours);
-								logger.info("Reads processed: " + total);
-								logger.info("Indexed: " + indexedC);
-								logger.info("Indexed ratio:" + ((double) indexedC) / total);
-							}
-						}
+						logger.info("Elapsed hours:" + diff / 1000 / 60 / 60);
+						logger.info("Estimated total hours:" + totalHours);
+						logger.info("Reads processed: " + total);
+						logger.info("Indexed: " + indexedC);
+						logger.info("Indexed ratio:" + ((double) indexedC) / total);
 					}
 				}
 			}
-		}
+		};
+	}
+
+	public Map<String, Long> runClassifier(File fastq) throws IOException {
+		root = new CountingDigitTrie();
+		byteCountAccess = StreamProvider.getByteCountingInputStreamForFile(fastq, false);
+		fastqFileSize = Files.size(fastq.toPath());
+		
+		startTime = System.currentTimeMillis();
+		total = 0;
+		indexedC = 0;
+
+		fastqReader.readFastq(byteCountAccess.getInputStream());
+
+		byteCountAccess.getInputStream().close();
 
 		Map<String, Long> counts = new HashMap<String, Long>();
 		root.collect(counts);
 		return counts;
 	}
 
-	protected boolean classifyRead(byte[] descriptor, byte[] read, int readSize, CountingDigitTrie countingDigitTrie, boolean reverse) {
+	protected boolean classifyRead(byte[] read, int readSize, boolean reverse) {
 		int max = readSize - trie.getLen() + 1;
 		boolean found = false;
 		for (int i = 0; i < max; i++) {
 			String res = trie.get(read, i, reverse);
 			if (res != null) {
 				found = true;
-				countingDigitTrie.inc(res);
+				root.inc(res);
 //				System.out.println(ByteArrayToString.toString(descriptor));
 			}
 		}

@@ -45,7 +45,6 @@ import org.metagene.genestrip.trie.FastaTrieCleaner;
 import org.metagene.genestrip.trie.KMerTrie;
 import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
 import org.metagene.genestrip.util.ByteArrayUtil;
-import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> {
@@ -112,9 +111,8 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 
 			FTPEntryQuality minQuality = getProject().getConfig().getFastaQuality();
 			String[] matchingTaxId = new String[1];
-			CGATRingBuffer ringBuffer = new CGATRingBuffer(trie.getLen());
 			
-			FastaTrieCleaner<TaxidWithCount> fastaTrieCleaner = new FastaTrieCleaner<TaxidWithCount>(trie, ringBuffer, 4096) {
+			FastaTrieCleaner<TaxidWithCount> fastaTrieCleaner = new FastaTrieCleaner<TaxidWithCount>(trie, 4096) {
 				@Override
 				protected boolean isMatchingValue(TaxidWithCount value) {
 					return matchingTaxId[0].equals(value.taxid);

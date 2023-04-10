@@ -81,8 +81,8 @@ public abstract class AbstractFastaReader {
 		}
 	}
 	
-	protected void infoLine() {
+	protected void infoLine() throws IOException {
 	}
 	
-	protected abstract void dataLine();
+	protected abstract void dataLine() throws IOException;
 }

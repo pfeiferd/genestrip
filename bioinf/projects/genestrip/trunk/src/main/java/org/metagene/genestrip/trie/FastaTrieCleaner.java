@@ -33,10 +33,10 @@ public abstract class FastaTrieCleaner<T extends Serializable> extends AbstractF
 	private final KMerTrie<T> trie;
 	private final CGATRingBuffer ringBuffer;
 
-	public FastaTrieCleaner(KMerTrie<T> trie, CGATRingBuffer ringBuffer, int bufferSize) {
+	public FastaTrieCleaner(KMerTrie<T> trie, int bufferSize) {
 		super(bufferSize);
 		this.trie = trie;
-		this.ringBuffer = ringBuffer;
+		this.ringBuffer = new CGATRingBuffer(trie.getLen());
 	}
 
 	@Override
