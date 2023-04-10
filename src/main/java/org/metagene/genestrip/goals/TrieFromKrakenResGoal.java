@@ -110,17 +110,16 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 			stream1.close();
 			stream2.close();
 
+			FTPEntryQuality minQuality = getProject().getConfig().getFastaQuality();
 			String[] matchingTaxId = new String[1];
-			FastaTrieCleaner<TaxidWithCount> fastaTrieCleaner = new FastaTrieCleaner<TaxidWithCount>() {
+			CGATRingBuffer ringBuffer = new CGATRingBuffer(trie.getLen());
+			
+			FastaTrieCleaner<TaxidWithCount> fastaTrieCleaner = new FastaTrieCleaner<TaxidWithCount>(trie, ringBuffer, 4096) {
 				@Override
 				protected boolean isMatchingValue(TaxidWithCount value) {
 					return matchingTaxId[0].equals(value.taxid);
 				}
 			};
-
-			FTPEntryQuality minQuality = getProject().getConfig().getFastaQuality();
-			CGATRingBuffer ringBuffer = new CGATRingBuffer(trie.getLen());
-			byte[] buffer = new byte[4096 * 8];
 
 			for (TaxIdNode node : nodes) {
 				matchingTaxId[0] = node.getTaxId();
@@ -136,7 +135,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 								getLogger().info("Cleaning via file " + file);
 							}
 							if (file.exists()) {
-								fastaTrieCleaner.cleanTrie(trie, file, buffer, ringBuffer);
+								fastaTrieCleaner.readFasta(file);
 							}
 						}
 					}
