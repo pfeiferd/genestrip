@@ -24,7 +24,7 @@
  */
 package org.metagene.genestrip.bloom;
 
-import org.metagene.genestrip.fastq.AbstractFastaReader;
+import org.metagene.genestrip.fasta.AbstractFastaReader;
 import org.metagene.genestrip.util.CGAT;
 
 public class FastaIndexer extends AbstractFastaReader {

@@ -26,7 +26,7 @@ package org.metagene.genestrip.trie;
 
 import java.io.Serializable;
 
-import org.metagene.genestrip.fastq.AbstractFastaReader;
+import org.metagene.genestrip.fasta.AbstractFastaReader;
 import org.metagene.genestrip.util.CGATRingBuffer;
 
 public abstract class FastaTrieCleaner<T extends Serializable> extends AbstractFastaReader {
