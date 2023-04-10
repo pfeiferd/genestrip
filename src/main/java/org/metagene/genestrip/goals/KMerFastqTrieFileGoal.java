@@ -36,6 +36,7 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.KMerTrie;
+import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.CountingDigitTrie;
 
 public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
@@ -44,7 +45,7 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 	@SafeVarargs
 	public KMerFastqTrieFileGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
 			Goal<GSProject>... deps) {
-		super(project, name, project.getTrieFile(), deps);
+		super(project, name, project.getTrieFile(), ArraysUtil.append(deps, taxNodesGoal));
 		this.taxNodesGoal = taxNodesGoal;
 	}
 

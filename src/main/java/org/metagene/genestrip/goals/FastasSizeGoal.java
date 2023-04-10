@@ -29,16 +29,19 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class FastasSizeGoal extends ObjectGoal<Long, GSProject> {
 	private final FastaFileDownloadGoal fastaFileDownloadGoal;
 	private final int maxCheckForGuess;
 
+	@SafeVarargs
 	public FastasSizeGoal(GSProject project, String name, int maxCheckForGuess,
-			FastaFileDownloadGoal fastaDownloadGoal) {
-		super(project, name);
+			FastaFileDownloadGoal fastaDownloadGoal, Goal<GSProject>... deps) {
+		super(project, name, ArraysUtil.append(deps, fastaDownloadGoal));
 		this.fastaFileDownloadGoal = fastaDownloadGoal;
 		this.maxCheckForGuess = maxCheckForGuess;
 	}

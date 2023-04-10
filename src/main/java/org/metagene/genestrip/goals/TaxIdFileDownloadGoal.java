@@ -35,6 +35,7 @@ import java.util.zip.ZipInputStream;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.FileDownloadGoal;
+import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.util.StreamProvider;
 
@@ -44,8 +45,9 @@ public class TaxIdFileDownloadGoal extends FileDownloadGoal<GSProject> {
 
 	private final List<File> files;
 
-	public TaxIdFileDownloadGoal(GSProject project, String name) {
-		super(project, name);
+	@SafeVarargs
+	public TaxIdFileDownloadGoal(GSProject project, String name, Goal<GSProject>... deps) {
+		super(project, name, deps);
 		files = new ArrayList<File>();
 		files.add(new File(getProject().getConfig().getCommonBaseDir(), TaxTree.NODES_DMP));
 		files.add(new File(getProject().getConfig().getCommonBaseDir(), TaxTree.NAMES_DMP));
