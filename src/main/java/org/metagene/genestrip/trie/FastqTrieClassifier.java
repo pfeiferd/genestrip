@@ -30,14 +30,14 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.util.BufferedLineReader;
-import org.metagene.genestrip.util.ByteCountingFileInputStream;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CountingDigitTrie;
+import org.metagene.genestrip.util.StreamProvider;
+import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
 public class FastqTrieClassifier {
 	protected final Log logger = LogFactory.getLog(getClass());
@@ -59,14 +59,13 @@ public class FastqTrieClassifier {
 			logger.info("Reading file " + fastgz);
 		}
 		
-		ByteCountingFileInputStream fStream = new ByteCountingFileInputStream(fastgz);
-		GZIPInputStream gStream = new GZIPInputStream(fStream, bufferSize);
-
+		ByteCountingInputStreamAccess access = StreamProvider.getByteCountingInputStreamForFile(fastgz, false);
+		
 		long fastqFileSize = Files.size(fastgz.toPath());
 
-		Map<String, Long> res = runClassifier(gStream, fastqFileSize, fStream);
+		Map<String, Long> res = runClassifier(access, fastqFileSize);
 
-		gStream.close();
+		access.getInputStream().close();
 		if (logger.isInfoEnabled()) {
 			logger.info("Read file " + fastgz);
 		}
@@ -74,7 +73,7 @@ public class FastqTrieClassifier {
 		return res;
 	}
 
-	private Map<String, Long> runClassifier(InputStream fastqStream, long fastqFileSize, ByteCountingFileInputStream fStream)
+	private Map<String, Long> runClassifier(ByteCountingInputStreamAccess access, long fastqFileSize)
 			throws IOException {
 		int line = 0;
 		long total = 0;
@@ -90,6 +89,7 @@ public class FastqTrieClassifier {
 		long indexedC = 0;
 
 		CountingDigitTrie root = new CountingDigitTrie();
+		InputStream fastqStream = access.getInputStream();
 
 		for (size = fastqStream.read(buffer); size != -1; size = fastqStream.read(buffer)) {
 			for (count = 0; count < size; count++) {
@@ -113,7 +113,7 @@ public class FastqTrieClassifier {
 						total++;
 						if (logger.isInfoEnabled()) {
 							if (total % 100000 == 0) {
-								double ratio = fStream.getBytesRead() / (double) fastqFileSize;
+								double ratio = access.getBytesRead() / (double) fastqFileSize;
 								long stopTime = System.currentTimeMillis();
 
 								double diff = (stopTime - startTime);
