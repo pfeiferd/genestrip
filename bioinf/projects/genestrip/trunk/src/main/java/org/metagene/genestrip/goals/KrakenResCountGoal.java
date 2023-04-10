@@ -42,6 +42,7 @@ import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
@@ -51,8 +52,8 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 
 	@SafeVarargs
 	public KrakenResCountGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			Goal<GSProject>... dependencies) {
-		super(project, name, project.getTaxCountsFile(name), dependencies);
+			Goal<GSProject>... deps) {
+		super(project, name, project.getTaxCountsFile(name), ArraysUtil.append(deps, taxNodesGoal));
 		this.taxNodesGoal = taxNodesGoal;
 	}
 

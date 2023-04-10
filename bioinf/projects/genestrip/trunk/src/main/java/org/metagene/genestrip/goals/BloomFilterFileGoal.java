@@ -38,6 +38,7 @@ import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class BloomFilterFileGoal extends FileListGoal<GSProject> {
@@ -47,7 +48,7 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 	@SafeVarargs
 	public BloomFilterFileGoal(GSProject project, String name, BloomFilterSizeGoal sizeGoal,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getBloomFilterFile(), deps);
+		super(project, name, project.getBloomFilterFile(), ArraysUtil.append(deps, sizeGoal, taxNodesGoal));
 		this.taxNodesGoal = taxNodesGoal;
 		this.sizeGoal = sizeGoal;
 	}

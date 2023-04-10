@@ -37,8 +37,8 @@ public class KrakenOutGoal extends FileListGoal<GSProject> {
 
 	@SafeVarargs
 	public KrakenOutGoal(GSProject project, String name, File fastqFile, File outfile,
-			Goal<GSProject>... dependencies) {
-		super(project, name, outfile, dependencies);
+			Goal<GSProject>... deps) {
+		super(project, name, outfile, deps);
 		this.fastqFile = fastqFile;
 	}
 

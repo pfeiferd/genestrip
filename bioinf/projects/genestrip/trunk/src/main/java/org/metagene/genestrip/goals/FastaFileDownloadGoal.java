@@ -38,6 +38,7 @@ import org.metagene.genestrip.tax.AssemblySummaryReader;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryWithQuality;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.ArraysUtil;
 
 public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 	private final ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> entryGoal;
@@ -49,7 +50,7 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 	@SafeVarargs
 	public FastaFileDownloadGoal(GSProject project, String name,
 			ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> entryGoal, Goal<GSProject>... deps) {
-		super(project, name, deps);
+		super(project, name, ArraysUtil.append(deps, entryGoal));
 		this.entryGoal = entryGoal;
 		baseURLLen = project.getConfig().getHttpBaseURL().length();
 	}

@@ -42,6 +42,7 @@ import org.metagene.genestrip.goals.BloomFilterSizeGoal;
 import org.metagene.genestrip.goals.FastaFileDownloadGoal;
 import org.metagene.genestrip.goals.FastasSizeGoal;
 import org.metagene.genestrip.goals.KMerFastqGoal;
+import org.metagene.genestrip.goals.KMerFastqTrieFileGoal;
 import org.metagene.genestrip.goals.KMerTrieFileGoal;
 import org.metagene.genestrip.goals.KrakenFastqFileGoal;
 import org.metagene.genestrip.goals.KrakenOutGoal;
@@ -152,7 +153,7 @@ public class GSMaker extends Maker<GSProject> {
 		FastasSizeGoal fastasSizeGoal = new FastasSizeGoal(project, "fastassize", 10, fastaDownloadGoal);
 
 		KMerFastqGoal kmerFastqGoal = new KMerFastqGoal(project, "kmerfastqgen", fastasSizeGoal, fastaDownloadGoal,
-				projectSetupGoal, fastaDownloadGoal);
+				projectSetupGoal);
 		registerGoal(kmerFastqGoal);
 
 		Goal<GSProject> krakenOutGoal = new KrakenOutGoal(project, "kmerkrakenout", project.getKmerFastqFile(),
@@ -164,15 +165,19 @@ public class GSMaker extends Maker<GSProject> {
 		registerGoal(trieGoal);
 
 		Goal<GSProject> krakenFastqGoal = new KrakenFastqFileGoal(project, "krakenfastq", taxNodesGoal,
-				projectSetupGoal, taxNodesGoal, krakenOutGoal, kmerFastqGoal);
+				projectSetupGoal, krakenOutGoal, kmerFastqGoal);
 		registerGoal(krakenFastqGoal);
+
+		Goal<GSProject> kMerFastqTrieFileGoal = new KMerFastqTrieFileGoal(project, "triegen2", taxNodesGoal,
+				projectSetupGoal, krakenFastqGoal);
+		registerGoal(kMerFastqTrieFileGoal);
 
 		BloomFilterSizeGoal bloomFilterSizeGoal = new BloomFilterSizeGoal(project, "bloomsize", taxNodesGoal,
 				krakenOutGoal);
 		registerGoal(bloomFilterSizeGoal);
 
 		Goal<GSProject> bloomFilterFileGoal = new BloomFilterFileGoal(project, "bloomgen", bloomFilterSizeGoal,
-				taxNodesGoal, krakenOutGoal, kmerFastqGoal, taxNodesGoal, bloomFilterSizeGoal);
+				taxNodesGoal, krakenOutGoal, kmerFastqGoal);
 		registerGoal(bloomFilterFileGoal);
 
 		Goal<GSProject> showGoals = new Goal<GSProject>(project, "show") {
@@ -239,7 +244,7 @@ public class GSMaker extends Maker<GSProject> {
 			registerGoal(classifyGoal);
 
 			Goal<GSProject> krakenResCountGoal = project.isUseKrakenOutFilter()
-					? new KrakenResCountGoal(project, "krakenrescount", taxNodesGoal, taxNodesGoal, projectSetupGoal)
+					? new KrakenResCountGoal(project, "krakenrescount", taxNodesGoal, projectSetupGoal)
 					: new KrakenResCountGoal(project, "krakenrescount", null, projectSetupGoal);
 			registerGoal(krakenResCountGoal);
 
@@ -247,20 +252,21 @@ public class GSMaker extends Maker<GSProject> {
 					project.getFastqKrakenOutFile());
 			registerGoal(fastqKrakenOutGoal);
 
-			ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> trieFromKrakenResGoal = new TrieFromKrakenResGoal(project, taxNodesGoal, fastaFilesGoal,
-					taxNodesGoal, fastaDownloadGoal, fastaDownloadGoal, fastqKrakenOutGoal);
+			ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> trieFromKrakenResGoal = new TrieFromKrakenResGoal(project,
+					taxNodesGoal, fastaFilesGoal, fastaDownloadGoal, fastqKrakenOutGoal);
 			registerGoal(trieFromKrakenResGoal);
-			
-			Goal<GSProject> krakenResErrorGoal = new FileListGoal<GSProject>(project, "krakenreserr", project.getKrakenErrFile(), trieFromKrakenResGoal) {
+
+			Goal<GSProject> krakenResErrorGoal = new FileListGoal<GSProject>(project, "krakenreserr",
+					project.getKrakenErrFile(), trieFromKrakenResGoal) {
 				@Override
 				protected void makeFile(File file) throws IOException {
 					final PrintStream ps = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-					
+
 					ps.println("taxid;count;kmer");
 					KMerTrie<TaxidWithCount> trie = trieFromKrakenResGoal.get();
 					Map<String, Integer> errPerTaxid = new HashMap<String, Integer>();
-					
-					trie.visit(new KMerTrieVisitor<TrieFromKrakenResGoal.TaxidWithCount>() {						
+
+					trie.visit(new KMerTrieVisitor<TrieFromKrakenResGoal.TaxidWithCount>() {
 						@Override
 						public void nextValue(KMerTrie<TaxidWithCount> trie, byte[] kmer, TaxidWithCount value) {
 							if (value != null) {
@@ -283,7 +289,7 @@ public class GSMaker extends Maker<GSProject> {
 						ps.println(entry.getValue());
 						ps.println(';');
 					}
-					
+
 					ps.close();
 				}
 			};

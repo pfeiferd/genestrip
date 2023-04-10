@@ -37,6 +37,7 @@ import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
@@ -45,7 +46,7 @@ public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
 	@SafeVarargs
 	public KrakenFastqFileGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
 			Goal<GSProject>... deps) {
-		super(project, name, project.getFilteredKmerFastqFile(), deps);
+		super(project, name, project.getFilteredKmerFastqFile(), ArraysUtil.append(deps, taxNodesGoal));
 		this.taxNodesGoal = taxNodesGoal;
 	}
 
@@ -68,7 +69,7 @@ public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
 				getLogger().info("Reading file " + getProject().getKmerFastqFile());
 			}
 			InputStream stream1 = StreamProvider.getInputStreamForFile(getProject().getKrakenOutFile());
-			InputStream stream2 = StreamProvider.getInputStreamForFile(getProject().getKmerFastqFile());			
+			InputStream stream2 = StreamProvider.getInputStreamForFile(getProject().getKmerFastqFile());
 			krakenKMerFastqMerger.process(stream1, stream1, filter);
 			stream1.close();
 			stream2.close();

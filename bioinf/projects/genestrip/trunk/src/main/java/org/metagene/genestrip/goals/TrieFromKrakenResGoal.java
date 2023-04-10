@@ -44,6 +44,7 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.FastaTrieCleaner;
 import org.metagene.genestrip.trie.KMerTrie;
 import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
+import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
@@ -53,9 +54,8 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 
 	@SafeVarargs
 	public TrieFromKrakenResGoal(GSProject project, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fastaFilesGoal,
-			Goal<GSProject>... dependencies) {
-		super(project, "triefromkrakenres", dependencies);
+			ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fastaFilesGoal, Goal<GSProject>... deps) {
+		super(project, "triefromkrakenres", ArraysUtil.append(deps, taxNodesGoal, fastaFilesGoal));
 		this.taxNodesGoal = taxNodesGoal;
 		this.fastaFilesGoal = fastaFilesGoal;
 	}
