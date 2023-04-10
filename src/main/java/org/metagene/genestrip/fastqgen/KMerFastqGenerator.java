@@ -42,9 +42,11 @@ public class KMerFastqGenerator {
 	private final Log logger = LogFactory.getLog(KMerFastqGenerator.class);
 
 	private final int kmerSize;
+	private final int readBufferSize;
 
-	public KMerFastqGenerator(int kmerSize) {
+	public KMerFastqGenerator(int kmerSize, int readBufferSize) {
 		this.kmerSize = kmerSize;
+		this.readBufferSize = readBufferSize;
 	}
 
 	protected Log getLogger() {
@@ -66,7 +68,7 @@ public class KMerFastqGenerator {
 			getLogger().info("Bloom filter array size of " + index + ": " + index.getBitSize() / 8 / 1024 + "KB");
 		}
 
-		FastaIndexer fastaIndexer = new FastaIndexer(index, 4096);
+		FastaIndexer fastaIndexer = new FastaIndexer(index, readBufferSize);
 
 		for (File fasta : fastaFiles) {
 			if (fasta.exists()) {

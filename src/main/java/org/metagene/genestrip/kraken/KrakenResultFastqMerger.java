@@ -47,9 +47,9 @@ public class KrakenResultFastqMerger {
 	private final BufferedLineReader bufferedLineReaderFastQ;
 
 	public KrakenResultFastqMerger(int maxReadSizeBytes) {
-		krakenChars = new byte[4096];
-		readDescriptor = new byte[2048];
-		outReadDescriptor = new byte[2048];
+		krakenChars = new byte[maxReadSizeBytes];
+		readDescriptor = new byte[maxReadSizeBytes];
+		outReadDescriptor = new byte[maxReadSizeBytes];
 		read = new byte[maxReadSizeBytes];
 		readProbs = new byte[maxReadSizeBytes];
 

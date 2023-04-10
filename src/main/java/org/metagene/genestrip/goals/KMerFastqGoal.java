@@ -38,8 +38,8 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 	private final FastaFileDownloadGoal fastaDownloadGoal;
 
 	@SafeVarargs
-	public KMerFastqGoal(GSProject project, String name, FastasSizeGoal fastasSizeGoal, FastaFileDownloadGoal fastaDownloadGoal,
-			Goal<GSProject>... dependencies) {
+	public KMerFastqGoal(GSProject project, String name, FastasSizeGoal fastasSizeGoal,
+			FastaFileDownloadGoal fastaDownloadGoal, Goal<GSProject>... dependencies) {
 		super(project, name, project.getKmerFastqFile(), dependencies);
 		this.fastasSizeGoal = fastasSizeGoal;
 		this.fastaDownloadGoal = fastaDownloadGoal;
@@ -51,7 +51,8 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("File generate " + fastq);
 			}
-			KMerFastqGenerator generator = new KMerFastqGenerator(getProject().getkMserSize());
+			KMerFastqGenerator generator = new KMerFastqGenerator(getProject().getkMserSize(),
+					getProject().getConfig().getMaxReadSizeBytes());
 			addedKmers = generator.run(fastaDownloadGoal.getAvailableFiles(), fastq, getProject().getName(),
 					fastasSizeGoal.get());
 			if (getLogger().isInfoEnabled()) {
