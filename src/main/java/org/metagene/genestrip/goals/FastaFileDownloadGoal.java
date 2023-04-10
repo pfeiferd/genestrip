@@ -94,12 +94,10 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 			return null;
 		}
 		return url.substring(baseURLLen);
-
 	}
 
 	@Override
 	protected String getFTPDir(File file) {
 		return fileToDir.get(file.getName());
 	}
-
 }
