@@ -97,6 +97,16 @@ public abstract class FileGoal<P> extends Goal<P> {
 		}
 	}
 	
+	@Override
+	protected boolean isThisCleaned() {
+		for (File file : getFilesToClean()) {
+			if (file.exists()) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
 	protected List<File> getFilesToClean() {
 		return getFiles();
 	}

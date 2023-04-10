@@ -50,6 +50,11 @@ public abstract class ObjectGoal<T,P> extends Goal<P> {
 	public void cleanThis() {
 		object = null;
 	}
+	
+	@Override
+	protected boolean isThisCleaned() {
+		return object == null;
+	}
 
 	@Override
 	public boolean isMade() {
