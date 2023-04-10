@@ -22,7 +22,7 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.fastq;
+package org.metagene.genestrip.fasta;
 
 import java.io.File;
 import java.io.IOException;
