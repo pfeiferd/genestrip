@@ -47,13 +47,13 @@ public abstract class AbstractFastaReader {
 
 	public void readFasta(File file) throws IOException {
 		if (logger.isInfoEnabled()) {
-			logger.info("Reading file " + file);
+			logger.info("Reading fasta file " + file);
 		}
 		InputStream inputStream = StreamProvider.getInputStreamForFile(file);
 		readFasta(inputStream);
 		inputStream.close();
 		if (logger.isInfoEnabled()) {
-			logger.info("Read file " + file);
+			logger.info("Closed fasta file " + file);
 		}
 	}
 	
