@@ -44,7 +44,7 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.FastaTrieCleaner;
 import org.metagene.genestrip.trie.KMerTrie;
 import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
-import org.metagene.genestrip.util.ByteArrayToString;
+import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.StreamProvider;
 
@@ -95,7 +95,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 										}
 										System.out.println("Position:  " + pos);
 										System.out.println(kmerTaxid);
-										ByteArrayToString.print(kmer, System.out);
+										ByteArrayUtil.print(kmer, System.out);
 										System.out.println();
 
 										TaxidWithCount tc = trie.get(kmer, 0, false);
@@ -145,7 +145,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 			trie.visit(new KMerTrieVisitor<TaxidWithCount>() {
 				@Override
 				public void nextValue(KMerTrie<TaxidWithCount> trie, byte[] kmer, TaxidWithCount value) {
-					ByteArrayToString.print(kmer, System.out);
+					ByteArrayUtil.print(kmer, System.out);
 					System.out.println();
 				}
 			}, false);

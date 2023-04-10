@@ -26,7 +26,7 @@ package org.metagene.genestrip.util;
 
 import java.io.PrintStream;
 
-public class ByteArrayToString {
+public class ByteArrayUtil {
 	public static String toString(byte[] array) {
 		int i;
 		for (i = 0; i < array.length; i++) {
