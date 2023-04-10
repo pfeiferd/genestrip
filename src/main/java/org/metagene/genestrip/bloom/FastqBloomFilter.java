@@ -72,7 +72,7 @@ public class FastqBloomFilter {
 
 		long fastqFileSize = Files.size(fastgz.toPath());
 
-		runFilter(access.getInputStream(), bIndexed, bNotIndexed, fastqFileSize, access);
+		runFilter(access, fastqFileSize, bIndexed, bNotIndexed);
 
 		access.getInputStream().close();
 		if (bIndexed != null) {
@@ -83,8 +83,8 @@ public class FastqBloomFilter {
 		}
 	}
 
-	private void runFilter(InputStream fastqStream, OutputStream indexed, OutputStream notIndexed, long fastqFileSize,
-			ByteCountingInputStreamAccess byteCountAccess) throws IOException {
+	private void runFilter(ByteCountingInputStreamAccess byteCountAccess, long fastqFileSize, OutputStream indexed,
+			OutputStream notIndexed) throws IOException {
 		int line = 0;
 		boolean res = false;
 		long total = 0;
@@ -99,6 +99,8 @@ public class FastqBloomFilter {
 		byte[][] lReadBuffer = readBuffer;
 		int[] lc = c;
 		long notIndexedC = 0;
+
+		InputStream fastqStream = byteCountAccess.getInputStream();
 
 		for (size = fastqStream.read(buffer); size != -1; size = fastqStream.read(buffer)) {
 			for (count = 0; count < size; count++) {
