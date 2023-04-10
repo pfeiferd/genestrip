@@ -26,6 +26,7 @@ package org.metagene.genestrip.goals;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +74,11 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 			}
 		}
 		return files;
+	}
+	
+	@Override
+	protected List<File> getFilesToClean() {
+		return Collections.singletonList(getProject().getFastasDir());
 	}
 
 	private List<FTPEntryWithQuality> getRelevantEntriesAsList(FTPEntryQuality minQuality,
