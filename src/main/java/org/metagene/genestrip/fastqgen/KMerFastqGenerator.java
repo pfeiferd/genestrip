@@ -67,15 +67,14 @@ public class KMerFastqGenerator {
 			getLogger().info("Bloom filter array size of " + index + ": " + index.getBitSize() / 8 / 1024 + "KB");
 		}
 
-		FastaIndexer fastaIndexer = new FastaIndexer();
-		byte[] buffer = new byte[BufferedLineReader.getBufferSize()];
+		FastaIndexer fastaIndexer = new FastaIndexer(index, 4096);
 
 		for (File fasta : fastaFiles) {
 			if (fasta.exists()) {
 				if (getLogger().isInfoEnabled()) {
 					getLogger().info("File read " + fasta.toString());
 				}
-				fastaIndexer.fillIndex(index, fasta, buffer);
+				fastaIndexer.readFasta(fasta);
 			} else {
 				throw new IllegalStateException("Missing fasta file " + fasta);
 			}
