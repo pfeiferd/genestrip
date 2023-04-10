@@ -36,7 +36,7 @@ public class ByteArrayUtil {
 		}
 		return new String(array, 0, i);
 	}
-	
+
 	public static void print(byte[] array, PrintStream ps) {
 		for (int i = 0; i < array.length; i++) {
 			if (array[i] == 0) {
@@ -45,14 +45,27 @@ public class ByteArrayUtil {
 			ps.print((char) array[i]);
 		}
 	}
-	
 
-	public boolean checkDigits(byte[] data, int start, int end) {
+	public static boolean checkDigits(byte[] data, int start, int end) {
 		for (int i = start; i <= end; i++) {
 			if (data[i] < '0' || data[i] > '9') {
 				return false;
 			}
 		}
 		return true;
-	}	
+	}
+
+	public static int byteArrayToInt(byte[] data, int start, int end) {
+		int result = 0;
+		for (int i = start; i < end; i++) {
+			int digit = data[i] - '0';
+			if ((digit < 0) || (digit > 9)) {
+				System.out.println(new String(data));
+				throw new NumberFormatException();
+			}
+			result *= 10;
+			result += digit;
+		}
+		return result;
+	}
 }
