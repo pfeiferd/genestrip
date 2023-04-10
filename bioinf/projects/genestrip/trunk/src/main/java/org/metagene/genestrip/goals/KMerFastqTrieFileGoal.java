@@ -26,17 +26,17 @@ package org.metagene.genestrip.goals;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.fastq.AbstractFastqReader;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.KMerTrie;
-import org.metagene.genestrip.util.StreamProvider;
+import org.metagene.genestrip.util.CountingDigitTrie;
 
 public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
@@ -51,6 +51,7 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 	@Override
 	protected void makeFile(File trieFile) {
 		try {
+			CountingDigitTrie countingDigitTrie = new CountingDigitTrie();
 			KMerTrie<String> trie = new KMerTrie<String>(1, getProject().getkMserSize(), false);
 
 			Set<String> taxIds = new HashSet<String>();
@@ -61,10 +62,24 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Reading file " + getProject().getFastqKrakenOutFile());
 			}
-			
-			InputStream stream1 = StreamProvider.getInputStreamForFile(getProject().getFastqKrakenOutFile());
-			// TODO
-			stream1.close();
+
+			AbstractFastqReader fastqReader = new AbstractFastqReader(4096) {
+				@Override
+				protected void nextEntry() throws IOException {
+					int pos;
+					for (pos = readDescriptorSize - 1; pos >= 0; pos--) {
+						if (readDescriptor[pos] == ':') {
+							pos++;
+							break;
+						}
+					}
+					String taxid = countingDigitTrie.inc(readDescriptor, pos, readDescriptorSize);
+					if (taxIds.contains(taxid)) {
+						trie.put(read, 0, taxid, false);
+					}
+				}
+			};
+			fastqReader.readFastq(getProject().getFastqKrakenOutFile());
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Trie entries: " + trie.getEntries());
