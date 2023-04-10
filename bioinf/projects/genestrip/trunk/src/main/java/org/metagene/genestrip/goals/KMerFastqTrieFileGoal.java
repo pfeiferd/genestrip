@@ -63,7 +63,7 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 				getLogger().info("Reading file " + getProject().getFastqKrakenOutFile());
 			}
 
-			AbstractFastqReader fastqReader = new AbstractFastqReader(4096) {
+			AbstractFastqReader fastqReader = new AbstractFastqReader(getProject().getConfig().getMaxReadSizeBytes()) {
 				@Override
 				protected void nextEntry() throws IOException {
 					int pos;

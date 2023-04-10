@@ -74,45 +74,46 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 					.createPrintListener(System.out, null);
 
 			InputStream stream1 = StreamProvider.getInputStreamForFile(getProject().getKrakenOutFile());
-			InputStream stream2 = StreamProvider.getInputStreamForFile(getProject().getFastqFile());			
-			merger.process(stream1, stream2, KrakenResultFastqMergeListener
-							.createFilterByTaxIdNodes(nodes, new KrakenResultFastqMergeListener() {
-								private long lastLineCount = -1;
+			InputStream stream2 = StreamProvider.getInputStreamForFile(getProject().getFastqFile());
+			merger.process(stream1, stream2, KrakenResultFastqMergeListener.createFilterByTaxIdNodes(nodes,
+					new KrakenResultFastqMergeListener() {
+						private long lastLineCount = -1;
 
-								@Override
-								public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read,
-										byte[] readProbs, String krakenTaxid, int bps, int pos, String kmerTaxid,
-										int hitLength, byte[] output) {
-									if (lastLineCount != lineCount) {
-										lastLineCount = lineCount;
-										printListener.newTaxIdForRead(lineCount, readDescriptor, read, readProbs,
-												krakenTaxid, bps, pos, kmerTaxid, hitLength, output);
-									}
-									for (int j = 0; j < hitLength; j++) {
-										for (int i = 0; i < kmer.length; i++) {
-											kmer[i] = read[pos + j + i];
-										}
-										System.out.println("Position:  " + pos);
-										System.out.println(kmerTaxid);
-										ByteArrayUtil.print(kmer, System.out);
-										System.out.println();
-
-										TaxidWithCount tc = trie.get(kmer, 0, false);
-										if (tc == null) {
-											tc = new TaxidWithCount(kmerTaxid);
-											trie.put(kmer, 0, tc, false);
-										}
-										tc.inc();
-									}
+						@Override
+						public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read,
+								byte[] readProbs, String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength,
+								byte[] output) {
+							if (lastLineCount != lineCount) {
+								lastLineCount = lineCount;
+								printListener.newTaxIdForRead(lineCount, readDescriptor, read, readProbs, krakenTaxid,
+										bps, pos, kmerTaxid, hitLength, output);
+							}
+							for (int j = 0; j < hitLength; j++) {
+								for (int i = 0; i < kmer.length; i++) {
+									kmer[i] = read[pos + j + i];
 								}
-							}));
+								System.out.println("Position:  " + pos);
+								System.out.println(kmerTaxid);
+								ByteArrayUtil.print(kmer, System.out);
+								System.out.println();
+
+								TaxidWithCount tc = trie.get(kmer, 0, false);
+								if (tc == null) {
+									tc = new TaxidWithCount(kmerTaxid);
+									trie.put(kmer, 0, tc, false);
+								}
+								tc.inc();
+							}
+						}
+					}));
 			stream1.close();
 			stream2.close();
 
 			FTPEntryQuality minQuality = getProject().getConfig().getFastaQuality();
 			String[] matchingTaxId = new String[1];
-			
-			FastaTrieCleaner<TaxidWithCount> fastaTrieCleaner = new FastaTrieCleaner<TaxidWithCount>(trie, 4096) {
+
+			FastaTrieCleaner<TaxidWithCount> fastaTrieCleaner = new FastaTrieCleaner<TaxidWithCount>(trie,
+					getProject().getConfig().getMaxReadSizeBytes()) {
 				@Override
 				protected boolean isMatchingValue(TaxidWithCount value) {
 					return matchingTaxId[0].equals(value.taxid);

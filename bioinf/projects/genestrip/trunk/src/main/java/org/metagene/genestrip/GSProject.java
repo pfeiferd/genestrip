@@ -78,7 +78,7 @@ public class GSProject implements DownloadProject {
 	public boolean isUseHttp() {
 		return getConfig().isUseHttp();
 	}
-
+	
 	public File getFilteredFastqFile() {
 		return new File(getResultsDir(), "Filtered_" + fastqFile.getName() + ".gz");
 	}
