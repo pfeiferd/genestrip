@@ -42,7 +42,7 @@ public abstract class Goal<P> {
 		this.dependencies = dependencies;
 		this.project = project;
 	}
-	
+
 	public P getProject() {
 		return project;
 	}
@@ -96,6 +96,10 @@ public abstract class Goal<P> {
 	public void cleanThis() {
 	}
 
+	protected boolean isThisCleaned() {
+		return false;
+	}
+
 	@Override
 	public String toString() {
 		return "goal: " + getName();
@@ -109,12 +113,14 @@ public abstract class Goal<P> {
 		for (Goal<P> dep : dependencies) {
 			dep.clean();
 		}
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Cleaning this " + this);
-		}
-		cleanThis();
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Cleaned " + this);
+		if (!isThisCleaned()) {
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("Cleaning this " + this);
+			}
+			cleanThis();
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("Cleaned " + this);
+			}
 		}
 	}
 }
