@@ -30,7 +30,7 @@ import java.util.Set;
 
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.KMerTrie;
-import org.metagene.genestrip.util.ByteArrayToString;
+import org.metagene.genestrip.util.ByteArrayUtil;
 
 public interface KrakenResultFastqMergeListener {
 	public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
@@ -42,14 +42,14 @@ public interface KrakenResultFastqMergeListener {
 			public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
 					String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
 				out.println("Line: " + lineCount);
-				ByteArrayToString.print(readDescriptor, out);
+				ByteArrayUtil.print(readDescriptor, out);
 				out.println();
-				ByteArrayToString.print(read, out);
+				ByteArrayUtil.print(read, out);
 				out.println();
 				out.println("+");
-				ByteArrayToString.print(readProbs, out);
+				ByteArrayUtil.print(readProbs, out);
 				out.println();
-				ByteArrayToString.print(output, out);
+				ByteArrayUtil.print(output, out);
 				out.println();
 				
 				if (delegate != null) {
@@ -102,13 +102,13 @@ public interface KrakenResultFastqMergeListener {
 					throw new IllegalStateException("too many k-mers for read");
 				}
 				lastLineCount = lineCount;
-				ByteArrayToString.print(readDescriptor, printStream);
+				ByteArrayUtil.print(readDescriptor, printStream);
 				printStream.print(":taxid:");
 				printStream.println(kmerTaxid);
-				ByteArrayToString.print(read, printStream);
+				ByteArrayUtil.print(read, printStream);
 				printStream.println();
 				printStream.println("+");
-				ByteArrayToString.print(readProbs, printStream);
+				ByteArrayUtil.print(readProbs, printStream);
 				printStream.println();
 
 				if (delegate != null) {

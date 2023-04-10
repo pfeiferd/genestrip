@@ -62,7 +62,7 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.FastqTrieClassifier;
 import org.metagene.genestrip.trie.KMerTrie;
 import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
-import org.metagene.genestrip.util.ByteArrayToString;
+import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 
@@ -268,7 +268,7 @@ public class GSMaker extends Maker<GSProject> {
 								ps.print(';');
 								ps.print(value.getCount());
 								ps.print(';');
-								ByteArrayToString.print(kmer, ps);
+								ByteArrayUtil.print(kmer, ps);
 								ps.println(';');
 								Integer res = errPerTaxid.get(value.getTaxid());
 								res = (res == null) ? value.getCount() : res + value.getCount();
