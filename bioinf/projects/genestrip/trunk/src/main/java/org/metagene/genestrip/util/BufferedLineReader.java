@@ -56,9 +56,6 @@ public class BufferedLineReader {
 					return size;
 				}
 			}
-			if (pos == bufferFill && bufferFill < buffer.length) {
-				return size;
-			}
 			bufferFill = stream.read(buffer);
 			pos = 0;
 		}
@@ -79,9 +76,6 @@ public class BufferedLineReader {
 				if (size == target.length || c == '\n') {
 					return size;
 				}
-			}
-			if (pos == bufferFill && bufferFill < buffer.length) {
-				return size;
 			}
 			bufferFill = stream.read(buffer);
 			pos = 0;
