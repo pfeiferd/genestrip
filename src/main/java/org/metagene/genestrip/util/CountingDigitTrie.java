@@ -82,7 +82,7 @@ public class CountingDigitTrie {
 		}
 		node.value += add;
 		if (node.digits == null) {
-			node.digits = new String(seq, start, end - start + 1);
+			node.digits = new String(seq, start, end - start);
 		}
 		return node.digits;
 	}
@@ -102,7 +102,7 @@ public class CountingDigitTrie {
 			}
 		}
 		if (node.digits == null) {
-			node.digits = new String(seq, start, end - start + 1);
+			node.digits = new String(seq, start, end - start);
 		}
 		return node.digits;
 	}
