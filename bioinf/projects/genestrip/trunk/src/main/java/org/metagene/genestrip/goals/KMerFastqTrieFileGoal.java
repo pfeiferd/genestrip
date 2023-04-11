@@ -61,7 +61,7 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 			}
 
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Reading file " + getProject().getFastqKrakenOutFile());
+				getLogger().info("Reading file " + getProject().getFilteredKmerFastqFile());
 			}
 
 			AbstractFastqReader fastqReader = new AbstractFastqReader(getProject().getConfig().getMaxReadSizeBytes()) {
@@ -80,7 +80,7 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 					}
 				}
 			};
-			fastqReader.readFastq(getProject().getFastqKrakenOutFile());
+			fastqReader.readFastq(getProject().getFilteredKmerFastqFile());
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Trie entries: " + trie.getEntries());
