@@ -57,7 +57,7 @@ public class BloomFilterSizeGoal extends ObjectGoal<Long, GSProject> {
 				taxIds.add(node.getTaxId());
 			}
 
-			KrakenResultFastqMergeListener filter = KrakenResultFastqMergeListener.createFilterByTaxId(taxIds,
+			KrakenResultFastqMergeListener filter = KrakenResultFastqMergeListener.createFilterByTaxIds(taxIds,
 					new KrakenResultFastqMergeListener() {
 						@Override
 						public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read,
