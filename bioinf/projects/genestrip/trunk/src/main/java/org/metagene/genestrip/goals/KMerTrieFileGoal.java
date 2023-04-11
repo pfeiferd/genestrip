@@ -61,8 +61,8 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 				taxIds.add(node.getTaxId());
 			}
 
-			KrakenResultFastqMergeListener filter = KrakenResultFastqMergeListener.createFilterByTaxId(taxIds,
-					KrakenResultFastqMergeListener.fillKMerTrie(trie, null));
+			KrakenResultFastqMergeListener filter = KrakenResultFastqMergeListener.createFilterByTaxIds(taxIds,
+					fillKMerTrie(trie, null));
 			KrakenResultFastqMerger krakenKMerFastqMerger = new KrakenResultFastqMerger(
 					getProject().getConfig().getMaxReadSizeBytes());
 
@@ -89,5 +89,26 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	private KrakenResultFastqMergeListener fillKMerTrie(KMerTrie<String> trie,
+			KrakenResultFastqMergeListener delegate) {
+		return new KrakenResultFastqMergeListener() {
+			@Override
+			public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
+					String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
+				trie.put(read, 0, kmerTaxid, false);
+				if (lineCount % 10000 == 0) {
+					if (getLogger().isInfoEnabled()) {
+						getLogger().info("Trie entries:" + trie.getEntries());
+						getLogger().info("Trie put ratio:" + ((double) trie.getEntries() / lineCount));
+					}
+				}
+				if (delegate != null) {
+					delegate.newTaxIdForRead(lineCount, readDescriptor, read, readProbs, krakenTaxid, bps, pos,
+							kmerTaxid, hitLength, output);
+				}
+			}
+		};
 	}
 }

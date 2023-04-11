@@ -38,10 +38,13 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
+import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
+	
+	private long lastLineCount;
 
 	@SafeVarargs
 	public KrakenFastqFileGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
@@ -56,11 +59,30 @@ public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Writing file " + fastq);
 			}
-			PrintStream filteredOut = new PrintStream(StreamProvider.getOutputStreamForFile(fastq));
+			PrintStream printStream = new PrintStream(StreamProvider.getOutputStreamForFile(fastq));
 
-			KrakenResultFastqMergeListener filter = KrakenResultFastqMergeListener.createFilterByTaxIdNodes(
-					taxNodesGoal.get(),
-					KrakenResultFastqMergeListener.createFastQOutputFilterByTaxId(filteredOut, null));
+			KrakenResultFastqMergeListener filter = KrakenResultFastqMergeListener
+					.createFilterByTaxIdNodes(taxNodesGoal.get(), new KrakenResultFastqMergeListener() {
+						@Override
+						public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read,
+								byte[] readProbs, String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength,
+								byte[] output) {
+							if (lastLineCount == lineCount) {
+								throw new IllegalStateException("too many k-mers for read");
+							}
+							lastLineCount = lineCount;
+							ByteArrayUtil.print(readDescriptor, printStream);
+							printStream.print(":taxid:");
+							printStream.println(kmerTaxid);
+							ByteArrayUtil.print(read, printStream);
+							printStream.println();
+							printStream.println("+");
+							ByteArrayUtil.print(readProbs, printStream);
+							printStream.println();
+						}
+					});
+			
+			lastLineCount = -1;
 			KrakenResultFastqMerger krakenKMerFastqMerger = new KrakenResultFastqMerger(
 					getProject().getConfig().getMaxReadSizeBytes());
 
@@ -74,9 +96,10 @@ public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
 			stream1.close();
 			stream2.close();
 
-			filteredOut.close();
+			printStream.close();
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Written file " + getProject().getFilteredKmerFastqFile());
+				getLogger().info("Total added reads: " + lastLineCount);
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
