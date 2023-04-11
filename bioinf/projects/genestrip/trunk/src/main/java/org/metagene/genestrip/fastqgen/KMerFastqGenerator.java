@@ -63,7 +63,7 @@ public class KMerFastqGenerator {
 		}
 		FastQWriter fastQWriter = new FastQWriter(name, StreamProvider.getOutputStreamForFile(fastq));
 		KMerBloomIndex index = new KMerBloomIndex(name, getKmerSize(), expectedSize, 0.0001, fastQWriter);
-		
+
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Bloom filter array size of " + index + ": " + index.getBitSize() / 8 / 1024 + "KB");
 		}
@@ -79,7 +79,7 @@ public class KMerFastqGenerator {
 		}
 
 		fastQWriter.close();
-		
+
 		return fastQWriter.getAdded();
 	}
 
@@ -119,8 +119,7 @@ public class KMerFastqGenerator {
 			hits++;
 			if (getLogger().isInfoEnabled()) {
 				if (hits % 100000 == 0) {
-					String hitsMessage = "Hits: " + hits + " Hits Ratio: " + (double) hits / (hits + added);
-					logger.info(hitsMessage);
+					logger.info("Hits: " + hits + " Hits Ratio: " + (double) hits / (hits + added));
 				}
 			}
 		}
@@ -128,8 +127,8 @@ public class KMerFastqGenerator {
 		public void close() {
 			printStream.close();
 			if (getLogger().isInfoEnabled()) {
-				String hitsMessage = "Total Hits: " + hits + " Hits Ratio: " + (double) hits / (hits + added);
-				logger.info(hitsMessage);
+				logger.info("Total Hits: " + hits + " Hits Ratio: " + (double) hits / (hits + added));
+				logger.info("Total added reads: " + added);
 			}
 		}
 
