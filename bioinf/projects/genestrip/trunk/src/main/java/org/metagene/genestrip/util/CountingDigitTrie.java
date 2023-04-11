@@ -69,7 +69,7 @@ public class CountingDigitTrie {
 	public String add(byte[] seq, int start, int end, int add) {
 		int index;
 		CountingDigitTrie node = this, child;
-		for (int i = start; i <= end; i++, node = child) {
+		for (int i = start; i < end; i++, node = child) {
 			index = seq[i] - '0';
 			if (node.children == null) {
 				node.children = new CountingDigitTrie[10];
@@ -90,7 +90,7 @@ public class CountingDigitTrie {
 	public String get(byte[] seq, int start, int end) {
 		int index;
 		CountingDigitTrie node = this, child;
-		for (int i = start; i <= end; i++, node = child) {
+		for (int i = start; i < end; i++, node = child) {
 			index = seq[i] - '0';
 			if (node.children == null) {
 				node.children = new CountingDigitTrie[10];

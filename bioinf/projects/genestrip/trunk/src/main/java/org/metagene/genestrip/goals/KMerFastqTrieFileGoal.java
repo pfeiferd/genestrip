@@ -60,10 +60,6 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 				taxIds.add(node.getTaxId());
 			}
 
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Reading file " + getProject().getFilteredKmerFastqFile());
-			}
-
 			AbstractFastqReader fastqReader = new AbstractFastqReader(getProject().getConfig().getMaxReadSizeBytes()) {
 				@Override
 				protected void nextEntry() throws IOException {
@@ -74,7 +70,7 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 							break;
 						}
 					}
-					String taxid = countingDigitTrie.inc(readDescriptor, pos, readDescriptorSize);
+					String taxid = countingDigitTrie.inc(readDescriptor, pos, readDescriptorSize - 1);
 					if (taxIds.contains(taxid)) {
 						trie.put(read, 0, taxid, false);
 					}
@@ -84,12 +80,12 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Trie entries: " + trie.getEntries());
-				getLogger().info("File save " + trieFile);
+				getLogger().info("Saving file " + trieFile);
 			}
 			trie.compress();
 			trie.save(trieFile);
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("File saved " + trieFile);
+				getLogger().info("Saved file " + trieFile);
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
