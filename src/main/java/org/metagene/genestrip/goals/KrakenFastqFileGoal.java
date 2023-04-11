@@ -45,6 +45,7 @@ public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	
 	private long lastLineCount;
+	private long readCount;
 
 	@SafeVarargs
 	public KrakenFastqFileGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
@@ -71,6 +72,7 @@ public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
 								throw new IllegalStateException("too many k-mers for read");
 							}
 							lastLineCount = lineCount;
+							readCount++;
 							ByteArrayUtil.print(readDescriptor, printStream);
 							printStream.print(":taxid:");
 							printStream.println(kmerTaxid);
@@ -82,7 +84,8 @@ public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
 						}
 					});
 			
-			lastLineCount = -1;
+			lastLineCount = 0;
+			readCount = 0;
 			KrakenResultFastqMerger krakenKMerFastqMerger = new KrakenResultFastqMerger(
 					getProject().getConfig().getMaxReadSizeBytes());
 
@@ -99,7 +102,7 @@ public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
 			printStream.close();
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Written file " + getProject().getFilteredKmerFastqFile());
-				getLogger().info("Total added reads: " + lastLineCount);
+				getLogger().info("Total added reads: " + readCount);
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
