@@ -84,10 +84,13 @@ public class KrakenResultFastqMerger {
 
 			if (fromFastQ != null) {
 				pos = bufferedLineReaderFastQ.nextLine(readDescriptor);
-				readDescriptor[pos - 1] = 0;
+				readDescriptor[pos - 1] = 0;				
+				
 				pos = bufferedLineReaderFastQ.nextLine(read);
 				read[pos - 1] = 0;
+				
 				bufferedLineReaderFastQ.skipLine(); // Ignoring line 3.
+				
 				pos = bufferedLineReaderFastQ.nextLine(readProbs);
 				readProbs[pos - 1] = 0;
 			}
@@ -114,10 +117,6 @@ public class KrakenResultFastqMerger {
 							int j;
 							for (j = 0; j < outReadDescriptor.length && outReadDescriptor[j] != 0; j++) {
 								if (outReadDescriptor[j] != readDescriptor[j + 1]) {
-									ByteArrayUtil.print(outReadDescriptor, System.out);
-									System.out.println();
-									ByteArrayUtil.print(readDescriptor, System.out);
-									System.out.println();
 									throw new IllegalStateException("In consistent files for read " + readCount);
 								}
 							}
