@@ -36,7 +36,7 @@ import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
-public class FastqBloomFilter {
+public class FastqBloomFilter extends AbstractFastqReader {
 	protected final Log logger = LogFactory.getLog(getClass());
 
 	private static final byte[] LINE_3 = new byte[] { '+', '\n' };
@@ -48,8 +48,6 @@ public class FastqBloomFilter {
 	private final int minPosCount;
 	private final CGATRingBuffer byteRingBuffer;
 
-	private final AbstractFastqReader fastqReader;
-
 	private OutputStream indexed;
 	private OutputStream notIndexed;
 	private OutputStream out;
@@ -60,62 +58,59 @@ public class FastqBloomFilter {
 	private long indexedC;
 
 	public FastqBloomFilter(KMerBloomIndex index, int minPosCount, double positiveRatio, int maxReadSize) {
+		super(maxReadSize);
 		this.index = index;
 		this.k = index.getK();
 		this.minPosCount = minPosCount;
 		this.positiveRatio = positiveRatio;
 		byteRingBuffer = new CGATRingBuffer(index.getK());
+	}
 
-		fastqReader = new AbstractFastqReader(maxReadSize) {
-			@Override
-			protected void nextEntry() throws IOException {
-				boolean res = minPosCount > 0 ? isAcceptReadByAbs(read, readSize - 1)
-						: isAcceptReadByRatio(read, maxReadSize);
-				if (res) {
-					out = indexed;
-					indexedC++;
-				} else {
-					out = notIndexed;
-				}
-				if (out != null) {
-					out.write(readDescriptor, 0, readDescriptorSize);
-					out.write(read, 0, readSize);
-					out.write(LINE_3);
-					out.write(readProbs, 0, readProbsSize);
-				}
-				total++;
-				if (logger.isInfoEnabled()) {
-					if (total % 100000 == 0) {
-						double ratio = byteCountAccess.getBytesRead() / (double) fastqFileSize;
-						long stopTime = System.currentTimeMillis();
+	@Override
+	protected void nextEntry() throws IOException {
+		if (minPosCount > 0 ? isAcceptReadByAbs() : isAcceptReadByRatio()) {
+			out = indexed;
+			indexedC++;
+		} else {
+			out = notIndexed;
+		}
+		if (out != null) {
+			out.write(readDescriptor, 0, readDescriptorSize);
+			out.write(read, 0, readSize);
+			out.write(LINE_3);
+			out.write(readProbs, 0, readProbsSize);
+		}
+		total++;
+		if (logger.isInfoEnabled()) {
+			if (total % 100000 == 0) {
+				double ratio = byteCountAccess.getBytesRead() / (double) fastqFileSize;
+				long stopTime = System.currentTimeMillis();
 
-						double diff = (stopTime - startTime);
-						double totalTime = diff / ratio;
-						double totalHours = totalTime / 1000 / 60 / 60;
+				double diff = (stopTime - startTime);
+				double totalTime = diff / ratio;
+				double totalHours = totalTime / 1000 / 60 / 60;
 
-						logger.info("Elapsed hours:" + diff / 1000 / 60 / 60);
-						logger.info("Estimated total hours:" + totalHours);
-						logger.info("Reads processed: " + total);
-						logger.info("Indexed: " + indexedC);
-						logger.info("Indexed ratio:" + ((double) indexedC) / total);
-					}
-				}
+				logger.info("Elapsed hours:" + diff / 1000 / 60 / 60);
+				logger.info("Estimated total hours:" + totalHours);
+				logger.info("Reads processed: " + total);
+				logger.info("Indexed: " + indexedC);
+				logger.info("Indexed ratio:" + ((double) indexedC) / total);
 			}
-		};
+		}
 	}
 
 	public void runFilter(File fastq, File filteredFile, File restFile) throws IOException {
 		byteCountAccess = StreamProvider.getByteCountingInputStreamForFile(fastq, false);
-		this.fastqFileSize = Files.size(fastq.toPath());
+		fastqFileSize = Files.size(fastq.toPath());
 
-		this.indexed = filteredFile != null ? StreamProvider.getOutputStreamForFile(filteredFile) : null;
-		this.notIndexed = restFile != null ? StreamProvider.getOutputStreamForFile(restFile) : null;
+		indexed = filteredFile != null ? StreamProvider.getOutputStreamForFile(filteredFile) : null;
+		notIndexed = restFile != null ? StreamProvider.getOutputStreamForFile(restFile) : null;
 
 		startTime = System.currentTimeMillis();
 		total = 0;
 		indexedC = 0;
 
-		fastqReader.readFastq(byteCountAccess.getInputStream());
+		readFastq(byteCountAccess.getInputStream());
 
 		if (indexed != null) {
 			indexed.close();
@@ -127,12 +122,12 @@ public class FastqBloomFilter {
 		byteCountAccess.getInputStream().close();
 	}
 
-	protected boolean isAcceptReadByAbs(byte[] read, int readSize) {
+	protected boolean isAcceptReadByAbs() {
 		int counter = 0;
 		int negCounter = 0;
-		int max = readSize - k - 1;
+		int max = readSize - k - 2;
 
-		for (int i = 0; i < readSize; i++) {
+		for (int i = 0; i < readSize - 1; i++) {
 			byteRingBuffer.put(read[i]);
 			if (byteRingBuffer.filled) {
 				if (index.contains(byteRingBuffer)) {
@@ -152,14 +147,14 @@ public class FastqBloomFilter {
 		return false;
 	}
 
-	protected boolean isAcceptReadByRatio(byte[] read, int readSize) {
+	protected boolean isAcceptReadByRatio() {
 		int counter = 0;
 		int negCounter = 0;
-		int max = readSize - k - 1;
+		int max = readSize - k - 2;
 		int posCounterThrehold = (int) (max * positiveRatio);
 		int negCounterThreshold = max - posCounterThrehold;
 
-		for (int i = 0; i < readSize; i++) {
+		for (int i = 0; i < readSize - 1; i++) {
 			byteRingBuffer.put(read[i]);
 			if (byteRingBuffer.filled) {
 				if (index.contains(byteRingBuffer)) {

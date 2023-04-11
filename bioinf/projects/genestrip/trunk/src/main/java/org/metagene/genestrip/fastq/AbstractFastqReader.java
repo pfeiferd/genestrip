@@ -37,7 +37,7 @@ public abstract class AbstractFastqReader {
 		return logger;
 	}
 
-	public void readFastq(File file) throws IOException {
+	protected void readFastq(File file) throws IOException {
 		if (logger.isInfoEnabled()) {
 			logger.info("Reading fastq file " + file);
 		}
@@ -49,10 +49,11 @@ public abstract class AbstractFastqReader {
 		}
 	}
 
-	public void readFastq(InputStream inputStream) throws IOException {
+	protected void readFastq(InputStream inputStream) throws IOException {
 		reads = 0;
 		bufferedLineReaderFastQ.setInputStream(inputStream);
 
+		start();
 		for (readDescriptorSize = bufferedLineReaderFastQ
 				.nextLine(readDescriptor); readDescriptorSize > 0; readDescriptorSize = bufferedLineReaderFastQ
 						.nextLine(readDescriptor)) {
@@ -75,4 +76,6 @@ public abstract class AbstractFastqReader {
 	protected abstract void nextEntry() throws IOException;
 	
 	protected void done() throws IOException {};
+	
+	protected void start() throws IOException {};
 }

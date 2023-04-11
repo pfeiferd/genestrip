@@ -68,6 +68,7 @@ public abstract class AbstractFastaReader {
 		dataLines = 0;
 		bufferedLineReader.setInputStream(inputStream);
 		
+		start();
 		for (size = bufferedLineReader.nextLine(target); size > 0; size = bufferedLineReader.nextLine(target)) {
 			if (size >= target.length - 1) {
 				throw new IllegalStateException("buffer is too small for data line in fastq file");
@@ -95,4 +96,6 @@ public abstract class AbstractFastaReader {
 	protected abstract void dataLine() throws IOException;
 	
 	protected void done() throws IOException {};
+	
+	protected void start() throws IOException {};	
 }
