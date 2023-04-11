@@ -262,7 +262,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 			for (j = 0; j < factor && i + j < len; j++) {
 				byte c = CGAT.cgatToUpperCase(nseq[start + (reverse ? (len - i - j - 1) : (i + j))]);
 				if (c < 0 || jt[c] == -1) {
-					throw new IllegalArgumentException("Not a CGAT sequence");
+					return null; // throw new IllegalArgumentException("Not a CGAT sequence");
 				}
 				pos += jt[c] * mult;
 				mult *= 4;
