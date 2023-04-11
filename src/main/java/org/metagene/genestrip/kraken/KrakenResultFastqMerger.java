@@ -129,7 +129,7 @@ public class KrakenResultFastqMerger {
 						startPos = i + 1;
 					} else if (classId) {
 						classId = false;
-						classTaxid = root.get(krakenChars, startPos, i);
+						classTaxid = root.add(krakenChars, startPos, i, 0);
 						readSize = true;
 						startPos = i + 1;
 					} else if (readSize) {
