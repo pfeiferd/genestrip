@@ -40,6 +40,8 @@ public abstract class AbstractFastaReader {
 	protected final byte[] target;
 	protected int size;
 	
+	protected long dataLines;
+	
 	public AbstractFastaReader(int bufferSize) {
 		this.bufferedLineReader = new BufferedLineReader();
 		target = new byte[bufferSize];
@@ -63,6 +65,7 @@ public abstract class AbstractFastaReader {
 
 	// value must not be null...
 	public void readFasta(InputStream inputStream) throws IOException {
+		dataLines = 0;
 		bufferedLineReader.setInputStream(inputStream);
 		
 		for (size = bufferedLineReader.nextLine(target); size > 0; size = bufferedLineReader.nextLine(target)) {
@@ -76,8 +79,13 @@ public abstract class AbstractFastaReader {
 				infoLine();
 			}
 			else {
+				dataLines++;
 				dataLine();
 			}
+		}
+		done();
+		if (logger.isInfoEnabled()) {
+			logger.info("Total number of data lines: " + dataLines);
 		}
 	}
 	
@@ -85,4 +93,6 @@ public abstract class AbstractFastaReader {
 	}
 	
 	protected abstract void dataLine() throws IOException;
+	
+	protected void done() throws IOException {};
 }

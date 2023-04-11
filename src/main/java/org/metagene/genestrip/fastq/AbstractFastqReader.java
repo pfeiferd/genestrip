@@ -21,6 +21,8 @@ public abstract class AbstractFastqReader {
 	protected final byte[] readProbs;
 	protected int readProbsSize;
 
+	protected long reads;
+
 	private final BufferedLineReader bufferedLineReaderFastQ;
 
 	public AbstractFastqReader(int maxReadSizeBytes) {
@@ -48,6 +50,7 @@ public abstract class AbstractFastqReader {
 	}
 
 	public void readFastq(InputStream inputStream) throws IOException {
+		reads = 0;
 		bufferedLineReaderFastQ.setInputStream(inputStream);
 
 		for (readDescriptorSize = bufferedLineReaderFastQ
@@ -60,9 +63,16 @@ public abstract class AbstractFastqReader {
 			readProbsSize = bufferedLineReaderFastQ.nextLine(readProbs);
 			readProbs[readProbsSize - 1] = 0;
 
+			reads++;
 			nextEntry();
+		}
+		done();
+		if (logger.isInfoEnabled()) {
+			logger.info("Total number of reads: " + reads);
 		}
 	}
 
 	protected abstract void nextEntry() throws IOException;
+	
+	protected void done() throws IOException {};
 }
