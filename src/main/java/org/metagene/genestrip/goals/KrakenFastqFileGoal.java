@@ -70,7 +70,7 @@ public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
 			}
 			InputStream stream1 = StreamProvider.getInputStreamForFile(getProject().getKrakenOutFile());
 			InputStream stream2 = StreamProvider.getInputStreamForFile(getProject().getKmerFastqFile());
-			krakenKMerFastqMerger.process(stream1, stream1, filter);
+			krakenKMerFastqMerger.process(stream1, stream2, filter);
 			stream1.close();
 			stream2.close();
 
