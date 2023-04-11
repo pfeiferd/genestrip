@@ -94,6 +94,7 @@ public class KrakenResultFastqMerger {
 				pos = bufferedLineReaderFastQ.nextLine(readProbs);
 				readProbs[pos - 1] = 0;
 			}
+			readCount++;
 
 			start = true;
 			descriptor = false;
@@ -164,7 +165,6 @@ public class KrakenResultFastqMerger {
 							taxidStr, frN, krakenChars);
 				}
 			}
-			readCount++;
 		}
 
 		Map<String, Long> map = new HashMap<String, Long>();
