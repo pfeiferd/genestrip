@@ -46,7 +46,7 @@ public class CGATRingBuffer implements Serializable {
 
 	public void put(byte c) {
 		data[end] = c;
-		if (isInvalidByte(c)) {
+		if (!(c == 'C' || c == 'G' || c == 'A' || c == 'T')) { // Inlined CGAT.isCGAT(c) for efficiency reasons.
 			invalidCPos = data.length;
 		} else if (invalidCPos > 0) {
 			invalidCPos--;
@@ -67,10 +67,6 @@ public class CGATRingBuffer implements Serializable {
 		return filled;
 	}
 	
-	protected boolean isInvalidByte(byte b) {
-		return CGAT.isCGAT(b);
-	}
-
 	public int getSize() {
 		return data.length;
 	}
