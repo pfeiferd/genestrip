@@ -57,7 +57,7 @@ public class KrakenResultFastqMerger {
 		bufferedLineReaderFastQ = new BufferedLineReader();
 	}
 
-	public Map<String, Long> process(InputStream bufferedInFromKraken, InputStream bufferedInFastQ,
+	public Map<String, Long> process(InputStream fromKraken, InputStream fromFastQ,
 			KrakenResultFastqMergeListener listener) throws IOException {
 		CountingDigitTrie root = new CountingDigitTrie();
 
@@ -75,14 +75,14 @@ public class KrakenResultFastqMerger {
 		int frStartPos;
 		int readPos;
 
-		bufferedLineReaderKraken.setInputStream(bufferedInFromKraken);
-		bufferedLineReaderFastQ.setInputStream(bufferedInFastQ);
+		bufferedLineReaderKraken.setInputStream(fromKraken);
+		bufferedLineReaderFastQ.setInputStream(fromFastQ);
 
 		for (krakenPos = bufferedLineReaderKraken
 				.nextLine(krakenChars); krakenPos > 0; krakenPos = bufferedLineReaderKraken.nextLine(krakenChars)) {
 			krakenChars[krakenPos - 1] = 0;
 
-			if (bufferedInFastQ != null) {
+			if (fromFastQ != null) {
 				pos = bufferedLineReaderFastQ.nextLine(readDescriptor);
 				readDescriptor[pos - 1] = 0;
 				pos = bufferedLineReaderFastQ.nextLine(read);
@@ -110,10 +110,14 @@ public class KrakenResultFastqMerger {
 						descriptor = false;
 						outReadDescriptor[i - 2] = 0;
 
-						if (bufferedInFastQ != null) {
+						if (fromFastQ != null) {
 							int j;
 							for (j = 0; j < outReadDescriptor.length && outReadDescriptor[j] != 0; j++) {
 								if (outReadDescriptor[j] != readDescriptor[j + 1]) {
+									ByteArrayUtil.print(outReadDescriptor, System.out);
+									System.out.println();
+									ByteArrayUtil.print(readDescriptor, System.out);
+									System.out.println();
 									throw new IllegalStateException("In consistent files for read " + readCount);
 								}
 							}
