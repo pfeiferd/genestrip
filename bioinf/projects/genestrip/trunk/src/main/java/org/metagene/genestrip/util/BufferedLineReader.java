@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class BufferedLineReader {
-	public static final int DEFAULT_BUFFER_SIZE = 8 * 4096;
+	public static final int DEFAULT_BUFFER_SIZE = 10; //8 * 4096;
 	
 	private static int bufferSize = DEFAULT_BUFFER_SIZE;
 	
@@ -46,8 +46,11 @@ public class BufferedLineReader {
 		while (bufferFill != -1) {
 			if (pos < bufferFill) {
 				byte c = -1;
-				for (size = 0; pos < bufferFill && c != '\n'; size++, pos++) {
+				for (; pos < bufferFill && c != '\n'; pos++) {
 					c = buffer[pos];
+					if (c != 0) {
+						size++;
+					}
 				}
 				if (c == '\n') {
 					return size;
