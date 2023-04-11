@@ -98,7 +98,7 @@ public abstract class FileDownloadGoal<P extends DownloadProject> extends FileGo
 		}
 
 		if (getLogger().isInfoEnabled()) {
-			getLogger().info("File save " + file.toString());
+			getLogger().info("Saving file " + file.toString());
 		}
 		OutputStream out = StreamProvider.getOutputStreamForFile(file, true);
 		ftpClient.changeWorkingDirectory(getFTPDir(file));
@@ -121,7 +121,7 @@ public abstract class FileDownloadGoal<P extends DownloadProject> extends FileGo
 		}
 		ReadableByteChannel readableByteChannel = Channels.newChannel(new URL(url).openStream());
 		if (getLogger().isInfoEnabled()) {
-			getLogger().info("File save " + file.toString());
+			getLogger().info("Saving file " + file.toString());
 		}
 		FileOutputStream out = new FileOutputStream(file);
 		out.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
