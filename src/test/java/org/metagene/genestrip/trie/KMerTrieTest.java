@@ -80,13 +80,14 @@ public class KMerTrieTest extends TestCase {
 		Set<TaxIdNode> nodes = taxNodesGoal.get();
 
 		KrakenResultFastqMergeListener filter = KrakenResultFastqMergeListener.createFilterByTaxIdNodes(nodes,
-				KrakenResultFastqMergeListener.fillKMerTrie(trie, new KrakenResultFastqMergeListener() {
+				new KrakenResultFastqMergeListener() {
 					@Override
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
 							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
+						trie.put(read, 0, kmerTaxid, false);
 						bloomFilter.put(read);
 					}
-				}));
+				});
 
 		KrakenResultFastqMerger krakenFilter = new KrakenResultFastqMerger(project.getConfig().getMaxReadSizeBytes());
 
