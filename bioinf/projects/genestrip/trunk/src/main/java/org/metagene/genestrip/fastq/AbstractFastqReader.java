@@ -57,12 +57,12 @@ public abstract class AbstractFastqReader {
 		for (readDescriptorSize = bufferedLineReaderFastQ
 				.nextLine(readDescriptor) - 1; readDescriptorSize > 0; readDescriptorSize = bufferedLineReaderFastQ
 						.nextLine(readDescriptor) - 1) {
-			readDescriptor[readDescriptorSize - 1] = 0;
+			readDescriptor[readDescriptorSize] = 0;
 			readSize = bufferedLineReaderFastQ.nextLine(read) - 1;
-			read[readSize - 1] = 0;
+			read[readSize] = 0;
 			bufferedLineReaderFastQ.skipLine(); // Ignoring line 3.
 			readProbsSize = bufferedLineReaderFastQ.nextLine(readProbs) - 1;
-			readProbs[readProbsSize - 1] = 0;
+			readProbs[readProbsSize] = 0;
 
 			reads++;
 			nextEntry();
