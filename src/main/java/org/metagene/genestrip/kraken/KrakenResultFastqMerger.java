@@ -79,20 +79,20 @@ public class KrakenResultFastqMerger {
 		bufferedLineReaderFastQ.setInputStream(fromFastQ);
 
 		for (krakenPos = bufferedLineReaderKraken
-				.nextLine(krakenChars); krakenPos > 0; krakenPos = bufferedLineReaderKraken.nextLine(krakenChars)) {
-			krakenChars[krakenPos - 1] = 0;
+				.nextLine(krakenChars) - 1; krakenPos > 0; krakenPos = bufferedLineReaderKraken.nextLine(krakenChars) - 1) {
+			krakenChars[krakenPos] = 0;
 
 			if (fromFastQ != null) {
-				pos = bufferedLineReaderFastQ.nextLine(readDescriptor);
-				readDescriptor[pos - 1] = 0;				
+				pos = bufferedLineReaderFastQ.nextLine(readDescriptor) - 1;
+				readDescriptor[pos] = 0;				
 				
-				pos = bufferedLineReaderFastQ.nextLine(read);
-				read[pos - 1] = 0;
+				pos = bufferedLineReaderFastQ.nextLine(read) - 1;
+				read[pos] = 0;
 				
 				bufferedLineReaderFastQ.skipLine(); // Ignoring line 3.
 				
-				pos = bufferedLineReaderFastQ.nextLine(readProbs);
-				readProbs[pos - 1] = 0;
+				pos = bufferedLineReaderFastQ.nextLine(readProbs) - 1;
+				readProbs[pos] = 0;
 			}
 			readCount++;
 
@@ -105,7 +105,7 @@ public class KrakenResultFastqMerger {
 			frStartPos = 0;
 			readPos = 0;
 
-			for (int i = 0; i < krakenPos - 1; i++) {
+			for (int i = 0; i < krakenPos; i++) {
 				if (krakenChars[i] == '\t') {
 					if (start) {
 						start = false;
@@ -156,8 +156,8 @@ public class KrakenResultFastqMerger {
 					startPos = i + 1;
 				}
 			}
-			if (startPos < krakenPos - 1 && fr) {
-				int frN = ByteArrayUtil.byteArrayToInt(krakenChars, frStartPos, krakenPos - 1);
+			if (startPos < krakenPos && fr) {
+				int frN = ByteArrayUtil.byteArrayToInt(krakenChars, frStartPos, krakenPos);
 				String taxidStr = root.add(krakenChars, startPos, frStartPos - 1, frN);
 
 				if (listener != null) {

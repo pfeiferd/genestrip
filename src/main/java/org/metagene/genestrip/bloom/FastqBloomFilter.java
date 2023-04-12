@@ -76,9 +76,12 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		}
 		if (out != null) {
 			out.write(readDescriptor, 0, readDescriptorSize);
+			out.write('\n');
 			out.write(read, 0, readSize);
+			out.write('\n');
 			out.write(LINE_3);
 			out.write(readProbs, 0, readProbsSize);
+			out.write('\n');
 		}
 		total++;
 		if (logger.isInfoEnabled()) {
@@ -125,9 +128,9 @@ public class FastqBloomFilter extends AbstractFastqReader {
 	protected boolean isAcceptReadByAbs() {
 		int counter = 0;
 		int negCounter = 0;
-		int max = readSize - k - 2;
+		int max = readSize - k + 1;
 
-		for (int i = 0; i < readSize - 1; i++) {
+		for (int i = 0; i < readSize; i++) {
 			byteRingBuffer.put(read[i]);
 			if (byteRingBuffer.filled) {
 				if (index.contains(byteRingBuffer)) {
@@ -137,7 +140,7 @@ public class FastqBloomFilter extends AbstractFastqReader {
 					}
 				} else {
 					negCounter++;
-					if (negCounter >= max - minPosCount) {
+					if (negCounter > max - minPosCount) {
 						return true;
 					}
 				}
@@ -150,11 +153,11 @@ public class FastqBloomFilter extends AbstractFastqReader {
 	protected boolean isAcceptReadByRatio() {
 		int counter = 0;
 		int negCounter = 0;
-		int max = readSize - k - 2;
+		int max = readSize - k + 1;
 		int posCounterThrehold = (int) (max * positiveRatio);
 		int negCounterThreshold = max - posCounterThrehold;
 
-		for (int i = 0; i < readSize - 1; i++) {
+		for (int i = 0; i < readSize; i++) {
 			byteRingBuffer.put(read[i]);
 			if (byteRingBuffer.filled) {
 				if (index.contains(byteRingBuffer)) {

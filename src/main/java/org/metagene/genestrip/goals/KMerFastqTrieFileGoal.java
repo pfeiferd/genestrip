@@ -70,7 +70,7 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 							break;
 						}
 					}
-					String taxid = countingDigitTrie.inc(readDescriptor, pos, readDescriptorSize - 1);
+					String taxid = countingDigitTrie.inc(readDescriptor, pos, readDescriptorSize);
 					if (taxIds.contains(taxid)) {
 						trie.put(read, 0, taxid, false);
 					}
