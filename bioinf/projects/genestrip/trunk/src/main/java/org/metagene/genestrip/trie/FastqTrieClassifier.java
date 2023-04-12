@@ -99,7 +99,9 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 	
 	@Override
 	protected void done() throws IOException {
-		logger.info("Total indexed: " + indexedC);
+		if (logger.isInfoEnabled()) {
+			logger.info("Total indexed: " + indexedC);
+		}
 	}
 
 	protected boolean classifyRead(boolean reverse) {
