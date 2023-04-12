@@ -102,6 +102,13 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		}
 	}
 
+	@Override
+	protected void done() throws IOException {
+		if (logger.isInfoEnabled()) {
+			logger.info("Total indexed: " + indexedC);
+		}
+	}
+
 	public void runFilter(File fastq, File filteredFile, File restFile) throws IOException {
 		byteCountAccess = StreamProvider.getByteCountingInputStreamForFile(fastq, false);
 		fastqFileSize = Files.size(fastq.toPath());
