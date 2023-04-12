@@ -98,7 +98,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 	}
 
 	protected boolean classifyRead(boolean reverse) {
-		int max = readSize - trie.getLen();
+		int max = readSize - trie.getLen() + 1;
 		boolean found = false;
 		for (int i = 0; i < max; i++) {
 			String res = trie.get(read, i, reverse);
