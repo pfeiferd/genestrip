@@ -67,10 +67,10 @@ public abstract class AbstractFastqReader {
 			reads++;
 			nextEntry();
 		}
-		done();
 		if (logger.isInfoEnabled()) {
 			logger.info("Total number of reads: " + reads);
 		}
+		done();
 	}
 
 	protected abstract void nextEntry() throws IOException;
