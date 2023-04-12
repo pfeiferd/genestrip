@@ -42,7 +42,6 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 	private ByteCountingInputStreamAccess byteCountAccess;
 	private long fastqFileSize;
 	private long startTime;
-	private long total;
 	private long indexedC;
 
 	public FastqTrieClassifier(KMerTrie<String> trie, int maxReadSize) {
@@ -55,7 +54,6 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		fastqFileSize = Files.size(fastq.toPath());
 
 		startTime = System.currentTimeMillis();
-		total = 0;
 		indexedC = 0;
 
 		root = new CountingDigitTrie();
@@ -78,9 +76,8 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		if (res) {
 			indexedC++;
 		}
-		total++;
 		if (logger.isInfoEnabled()) {
-			if (total % 100000 == 0) {
+			if (reads % 100000 == 0) {
 				double ratio = byteCountAccess.getBytesRead() / (double) fastqFileSize;
 				long stopTime = System.currentTimeMillis();
 
@@ -90,9 +87,9 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 
 				logger.info("Elapsed hours:" + diff / 1000 / 60 / 60);
 				logger.info("Estimated total hours:" + totalHours);
-				logger.info("Reads processed: " + total);
+				logger.info("Reads processed: " + reads);
 				logger.info("Indexed: " + indexedC);
-				logger.info("Indexed ratio:" + ((double) indexedC) / total);
+				logger.info("Indexed ratio:" + ((double) indexedC) / reads);
 			}
 		}
 	}
