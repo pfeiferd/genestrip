@@ -128,7 +128,7 @@ public class FastqBloomFilter extends AbstractFastqReader {
 	protected boolean isAcceptReadByAbs() {
 		int counter = 0;
 		int negCounter = 0;
-		int max = readSize - k + 1;
+		int negThreshold = readSize - k + 1 - minPosCount;
 
 		for (int i = 0; i < readSize; i++) {
 			byteRingBuffer.put(read[i]);
@@ -140,7 +140,7 @@ public class FastqBloomFilter extends AbstractFastqReader {
 					}
 				} else {
 					negCounter++;
-					if (negCounter > max - minPosCount) {
+					if (negCounter > negThreshold) {
 						return true;
 					}
 				}
