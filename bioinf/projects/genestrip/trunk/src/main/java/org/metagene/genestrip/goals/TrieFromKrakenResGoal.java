@@ -116,7 +116,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 					getProject().getConfig().getMaxReadSizeBytes()) {
 				@Override
 				protected boolean isMatchingValue(TaxidWithCount value) {
-					return matchingTaxId[0].equals(value.taxid);
+					return value != null && matchingTaxId[0].equals(value.taxid);
 				}
 			};
 
