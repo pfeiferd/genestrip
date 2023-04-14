@@ -64,7 +64,7 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 				size = 1000 * 1000;
 			}			
 			KMerBloomIndex bloomIndex = new KMerBloomIndex(bloomFilterFile.getName(), getProject().getkMserSize(),
-					size, 0.00001, null);
+					size, 0.01, null);
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Number of k-mers for " + bloomIndex + ": " + sizeGoal.get());
