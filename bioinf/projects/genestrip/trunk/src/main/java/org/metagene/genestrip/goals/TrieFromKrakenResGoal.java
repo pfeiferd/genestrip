@@ -92,10 +92,10 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 								for (int i = 0; i < kmer.length; i++) {
 									kmer[i] = read[pos + j + i];
 								}
-								System.out.println("Position:  " + pos);
-								System.out.println(kmerTaxid);
-								ByteArrayUtil.print(kmer, System.out);
-								System.out.println();
+//								System.out.println("Position:  " + pos);
+//								System.out.println(kmerTaxid);
+//								ByteArrayUtil.print(kmer, System.out);
+//								System.out.println();
 
 								TaxidWithCount tc = trie.get(kmer, 0, false);
 								if (tc == null) {
