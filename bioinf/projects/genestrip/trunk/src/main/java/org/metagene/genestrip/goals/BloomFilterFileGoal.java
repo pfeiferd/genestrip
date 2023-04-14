@@ -56,8 +56,15 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 	@Override
 	protected void makeFile(File bloomFilterFile) {
 		try {
+			// I found this out by trial end error: Guava bloom filter cant keep the FP-rate when total entry size is too small.
+			// So keep it to a minimum.
+			// Maybe there is more (bad stuff) to it.
+			long size = sizeGoal.get();
+			if (size < 1000 * 1000) {
+				size = 1000 * 1000;
+			}			
 			KMerBloomIndex bloomIndex = new KMerBloomIndex(bloomFilterFile.getName(), getProject().getkMserSize(),
-					sizeGoal.get() * 1000, 0.00001, null);
+					size, 0.00001, null);
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Number of k-mers for " + bloomIndex + ": " + sizeGoal.get());
@@ -101,11 +108,11 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 			stream2.close();
 
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("File save " + bloomFilterFile);
+				getLogger().info("Saving file " + bloomFilterFile);
 			}
 			bloomIndex.save(bloomFilterFile);
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("File saved " + bloomFilterFile);
+				getLogger().info("Saved file " + bloomFilterFile);
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
