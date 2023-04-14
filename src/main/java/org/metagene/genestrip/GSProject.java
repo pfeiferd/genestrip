@@ -80,7 +80,7 @@ public class GSProject implements DownloadProject {
 	}
 	
 	public File getFilteredFastqFile() {
-		return new File(getResultsDir(), "Filtered_" + fastqFile.getName() + ".gz");
+		return new File(getFastqsDir(), "Filtered_" + fastqFile.getName() + ".gz");
 	}
 
 	public File getDumpFastqFile() {
