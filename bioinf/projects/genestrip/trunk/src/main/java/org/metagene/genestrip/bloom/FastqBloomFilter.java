@@ -68,7 +68,6 @@ public class FastqBloomFilter extends AbstractFastqReader {
 
 	@Override
 	protected void nextEntry() throws IOException {
-		byteRingBuffer.reset();
 		boolean res = false;
 		if (minPosCount > 0) {
 			res = isAcceptReadByAbs(true) || isAcceptReadByAbs(false);
@@ -144,6 +143,7 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		int negThreshold = readSize - k + 1 - minPosCount;
 		byte c;
 
+		byteRingBuffer.reset();
 		for (int i = 0; i < readSize; i++) {
 			c = reverse ? CGAT.toComplement(read[readSize - i - 1]) : read[i];
 			byteRingBuffer.put(c);
@@ -173,6 +173,7 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		int negCounterThreshold = max - posCounterThrehold;
 		byte c;
 
+		byteRingBuffer.reset();
 		for (int i = 0; i < readSize; i++) {
 			c = reverse ? CGAT.toComplement(read[readSize - i - 1]) : read[i];
 			byteRingBuffer.put(c);
