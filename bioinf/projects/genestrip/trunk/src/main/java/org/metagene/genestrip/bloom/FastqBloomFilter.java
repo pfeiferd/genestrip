@@ -32,6 +32,7 @@ import java.nio.file.Files;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.fastq.AbstractFastqReader;
+import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
@@ -67,7 +68,15 @@ public class FastqBloomFilter extends AbstractFastqReader {
 
 	@Override
 	protected void nextEntry() throws IOException {
-		if (minPosCount > 0 ? isAcceptReadByAbs() : isAcceptReadByRatio()) {
+		byteRingBuffer.reset();
+		boolean res = false;
+		if (minPosCount > 0) {
+			res = isAcceptReadByAbs(true) || isAcceptReadByAbs(false);
+		}
+		else {
+			res = isAcceptReadByRatio(true) || isAcceptReadByRatio(false);			
+		}
+		if (res) {
 			out = indexed;
 			indexedC++;
 		} else {
@@ -129,13 +138,15 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		byteCountAccess.getInputStream().close();
 	}
 
-	protected boolean isAcceptReadByAbs() {
+	protected boolean isAcceptReadByAbs(boolean reverse) {
 		int counter = 0;
 		int negCounter = 0;
 		int negThreshold = readSize - k + 1 - minPosCount;
+		byte c;
 
 		for (int i = 0; i < readSize; i++) {
-			byteRingBuffer.put(read[i]);
+			c = reverse ? CGAT.toComplement(read[readSize - i - 1]) : read[i];
+			byteRingBuffer.put(c);
 			if (byteRingBuffer.filled) {
 				if (index.contains(byteRingBuffer)) {
 					counter++;
@@ -154,15 +165,17 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		return false;
 	}
 
-	protected boolean isAcceptReadByRatio() {
+	protected boolean isAcceptReadByRatio(boolean reverse) {
 		int counter = 0;
 		int negCounter = 0;
 		int max = readSize - k + 1;
 		int posCounterThrehold = (int) (max * positiveRatio);
 		int negCounterThreshold = max - posCounterThrehold;
+		byte c;
 
 		for (int i = 0; i < readSize; i++) {
-			byteRingBuffer.put(read[i]);
+			c = reverse ? CGAT.toComplement(read[readSize - i - 1]) : read[i];
+			byteRingBuffer.put(c);
 			if (byteRingBuffer.filled) {
 				if (index.contains(byteRingBuffer)) {
 					counter++;
