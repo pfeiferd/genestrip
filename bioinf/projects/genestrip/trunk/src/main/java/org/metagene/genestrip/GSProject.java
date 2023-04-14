@@ -47,7 +47,7 @@ public class GSProject implements DownloadProject {
 		this.kMserSize = kMerSize;
 		this.krakenDB = krakenDB;
 		this.fastqFile = fastqFile;
-		this.resFolder = resFolder != null ? resFolder : new File(getProjectsDir(), name + "/res");
+		this.resFolder = resFolder != null ? resFolder : new File(getProjectsDir(), name + "/csv");
 		this.useKrakenOutFilter = useKrakenOutFilter;
 	}
 
@@ -137,7 +137,7 @@ public class GSProject implements DownloadProject {
 	}
 
 	public File getKrakenOutDir() {
-		return new File(getProjectsDir(), name + "/kraken");
+		return new File(getProjectsDir(), name + "/krakenout");
 	}
 
 	public File getTaxIdsFile() {
