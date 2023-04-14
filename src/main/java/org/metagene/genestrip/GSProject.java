@@ -94,7 +94,7 @@ public class GSProject implements DownloadProject {
 		if (name.endsWith(".gz") || name.endsWith(".gzip")) {
 			return name;
 		}
-		return name + "gz";
+		return name + ".gz";
 	}
 
 	public File getTaxCountsFile(String goalname) {
