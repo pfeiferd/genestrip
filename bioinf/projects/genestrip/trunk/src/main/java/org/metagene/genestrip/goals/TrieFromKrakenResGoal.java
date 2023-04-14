@@ -73,7 +73,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 			KrakenResultFastqMergeListener printListener = KrakenResultFastqMergeListener
 					.createPrintListener(System.out, null);
 
-			InputStream stream1 = StreamProvider.getInputStreamForFile(getProject().getKrakenOutFile());
+			InputStream stream1 = StreamProvider.getInputStreamForFile(getProject().getFastqKrakenOutFile());
 			InputStream stream2 = StreamProvider.getInputStreamForFile(getProject().getFastqFile());
 			merger.process(stream1, stream2, KrakenResultFastqMergeListener.createFilterByTaxIdNodes(nodes,
 					new KrakenResultFastqMergeListener() {

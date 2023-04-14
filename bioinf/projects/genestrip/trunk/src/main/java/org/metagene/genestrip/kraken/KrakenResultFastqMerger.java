@@ -118,6 +118,8 @@ public class KrakenResultFastqMerger {
 							int j;
 							for (j = 0; j < outReadDescriptor.length && outReadDescriptor[j] != 0; j++) {
 								if (outReadDescriptor[j] != readDescriptor[j + 1]) {
+									System.out.println(ByteArrayUtil.toString(outReadDescriptor));
+									System.out.println(ByteArrayUtil.toString(readDescriptor));
 									throw new IllegalStateException("In consistent files for read " + readCount);
 								}
 							}
@@ -147,7 +149,7 @@ public class KrakenResultFastqMerger {
 					int frN = ByteArrayUtil.byteArrayToInt(krakenChars, frStartPos, i);
 					String taxidStr = root.add(krakenChars, startPos, frStartPos - 1, frN);
 
-					if (listener != null) {
+					if (taxidStr != null && listener != null) {
 						listener.newTaxIdForRead(readCount, readDescriptor, read, readProbs, classTaxid, bps, readPos,
 								taxidStr, frN, krakenChars);
 					}
@@ -160,7 +162,7 @@ public class KrakenResultFastqMerger {
 				int frN = ByteArrayUtil.byteArrayToInt(krakenChars, frStartPos, krakenPos);
 				String taxidStr = root.add(krakenChars, startPos, frStartPos - 1, frN);
 
-				if (listener != null) {
+				if (taxidStr != null && listener != null) {
 					listener.newTaxIdForRead(readCount, readDescriptor, read, readProbs, classTaxid, bps, readPos,
 							taxidStr, frN, krakenChars);
 				}
