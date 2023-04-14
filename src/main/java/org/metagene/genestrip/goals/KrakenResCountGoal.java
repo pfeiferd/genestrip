@@ -93,8 +93,8 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 						if (lineCount != lastLine) {
 							lastLine = lineCount;
 							if (taxIds == null || taxIds.contains(krakenTaxid)) {
-								System.out.println("Classification: " + ByteArrayUtil.toString(output));
-								System.out.println(krakenTaxid + " " + bps + " " + kmerTaxid);
+//								System.out.println("Classification: " + ByteArrayUtil.toString(output));
+//								System.out.println(krakenTaxid + " " + bps + " " + kmerTaxid);
 								classCountTrie.inc(krakenTaxid);
 							}
 						}
