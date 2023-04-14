@@ -63,7 +63,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 	@Override
 	public void makeThis() {
 		try {
-			KMerTrie<TaxidWithCount> trie = new KMerTrie<TaxidWithCount>(getProject().getkMserSize());
+			KMerTrie<TaxidWithCount> trie = new KMerTrie<TaxidWithCount>(2, getProject().getkMserSize(), true);
 			Set<TaxIdNode> nodes = taxNodesGoal.get();
 			byte[] kmer = new byte[trie.getLen()];
 
