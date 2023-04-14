@@ -28,10 +28,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.metagene.genestrip.bloom.FastqBloomFilter;
@@ -47,6 +45,7 @@ import org.metagene.genestrip.goals.KMerTrieFileGoal;
 import org.metagene.genestrip.goals.KrakenFastqFileGoal;
 import org.metagene.genestrip.goals.KrakenOutGoal;
 import org.metagene.genestrip.goals.KrakenResCountGoal;
+import org.metagene.genestrip.goals.KrakenResErrorGoal;
 import org.metagene.genestrip.goals.TaxIdFileDownloadGoal;
 import org.metagene.genestrip.goals.TrieFromKrakenResGoal;
 import org.metagene.genestrip.goals.TrieFromKrakenResGoal.TaxidWithCount;
@@ -62,8 +61,6 @@ import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.FastqTrieClassifier;
 import org.metagene.genestrip.trie.KMerTrie;
-import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
-import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 
@@ -76,6 +73,15 @@ public class GSMaker extends Maker<GSProject> {
 		List<File> projectDirs = Arrays.asList(project.getFastasDir(), project.getFastqsDir(), project.getFiltersDir(),
 				project.getKrakenOutDir(), project.getResultsDir());
 
+		Goal<GSProject> commonSetupGoal = new FileListGoal<GSProject>(project, "commonSetup",
+				project.getConfig().getCommonDir()) {
+			@Override
+			protected void makeFile(File file) throws IOException {
+				file.mkdir();
+			}
+		};
+		registerGoal(commonSetupGoal);
+
 		Goal<GSProject> projectSetupGoal = new FileListGoal<GSProject>(project, "setup", projectDirs) {
 			@Override
 			protected void makeFile(File file) throws IOException {
@@ -84,13 +90,13 @@ public class GSMaker extends Maker<GSProject> {
 		};
 		registerGoal(projectSetupGoal);
 
-		Goal<GSProject> taxDBGoal = new TaxIdFileDownloadGoal(project, "taxdownload");
+		Goal<GSProject> taxDBGoal = new TaxIdFileDownloadGoal(project, "taxdownload", commonSetupGoal);
 		registerGoal(taxDBGoal);
 
 		ObjectGoal<TaxTree, GSProject> taxTreeGoal = new ObjectGoal<TaxTree, GSProject>(project, "taxtree", taxDBGoal) {
 			@Override
 			public void makeThis() {
-				set(new TaxTree(getProject().getConfig().getCommonBaseDir()));
+				set(new TaxTree(getProject().getConfig().getCommonDir()));
 			}
 		};
 		registerGoal(taxTreeGoal);
@@ -118,7 +124,7 @@ public class GSMaker extends Maker<GSProject> {
 		};
 		registerGoal(taxNodesGoal);
 
-		FileGoal<GSProject> assemblyGoal = new AssemblyFileDownloadGoal(project, "assemblydownload");
+		FileGoal<GSProject> assemblyGoal = new AssemblyFileDownloadGoal(project, "assemblydownload", commonSetupGoal);
 		registerGoal(assemblyGoal);
 
 		Goal<GSProject> commonGoal = new Goal<GSProject>(project, "common", assemblyGoal, taxDBGoal) {
@@ -135,7 +141,7 @@ public class GSMaker extends Maker<GSProject> {
 			public void makeThis() {
 				try {
 					AssemblySummaryReader assemblySummaryReader = new AssemblySummaryReader(
-							getProject().getConfig().getCommonBaseDir(), getProject().getConfig().isUseGenBank(),
+							getProject().getConfig().getCommonDir(), getProject().getConfig().isUseGenBank(),
 							taxTreeGoal.get());
 					Map<TaxIdNode, List<FTPEntryWithQuality>> entries = assemblySummaryReader
 							.getRelevantEntries(taxNodesGoal.get());
@@ -157,7 +163,7 @@ public class GSMaker extends Maker<GSProject> {
 		registerGoal(kmerFastqGoal);
 
 		Goal<GSProject> krakenOutGoal = new KrakenOutGoal(project, "kmerkrakenout", project.getKmerFastqFile(),
-				project.getKrakenOutFile(), kmerFastqGoal);
+				project.getKrakenOutFile(), kmerFastqGoal, projectSetupGoal);
 		registerGoal(krakenOutGoal);
 
 		Goal<GSProject> trieGoal = new KMerTrieFileGoal(project, "triegen", taxNodesGoal, krakenOutGoal, kmerFastqGoal,
@@ -177,7 +183,7 @@ public class GSMaker extends Maker<GSProject> {
 		registerGoal(bloomFilterSizeGoal);
 
 		Goal<GSProject> bloomFilterFileGoal = new BloomFilterFileGoal(project, "bloomgen", bloomFilterSizeGoal,
-				taxNodesGoal, krakenOutGoal, kmerFastqGoal);
+				taxNodesGoal, krakenOutGoal, kmerFastqGoal, projectSetupGoal);
 		registerGoal(bloomFilterFileGoal);
 
 		Goal<GSProject> showGoals = new Goal<GSProject>(project, "show") {
@@ -193,7 +199,7 @@ public class GSMaker extends Maker<GSProject> {
 		};
 		registerGoal(showGoals);
 
-		Goal<GSProject> all = new Goal<GSProject>(project, "genall", trieGoal, krakenFastqGoal, bloomFilterFileGoal) {
+		Goal<GSProject> all = new Goal<GSProject>(project, "genall", kMerFastqTrieFileGoal, bloomFilterFileGoal) {
 			@Override
 			public boolean isMade() {
 				return false;
@@ -207,7 +213,7 @@ public class GSMaker extends Maker<GSProject> {
 
 		if (project.getFastqFile() != null) {
 			Goal<GSProject> filterGoal = new FileListGoal<GSProject>(project, "filter", project.getFilteredFastqFile(),
-					bloomFilterFileGoal) {
+					bloomFilterFileGoal, projectSetupGoal) {
 				@Override
 				protected void makeFile(File file) {
 					try {
@@ -224,7 +230,7 @@ public class GSMaker extends Maker<GSProject> {
 			registerGoal(filterGoal);
 
 			Goal<GSProject> classifyGoal = new FileListGoal<GSProject>(project, "classify",
-					project.getTaxCountsFile("classify"), trieGoal) {
+					project.getTaxCountsFile("classify"), trieGoal, projectSetupGoal) {
 				@Override
 				protected void makeFile(File file) {
 					try {
@@ -249,50 +255,15 @@ public class GSMaker extends Maker<GSProject> {
 			registerGoal(krakenResCountGoal);
 
 			Goal<GSProject> fastqKrakenOutGoal = new KrakenOutGoal(project, "fastqkrakenout", project.getFastqFile(),
-					project.getFastqKrakenOutFile());
+					project.getFastqKrakenOutFile(), projectSetupGoal);
 			registerGoal(fastqKrakenOutGoal);
 
 			ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> trieFromKrakenResGoal = new TrieFromKrakenResGoal(project,
-					taxNodesGoal, fastaFilesGoal, fastaDownloadGoal, fastqKrakenOutGoal);
+					taxNodesGoal, fastaFilesGoal, fastaDownloadGoal, fastqKrakenOutGoal, projectSetupGoal);
 			registerGoal(trieFromKrakenResGoal);
 
-			Goal<GSProject> krakenResErrorGoal = new FileListGoal<GSProject>(project, "krakenreserr",
-					project.getKrakenErrFile(), trieFromKrakenResGoal) {
-				@Override
-				protected void makeFile(File file) throws IOException {
-					final PrintStream ps = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-
-					ps.println("taxid;count;kmer");
-					KMerTrie<TaxidWithCount> trie = trieFromKrakenResGoal.get();
-					Map<String, Integer> errPerTaxid = new HashMap<String, Integer>();
-
-					trie.visit(new KMerTrieVisitor<TrieFromKrakenResGoal.TaxidWithCount>() {
-						@Override
-						public void nextValue(KMerTrie<TaxidWithCount> trie, byte[] kmer, TaxidWithCount value) {
-							if (value != null) {
-								ps.print(value.getTaxid());
-								ps.print(';');
-								ps.print(value.getCount());
-								ps.print(';');
-								ByteArrayUtil.print(kmer, ps);
-								ps.println(';');
-								Integer res = errPerTaxid.get(value.getTaxid());
-								res = (res == null) ? value.getCount() : res + value.getCount();
-								errPerTaxid.put(value.getTaxid(), res);
-							}
-						}
-					}, false);
-					ps.println("taxid;aggregated count");
-					for (Entry<String, Integer> entry : errPerTaxid.entrySet()) {
-						ps.print(entry.getKey());
-						ps.print(';');
-						ps.println(entry.getValue());
-						ps.println(';');
-					}
-
-					ps.close();
-				}
-			};
+			Goal<GSProject> krakenResErrorGoal = new KrakenResErrorGoal(project, "krakenreserr",
+					project.getKrakenErrFile(), trieFromKrakenResGoal, projectSetupGoal);
 			registerGoal(krakenResErrorGoal);
 		}
 	}
