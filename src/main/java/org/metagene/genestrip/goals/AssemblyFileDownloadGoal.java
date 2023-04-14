@@ -30,6 +30,7 @@ import java.util.List;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.FileDownloadGoal;
+import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.tax.AssemblySummaryReader;
 
 public class AssemblyFileDownloadGoal extends FileDownloadGoal<GSProject> {
@@ -38,9 +39,10 @@ public class AssemblyFileDownloadGoal extends FileDownloadGoal<GSProject> {
 
 	private final List<File> files;
 
-	public AssemblyFileDownloadGoal(GSProject project, String name) {
-		super(project, name);
-		files = Collections.singletonList(new File(project.getConfig().getCommonBaseDir(),
+	@SafeVarargs
+	public AssemblyFileDownloadGoal(GSProject project, String name, Goal<GSProject>... deps) {
+		super(project, name, deps);
+		files = Collections.singletonList(new File(project.getConfig().getCommonDir(),
 				project.getConfig().isUseGenBank() ? AssemblySummaryReader.ASSEMLY_SUM_GENBANK
 						: AssemblySummaryReader.ASSEMLY_SUM_REFSEQ));
 	}

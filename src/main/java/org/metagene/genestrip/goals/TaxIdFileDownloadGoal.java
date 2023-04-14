@@ -49,8 +49,8 @@ public class TaxIdFileDownloadGoal extends FileDownloadGoal<GSProject> {
 	public TaxIdFileDownloadGoal(GSProject project, String name, Goal<GSProject>... deps) {
 		super(project, name, deps);
 		files = new ArrayList<File>();
-		files.add(new File(getProject().getConfig().getCommonBaseDir(), TaxTree.NODES_DMP));
-		files.add(new File(getProject().getConfig().getCommonBaseDir(), TaxTree.NAMES_DMP));
+		files.add(new File(getProject().getConfig().getCommonDir(), TaxTree.NODES_DMP));
+		files.add(new File(getProject().getConfig().getCommonDir(), TaxTree.NAMES_DMP));
 	}
 
 	@Override
@@ -66,7 +66,7 @@ public class TaxIdFileDownloadGoal extends FileDownloadGoal<GSProject> {
 	@Override
 	public void cleanThis() {
 		super.cleanThis();
-		File zipFile = new File(getProject().getConfig().getCommonBaseDir(), TAX_DMP_ZIP);
+		File zipFile = new File(getProject().getConfig().getCommonDir(), TAX_DMP_ZIP);
 		if (zipFile.exists()) {
 			zipFile.delete();
 		}
@@ -74,7 +74,7 @@ public class TaxIdFileDownloadGoal extends FileDownloadGoal<GSProject> {
 
 	@Override
 	protected void makeFile(File file) throws IOException {
-		File zipFile = new File(getProject().getConfig().getCommonBaseDir(), TAX_DMP_ZIP);
+		File zipFile = new File(getProject().getConfig().getCommonDir(), TAX_DMP_ZIP);
 
 		if (zipFile.exists() && zipFile.length() == 0) {
 			if (getLogger().isInfoEnabled()) {

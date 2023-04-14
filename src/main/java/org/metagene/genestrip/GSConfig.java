@@ -102,7 +102,7 @@ public class GSConfig {
 		return Integer.valueOf(properties.getProperty("kMerSize", "35"));
 	}
 
-	public File getCommonBaseDir() {
+	public File getCommonDir() {
 		return new File(baseDir, "common");
 	}
 
