@@ -78,14 +78,23 @@ public class GSProject implements DownloadProject {
 	public boolean isUseHttp() {
 		return getConfig().isUseHttp();
 	}
-	
+
 	public File getFilteredFastqFile() {
-		return new File(getFastqsDir(), "Filtered_" + fastqFile.getName() + ".gz");
+		return new File(getFastqsDir(), "Filtered_" + getFileNameWithGzEnding(fastqFile));
 	}
 
 	public File getDumpFastqFile() {
-		return getConfig().isWriteDumpedFastq() ? new File(getResultsDir(), "Dumped_" + fastqFile.getName() + ".gz")
+		return getConfig().isWriteDumpedFastq()
+				? new File(getResultsDir(), "Dumped_" + getFileNameWithGzEnding(fastqFile))
 				: null;
+	}
+
+	private String getFileNameWithGzEnding(File file) {
+		String name = file.getName();
+		if (name.endsWith(".gz") || name.endsWith(".gzip")) {
+			return name;
+		}
+		return name + "gz";
 	}
 
 	public File getTaxCountsFile(String goalname) {
