@@ -45,17 +45,13 @@ public abstract class FastaTrieCleaner<T extends Serializable> extends AbstractF
 			ringBuffer.put(target[i]);
 			if (ringBuffer.filled && ringBuffer.isCGAT()) {
 				T res = trie.get(ringBuffer, false);
-				if (res != null) {
-					System.out.println(res + ": Found " + ringBuffer);
-				}
+				System.out.println(res + ": Found " + ringBuffer);
 				if (isMatchingValue(res)) {
 					System.out.println("Removing " + ringBuffer);
 					trie.put(ringBuffer, null, false);
 				} else {
 					res = trie.get(ringBuffer, true);
-					if (res != null) {
-						System.out.println(res + ": Found reverse " + ringBuffer);
-					}
+					System.out.println(res + ": Found reverse " + ringBuffer);
 					if (isMatchingValue(res)) {
 						System.out.println("Removing " + ringBuffer);
 						trie.put(ringBuffer, null, true);
