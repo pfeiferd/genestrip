@@ -45,6 +45,9 @@ public class CountingDigitTrie {
 		CountingDigitTrie node = this, child;
 		for (int i = 0; i < end; i++, node = child) {
 			index = digits.charAt(i) - '0';
+			if (index > 9 || index < 0) {
+				return null;
+			}
 			if (node.children == null) {
 				node.children = new CountingDigitTrie[10];
 			}
@@ -71,6 +74,9 @@ public class CountingDigitTrie {
 		CountingDigitTrie node = this, child;
 		for (int i = start; i < end; i++, node = child) {
 			index = seq[i] - '0';
+			if (index > 9 || index < 0) {
+				return null;
+			}
 			if (node.children == null) {
 				node.children = new CountingDigitTrie[10];
 			}
@@ -92,6 +98,9 @@ public class CountingDigitTrie {
 		CountingDigitTrie node = this, child;
 		for (int i = start; i < end; i++, node = child) {
 			index = seq[i] - '0';
+			if (index > 9 || index < 0) {
+				return null;
+			}
 			if (node.children == null) {
 				node.children = new CountingDigitTrie[10];
 			}
