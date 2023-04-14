@@ -145,7 +145,7 @@ public class FastqBloomFilter extends AbstractFastqReader {
 				} else {
 					negCounter++;
 					if (negCounter > negThreshold) {
-						return true;
+						return false;
 					}
 				}
 			}
