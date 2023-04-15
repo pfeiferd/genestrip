@@ -1,0 +1,183 @@
+package org.metagene.genestrip.bloom;
+
+import java.io.Serializable;
+
+import org.metagene.genestrip.util.CGATRingBuffer;
+
+public class CGATBloomFilter implements Serializable {
+	private static final long serialVersionUID = 1L;
+
+	private final static double LOG_2 = Math.log(2);
+
+	private static final int LONG_ADDRESSABLE_BITS = 6;
+
+	private static final int[] CGAT_JUMP_TABLE;
+	private static final int[] CGAT_REVERSE_JUMP_TABLE;
+	static {
+		CGAT_JUMP_TABLE = new int[Byte.MAX_VALUE];
+		for (int i = 0; i < CGAT_JUMP_TABLE.length; i++) {
+			CGAT_JUMP_TABLE[i] = -1;
+		}
+		CGAT_JUMP_TABLE['C'] = 0;
+		CGAT_JUMP_TABLE['G'] = 1;
+		CGAT_JUMP_TABLE['A'] = 2;
+		CGAT_JUMP_TABLE['T'] = 3;
+
+		CGAT_REVERSE_JUMP_TABLE = new int[Byte.MAX_VALUE];
+		for (int i = 0; i < CGAT_JUMP_TABLE.length; i++) {
+			CGAT_JUMP_TABLE[i] = -1;
+		}
+		CGAT_REVERSE_JUMP_TABLE['C'] = 1;
+		CGAT_REVERSE_JUMP_TABLE['G'] = 0;
+		CGAT_REVERSE_JUMP_TABLE['A'] = 3;
+		CGAT_REVERSE_JUMP_TABLE['T'] = 2;
+	}
+
+	private final int k;
+	private long[] bits;
+	private final int[] hashFactor;
+
+	public CGATBloomFilter(int k, long expectedInsertions, double fpp) {
+		if (k <= 0) {
+			throw new IllegalArgumentException("k-mer length k must be > 0");
+		}
+		if (expectedInsertions <= 0) {
+			throw new IllegalArgumentException("expected insertions must be > 0");
+		}
+		if (fpp <= 0 || fpp >= 1) {
+			throw new IllegalArgumentException("fpp must be a probability");
+		}
+		this.k = k;
+
+		long bits = optimalNumOfBits(expectedInsertions, fpp);
+
+		int logbits = (int) (Math.log((bits + 63) / 64) / LOG_2);
+		int size = (1 << (logbits + 1)) - 1; // Now: size = 2^x - 1 such that 2^x > (bits + 63) / 64 < 2^(x-1)
+
+		this.bits = new long[size];
+		this.hashFactor = primeNumbersBruteForce(optimalNumOfHashFunctions(expectedInsertions, size * 64));
+	}
+
+	private int optimalNumOfHashFunctions(long n, long m) {
+		// (m / n) * log(2), but avoid truncation due to division!
+		return Math.max(1, (int) Math.round((double) m / n * Math.log(2)));
+	}
+
+	private long optimalNumOfBits(long n, double p) {
+		return (long) (-n * Math.log(p) / (Math.log(2) * Math.log(2)));
+	}
+
+	public void put(CGATRingBuffer buffer) {
+		long hash1 = hash(buffer, true, false);
+		long hash2 = hash(buffer, false, false);
+		putViaHash(hash1, hash2);
+	}
+
+	public void put(byte[] seq, int start) {
+		long hash1 = hash(seq, start, true, false);
+		long hash2 = hash(seq, start, false, false);
+		putViaHash(hash1, hash2);
+	}
+
+	private long hash(byte[] seq, int start, boolean even, boolean reverse) {
+		long hash = 0;
+		if (reverse) {
+			for (int i = k - (even ? 1 : 2); i <= 0; i -= 2) {
+				hash = hash >> 2;
+				hash += CGAT_REVERSE_JUMP_TABLE[seq[i]];
+			}
+		} else {
+			for (int i = even ? 0 : 1; i < k; i += 2) {
+				hash = hash >> 2;
+				hash += CGAT_JUMP_TABLE[seq[i]];
+			}
+		}
+		return hash;
+	}
+
+	private long hash(CGATRingBuffer buffer, boolean even, boolean reverse) {
+		assert (buffer.getSize() == k);
+
+		long hash = 0;
+		if (reverse) {
+			for (int i = k - (even ? 1 : 2); i <= 0; i -= 2) {
+				hash = hash >> 2;
+				hash += CGAT_REVERSE_JUMP_TABLE[buffer.get(i)];
+			}
+		} else {
+			for (int i = even ? 0 : 1; i < k; i += 2) {
+				hash = hash >> 2;
+				hash += CGAT_JUMP_TABLE[buffer.get(i)];
+			}
+		}
+		return hash;
+	}
+
+	private void putViaHash(long hash1, long hash2) {
+		for (int i = 0; i < hashFactor.length; i++) {
+			long hash = hash1 * hashFactor[i] + hash2;
+
+			if (hash < 0) {
+				hash = -hash;
+				if (hash < 0) { // hash must have been Long.MIN_VALUE for this to happen.
+					hash = Long.MAX_VALUE;
+				}
+			}
+			int index = ((int) hash >>> LONG_ADDRESSABLE_BITS) % bits.length;
+			long bit = 1 << (hash % 64);
+			bits[index] = bits[index] | bit;
+		}
+	}
+
+	public boolean contains(byte[] seq, int start, boolean reverse) {
+		long hash1 = hash(seq, start, true, reverse);
+		long hash2 = hash(seq, start, false, reverse);
+		return containsHash(hash1, hash2);
+	}
+
+	private boolean containsHash(long hash1, long hash2) {
+		for (int i = 0; i < hashFactor.length; i++) {
+			long hash = hash1 * hashFactor[i] + hash2;
+
+			if (hash < 0) {
+				hash = -hash;
+				if (hash < 0) { // hash must have been Long.MIN_VALUE for this to happen.
+					hash = Long.MAX_VALUE;
+				}
+			}
+			int index = ((int) hash / 64) % bits.length;
+			if (bits[index] >>> (hash % 64) == 0) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	public boolean contains(CGATRingBuffer buffer, boolean reverse) {
+		long hash1 = hash(buffer, true, reverse);
+		long hash2 = hash(buffer, false, reverse);
+		return containsHash(hash1, hash2);
+	}
+
+	// 2 is not in it...
+	public static int[] primeNumbersBruteForce(int n) {
+		int[] res = new int[n];
+		int count = 0;
+		int num = 3;
+		while(count < n) { 
+			boolean prime = true;// to determine whether the number is prime or not
+			int max = (int) Math.sqrt(num);
+			for (int i = 2; i <= max; i++) {
+				if (num % i == 0) {
+					prime = false;
+					break;
+				}				
+			}
+			if (prime) {
+				res[count++] = num;
+			}
+			num++;
+		}
+		return res;
+	}
+}
