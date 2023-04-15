@@ -133,7 +133,7 @@ public class CGATBloomFilter implements Serializable {
 		for (int i = 0; i < hashFactor.length; i++) {
 			hash = hash1 * hashFactor[i] + hash2;
 			index = (int) ((hash >>> 6) % bits.length);
-			if (((bits[index] >> (hash & 0b111111L)) & 1) == 0) {
+			if (((bits[index] >> (hash & 0b111111L)) & 1L) == 0) {
 				return false;
 			}
 		}
