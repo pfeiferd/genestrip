@@ -27,7 +27,7 @@ package org.metagene.genestrip.util;
 public class CGAT {
 	private static final byte[] CGAT_TO_UPPER_CASE = new byte[256];
 	private static final byte[] CGAT_COMPLEMENT = new byte[127];
-
+	
 	static {
 		for (int i = 0; i < CGAT_TO_UPPER_CASE.length; i++) {
 			CGAT_TO_UPPER_CASE[i] = (byte) (i - 128);
