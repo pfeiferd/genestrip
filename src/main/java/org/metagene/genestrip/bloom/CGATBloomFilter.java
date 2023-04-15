@@ -77,12 +77,12 @@ public class CGATBloomFilter implements Serializable {
 		putViaHash(hash1, hash2);
 	}
 
-	private long hash(byte[] seq, int start, boolean even, boolean reverse) {
+	public long hash(byte[] seq, int start, boolean even, boolean reverse) {
 		long hash = 0;
 		if (reverse) {
-			for (int i = k - (even ? 1 : 2); i <= 0; i -= 2) {
+			for (int i = even ? 0 : 1; i < k; i += 2) {
 				hash = hash << 2;
-				hash += CGAT_REVERSE_JUMP_TABLE[seq[i]];
+				hash += CGAT_REVERSE_JUMP_TABLE[seq[k - i - 1]];
 			}
 		} else {
 			for (int i = even ? 0 : 1; i < k; i += 2) {
@@ -93,14 +93,14 @@ public class CGATBloomFilter implements Serializable {
 		return hash;
 	}
 
-	private long hash(CGATRingBuffer buffer, boolean even, boolean reverse) {
+	public long hash(CGATRingBuffer buffer, boolean even, boolean reverse) {
 		assert (buffer.getSize() == k);
 
 		long hash = 0;
 		if (reverse) {
-			for (int i = k - (even ? 1 : 2); i <= 0; i -= 2) {
+			for (int i = even ? 0 : 1; i < k; i += 2) {
 				hash = hash << 2;
-				hash += CGAT_REVERSE_JUMP_TABLE[buffer.get(i)];
+				hash += CGAT_REVERSE_JUMP_TABLE[buffer.get(k - i - 1)];
 			}
 		} else {
 			for (int i = even ? 0 : 1; i < k; i += 2) {
@@ -122,7 +122,7 @@ public class CGATBloomFilter implements Serializable {
 				}
 			}
 			int index = (int) ((hash >>> LONG_ADDRESSABLE_BITS) % bits.length);
-			long bit = 1 << (hash % 64);
+			long bit = 1L << (hash % 64);
 			bits[index] = bits[index] | bit;
 		}
 	}
@@ -144,7 +144,7 @@ public class CGATBloomFilter implements Serializable {
 				}
 			}
 			int index = (int) ((hash >>> LONG_ADDRESSABLE_BITS) % bits.length);
-			if ((bits[index] >>> (hash % 64)) % 2 == 0) {
+			if ((bits[index] >> (hash % 64)) % 2 == 0) {
 				return false;
 			}
 		}
