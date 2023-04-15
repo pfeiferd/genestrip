@@ -15,18 +15,16 @@ public class CGATBloomFilter implements Serializable {
 	private static final int[] CGAT_REVERSE_JUMP_TABLE;
 	static {
 		CGAT_JUMP_TABLE = new int[Byte.MAX_VALUE];
+		CGAT_REVERSE_JUMP_TABLE = new int[Byte.MAX_VALUE];
 		for (int i = 0; i < CGAT_JUMP_TABLE.length; i++) {
 			CGAT_JUMP_TABLE[i] = -1;
+			CGAT_REVERSE_JUMP_TABLE[i] = -1;
 		}
 		CGAT_JUMP_TABLE['C'] = 0;
 		CGAT_JUMP_TABLE['G'] = 1;
 		CGAT_JUMP_TABLE['A'] = 2;
 		CGAT_JUMP_TABLE['T'] = 3;
 
-		CGAT_REVERSE_JUMP_TABLE = new int[Byte.MAX_VALUE];
-		for (int i = 0; i < CGAT_JUMP_TABLE.length; i++) {
-			CGAT_JUMP_TABLE[i] = -1;
-		}
 		CGAT_REVERSE_JUMP_TABLE['C'] = 1;
 		CGAT_REVERSE_JUMP_TABLE['G'] = 0;
 		CGAT_REVERSE_JUMP_TABLE['A'] = 3;
@@ -83,12 +81,12 @@ public class CGATBloomFilter implements Serializable {
 		long hash = 0;
 		if (reverse) {
 			for (int i = k - (even ? 1 : 2); i <= 0; i -= 2) {
-				hash = hash >> 2;
+				hash = hash << 2;
 				hash += CGAT_REVERSE_JUMP_TABLE[seq[i]];
 			}
 		} else {
 			for (int i = even ? 0 : 1; i < k; i += 2) {
-				hash = hash >> 2;
+				hash = hash << 2;
 				hash += CGAT_JUMP_TABLE[seq[i]];
 			}
 		}
@@ -101,12 +99,12 @@ public class CGATBloomFilter implements Serializable {
 		long hash = 0;
 		if (reverse) {
 			for (int i = k - (even ? 1 : 2); i <= 0; i -= 2) {
-				hash = hash >> 2;
+				hash = hash << 2;
 				hash += CGAT_REVERSE_JUMP_TABLE[buffer.get(i)];
 			}
 		} else {
 			for (int i = even ? 0 : 1; i < k; i += 2) {
-				hash = hash >> 2;
+				hash = hash << 2;
 				hash += CGAT_JUMP_TABLE[buffer.get(i)];
 			}
 		}
@@ -123,7 +121,7 @@ public class CGATBloomFilter implements Serializable {
 					hash = Long.MAX_VALUE;
 				}
 			}
-			int index = ((int) hash >>> LONG_ADDRESSABLE_BITS) % bits.length;
+			int index = (int) ((hash >>> LONG_ADDRESSABLE_BITS) % bits.length);
 			long bit = 1 << (hash % 64);
 			bits[index] = bits[index] | bit;
 		}
@@ -145,8 +143,8 @@ public class CGATBloomFilter implements Serializable {
 					hash = Long.MAX_VALUE;
 				}
 			}
-			int index = ((int) hash / 64) % bits.length;
-			if (bits[index] >>> (hash % 64) == 0) {
+			int index = (int) ((hash >>> LONG_ADDRESSABLE_BITS) % bits.length);
+			if ((bits[index] >>> (hash % 64)) % 2 == 0) {
 				return false;
 			}
 		}

@@ -44,18 +44,16 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 	
 	static {
 		CGAT_JUMP_TABLE = new int[Byte.MAX_VALUE];
+		CGAT_REVERSE_JUMP_TABLE = new int[Byte.MAX_VALUE];
 		for (int i = 0; i < CGAT_JUMP_TABLE.length; i++) {
 			CGAT_JUMP_TABLE[i] = -1;
+			CGAT_REVERSE_JUMP_TABLE[i] = -1;
 		}
 		CGAT_JUMP_TABLE['C'] = 0;
 		CGAT_JUMP_TABLE['G'] = 1;
 		CGAT_JUMP_TABLE['A'] = 2;
 		CGAT_JUMP_TABLE['T'] = 3;
 
-		CGAT_REVERSE_JUMP_TABLE = new int[Byte.MAX_VALUE];
-		for (int i = 0; i < CGAT_JUMP_TABLE.length; i++) {
-			CGAT_JUMP_TABLE[i] = -1;
-		}
 		CGAT_REVERSE_JUMP_TABLE['C'] = 1;
 		CGAT_REVERSE_JUMP_TABLE['G'] = 0;
 		CGAT_REVERSE_JUMP_TABLE['A'] = 3;
