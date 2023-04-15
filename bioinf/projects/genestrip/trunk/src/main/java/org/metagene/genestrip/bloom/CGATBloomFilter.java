@@ -9,8 +9,6 @@ public class CGATBloomFilter implements Serializable {
 
 	private final static double LOG_2 = Math.log(2);
 
-	private static final int LONG_ADDRESSABLE_BITS = 6;
-
 	private static final int[] CGAT_JUMP_TABLE;
 	private static final int[] CGAT_REVERSE_JUMP_TABLE;
 	static {
@@ -112,18 +110,13 @@ public class CGATBloomFilter implements Serializable {
 	}
 
 	private void putViaHash(long hash1, long hash2) {
+		long hash;
+		int index;
+		
 		for (int i = 0; i < hashFactor.length; i++) {
-			long hash = hash1 * hashFactor[i] + hash2;
-
-			if (hash < 0) {
-				hash = -hash;
-				if (hash < 0) { // hash must have been Long.MIN_VALUE for this to happen.
-					hash = Long.MAX_VALUE;
-				}
-			}
-			int index = (int) ((hash >>> LONG_ADDRESSABLE_BITS) % bits.length);
-			long bit = 1L << (hash % 64);
-			bits[index] = bits[index] | bit;
+			hash = hash1 * hashFactor[i] + hash2;
+			index = (int) ((hash >>> 6) % bits.length);
+			bits[index] = bits[index] | (1L << (hash & 0b111111L));
 		}
 	}
 
@@ -134,17 +127,13 @@ public class CGATBloomFilter implements Serializable {
 	}
 
 	private boolean containsHash(long hash1, long hash2) {
+		long hash;
+		int index;
+		
 		for (int i = 0; i < hashFactor.length; i++) {
-			long hash = hash1 * hashFactor[i] + hash2;
-
-			if (hash < 0) {
-				hash = -hash;
-				if (hash < 0) { // hash must have been Long.MIN_VALUE for this to happen.
-					hash = Long.MAX_VALUE;
-				}
-			}
-			int index = (int) ((hash >>> LONG_ADDRESSABLE_BITS) % bits.length);
-			if ((bits[index] >> (hash % 64)) % 2 == 0) {
+			hash = hash1 * hashFactor[i] + hash2;
+			index = (int) ((hash >>> 6) % bits.length);
+			if (((bits[index] >> (hash & 0b111111L)) & 1) == 0) {
 				return false;
 			}
 		}
