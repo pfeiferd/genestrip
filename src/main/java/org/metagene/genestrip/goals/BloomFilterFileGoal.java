@@ -31,7 +31,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.bloom.KMerBloomIndex;
+import org.metagene.genestrip.bloom.AbstractKMerBloomIndex;
+import org.metagene.genestrip.bloom.GenestripKMerBloomIndex;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
 import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
 import org.metagene.genestrip.make.FileListGoal;
@@ -60,16 +61,16 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 			// So keep it to a minimum.
 			// Maybe there is more (bad stuff) to it.
 			long size = sizeGoal.get();
-			if (size < 1000 * 1000) {
-				size = 1000 * 1000;
-			}			
-			KMerBloomIndex bloomIndex = new KMerBloomIndex(bloomFilterFile.getName(), getProject().getkMserSize(),
-					size, 0.01, null);
+//			if (size < 1000 * 1000) {
+//				size = 1000 * 1000;
+//			}			
+			AbstractKMerBloomIndex bloomIndex = new GenestripKMerBloomIndex(bloomFilterFile.getName(), getProject().getkMserSize(),
+					size, 0.0000000001, null);
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Number of k-mers for " + bloomIndex + ": " + sizeGoal.get());
 				getLogger().info(
-						"Bloom filter array size of " + bloomIndex + ": " + bloomIndex.getBitSize() / 8 / 1024 + "KB");
+						"Bloom filter array size of " + bloomIndex + ": " + bloomIndex.getByteSize() / 1024 + "KB");
 			}
 
 			Set<String> taxIds = new HashSet<String>();

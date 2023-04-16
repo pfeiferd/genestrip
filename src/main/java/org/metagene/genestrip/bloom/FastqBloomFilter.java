@@ -42,7 +42,7 @@ public class FastqBloomFilter extends AbstractFastqReader {
 
 	private static final byte[] LINE_3 = new byte[] { '+', '\n' };
 
-	private final KMerBloomIndex index;
+	private final AbstractKMerBloomIndex index;
 	private final int k;
 
 	private final double positiveRatio;
@@ -57,7 +57,7 @@ public class FastqBloomFilter extends AbstractFastqReader {
 	private long startTime;
 	private long indexedC;
 
-	public FastqBloomFilter(KMerBloomIndex index, int minPosCount, double positiveRatio, int maxReadSize) {
+	public FastqBloomFilter(AbstractKMerBloomIndex index, int minPosCount, double positiveRatio, int maxReadSize) {
 		super(maxReadSize);
 		this.index = index;
 		this.k = index.getK();
@@ -71,9 +71,8 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		boolean res = false;
 		if (minPosCount > 0) {
 			res = isAcceptReadByAbs(true) || isAcceptReadByAbs(false);
-		}
-		else {
-			res = isAcceptReadByRatio(true) || isAcceptReadByRatio(false);			
+		} else {
+			res = isAcceptReadByRatio(true) || isAcceptReadByRatio(false);
 		}
 		if (res) {
 			out = indexed;
@@ -148,7 +147,7 @@ public class FastqBloomFilter extends AbstractFastqReader {
 			c = reverse ? CGAT.toComplement(read[readSize - i - 1]) : read[i];
 			byteRingBuffer.put(c);
 			if (byteRingBuffer.filled) {
-				if (index.contains(byteRingBuffer)) {
+				if (byteRingBuffer.isCGAT() && index.contains(byteRingBuffer)) {
 					counter++;
 					if (counter >= minPosCount) {
 						return true;
@@ -178,7 +177,7 @@ public class FastqBloomFilter extends AbstractFastqReader {
 			c = reverse ? CGAT.toComplement(read[readSize - i - 1]) : read[i];
 			byteRingBuffer.put(c);
 			if (byteRingBuffer.filled) {
-				if (index.contains(byteRingBuffer)) {
+				if (byteRingBuffer.isCGAT() && index.contains(byteRingBuffer)) {
 					counter++;
 					if (counter >= posCounterThrehold) {
 						return true;

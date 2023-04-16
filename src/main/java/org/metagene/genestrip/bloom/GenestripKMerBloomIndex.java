@@ -24,7 +24,6 @@
  */
 package org.metagene.genestrip.bloom;
 
-import org.metagene.genestrip.bloom.KMerBloomIndex.PutListener;
 import org.metagene.genestrip.util.CGATRingBuffer;
 
 public class GenestripKMerBloomIndex extends AbstractKMerBloomIndex  {
@@ -33,7 +32,7 @@ public class GenestripKMerBloomIndex extends AbstractKMerBloomIndex  {
 	private final CGATBloomFilter index;
 
 	public GenestripKMerBloomIndex(String name, int k, long expectedInsertions, double expectedFpp, PutListener putListener) {
-		super(name, k, expectedInsertions, expectedFpp, putListener);
+		super(name, k, putListener);
 		index = new CGATBloomFilter(k, expectedInsertions, expectedFpp);
 	}
 

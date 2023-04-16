@@ -24,48 +24,26 @@
  */
 package org.metagene.genestrip.bloom;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.util.Date;
-
 import org.metagene.genestrip.util.CGATRingBuffer;
-import org.metagene.genestrip.util.StreamProvider;
 
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.PrimitiveSink;
 
-public class KMerBloomIndex implements Serializable {
+public class GuavaKMerBloomIndex extends AbstractKMerBloomIndex {
 	private static final long serialVersionUID = 1L;
 
-	private final String name;
-	private final Date creationDate;
-
-	private final int k;
 	private final long expectedInsertions;
 	private final double expectedFpp;
 
 	private final BloomFilter<CGATRingBuffer> index;
-	private final CGATRingBuffer byteRingBuffer;
 
-	private long n;
-
-	private PutListener putListener;
-
-	public KMerBloomIndex(String name, int k, long expectedInsertions, double expectedFpp, PutListener putListener) {
-		this.name = name;
-		this.k = k;
-		this.n = 0;
-		this.creationDate = new Date();
+	public GuavaKMerBloomIndex(String name, int k, long expectedInsertions, double expectedFpp, PutListener putListener) {
+		super(name, k, putListener);
 		this.expectedInsertions = expectedInsertions;
 		this.expectedFpp = expectedFpp;
-		this.putListener = putListener;
 
 		index = BloomFilter.create(new MyFunnel(), expectedInsertions, expectedFpp);
-		byteRingBuffer = new CGATRingBuffer(k);
 	}
 
 	public void putDirectKMer(byte[] kMer, int start) {
@@ -73,28 +51,11 @@ public class KMerBloomIndex implements Serializable {
 		byteRingBuffer.directPutStart = start;
 		index.put(byteRingBuffer);
 	}
-
-	public void put(byte bite) {
+	
+	@Override
+	protected void putInternal() {
 		byteRingBuffer.directPut = null;
-		byteRingBuffer.put(bite);
-		if (byteRingBuffer.filled && byteRingBuffer.isCGAT()) {
-			if (putListener != null) {
-				if (!index.mightContain(byteRingBuffer)) {
-					putListener.newEntry(byteRingBuffer);
-					index.put(byteRingBuffer);
-					n++;
-				} else {
-					putListener.oldEntry(byteRingBuffer);
-				}
-			} else {
-				index.put(byteRingBuffer);
-				n++;
-			}
-		}
-	}
-
-	public void resetPut() {
-		byteRingBuffer.reset();
+		index.put(byteRingBuffer);
 	}
 
 	public boolean contains(CGATRingBuffer byteRingBuffer) {
@@ -108,27 +69,12 @@ public class KMerBloomIndex implements Serializable {
 	public long getExpectedInsertions() {
 		return expectedInsertions;
 	}
-
-	public String getName() {
-		return name;
-	}
-
-	public Date getCreationDate() {
-		return creationDate;
-	}
-
-	public int getK() {
-		return k;
-	}
-
-	public long getN() {
-		return n;
-	}
-
-	public long getBitSize() {
+	
+	@Override
+	public int getByteSize() {
 		long n = expectedInsertions;
 		double p = expectedFpp;
-		return (long) (-n * Math.log(p) / (Math.log(2) * Math.log(2)));
+		return (int) (-n * Math.log(p) / (Math.log(2) * Math.log(2))) / 8;
 	}
 
 	private static class MyFunnel implements Funnel<CGATRingBuffer> {
@@ -148,24 +94,5 @@ public class KMerBloomIndex implements Serializable {
 				}
 			}
 		}
-	}
-
-	public void save(File filterFile) throws IOException {
-		ObjectOutputStream oOut = new ObjectOutputStream(StreamProvider.getOutputStreamForFile(filterFile));
-		oOut.writeObject(this);
-		oOut.close();
-	}
-
-	public static KMerBloomIndex load(File filterFile) throws IOException, ClassNotFoundException {
-		ObjectInputStream oOut = new ObjectInputStream(StreamProvider.getInputStreamForFile(filterFile));
-		KMerBloomIndex res = (KMerBloomIndex) oOut.readObject();
-		oOut.close();
-		return res;
-	}
-
-	public interface PutListener {
-		public void newEntry(CGATRingBuffer buffer);
-
-		public void oldEntry(CGATRingBuffer buffer);
 	}
 }
