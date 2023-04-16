@@ -28,9 +28,9 @@ import org.metagene.genestrip.fasta.AbstractFastaReader;
 import org.metagene.genestrip.util.CGAT;
 
 public class FastaIndexer extends AbstractFastaReader {
-	private final KMerBloomIndex index;
+	private final AbstractKMerBloomIndex index;
 
-	public FastaIndexer(KMerBloomIndex index, int bufferSize) {
+	public FastaIndexer(AbstractKMerBloomIndex index, int bufferSize) {
 		super(bufferSize);
 		this.index = index;
 	}
