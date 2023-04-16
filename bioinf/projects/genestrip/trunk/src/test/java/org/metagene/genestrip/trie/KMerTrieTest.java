@@ -158,6 +158,7 @@ public class KMerTrieTest extends TestCase {
 				@Override
 				public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
 					List<Byte> key = byteArrayToList(kmer);
+					assertNotNull(value);
 					assertEquals(value, checkMap.get(key));
 					checkMap.remove(key);
 				}

@@ -99,6 +99,9 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 	}
 
 	public void put(CGATRingBuffer buffer, V value, boolean reverse) {
+		if (value == null) {
+			throw new IllegalArgumentException("value must not be null");
+		}
 		if (compressed) {
 			throw new IllegalStateException("Cant insert in compressed trie");
 		}
@@ -140,6 +143,9 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 	}
 
 	public void put(byte[] nseq, int start, V value, boolean reverse) {
+		if (value == null) {
+			throw new IllegalArgumentException("value must not be null");
+		}
 		if (compressed) {
 			throw new IllegalStateException("Cant insert in compressed trie");
 		}
@@ -189,10 +195,10 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 
 	@SuppressWarnings("unchecked")
 	private void collectValuesHelp(Object node, int pos, byte[] kmer, KMerTrieVisitor<V> visitor, boolean reverse) {
-		if (pos >= len) {
-			visitor.nextValue(this, kmer, (V) node);
-		} else if (node == null) {
+		if (node == null) {
 			return;
+		} else if (pos >= len) {
+			visitor.nextValue(this, kmer, (V) node);
 		} else if (node instanceof Object[]) {
 			Object[] arr = (Object[]) node;
 
