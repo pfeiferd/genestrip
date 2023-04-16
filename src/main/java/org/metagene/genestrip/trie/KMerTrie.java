@@ -36,6 +36,8 @@ import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class KMerTrie<V extends Serializable> implements Serializable {
+	private static final InternalNullMarker NULL = new InternalNullMarker();
+	
 	private static final long serialVersionUID = 1L;
 
 	private static final int[] CGAT_JUMP_TABLE;
@@ -99,9 +101,6 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 	}
 
 	public void put(CGATRingBuffer buffer, V value, boolean reverse) {
-		if (value == null) {
-			throw new IllegalArgumentException("value must not be null");
-		}
 		if (compressed) {
 			throw new IllegalStateException("Cant insert in compressed trie");
 		}
@@ -139,13 +138,10 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		if (node[pos] == null) {
 			entries++;
 		}
-		node[pos] = value;
+		node[pos] = value == null ? NULL : value;
 	}
 
 	public void put(byte[] nseq, int start, V value, boolean reverse) {
-		if (value == null) {
-			throw new IllegalArgumentException("value must not be null");
-		}
 		if (compressed) {
 			throw new IllegalStateException("Cant insert in compressed trie");
 		}
@@ -183,7 +179,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		if (node[pos] == null) {
 			entries++;
 		}
-		node[pos] = value;
+		node[pos] = value == null ? NULL : value;
 	}
 
 	public void visit(KMerTrieVisitor<V> visitor, boolean reverse) {
@@ -198,7 +194,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		if (node == null) {
 			return;
 		} else if (pos >= len) {
-			visitor.nextValue(this, kmer, (V) node);
+			visitor.nextValue(this, kmer, node instanceof InternalNullMarker ? null : (V) node);
 		} else if (node instanceof Object[]) {
 			Object[] arr = (Object[]) node;
 
@@ -252,7 +248,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 				}
 			}
 		}
-		return (V) node;
+		return node instanceof InternalNullMarker ? null : (V) node;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -291,7 +287,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 				}
 			}
 		}
-		return (V) node;
+		return node instanceof InternalNullMarker ? null : (V) node;
 	}
 
 	public void compress() {
@@ -500,5 +496,12 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 
 	public interface KMerTrieVisitor<V extends Serializable> {
 		public void nextValue(KMerTrie<V> trie, byte[] kmer, V value);
+	}
+	
+	private static final class InternalNullMarker implements Serializable {
+		private static final long serialVersionUID = 1L;
+
+		private InternalNullMarker() {			
+		}
 	}
 }
