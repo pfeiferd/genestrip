@@ -32,6 +32,8 @@ public class CGATBloomFilter implements Serializable {
 	private final int k;
 	private long[] bits;
 	private final int[] hashFactor;
+	private long expectedInsertions;
+	private double fpp;
 
 	public CGATBloomFilter(int k, long expectedInsertions, double fpp) {
 		if (k <= 0) {
@@ -43,8 +45,10 @@ public class CGATBloomFilter implements Serializable {
 		if (fpp <= 0 || fpp >= 1) {
 			throw new IllegalArgumentException("fpp must be a probability");
 		}
+		this.fpp = fpp;
 		this.k = k;
 
+		this.expectedInsertions = expectedInsertions;
 		long bits = optimalNumOfBits(expectedInsertions, fpp);
 
 		int logbits = (int) (Math.log((bits + 63) / 64) / LOG_2);
@@ -52,6 +56,26 @@ public class CGATBloomFilter implements Serializable {
 
 		this.bits = new long[size];
 		this.hashFactor = primeNumbersBruteForce(optimalNumOfHashFunctions(expectedInsertions, size * 64));
+	}
+	
+	public long getExpectedInsertions() {
+		return expectedInsertions;
+	}
+	
+	public int getK() {
+		return k;
+	}
+	
+	public double getFpp() {
+		return fpp;
+	}
+	
+	public int getByteSize() {
+		return bits.length;
+	}
+	
+	public int getHashFunctions() {
+		return hashFactor.length;
 	}
 
 	private int optimalNumOfHashFunctions(long n, long m) {
