@@ -32,8 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.metagene.genestrip.bloom.AbstractKMerBloomIndex;
 import org.metagene.genestrip.bloom.FastqBloomFilter;
-import org.metagene.genestrip.bloom.KMerBloomIndex;
 import org.metagene.genestrip.goals.AssemblyFileDownloadGoal;
 import org.metagene.genestrip.goals.BloomFilterFileGoal;
 import org.metagene.genestrip.goals.BloomFilterSizeGoal;
@@ -217,7 +217,7 @@ public class GSMaker extends Maker<GSProject> {
 				@Override
 				protected void makeFile(File file) {
 					try {
-						new FastqBloomFilter(KMerBloomIndex.load(getProject().getBloomFilterFile()),
+						new FastqBloomFilter(AbstractKMerBloomIndex.load(getProject().getBloomFilterFile()),
 								getProject().getConfig().getMinPosCountFilter(),
 								getProject().getConfig().getPosRatioFilter(),
 								getProject().getConfig().getMaxReadSizeBytes()).runFilter(getProject().getFastqFile(),

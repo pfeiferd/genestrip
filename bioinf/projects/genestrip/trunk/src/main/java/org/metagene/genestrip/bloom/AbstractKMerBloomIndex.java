@@ -31,7 +31,6 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Date;
 
-import org.metagene.genestrip.bloom.KMerBloomIndex.PutListener;
 import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.StreamProvider;
 
@@ -46,7 +45,7 @@ public abstract class AbstractKMerBloomIndex implements Serializable {
 
 	private long n;
 
-	public AbstractKMerBloomIndex(String name, int k, long expectedInsertions, double expectedFpp, PutListener putListener) {
+	public AbstractKMerBloomIndex(String name, int k, PutListener putListener) {
 		this.name = name;
 		this.n = 0;
 		this.creationDate = new Date();
@@ -93,7 +92,9 @@ public abstract class AbstractKMerBloomIndex implements Serializable {
 		return creationDate;
 	}
 
-	public abstract int getK();
+	public int getK() {
+		return byteRingBuffer.getSize();
+	}
 
 	public long getN() {
 		return n;
@@ -112,5 +113,11 @@ public abstract class AbstractKMerBloomIndex implements Serializable {
 		AbstractKMerBloomIndex res = (AbstractKMerBloomIndex) oOut.readObject();
 		oOut.close();
 		return res;
+	}
+
+	public interface PutListener {
+		public void newEntry(CGATRingBuffer buffer);
+
+		public void oldEntry(CGATRingBuffer buffer);
 	}
 }
