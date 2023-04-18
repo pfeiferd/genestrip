@@ -63,8 +63,6 @@ public class CGATBloomFilter2 implements Serializable {
 	// For tabulation hashing
 	private final int[][][] t;
 	private final int permBytes;
-	private final long permMax;
-	private final long p;
 	
 	public CGATBloomFilter2(int k, long expectedInsertions, double fpp) {
 		if (k <= 0) {
@@ -86,7 +84,8 @@ public class CGATBloomFilter2 implements Serializable {
 		sizeInBits = size * 64;
 		int hashFunctions = optimalNumOfHashFunctions(expectedInsertions, sizeInBits);
 		
-		permBytes = (int) ((Math.log(size) / LOG_2) + 7) / 8;
+		permBytes = (int) ((Math.log(sizeInBits) / LOG_2) + 7) / 8;
+		System.out.println(permBytes);
 		t = new int[hashFunctions][permBytes][256];
 		Random r = new Random(42);
 		for (int i = 0; i < t.length; i++) {
@@ -97,9 +96,6 @@ public class CGATBloomFilter2 implements Serializable {
 				}
 			}
 		}
-		permMax = 1L << (8 * permBytes);
-		
-		p = ((permMax << 3) - 1); // Larger and relatve prime should suffice.
 	}
 	
 	public long getExpectedInsertions() {
@@ -144,13 +140,13 @@ public class CGATBloomFilter2 implements Serializable {
 		long hash = 0;
 		if (reverse) {
 			for (int i = 0; i < k; i++) {
-				hash += CGAT_REVERSE_JUMP_TABLE[seq[k - i - 1]];
-				hash = hash * 3;
+				hash = hash << 2;
+				hash ^= CGAT_REVERSE_JUMP_TABLE[seq[k - i - 1]];
 			}
 		} else {
 			for (int i = 0; i < k; i++) {
-				hash += CGAT_JUMP_TABLE[seq[i]];
-				hash = hash * 3;
+				hash = hash << 2;
+				hash ^= CGAT_JUMP_TABLE[seq[i]];
 			}
 		}
 		return hash;
@@ -162,13 +158,13 @@ public class CGATBloomFilter2 implements Serializable {
 		long hash = 0;
 		if (reverse) {
 			for (int i = 0; i < k; i++) {
-				hash += CGAT_REVERSE_JUMP_TABLE[buffer.get(k - i - 1)];
-				hash = hash * 3;
+				hash = hash << 2;
+				hash ^= CGAT_REVERSE_JUMP_TABLE[buffer.get(k - i - 1)];
 			}
 		} else {
 			for (int i = 0; i < k; i++) {
-				hash += CGAT_JUMP_TABLE[buffer.get(i)];
-				hash = hash * 3;
+				hash = hash << 2;
+				hash ^= CGAT_JUMP_TABLE[buffer.get(i)];
 			}
 		}
 		return hash;
@@ -176,21 +172,16 @@ public class CGATBloomFilter2 implements Serializable {
 
 	private void putViaHash(long hash) {
 		int nextHash;
-		int index;
-		int[][] perm;
-		
-		int reducedHash = (int) ((hash % p) % permMax);
-		if (reducedHash < 0) {
-			reducedHash = -reducedHash;
-		}
 		int r;
+		int index;
+		int[][] perm;		
 		
 		for (int i = 0; i < t.length; i++) {
 			perm = t[i];
-			nextHash = 0;
-			r = reducedHash;
+			nextHash =  (int) (hash >> 32);
+			r = (int) (hash & ((1L << 32) - 1));
 			for (int j = 0; j < perm.length; j++) {
-				nextHash += perm[j][r & 0b11111111];
+				nextHash = nextHash + perm[j][r & 0b11111111];
 				r >>= 8;
 			}
 			nextHash = nextHash % sizeInBits;
@@ -210,21 +201,16 @@ public class CGATBloomFilter2 implements Serializable {
 
 	private boolean containsHash(long hash) {
 		int nextHash;
-		int index;
-		int[][] perm;
-		
-		int reducedHash = (int) ((hash % p) % permMax);
-		if (reducedHash < 0) {
-			reducedHash = -reducedHash;
-		}
 		int r;
+		int index;
+		int[][] perm;		
 		
 		for (int i = 0; i < t.length; i++) {
 			perm = t[i];
-			nextHash = 0;
-			r = reducedHash;
+			nextHash = (int) (hash >> 32);
+			r = (int) (hash & ((1L << 32) - 1));
 			for (int j = 0; j < perm.length; j++) {
-				nextHash += perm[j][r & 0b11111111];
+				nextHash = nextHash + perm[j][r & 0b11111111];
 				r >>= 8;
 			}
 			nextHash = nextHash % sizeInBits;
@@ -233,7 +219,7 @@ public class CGATBloomFilter2 implements Serializable {
 			}
 						
 			index = nextHash >>> 6;
-			if (((bits[index] >>> (nextHash & 0b111111)) & 1L) == 0) {
+			if (((bits[index] >> (nextHash & 0b111111)) & 1L) == 0) {
 				return false;
 			}
 		}
