@@ -70,7 +70,7 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 				hash += c;				
 			}
 		}
-		return hash;
+		return hash == 0 ? 1L : hash;
 	}
 
 	private long hash(CGATRingBuffer buffer, boolean even, boolean reverse) {
@@ -98,7 +98,7 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 				hash += c;				
 			}
 		}
-		return hash == 0 ? 1 : hash;
+		return hash == 0 ? 1L : hash;
 	}
 
 	private void putViaHash(long hash1, long hash2) {
@@ -112,7 +112,7 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 		}
 	}
 	
-	protected abstract long combineLongHashes(long hash1, long hash2, int i);
+	protected abstract int combineLongHashes(long hash1, long hash2, int i);
 
 	public boolean contains(byte[] seq, int start, boolean reverse) {
 		long hash1 = hash(seq, start, true, reverse);
@@ -127,7 +127,7 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 	}
 
 	private boolean containsHash(long hash1, long hash2) {
-		long hash;
+		int hash;
 		int index;
 		
 		for (int i = 0; i < hashes; i++) {

@@ -45,7 +45,7 @@ public class MurmurCGATBloomFilter extends TwoLongsCGATBloomFilter implements Se
 	}
 	
 	@Override
-	protected long combineLongHashes(long hash1, long hash2, int i) {
+	protected int combineLongHashes(long hash1, long hash2, int i) {
 		return MurmurHash3.hash32(hash1, hash2, hashFactors[i]);
 	}
 }
