@@ -34,7 +34,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.bloom.AbstractKMerBloomIndex.PutListener;
 import org.metagene.genestrip.bloom.FastaIndexer;
-import org.metagene.genestrip.bloom.GuavaKMerBloomIndex;
+import org.metagene.genestrip.bloom.GenestripKMerBloomIndex;
 import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.StreamProvider;
 
@@ -62,7 +62,8 @@ public class KMerFastqGenerator {
 			getLogger().info("Create fastq file " + fastq);
 		}
 		FastQWriter fastQWriter = new FastQWriter(name, StreamProvider.getOutputStreamForFile(fastq));
-		GuavaKMerBloomIndex index = new GuavaKMerBloomIndex(name, getKmerSize(), expectedSize, 0.0001, fastQWriter);
+		GenestripKMerBloomIndex index = new GenestripKMerBloomIndex(name, getKmerSize(), expectedSize, 0.0001,
+				fastQWriter);
 
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Bloom filter array size of " + index + ": " + index.getByteSize() / 1024 + "KB");

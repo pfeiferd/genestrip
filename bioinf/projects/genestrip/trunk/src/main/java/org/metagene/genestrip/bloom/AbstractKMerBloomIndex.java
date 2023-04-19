@@ -81,6 +81,8 @@ public abstract class AbstractKMerBloomIndex implements Serializable {
 	}
 
 	public abstract boolean contains(CGATRingBuffer byteRingBuffer);
+	
+	public abstract boolean contains(byte[] seq, int start, boolean reverse);
 
 	public abstract long getExpectedInsertions();
 
