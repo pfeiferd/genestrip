@@ -32,8 +32,6 @@ import java.nio.file.Files;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.fastq.AbstractFastqReader;
-import org.metagene.genestrip.util.CGAT;
-import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
@@ -47,7 +45,6 @@ public class FastqBloomFilter extends AbstractFastqReader {
 
 	private final double positiveRatio;
 	private final int minPosCount;
-	private final CGATRingBuffer byteRingBuffer;
 
 	private OutputStream indexed;
 	private OutputStream notIndexed;
@@ -63,7 +60,6 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		this.k = index.getK();
 		this.minPosCount = minPosCount;
 		this.positiveRatio = positiveRatio;
-		byteRingBuffer = new CGATRingBuffer(index.getK());
 	}
 
 	@Override
@@ -140,24 +136,18 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		int counter = 0;
 		int negCounter = 0;
 		int negThreshold = readSize - k + 1 - minPosCount;
-		byte c;
+		int max = readSize - k + 1;
 
-		byteRingBuffer.reset();
-		for (int i = 0; i < readSize; i++) {
-			// TODO rewrite without ring buffer...
-			c = reverse ? CGAT.toComplement(read[readSize - i - 1]) : read[i];
-			byteRingBuffer.put(c);
-			if (byteRingBuffer.filled) {
-				if (byteRingBuffer.isCGAT() && index.contains(byteRingBuffer)) {
-					counter++;
-					if (counter >= minPosCount) {
-						return true;
-					}
-				} else {
-					negCounter++;
-					if (negCounter > negThreshold) {
-						return false;
-					}
+		for (int i = 0; i < max; i++) {
+			if (index.contains(read, i, reverse)) {
+				counter++;
+				if (counter >= minPosCount) {
+					return true;
+				}
+			} else {
+				negCounter++;
+				if (negCounter > negThreshold) {
+					return false;
 				}
 			}
 		}
@@ -171,23 +161,17 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		int max = readSize - k + 1;
 		int posCounterThrehold = (int) (max * positiveRatio);
 		int negCounterThreshold = max - posCounterThrehold;
-		byte c;
-
-		byteRingBuffer.reset();
-		for (int i = 0; i < readSize; i++) {
-			c = reverse ? CGAT.toComplement(read[readSize - i - 1]) : read[i];
-			byteRingBuffer.put(c);
-			if (byteRingBuffer.filled) {
-				if (byteRingBuffer.isCGAT() && index.contains(byteRingBuffer)) {
-					counter++;
-					if (counter >= posCounterThrehold) {
-						return true;
-					}
-				} else {
-					negCounter++;
-					if (negCounter > negCounterThreshold) {
-						return false;
-					}
+		
+		for (int i = 0; i < max; i++) {
+			if (index.contains(read, i, reverse)) {
+				counter++;
+				if (counter >= posCounterThrehold) {
+					return true;
+				}
+			} else {
+				negCounter++;
+				if (negCounter > negCounterThreshold) {
+					return false;
 				}
 			}
 		}

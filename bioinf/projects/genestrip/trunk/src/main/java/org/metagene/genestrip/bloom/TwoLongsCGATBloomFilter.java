@@ -49,15 +49,25 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 
 	private long hash(byte[] seq, int start, boolean even, boolean reverse) {
 		long hash = 0;
+		int c;
+		
 		if (reverse) {
 			for (int i = even ? 0 : 1; i < k; i += 2) {
 				hash = hash << 2;
-				hash += CGAT_REVERSE_JUMP_TABLE[seq[k - i - 1]];
+				c = CGAT_REVERSE_JUMP_TABLE[seq[k - i - 1]];
+				if (c == -1) {
+					return 0;
+				}
+				hash += c;
 			}
 		} else {
 			for (int i = even ? 0 : 1; i < k; i += 2) {
 				hash = hash << 2;
-				hash += CGAT_JUMP_TABLE[seq[i]];
+				c = CGAT_JUMP_TABLE[seq[i]];
+				if (c == -1) {
+					return 0;
+				}
+				hash += c;				
 			}
 		}
 		return hash;
@@ -67,18 +77,28 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 		assert (buffer.getSize() == k);
 
 		long hash = 0;
+		int c;
+		
 		if (reverse) {
 			for (int i = even ? 0 : 1; i < k; i += 2) {
 				hash = hash << 2;
-				hash += CGAT_REVERSE_JUMP_TABLE[buffer.get(k - i - 1)];
+				c = CGAT_REVERSE_JUMP_TABLE[buffer.get(k - i - 1)];
+				if (c == -1) {
+					return 0;
+				}
+				hash += c;				
 			}
 		} else {
 			for (int i = even ? 0 : 1; i < k; i += 2) {
 				hash = hash << 2;
-				hash += CGAT_JUMP_TABLE[buffer.get(i)];
+				c = CGAT_JUMP_TABLE[buffer.get(i)];
+				if (c == -1) {
+					return 0;
+				}
+				hash += c;				
 			}
 		}
-		return hash;
+		return hash == 0 ? 1 : hash;
 	}
 
 	private void putViaHash(long hash1, long hash2) {
@@ -96,7 +116,13 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 
 	public boolean contains(byte[] seq, int start, boolean reverse) {
 		long hash1 = hash(seq, start, true, reverse);
+		if (hash1 == 0) {
+			return false;
+		}
 		long hash2 = hash(seq, start, false, reverse);
+		if (hash2 == 0) {
+			return false;
+		}
 		return containsHash(hash1, hash2);
 	}
 
@@ -116,7 +142,13 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 
 	public boolean contains(CGATRingBuffer buffer, boolean reverse) {
 		long hash1 = hash(buffer, true, reverse);
+		if (hash1 == 0) {
+			return false;
+		}
 		long hash2 = hash(buffer, false, reverse);
+		if (hash2 == 0) {
+			return false;
+		}
 		return containsHash(hash1, hash2);
 	}
 }

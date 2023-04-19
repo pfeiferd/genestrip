@@ -36,6 +36,8 @@ import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.Main;
+import org.metagene.genestrip.bloom.AbstractCGATBloomFilter;
+import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
 import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -43,10 +45,6 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
 import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
-
-import com.google.common.hash.BloomFilter;
-import com.google.common.hash.Funnel;
-import com.google.common.hash.PrimitiveSink;
 
 import junit.framework.TestCase;
 
@@ -63,16 +61,7 @@ public class KMerTrieTest extends TestCase {
 
 		KMerTrie<String> trie = new KMerTrie<String>(project.getkMserSize());
 
-		@SuppressWarnings("serial")
-		Funnel<byte[]> funnel = new Funnel<byte[]>() {
-			@Override
-			public void funnel(byte[] from, PrimitiveSink into) {
-				for (int i = 0; i < trie.getLen(); i++) {
-					into.putByte((byte) from[i]);
-				}
-			}
-		};
-		BloomFilter<byte[]> bloomFilter = BloomFilter.create(funnel, 5 * 1000 * 1000, 0.00001);
+		AbstractCGATBloomFilter bloomFilter = new MurmurCGATBloomFilter(trie.getLen(), 5 * 1000 * 1000, 0.00001);
 
 		@SuppressWarnings("unchecked")
 		ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal = (ObjectGoal<Set<TaxIdNode>, GSProject>) main.getGenerator()
@@ -85,7 +74,7 @@ public class KMerTrieTest extends TestCase {
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
 							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
 						trie.put(read, 0, kmerTaxid, false);
-						bloomFilter.put(read);
+						bloomFilter.put(read, 0);
 					}
 				});
 
@@ -107,7 +96,7 @@ public class KMerTrieTest extends TestCase {
 	}
 
 	private void checkTrie(File fromKraken, File reads, KrakenResultFastqMerger krakenFilter, KMerTrie<String> trie,
-			BloomFilter<byte[]> bloomFilter, Set<TaxIdNode> nodes) throws IOException {
+			AbstractCGATBloomFilter bloomFilter, Set<TaxIdNode> nodes) throws IOException {
 		// Positive Test:
 		InputStream stream1 = StreamProvider.getInputStreamForFile(fromKraken);
 		InputStream stream2 = StreamProvider.getInputStreamForFile(reads);
@@ -131,7 +120,7 @@ public class KMerTrieTest extends TestCase {
 			for (int j = 0; j < trie.getLen(); j++) {
 				read[j] = cgat[random.nextInt(4)];
 			}
-			if (!bloomFilter.mightContain(read)) {
+			if (!bloomFilter.contains(read, 0, false)) {
 				assertNull(trie.get(read, 0, false));
 			}
 		}
