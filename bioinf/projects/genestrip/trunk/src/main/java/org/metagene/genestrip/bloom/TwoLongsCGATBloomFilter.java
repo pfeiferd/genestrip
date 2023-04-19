@@ -47,14 +47,14 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 		putViaHash(hash1, hash2);
 	}
 
-	private long hash(byte[] seq, int start, boolean even, boolean reverse) {
+	protected long hash(byte[] seq, int start, boolean even, boolean reverse) {
 		long hash = 0;
 		int c;
 		
 		if (reverse) {
 			for (int i = even ? 0 : 1; i < k; i += 2) {
 				hash = hash << 2;
-				c = CGAT_REVERSE_JUMP_TABLE[seq[k - i - 1]];
+				c = CGAT_REVERSE_JUMP_TABLE[seq[start + k - i - 1]];
 				if (c == -1) {
 					return 0;
 				}
@@ -63,7 +63,7 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 		} else {
 			for (int i = even ? 0 : 1; i < k; i += 2) {
 				hash = hash << 2;
-				c = CGAT_JUMP_TABLE[seq[i]];
+				c = CGAT_JUMP_TABLE[seq[start + i]];
 				if (c == -1) {
 					return 0;
 				}
@@ -73,7 +73,7 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 		return hash == 0 ? 1L : hash;
 	}
 
-	private long hash(CGATRingBuffer buffer, boolean even, boolean reverse) {
+	protected long hash(CGATRingBuffer buffer, boolean even, boolean reverse) {
 		assert (buffer.getSize() == k);
 
 		long hash = 0;
@@ -101,14 +101,14 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 		return hash == 0 ? 1L : hash;
 	}
 
-	private void putViaHash(long hash1, long hash2) {
-		long hash;
+	protected void putViaHash(long hash1, long hash2) {
+		int hash;
 		int index;
 		
 		for (int i = 0; i < hashes; i++) {
 			hash = combineLongHashes(hash1, hash2, i);
 			index = (int) ((hash >>> 6) % bits.length);
-			bits[index] = bits[index] | (1L << (hash & 0b111111L));
+			bits[index] = bits[index] | (1L << (hash & 0b111111));
 		}
 	}
 	
@@ -126,14 +126,14 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 		return containsHash(hash1, hash2);
 	}
 
-	private boolean containsHash(long hash1, long hash2) {
+	protected boolean containsHash(long hash1, long hash2) {
 		int hash;
 		int index;
 		
 		for (int i = 0; i < hashes; i++) {
 			hash = combineLongHashes(hash1, hash2, i);
 			index = (int) ((hash >>> 6) % bits.length);
-			if (((bits[index] >> (hash & 0b111111L)) & 1L) == 0) {
+			if (((bits[index] >> (hash & 0b111111)) & 1L) == 0) {
 				return false;
 			}
 		}
