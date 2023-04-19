@@ -39,8 +39,8 @@ public class SimpleCGATBloomFilter extends TwoLongsCGATBloomFilter implements Se
 	}
 
 	@Override
-	protected long combineLongHashes(long hash1, long hash2, int i) {
-		return hash1 * hashFactors[i] + hash2;
+	protected int combineLongHashes(long hash1, long hash2, int i) {
+		return (int) (hash1 * hashFactors[i] + hash2);
 	}
 
 	// 2 is not in it...

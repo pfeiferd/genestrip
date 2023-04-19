@@ -135,8 +135,8 @@ public class FastqBloomFilter extends AbstractFastqReader {
 	protected boolean isAcceptReadByAbs(boolean reverse) {
 		int counter = 0;
 		int negCounter = 0;
-		int negThreshold = readSize - k + 1 - minPosCount;
 		int max = readSize - k + 1;
+		int negThreshold = max - minPosCount;
 
 		for (int i = 0; i < max; i++) {
 			if (index.contains(read, i, reverse)) {
