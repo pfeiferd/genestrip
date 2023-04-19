@@ -60,12 +60,10 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 			// I found this out by trial end error: Guava bloom filter cant keep the FP-rate when total entry size is too small.
 			// So keep it to a minimum.
 			// Maybe there is more (bad stuff) to it.
-			long size = sizeGoal.get();
-//			if (size < 1000 * 1000) {
-//				size = 1000 * 1000;
-//			}			
+			long size = Math.max(1000 * 1000, sizeGoal.get());
+			
 			AbstractKMerBloomIndex bloomIndex = new GenestripKMerBloomIndex(bloomFilterFile.getName(), getProject().getkMserSize(),
-					size, 0.0000000001, null);
+					size, 0.000001, null);
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Number of k-mers for " + bloomIndex + ": " + sizeGoal.get());

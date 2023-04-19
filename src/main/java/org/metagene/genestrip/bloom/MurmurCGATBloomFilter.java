@@ -24,46 +24,28 @@
  */
 package org.metagene.genestrip.bloom;
 
-import org.metagene.genestrip.util.CGATRingBuffer;
+import java.io.Serializable;
+import java.util.Random;
 
-public class GenestripKMerBloomIndex extends AbstractKMerBloomIndex  {
+import org.apache.commons.codec.digest.MurmurHash3;
+
+public class MurmurCGATBloomFilter extends TwoLongsCGATBloomFilter implements Serializable {
 	private static final long serialVersionUID = 1L;
+	
+	private final int[] hashFactors;
 
-	private final MurmurCGATBloomFilter index;
-
-	public GenestripKMerBloomIndex(String name, int k, long expectedInsertions, double expectedFpp, PutListener putListener) {
-		super(name, k, putListener);
-		index = new MurmurCGATBloomFilter(k, expectedInsertions, expectedFpp);
-	}
-
-	public void putDirectKMer(byte[] kMer, int start) {
-		index.put(kMer, start);
-	}
-
-	public boolean contains(CGATRingBuffer byteRingBuffer) {
-		return index.contains(byteRingBuffer, false);
+	public MurmurCGATBloomFilter(int k, long expectedInsertions, double fpp) {
+		super(k, expectedInsertions, fpp);
+		
+		Random r = new Random(42);
+		hashFactors = new int[hashes];
+		for (int i = 0; i < hashFactors.length; i++) {
+			hashFactors[i] = r.nextInt();
+		}
 	}
 	
 	@Override
-	public boolean contains(byte[] seq, int start, boolean reverse) {
-		return index.contains(seq, start, reverse);
-	}
-
-	public long getExpectedInsertions() {
-		return index.getExpectedInsertions();
-	}
-
-	public int getK() {
-		return index.getK();
-	}
-	
-	@Override
-	public int getByteSize() {
-		return index.getByteSize();
-	}
-	
-	@Override
-	protected void putInternal() {
-		index.put(byteRingBuffer);
+	protected long combineLongHashes(long hash1, long hash2, int i) {
+		return MurmurHash3.hash32(hash1, hash2, hashFactors[i]);
 	}
 }

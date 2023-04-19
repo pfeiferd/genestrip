@@ -144,6 +144,7 @@ public class FastqBloomFilter extends AbstractFastqReader {
 
 		byteRingBuffer.reset();
 		for (int i = 0; i < readSize; i++) {
+			// TODO rewrite without ring buffer...
 			c = reverse ? CGAT.toComplement(read[readSize - i - 1]) : read[i];
 			byteRingBuffer.put(c);
 			if (byteRingBuffer.filled) {
