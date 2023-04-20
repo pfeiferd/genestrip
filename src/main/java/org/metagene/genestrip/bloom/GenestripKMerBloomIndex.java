@@ -36,25 +36,24 @@ public class GenestripKMerBloomIndex extends AbstractKMerBloomIndex  {
 		index = new MurmurCGATBloomFilter(k, expectedInsertions, expectedFpp);
 	}
 
+	@Override
 	public void putDirectKMer(byte[] kMer, int start) {
-		index.put(kMer, start);
+		index.put(kMer, start, null);
 	}
 
-	public boolean contains(CGATRingBuffer byteRingBuffer) {
-		return index.contains(byteRingBuffer, false);
+	@Override
+	public boolean contains(CGATRingBuffer byteRingBuffer, int[] badPos) {
+		return index.contains(byteRingBuffer, false, null);
 	}
 	
 	@Override
-	public boolean contains(byte[] seq, int start, boolean reverse) {
-		return index.contains(seq, start, reverse);
+	public boolean contains(byte[] seq, int start, boolean reverse, int[] badPos) {
+		return index.contains(seq, start, reverse, null);
 	}
 
+	@Override
 	public long getExpectedInsertions() {
 		return index.getExpectedInsertions();
-	}
-
-	public int getK() {
-		return index.getK();
 	}
 	
 	@Override
@@ -64,6 +63,6 @@ public class GenestripKMerBloomIndex extends AbstractKMerBloomIndex  {
 	
 	@Override
 	protected void putInternal() {
-		index.put(byteRingBuffer);
+		index.put(byteRingBuffer, null);
 	}
 }
