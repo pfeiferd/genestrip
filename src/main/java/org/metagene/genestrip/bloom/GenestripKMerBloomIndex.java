@@ -43,12 +43,12 @@ public class GenestripKMerBloomIndex extends AbstractKMerBloomIndex  {
 
 	@Override
 	public boolean contains(CGATRingBuffer byteRingBuffer, int[] badPos) {
-		return index.contains(byteRingBuffer, false, null);
+		return index.contains(byteRingBuffer, false, badPos);
 	}
 	
 	@Override
 	public boolean contains(byte[] seq, int start, boolean reverse, int[] badPos) {
-		return index.contains(seq, start, reverse, null);
+		return index.contains(seq, start, reverse, badPos);
 	}
 
 	@Override

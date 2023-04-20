@@ -149,7 +149,7 @@ public class FastqBloomFilter extends AbstractFastqReader {
 				}
 			} else {
 				if (badPos[0] > 0) {
-					i = badPos[0];
+					i += badPos[0];
 				}
 				negCounter++;
 				if (negCounter > negThreshold) {
@@ -177,7 +177,7 @@ public class FastqBloomFilter extends AbstractFastqReader {
 				}
 			} else {
 				if (badPos[0] > 0) {
-					i = badPos[0];
+					i += badPos[0];
 				}
 				negCounter++;
 				if (negCounter > negCounterThreshold) {
