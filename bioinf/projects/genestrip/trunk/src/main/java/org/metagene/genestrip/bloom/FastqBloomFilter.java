@@ -131,6 +131,8 @@ public class FastqBloomFilter extends AbstractFastqReader {
 
 		byteCountAccess.getInputStream().close();
 	}
+	
+	private final int[] badPos = new int[1];
 
 	protected boolean isAcceptReadByAbs(boolean reverse) {
 		int counter = 0;
@@ -139,12 +141,16 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		int negThreshold = max - minPosCount;
 
 		for (int i = 0; i < max; i++) {
-			if (index.contains(read, i, reverse)) {
+			badPos[0] = -1;
+			if (index.contains(read, i, reverse, badPos)) {
 				counter++;
 				if (counter >= minPosCount) {
 					return true;
 				}
 			} else {
+				if (badPos[0] > 0) {
+					i = badPos[0];
+				}
 				negCounter++;
 				if (negCounter > negThreshold) {
 					return false;
@@ -163,12 +169,16 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		int negCounterThreshold = max - posCounterThrehold;
 		
 		for (int i = 0; i < max; i++) {
-			if (index.contains(read, i, reverse)) {
+			badPos[0] = -1;
+			if (index.contains(read, i, reverse, badPos)) {
 				counter++;
 				if (counter >= posCounterThrehold) {
 					return true;
 				}
 			} else {
+				if (badPos[0] > 0) {
+					i = badPos[0];
+				}
 				negCounter++;
 				if (negCounter > negCounterThreshold) {
 					return false;

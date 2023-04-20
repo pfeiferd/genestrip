@@ -74,7 +74,7 @@ public class KMerTrieTest extends TestCase {
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
 							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
 						trie.put(read, 0, kmerTaxid, false);
-						bloomFilter.put(read, 0);
+						bloomFilter.put(read, 0, null);
 					}
 				});
 
@@ -120,7 +120,7 @@ public class KMerTrieTest extends TestCase {
 			for (int j = 0; j < trie.getLen(); j++) {
 				read[j] = cgat[random.nextInt(4)];
 			}
-			if (!bloomFilter.contains(read, 0, false)) {
+			if (!bloomFilter.contains(read, 0, false, null)) {
 				assertNull(trie.get(read, 0, false));
 			}
 		}

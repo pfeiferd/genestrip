@@ -55,12 +55,12 @@ public class TabulationCGATBloomFilter extends AbstractCGATBloomFilter {
 		}
 	}
 
-	public void put(CGATRingBuffer buffer) {
+	public void put(CGATRingBuffer buffer, int[] badPos) {
 		long hash = hash(buffer, false);
 		putViaHash(hash);
 	}
 
-	public void put(byte[] seq, int start) {
+	public void put(byte[] seq, int start, int[] badPos) {
 		long hash = hash(seq, start, false);
 		putViaHash(hash);
 	}
@@ -121,7 +121,7 @@ public class TabulationCGATBloomFilter extends AbstractCGATBloomFilter {
 		}
 	}
 	
-	public boolean contains(byte[] seq, int start, boolean reverse) {
+	public boolean contains(byte[] seq, int start, boolean reverse, int[] badPos) {
 		long hash = hash(seq, start, reverse);
 		return containsHash(hash);
 	}
@@ -151,7 +151,7 @@ public class TabulationCGATBloomFilter extends AbstractCGATBloomFilter {
 		return true;
 	}
 
-	public boolean contains(CGATRingBuffer buffer, boolean reverse) {
+	public boolean contains(CGATRingBuffer buffer, boolean reverse, int[] badPos) {
 		long hash = hash(buffer, reverse);
 		return containsHash(hash);
 	}

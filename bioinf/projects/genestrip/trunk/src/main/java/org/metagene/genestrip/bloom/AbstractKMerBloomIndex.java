@@ -60,7 +60,7 @@ public abstract class AbstractKMerBloomIndex implements Serializable {
 		byteRingBuffer.put(bite);
 		if (byteRingBuffer.filled && byteRingBuffer.isCGAT()) {
 			if (putListener != null) {
-				if (contains(byteRingBuffer)) {
+				if (contains(byteRingBuffer, null)) {
 					putListener.newEntry(byteRingBuffer);
 					putInternal();
 					n++;
@@ -80,9 +80,9 @@ public abstract class AbstractKMerBloomIndex implements Serializable {
 		byteRingBuffer.reset();
 	}
 
-	public abstract boolean contains(CGATRingBuffer byteRingBuffer);
+	public abstract boolean contains(CGATRingBuffer byteRingBuffer, int[] badPos);
 	
-	public abstract boolean contains(byte[] seq, int start, boolean reverse);
+	public abstract boolean contains(byte[] seq, int start, boolean reverse, int[] badPos);
 
 	public abstract long getExpectedInsertions();
 
