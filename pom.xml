@@ -90,6 +90,7 @@
 					<includePluginDependencies>true</includePluginDependencies>
 					<mainClass>org.metagene.genestrip.Main</mainClass>
 					<arguments>
+						<argument>-f ${gs-input-fastq}</argument>
 						<argument>${gs-project-name}</argument>
 						<argument>${gs-goal}</argument>
 					</arguments>
