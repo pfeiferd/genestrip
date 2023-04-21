@@ -70,8 +70,8 @@ public class Main {
 
 			String fastqName = line.getOptionValue("f");
 			File fastqFile = null;
-			if (fastqName != null) {
-				fastqFile = new File(fastqName);
+			if (fastqName != null && !fastqName.trim().isEmpty()) {
+				fastqFile = new File(fastqName.trim());
 			}
 			
 			boolean ignoreKrakenOutFilter = line.hasOption('i');
