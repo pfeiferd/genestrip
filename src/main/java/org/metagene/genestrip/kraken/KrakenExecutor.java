@@ -49,6 +49,7 @@ public class KrakenExecutor {
 	public void execute(String database, File fastq, File outFile) throws InterruptedException, IOException {
 		Process process = Runtime.getRuntime().exec(genExecLine(database, fastq));
 		handleOutputStream(process.getInputStream(), outFile);
+		handleErrorStream(process.getErrorStream());
 		int res = process.waitFor();
 		if (res != 0) {
 			throw new IllegalStateException("Kraken terminated unsuccesfully");
@@ -59,5 +60,10 @@ public class KrakenExecutor {
 		OutputStream out = StreamProvider.getOutputStreamForFile(outFile);
 		IOUtils.copyLarge(stream, out);
 		out.close();
+	}
+	
+	protected void handleErrorStream(InputStream errorStream) throws IOException {
+		System.err.println("Kraken output on stderr:");
+		IOUtils.copy(errorStream, System.err);
 	}
 }
