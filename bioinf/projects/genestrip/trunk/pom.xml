@@ -90,8 +90,8 @@
 					<includePluginDependencies>true</includePluginDependencies>
 					<mainClass>org.metagene.genestrip.Main</mainClass>
 					<arguments>
-						<argument>morococcus</argument>
-						<argument>genall</argument>
+						<argument>${gs-project-name}</argument>
+						<argument>${gs-goal}</argument>
 					</arguments>
 				</configuration>
 				<dependencies>
