@@ -42,12 +42,12 @@ public class KrakenExecutor {
 		this.binFolder = binFolder;
 	}
 
-	public String genExecLine(String database, File fastq) {
-		return MessageFormat.format(execCommand, binFolder, database, fastq);
+	public String genExecLine(String database, File fastq) throws IOException {
+		return MessageFormat.format(execCommand, binFolder, database, fastq.getCanonicalPath());
 	}
 
 	public void execute(String database, File fastq, File outFile) throws InterruptedException, IOException {
-		Process process = Runtime.getRuntime().exec(genExecLine(database, fastq.getCanonicalFile()));
+		Process process = Runtime.getRuntime().exec(genExecLine(database, fastq));
 		handleOutputStream(process.getInputStream(), outFile);
 		int res = process.waitFor();
 		if (res != 0) {
