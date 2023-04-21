@@ -73,7 +73,7 @@ public class Main {
 			if (fastqName != null && !fastqName.trim().isEmpty()) {
 				fastqFile = new File(fastqName.trim());
 			}
-			
+
 			boolean ignoreKrakenOutFilter = line.hasOption('i');
 
 			restArgs = line.getArgs();
@@ -184,6 +184,7 @@ public class Main {
 				case "clean":
 					generator.clean(restArgs[i]);
 					break;
+				default:
 				case "make":
 					generator.make(restArgs[i]);
 					break;
