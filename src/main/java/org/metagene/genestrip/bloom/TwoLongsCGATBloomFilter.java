@@ -25,15 +25,81 @@
 package org.metagene.genestrip.bloom;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.metagene.genestrip.util.CGATRingBuffer;
 
 public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter implements Serializable {
 	private static final long serialVersionUID = 1L;
 
+//  Experimental stuff: minimize local dependencies of close k-mer bases with regards to generating hash code
+//  by using this array that could help to access the bases in a non-sequential way.
+//	protected final int[] longDistancePerm1;
+//	protected final int[] longDistancePerm2;
+
 	public TwoLongsCGATBloomFilter(int k, long expectedInsertions, double fpp) {
 		super(k, expectedInsertions, fpp);
+
+		List<Integer> indices1 = new ArrayList<Integer>();
+		List<Integer> indices2 = new ArrayList<Integer>();
+		for (int i = 0; i < k; i++) {
+			if (i % 2 == 0) {
+				indices1.add(i);
+			} else {
+				indices2.add(i);
+			}
+		}
+
+//		longDistancePerm1 = computBestPerm(indices1);
+//		longDistancePerm2 = computBestPerm(indices2);
 	}
+	
+//	private int[] computBestPerm(List<Integer> indices) {
+//		double minValue = Double.MAX_VALUE;
+//		int[] bestPerm = new int[indices.size()];
+//		
+//		int[] res = new int[indices.size()];
+//		for (int index : indices) {
+//			double v = computeMaxDistance(index, new ArrayList<Integer>(indices), res);
+//			if (v < minValue) {
+//				minValue = v;
+//				System.arraycopy(res, 0, bestPerm, 0, bestPerm.length);
+//			}
+//		}
+//		return res;
+//	}
+//
+//	private double computeMaxDistance(int startIndex, List<Integer> indices, int[] res) {
+//		res[0] = startIndex;
+//		indices.remove((Object) startIndex);
+//
+//		double minValue = Double.MAX_VALUE;
+//		int optimalIndex = 0;
+//
+//		for (int i = 1; i < res.length; i++) {
+//			for (int index : indices) {
+//				res[i] = index;
+//				double d = computeDistance(res, i + 1);
+//				if (d < minValue) {
+//					minValue = d;
+//					optimalIndex = index;
+//				}
+//			}
+//			res[i] = optimalIndex;
+//			indices.remove((Object) optimalIndex);
+//		}
+//
+//		return minValue;
+//	}
+//
+//	private double computeDistance(int[] solution, int size) {
+//		double res = 1;
+//		for (int i = 1; i < size; i++) {
+//			res *= 1d / (solution[i - 1] - solution[i]);
+//		}
+//		return Math.abs(res);
+//	}
 
 	public void put(CGATRingBuffer buffer, int[] badPos) {
 		long hash1 = hash(buffer, true, false, badPos);
