@@ -47,7 +47,7 @@ public class KrakenExecutor {
 	}
 
 	public void execute(String database, File fastq, File outFile) throws InterruptedException, IOException {
-		Process process = Runtime.getRuntime().exec(genExecLine(database, fastq.getAbsoluteFile()));
+		Process process = Runtime.getRuntime().exec(genExecLine(database, fastq.getCanonicalFile()));
 		handleOutputStream(process.getInputStream(), outFile);
 		int res = process.waitFor();
 		if (res != 0) {
