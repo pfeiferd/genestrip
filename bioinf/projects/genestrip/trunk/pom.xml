@@ -94,7 +94,13 @@
 						<argument>genall</argument>
 					</arguments>
 				</configuration>
-				<dependencies></dependencies>
+				<dependencies>
+					<dependency>
+						<groupId>it.hhn.de</groupId>
+						<artifactId>manstrip</artifactId>
+						<version>0.0.1-SNAPSHOT</version>
+					</dependency>
+				</dependencies>
 			</plugin>
 		</plugins>
 	</build>
