@@ -104,14 +104,33 @@ public abstract class Goal<P> {
 	public String toString() {
 		return "goal: " + getName();
 	}
+	
+	protected final void transitiveClean() {
+		if (isAllowTransitiveClean()) {
+			clean();
+		}
+	}
+	
+	public boolean isAllowTransitiveClean() {
+		return true;
+	}
 
 	public final void clean() {
+		clean(false);
+	}
+	
+	public final void clean(boolean enforceTransitive) {
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Cleaning " + this);
 			getLogger().info("Dependencies " + Arrays.toString(dependencies));
 		}
 		for (Goal<P> dep : dependencies) {
-			dep.clean();
+			if (enforceTransitive) {
+				dep.clean(true);
+			}
+			else {
+				dep.transitiveClean();
+			}
 		}
 		if (!isThisCleaned()) {
 			if (getLogger().isInfoEnabled()) {

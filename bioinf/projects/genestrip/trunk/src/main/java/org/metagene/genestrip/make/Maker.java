@@ -77,6 +77,10 @@ public abstract class Maker<P> {
 		goalsByName.get(goalName).clean();
 	}
 	
+	public void cleanTotal(String goalName) {
+		goalsByName.get(goalName).clean(true);
+	}
+	
 	public void clean(String goalName) {
 		goalsByName.get(goalName).cleanThis();
 	}
