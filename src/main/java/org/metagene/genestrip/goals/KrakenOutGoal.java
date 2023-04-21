@@ -44,14 +44,13 @@ public class KrakenOutGoal extends FileListGoal<GSProject> {
 
 	@Override
 	protected void makeFile(File krakenOut) {
-
 		KrakenExecutor krakenExecutor = new KrakenExecutor(getProject().getConfig().getKrakenBinFolder(),
 				getProject().getConfig().getKrakenExecExpr());
-		if (getLogger().isInfoEnabled()) {
-			String execLine = krakenExecutor.genExecLine(getProject().getKrakenDB(), fastqFile);
-			getLogger().info("Run kraken with " + execLine);
-		}
 		try {
+			if (getLogger().isInfoEnabled()) {
+				String execLine = krakenExecutor.genExecLine(getProject().getKrakenDB(), fastqFile);
+				getLogger().info("Run kraken with " + execLine);
+			}
 			krakenExecutor.execute(getProject().getKrakenDB(), fastqFile, krakenOut);
 		} catch (InterruptedException | IOException e) {
 			throw new RuntimeException(e);
