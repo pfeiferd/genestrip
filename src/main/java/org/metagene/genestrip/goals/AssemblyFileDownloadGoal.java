@@ -46,6 +46,11 @@ public class AssemblyFileDownloadGoal extends FileDownloadGoal<GSProject> {
 				project.getConfig().isUseGenBank() ? AssemblySummaryReader.ASSEMLY_SUM_GENBANK
 						: AssemblySummaryReader.ASSEMLY_SUM_REFSEQ));
 	}
+	
+	@Override
+	public boolean isAllowTransitiveClean() {
+		return false;
+	}
 
 	@Override
 	protected List<File> getFiles() {

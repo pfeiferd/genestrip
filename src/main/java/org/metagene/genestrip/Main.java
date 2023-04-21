@@ -178,6 +178,9 @@ public class Main {
 			if (goalNames.contains(restArgs[i])) {
 				out.println("Executing target " + getTarget() + " for goal " + restArgs[i]);
 				switch (getTarget()) {
+				case "cleanTotal":
+					generator.cleanTotal(restArgs[i]);
+					break;
 				case "cleanall":
 					generator.cleanAll(restArgs[i]);
 					break;
