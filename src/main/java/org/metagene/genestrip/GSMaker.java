@@ -73,11 +73,16 @@ public class GSMaker extends Maker<GSProject> {
 		List<File> projectDirs = Arrays.asList(project.getFastasDir(), project.getFastqsDir(), project.getFiltersDir(),
 				project.getKrakenOutDir(), project.getResultsDir());
 
-		Goal<GSProject> commonSetupGoal = new FileListGoal<GSProject>(project, "commonSetup",
+		Goal<GSProject> commonSetupGoal = new FileListGoal<GSProject>(project, "commonsetup",
 				project.getConfig().getCommonDir()) {
 			@Override
 			protected void makeFile(File file) throws IOException {
 				file.mkdir();
+			}
+
+			@Override
+			public boolean isAllowTransitiveClean() {
+				return false;
 			}
 		};
 		registerGoal(commonSetupGoal);
@@ -86,6 +91,11 @@ public class GSMaker extends Maker<GSProject> {
 			@Override
 			protected void makeFile(File file) throws IOException {
 				file.mkdir();
+			}
+			
+			@Override
+			public boolean isAllowTransitiveClean() {
+				return false;
 			}
 		};
 		registerGoal(projectSetupGoal);
