@@ -55,6 +55,11 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 		this.entryGoal = entryGoal;
 		baseURLLen = project.getConfig().getHttpBaseURL().length();
 	}
+	
+	@Override
+	public boolean isAllowTransitiveClean() {
+		return false;
+	}
 
 	@Override
 	protected List<File> getFiles() {
