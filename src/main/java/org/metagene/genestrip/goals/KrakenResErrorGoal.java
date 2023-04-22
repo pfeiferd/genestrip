@@ -56,7 +56,7 @@ public class KrakenResErrorGoal extends FileListGoal<GSProject> {
 		for (Entry<String, Integer> entry : errPerTaxid.entrySet()) {
 			ps.print(entry.getKey());
 			ps.print(';');
-			ps.println(entry.getValue());
+			ps.print(entry.getValue());
 			ps.println(';');
 		}
 
