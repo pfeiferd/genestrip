@@ -92,7 +92,7 @@ public class GSMaker extends Maker<GSProject> {
 			protected void makeFile(File file) throws IOException {
 				file.mkdir();
 			}
-			
+
 			@Override
 			public boolean isAllowTransitiveClean() {
 				return false;
@@ -125,6 +125,12 @@ public class GSMaker extends Maker<GSProject> {
 					if (getLogger().isInfoEnabled()) {
 						getLogger().info("Completed tax ids: " + taxIdNodes);
 						getLogger().info("Number of completed tax ids: " + taxIdNodes.size());
+					}
+
+					File filterFile = getProject().getTaxIdsFilterFile();
+					if (filterFile.exists()) {
+						Set<TaxIdNode> filterNodes = taxIdCollector.readFromFile(getProject().getTaxIdsFile());
+						taxIdNodes = taxIdCollector.restrictToAncestors(filterNodes, taxIdNodes);
 					}
 					set(taxIdNodes);
 				} catch (IOException e) {
