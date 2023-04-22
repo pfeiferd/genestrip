@@ -123,14 +123,18 @@ public class GSMaker extends Maker<GSProject> {
 					}
 					taxIdNodes = taxIdCollector.withDescendants(taxIdNodes);
 					if (getLogger().isInfoEnabled()) {
-						getLogger().info("Completed tax ids: " + taxIdNodes);
+//						getLogger().info("Completed tax ids: " + taxIdNodes);
 						getLogger().info("Number of completed tax ids: " + taxIdNodes.size());
 					}
 
 					File filterFile = getProject().getTaxIdsFilterFile();
 					if (filterFile.exists()) {
-						Set<TaxIdNode> filterNodes = taxIdCollector.readFromFile(getProject().getTaxIdsFile());
+						Set<TaxIdNode> filterNodes = taxIdCollector.readFromFile(filterFile);
 						taxIdNodes = taxIdCollector.restrictToAncestors(filterNodes, taxIdNodes);
+						if (getLogger().isInfoEnabled()) {
+//							getLogger().info("Filtered tax ids: " + taxIdNodes);
+							getLogger().info("Number of completed and filtered tax ids: " + taxIdNodes.size());
+						}
 					}
 					set(taxIdNodes);
 				} catch (IOException e) {
