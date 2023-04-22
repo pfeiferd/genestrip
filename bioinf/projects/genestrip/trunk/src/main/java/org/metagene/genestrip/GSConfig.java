@@ -73,8 +73,8 @@ public class GSConfig {
 		return Double.valueOf(properties.getProperty("posRatioFilter", "0.2"));
 	}
 	
-	public String getKrakenBinFolder() {
-		return properties.getProperty("krakenBinFolder");
+	public String getKrakenBin() {
+		return properties.getProperty("krakenBin");
 	}
 
 	public String getKrakenDB() {
@@ -82,7 +82,7 @@ public class GSConfig {
 	}
 
 	public String getKrakenExecExpr() {
-		return properties.getProperty("krakenExecExpr", "{0}/kraken2 -db {1} {2}");
+		return properties.getProperty("krakenExecExpr", "{0} -db {1} {2}");
 	}
 
 	public FTPEntryQuality getFastaQuality() {
