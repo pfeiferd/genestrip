@@ -37,14 +37,13 @@ import java.util.Set;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.StreamProvider;
 
-
 public class TaxIdCollector {
 	private final TaxTree taxTree;
 
 	public TaxIdCollector(TaxTree taxTree) {
 		this.taxTree = taxTree;
 	}
-	
+
 	public Set<TaxIdNode> readFromFile(File file) throws IOException {
 		Set<TaxIdNode> res = new HashSet<TaxIdNode>();
 
@@ -61,7 +60,7 @@ public class TaxIdCollector {
 					taxId = line.trim();
 				}
 				if (!taxId.isEmpty()) {
-					TaxIdNode node =  taxTree.getNodeByTaxId(taxId);
+					TaxIdNode node = taxTree.getNodeByTaxId(taxId);
 					if (node != null) {
 						res.add(node);
 					}
@@ -71,27 +70,40 @@ public class TaxIdCollector {
 
 		return res;
 	}
-	
+
 	public Set<TaxIdNode> withDescendants(Set<TaxIdNode> taxIds) {
 		Set<TaxIdNode> res = new HashSet<TaxTree.TaxIdNode>();
-		
+
 		for (TaxIdNode node : taxIds) {
 			completeFilterlist(res, node);
 		}
 		return res;
 	}
-	
+
 	public Set<TaxIdNode> restrictToAncestor(TaxIdNode ancestor, Set<TaxIdNode> taxIds) {
 		Set<TaxIdNode> res = new HashSet<TaxTree.TaxIdNode>();
-		
+
 		for (TaxIdNode node : taxIds) {
 			if (taxTree.isAncestorOf(node, ancestor)) {
 				res.add(node);
 			}
 		}
-		return res;		
+		return res;
 	}
-	
+
+	public Set<TaxIdNode> restrictToAncestors(Set<TaxIdNode> ancestors, Set<TaxIdNode> taxIds) {
+		Set<TaxIdNode> res = new HashSet<TaxTree.TaxIdNode>();
+
+		for (TaxIdNode node : taxIds) {
+			for (TaxIdNode ancestor : ancestors) {
+				if (taxTree.isAncestorOf(node, ancestor)) {
+					res.add(node);
+				}
+			}
+		}
+		return res;
+	}
+
 	private void completeFilterlist(Set<TaxIdNode> filter, TaxIdNode node) {
 		if (node != null) {
 			filter.add(node);
