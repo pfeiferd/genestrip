@@ -26,11 +26,13 @@ package org.metagene.genestrip.goals;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.kraken.KrakenExecutor;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.util.StreamProvider;
 
 public class KrakenOutGoal extends FileListGoal<GSProject> {
 	private final File fastqFile;
@@ -44,15 +46,17 @@ public class KrakenOutGoal extends FileListGoal<GSProject> {
 
 	@Override
 	protected void makeFile(File krakenOut) {
-		KrakenExecutor krakenExecutor = new KrakenExecutor(getProject().getConfig().getKrakenBinFolder(),
+		KrakenExecutor krakenExecutor = new KrakenExecutor(getProject().getConfig().getKrakenBin(),
 				getProject().getConfig().getKrakenExecExpr());
 		try {
 			if (getLogger().isInfoEnabled()) {
 				String execLine = krakenExecutor.genExecLine(getProject().getKrakenDB(), fastqFile);
 				getLogger().info("Run kraken with " + execLine);
 			}
-			krakenExecutor.execute(getProject().getKrakenDB(), fastqFile, krakenOut);
-		} catch (InterruptedException | IOException e) {
+			OutputStream out = StreamProvider.getOutputStreamForFile(krakenOut);
+			krakenExecutor.execute2(getProject().getKrakenDB(), fastqFile, out, System.err);
+			out.close();
+		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 		if (getLogger().isInfoEnabled()) {

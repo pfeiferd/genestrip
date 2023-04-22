@@ -30,40 +30,82 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.MessageFormat;
 
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.Executor;
+import org.apache.commons.exec.PumpStreamHandler;
+import org.apache.commons.exec.util.StringUtils;
 import org.apache.commons.io.IOUtils;
-import org.metagene.genestrip.util.StreamProvider;
 
 public class KrakenExecutor {
-	private final String binFolder;
+	private final String bin;
 	private final String execCommand;
 
-	public KrakenExecutor(String binFolder, String execCommand) {
+	public KrakenExecutor(String bin, String execCommand) {
 		this.execCommand = execCommand;
-		this.binFolder = binFolder;
+		this.bin = StringUtils.quoteArgument(bin);
 	}
 
 	public String genExecLine(String database, File fastq) throws IOException {
-		return MessageFormat.format(execCommand, binFolder, database, fastq.getCanonicalPath());
+		return MessageFormat.format(execCommand, bin, StringUtils.quoteArgument(database),
+				StringUtils.quoteArgument(fastq.getCanonicalPath()));
 	}
 
-	public void execute(String database, File fastq, File outFile) throws InterruptedException, IOException {
+	protected CommandLine genExecCommand(String database, File fastq) throws IOException {
+		return CommandLine.parse(genExecLine(database, fastq));
+	}
+
+	public void execute2(String database, File fastq, OutputStream outputStream, OutputStream errorStream)
+			throws IOException {
+		Executor executor = new DefaultExecutor();
+		PumpStreamHandler pumpStreamHandler = new PumpStreamHandler(outputStream, errorStream) {
+			@Override
+			public void setProcessOutputStream(final InputStream is) {
+				// Event set it when it is null:
+				createProcessOutputPump(is, outputStream);
+			}
+
+			protected Thread createPump(final InputStream is, final OutputStream os, final boolean closeWhenExhausted) {
+				final Thread result = new Thread(new KrakenStreamPumper(is, os, closeWhenExhausted) {
+					@Override
+					protected void doWork(InputStream is, OutputStream os) throws IOException {
+						if (os == outputStream) {
+							handleOutputStream(is, os);
+						} else if (os == errorStream) {
+							handleErrorStream(is, os);
+						} else {
+							throw new IllegalStateException("bad stream in subsystem");
+						}
+					}
+				}, "Kraken Exec Stream Pumper") {
+				};
+				result.setDaemon(true);
+				return result;
+			}
+		};
+		executor.setStreamHandler(pumpStreamHandler);
+		int res = executor.execute(genExecCommand(database, fastq));
+		if (res != 0) {
+			throw new IllegalStateException("Kraken terminated unsuccesfully");
+		}
+	}
+
+	public void execute(String database, File fastq, OutputStream outputStream, OutputStream errorStream)
+			throws InterruptedException, IOException {
 		Process process = Runtime.getRuntime().exec(genExecLine(database, fastq));
-		handleOutputStream(process.getInputStream(), outFile);
-		handleErrorStream(process.getErrorStream());
+		handleOutputStream(process.getInputStream(), outputStream);
+		handleErrorStream(process.getErrorStream(), System.err);
 		int res = process.waitFor();
 		if (res != 0) {
 			throw new IllegalStateException("Kraken terminated unsuccesfully");
 		}
 	}
 
-	protected void handleOutputStream(InputStream stream, File outFile) throws IOException {
-		OutputStream out = StreamProvider.getOutputStreamForFile(outFile);
-		IOUtils.copyLarge(stream, out);
-		out.close();
+	protected void handleOutputStream(InputStream stream, OutputStream outputStream) throws IOException {
+		IOUtils.copyLarge(stream, outputStream);
 	}
-	
-	protected void handleErrorStream(InputStream errorStream) throws IOException {
-		System.err.println("Kraken output on stderr:");
-		IOUtils.copy(errorStream, System.err);
+
+	protected void handleErrorStream(InputStream inputStream, OutputStream errorStream) throws IOException {
+		IOUtils.copy(inputStream, errorStream);
 	}
 }

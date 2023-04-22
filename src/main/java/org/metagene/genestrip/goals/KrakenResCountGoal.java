@@ -28,6 +28,7 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -73,10 +74,10 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 			taxIds = null;
 		}
 
-		KrakenExecutor krakenExecutor = new KrakenExecutor(getProject().getConfig().getKrakenBinFolder(),
+		KrakenExecutor krakenExecutor = new KrakenExecutor(getProject().getConfig().getKrakenBin(),
 				getProject().getConfig().getKrakenExecExpr()) {
 			@Override
-			protected void handleOutputStream(InputStream stream, File outFile) throws IOException {
+			protected void handleOutputStream(InputStream stream, OutputStream out) throws IOException {
 				KrakenResultFastqMerger parser = new KrakenResultFastqMerger(
 						getProject().getConfig().getMaxReadSizeBytes());
 
@@ -107,7 +108,7 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 			getLogger().info("Run kraken with " + execLine);
 		}
 		try {
-			krakenExecutor.execute(getProject().getKrakenDB(), getProject().getFastqFile(), null);
+			krakenExecutor.execute2(getProject().getKrakenDB(), getProject().getFastqFile(), null, System.err);
 
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
 
@@ -122,7 +123,7 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 			CountingDigitTrie.print(map, out);
 
 			out.close();
-		} catch (InterruptedException | IOException e) {
+		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 		if (getLogger().isInfoEnabled()) {
