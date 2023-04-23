@@ -163,8 +163,12 @@ public class GSMaker extends Maker<GSProject> {
 					AssemblySummaryReader assemblySummaryReader = new AssemblySummaryReader(
 							getProject().getConfig().getCommonDir(), getProject().getConfig().isUseGenBank(),
 							taxTreeGoal.get());
+					int[] nEntriesTotal = new int[1];
 					Map<TaxIdNode, List<FTPEntryWithQuality>> entries = assemblySummaryReader
-							.getRelevantEntries(taxNodesGoal.get());
+							.getRelevantEntries(taxNodesGoal.get(), nEntriesTotal);
+					if (getLogger().isInfoEnabled()) {
+						getLogger().info("Total number of entries in assembly summary file: " + nEntriesTotal[0]);
+					}
 					set(entries);
 				} catch (IOException e) {
 					throw new RuntimeException(e);
@@ -182,7 +186,7 @@ public class GSMaker extends Maker<GSProject> {
 				projectSetupGoal);
 		registerGoal(kmerFastqGoal);
 
-		Goal<GSProject> krakenOutGoal = new KrakenOutGoal(project, "kmerkrakenout", project.getKmerFastqFile(),
+		KrakenOutGoal krakenOutGoal = new KrakenOutGoal(project, "kmerkrakenout", project.getKmerFastqFile(),
 				project.getKrakenOutFile(), kmerFastqGoal, projectSetupGoal);
 		registerGoal(krakenOutGoal);
 
@@ -190,12 +194,12 @@ public class GSMaker extends Maker<GSProject> {
 				projectSetupGoal);
 		registerGoal(trieGoal);
 
-		Goal<GSProject> krakenFastqGoal = new KrakenFastqFileGoal(project, "krakenfastq", taxNodesGoal,
-				projectSetupGoal, krakenOutGoal, kmerFastqGoal);
+		KrakenFastqFileGoal krakenFastqGoal = new KrakenFastqFileGoal(project, "krakenfastq", taxNodesGoal,
+				krakenOutGoal, kmerFastqGoal, projectSetupGoal);
 		registerGoal(krakenFastqGoal);
 
 		Goal<GSProject> kMerFastqTrieFileGoal = new KMerFastqTrieFileGoal(project, "triegen2", taxNodesGoal,
-				projectSetupGoal, krakenFastqGoal);
+				krakenFastqGoal, projectSetupGoal);
 		registerGoal(kMerFastqTrieFileGoal);
 
 		BloomFilterSizeGoal bloomFilterSizeGoal = new BloomFilterSizeGoal(project, "bloomsize", taxNodesGoal,
@@ -274,12 +278,13 @@ public class GSMaker extends Maker<GSProject> {
 					: new KrakenResCountGoal(project, "krakenrescount", null, projectSetupGoal);
 			registerGoal(krakenResCountGoal);
 
-			Goal<GSProject> fastqKrakenOutGoal = new KrakenOutGoal(project, "fastqkrakenout", project.getFastqFile(),
+			KrakenOutGoal fastqKrakenOutGoal = new KrakenOutGoal(project, "fastqkrakenout", project.getFastqFile(),
 					project.getFastqKrakenOutFile(), projectSetupGoal);
 			registerGoal(fastqKrakenOutGoal);
 
 			ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> trieFromKrakenResGoal = new TrieFromKrakenResGoal(project,
-					taxNodesGoal, fastaFilesGoal, fastaDownloadGoal, fastqKrakenOutGoal, projectSetupGoal);
+					"triefromkrakenres", taxNodesGoal, fastaFilesGoal, fastqKrakenOutGoal, fastaDownloadGoal,
+					projectSetupGoal);
 			registerGoal(trieFromKrakenResGoal);
 
 			Goal<GSProject> krakenResErrorGoal = new KrakenResErrorGoal(project, "krakenreserr",

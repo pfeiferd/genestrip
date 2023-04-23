@@ -58,6 +58,10 @@ public class AssemblySummaryReader {
 	}
 
 	public Map<TaxIdNode, List<FTPEntryWithQuality>> getRelevantEntries(Set<TaxIdNode> filter) throws IOException {
+		return getRelevantEntries(filter, null);
+	}
+
+	public Map<TaxIdNode, List<FTPEntryWithQuality>> getRelevantEntries(Set<TaxIdNode> filter, int[] totalEntries) throws IOException {
 		Map<TaxIdNode, List<FTPEntryWithQuality>> result = new HashMap<TaxIdNode, List<FTPEntryWithQuality>>();
 
 		Reader in = new InputStreamReader(StreamProvider.getInputStreamForFile(new File(baseDir, assFileName)));
@@ -65,27 +69,34 @@ public class AssemblySummaryReader {
 				.setRecordSeparator('\n').build();
 		Iterable<CSVRecord> records = format.parse(in);
 
+		int counter = 0;
 		for (CSVRecord record : records) {
-			String taxid = record.get(5);
-			String complete = record.get(11);
-			String latest = record.get(10);
-			String ftp = record.get(19);
+			// Prevent inconsistent entries (they gotta have at least 20 columns)
+			if (record.size() >= 20) {
+				String taxid = record.get(5);
+				String complete = record.get(11);
+				String latest = record.get(10);
+				String ftp = record.get(19);
 
-			TaxIdNode node = taxTree.getNodeByTaxId(taxid);
-			if (node != null && (filter == null || filter.contains(node))) {
-				FTPEntryQuality quality = FTPEntryQuality.fromString(complete, latest);
-				if (!FTPEntryQuality.NONE.equals(quality)) {
-					List<FTPEntryWithQuality> entry = result.get(node);
-					if (entry == null) {
-						entry = new ArrayList<FTPEntryWithQuality>();
-						result.put(node, entry);
+				TaxIdNode node = taxTree.getNodeByTaxId(taxid);
+				if (node != null && (filter == null || filter.contains(node))) {
+					FTPEntryQuality quality = FTPEntryQuality.fromString(complete, latest);
+					if (!FTPEntryQuality.NONE.equals(quality)) {
+						List<FTPEntryWithQuality> entry = result.get(node);
+						if (entry == null) {
+							entry = new ArrayList<FTPEntryWithQuality>();
+							result.put(node, entry);
+						}
+						FTPEntryWithQuality ewq = new FTPEntryWithQuality(ftp, quality);
+						entry.add(ewq);
 					}
-					FTPEntryWithQuality ewq = new FTPEntryWithQuality(ftp, quality);
-					entry.add(ewq);
 				}
-			}
+				counter++;
+			}			
 		}
-
+		if (totalEntries != null) {
+			totalEntries[0] = counter;
+		}
 		return result;
 	}
 

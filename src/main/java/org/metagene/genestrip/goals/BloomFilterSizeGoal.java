@@ -40,12 +40,14 @@ import org.metagene.genestrip.util.StreamProvider;
 
 public class BloomFilterSizeGoal extends ObjectGoal<Long, GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
+	private final KrakenOutGoal krakenOutGoal;
 
 	@SafeVarargs
 	public BloomFilterSizeGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			Goal<GSProject>... deps) {
-		super(project, name, ArraysUtil.append(deps, taxNodesGoal));
+			KrakenOutGoal krakenOutGoal, Goal<GSProject>... deps) {
+		super(project, name, ArraysUtil.append(deps, taxNodesGoal, krakenOutGoal));
 		this.taxNodesGoal = taxNodesGoal;
+		this.krakenOutGoal = krakenOutGoal;
 	}
 
 	@Override
@@ -70,9 +72,9 @@ public class BloomFilterSizeGoal extends ObjectGoal<Long, GSProject> {
 					getProject().getConfig().getMaxReadSizeBytes());
 
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Reading file " + getProject().getKrakenOutFile());
+				getLogger().info("Reading file " + krakenOutGoal.getOutputFile());
 			}
-			InputStream stream = StreamProvider.getInputStreamForFile(getProject().getKrakenOutFile());
+			InputStream stream = StreamProvider.getInputStreamForFile(krakenOutGoal.getOutputFile());
 			krakenKMerFastqMerger.process(stream, null, filter);
 			stream.close();
 

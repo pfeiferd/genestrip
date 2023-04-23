@@ -43,12 +43,16 @@ import org.metagene.genestrip.util.StreamProvider;
 
 public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
+	private final KrakenOutGoal krakenOutGoal;
+	private final KMerFastqGoal kmerFastqGoal;
 
 	@SafeVarargs
 	public KMerTrieFileGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			Goal<GSProject>... deps) {
-		super(project, name, project.getTrieFile(), ArraysUtil.append(deps, taxNodesGoal));
+			KrakenOutGoal krakenOutGoal, KMerFastqGoal kmerFastqGoal, Goal<GSProject>... deps) {
+		super(project, name, project.getTrieFile(), ArraysUtil.append(deps, taxNodesGoal, kmerFastqGoal, krakenOutGoal));
 		this.taxNodesGoal = taxNodesGoal;
+		this.krakenOutGoal = krakenOutGoal;
+		this.kmerFastqGoal = kmerFastqGoal;
 	}
 	
 	@Override
@@ -67,19 +71,19 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 					getProject().getConfig().getMaxReadSizeBytes());
 
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Reading file " + getProject().getKrakenOutFile());
-				getLogger().info("Reading file " + getProject().getKmerFastqFile());
+				getLogger().info("Reading file " + krakenOutGoal.getOutputFile());
+				getLogger().info("Reading file " + kmerFastqGoal.getOutputFile());
 			}
 			
-			InputStream stream1 = StreamProvider.getInputStreamForFile(getProject().getKrakenOutFile());
-			InputStream stream2 = StreamProvider.getInputStreamForFile(getProject().getKmerFastqFile());			
+			InputStream stream1 = StreamProvider.getInputStreamForFile(krakenOutGoal.getOutputFile());
+			InputStream stream2 = StreamProvider.getInputStreamForFile(kmerFastqGoal.getOutputFile());			
 			krakenKMerFastqMerger.process(stream1, stream2, filter);
 			stream1.close();
 			stream2.close();
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Trie entries: " + trie.getEntries());
-				getLogger().info("File save " + trieFile);
+				getLogger().info("Saving File " + trieFile);
 			}
 			trie.compress();
 			trie.save(trieFile);

@@ -43,6 +43,14 @@ public abstract class FileGoal<P> extends Goal<P> {
 	}
 
 	protected abstract List<File> getFiles();
+	
+	public File getOutputFile() {
+		List<File> files = getFiles();
+		if (getFiles().size() == 1) {
+			return files.get(0);
+		}
+		return null;
+	}
 
 	public boolean isAllowEmptyFiles() {
 		return allowEmptyFiles;
