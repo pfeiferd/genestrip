@@ -43,15 +43,19 @@ import org.metagene.genestrip.util.StreamProvider;
 
 public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
+	private final KrakenOutGoal krakenOutGoal;
+	private final KMerFastqGoal kmerFastqGoal;
 	
 	private long lastLineCount;
 	private long readCount;
 
 	@SafeVarargs
 	public KrakenFastqFileGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			Goal<GSProject>... deps) {
-		super(project, name, project.getFilteredKmerFastqFile(), ArraysUtil.append(deps, taxNodesGoal));
+			KrakenOutGoal krakenOutGoal, KMerFastqGoal kmerFastqGoal, Goal<GSProject>... deps) {
+		super(project, name, project.getFilteredKmerFastqFile(), ArraysUtil.append(deps, taxNodesGoal, krakenOutGoal, kmerFastqGoal));
 		this.taxNodesGoal = taxNodesGoal;
+		this.krakenOutGoal = krakenOutGoal;
+		this.kmerFastqGoal = kmerFastqGoal;
 	}
 
 	@Override
@@ -90,18 +94,18 @@ public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
 					getProject().getConfig().getMaxReadSizeBytes());
 
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Reading file " + getProject().getKrakenOutFile());
-				getLogger().info("Reading file " + getProject().getKmerFastqFile());
+				getLogger().info("Reading file " + krakenOutGoal.getOutputFile());
+				getLogger().info("Reading file " + kmerFastqGoal.getOutputFile());
 			}
-			InputStream stream1 = StreamProvider.getInputStreamForFile(getProject().getKrakenOutFile());
-			InputStream stream2 = StreamProvider.getInputStreamForFile(getProject().getKmerFastqFile());
+			InputStream stream1 = StreamProvider.getInputStreamForFile(krakenOutGoal.getOutputFile());
+			InputStream stream2 = StreamProvider.getInputStreamForFile(kmerFastqGoal.getOutputFile());
 			krakenKMerFastqMerger.process(stream1, stream2, filter);
 			stream1.close();
 			stream2.close();
 
 			printStream.close();
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Written file " + getProject().getFilteredKmerFastqFile());
+				getLogger().info("Written file " + fastq);
 				getLogger().info("Total added reads: " + readCount);
 			}
 		} catch (IOException e) {

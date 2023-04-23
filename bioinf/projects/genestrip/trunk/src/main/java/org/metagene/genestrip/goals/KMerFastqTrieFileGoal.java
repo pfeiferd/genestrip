@@ -41,12 +41,14 @@ import org.metagene.genestrip.util.CountingDigitTrie;
 
 public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
+	private final KrakenFastqFileGoal krakenFastqGoal;
 
 	@SafeVarargs
 	public KMerFastqTrieFileGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			Goal<GSProject>... deps) {
-		super(project, name, project.getTrieFile(), ArraysUtil.append(deps, taxNodesGoal));
+			KrakenFastqFileGoal krakenFastqGoal, Goal<GSProject>... deps) {
+		super(project, name, project.getTrieFile(), ArraysUtil.append(deps, taxNodesGoal, krakenFastqGoal));
 		this.taxNodesGoal = taxNodesGoal;
+		this.krakenFastqGoal = krakenFastqGoal;
 	}
 
 	@Override
@@ -76,7 +78,7 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 					}
 				}
 			};
-			fastqReader.readFastq(getProject().getFilteredKmerFastqFile());
+			fastqReader.readFastq(krakenFastqGoal.getOutputFile());
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Trie entries: " + trie.getEntries());

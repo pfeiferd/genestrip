@@ -80,12 +80,12 @@ public class GSProject implements DownloadProject {
 	}
 
 	public File getFilteredFastqFile() {
-		return new File(getFastqsDir(), "Filtered_" + getFileNameWithGzEnding(fastqFile));
+		return new File(getFastqsDir(), "filtered_" + getFileNameWithGzEnding(fastqFile));
 	}
 
 	public File getDumpFastqFile() {
 		return getConfig().isWriteDumpedFastq()
-				? new File(getResultsDir(), "Dumped_" + getFileNameWithGzEnding(fastqFile))
+				? new File(getResultsDir(), "dumped_" + getFileNameWithGzEnding(fastqFile))
 				: null;
 	}
 
@@ -98,7 +98,7 @@ public class GSProject implements DownloadProject {
 	}
 
 	public File getTaxCountsFile(String goalname) {
-		return new File(getResultsDir(), goalname + "_Counts_" + fastqFile.getName() + ".csv");
+		return new File(getResultsDir(), goalname + "_counts_" + fastqFile.getName() + ".csv");
 	}
 
 	public File getKrakenErrFile() {
