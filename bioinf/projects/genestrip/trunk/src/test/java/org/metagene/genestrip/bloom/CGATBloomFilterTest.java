@@ -36,6 +36,7 @@ import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.Main;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
 import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
+import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.KMerTrie;
@@ -156,9 +157,8 @@ public class CGATBloomFilterTest extends TestCase {
 
 		GSProject project = main.getProject();
 
-		File bartHReads = project.getKmerFastqFile();
-
-		File fromKraken = project.getKrakenOutFile();
+		File bartHReads = ((FileGoal<GSProject>) main.getGenerator().getGoal("kmerfastqgen")).getOutputFile();		
+		File fromKraken = ((FileGoal<GSProject>) main.getGenerator().getGoal("kmerkrakenout")).getOutputFile();
 
 		long size = 5 * 1000 * 1000;
 		double fpp = 0.00001;

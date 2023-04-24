@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
 import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
 import org.metagene.genestrip.make.FileListGoal;
@@ -49,7 +50,7 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 	@SafeVarargs
 	public KMerTrieFileGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
 			KrakenOutGoal krakenOutGoal, KMerFastqGoal kmerFastqGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getTrieFile(), ArraysUtil.append(deps, taxNodesGoal, kmerFastqGoal, krakenOutGoal));
+		super(project, name, project.getOutputFile(name, FileType.SER), ArraysUtil.append(deps, taxNodesGoal, kmerFastqGoal, krakenOutGoal));
 		this.taxNodesGoal = taxNodesGoal;
 		this.krakenOutGoal = krakenOutGoal;
 		this.kmerFastqGoal = kmerFastqGoal;

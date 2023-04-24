@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.fastqgen.KMerFastqGenerator;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
@@ -41,7 +42,7 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 	@SafeVarargs
 	public KMerFastqGoal(GSProject project, String name, FastasSizeGoal fastasSizeGoal,
 			FastaFileDownloadGoal fastaDownloadGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getKmerFastqFile(), ArraysUtil.append(deps, fastasSizeGoal, fastaDownloadGoal));
+		super(project, name, project.getOutputFile(name, FileType.FASTQ), ArraysUtil.append(deps, fastasSizeGoal, fastaDownloadGoal));
 		this.fastasSizeGoal = fastasSizeGoal;
 		this.fastaDownloadGoal = fastaDownloadGoal;
 	}

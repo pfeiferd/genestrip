@@ -46,7 +46,7 @@ public abstract class Maker<P> {
 		return logger;
 	}
 	
-	protected void registerDefaultGoal(Goal<P> goal) {
+	public void registerDefaultGoal(Goal<P> goal) {
 		registerGoal(goal);
 		if (defaultGoalName != null) {
 			throw new IllegalStateException("duplicate default goal");			
@@ -54,7 +54,7 @@ public abstract class Maker<P> {
 		defaultGoalName = goal.getName();
 	}
 	
-	protected void registerGoal(Goal<P> goal) {
+	public void registerGoal(Goal<P> goal) {
 		if (goalsByName.get(goal.getName()) != null) {
 			throw new IllegalStateException("duplicate goal name");
 		}

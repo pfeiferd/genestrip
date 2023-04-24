@@ -40,6 +40,7 @@ import org.metagene.genestrip.bloom.AbstractCGATBloomFilter;
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
 import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
+import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
@@ -55,9 +56,8 @@ public class KMerTrieTest extends TestCase {
 
 		GSProject project = main.getProject();
 
-		File bartHReads = project.getKmerFastqFile();
-
-		File fromKraken = project.getKrakenOutFile();
+		File bartHReads = ((FileGoal<GSProject>) main.getGenerator().getGoal("kmerfastqgen")).getOutputFile();		
+		File fromKraken = ((FileGoal<GSProject>) main.getGenerator().getGoal("kmerkrakenout")).getOutputFile();
 
 		KMerTrie<String> trie = new KMerTrie<String>(project.getkMserSize());
 

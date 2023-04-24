@@ -30,14 +30,14 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 public abstract class Goal<P> {
-	private final Log logger = LogFactory.getLog(getClass());
-
+	private final Log logger;
 	private final String name;
 	private final Goal<P>[] dependencies;
 	private final P project;
 
 	@SafeVarargs
 	public Goal(P project, String name, Goal<P>... dependencies) {
+		logger = LogFactory.getLog(name);
 		this.name = name;
 		this.dependencies = dependencies;
 		this.project = project;

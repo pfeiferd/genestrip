@@ -86,7 +86,7 @@ public class Main {
 			}
 
 			project = new GSProject(config, projectName, q, k, db, fastqFile, resFolder, !ignoreKrakenOutFilter);
-			generator = new GSMaker(getProject());
+			generator = new GSMaker(project);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

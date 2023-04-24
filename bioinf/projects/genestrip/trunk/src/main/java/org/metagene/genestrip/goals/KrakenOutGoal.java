@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.kraken.KrakenExecutor;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
@@ -38,9 +39,9 @@ public class KrakenOutGoal extends FileListGoal<GSProject> {
 	private final File fastqFile;
 
 	@SafeVarargs
-	public KrakenOutGoal(GSProject project, String name, File fastqFile, File outfile,
+	public KrakenOutGoal(GSProject project, String name, File fastqFile,
 			Goal<GSProject>... deps) {
-		super(project, name, outfile, deps);
+		super(project, name, project.getOutputFile(name, fastqFile, FileType.KRAKEN_OUT), deps);
 		this.fastqFile = fastqFile;
 	}
 
