@@ -87,11 +87,6 @@ public class GSProject implements DownloadProject {
 	public File getOutputFile(String goal, FileType type) {
 		return getOutputFile(goal, null, type, true);
 	}
-
-//	public File getOutputFileForFastq(String goal, FileType type) {
-//		return getOutputFile(goal, getFastqFile(), type);
-//	}
-
 	public File getOutputFile(String goal, File baseFile, FileType type) {
 		return getOutputFile(goal, baseFile, type, true);
 	}
@@ -119,10 +114,6 @@ public class GSProject implements DownloadProject {
 		return new File(getDirForType(type), getName() + "_" + goal + baseName + type.getSuffix() + (gzip ? ".gz" : ""));
 	}
 
-//	public File getFastqKrakenOutFile() {
-//		return new File(getKrakenOutDir(), fastqFile.getName() + getkMserSize() + "_fromKraken.out.txt.gz");
-//	}
-
 	@Override
 	public boolean isIgnoreMissingFiles() {
 		return getConfig().isIgnoreMissingFastas();
@@ -142,30 +133,6 @@ public class GSProject implements DownloadProject {
 	public boolean isUseHttp() {
 		return getConfig().isUseHttp();
 	}
-
-//	public File getFilteredFastqFile() {
-//		return new File(getFastqsDir(), "filtered_" + getFileNameWithGzEnding(fastqFile));
-//	}
-
-//	public File getDumpFastqFile(File fastq) {
-//		return getConfig().isWriteDumpedFastq() ? getOutputFile("dumped", fastq, FileType.FASTQ) : null;
-//	}
-
-//	private String getFileNameWithGzEnding(File file) {
-//		String name = file.getName();
-//		if (name.endsWith(".gz") || name.endsWith(".gzip")) {
-//			return name;
-//		}
-//		return name + ".gz";
-//	}
-
-//	public File getTaxCountsFile(String goalname) {
-//		return new File(getResultsDir(), goalname + "_counts_" + fastqFile.getName() + ".csv");
-//	}
-
-//	public File getKrakenErrFile() {
-//		return new File(getResultsDir(), getFastqFile().getName() + getkMserSize() + "_krakenErr.csv");
-//	}
 
 	public GSConfig getConfig() {
 		return config;
@@ -222,25 +189,4 @@ public class GSProject implements DownloadProject {
 	public File getResultsDir() {
 		return resFolder;
 	}
-
-//	public File getKmerFastqFile() {
-//		return getOutputFile(getName(), fastqFile, FileType.FASTQ, true);
-//		return new File(getFastqsDir(), getName() + "_k" + getkMserSize() + "_fromFastas.fastq.gz");
-//	}
-
-//	public File getKrakenOutFile() {
-//		return new File(getKrakenOutDir(), getName() + "_k" + getkMserSize() + "_fromKraken.out.txt.gz");
-//	}
-
-//	public File getFilteredKmerFastqFile() {
-//		return new File(getFastqsDir(), getName() + "_k" + getkMserSize() + "_fromKraken.fastq.gz");
-//	}
-
-//	public File getTrieFile() {
-//		return new File(getFiltersDir(), getName() + "_k" + getkMserSize() + "_Trie.ser.gz");
-//	}
-
-//	public File getBloomFilterFile() {
-//		return new File(getFiltersDir(), getName() + "_k" + getkMserSize() + "_BloomFilter.ser.gz");
-//	}
 }
