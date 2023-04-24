@@ -34,7 +34,7 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 		try {
 			File filteredFile = null;
 			if (writedFiltered) {
-				filteredFile = getProject().getOutputFile(getName(), fastq, FileType.FASTQ);
+				filteredFile = getProject().getOutputFile(getName(), fastq, FileType.FASTQ,false);
 			}
 			
 			@SuppressWarnings("unchecked")
