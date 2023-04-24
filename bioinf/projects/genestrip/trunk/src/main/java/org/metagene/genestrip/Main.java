@@ -74,8 +74,6 @@ public class Main {
 				fastqFile = new File(fastqName.trim());
 			}
 
-			boolean ignoreKrakenOutFilter = line.hasOption('i');
-
 			restArgs = line.getArgs();
 			String projectName = restArgs[0];
 			File resFolder = null;
@@ -85,7 +83,7 @@ public class Main {
 				resFolder = new File(resStr);
 			}
 
-			project = new GSProject(config, projectName, q, k, db, fastqFile, resFolder, !ignoreKrakenOutFilter);
+			project = new GSProject(config, projectName, q, k, db, fastqFile, resFolder);
 			generator = new GSMaker(project);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
@@ -141,11 +139,6 @@ public class Main {
 				.desc("Fastq file in case of filtering or classfication (regarding goals 'filter' and 'classify').")
 				.build();
 		options.addOption(fastq);
-
-		Option ignoreKrakenOutFilter = Option.builder("i").argName("ignoretaxids").desc(
-				"Whether to ignore taxids from project when running goal 'krakenrescount'. If set only taxids from project will be counted in result file, default is 'don't ignore'.")
-				.build();
-		options.addOption(ignoreKrakenOutFilter);
 
 		Option resFolder = Option.builder("r").hasArg().argName("path").desc(
 				"Store folder files created via goals 'filter' and 'classify', default is '<base directory >/projects/<project name>/res'.")

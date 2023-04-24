@@ -51,10 +51,9 @@ public class GSProject implements DownloadProject {
 	private final int kMserSize;
 	private final File fastqFile;
 	private final File resFolder;
-	private final boolean useKrakenOutFilter;
 
 	public GSProject(GSConfig config, String name, FTPEntryQuality fastaQuality, int kMerSize, String krakenDB,
-			File fastqFile, File resFolder, boolean useKrakenOutFilter) {
+			File fastqFile, File resFolder) {
 		this.config = config;
 		this.name = name;
 		this.fastaQuality = fastaQuality;
@@ -62,9 +61,8 @@ public class GSProject implements DownloadProject {
 		this.krakenDB = krakenDB;
 		this.fastqFile = fastqFile;
 		this.resFolder = resFolder != null ? resFolder : new File(getProjectsDir(), name + "/csv");
-		this.useKrakenOutFilter = useKrakenOutFilter;
 	}
-	
+
 	public File getFastqFile() {
 		return fastqFile;
 	}
@@ -90,13 +88,35 @@ public class GSProject implements DownloadProject {
 		return getOutputFile(goal, null, type, true);
 	}
 
+	public File getOutputFileForFastq(String goal, FileType type) {
+		return getOutputFile(goal, getFastqFile(), type);
+	}
+
 	public File getOutputFile(String goal, File baseFile, FileType type) {
 		return getOutputFile(goal, baseFile, type, true);
 	}
 
 	public File getOutputFile(String goal, File baseFile, FileType type, boolean gzip) {
-		return new File(getDirForType(type), getName() + "_" + goal + (baseFile == null ? "" : "_" + baseFile.getName())
-				+ type.getSuffix() + (gzip ? ".gz" : ""));
+		String baseName = baseFile == null ? "" : baseFile.getName();
+		if (baseName.endsWith(".gz")) {
+			baseName = baseName.substring(0, baseName.length() - 3);
+		}
+		else if (baseName.endsWith(".gzip")) {
+			baseName = baseName.substring(0, baseName.length() - 5);
+		}
+		for (FileType ft : FileType.values()) {
+			if (baseName.endsWith(ft.getSuffix())) {
+				baseName = baseName.substring(0, ft.getSuffix().length());
+			}			
+		}		
+		if (baseName.startsWith(getName() + "_")) {
+			baseName.substring(getName().length() + 1);
+		}
+		if (!baseName.isEmpty()) {
+			baseName = "_" + baseName;
+		}
+		
+		return new File(getDirForType(type), getName() + "_" + goal + baseName + type.getSuffix() + (gzip ? ".gz" : ""));
 	}
 
 //	public File getFastqKrakenOutFile() {
@@ -223,8 +243,4 @@ public class GSProject implements DownloadProject {
 //	public File getBloomFilterFile() {
 //		return new File(getFiltersDir(), getName() + "_k" + getkMserSize() + "_BloomFilter.ser.gz");
 //	}
-
-	public boolean isUseKrakenOutFilter() {
-		return useKrakenOutFilter;
-	}
 }
