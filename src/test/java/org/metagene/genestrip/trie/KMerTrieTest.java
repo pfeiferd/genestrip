@@ -52,7 +52,7 @@ import junit.framework.TestCase;
 public class KMerTrieTest extends TestCase {
 	public void testPutGet() throws IOException {
 		Main main = new Main();
-		main.parseAndRun(new String[] { "bart_h" });
+		main.parseAndRun(new String[] { "bart_h", "clear", "genall" });
 
 		GSProject project = main.getProject();
 
