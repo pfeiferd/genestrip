@@ -3,6 +3,7 @@ package org.metagene.genestrip.fastq;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -10,6 +11,8 @@ import org.metagene.genestrip.util.BufferedLineReader;
 import org.metagene.genestrip.util.StreamProvider;
 
 public abstract class AbstractFastqReader {
+	private static final byte[] LINE_3 = new byte[] { '+', '\n' };
+	
 	protected final Log logger = LogFactory.getLog(getClass());
 
 	protected final byte[] readDescriptor;
@@ -71,6 +74,16 @@ public abstract class AbstractFastqReader {
 			logger.info("Total number of reads: " + reads);
 		}
 		done();
+	}
+	
+	protected void rewriteInput(OutputStream out) throws IOException {
+		out.write(readDescriptor, 0, readDescriptorSize);
+		out.write('\n');
+		out.write(read, 0, readSize);
+		out.write('\n');
+		out.write(LINE_3);
+		out.write(readProbs, 0, readProbsSize);
+		out.write('\n');		
 	}
 
 	protected abstract void nextEntry() throws IOException;

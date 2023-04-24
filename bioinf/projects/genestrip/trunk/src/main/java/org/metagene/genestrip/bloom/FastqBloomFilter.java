@@ -29,15 +29,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.fastq.AbstractFastqReader;
 import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
 public class FastqBloomFilter extends AbstractFastqReader {
-	protected final Log logger = LogFactory.getLog(getClass());
-
 	private static final byte[] LINE_3 = new byte[] { '+', '\n' };
 
 	private final AbstractKMerBloomIndex index;
@@ -77,13 +73,7 @@ public class FastqBloomFilter extends AbstractFastqReader {
 			out = notIndexed;
 		}
 		if (out != null) {
-			out.write(readDescriptor, 0, readDescriptorSize);
-			out.write('\n');
-			out.write(read, 0, readSize);
-			out.write('\n');
-			out.write(LINE_3);
-			out.write(readProbs, 0, readProbsSize);
-			out.write('\n');
+			rewriteInput(out);
 		}
 		if (logger.isInfoEnabled()) {
 			if (reads % 100000 == 0) {
