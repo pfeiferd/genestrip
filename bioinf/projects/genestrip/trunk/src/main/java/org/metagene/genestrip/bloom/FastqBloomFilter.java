@@ -34,8 +34,6 @@ import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
 public class FastqBloomFilter extends AbstractFastqReader {
-	private static final byte[] LINE_3 = new byte[] { '+', '\n' };
-
 	private final AbstractKMerBloomIndex index;
 	private final int k;
 

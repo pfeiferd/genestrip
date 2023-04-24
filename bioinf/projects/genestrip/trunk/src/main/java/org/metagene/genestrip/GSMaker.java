@@ -224,7 +224,8 @@ public class GSMaker extends Maker<GSProject> {
 					project.getConfig().isWriteDumpedFastq(), bloomFilterFileGoal, projectSetupGoal);
 			registerGoal(filterGoal);
 
-			Goal<GSProject> classifyGoal = new ClassifyGoal(project, "match", fastq, trieGoal, projectSetupGoal);
+			Goal<GSProject> classifyGoal = new ClassifyGoal(project, "match", fastq, trieGoal,
+					project.getConfig().isWriteTrieFilteredFastq(), projectSetupGoal);
 			registerGoal(classifyGoal);
 
 			Goal<GSProject> krakenResCountGoal = new KrakenResCountGoal(project, "krakenres", fastq, taxNodesGoal,
