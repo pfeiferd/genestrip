@@ -207,21 +207,19 @@ public class GSMaker extends Maker<GSProject> {
 					project.getConfig().isWriteDumpedFastq(), bloomFilterFileGoal, projectSetupGoal);
 			registerGoal(filterGoal);
 
-			Goal<GSProject> classifyGoal = new ClassifyGoal(project, "match", fastq, trieGoal,
-					projectSetupGoal);
+			Goal<GSProject> classifyGoal = new ClassifyGoal(project, "match", fastq, trieGoal, projectSetupGoal);
 			registerGoal(classifyGoal);
 
-			Goal<GSProject> krakenResCountGoal = new KrakenResCountGoal(project, "krakenres", fastq,
-					taxNodesGoal, projectSetupGoal);
+			Goal<GSProject> krakenResCountGoal = new KrakenResCountGoal(project, "krakenres", fastq, taxNodesGoal,
+					projectSetupGoal);
 			registerGoal(krakenResCountGoal);
 
-			Goal<GSProject> krakenResCountAllGoal = new KrakenResCountGoal(project, "krakenresall",
-					fastq, null, projectSetupGoal);
+			Goal<GSProject> krakenResCountAllGoal = new KrakenResCountGoal(project, "krakenresall", fastq, null,
+					projectSetupGoal);
 			registerGoal(krakenResCountAllGoal);
 
 			registerGoal(krakenResCountGoal);
-			KrakenOutGoal fastqKrakenOutGoal = new KrakenOutGoal(project, "fastqkrakenout", fastq,
-					projectSetupGoal);
+			KrakenOutGoal fastqKrakenOutGoal = new KrakenOutGoal(project, "fastqkrakenout", fastq, projectSetupGoal);
 			registerGoal(fastqKrakenOutGoal);
 
 			ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> trieFromKrakenResGoal = new TrieFromKrakenResGoal(project,
