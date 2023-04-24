@@ -26,6 +26,7 @@ package org.metagene.genestrip.trie;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,14 +45,18 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 	private long startTime;
 	private long indexedC;
 
+	private OutputStream indexed;
+	
 	public FastqTrieClassifier(KMerTrie<String> trie, int maxReadSize) {
 		super(maxReadSize);
 		this.trie = trie;
 	}
 
-	public Map<String, Long> runClassifier(File fastq) throws IOException {
+	public Map<String, Long> runClassifier(File fastq, File filteredFile) throws IOException {
 		byteCountAccess = StreamProvider.getByteCountingInputStreamForFile(fastq, false);
 		fastqFileSize = Files.size(fastq.toPath());
+
+		indexed = filteredFile != null ? StreamProvider.getOutputStreamForFile(filteredFile) : null;
 
 		startTime = System.currentTimeMillis();
 		indexedC = 0;
@@ -59,6 +64,9 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		root = new CountingDigitTrie();
 		readFastq(byteCountAccess.getInputStream());
 
+		if (indexed != null) {
+			indexed.close();
+		}
 		byteCountAccess.getInputStream().close();
 
 		Map<String, Long> counts = new HashMap<String, Long>();
@@ -75,6 +83,9 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		res |= classifyRead(true);
 		if (res) {
 			indexedC++;
+			if (indexed != null) {
+				rewriteInput(indexed);
+			}
 		}
 		if (logger.isInfoEnabled()) {
 			if (reads % 100000 == 0) {

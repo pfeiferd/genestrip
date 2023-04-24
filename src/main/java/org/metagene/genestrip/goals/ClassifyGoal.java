@@ -33,7 +33,7 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 			@SuppressWarnings("unchecked")
 			KMerTrie<String> trie = (KMerTrie<String>) KMerTrie.load(trieGoal.getOutputFile());
 			Map<String, Long> res = new FastqTrieClassifier(trie, getProject().getConfig().getMaxReadSizeBytes())
-					.runClassifier(fastq);
+					.runClassifier(fastq, null);
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
 			CountingDigitTrie.print(res, out);
 			out.close();
