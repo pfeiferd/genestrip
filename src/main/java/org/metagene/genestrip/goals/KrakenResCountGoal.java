@@ -50,14 +50,16 @@ import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class KrakenResCountGoal extends FileListGoal<GSProject> {
+	private final File fastq;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 
 	@SafeVarargs
-	public KrakenResCountGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, project.getFastqFile(), FileType.CSV),
+	public KrakenResCountGoal(GSProject project, String name, File fastqFile,
+			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, Goal<GSProject>... deps) {
+		super(project, name, project.getOutputFile(name, fastqFile, FileType.CSV),
 				ArraysUtil.append(deps, taxNodesGoal));
 		this.taxNodesGoal = taxNodesGoal;
+		this.fastq = fastqFile;
 	}
 
 	@Override
@@ -106,11 +108,11 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 			}
 		};
 		if (getLogger().isInfoEnabled()) {
-			String execLine = krakenExecutor.genExecLine(getProject().getKrakenDB(), getProject().getFastqFile());
+			String execLine = krakenExecutor.genExecLine(getProject().getKrakenDB(), fastq);
 			getLogger().info("Run kraken with " + execLine);
 		}
 		try {
-			krakenExecutor.execute2(getProject().getKrakenDB(), getProject().getFastqFile(), null, System.err);
+			krakenExecutor.execute2(getProject().getKrakenDB(), fastq, null, System.err);
 
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
 

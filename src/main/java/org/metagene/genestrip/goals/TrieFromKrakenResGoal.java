@@ -49,14 +49,18 @@ import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> {
+	private final File fastq;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fastaFilesGoal;
 	private final KrakenOutGoal krakenOutGoal;
 
 	@SafeVarargs
-	public TrieFromKrakenResGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fastaFilesGoal, KrakenOutGoal krakenOutGoal, Goal<GSProject>... deps) {
+	public TrieFromKrakenResGoal(GSProject project, String name, File fastq,
+			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
+			ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fastaFilesGoal,
+			KrakenOutGoal krakenOutGoal, Goal<GSProject>... deps) {
 		super(project, name, ArraysUtil.append(deps, taxNodesGoal, fastaFilesGoal, krakenOutGoal));
+		this.fastq = fastq;
 		this.taxNodesGoal = taxNodesGoal;
 		this.fastaFilesGoal = fastaFilesGoal;
 		this.krakenOutGoal = krakenOutGoal;
@@ -76,7 +80,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 					.createPrintListener(System.out, null);
 
 			InputStream stream1 = StreamProvider.getInputStreamForFile(krakenOutGoal.getOutputFile());
-			InputStream stream2 = StreamProvider.getInputStreamForFile(getProject().getFastqFile());
+			InputStream stream2 = StreamProvider.getInputStreamForFile(fastq);
 			merger.process(stream1, stream2, KrakenResultFastqMergeListener.createFilterByTaxIdNodes(nodes,
 					new KrakenResultFastqMergeListener() {
 						private long lastLineCount = -1;
