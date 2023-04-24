@@ -28,6 +28,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.commons.io.FileUtils;
+
 public abstract class FileGoal<P> extends Goal<P> {
 	private final boolean allowEmptyFiles;
 
@@ -43,7 +45,7 @@ public abstract class FileGoal<P> extends Goal<P> {
 	}
 
 	protected abstract List<File> getFiles();
-	
+
 	public File getOutputFile() {
 		List<File> files = getFiles();
 		if (getFiles().size() == 1) {
@@ -75,13 +77,11 @@ public abstract class FileGoal<P> extends Goal<P> {
 		try {
 			for (File file : getFiles()) {
 				if (!isMade(file)) {
-					if (!isAllowEmptyFiles()) {
-						if (file.exists() && file.length() == 0) {
-							if (getLogger().isInfoEnabled()) {
-								getLogger().info("Deleting emtpy file " + file);
-							}
-							file.delete();
+					if (!isAllowEmptyFiles() && file.length() == 0) {
+						if (getLogger().isInfoEnabled()) {
+							getLogger().info("Deleting emtpy file " + file);
 						}
+						file.delete();
 					}
 					makeFile(file);
 				}
@@ -95,16 +95,24 @@ public abstract class FileGoal<P> extends Goal<P> {
 
 	@Override
 	public void cleanThis() {
-		for (File file : getFilesToClean()) {
-			if (file.exists()) {
-				if (getLogger().isInfoEnabled()) {
-					getLogger().info("Deleting file " + file);
+		try {
+			for (File file : getFilesToClean()) {
+				if (file.exists()) {
+					if (getLogger().isInfoEnabled()) {
+						getLogger().info("Deleting file " + file);
+					}
+					if (file.isDirectory()) {
+						FileUtils.deleteDirectory(file);
+					} else {
+						file.delete();
+					}
 				}
-				file.delete();
 			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
 	}
-	
+
 	@Override
 	protected boolean isThisCleaned() {
 		for (File file : getFilesToClean()) {
@@ -114,13 +122,13 @@ public abstract class FileGoal<P> extends Goal<P> {
 		}
 		return true;
 	}
-	
+
 	protected List<File> getFilesToClean() {
 		return getFiles();
 	}
 
 	@Override
 	public String toString() {
-		return "file goal: "+ getName();
+		return "file goal: " + getName();
 	}
 }

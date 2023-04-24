@@ -96,6 +96,19 @@ public class GSMaker extends Maker<GSProject> {
 		};
 		registerGoal(projectSetupGoal);
 
+		Goal<GSProject> clearGoal = new FileListGoal<GSProject>(project, "clear", Arrays.asList(project.getFastqsDir(),
+				project.getFiltersDir(), project.getKrakenOutDir(), project.getResultsDir())) {
+			@Override
+			public boolean isMade() {
+				return false;
+			}
+
+			@Override
+			protected void makeFile(File file) throws IOException {
+			}
+		};
+		registerGoal(clearGoal);
+
 		Goal<GSProject> taxDBGoal = new TaxIdFileDownloadGoal(project, "taxdownload", commonSetupGoal);
 		registerGoal(taxDBGoal);
 
@@ -112,14 +125,6 @@ public class GSMaker extends Maker<GSProject> {
 
 		FileGoal<GSProject> assemblyGoal = new AssemblyFileDownloadGoal(project, "assemblydownload", commonSetupGoal);
 		registerGoal(assemblyGoal);
-
-		Goal<GSProject> commonGoal = new Goal<GSProject>(project, "common", assemblyGoal, taxDBGoal) {
-			@Override
-			public boolean isMade() {
-				return false;
-			}
-		};
-		registerGoal(commonGoal);
 
 		ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fastaFilesGoal = new ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject>(
 				project, "fastafiles", assemblyGoal, taxNodesGoal) {
@@ -164,7 +169,7 @@ public class GSMaker extends Maker<GSProject> {
 				krakenOutGoal, kmerFastqGoal, projectSetupGoal);
 		registerGoal(krakenFastqGoal);
 
-		Goal<GSProject> kMerFastqTrieFileGoal = new KMerFastqTrieFileGoal(project, "trieg2", taxNodesGoal,
+		Goal<GSProject> kMerFastqTrieFileGoal = new KMerFastqTrieFileGoal(project, "trie2", taxNodesGoal,
 				krakenFastqGoal, projectSetupGoal);
 		registerGoal(kMerFastqTrieFileGoal);
 
@@ -184,7 +189,11 @@ public class GSMaker extends Maker<GSProject> {
 
 			@Override
 			public void makeThis() {
-				System.out.println(getGoalNames());
+				for (String name : getGoalNames()) {
+					if (!(getGoal(name) instanceof ObjectGoal<?,?>)) {
+						System.out.println(name);						
+					}
+				}
 			}
 		};
 		registerGoal(showGoals);
@@ -218,7 +227,6 @@ public class GSMaker extends Maker<GSProject> {
 					projectSetupGoal);
 			registerGoal(krakenResCountAllGoal);
 
-			registerGoal(krakenResCountGoal);
 			KrakenOutGoal fastqKrakenOutGoal = new KrakenOutGoal(project, "fastqkrakenout", fastq, projectSetupGoal);
 			registerGoal(fastqKrakenOutGoal);
 
