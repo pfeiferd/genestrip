@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.bloom.AbstractKMerBloomIndex;
 import org.metagene.genestrip.bloom.GenestripKMerBloomIndex;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
@@ -51,7 +52,7 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 	@SafeVarargs
 	public BloomFilterFileGoal(GSProject project, String name, BloomFilterSizeGoal sizeGoal,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, KrakenOutGoal krakenOutGoal, KMerFastqGoal kmerFastqGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getBloomFilterFile(), ArraysUtil.append(deps, sizeGoal, taxNodesGoal, krakenOutGoal, kmerFastqGoal));
+		super(project, name, project.getOutputFile(name, FileType.SER), ArraysUtil.append(deps, sizeGoal, taxNodesGoal, krakenOutGoal, kmerFastqGoal));
 		this.taxNodesGoal = taxNodesGoal;
 		this.sizeGoal = sizeGoal;
 		this.krakenOutGoal = krakenOutGoal;
@@ -100,8 +101,8 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 					getProject().getConfig().getMaxReadSizeBytes());
 
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Reading file " + getProject().getKrakenOutFile());
-				getLogger().info("Reading file " + getProject().getKmerFastqFile());
+				getLogger().info("Reading file " + krakenOutGoal.getOutputFile());
+				getLogger().info("Reading file " + kmerFastqGoal.getOutputFile());
 			}
 
 			InputStream stream1 = StreamProvider.getInputStreamForFile(krakenOutGoal.getOutputFile());

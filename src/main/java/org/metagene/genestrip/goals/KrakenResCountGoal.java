@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.kraken.KrakenExecutor;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
 import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
@@ -54,7 +55,8 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 	@SafeVarargs
 	public KrakenResCountGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
 			Goal<GSProject>... deps) {
-		super(project, name, project.getTaxCountsFile(name), ArraysUtil.append(deps, taxNodesGoal));
+		super(project, name, project.getOutputFile(name, project.getFastqFile(), FileType.CSV),
+				ArraysUtil.append(deps, taxNodesGoal));
 		this.taxNodesGoal = taxNodesGoal;
 	}
 

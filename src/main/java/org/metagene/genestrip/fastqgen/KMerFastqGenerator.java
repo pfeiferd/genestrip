@@ -59,7 +59,7 @@ public class KMerFastqGenerator {
 
 	public long run(List<File> fastaFiles, File fastq, String name, long expectedSize) throws IOException {
 		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Create fastq file " + fastq);
+			getLogger().info("Creating fastq file " + fastq);
 		}
 		FastQWriter fastQWriter = new FastQWriter(name, StreamProvider.getOutputStreamForFile(fastq));
 		GenestripKMerBloomIndex index = new GenestripKMerBloomIndex(name, getKmerSize(), expectedSize, 0.0001,
