@@ -69,20 +69,24 @@ public abstract class FileGoal<P> extends Goal<P> {
 	}
 
 	protected boolean isMade(File file) {
-		return file.exists() && (isAllowEmptyFiles() || file.length() != 0);
+		return file.exists();
+	}
+	
+	protected boolean isBadEmpty(File file) {
+		return !isAllowEmptyFiles() && !file.isDirectory() && file.length() == 0;
 	}
 
 	@Override
 	public void makeThis() {
 		try {
 			for (File file : getFiles()) {
-				if (!isMade(file)) {
-					if (!isAllowEmptyFiles() && file.length() == 0) {
-						if (getLogger().isInfoEnabled()) {
-							getLogger().info("Deleting emtpy file " + file);
-						}
-						file.delete();
+				if (isBadEmpty(file)) {
+					if (getLogger().isInfoEnabled()) {
+						getLogger().info("Deleting emtpy file " + file);
 					}
+					file.delete();
+				}
+				if (!isMade(file)) {
 					makeFile(file);
 				}
 			}

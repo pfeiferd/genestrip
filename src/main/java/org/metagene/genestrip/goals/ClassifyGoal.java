@@ -22,7 +22,7 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 	@SafeVarargs
 	public ClassifyGoal(GSProject project, String name, File fastq, KMerTrieFileGoal trieGoal,
 			Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, fastq, FileType.CSV), ArraysUtil.append(deps, trieGoal));
+		super(project, name, project.getOutputFile(name, fastq, FileType.CSV, false), ArraysUtil.append(deps, trieGoal));
 		this.fastq = fastq;
 		this.trieGoal = trieGoal;
 	}

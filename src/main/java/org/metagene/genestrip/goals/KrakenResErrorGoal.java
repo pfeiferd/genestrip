@@ -25,7 +25,7 @@ public class KrakenResErrorGoal extends FileListGoal<GSProject> {
 	@SafeVarargs
 	public KrakenResErrorGoal(GSProject project, String name, File fastq,
 			ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> trieFromKrakenResGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile("krakenerr", fastq, FileType.CSV),
+		super(project, name, project.getOutputFile("krakenerr", fastq, FileType.CSV, false),
 				ArraysUtil.append(deps, trieFromKrakenResGoal));
 		this.trieFromKrakenResGoal = trieFromKrakenResGoal;
 	}

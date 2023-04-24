@@ -100,8 +100,9 @@ public class GSProject implements DownloadProject {
 			baseName = baseName.substring(0, baseName.length() - 5);
 		}
 		for (FileType ft : FileType.values()) {
-			if (baseName.endsWith(ft.getSuffix())) {
-				baseName = baseName.substring(0, ft.getSuffix().length());
+			String suffix = ft.getSuffix();
+			if (baseName.endsWith(suffix)) {
+				baseName = baseName.substring(0, baseName.length() - suffix.length());
 			}			
 		}		
 		if (baseName.startsWith(getName() + "_")) {

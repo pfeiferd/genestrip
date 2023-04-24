@@ -106,6 +106,11 @@ public class GSMaker extends Maker<GSProject> {
 			@Override
 			protected void makeFile(File file) throws IOException {
 			}
+
+			@Override
+			public void makeThis() {
+				cleanThis();
+			}
 		};
 		registerGoal(clearGoal);
 
@@ -190,8 +195,8 @@ public class GSMaker extends Maker<GSProject> {
 			@Override
 			public void makeThis() {
 				for (String name : getGoalNames()) {
-					if (!(getGoal(name) instanceof ObjectGoal<?,?>)) {
-						System.out.println(name);						
+					if (!(getGoal(name) instanceof ObjectGoal<?, ?>)) {
+						System.out.println(name);
 					}
 				}
 			}
