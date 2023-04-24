@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.goals.TrieFromKrakenResGoal.TaxidWithCount;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
@@ -22,9 +23,10 @@ public class KrakenResErrorGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> trieFromKrakenResGoal;
 
 	@SafeVarargs
-	public KrakenResErrorGoal(GSProject project, String name, File file,
+	public KrakenResErrorGoal(GSProject project, String name,
 			ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> trieFromKrakenResGoal, Goal<GSProject>... deps) {
-		super(project, name, file, ArraysUtil.append(deps, trieFromKrakenResGoal));
+		super(project, name, project.getOutputFileForFastq("krakenerr", FileType.CSV),
+				ArraysUtil.append(deps, trieFromKrakenResGoal));
 		this.trieFromKrakenResGoal = trieFromKrakenResGoal;
 	}
 

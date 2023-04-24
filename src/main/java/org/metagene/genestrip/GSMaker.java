@@ -26,20 +26,18 @@ package org.metagene.genestrip;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.metagene.genestrip.GSProject.FileType;
-import org.metagene.genestrip.bloom.AbstractKMerBloomIndex;
-import org.metagene.genestrip.bloom.FastqBloomFilter;
 import org.metagene.genestrip.goals.AssemblyFileDownloadGoal;
 import org.metagene.genestrip.goals.BloomFilterFileGoal;
 import org.metagene.genestrip.goals.BloomFilterSizeGoal;
+import org.metagene.genestrip.goals.ClassifyGoal;
 import org.metagene.genestrip.goals.FastaFileDownloadGoal;
 import org.metagene.genestrip.goals.FastasSizeGoal;
+import org.metagene.genestrip.goals.FilterGoal;
 import org.metagene.genestrip.goals.KMerFastqGoal;
 import org.metagene.genestrip.goals.KMerFastqTrieFileGoal;
 import org.metagene.genestrip.goals.KMerTrieFileGoal;
@@ -48,6 +46,7 @@ import org.metagene.genestrip.goals.KrakenOutGoal;
 import org.metagene.genestrip.goals.KrakenResCountGoal;
 import org.metagene.genestrip.goals.KrakenResErrorGoal;
 import org.metagene.genestrip.goals.TaxIdFileDownloadGoal;
+import org.metagene.genestrip.goals.TaxNodesGoal;
 import org.metagene.genestrip.goals.TrieFromKrakenResGoal;
 import org.metagene.genestrip.goals.TrieFromKrakenResGoal.TaxidWithCount;
 import org.metagene.genestrip.make.FileGoal;
@@ -57,13 +56,9 @@ import org.metagene.genestrip.make.Maker;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.AssemblySummaryReader;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryWithQuality;
-import org.metagene.genestrip.tax.TaxIdCollector;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.trie.FastqTrieClassifier;
 import org.metagene.genestrip.trie.KMerTrie;
-import org.metagene.genestrip.util.CountingDigitTrie;
-import org.metagene.genestrip.util.StreamProvider;
 
 public class GSMaker extends Maker<GSProject> {
 	public GSMaker(GSProject project) {
@@ -112,37 +107,7 @@ public class GSMaker extends Maker<GSProject> {
 		};
 		registerGoal(taxTreeGoal);
 
-		ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal = new ObjectGoal<Set<TaxIdNode>, GSProject>(project,
-				"taxids", taxTreeGoal) {
-			@Override
-			public void makeThis() {
-				try {
-					TaxIdCollector taxIdCollector = new TaxIdCollector(taxTreeGoal.get());
-					Set<TaxIdNode> taxIdNodes = taxIdCollector.readFromFile(getProject().getTaxIdsFile());
-					if (getLogger().isInfoEnabled()) {
-						getLogger().info("Requested tax ids: " + taxIdNodes);
-					}
-					taxIdNodes = taxIdCollector.withDescendants(taxIdNodes);
-					if (getLogger().isInfoEnabled()) {
-//						getLogger().info("Completed tax ids: " + taxIdNodes);
-						getLogger().info("Number of completed tax ids: " + taxIdNodes.size());
-					}
-
-					File filterFile = getProject().getTaxIdsFilterFile();
-					if (filterFile.exists()) {
-						Set<TaxIdNode> filterNodes = taxIdCollector.readFromFile(filterFile);
-						taxIdNodes = taxIdCollector.restrictToAncestors(filterNodes, taxIdNodes);
-						if (getLogger().isInfoEnabled()) {
-//							getLogger().info("Filtered tax ids: " + taxIdNodes);
-							getLogger().info("Number of completed and filtered tax ids: " + taxIdNodes.size());
-						}
-					}
-					set(taxIdNodes);
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
-			}
-		};
+		ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal = new TaxNodesGoal(project, "taxids", taxTreeGoal);
 		registerGoal(taxNodesGoal);
 
 		FileGoal<GSProject> assemblyGoal = new AssemblyFileDownloadGoal(project, "assemblydownload", commonSetupGoal);
@@ -191,7 +156,7 @@ public class GSMaker extends Maker<GSProject> {
 				kmerFastqGoal, projectSetupGoal);
 		registerGoal(krakenOutGoal);
 
-		KMerTrieFileGoal trieGoal = new KMerTrieFileGoal(project, "triegen", taxNodesGoal, krakenOutGoal, kmerFastqGoal,
+		KMerTrieFileGoal trieGoal = new KMerTrieFileGoal(project, "trie", taxNodesGoal, krakenOutGoal, kmerFastqGoal,
 				projectSetupGoal);
 		registerGoal(trieGoal);
 
@@ -199,7 +164,7 @@ public class GSMaker extends Maker<GSProject> {
 				krakenOutGoal, kmerFastqGoal, projectSetupGoal);
 		registerGoal(krakenFastqGoal);
 
-		Goal<GSProject> kMerFastqTrieFileGoal = new KMerFastqTrieFileGoal(project, "triegen2", taxNodesGoal,
+		Goal<GSProject> kMerFastqTrieFileGoal = new KMerFastqTrieFileGoal(project, "trieg2", taxNodesGoal,
 				krakenFastqGoal, projectSetupGoal);
 		registerGoal(kMerFastqTrieFileGoal);
 
@@ -207,7 +172,7 @@ public class GSMaker extends Maker<GSProject> {
 				krakenOutGoal);
 		registerGoal(bloomFilterSizeGoal);
 
-		BloomFilterFileGoal bloomFilterFileGoal = new BloomFilterFileGoal(project, "bloomgen", bloomFilterSizeGoal,
+		BloomFilterFileGoal bloomFilterFileGoal = new BloomFilterFileGoal(project, "bloom", bloomFilterSizeGoal,
 				taxNodesGoal, krakenOutGoal, kmerFastqGoal, projectSetupGoal);
 		registerGoal(bloomFilterFileGoal);
 
@@ -237,50 +202,21 @@ public class GSMaker extends Maker<GSProject> {
 		registerDefaultGoal(all);
 
 		if (project.getFastqFile() != null) {
-			Goal<GSProject> filterGoal = new FileListGoal<GSProject>(project, "filter",
-					project.getOutputFile("filtered", project.getFastqFile(), FileType.FASTQ), bloomFilterFileGoal,
-					projectSetupGoal) {
-				@Override
-				protected void makeFile(File file) {
-					try {
-						new FastqBloomFilter(AbstractKMerBloomIndex.load(bloomFilterFileGoal.getOutputFile()),
-								getProject().getConfig().getMinPosCountFilter(),
-								getProject().getConfig().getPosRatioFilter(),
-								getProject().getConfig().getMaxReadSizeBytes()).runFilter(getProject().getFastqFile(),
-										file, getProject().getDumpFastqFile());
-					} catch (IOException | ClassNotFoundException e) {
-						throw new RuntimeException(e);
-					}
-				}
-			};
+			Goal<GSProject> filterGoal = new FilterGoal(project, "filter", bloomFilterFileGoal, projectSetupGoal);
 			registerGoal(filterGoal);
 
-			Goal<GSProject> classifyGoal = new FileListGoal<GSProject>(project, "classify",
-					project.getOutputFile("classify", project.getFastqFile(), FileType.CSV), trieGoal,
-					projectSetupGoal) {
-				@Override
-				protected void makeFile(File file) {
-					try {
-						@SuppressWarnings("unchecked")
-						KMerTrie<String> trie = (KMerTrie<String>) KMerTrie.load(trieGoal.getOutputFile());
-						Map<String, Long> res = new FastqTrieClassifier(trie,
-								getProject().getConfig().getMaxReadSizeBytes())
-										.runClassifier(getProject().getFastqFile());
-						PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-						CountingDigitTrie.print(res, out);
-						out.close();
-					} catch (IOException | ClassNotFoundException e) {
-						throw new RuntimeException(e);
-					}
-				}
-			};
+			Goal<GSProject> classifyGoal = new ClassifyGoal(project, "match", trieGoal, projectSetupGoal);
 			registerGoal(classifyGoal);
 
-			Goal<GSProject> krakenResCountGoal = project.isUseKrakenOutFilter()
-					? new KrakenResCountGoal(project, "krakenrescount", taxNodesGoal, projectSetupGoal)
-					: new KrakenResCountGoal(project, "krakenrescount", null, projectSetupGoal);
+			Goal<GSProject> krakenResCountGoal = new KrakenResCountGoal(project, "krakenres", taxNodesGoal,
+					projectSetupGoal);
 			registerGoal(krakenResCountGoal);
 
+			Goal<GSProject> krakenResCountAllGoal = new KrakenResCountGoal(project, "krakenresall", null,
+					projectSetupGoal);
+			registerGoal(krakenResCountAllGoal);
+
+			registerGoal(krakenResCountGoal);
 			KrakenOutGoal fastqKrakenOutGoal = new KrakenOutGoal(project, "fastqkrakenout", project.getFastqFile(),
 					projectSetupGoal);
 			registerGoal(fastqKrakenOutGoal);
@@ -290,8 +226,7 @@ public class GSMaker extends Maker<GSProject> {
 					projectSetupGoal);
 			registerGoal(trieFromKrakenResGoal);
 
-			Goal<GSProject> krakenResErrorGoal = new KrakenResErrorGoal(project, "krakenreserr",
-					project.getOutputFile("krakenerr", project.getFastqFile(), FileType.CSV), trieFromKrakenResGoal,
+			Goal<GSProject> krakenResErrorGoal = new KrakenResErrorGoal(project, "krakenerr", trieFromKrakenResGoal,
 					projectSetupGoal);
 			registerGoal(krakenResErrorGoal);
 		}
