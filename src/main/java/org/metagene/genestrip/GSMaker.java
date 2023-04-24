@@ -228,11 +228,11 @@ public class GSMaker extends Maker<GSProject> {
 					project.getConfig().isWriteTrieFilteredFastq(), projectSetupGoal);
 			registerGoal(classifyGoal);
 
-			Goal<GSProject> krakenResCountGoal = new KrakenResCountGoal(project, "krakenres", fastq, true, taxNodesGoal,
+			Goal<GSProject> krakenResCountGoal = new KrakenResCountGoal(project, "krakenres", fastq, taxNodesGoal,
 					projectSetupGoal);
 			registerGoal(krakenResCountGoal);
 
-			Goal<GSProject> krakenResCountAllGoal = new KrakenResCountGoal(project, "krakenresall", fastq, false, null,
+			Goal<GSProject> krakenResCountAllGoal = new KrakenResCountGoal(project, "krakenresall", fastq, null,
 					projectSetupGoal);
 			registerGoal(krakenResCountAllGoal);
 
