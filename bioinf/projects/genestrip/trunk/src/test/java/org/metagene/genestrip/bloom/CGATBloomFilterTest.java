@@ -153,7 +153,7 @@ public class CGATBloomFilterTest extends TestCase {
 
 	public void testBloomFilterViaProject() throws IOException {
 		Main main = new Main();
-		main.parseAndRun(new String[] { "bart_h" });
+		main.parseAndRun(new String[] { "bart_h", "clear", "genall" });
 
 		GSProject project = main.getProject();
 
