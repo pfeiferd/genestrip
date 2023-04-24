@@ -52,14 +52,16 @@ import org.metagene.genestrip.util.StreamProvider;
 public class KrakenResCountGoal extends FileListGoal<GSProject> {
 	private final File fastq;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
+	private final boolean writedFiltered;
 
 	@SafeVarargs
-	public KrakenResCountGoal(GSProject project, String name, File fastqFile,
+	public KrakenResCountGoal(GSProject project, String name, File fastqFile, boolean writedFiltered,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, fastqFile, FileType.CSV, false),
 				ArraysUtil.append(deps, taxNodesGoal));
 		this.taxNodesGoal = taxNodesGoal;
 		this.fastq = fastqFile;
+		this.writedFiltered = writedFiltered;
 	}
 
 	@Override
@@ -80,23 +82,39 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 
 		KrakenExecutor krakenExecutor = new KrakenExecutor(getProject().getConfig().getKrakenBin(),
 				getProject().getConfig().getKrakenExecExpr()) {
+			private KrakenResultFastqMergeListener printListener = null;
+			
 			@Override
 			protected void handleOutputStream(InputStream stream, OutputStream out) throws IOException {
+				PrintStream printStream = null;
+				if (writedFiltered) {
+					File filteredFile = getProject().getOutputFile(getName(), fastq, FileType.FASTQ, false);
+					printStream = new PrintStream(StreamProvider.getOutputStreamForFile(filteredFile));
+					printListener = KrakenResultFastqMergeListener.createPrintListener(printStream, null);
+				}
+				
 				KrakenResultFastqMerger parser = new KrakenResultFastqMerger(
 						getProject().getConfig().getMaxReadSizeBytes());
 
 				parser.process(new BufferedInputStream(stream), null, new KrakenResultFastqMergeListener() {
 					private long lastLine = -1;
+					private boolean kmerFound = false;
 
 					@Override
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
 							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
 						if (taxIds == null || taxIds.contains(kmerTaxid)) {
 							kmerCountTrie.add(kmerTaxid, hitLength);
+							kmerFound = true;
 							System.out.println(ByteArrayUtil.toString(output));
 						}
 						if (lineCount != lastLine) {
 							lastLine = lineCount;
+							if (kmerFound && printListener != null) {
+								printListener.newTaxIdForRead(lineCount, readDescriptor, read, readProbs, krakenTaxid,
+										bps, pos, kmerTaxid, hitLength, output);
+							}
+							kmerFound = false;
 							if (taxIds == null || taxIds.contains(krakenTaxid)) {
 //								System.out.println("Classification: " + ByteArrayUtil.toString(output));
 //								System.out.println(krakenTaxid + " " + bps + " " + kmerTaxid);
@@ -105,6 +123,10 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 						}
 					}
 				});
+				
+				if (printStream != null) {
+					printStream.close();
+				}
 			}
 		};
 		if (getLogger().isInfoEnabled()) {

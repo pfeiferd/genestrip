@@ -41,7 +41,7 @@ public interface KrakenResultFastqMergeListener {
 			@Override
 			public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
 					String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
-				out.println("Line: " + lineCount);
+//				out.println("Line: " + lineCount);
 				ByteArrayUtil.print(readDescriptor, out);
 				out.println();
 				ByteArrayUtil.print(read, out);
