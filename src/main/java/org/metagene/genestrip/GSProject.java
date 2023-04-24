@@ -106,7 +106,7 @@ public class GSProject implements DownloadProject {
 			}			
 		}		
 		if (baseName.startsWith(getName() + "_")) {
-			baseName.substring(getName().length() + 1);
+			baseName = baseName.substring(getName().length() + 1);
 		}
 		if (!baseName.isEmpty()) {
 			baseName = "_" + baseName;
