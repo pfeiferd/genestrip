@@ -26,6 +26,7 @@ package org.metagene.genestrip;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -194,11 +195,13 @@ public class GSMaker extends Maker<GSProject> {
 
 			@Override
 			public void makeThis() {
+				List<String> res = new ArrayList<String>();
 				for (String name : getGoalNames()) {
 					if (!(getGoal(name) instanceof ObjectGoal<?, ?>)) {
-						System.out.println(name);
+						res.add(name);
 					}
 				}
+				System.out.println(res);
 			}
 		};
 		registerGoal(showGoals);
