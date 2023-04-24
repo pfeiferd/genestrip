@@ -159,7 +159,7 @@ public class GSMaker extends Maker<GSProject> {
 
 		FastasSizeGoal fastasSizeGoal = new FastasSizeGoal(project, "fastassize", 10, fastaDownloadGoal);
 
-		KMerFastqGoal kmerFastqGoal = new KMerFastqGoal(project, "kmerfastqgen", fastasSizeGoal, fastaDownloadGoal,
+		KMerFastqGoal kmerFastqGoal = new KMerFastqGoal(project, "kmerfastq", fastasSizeGoal, fastaDownloadGoal,
 				projectSetupGoal);
 		registerGoal(kmerFastqGoal);
 
