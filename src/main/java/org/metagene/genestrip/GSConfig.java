@@ -61,6 +61,10 @@ public class GSConfig {
 		return Boolean.valueOf(properties.getProperty("writeDumpedFastq", "false"));
 	}
 	
+	public boolean isWriteTrieFilteredFastq() {
+		return Boolean.valueOf(properties.getProperty("writeTrieFilteredFastq", "true"));
+	}
+	
 	public int getMaxReadSizeBytes() {
 		return Integer.valueOf(properties.getProperty("maxReadSizeBytes", "8192"));
 	}

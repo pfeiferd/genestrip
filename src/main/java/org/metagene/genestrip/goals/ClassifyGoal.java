@@ -18,22 +18,29 @@ import org.metagene.genestrip.util.StreamProvider;
 public class ClassifyGoal extends FileListGoal<GSProject> {
 	private final File fastq;
 	private final KMerTrieFileGoal trieGoal;
+	private final boolean writedFiltered;
 
 	@SafeVarargs
-	public ClassifyGoal(GSProject project, String name, File fastq, KMerTrieFileGoal trieGoal,
+	public ClassifyGoal(GSProject project, String name, File fastq, KMerTrieFileGoal trieGoal, boolean writeFiltered,
 			Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, fastq, FileType.CSV, false), ArraysUtil.append(deps, trieGoal));
 		this.fastq = fastq;
 		this.trieGoal = trieGoal;
+		this.writedFiltered = writeFiltered;
 	}
-
+	
 	@Override
 	protected void makeFile(File file) {
 		try {
+			File filteredFile = null;
+			if (writedFiltered) {
+				filteredFile = getProject().getOutputFile(getName(), fastq, FileType.FASTQ);
+			}
+			
 			@SuppressWarnings("unchecked")
 			KMerTrie<String> trie = (KMerTrie<String>) KMerTrie.load(trieGoal.getOutputFile());
 			Map<String, Long> res = new FastqTrieClassifier(trie, getProject().getConfig().getMaxReadSizeBytes())
-					.runClassifier(fastq, null);
+					.runClassifier(fastq, filteredFile);
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
 			CountingDigitTrie.print(res, out);
 			out.close();
