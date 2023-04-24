@@ -157,7 +157,7 @@ public class CGATBloomFilterTest extends TestCase {
 
 		GSProject project = main.getProject();
 
-		File bartHReads = ((FileGoal<GSProject>) main.getMaker().getGoal("kmerfastqgen")).getOutputFile();		
+		File bartHReads = ((FileGoal<GSProject>) main.getMaker().getGoal("kmerfastq")).getOutputFile();		
 		File fromKraken = ((FileGoal<GSProject>) main.getMaker().getGoal("kmerkrakenout")).getOutputFile();
 
 		long size = 5 * 1000 * 1000;

@@ -201,33 +201,36 @@ public class GSMaker extends Maker<GSProject> {
 		};
 		registerDefaultGoal(all);
 
-		if (project.getFastqFile() != null) {
-			Goal<GSProject> filterGoal = new FilterGoal(project, "filter", bloomFilterFileGoal, projectSetupGoal);
+		File fastq = project.getFastqFile();
+		if (fastq != null) {
+			Goal<GSProject> filterGoal = new FilterGoal(project, "filter", fastq,
+					project.getConfig().isWriteDumpedFastq(), bloomFilterFileGoal, projectSetupGoal);
 			registerGoal(filterGoal);
 
-			Goal<GSProject> classifyGoal = new ClassifyGoal(project, "match", trieGoal, projectSetupGoal);
+			Goal<GSProject> classifyGoal = new ClassifyGoal(project, "match", fastq, trieGoal,
+					projectSetupGoal);
 			registerGoal(classifyGoal);
 
-			Goal<GSProject> krakenResCountGoal = new KrakenResCountGoal(project, "krakenres", taxNodesGoal,
-					projectSetupGoal);
+			Goal<GSProject> krakenResCountGoal = new KrakenResCountGoal(project, "krakenres", fastq,
+					taxNodesGoal, projectSetupGoal);
 			registerGoal(krakenResCountGoal);
 
-			Goal<GSProject> krakenResCountAllGoal = new KrakenResCountGoal(project, "krakenresall", null,
-					projectSetupGoal);
+			Goal<GSProject> krakenResCountAllGoal = new KrakenResCountGoal(project, "krakenresall",
+					fastq, null, projectSetupGoal);
 			registerGoal(krakenResCountAllGoal);
 
 			registerGoal(krakenResCountGoal);
-			KrakenOutGoal fastqKrakenOutGoal = new KrakenOutGoal(project, "fastqkrakenout", project.getFastqFile(),
+			KrakenOutGoal fastqKrakenOutGoal = new KrakenOutGoal(project, "fastqkrakenout", fastq,
 					projectSetupGoal);
 			registerGoal(fastqKrakenOutGoal);
 
 			ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> trieFromKrakenResGoal = new TrieFromKrakenResGoal(project,
-					"triefromkrakenres", taxNodesGoal, fastaFilesGoal, fastqKrakenOutGoal, fastaDownloadGoal,
+					"triefromkrakenres", fastq, taxNodesGoal, fastaFilesGoal, fastqKrakenOutGoal, fastaDownloadGoal,
 					projectSetupGoal);
 			registerGoal(trieFromKrakenResGoal);
 
-			Goal<GSProject> krakenResErrorGoal = new KrakenResErrorGoal(project, "krakenerr", trieFromKrakenResGoal,
-					projectSetupGoal);
+			Goal<GSProject> krakenResErrorGoal = new KrakenResErrorGoal(project, "krakenerr", fastq,
+					trieFromKrakenResGoal, projectSetupGoal);
 			registerGoal(krakenResErrorGoal);
 		}
 	}

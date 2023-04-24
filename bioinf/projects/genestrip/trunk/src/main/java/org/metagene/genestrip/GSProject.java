@@ -88,9 +88,9 @@ public class GSProject implements DownloadProject {
 		return getOutputFile(goal, null, type, true);
 	}
 
-	public File getOutputFileForFastq(String goal, FileType type) {
-		return getOutputFile(goal, getFastqFile(), type);
-	}
+//	public File getOutputFileForFastq(String goal, FileType type) {
+//		return getOutputFile(goal, getFastqFile(), type);
+//	}
 
 	public File getOutputFile(String goal, File baseFile, FileType type) {
 		return getOutputFile(goal, baseFile, type, true);
@@ -147,9 +147,9 @@ public class GSProject implements DownloadProject {
 //		return new File(getFastqsDir(), "filtered_" + getFileNameWithGzEnding(fastqFile));
 //	}
 
-	public File getDumpFastqFile() {
-		return getConfig().isWriteDumpedFastq() ? getOutputFile("dumped", getFastqFile(), FileType.FASTQ) : null;
-	}
+//	public File getDumpFastqFile(File fastq) {
+//		return getConfig().isWriteDumpedFastq() ? getOutputFile("dumped", fastq, FileType.FASTQ) : null;
+//	}
 
 //	private String getFileNameWithGzEnding(File file) {
 //		String name = file.getName();
