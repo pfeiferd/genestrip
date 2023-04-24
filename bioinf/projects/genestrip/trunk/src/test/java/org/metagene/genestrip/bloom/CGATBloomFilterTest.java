@@ -157,8 +157,8 @@ public class CGATBloomFilterTest extends TestCase {
 
 		GSProject project = main.getProject();
 
-		File bartHReads = ((FileGoal<GSProject>) main.getGenerator().getGoal("kmerfastqgen")).getOutputFile();		
-		File fromKraken = ((FileGoal<GSProject>) main.getGenerator().getGoal("kmerkrakenout")).getOutputFile();
+		File bartHReads = ((FileGoal<GSProject>) main.getMaker().getGoal("kmerfastqgen")).getOutputFile();		
+		File fromKraken = ((FileGoal<GSProject>) main.getMaker().getGoal("kmerkrakenout")).getOutputFile();
 
 		long size = 5 * 1000 * 1000;
 		double fpp = 0.00001;
@@ -166,7 +166,7 @@ public class CGATBloomFilterTest extends TestCase {
 		AbstractCGATBloomFilter cgatBloomFilter = new MurmurCGATBloomFilter(project.getkMserSize(), size, fpp);
 
 		@SuppressWarnings("unchecked")
-		ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal = (ObjectGoal<Set<TaxIdNode>, GSProject>) main.getGenerator()
+		ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal = (ObjectGoal<Set<TaxIdNode>, GSProject>) main.getMaker()
 				.getGoal("taxids");
 		Set<TaxIdNode> nodes = taxNodesGoal.get();
 

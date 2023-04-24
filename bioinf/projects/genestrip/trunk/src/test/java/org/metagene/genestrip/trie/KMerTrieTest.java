@@ -56,15 +56,15 @@ public class KMerTrieTest extends TestCase {
 
 		GSProject project = main.getProject();
 
-		File bartHReads = ((FileGoal<GSProject>) main.getGenerator().getGoal("kmerfastqgen")).getOutputFile();		
-		File fromKraken = ((FileGoal<GSProject>) main.getGenerator().getGoal("kmerkrakenout")).getOutputFile();
+		File bartHReads = ((FileGoal<GSProject>) main.getMaker().getGoal("kmerfastqgen")).getOutputFile();		
+		File fromKraken = ((FileGoal<GSProject>) main.getMaker().getGoal("kmerkrakenout")).getOutputFile();
 
 		KMerTrie<String> trie = new KMerTrie<String>(project.getkMserSize());
 
 		AbstractCGATBloomFilter bloomFilter = new MurmurCGATBloomFilter(trie.getLen(), 5 * 1000 * 1000, 0.00001);
 
 		@SuppressWarnings("unchecked")
-		ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal = (ObjectGoal<Set<TaxIdNode>, GSProject>) main.getGenerator()
+		ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal = (ObjectGoal<Set<TaxIdNode>, GSProject>) main.getMaker()
 				.getGoal("taxids");
 		Set<TaxIdNode> nodes = taxNodesGoal.get();
 

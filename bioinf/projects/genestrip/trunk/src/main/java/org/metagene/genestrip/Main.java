@@ -43,7 +43,7 @@ public class Main {
 	private GSConfig config;
 	private String target;
 	private String[] restArgs;
-	private GSMaker generator;
+	private GSMaker maker;
 
 	public Main() {
 		options = createOptions();
@@ -84,7 +84,7 @@ public class Main {
 			}
 
 			project = new GSProject(config, projectName, q, k, db, fastqFile, resFolder);
-			generator = new GSMaker(project);
+			maker = new GSMaker(project);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -164,25 +164,25 @@ public class Main {
 	public void run(PrintStream out) {
 		String[] restArgs = getRestArgs();
 		if (restArgs.length == 1) {
-			restArgs = new String[] { null, generator.getDefaultGoalName() };
+			restArgs = new String[] { null, maker.getDefaultGoalName() };
 		}
-		Set<String> goalNames = generator.getGoalNames();
+		Set<String> goalNames = maker.getGoalNames();
 		for (int i = 1; i < restArgs.length; i++) {
 			if (goalNames.contains(restArgs[i])) {
 				out.println("Executing target " + getTarget() + " for goal " + restArgs[i]);
 				switch (getTarget()) {
 				case "cleantotal":
-					generator.cleanTotal(restArgs[i]);
+					maker.cleanTotal(restArgs[i]);
 					break;
 				case "cleanall":
-					generator.cleanAll(restArgs[i]);
+					maker.cleanAll(restArgs[i]);
 					break;
 				case "clean":
-					generator.clean(restArgs[i]);
+					maker.clean(restArgs[i]);
 					break;
 				default:
 				case "make":
-					generator.make(restArgs[i]);
+					maker.make(restArgs[i]);
 					break;
 				}
 				out.println("Done with target " + getTarget() + " for goal " + restArgs[i]);
@@ -192,8 +192,8 @@ public class Main {
 		}
 	}
 
-	public GSMaker getGenerator() {
-		return generator;
+	public GSMaker getMaker() {
+		return maker;
 	}
 
 	public static void main(String[] args) {
