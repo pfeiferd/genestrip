@@ -36,12 +36,11 @@ public interface KrakenResultFastqMergeListener {
 			String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output);
 
 	public static KrakenResultFastqMergeListener createPrintListener(PrintStream out,
-			KrakenResultFastqMergeListener delegate) {
+			KrakenResultFastqMergeListener delegate, boolean withKrakenOut) {
 		return new KrakenResultFastqMergeListener() {
 			@Override
 			public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
 					String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
-				out.println("Line: " + lineCount);
 				ByteArrayUtil.print(readDescriptor, out);
 				out.println();
 				ByteArrayUtil.print(read, out);
@@ -49,9 +48,10 @@ public interface KrakenResultFastqMergeListener {
 				out.println("+");
 				ByteArrayUtil.print(readProbs, out);
 				out.println();
-				ByteArrayUtil.print(output, out);
-				out.println();
-
+				if (withKrakenOut) {
+					ByteArrayUtil.print(output, out);
+					out.println();
+				}
 				if (delegate != null) {
 					delegate.newTaxIdForRead(lineCount, readDescriptor, read, readProbs, krakenTaxid, bps, pos,
 							kmerTaxid, hitLength, output);

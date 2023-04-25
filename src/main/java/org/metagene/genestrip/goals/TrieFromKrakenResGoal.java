@@ -27,12 +27,14 @@ package org.metagene.genestrip.goals;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.goals.TrieFromKrakenResGoal.TaxidWithCount;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
 import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
@@ -53,9 +55,12 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fastaFilesGoal;
 	private final KrakenOutGoal krakenOutGoal;
+	private final boolean writedMatchingReads;
+
+	private KrakenResultFastqMergeListener printListener = null;
 
 	@SafeVarargs
-	public TrieFromKrakenResGoal(GSProject project, String name, File fastq,
+	public TrieFromKrakenResGoal(GSProject project, String name, File fastq, boolean writedMatchingReads,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
 			ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fastaFilesGoal,
 			KrakenOutGoal krakenOutGoal, Goal<GSProject>... deps) {
@@ -64,6 +69,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 		this.taxNodesGoal = taxNodesGoal;
 		this.fastaFilesGoal = fastaFilesGoal;
 		this.krakenOutGoal = krakenOutGoal;
+		this.writedMatchingReads = writedMatchingReads;
 	}
 
 	@Override
@@ -76,8 +82,12 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 			KrakenResultFastqMerger merger = new KrakenResultFastqMerger(
 					getProject().getConfig().getMaxReadSizeBytes());
 
-			KrakenResultFastqMergeListener printListener = KrakenResultFastqMergeListener
-					.createPrintListener(System.out, null);
+			PrintStream printStream = null;
+			if (writedMatchingReads) {
+				File filteredFile = getProject().getOutputFile(getName(), fastq, FileType.FASTQ, false);
+				printStream = new PrintStream(StreamProvider.getOutputStreamForFile(filteredFile));
+				printListener = KrakenResultFastqMergeListener.createPrintListener(printStream, null, false);
+			}
 
 			InputStream stream1 = StreamProvider.getInputStreamForFile(krakenOutGoal.getOutputFile());
 			InputStream stream2 = StreamProvider.getInputStreamForFile(fastq);
@@ -91,17 +101,15 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 								byte[] output) {
 							if (lastLineCount != lineCount) {
 								lastLineCount = lineCount;
-								printListener.newTaxIdForRead(lineCount, readDescriptor, read, readProbs, krakenTaxid,
-										bps, pos, kmerTaxid, hitLength, output);
+								if (printListener != null) {
+									printListener.newTaxIdForRead(lineCount, readDescriptor, read, readProbs,
+											krakenTaxid, bps, pos, kmerTaxid, hitLength, output);
+								}
 							}
 							for (int j = 0; j < hitLength; j++) {
 								for (int i = 0; i < kmer.length; i++) {
 									kmer[i] = read[pos + j + i];
 								}
-//								System.out.println("Position:  " + pos);
-//								System.out.println(kmerTaxid);
-//								ByteArrayUtil.print(kmer, System.out);
-//								System.out.println();
 
 								TaxidWithCount tc = trie.get(kmer, 0, false);
 								if (tc == null) {
@@ -114,6 +122,9 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 					}));
 			stream1.close();
 			stream2.close();
+			if (printStream != null) {
+				printStream.close();
+			}
 
 			FTPEntryQuality minQuality = getProject().getConfig().getFastaQuality();
 			String[] matchingTaxId = new String[1];
