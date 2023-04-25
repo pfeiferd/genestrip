@@ -225,7 +225,7 @@ public class GSMaker extends Maker<GSProject> {
 			registerGoal(filterGoal);
 
 			Goal<GSProject> classifyGoal = new ClassifyGoal(project, "match", fastq, trieGoal,
-					project.getConfig().isWriteTrieFilteredFastq(), projectSetupGoal);
+					project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
 			registerGoal(classifyGoal);
 
 			Goal<GSProject> krakenResCountGoal = new KrakenResCountGoal(project, "krakenres", fastq, taxNodesGoal,
@@ -240,8 +240,8 @@ public class GSMaker extends Maker<GSProject> {
 			registerGoal(fastqKrakenOutGoal);
 
 			ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> trieFromKrakenResGoal = new TrieFromKrakenResGoal(project,
-					"triefromkrakenres", fastq, taxNodesGoal, fastaFilesGoal, fastqKrakenOutGoal, fastaDownloadGoal,
-					projectSetupGoal);
+					"triefromkrakenres", fastq, project.getConfig().isWriteFilteredFastq(), taxNodesGoal,
+					fastaFilesGoal, fastqKrakenOutGoal, fastaDownloadGoal, projectSetupGoal);
 			registerGoal(trieFromKrakenResGoal);
 
 			Goal<GSProject> krakenResErrorGoal = new KrakenResErrorGoal(project, "krakenerr", fastq,
