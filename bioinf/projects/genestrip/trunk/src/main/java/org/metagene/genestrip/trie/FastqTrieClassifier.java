@@ -76,11 +76,8 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 
 	@Override
 	protected void nextEntry() throws IOException {
-//				System.out.println(ByteArrayUtil.toString(readDescriptor));
-//				System.out.println(ByteArrayUtil.toString(read));
-//
 		boolean res = classifyRead(false);
-		res |= classifyRead(true);
+//		res |= classifyRead(true);
 		if (res) {
 			indexedC++;
 			if (indexed != null) {
