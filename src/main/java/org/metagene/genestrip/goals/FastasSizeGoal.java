@@ -39,8 +39,8 @@ public class FastasSizeGoal extends ObjectGoal<Long, GSProject> {
 	private final int maxCheckForGuess;
 
 	@SafeVarargs
-	public FastasSizeGoal(GSProject project, String name, int maxCheckForGuess,
-			FastaFileDownloadGoal fastaDownloadGoal, Goal<GSProject>... deps) {
+	public FastasSizeGoal(GSProject project, String name, int maxCheckForGuess, FastaFileDownloadGoal fastaDownloadGoal,
+			Goal<GSProject>... deps) {
 		super(project, name, ArraysUtil.append(deps, fastaDownloadGoal));
 		this.fastaFileDownloadGoal = fastaDownloadGoal;
 		this.maxCheckForGuess = maxCheckForGuess;
@@ -52,6 +52,9 @@ public class FastasSizeGoal extends ObjectGoal<Long, GSProject> {
 		long cSizeSum = 0;
 		long uSizeSum = 0;
 
+		if (getLogger().isInfoEnabled()) {
+			getLogger().info("Guessing total size via " + maxCheckForGuess + " fast.gz files.");
+		}
 		for (File file : fastaFileDownloadGoal.getAvailableFiles()) {
 			if (i == maxCheckForGuess) {
 				break;
@@ -60,16 +63,29 @@ public class FastasSizeGoal extends ObjectGoal<Long, GSProject> {
 			uSizeSum += getUncompressedSize(file);
 			i++;
 		}
+		if (getLogger().isInfoEnabled()) {
+			getLogger().info("Total compressed size " + cSizeSum + " bytes, total uncompressed size " + uSizeSum + " bytes.");
+		}
 		if (i < maxCheckForGuess) {
 			set(uSizeSum);
 		} else {
 			double cRate = ((double) uSizeSum) / cSizeSum;
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("Estimated compression ratio is: " + cRate);
+			}
+			
 
 			long sizeSum = 0;
 			for (File file : fastaFileDownloadGoal.getAvailableFiles()) {
 				sizeSum += file.length();
 			}
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("Total compressed size: " + (sizeSum / 1024 / 1024) + " MBytes");
+			}			
 			set((long) (sizeSum * cRate));
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("Estimated total uncompressed size: " + (get() / 1024 / 1024) + " MBytes");
+			}			
 		}
 	}
 
