@@ -27,11 +27,13 @@ package org.metagene.genestrip.trie;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.metagene.genestrip.fastq.AbstractFastqReader;
+import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
@@ -46,17 +48,25 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 	private long indexedC;
 
 	private OutputStream indexed;
-	
+
+	private PrintStream out;
+
 	public FastqTrieClassifier(KMerTrie<String> trie, int maxReadSize) {
 		super(maxReadSize);
 		this.trie = trie;
 	}
 
 	public Map<String, Long> runClassifier(File fastq, File filteredFile) throws IOException {
+
 		byteCountAccess = StreamProvider.getByteCountingInputStreamForFile(fastq, false);
 		fastqFileSize = Files.size(fastq.toPath());
 
 		indexed = filteredFile != null ? StreamProvider.getOutputStreamForFile(filteredFile) : null;
+		if (indexed != null) {
+			OutputStream outs = StreamProvider
+					.getOutputStreamForFile(new File(filteredFile.getParent(), filteredFile.getName() + ".out"));
+			out = new PrintStream(outs);
+		}
 
 		startTime = System.currentTimeMillis();
 		indexedC = 0;
@@ -66,6 +76,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 
 		if (indexed != null) {
 			indexed.close();
+			out.close();
 		}
 		byteCountAccess.getInputStream().close();
 
@@ -101,7 +112,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 			}
 		}
 	}
-	
+
 	@Override
 	protected void done() throws IOException {
 		if (logger.isInfoEnabled()) {
@@ -110,14 +121,36 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 	}
 
 	protected boolean classifyRead(boolean reverse) {
+		String oldRes = null, res = null;
 		int max = readSize - trie.getLen() + 1;
 		boolean found = false;
+		int c = 0;
 		for (int i = 0; i < max; i++) {
-			String res = trie.get(read, i, reverse);
+			oldRes = res;
+			res = trie.get(read, i, reverse);
 			if (res != null) {
+				if (out != null && !found) {
+					out.print((reverse ? "Reverse " : "") + ByteArrayUtil.toString(readDescriptor));
+				}
 				found = true;
 				root.inc(res);
+				if (out != null && oldRes != res && oldRes != null) {
+					out.print(" " + oldRes + ":" + c + ":" + (i + 1));
+					c = 0;
+				}
+				c++;
+			} else {
+				if (out != null && c > 0) {
+					out.print(" " + oldRes + ":" + c + ":" + (i + 1));
+				}
+				c = 0;
 			}
+		}
+		if (out != null && c > 0) {
+			out.print(" " + oldRes + ":" + c);
+		}
+		if (out != null && found) {
+			out.println();
 		}
 		return found;
 	}
