@@ -79,7 +79,11 @@ public abstract class FileGoal<P> extends Goal<P> {
 	@Override
 	public void makeThis() {
 		try {
-			for (File file : getFiles()) {
+			int counter = 0;
+			List<File> files = getFiles();
+			int max = files.size();
+			for (File file : files) {
+				counter++;
 				if (isBadEmpty(file)) {
 					if (getLogger().isInfoEnabled()) {
 						getLogger().info("Deleting emtpy file " + file);
@@ -87,7 +91,15 @@ public abstract class FileGoal<P> extends Goal<P> {
 					file.delete();
 				}
 				if (!isMade(file)) {
+					if (getLogger().isInfoEnabled()) {
+						getLogger().info("Making file (" + counter + "/" + max + "):" + file);
+					}
 					makeFile(file);
+				}
+				else {
+					if (getLogger().isInfoEnabled()) {
+						getLogger().info("Already made file (" + counter + "/" + max + "):" + file);
+					}					
 				}
 			}
 		} catch (IOException e) {
