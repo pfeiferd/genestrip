@@ -55,8 +55,14 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 			}
 			KMerFastqGenerator generator = new KMerFastqGenerator(getProject().getkMserSize(),
 					getProject().getConfig().getMaxReadSizeBytes());
+			// A conservative guess:
+			// The fasta file size is dominated by the sequence where is base accounts for 1 byte.
+			long exptectedSize = fastasSizeGoal.get();
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("Expected bloom filter size: " + exptectedSize);
+			}			
 			addedKmers = generator.run(fastaDownloadGoal.getAvailableFiles(), fastq, getProject().getName(),
-					fastasSizeGoal.get());
+					exptectedSize);
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Entered K-mers: " + addedKmers);
 				getLogger().info("Generated fastq file " + fastq);
