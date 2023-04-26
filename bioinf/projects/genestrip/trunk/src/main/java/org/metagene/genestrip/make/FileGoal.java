@@ -73,7 +73,7 @@ public abstract class FileGoal<P> extends Goal<P> {
 	}
 	
 	protected boolean isBadEmpty(File file) {
-		return !isAllowEmptyFiles() && !file.isDirectory() && file.length() == 0;
+		return !isAllowEmptyFiles() && !file.isDirectory() && file.exists() && file.length() == 0;
 	}
 
 	@Override
