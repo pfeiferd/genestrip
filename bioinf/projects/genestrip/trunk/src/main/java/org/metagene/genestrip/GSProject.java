@@ -187,6 +187,10 @@ public class GSProject implements DownloadProject {
 		return new File(getProjectsDir(), name + "/taxidFilter.txt");
 	}
 
+	public File getTaxIdsFilterFile2() {
+		return new File(getProjectsDir(), name + "/taxidFilter2.txt");
+	}
+	
 	public File getResultsDir() {
 		return resFolder;
 	}
