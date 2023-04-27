@@ -45,6 +45,16 @@ public class TaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
 					getLogger().info("Number of completed and filtered tax ids: " + taxIdNodes.size());
 				}
 			}
+			
+			File filterFile2 = getProject().getTaxIdsFilterFile2();
+			if (filterFile2.exists()) {
+				Set<TaxIdNode> filterNodes = taxIdCollector.readFromFile(filterFile2);
+				taxIdNodes.retainAll(filterNodes);
+				if (getLogger().isInfoEnabled()) {
+//					getLogger().info("Filtered tax ids: " + taxIdNodes);
+					getLogger().info("Number of retained, completed and filtered tax ids: " + taxIdNodes.size());
+				}
+			}
 			set(taxIdNodes);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
