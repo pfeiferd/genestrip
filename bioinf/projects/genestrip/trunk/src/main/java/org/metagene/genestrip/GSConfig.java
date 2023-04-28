@@ -113,4 +113,8 @@ public class GSConfig {
 	public boolean isUseHttp() {
 		return Boolean.valueOf(properties.getProperty("useHttp", "true"));
 	}
+	
+	public int getMaxBloomFilterSize() {
+		return Integer.valueOf(properties.getProperty("maxBloomFilterSize", Integer.toString(Integer.MAX_VALUE)));
+	}
 }

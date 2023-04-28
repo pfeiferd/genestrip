@@ -9,6 +9,7 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxIdCollector;
 import org.metagene.genestrip.tax.TaxTree;
+import org.metagene.genestrip.tax.TaxTree.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
 
@@ -55,6 +56,13 @@ public class TaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
 					getLogger().info("Number of retained, completed and filtered tax ids: " + taxIdNodes.size());
 				}
 			}
+			
+			Rank rank = Rank.SPECIES;
+			taxIdNodes = taxIdCollector.restrictToMaxRank(rank, taxIdNodes);
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("Number of tax ids restricted to rank " + rank  + ": " + taxIdNodes.size());
+			}
+			
 			set(taxIdNodes);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
