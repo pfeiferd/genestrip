@@ -40,12 +40,43 @@ import java.util.Map;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class TaxTree {
+	public enum Rank {
+		NO_RANK("no rank"), SUPERKINGDOM("superkingdom"), KINGDOM("kingdom"), PHYLUM("phylum"), SUBPHYLUM("subphylum"),
+		SUPERCLASS("superclass"), CLASS("class"), SUBCLASS("subclass"), SUPERORDER("superorder"), ORDER("order"),
+		SUBORDER("suborder"), SUPERFAMILY("superfamily"), FAMILY("family"), SUBFAMILY("subfamily"), CLADE("clade"),
+		GENUS("genus"), SUBGENUS("subgenus"), SPECIES_GROUP("species group"), SPECIES("species"), VARIETAS("varietas"),
+		SUBSPECIES("subspecies"), STRAIN("strain");
+
+		private String name;
+
+		private Rank(String name) {
+			this.name = name;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		public static Rank byName(String name) {
+			for (Rank r : Rank.values()) {
+				if (r.name.equals(name)) {
+					return r;
+				}
+			}
+			return null;
+		}
+
+		public boolean isBelowOrEqual(Rank rank) {
+			return this.ordinal() >= rank.ordinal();
+		}
+	}
+
 	public static final String NODES_DMP = "nodes.dmp";
 	public static final String NAMES_DMP = "names.dmp";
-	
+
 	private final TaxIdNode root;
 	private final Map<String, TaxIdNode> taxIdToNode;
-	
+
 	public TaxTree(File path) {
 		try {
 			taxIdToNode = new HashMap<String, TaxIdNode>();
@@ -56,7 +87,7 @@ public class TaxTree {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	public boolean isAncestorOf(TaxIdNode node, TaxIdNode ancestor) {
 		while (node != null) {
 			if (node.equals(ancestor)) {
@@ -64,14 +95,14 @@ public class TaxTree {
 			}
 			node = node.getParent();
 		}
-		
+
 		return false;
 	}
-	
+
 	protected InputStream createNodesResource(File path) throws IOException {
 		return StreamProvider.getInputStreamForFile(new File(path, NODES_DMP));
 	}
-	
+
 	protected InputStream createNamesResource(File path) throws IOException {
 		return StreamProvider.getInputStreamForFile(new File(path, NAMES_DMP));
 	}
@@ -105,15 +136,17 @@ public class TaxTree {
 			while ((line = br.readLine()) != null) {
 				int a = line.indexOf("|");
 				int b = line.indexOf("|", a + 1);
+				int c = line.indexOf("|", b + 1);
 				if (a != -1 && b != -1) {
 					String taxA = line.substring(0, a).trim();
 					String taxB = line.substring(a + 1, b).trim();
+					String level = line.substring(b + 1, c).trim();
 
 					TaxIdNode nodeA;
 					if (taxA.equals(taxB) && taxA.equals("1")) {
-						res = nodeA = new TaxIdNode(taxA, null);
+						res = nodeA = new TaxIdNode(taxA, null, Rank.byName(level));
 					} else {
-						nodeA = new TaxIdNode(taxA, taxB);
+						nodeA = new TaxIdNode(taxA, taxB, Rank.byName(level));
 					}
 					taxIdToNode.put(taxA, nodeA);
 				}
@@ -154,11 +187,17 @@ public class TaxTree {
 		private final List<TaxIdNode> subNodes;
 		private TaxIdNode parent;
 		private int position;
+		private Rank rank;
 
-		public TaxIdNode(String taxId, String name) {
+		public TaxIdNode(String taxId, String name, Rank rank) {
 			this.parentTaxId = name;
 			this.taxId = taxId;
+			this.rank = rank;
 			subNodes = new ArrayList<TaxIdNode>();
+		}
+
+		public Rank getRank() {
+			return rank;
 		}
 
 		public TaxIdNode getParent() {
@@ -197,17 +236,17 @@ public class TaxTree {
 		public int compareTo(TaxIdNode o) {
 			return position - o.position;
 		}
-		
+
 		@Override
 		public String toString() {
 			return "Node: " + taxId;
 		}
 	}
-	
+
 	public void writeSortedSpecies(PrintWriter writer) throws IOException {
 		writeSortedSpecies(root, writer);
 	}
-	
+
 	protected void writeSortedSpecies(TaxIdNode node, PrintWriter writer) throws IOException {
 		writer.print(node.position);
 		writer.print('|');
@@ -216,7 +255,7 @@ public class TaxTree {
 		writer.println(node.name);
 		for (TaxIdNode subNode : node.subNodes) {
 			writeSortedSpecies(subNode, writer);
-		}		
+		}
 	}
 
 	public static void main(String[] args) throws IOException {
