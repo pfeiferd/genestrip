@@ -31,14 +31,15 @@ import org.apache.commons.codec.digest.MurmurHash3;
 
 import it.unimi.dsi.fastutil.BigArrays;
 
-public class LargeMurmurCGATBloomFilter2 extends TwoLongsCGATBloomFilter implements Serializable {
+public class LargeMurmurCGATBloomFilter extends TwoLongsCGATBloomFilter implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
 	private final int[] hashFactors1;
 	private final int[] hashFactors2;
 	protected long[][] bits;
+	protected long size;
 
-	public LargeMurmurCGATBloomFilter2(int k, long expectedInsertions, double fpp) {
+	public LargeMurmurCGATBloomFilter(int k, long expectedInsertions, double fpp) {
 		super(k, expectedInsertions, fpp);
 		
 		Random r = new Random(42);
@@ -52,6 +53,7 @@ public class LargeMurmurCGATBloomFilter2 extends TwoLongsCGATBloomFilter impleme
 	
 	@Override
 	protected void createBitArray(long size) {
+		this.size = size;
 		bits = BigArrays.ensureCapacity(BigArrays.wrap(new long[0]), size);
 	}
 
@@ -62,7 +64,7 @@ public class LargeMurmurCGATBloomFilter2 extends TwoLongsCGATBloomFilter impleme
 
 		for (int i = 0; i < hashes; i++) {
 			hash = combineLongHashesLarge(hash1, hash2, i);
-			index = (int) ((hash >>> 6) % bits.length);
+			index = ((hash >>> 6) % size);
 			if (((BigArrays.get(bits, index) >> (hash & 0b111111)) & 1L) == 0) {
 				return false;
 			}
@@ -77,16 +79,16 @@ public class LargeMurmurCGATBloomFilter2 extends TwoLongsCGATBloomFilter impleme
 
 		for (int i = 0; i < hashes; i++) {
 			hash = combineLongHashesLarge(hash1, hash2, i);
-			index = (int) ((hash >>> 6) % bits.length);
+			index = ((hash >>> 6) % size);
 			BigArrays.set(bits, index, BigArrays.get(bits, index) | (1L << (hash & 0b111111)));
 		}
 	}
 	
 	protected long combineLongHashesLarge(long hash1, long hash2, int i) {
 		long a = MurmurHash3.hash32(hash1, hash2, hashFactors1[i]);
-		long b = MurmurHash3.hash32(hash1, hash2, hashFactors1[i]);
+		int b = MurmurHash3.hash32(hash1, hash2, hashFactors2[i]);
 		
-		return a << 32 + b;
+		return a << 32 | b;
 	}
 	
 	@Override
