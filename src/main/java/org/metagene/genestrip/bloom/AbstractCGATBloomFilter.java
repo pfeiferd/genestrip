@@ -55,10 +55,11 @@ public abstract class AbstractCGATBloomFilter implements Serializable {
 	}
 
 	protected final int k;
+	protected final long expectedInsertions;
+	protected final double fpp;
+	protected final int hashes;
+	protected final long size;
 	protected long[] bits;
-	protected long expectedInsertions;
-	protected double fpp;
-	protected int hashes;
 
 	public AbstractCGATBloomFilter(int k, long expectedInsertions, double fpp) {
 		if (k <= 0) {
@@ -75,16 +76,14 @@ public abstract class AbstractCGATBloomFilter implements Serializable {
 
 		this.expectedInsertions = expectedInsertions;
 		long bits = optimalNumOfBits(expectedInsertions, fpp);
+		size = (bits + 63) / 64;
 		
 		hashes = optimalNumOfHashFunctions(expectedInsertions, bits);
 
-		int logbits = (int) (Math.log((bits + 63) / 64) / LOG_2);
-		long size = (1 << (logbits + 1)) - 1; // Now: size = 2^x - 1 such that 2^x > (bits + 63) / 64 < 2^(x-1)
-
-		createBitArray(size);
+		initBitArray(size);
 	}
 	
-	protected void createBitArray(long size) {
+	protected void initBitArray(long size) {
 		this.bits = new long[(int) size];		
 	}
 	
@@ -104,8 +103,8 @@ public abstract class AbstractCGATBloomFilter implements Serializable {
 		return fpp;
 	}
 	
-	public int getByteSize() {
-		return bits.length;
+	public long getByteSize() {
+		return size * 8;
 	}
 	
 	protected int optimalNumOfHashFunctions(long n, long m) {

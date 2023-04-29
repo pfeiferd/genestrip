@@ -37,8 +37,7 @@ public class LargeMurmurCGATBloomFilter extends TwoLongsCGATBloomFilter implemen
 	private final int[] hashFactors1;
 	private final int[] hashFactors2;
 	protected long[][] bits;
-	protected long size;
-
+	
 	public LargeMurmurCGATBloomFilter(int k, long expectedInsertions, double fpp) {
 		super(k, expectedInsertions, fpp);
 		
@@ -50,10 +49,9 @@ public class LargeMurmurCGATBloomFilter extends TwoLongsCGATBloomFilter implemen
 			hashFactors2[i] = r.nextInt();
 		}
 	}
-	
+		
 	@Override
-	protected void createBitArray(long size) {
-		this.size = size;
+	protected void initBitArray(long size) {
 		bits = BigArrays.ensureCapacity(BigArrays.wrap(new long[0]), size);
 	}
 
