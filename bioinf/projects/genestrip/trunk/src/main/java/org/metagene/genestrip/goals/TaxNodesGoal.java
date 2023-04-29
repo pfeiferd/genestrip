@@ -33,7 +33,6 @@ public class TaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
 			}
 			taxIdNodes = taxIdCollector.withDescendants(taxIdNodes);
 			if (getLogger().isInfoEnabled()) {
-//				getLogger().info("Completed tax ids: " + taxIdNodes);
 				getLogger().info("Number of completed tax ids: " + taxIdNodes.size());
 			}
 
@@ -42,7 +41,6 @@ public class TaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
 				Set<TaxIdNode> filterNodes = taxIdCollector.readFromFile(filterFile);
 				taxIdNodes = taxIdCollector.restrictToAncestors(filterNodes, taxIdNodes);
 				if (getLogger().isInfoEnabled()) {
-//					getLogger().info("Filtered tax ids: " + taxIdNodes);
 					getLogger().info("Number of completed and filtered tax ids: " + taxIdNodes.size());
 				}
 			}
@@ -52,12 +50,11 @@ public class TaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
 				Set<TaxIdNode> filterNodes = taxIdCollector.readFromFile(filterFile2);
 				taxIdNodes.retainAll(filterNodes);
 				if (getLogger().isInfoEnabled()) {
-//					getLogger().info("Filtered tax ids: " + taxIdNodes);
 					getLogger().info("Number of retained, completed and filtered tax ids: " + taxIdNodes.size());
 				}
 			}
 			
-			Rank rank = Rank.SPECIES;
+			Rank rank = getProject().getConfig().getMaxRankForFilters();
 			taxIdNodes = taxIdCollector.restrictToMaxRank(rank, taxIdNodes);
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Number of tax ids restricted to rank " + rank  + ": " + taxIdNodes.size());
