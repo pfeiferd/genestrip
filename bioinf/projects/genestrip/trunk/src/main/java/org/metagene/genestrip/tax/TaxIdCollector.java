@@ -81,6 +81,9 @@ public class TaxIdCollector {
 	}
 
 	public Set<TaxIdNode> restrictToMaxRank(TaxTree.Rank rank, Set<TaxIdNode> taxIds) {
+		if (rank == null) {
+			return taxIds;
+		}
 		Set<TaxIdNode> res = new HashSet<TaxTree.TaxIdNode>();
 
 		for (TaxIdNode node : taxIds) {
