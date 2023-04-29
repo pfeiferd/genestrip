@@ -68,7 +68,7 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 			long size = Math.max(1000 * 1000, sizeGoal.get());
 			
 			AbstractKMerBloomIndex bloomIndex = new GenestripKMerBloomIndex(bloomFilterFile.getName(), getProject().getkMserSize(),
-					size, 0.000001, null);
+					size, 0.0001, null);
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Number of k-mers for " + bloomIndex + ": " + sizeGoal.get());
