@@ -32,17 +32,12 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.Main;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
 import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
-import org.metagene.genestrip.make.FileGoal;
-import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.KMerTrie;
 import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
 import org.metagene.genestrip.util.CGAT;
-import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 
 import junit.framework.TestCase;
@@ -229,6 +224,6 @@ public class CGATBloomFilterTest extends TestCase {
 	}
 	
 	protected AbstractCGATBloomFilter createFilter(int k, long size, double fpp) {
-		return new CGATMurmurBloomFilter(k, size, fpp);
+		return new MurmurCGATBloomFilter(k, size, fpp);
 	}
 }
