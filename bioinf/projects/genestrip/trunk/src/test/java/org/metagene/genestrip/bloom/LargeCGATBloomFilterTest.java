@@ -27,6 +27,6 @@ package org.metagene.genestrip.bloom;
 public class LargeCGATBloomFilterTest extends CGATBloomFilterTest {
 	@Override
 	protected AbstractCGATBloomFilter createFilter(int k, long size, double fpp) {
-		return new LargeMurmurCGATBloomFilter2(k, size, fpp);
+		return new LargeMurmurCGATBloomFilter(k, size, fpp);
 	}
 }
