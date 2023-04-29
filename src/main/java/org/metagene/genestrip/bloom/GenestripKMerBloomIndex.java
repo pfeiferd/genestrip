@@ -26,14 +26,18 @@ package org.metagene.genestrip.bloom;
 
 import org.metagene.genestrip.util.CGATRingBuffer;
 
-public class GenestripKMerBloomIndex extends AbstractKMerBloomIndex  {
+public class GenestripKMerBloomIndex extends AbstractKMerBloomIndex {
+	private static int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
+
 	private static final long serialVersionUID = 1L;
 
-	private final MurmurCGATBloomFilter index;
+	private final AbstractCGATBloomFilter index;
 
-	public GenestripKMerBloomIndex(String name, int k, long expectedInsertions, double expectedFpp, PutListener putListener) {
+	public GenestripKMerBloomIndex(String name, int k, long expectedInsertions, double expectedFpp,
+			PutListener putListener) {
 		super(name, k, putListener);
-		index = new MurmurCGATBloomFilter(k, expectedInsertions, expectedFpp);
+		index = expectedInsertions > MAX_ARRAY_SIZE ? new LargeMurmurCGATBloomFilter(k, expectedInsertions, expectedFpp)
+				: new MurmurCGATBloomFilter(k, expectedInsertions, expectedFpp);
 	}
 
 	@Override
@@ -45,7 +49,7 @@ public class GenestripKMerBloomIndex extends AbstractKMerBloomIndex  {
 	public boolean contains(CGATRingBuffer byteRingBuffer, int[] badPos) {
 		return index.contains(byteRingBuffer, false, badPos);
 	}
-	
+
 	@Override
 	public boolean contains(byte[] seq, int start, boolean reverse, int[] badPos) {
 		return index.contains(seq, start, reverse, badPos);
@@ -55,12 +59,12 @@ public class GenestripKMerBloomIndex extends AbstractKMerBloomIndex  {
 	public long getExpectedInsertions() {
 		return index.getExpectedInsertions();
 	}
-	
+
 	@Override
 	public int getByteSize() {
 		return index.getByteSize();
 	}
-	
+
 	@Override
 	protected void putInternal() {
 		index.put(byteRingBuffer, null);
