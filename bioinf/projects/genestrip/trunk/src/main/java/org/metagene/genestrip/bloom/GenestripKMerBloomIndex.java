@@ -61,7 +61,7 @@ public class GenestripKMerBloomIndex extends AbstractKMerBloomIndex {
 	}
 
 	@Override
-	public int getByteSize() {
+	public long getByteSize() {
 		return index.getByteSize();
 	}
 

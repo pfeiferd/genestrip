@@ -102,7 +102,7 @@ public abstract class AbstractKMerBloomIndex implements Serializable {
 		return n;
 	}
 
-	public abstract int getByteSize();
+	public abstract long getByteSize();
 
 	public void save(File filterFile) throws IOException {
 		ObjectOutputStream oOut = new ObjectOutputStream(StreamProvider.getOutputStreamForFile(filterFile));
