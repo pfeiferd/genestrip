@@ -30,6 +30,8 @@ import java.io.IOException;
 import java.util.Properties;
 
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
+import org.metagene.genestrip.tax.TaxTree;
+import org.metagene.genestrip.tax.TaxTree.Rank;
 
 public class GSConfig {
 	public static final String CONFIG_PROPERTIES = "Config.properties";
@@ -112,6 +114,10 @@ public class GSConfig {
 
 	public boolean isUseHttp() {
 		return Boolean.valueOf(properties.getProperty("useHttp", "true"));
+	}
+	
+	public Rank getMaxRankForFilters() {
+		return TaxTree.Rank.byName(properties.getProperty("maxRankForFilters", "species"));
 	}
 	
 	public int getMaxBloomFilterSize() {
