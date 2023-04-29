@@ -49,7 +49,7 @@ public class CGATBloomFilterTest extends TestCase {
 	public void testBloomFilter2() {
 		int k = 35;
 		int size = 5 * 1000 * 1000;
-		double fpp = 0.01;
+		double fpp = 0.001;
 
 		AbstractCGATBloomFilter filter = createFilter(k, size, fpp);
 
