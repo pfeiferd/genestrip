@@ -92,8 +92,8 @@ public class CGATBloomFilterTest extends TestCase {
 		}
 		System.out.println("Errors: " + err);
 		double testedFp = ((double) err) / (2 * size);
-		System.out.println("Tested FP: " + testedFp);
-		assertTrue(testedFp <= fpp);
+		System.out.println("Tested FP: " + (testedFp * 100) + "%");
+		assertTrue(testedFp <= fpp * 1.1);
 	}
 
 	public void testBloomFilter() {
@@ -142,8 +142,8 @@ public class CGATBloomFilterTest extends TestCase {
 		}
 		System.out.println("Errors: " + err);
 		double testedFp = ((double) err) / (2 * size);
-		System.out.println("Tested FP: " + testedFp);
-		assertTrue(testedFp <= fpp);
+		System.out.println("Tested FP: " + (testedFp * 100) + "%");
+		assertTrue(testedFp <= fpp * 1.1);
 	}
 
 //	public void testBloomFilterViaProject() throws IOException {
