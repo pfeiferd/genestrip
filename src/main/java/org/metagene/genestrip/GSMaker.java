@@ -46,6 +46,7 @@ import org.metagene.genestrip.goals.KrakenFastqFileGoal;
 import org.metagene.genestrip.goals.KrakenOutGoal;
 import org.metagene.genestrip.goals.KrakenResCountGoal;
 import org.metagene.genestrip.goals.KrakenResErrorGoal;
+import org.metagene.genestrip.goals.SortKrakenOutGoal;
 import org.metagene.genestrip.goals.TaxIdFileDownloadGoal;
 import org.metagene.genestrip.goals.TaxNodesGoal;
 import org.metagene.genestrip.goals.TrieFromKrakenResGoal;
@@ -163,9 +164,14 @@ public class GSMaker extends Maker<GSProject> {
 				projectSetupGoal);
 		registerGoal(kmerFastqGoal);
 
-		KrakenOutGoal krakenOutGoal = new KrakenOutGoal(project, "kmerkrakenout", kmerFastqGoal.getOutputFile(),
+		FileGoal<GSProject> krakenOutGoal = new KrakenOutGoal(project, "kmerkrakenout", kmerFastqGoal.getOutputFile(),
 				kmerFastqGoal, projectSetupGoal);
 		registerGoal(krakenOutGoal);
+		
+		if (project.getConfig().isUseKraken1()) {
+			krakenOutGoal = new SortKrakenOutGoal(project, "krakenoutsort", krakenOutGoal);
+			registerGoal(krakenOutGoal);
+		}
 
 		KMerTrieFileGoal trieGoal = new KMerTrieFileGoal(project, "trie", taxNodesGoal, krakenOutGoal, kmerFastqGoal,
 				projectSetupGoal);

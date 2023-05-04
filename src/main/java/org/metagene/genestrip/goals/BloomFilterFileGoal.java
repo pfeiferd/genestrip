@@ -36,6 +36,7 @@ import org.metagene.genestrip.bloom.AbstractKMerBloomIndex;
 import org.metagene.genestrip.bloom.GenestripKMerBloomIndex;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
 import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
+import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -46,12 +47,12 @@ import org.metagene.genestrip.util.StreamProvider;
 public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final BloomFilterSizeGoal sizeGoal;
-	private final KrakenOutGoal krakenOutGoal;
+	private final FileGoal<GSProject> krakenOutGoal;
 	private final KMerFastqGoal kmerFastqGoal;
 
 	@SafeVarargs
 	public BloomFilterFileGoal(GSProject project, String name, BloomFilterSizeGoal sizeGoal,
-			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, KrakenOutGoal krakenOutGoal, KMerFastqGoal kmerFastqGoal, Goal<GSProject>... deps) {
+			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, FileGoal<GSProject> krakenOutGoal, KMerFastqGoal kmerFastqGoal, Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, FileType.SER), ArraysUtil.append(deps, sizeGoal, taxNodesGoal, krakenOutGoal, kmerFastqGoal));
 		this.taxNodesGoal = taxNodesGoal;
 		this.sizeGoal = sizeGoal;

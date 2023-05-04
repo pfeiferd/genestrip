@@ -30,15 +30,16 @@ import java.io.IOException;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.kraken.SortExecutor;
+import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.util.ArraysUtil;
 
 public class SortKrakenOutGoal extends FileListGoal<GSProject> {
-	private final KrakenOutGoal krakenOutGoal;
+	private final FileGoal<GSProject> krakenOutGoal;
 
 	@SafeVarargs
-	public SortKrakenOutGoal(GSProject project, String name, KrakenOutGoal krakenOutGoal, Goal<GSProject>... deps) {
+	public SortKrakenOutGoal(GSProject project, String name, FileGoal<GSProject> krakenOutGoal, Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, FileType.FASTQ), ArraysUtil.append(deps, krakenOutGoal));
 		this.krakenOutGoal = krakenOutGoal;
 	}
