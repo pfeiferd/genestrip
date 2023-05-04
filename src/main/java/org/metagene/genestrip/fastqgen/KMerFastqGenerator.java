@@ -62,7 +62,7 @@ public class KMerFastqGenerator {
 			getLogger().info("Creating fastq file " + fastq);
 		}
 		FastQWriter fastQWriter = new FastQWriter(name, StreamProvider.getOutputStreamForFile(fastq));
-		GenestripKMerBloomIndex index = new GenestripKMerBloomIndex(name, getKmerSize(), expectedSize, 0.001,
+		GenestripKMerBloomIndex index = new GenestripKMerBloomIndex(name, getKmerSize(), expectedSize / 2, 0.0001,
 				fastQWriter);
 
 		if (getLogger().isInfoEnabled()) {
@@ -77,7 +77,7 @@ public class KMerFastqGenerator {
 			counter++;
 			if (fasta.exists()) {
 				if (getLogger().isInfoEnabled()) {
-					getLogger().info("Processing fast file (" + counter + "/" + max + "):" + fasta);
+					getLogger().info("Processing fasta file (" + counter + "/" + max + "):" + fasta);
 				}
 				fastaIndexer.readFasta(fasta);
 			} else {
