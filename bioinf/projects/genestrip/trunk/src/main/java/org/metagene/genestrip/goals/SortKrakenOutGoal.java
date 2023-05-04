@@ -26,42 +26,37 @@ package org.metagene.genestrip.goals;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
-import org.metagene.genestrip.kraken.KrakenExecutor;
+import org.metagene.genestrip.kraken.SortExecutor;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
-import org.metagene.genestrip.util.StreamProvider;
+import org.metagene.genestrip.util.ArraysUtil;
 
-public class KrakenOutGoal extends FileListGoal<GSProject> {
-	private final File fastqFile;
+public class SortKrakenOutGoal extends FileListGoal<GSProject> {
+	private final KrakenOutGoal krakenOutGoal;
 
 	@SafeVarargs
-	public KrakenOutGoal(GSProject project, String name, File fastqFile,
-			Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, fastqFile, FileType.KRAKEN_OUT), deps);
-		this.fastqFile = fastqFile;
+	public SortKrakenOutGoal(GSProject project, String name, KrakenOutGoal krakenOutGoal, Goal<GSProject>... deps) {
+		super(project, name, project.getOutputFile(name, FileType.FASTQ), ArraysUtil.append(deps, krakenOutGoal));
+		this.krakenOutGoal = krakenOutGoal;
 	}
 
 	@Override
-	protected void makeFile(File krakenOut) {
-		KrakenExecutor krakenExecutor = new KrakenExecutor(getProject().getConfig().getKrakenBin(),
-				getProject().getConfig().getKrakenExecExpr());
+	protected void makeFile(File fastq) {
+		SortExecutor sortExecutor = new SortExecutor(getProject().getConfig().getSortBin(),
+				getProject().getConfig().getSortExecExpr());
 		try {
 			if (getLogger().isInfoEnabled()) {
-				String execLine = krakenExecutor.genExecLine(getProject().getKrakenDB(), fastqFile);
-				getLogger().info("Running kraken with " + execLine);
+				String execLine = sortExecutor.genExecLine(krakenOutGoal.getOutputFile(), fastq);
+				getLogger().info("Running sort with " + execLine);
 			}
-			OutputStream out = StreamProvider.getOutputStreamForFile(krakenOut);
-			krakenExecutor.execute2(getProject().getKrakenDB(), fastqFile, out, System.err);
-			out.close();
+			sortExecutor.execute(krakenOutGoal.getOutputFile(), fastq);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
-		}
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Finished kraken");
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
 		}
 	}
 }
