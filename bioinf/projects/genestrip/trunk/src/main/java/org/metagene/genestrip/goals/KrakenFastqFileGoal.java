@@ -34,6 +34,7 @@ import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
 import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
+import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -44,7 +45,7 @@ import org.metagene.genestrip.util.StreamProvider;
 
 public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
-	private final KrakenOutGoal krakenOutGoal;
+	private final FileGoal<GSProject> krakenOutGoal;
 	private final KMerFastqGoal kmerFastqGoal;
 	
 	private long lastLineCount;
@@ -52,7 +53,7 @@ public class KrakenFastqFileGoal extends FileListGoal<GSProject> {
 
 	@SafeVarargs
 	public KrakenFastqFileGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			KrakenOutGoal krakenOutGoal, KMerFastqGoal kmerFastqGoal, Goal<GSProject>... deps) {
+			FileGoal<GSProject> krakenOutGoal, KMerFastqGoal kmerFastqGoal, Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, FileType.FASTQ), ArraysUtil.append(deps, taxNodesGoal, krakenOutGoal, kmerFastqGoal));
 		this.taxNodesGoal = taxNodesGoal;
 		this.krakenOutGoal = krakenOutGoal;

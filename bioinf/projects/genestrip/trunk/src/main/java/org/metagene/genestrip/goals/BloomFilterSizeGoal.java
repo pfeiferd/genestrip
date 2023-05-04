@@ -32,6 +32,7 @@ import java.util.Set;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
 import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
+import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
@@ -40,11 +41,11 @@ import org.metagene.genestrip.util.StreamProvider;
 
 public class BloomFilterSizeGoal extends ObjectGoal<Long, GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
-	private final KrakenOutGoal krakenOutGoal;
+	private final FileGoal<GSProject> krakenOutGoal;
 
 	@SafeVarargs
 	public BloomFilterSizeGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			KrakenOutGoal krakenOutGoal, Goal<GSProject>... deps) {
+			FileGoal<GSProject> krakenOutGoal, Goal<GSProject>... deps) {
 		super(project, name, ArraysUtil.append(deps, taxNodesGoal, krakenOutGoal));
 		this.taxNodesGoal = taxNodesGoal;
 		this.krakenOutGoal = krakenOutGoal;
