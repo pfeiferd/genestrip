@@ -43,18 +43,18 @@ public class SortExecutor {
 		this.bin = StringUtils.quoteArgument(bin);
 	}
 
-	public String genExecLine(File fastqIn, File fastqOut) throws IOException {
-		return MessageFormat.format(execCommand, bin, StringUtils.quoteArgument(fastqIn.getCanonicalPath()),
-				StringUtils.quoteArgument(fastqOut.getCanonicalPath()));
+	public String genExecLine(File outIn) throws IOException {
+		return MessageFormat.format(execCommand, bin, StringUtils.quoteArgument(outIn.getCanonicalPath()));
 	}
 
-	protected CommandLine genExecCommand(File fastqIn, File fastqOut) throws IOException {
-		return CommandLine.parse(genExecLine(fastqIn, fastqOut));
+	protected CommandLine genExecCommand(File outIn) throws IOException {
+		return CommandLine.parse(genExecLine(outIn));
 	}
 
-	public void execute(File fastqIn, File fastqOut)
+	public void execute(File outIn, OutputStream outputStream)
 			throws InterruptedException, IOException {
-		Process process = Runtime.getRuntime().exec(genExecLine(fastqIn, fastqOut));
+		Process process = Runtime.getRuntime().exec(genExecLine(outIn));
+		handleOutputStream(process.getInputStream(), outputStream);
 		handleErrorStream(process.getErrorStream(), System.err);
 		int res = process.waitFor();
 		if (res != 0) {
@@ -62,6 +62,10 @@ public class SortExecutor {
 		}
 	}
 
+	protected void handleOutputStream(InputStream stream, OutputStream outputStream) throws IOException {
+		IOUtils.copyLarge(stream, outputStream);
+	}
+	
 	protected void handleErrorStream(InputStream inputStream, OutputStream errorStream) throws IOException {
 		IOUtils.copy(inputStream, errorStream);
 	}
