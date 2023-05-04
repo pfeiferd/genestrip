@@ -91,6 +91,18 @@ public class GSConfig {
 		return properties.getProperty("krakenExecExpr", "{0} -db {1} {2}");
 	}
 
+	public String getSortBin() {
+		return properties.getProperty("sortBin", "sort");
+	}
+	
+	public String getSortExecExpr() {
+		return properties.getProperty("sortExecExpr", "{0} -n -t ':' -k 3 {1} > {2}");
+	}
+	
+	public boolean isUseKraken1() {
+		return Boolean.valueOf(properties.getProperty("useKraken1", "false"));
+	}
+	
 	public FTPEntryQuality getFastaQuality() {
 		String qs = properties.getProperty("fastaQuality");
 		return qs == null ? FTPEntryQuality.COMPLETE_LATEST : FTPEntryQuality.valueOf(qs);
