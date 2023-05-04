@@ -96,7 +96,7 @@ public class GSConfig {
 	}
 	
 	public String getSortExecExpr() {
-		return properties.getProperty("sortExecExpr", "{0} -n -t ':' -k 3 {1} > {2}");
+		return properties.getProperty("sortExecExpr", "{0} -n -t ':' -k 3 {1}");
 	}
 	
 	public boolean isUseKraken1() {
