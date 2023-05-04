@@ -71,8 +71,14 @@ public class KMerFastqGenerator {
 
 		FastaIndexer fastaIndexer = new FastaIndexer(index, readBufferSize);
 
+		int max = fastaFiles.size();
+		int counter = 0;
 		for (File fasta : fastaFiles) {
+			counter++;
 			if (fasta.exists()) {
+				if (getLogger().isInfoEnabled()) {
+					getLogger().info("Processing fast file (" + counter + "/" + max + "):" + fasta);
+				}
 				fastaIndexer.readFasta(fasta);
 			} else {
 				throw new IllegalStateException("Missing fasta file " + fasta);
