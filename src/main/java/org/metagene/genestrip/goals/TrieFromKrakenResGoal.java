@@ -38,6 +38,7 @@ import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.goals.TrieFromKrakenResGoal.TaxidWithCount;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
 import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
+import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
@@ -54,7 +55,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 	private final File fastq;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fastaFilesGoal;
-	private final KrakenOutGoal krakenOutGoal;
+	private final FileGoal<GSProject> krakenOutGoal;
 	private final boolean writedMatchingReads;
 
 	private KrakenResultFastqMergeListener printListener = null;
@@ -63,7 +64,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 	public TrieFromKrakenResGoal(GSProject project, String name, File fastq, boolean writedMatchingReads,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
 			ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fastaFilesGoal,
-			KrakenOutGoal krakenOutGoal, Goal<GSProject>... deps) {
+			FileGoal<GSProject> krakenOutGoal, Goal<GSProject>... deps) {
 		super(project, name, ArraysUtil.append(deps, taxNodesGoal, fastaFilesGoal, krakenOutGoal));
 		this.fastq = fastq;
 		this.taxNodesGoal = taxNodesGoal;

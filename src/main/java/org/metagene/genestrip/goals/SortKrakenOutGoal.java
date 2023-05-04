@@ -39,8 +39,10 @@ public class SortKrakenOutGoal extends FileListGoal<GSProject> {
 	private final FileGoal<GSProject> krakenOutGoal;
 
 	@SafeVarargs
-	public SortKrakenOutGoal(GSProject project, String name, FileGoal<GSProject> krakenOutGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, FileType.FASTQ), ArraysUtil.append(deps, krakenOutGoal));
+	public SortKrakenOutGoal(GSProject project, String name, FileGoal<GSProject> krakenOutGoal,
+			Goal<GSProject>... deps) {
+		super(project, name, project.getOutputFile(name, krakenOutGoal.getOutputFile(), FileType.FASTQ, false),
+				ArraysUtil.append(deps, krakenOutGoal));
 		this.krakenOutGoal = krakenOutGoal;
 	}
 
