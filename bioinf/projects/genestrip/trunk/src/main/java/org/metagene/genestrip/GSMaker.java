@@ -169,7 +169,7 @@ public class GSMaker extends Maker<GSProject> {
 		registerGoal(krakenOutGoal);
 		
 		if (project.getConfig().isUseKraken1()) {
-			krakenOutGoal = new SortKrakenOutGoal(project, "krakenoutsort", krakenOutGoal);
+			krakenOutGoal = new SortKrakenOutGoal(project, "sort", krakenOutGoal);
 			registerGoal(krakenOutGoal);
 		}
 
@@ -242,9 +242,14 @@ public class GSMaker extends Maker<GSProject> {
 					projectSetupGoal);
 			registerGoal(krakenResCountAllGoal);
 
-			KrakenOutGoal fastqKrakenOutGoal = new KrakenOutGoal(project, "fastqkrakenout", fastq, projectSetupGoal);
+			FileGoal<GSProject> fastqKrakenOutGoal = new KrakenOutGoal(project, "fastqkrakenout", fastq, projectSetupGoal);
 			registerGoal(fastqKrakenOutGoal);
 
+			if (project.getConfig().isUseKraken1()) {
+				fastqKrakenOutGoal = new SortKrakenOutGoal(project, "sortfastq", fastqKrakenOutGoal);
+				registerGoal(fastqKrakenOutGoal);
+			}
+			
 			ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> trieFromKrakenResGoal = new TrieFromKrakenResGoal(project,
 					"triefromkrakenres", fastq, project.getConfig().isWriteFilteredFastq(), taxNodesGoal,
 					fastaFilesGoal, fastqKrakenOutGoal, fastaDownloadGoal, projectSetupGoal);
