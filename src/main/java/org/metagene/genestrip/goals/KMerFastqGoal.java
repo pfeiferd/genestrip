@@ -39,6 +39,7 @@ import org.metagene.genestrip.fastqgen.KMerFastqGenerator;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryWithQuality;
 import org.metagene.genestrip.tax.TaxTree.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
@@ -65,8 +66,11 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 				files = new HashSet<File>();
 				taxToFastas.put(key, files);
 			}
+			FTPEntryQuality minQuality = getProject().getConfig().getFastaQuality();
 			for (FTPEntryWithQuality entry : entries) {
-				files.add(new File(getProject().getFastasDir(), entry.getFileName()));
+				if (minQuality == null || !entry.getQuality().below(minQuality)) {
+					files.add(new File(getProject().getFastasDir(), entry.getFileName()));
+				}
 			}
 		}
 	}
@@ -100,7 +104,7 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 			for (TaxIdNode taxId : taxToFastas.keySet()) {
 				counter++;
 				if (getLogger().isInfoEnabled()) {
-					getLogger().info("Processing taxid (" + counter + "/" + max + "):" + taxId.getName());
+					getLogger().info("Processing taxid (" + counter + "/" + max + "): " + taxId.getName());
 				}
 				long addedKmers = generator.add(taxToFastas.get(taxId));
 				if (getLogger().isInfoEnabled()) {
