@@ -25,6 +25,7 @@
 package org.metagene.genestrip.bloom;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 import org.metagene.genestrip.util.CGATRingBuffer;
 
@@ -35,7 +36,7 @@ public abstract class AbstractCGATBloomFilter implements Serializable {
 
 	protected static final int[] CGAT_JUMP_TABLE;
 	protected static final int[] CGAT_REVERSE_JUMP_TABLE;
-	
+
 	static {
 		CGAT_JUMP_TABLE = new int[Byte.MAX_VALUE];
 		CGAT_REVERSE_JUMP_TABLE = new int[Byte.MAX_VALUE];
@@ -55,11 +56,11 @@ public abstract class AbstractCGATBloomFilter implements Serializable {
 	}
 
 	protected final int k;
-	protected final long expectedInsertions;
+	protected long expectedInsertions;
 	protected final double fpp;
-	protected final int hashes;
-	protected final long size;
+	protected long size;
 	protected long[] bits;
+	protected int hashes;
 
 	public AbstractCGATBloomFilter(int k, long expectedInsertions, double fpp) {
 		if (k <= 0) {
@@ -74,42 +75,50 @@ public abstract class AbstractCGATBloomFilter implements Serializable {
 		this.fpp = fpp;
 		this.k = k;
 
-		this.expectedInsertions = expectedInsertions;
-		long bits = optimalNumOfBits(expectedInsertions, fpp);
-		size = (bits + 63) / 64;
-		
-//		int logbits = (int) (Math.log((bits + 63) / 64) / LOG_2);
-//		size = (1 << (logbits + 1)) - 1; // Now: size = 2^x - 1 such that 2^x > (bits + 63) / 64 < 2^(x-1)
-		
-		hashes = optimalNumOfHashFunctions(expectedInsertions, bits);
+		clearAndEnsureCapacity(expectedInsertions);
+	}
 
-		initBitArray(size);
+	public void clearAndEnsureCapacity(long expectedInsertions) {
+		if (size < expectedInsertions) {
+			clearArray();
+		} else {
+			this.expectedInsertions = size;
+			long bits = optimalNumOfBits(expectedInsertions, fpp);
+			size = (bits + 63) / 64;
+			hashes = optimalNumOfHashFunctions(expectedInsertions, bits);
+
+			initBitArray(size);
+		}
 	}
 	
+	protected void clearArray() {
+		Arrays.fill(bits, 0);		
+	}
+
 	protected void initBitArray(long size) {
-		this.bits = new long[(int) size];		
+		this.bits = new long[(int) size];
 	}
-	
+
 	public long getExpectedInsertions() {
 		return expectedInsertions;
 	}
-	
+
 	public int getK() {
 		return k;
 	}
-	
+
 	public int getHashes() {
 		return hashes;
 	}
-	
+
 	public double getFpp() {
 		return fpp;
 	}
-	
+
 	public long getByteSize() {
 		return size * 8;
 	}
-	
+
 	protected int optimalNumOfHashFunctions(long n, long m) {
 		return Math.max(1, (int) Math.round((double) m / n * Math.log(2)));
 	}

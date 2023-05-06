@@ -37,7 +37,6 @@ import org.metagene.genestrip.goals.BloomFilterFileGoal;
 import org.metagene.genestrip.goals.BloomFilterSizeGoal;
 import org.metagene.genestrip.goals.ClassifyGoal;
 import org.metagene.genestrip.goals.FastaFileDownloadGoal;
-import org.metagene.genestrip.goals.FastasSizeGoal;
 import org.metagene.genestrip.goals.FilterGoal;
 import org.metagene.genestrip.goals.KMerFastqGoal;
 import org.metagene.genestrip.goals.KMerFastqTrieFileGoal;
@@ -158,10 +157,8 @@ public class GSMaker extends Maker<GSProject> {
 				projectSetupGoal);
 		registerGoal(fastaDownloadGoal);
 
-		FastasSizeGoal fastasSizeGoal = new FastasSizeGoal(project, "fastassize", 10, fastaDownloadGoal);
-
-		KMerFastqGoal kmerFastqGoal = new KMerFastqGoal(project, "kmerfastq", fastasSizeGoal, fastaDownloadGoal,
-				projectSetupGoal);
+		KMerFastqGoal kmerFastqGoal = new KMerFastqGoal(project, "kmerfastq", fastaFilesGoal,
+				fastaDownloadGoal, projectSetupGoal);
 		registerGoal(kmerFastqGoal);
 
 		FileGoal<GSProject> krakenOutGoal = new KrakenOutGoal(project, "kmerkrakenout", kmerFastqGoal.getOutputFile(),

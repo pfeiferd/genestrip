@@ -50,27 +50,27 @@ public class GSConfig {
 	public File getBaseDir() {
 		return baseDir;
 	}
-	
+
 	public boolean isIgnoreMissingFastas() {
 		return Boolean.valueOf(properties.getProperty("ignoreMissingFastas", "false"));
 	}
-	
+
 	public boolean isUseGenBank() {
-		return Boolean.valueOf(properties.getProperty("useGenBank", "false"));		
+		return Boolean.valueOf(properties.getProperty("useGenBank", "false"));
 	}
-	
+
 	public boolean isWriteDumpedFastq() {
 		return Boolean.valueOf(properties.getProperty("writeDumpedFastq", "false"));
 	}
-	
+
 	public boolean isWriteFilteredFastq() {
 		return Boolean.valueOf(properties.getProperty("writeFilteredFastq", "true"));
 	}
-	
+
 	public int getMaxReadSizeBytes() {
 		return Integer.valueOf(properties.getProperty("maxReadSizeBytes", "8192"));
 	}
-	
+
 	public int getMinPosCountFilter() {
 		return Integer.valueOf(properties.getProperty("minPosCountFilter", "1"));
 	}
@@ -78,7 +78,15 @@ public class GSConfig {
 	public double getPosRatioFilter() {
 		return Double.valueOf(properties.getProperty("posRatioFilter", "0.2"));
 	}
-	
+
+	public double getKmerFastBloomFpp() {
+		return Double.valueOf(properties.getProperty("kmerFastBloomFpp", " 0.00000000001"));
+	}
+
+	public long getKmerFastInitialBloomSize() {
+		return Long.valueOf(properties.getProperty("kmerFastInitialBloomSize", "100000000"));
+	}
+
 	public String getKrakenBin() {
 		return properties.getProperty("krakenBin");
 	}
@@ -94,15 +102,15 @@ public class GSConfig {
 	public String getSortBin() {
 		return properties.getProperty("sortBin", "sort");
 	}
-	
+
 	public String getSortExecExpr() {
 		return properties.getProperty("sortExecExpr", "{0} -n -t ':' -k 3 {1}");
 	}
-	
+
 	public boolean isUseKraken1() {
 		return Boolean.valueOf(properties.getProperty("useKraken1", "false"));
 	}
-	
+
 	public FTPEntryQuality getFastaQuality() {
 		String qs = properties.getProperty("fastaQuality");
 		return qs == null ? FTPEntryQuality.COMPLETE_LATEST : FTPEntryQuality.valueOf(qs);
@@ -127,11 +135,11 @@ public class GSConfig {
 	public boolean isUseHttp() {
 		return Boolean.valueOf(properties.getProperty("useHttp", "true"));
 	}
-	
+
 	public Rank getMaxRankForFilters() {
 		return TaxTree.Rank.byName(properties.getProperty("maxRankForFilters", "species"));
 	}
-	
+
 	public int getMaxBloomFilterSize() {
 		return Integer.valueOf(properties.getProperty("maxBloomFilterSize", Integer.toString(Integer.MAX_VALUE)));
 	}

@@ -32,6 +32,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collection;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -100,6 +101,43 @@ public class StreamProvider {
 		String name = file.getName();
 
 		return name.endsWith(".gz") || name.endsWith(".gzip");
+	}
+	
+	public static long guessUncompressedSize(Collection<File> gzipFiles, int maxCheckForGuess) {
+		int i = 0;
+		long cSizeSum = 0;
+		long uSizeSum = 0;
+		for (File file : gzipFiles) {
+			if (i == maxCheckForGuess) {
+				break;
+			}
+			cSizeSum += file.length();
+			uSizeSum += getUncompressedSize(file);
+			i++;
+		}
+		if (i < maxCheckForGuess) {
+			return uSizeSum;
+		} else {
+			double cRate = ((double) uSizeSum) / cSizeSum;
+
+			long sizeSum = 0;
+			for (File file : gzipFiles) {
+				sizeSum += file.length();
+			}
+			return (long) (sizeSum * cRate);
+		}
+	}
+
+	public static long getUncompressedSize(File gzipFile) {
+		try {
+			InputStream stream = StreamProvider.getInputStreamForFile(gzipFile);
+			long uSize;
+			for (uSize = 0; stream.read() != -1; uSize++)
+				;
+			return uSize;
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public interface ByteCountingInputStreamAccess {
