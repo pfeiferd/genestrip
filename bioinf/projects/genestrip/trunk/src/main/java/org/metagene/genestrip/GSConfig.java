@@ -137,7 +137,7 @@ public class GSConfig {
 	}
 
 	public Rank getMaxRankForFilters() {
-		return TaxTree.Rank.byName(properties.getProperty("maxRankForFilters", "species"));
+		return TaxTree.Rank.byName(properties.getProperty("maxRankForFilters", "genus"));
 	}
 
 	public int getMaxBloomFilterSize() {
