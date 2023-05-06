@@ -62,15 +62,19 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 				key = key.getParent();
 			}
 			Set<File> files = taxToFastas.get(key);
+			boolean isNew = false;
 			if (files == null) {
+				isNew = true;
 				files = new HashSet<File>();
-				taxToFastas.put(key, files);
 			}
 			FTPEntryQuality minQuality = getProject().getConfig().getFastaQuality();
 			for (FTPEntryWithQuality entry : entries) {
 				if (minQuality == null || !entry.getQuality().below(minQuality)) {
 					files.add(new File(getProject().getFastasDir(), entry.getFileName()));
 				}
+			}
+			if (isNew && !files.isEmpty()) {
+				taxToFastas.put(key, files);				
 			}
 		}
 	}
