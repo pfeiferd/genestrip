@@ -28,7 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.util.List;
+import java.util.Collection;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -41,35 +41,30 @@ import org.metagene.genestrip.util.StreamProvider;
 public class KMerFastqGenerator {
 	private final Log logger = LogFactory.getLog(KMerFastqGenerator.class);
 
-	private final int kmerSize;
-	private final int readBufferSize;
+	private final FastQWriter fastQWriter;
+	private final FastaIndexer fastaIndexer;
+	private final GenestripKMerBloomIndex index;
 
-	public KMerFastqGenerator(int kmerSize, int readBufferSize) {
-		this.kmerSize = kmerSize;
-		this.readBufferSize = readBufferSize;
+	public KMerFastqGenerator(String name, int kmerSize, long expectedSize, double fpp, int readBufferSize,
+			OutputStream output) throws IOException {
+		fastQWriter = new FastQWriter(name, output);
+		index = new GenestripKMerBloomIndex(name, kmerSize, expectedSize, fpp, fastQWriter);
+		fastaIndexer = new FastaIndexer(index, readBufferSize);
 	}
 
 	protected Log getLogger() {
 		return logger;
 	}
 
-	public int getKmerSize() {
-		return kmerSize;
-	}
-
-	public long run(List<File> fastaFiles, File fastq, String name, long expectedSize) throws IOException {
+	public long add(Collection<File> fastaFiles) throws IOException {
+		long expectedSize = StreamProvider.guessUncompressedSize(fastaFiles, 10);
 		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Creating fastq file " + fastq);
+			getLogger().info("Estimated total uncompressed size: " + (expectedSize / 1024 / 1024) + " MBytes");
 		}
-		FastQWriter fastQWriter = new FastQWriter(name, StreamProvider.getOutputStreamForFile(fastq));
-		GenestripKMerBloomIndex index = new GenestripKMerBloomIndex(name, getKmerSize(), expectedSize / 2, 0.0001,
-				fastQWriter);
-
+		index.clearAndEnsureCapacity(expectedSize);
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Bloom filter array size of " + index + ": " + index.getByteSize() / 1024 + "KB");
 		}
-
-		FastaIndexer fastaIndexer = new FastaIndexer(index, readBufferSize);
 
 		int max = fastaFiles.size();
 		int counter = 0;
@@ -84,8 +79,6 @@ public class KMerFastqGenerator {
 				throw new IllegalStateException("Missing fasta file " + fasta);
 			}
 		}
-
-		fastQWriter.close();
 
 		return fastQWriter.getAdded();
 	}
@@ -131,8 +124,7 @@ public class KMerFastqGenerator {
 			}
 		}
 
-		public void close() {
-			printStream.close();
+		public void done() {
 			if (getLogger().isInfoEnabled()) {
 				logger.info("Total Hits: " + hits + " Hits Ratio: " + (double) hits / (hits + added));
 				logger.info("Total added reads: " + added);

@@ -69,6 +69,10 @@ public class TaxTree {
 		public boolean isBelowOrEqual(Rank rank) {
 			return this.ordinal() >= rank.ordinal();
 		}
+		
+		public boolean isBelow(Rank rank) {
+			return this.ordinal() > rank.ordinal();
+		}
 	}
 
 	public static final String NODES_DMP = "nodes.dmp";

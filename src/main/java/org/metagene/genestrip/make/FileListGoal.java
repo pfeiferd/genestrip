@@ -48,7 +48,7 @@ public abstract class FileListGoal<P> extends FileGoal<P> {
 		this.files = files != null ? new ArrayList<File>(files) : new ArrayList<File>();
 	}
 	
-	public void addFile(File file) {
+	protected void addFile(File file) {
 		files.add(file);
 	}
 	

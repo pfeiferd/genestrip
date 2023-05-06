@@ -26,25 +26,49 @@ package org.metagene.genestrip.goals;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.fastqgen.KMerFastqGenerator;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryWithQuality;
+import org.metagene.genestrip.tax.TaxTree.Rank;
+import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
+import org.metagene.genestrip.util.StreamProvider;
 
 public class KMerFastqGoal extends FileListGoal<GSProject> {
-	private long addedKmers;
-	private final FastasSizeGoal fastasSizeGoal;
-	private final FastaFileDownloadGoal fastaDownloadGoal;
+	private final Map<TaxIdNode, Set<File>> taxToFastas;
 
 	@SafeVarargs
-	public KMerFastqGoal(GSProject project, String name, FastasSizeGoal fastasSizeGoal,
-			FastaFileDownloadGoal fastaDownloadGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, FileType.FASTQ), ArraysUtil.append(deps, fastasSizeGoal, fastaDownloadGoal));
-		this.fastasSizeGoal = fastasSizeGoal;
-		this.fastaDownloadGoal = fastaDownloadGoal;
+	public KMerFastqGoal(GSProject project, String name,
+			ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fastaFilesGoal, Goal<GSProject>... deps) {
+		super(project, name, project.getOutputFile(name, FileType.FASTQ), ArraysUtil.append(deps, fastaFilesGoal));
+
+		Rank maxRank = project.getConfig().getMaxRankForFilters();
+		taxToFastas = new HashMap<TaxIdNode, Set<File>>();
+		for (TaxIdNode key : fastaFilesGoal.get().keySet()) {
+			List<FTPEntryWithQuality> entries = fastaFilesGoal.get().get(key);
+			while (key.getRank().isBelow(maxRank)) {
+				key = key.getParent();
+			}
+			Set<File> files = taxToFastas.get(key);
+			if (files == null) {
+				files = new HashSet<File>();
+				taxToFastas.put(key, files);
+			}
+			for (FTPEntryWithQuality entry : entries) {
+				files.add(new File(getProject().getFastasDir(), entry.getFileName()));
+			}
+		}
 	}
 
 	@Override
@@ -53,26 +77,43 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Generating fastq file " + fastq);
 			}
-			KMerFastqGenerator generator = new KMerFastqGenerator(getProject().getkMserSize(),
-					getProject().getConfig().getMaxReadSizeBytes());
-			// A conservative guess:
-			// The fasta file size is dominated by the sequence where is base accounts for 1 byte.
-			long exptectedSize = fastasSizeGoal.get();
+			OutputStream output = StreamProvider.getOutputStreamForFile(fastq);
+
+			KMerFastqGenerator generator = new KMerFastqGenerator(getName(), getProject().getkMserSize(),
+					getProject().getConfig().getKmerFastInitialBloomSize(),
+					getProject().getConfig().getKmerFastBloomFpp(), getProject().getConfig().getMaxReadSizeBytes(),
+					output);
+
+			/*
+			 * We run the kmer generation "bit by bit" in chunks by common max rank (usually
+			 * genus or species). If we ran the kmers altogether, then the bloom filter in
+			 * the background might (inside KMerFastqGenerator) would consume way too much
+			 * memory for larger projects (and would fail). We need the bloom filter inside
+			 * KMerFastqGenerator in order to ensure uniqueness (no double entries) for
+			 * k-mers for taxons on the max rank level or below. We need this to make sure
+			 * that the finally generated filter has the right size (in terms of entries).
+			 * It will only contain k-mers on max rank level or below anyways so the
+			 * uniqueness on this level is sufficient here.
+			 */
+			int max = taxToFastas.size();
+			int counter = 0;
+			for (TaxIdNode taxId : taxToFastas.keySet()) {
+				counter++;
+				if (getLogger().isInfoEnabled()) {
+					getLogger().info("Processing taxid (" + counter + "/" + max + "):" + taxId.getName());
+				}
+				long addedKmers = generator.add(taxToFastas.get(taxId));
+				if (getLogger().isInfoEnabled()) {
+					getLogger().info("Entered K-mers: " + addedKmers);
+				}
+			}
+
+			output.close();
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Expected bloom filter size: " + exptectedSize);
-			}			
-			addedKmers = generator.run(fastaDownloadGoal.getAvailableFiles(), fastq, getProject().getName(),
-					exptectedSize);
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Entered K-mers: " + addedKmers);
 				getLogger().info("Generated fastq file " + fastq);
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-	public long getAddedKmers() {
-		return addedKmers;
 	}
 }
