@@ -56,7 +56,7 @@ public class LargeMurmurCGATBloomFilter extends TwoLongsCGATBloomFilter implemen
 	}
 		
 	@Override
-	protected void initBitArray(long size) {
+	protected void initBitArray() {
 		if (bits == null) {
 			bits = BigArrays.ensureCapacity(BigArrays.wrap(new long[0]), size);
 		}

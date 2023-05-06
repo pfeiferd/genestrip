@@ -59,11 +59,11 @@ public class KMerFastqGenerator {
 	public long add(Collection<File> fastaFiles) throws IOException {
 		long expectedSize = StreamProvider.guessUncompressedSize(fastaFiles, 10);
 		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Estimated total uncompressed size: " + (expectedSize / 1024 / 1024) + " MBytes");
+			getLogger().info("Estimated total uncompressed size: " + (expectedSize / 1024 / 1024) + " MB");
 		}
 		index.clearAndEnsureCapacity(expectedSize);
 		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Bloom filter array size of " + index + ": " + index.getByteSize() / 1024 + "KB");
+			getLogger().info("Bloom filter array size of " + index + ": " + index.getByteSize() / 1024 + " KB");
 		}
 
 		int max = fastaFiles.size();

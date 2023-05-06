@@ -79,7 +79,7 @@ public abstract class AbstractCGATBloomFilter implements Serializable {
 	}
 
 	public void clearAndEnsureCapacity(long expectedInsertions) {
-		if (size < expectedInsertions) {
+		if (size >= expectedInsertions) {
 			clearArray();
 		} else {
 			this.expectedInsertions = size;
@@ -87,7 +87,7 @@ public abstract class AbstractCGATBloomFilter implements Serializable {
 			size = (bits + 63) / 64;
 			hashes = optimalNumOfHashFunctions(expectedInsertions, bits);
 
-			initBitArray(size);
+			initBitArray();
 		}
 	}
 	
@@ -95,7 +95,7 @@ public abstract class AbstractCGATBloomFilter implements Serializable {
 		Arrays.fill(bits, 0);		
 	}
 
-	protected void initBitArray(long size) {
+	protected void initBitArray() {
 		this.bits = new long[(int) size];
 	}
 
