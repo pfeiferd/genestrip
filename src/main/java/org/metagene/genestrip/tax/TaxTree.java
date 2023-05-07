@@ -45,7 +45,8 @@ public class TaxTree {
 		SUPERCLASS("superclass"), CLASS("class"), SUBCLASS("subclass"), SUPERORDER("superorder"), ORDER("order"),
 		SUBORDER("suborder"), SUPERFAMILY("superfamily"), FAMILY("family"), SUBFAMILY("subfamily"), CLADE("clade"),
 		GENUS("genus"), SUBGENUS("subgenus"), SPECIES_GROUP("species group"), SPECIES("species"), VARIETAS("varietas"),
-		SUBSPECIES("subspecies"), STRAIN("strain");
+		SUBSPECIES("subspecies"), STRAIN("strain"), SEROTYPE("serotype"), FORMA("forma"),
+		FORMA_SPECIALIS("forma specialis"), ISOLATE("isolate");
 
 		private String name;
 
@@ -69,7 +70,7 @@ public class TaxTree {
 		public boolean isBelowOrEqual(Rank rank) {
 			return this.ordinal() >= rank.ordinal();
 		}
-		
+
 		public boolean isBelow(Rank rank) {
 			return this.ordinal() > rank.ordinal();
 		}
@@ -150,6 +151,9 @@ public class TaxTree {
 					if (taxA.equals(taxB) && taxA.equals("1")) {
 						res = nodeA = new TaxIdNode(taxA, null, Rank.byName(level));
 					} else {
+//						if (Rank.byName(level) == null) {
+//							System.out.println(level);
+//						}
 						nodeA = new TaxIdNode(taxA, taxB, Rank.byName(level));
 					}
 					taxIdToNode.put(taxA, nodeA);
