@@ -58,6 +58,12 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 		taxToFastas = new HashMap<TaxIdNode, Set<File>>();
 		for (TaxIdNode key : fastaFilesGoal.get().keySet()) {
 			List<FTPEntryWithQuality> entries = fastaFilesGoal.get().get(key);
+			if (key.getRank() == null) {
+				if (getLogger().isWarnEnabled()) {
+					getLogger().warn("Missing rank for taxid: " + key.getName() + " - omitted");
+				}				
+				continue;
+			}
 			while (key.getRank().isBelow(maxRank)) {
 				key = key.getParent();
 			}
