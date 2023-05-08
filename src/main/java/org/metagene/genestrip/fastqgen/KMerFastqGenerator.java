@@ -45,12 +45,14 @@ public class KMerFastqGenerator {
 	private final FastQWriter fastQWriter;
 	private final FastaIndexer fastaIndexer;
 	private final GenestripKMerBloomIndex index;
+	private final boolean ignoreMissingFastas;
 
 	public KMerFastqGenerator(String name, int kmerSize, long expectedSize, double fpp, int readBufferSize,
-			OutputStream output) throws IOException {
+			OutputStream output, boolean ignoreMissingFastas) throws IOException {
 		fastQWriter = new FastQWriter(name, output);
 		index = new GenestripKMerBloomIndex(name, kmerSize, expectedSize, fpp, fastQWriter);
 		fastaIndexer = new FastaIndexer(index, readBufferSize);
+		this.ignoreMissingFastas = ignoreMissingFastas;
 	}
 
 	protected Log getLogger() {
@@ -85,6 +87,9 @@ public class KMerFastqGenerator {
 			} else {
 				if (getLogger().isErrorEnabled()) {
 					getLogger().error("Missing fasta file " + fasta);
+				}
+				if (!ignoreMissingFastas) {
+					throw new IllegalStateException("Missing fasta file " + fasta);
 				}
 			}
 		}
