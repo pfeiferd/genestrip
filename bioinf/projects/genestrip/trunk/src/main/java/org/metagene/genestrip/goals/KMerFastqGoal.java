@@ -96,7 +96,7 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 			KMerFastqGenerator generator = new KMerFastqGenerator(getName(), getProject().getkMserSize(),
 					getProject().getConfig().getKmerFastInitialBloomSize(),
 					getProject().getConfig().getKmerFastBloomFpp(), getProject().getConfig().getMaxReadSizeBytes(),
-					output);
+					output, getProject().isIgnoreMissingFiles());
 
 			/*
 			 * We run the kmer generation "bit by bit" in chunks by common max rank (usually
