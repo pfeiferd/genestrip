@@ -24,6 +24,7 @@
  */
 package org.metagene.genestrip.fastqgen;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -74,9 +75,17 @@ public class KMerFastqGenerator {
 				if (getLogger().isInfoEnabled()) {
 					getLogger().info("Processing fasta file (" + counter + "/" + max + "):" + fasta);
 				}
-				fastaIndexer.readFasta(fasta);
+				try {
+					fastaIndexer.readFasta(fasta);
+				} catch (EOFException e) {
+					if (getLogger().isErrorEnabled()) {
+						getLogger().error("Error when reading fasta file " + fasta, e);
+					}
+				}
 			} else {
-				throw new IllegalStateException("Missing fasta file " + fasta);
+				if (getLogger().isErrorEnabled()) {
+					getLogger().error("Missing fasta file " + fasta);
+				}
 			}
 		}
 
