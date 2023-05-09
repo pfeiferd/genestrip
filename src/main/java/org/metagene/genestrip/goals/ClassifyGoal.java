@@ -38,7 +38,7 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 			}
 			
 			@SuppressWarnings("unchecked")
-			KMerTrie<String> trie = (KMerTrie<String>) KMerTrie.load(trieGoal.getOutputFile());
+			KMerTrie<String> trie = (KMerTrie<String>) KMerTrie.load(trieGoal.getFile());
 			Map<String, Long> res = new FastqTrieClassifier(trie, getProject().getConfig().getMaxReadSizeBytes())
 					.runClassifier(fastq, filteredFile);
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));

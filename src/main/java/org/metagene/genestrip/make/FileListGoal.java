@@ -52,7 +52,7 @@ public abstract class FileListGoal<P> extends FileGoal<P> {
 		files.add(file);
 	}
 	
-	protected List<File> getFiles() {
+	public List<File> getFiles() {
 		return files;
 	}	
 }

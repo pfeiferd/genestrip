@@ -30,7 +30,7 @@ public class FilterGoal extends FileListGoal<GSProject> {
 	protected void makeFile(File file) {
 		try {
 			File dumpFile = writeDump ? getProject().getOutputFile("dumped", fastq, FileType.FASTQ) : null;
-			new FastqBloomFilter(AbstractKMerBloomIndex.load(bloomFilterFileGoal.getOutputFile()),
+			new FastqBloomFilter(AbstractKMerBloomIndex.load(bloomFilterFileGoal.getFile()),
 					getProject().getConfig().getMinPosCountFilter(), getProject().getConfig().getPosRatioFilter(),
 					getProject().getConfig().getMaxReadSizeBytes()).runFilter(fastq, file, dumpFile);
 		} catch (IOException | ClassNotFoundException e) {
