@@ -41,18 +41,27 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryWithQuality;
+import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class KMerFastqGoal extends FileListGoal<GSProject> {
+	private final Map<File, TaxIdNode> fileToCollectNode;
 	private final Map<TaxIdNode, Set<File>> taxToFastas;
+	private final KMerFastqGenerator generator;
+	
+	private final File tempFile;
 
 	@SafeVarargs
 	public KMerFastqGoal(GSProject project, String name,
 			ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fastaFilesGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, FileType.FASTQ), ArraysUtil.append(deps, fastaFilesGoal));
+		super(project, name, (List<File>) null, ArraysUtil.append(deps, fastaFilesGoal));
+
+		generator = new KMerFastqGenerator(getName(), getProject().getkMserSize(),
+				getProject().getConfig().getKmerFastInitialBloomSize(), getProject().getConfig().getKmerFastBloomFpp(),
+				getProject().getConfig().getMaxReadSizeBytes(), getProject().isIgnoreMissingFiles());
 
 		Rank maxRank = project.getConfig().getMaxRankForFilters();
 		taxToFastas = new HashMap<TaxIdNode, Set<File>>();
@@ -64,7 +73,7 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 			if (key.getRank() == null) {
 				if (getLogger().isWarnEnabled()) {
 					getLogger().warn("Missing rank for taxid: " + key.getName() + " - omitted");
-				}				
+				}
 				continue;
 			}
 			Set<File> files = taxToFastas.get(key);
@@ -80,9 +89,21 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 				}
 			}
 			if (isNew && !files.isEmpty()) {
-				taxToFastas.put(key, files);				
+				taxToFastas.put(key, files);
 			}
 		}
+		Set<TaxIdNode> aboveMaxRank = new HashSet<TaxIdNode>();
+		for (TaxIdNode taxId : taxToFastas.keySet()) {
+			aboveMaxRank.add(taxId.getParent());
+		}
+		fileToCollectNode = new HashMap<File, TaxTree.TaxIdNode>();
+		for (TaxIdNode collectNode : aboveMaxRank) {
+			File file = project.getOutputFile(name + "_" + collectNode.getTaxId(), FileType.FASTQ);
+			fileToCollectNode.put(file, collectNode);
+			addFile(file);
+		}
+		
+		tempFile = project.getOutputFile(name + "_temp" , FileType.FASTQ);
 	}
 
 	@Override
@@ -91,12 +112,19 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Generating fastq file " + fastq);
 			}
-			OutputStream output = StreamProvider.getOutputStreamForFile(fastq);
 
-			KMerFastqGenerator generator = new KMerFastqGenerator(getName(), getProject().getkMserSize(),
-					getProject().getConfig().getKmerFastInitialBloomSize(),
-					getProject().getConfig().getKmerFastBloomFpp(), getProject().getConfig().getMaxReadSizeBytes(),
-					output, getProject().isIgnoreMissingFiles());
+			TaxIdNode collectNode = fileToCollectNode.get(fastq);
+			
+			if (tempFile.exists()) {
+				tempFile.delete();
+			}
+
+			OutputStream output = StreamProvider.getOutputStreamForFile(tempFile);
+			generator.setOutputStream(output);
+
+			int counter = 0;
+			List<TaxIdNode> subnodes = collectNode.getSubNodes();
+			int max = subnodes.size();
 
 			/*
 			 * We run the kmer generation "bit by bit" in chunks by common max rank (usually
@@ -109,24 +137,30 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 			 * It will only contain k-mers on max rank level or below anyways so the
 			 * uniqueness on this level is sufficient here.
 			 */
-			int max = taxToFastas.size();
-			int counter = 0;
-			for (TaxIdNode taxId : taxToFastas.keySet()) {
+			for (TaxIdNode child : subnodes) {
 				counter++;
-				if (getLogger().isInfoEnabled()) {
-					getLogger().info("Processing taxid (" + counter + "/" + max + "): " + taxId.getName());
-				}
-				long addedKmers = generator.add(taxToFastas.get(taxId));
-				if (getLogger().isInfoEnabled()) {
-					getLogger().info("Entered K-mers: " + addedKmers);
+				Set<File> fastas = taxToFastas.get(child);
+				if (fastas != null) {
+					if (getLogger().isInfoEnabled()) {
+						getLogger().info("Processing taxid (" + counter + "/" + max + "): " + child.getName());
+					}
+					long addedKmers = generator.add(fastas);
+					if (getLogger().isInfoEnabled()) {
+						getLogger().info("Entered K-mers: " + addedKmers);
+					}
 				}
 			}
 
 			output.close();
+			
+			tempFile.renameTo(fastq);
+			
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Generated fastq file " + fastq);
 			}
-		} catch (IOException e) {
+		} catch (
+
+		IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
