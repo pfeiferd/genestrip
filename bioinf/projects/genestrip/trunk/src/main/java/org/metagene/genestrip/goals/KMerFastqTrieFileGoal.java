@@ -47,7 +47,8 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 	@SafeVarargs
 	public KMerFastqTrieFileGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
 			KrakenFastqFileGoal krakenFastqGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, FileType.SER), ArraysUtil.append(deps, taxNodesGoal, krakenFastqGoal));
+		super(project, name, project.getOutputFile(name, FileType.SER),
+				ArraysUtil.append(deps, taxNodesGoal, krakenFastqGoal));
 		this.taxNodesGoal = taxNodesGoal;
 		this.krakenFastqGoal = krakenFastqGoal;
 	}
@@ -63,7 +64,8 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 				taxIds.add(node.getTaxId());
 			}
 
-			MyAbstractFastqReader fastqReader = new MyAbstractFastqReader(getProject().getConfig().getMaxReadSizeBytes()) {
+			MyAbstractFastqReader fastqReader = new MyAbstractFastqReader(
+					getProject().getConfig().getMaxReadSizeBytes()) {
 				@Override
 				protected void nextEntry() throws IOException {
 					int pos;
@@ -79,8 +81,10 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 					}
 				}
 			};
-			fastqReader.readFastq(krakenFastqGoal.getOutputFile());
-
+			for (File file : krakenFastqGoal.getFiles()) {
+				fastqReader.readFastq(file);
+			}
+			
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Trie entries: " + trie.getEntries());
 				getLogger().info("Saving file " + trieFile);
@@ -94,7 +98,7 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	protected static abstract class MyAbstractFastqReader extends AbstractFastqReader {
 		public MyAbstractFastqReader(int maxReadSizeBytes) {
 			super(maxReadSizeBytes);

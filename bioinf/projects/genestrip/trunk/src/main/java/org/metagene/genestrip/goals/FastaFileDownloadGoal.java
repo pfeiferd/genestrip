@@ -62,7 +62,7 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 	}
 
 	@Override
-	protected List<File> getFiles() {
+	public List<File> getFiles() {
 		if (files == null) {
 			files = new ArrayList<File>();
 			fileToDir = new HashMap<String, String>();

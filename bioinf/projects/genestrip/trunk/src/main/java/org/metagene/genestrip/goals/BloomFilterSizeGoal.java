@@ -72,13 +72,15 @@ public class BloomFilterSizeGoal extends ObjectGoal<Long, GSProject> {
 			KrakenResultFastqMerger krakenKMerFastqMerger = new KrakenResultFastqMerger(
 					getProject().getConfig().getMaxReadSizeBytes());
 
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Reading file " + krakenOutGoal.getOutputFile());
+			for (int i = 0; i < krakenOutGoal.getFiles().size(); i++) {
+				if (getLogger().isInfoEnabled()) {
+					getLogger().info("Reading file " + krakenOutGoal.getFiles().get(i));
+				}
+				InputStream stream = StreamProvider.getInputStreamForFile(krakenOutGoal.getFiles().get(i));
+				krakenKMerFastqMerger.process(stream, null, filter);
+				stream.close();
 			}
-			InputStream stream = StreamProvider.getInputStreamForFile(krakenOutGoal.getOutputFile());
-			krakenKMerFastqMerger.process(stream, null, filter);
-			stream.close();
-
+			
 			set(counter[0]);
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Count for kmer kraken out with taxids: " + counter[0]);

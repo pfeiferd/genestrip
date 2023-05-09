@@ -44,14 +44,14 @@ public abstract class FileGoal<P> extends Goal<P> {
 		this.allowEmptyFiles = allowEmptyFiles;
 	}
 
-	protected abstract List<File> getFiles();
+	public abstract List<File> getFiles();
 
-	public File getOutputFile() {
+	public File getFile() {
 		List<File> files = getFiles();
 		if (getFiles().size() == 1) {
 			return files.get(0);
 		}
-		return null;
+		throw new IllegalStateException("There is more than one output file here.");
 	}
 
 	public boolean isAllowEmptyFiles() {

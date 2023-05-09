@@ -72,16 +72,18 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 			KrakenResultFastqMerger krakenKMerFastqMerger = new KrakenResultFastqMerger(
 					getProject().getConfig().getMaxReadSizeBytes());
 
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Reading file " + krakenOutGoal.getOutputFile());
-				getLogger().info("Reading file " + kmerFastqGoal.getOutputFile());
+			for (int i = 0; i < krakenOutGoal.getFiles().size(); i++) {
+				if (getLogger().isInfoEnabled()) {
+					getLogger().info("Reading file " + krakenOutGoal.getFiles().get(i));
+					getLogger().info("Reading file " + kmerFastqGoal.getFiles().get(i));
+				}
+				
+				InputStream stream1 = StreamProvider.getInputStreamForFile(krakenOutGoal.getFiles().get(i));
+				InputStream stream2 = StreamProvider.getInputStreamForFile(kmerFastqGoal.getFiles().get(i));
+				krakenKMerFastqMerger.process(stream1, stream2, filter);
+				stream1.close();
+				stream2.close();
 			}
-			
-			InputStream stream1 = StreamProvider.getInputStreamForFile(krakenOutGoal.getOutputFile());
-			InputStream stream2 = StreamProvider.getInputStreamForFile(kmerFastqGoal.getOutputFile());			
-			krakenKMerFastqMerger.process(stream1, stream2, filter);
-			stream1.close();
-			stream2.close();
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Trie entries: " + trie.getEntries());

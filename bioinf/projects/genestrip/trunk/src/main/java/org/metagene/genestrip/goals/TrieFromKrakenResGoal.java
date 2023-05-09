@@ -90,7 +90,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 				printListener = KrakenResultFastqMergeListener.createPrintListener(printStream, null, false);
 			}
 
-			InputStream stream1 = StreamProvider.getInputStreamForFile(krakenOutGoal.getOutputFile());
+			InputStream stream1 = StreamProvider.getInputStreamForFile(krakenOutGoal.getFile());
 			InputStream stream2 = StreamProvider.getInputStreamForFile(fastq);
 			merger.process(stream1, stream2, KrakenResultFastqMergeListener.createFilterByTaxIdNodes(nodes,
 					new KrakenResultFastqMergeListener() {
@@ -123,6 +123,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 					}));
 			stream1.close();
 			stream2.close();
+			
 			if (printStream != null) {
 				printStream.close();
 			}

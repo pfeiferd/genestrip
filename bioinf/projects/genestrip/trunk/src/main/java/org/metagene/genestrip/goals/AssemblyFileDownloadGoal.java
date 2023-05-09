@@ -53,7 +53,7 @@ public class AssemblyFileDownloadGoal extends FileDownloadGoal<GSProject> {
 	}
 
 	@Override
-	protected List<File> getFiles() {
+	public List<File> getFiles() {
 		return files;
 	}
 
