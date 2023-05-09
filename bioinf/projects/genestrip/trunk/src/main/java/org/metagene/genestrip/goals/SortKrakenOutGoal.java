@@ -27,6 +27,9 @@ package org.metagene.genestrip.goals;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
@@ -38,14 +41,18 @@ import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class SortKrakenOutGoal extends FileListGoal<GSProject> {
-	private final FileGoal<GSProject> krakenOutGoal;
+	private final Map<File, File> goalFileToKrakeFile;
 
 	@SafeVarargs
 	public SortKrakenOutGoal(GSProject project, String name, FileGoal<GSProject> krakenOutGoal,
 			Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, krakenOutGoal.getOutputFile(), FileType.KRAKEN_OUT),
-				ArraysUtil.append(deps, krakenOutGoal));
-		this.krakenOutGoal = krakenOutGoal;
+		super(project, name, (List<File>)null, ArraysUtil.append(deps, krakenOutGoal));
+		goalFileToKrakeFile = new HashMap<File, File>();
+		for (File file : krakenOutGoal.getFiles()) {
+			File goalFile = project.getOutputFile(name, krakenOutGoal.getFile(), FileType.KRAKEN_OUT);
+			addFile(goalFile);
+			goalFileToKrakeFile.put(goalFile, file);
+		}
 	}
 
 	@Override
@@ -54,11 +61,11 @@ public class SortKrakenOutGoal extends FileListGoal<GSProject> {
 				getProject().getConfig().getSortExecExpr());
 		try {
 			if (getLogger().isInfoEnabled()) {
-				String execLine = sortExecutor.genExecLine(krakenOutGoal.getOutputFile());
+				String execLine = sortExecutor.genExecLine(goalFileToKrakeFile.get(outFile));
 				getLogger().info("Running sort with " + execLine);
 			}
 			OutputStream out = StreamProvider.getOutputStreamForFile(outFile);
-			sortExecutor.execute(krakenOutGoal.getOutputFile(), out);
+			sortExecutor.execute(goalFileToKrakeFile.get(outFile), out);
 			out.close();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
