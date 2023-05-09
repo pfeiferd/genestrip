@@ -27,6 +27,10 @@ package org.metagene.genestrip.goals;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
@@ -36,13 +40,25 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class KrakenOutGoal extends FileListGoal<GSProject> {
-	private final File fastqFile;
+	private final Map<File, File> outFileTofastqFile;
 
 	@SafeVarargs
-	public KrakenOutGoal(GSProject project, String name, File fastqFile,
-			Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, fastqFile, FileType.KRAKEN_OUT, !project.getConfig().isUseKraken1()), deps);
-		this.fastqFile = fastqFile;
+	public KrakenOutGoal(GSProject project, String name, File fastqFile, Goal<GSProject>... deps) {
+		this(project, name, Collections.singletonList(
+				project.getOutputFile(name, fastqFile, FileType.KRAKEN_OUT, !project.getConfig().isUseKraken1())),
+				deps);
+	}
+
+	@SafeVarargs
+	public KrakenOutGoal(GSProject project, String name, List<File> fastqFiles, Goal<GSProject>... deps) {
+		super(project, name, (List<File>) null, deps);
+
+		outFileTofastqFile = new HashMap<File, File>();
+		for (File fastqFile : fastqFiles) {
+			File outFile = project.getOutputFile(name, fastqFile, FileType.KRAKEN_OUT, !project.getConfig().isUseKraken1());		
+			outFileTofastqFile.put(outFile, fastqFile);
+			addFile(outFile);
+		}
 	}
 
 	@Override
@@ -50,6 +66,7 @@ public class KrakenOutGoal extends FileListGoal<GSProject> {
 		KrakenExecutor krakenExecutor = new KrakenExecutor(getProject().getConfig().getKrakenBin(),
 				getProject().getConfig().getKrakenExecExpr());
 		try {
+			File fastqFile = outFileTofastqFile.get(krakenOut);
 			if (getLogger().isInfoEnabled()) {
 				String execLine = krakenExecutor.genExecLine(getProject().getKrakenDB(), fastqFile);
 				getLogger().info("Running kraken with " + execLine);
