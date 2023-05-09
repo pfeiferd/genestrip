@@ -48,11 +48,15 @@ public class KMerFastqGenerator {
 	private final boolean ignoreMissingFastas;
 
 	public KMerFastqGenerator(String name, int kmerSize, long expectedSize, double fpp, int readBufferSize,
-			OutputStream output, boolean ignoreMissingFastas) throws IOException {
-		fastQWriter = new FastQWriter(name, output);
+			boolean ignoreMissingFastas) {
+		fastQWriter = new FastQWriter(name);
 		index = new GenestripKMerBloomIndex(name, kmerSize, expectedSize, fpp, fastQWriter);
 		fastaIndexer = new FastaIndexer(index, readBufferSize);
 		this.ignoreMissingFastas = ignoreMissingFastas;
+	}
+
+	public void setOutputStream(OutputStream out) {
+		fastQWriter.setOutputStream(out);
 	}
 
 	protected Log getLogger() {
@@ -101,12 +105,15 @@ public class KMerFastqGenerator {
 		private final Log logger = LogFactory.getLog(FastQWriter.class);
 
 		private final String id;
-		private final PrintStream printStream;
+		private PrintStream printStream;
 		private long added;
 		private long hits;
 
-		public FastQWriter(String id, OutputStream out) throws IOException {
+		public FastQWriter(String id) {
 			this.id = id;
+		}
+
+		public void setOutputStream(OutputStream out) {
 			printStream = new PrintStream(out);
 			printHeader();
 		}
