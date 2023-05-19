@@ -132,7 +132,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 				node = next;
 			}
 		}
-		if (!allowDoubleEntry && node[pos] != null) {
+		if (!allowDoubleEntry && node[pos] != null && !node[pos].equals(value)) {
 			throw new IllegalStateException("double entry " + node[pos] + " " + value);
 		}
 		if (node[pos] == null) {
@@ -173,7 +173,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 				node = next;
 			}
 		}
-		if (!allowDoubleEntry && node[pos] != null) {
+		if (!allowDoubleEntry && node[pos] != null && !node[pos].equals(value)) {
 			throw new IllegalStateException("double entry " + node[pos] + " " + value);
 		}
 		if (node[pos] == null) {
