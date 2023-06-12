@@ -49,7 +49,7 @@ public class SortKrakenOutGoal extends FileListGoal<GSProject> {
 		super(project, name, (List<File>)null, ArraysUtil.append(deps, krakenOutGoal));
 		goalFileToKrakeFile = new HashMap<File, File>();
 		for (File file : krakenOutGoal.getFiles()) {
-			File goalFile = project.getOutputFile(name, krakenOutGoal.getFile(), FileType.KRAKEN_OUT);
+			File goalFile = project.getOutputFile(name, file, FileType.KRAKEN_OUT);
 			addFile(goalFile);
 			goalFileToKrakeFile.put(goalFile, file);
 		}
