@@ -108,11 +108,15 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 			}
 		};
 		if (getLogger().isInfoEnabled()) {
-			String execLine = krakenExecutor.genExecLine(getProject().getKrakenDB(), fastq);
+			String execLine = krakenExecutor.genExecLine(getProject().getKrakenDB(), fastq, file);
 			getLogger().info("Run kraken with " + execLine);
 		}
 		try {
-			krakenExecutor.execute2(getProject().getKrakenDB(), fastq, null, System.err);
+			if (krakenExecutor.isWithFileForOutput()) {
+				throw new IOException("This goal does not work with an outfile as a parameter (like in krakenuniq)");
+			}
+			
+			krakenExecutor.execute2(getProject().getKrakenDB(), fastq, file, null, System.err);
 
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
 

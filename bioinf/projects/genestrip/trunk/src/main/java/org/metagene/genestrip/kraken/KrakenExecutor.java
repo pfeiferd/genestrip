@@ -46,16 +46,21 @@ public class KrakenExecutor {
 		this.bin = StringUtils.quoteArgument(bin);
 	}
 
-	public String genExecLine(String database, File fastq) throws IOException {
+	public String genExecLine(String database, File fastq, File classOut) throws IOException {
 		return MessageFormat.format(execCommand, bin, StringUtils.quoteArgument(database),
-				StringUtils.quoteArgument(fastq.getCanonicalPath()));
+				StringUtils.quoteArgument(fastq.getCanonicalPath()),
+				StringUtils.quoteArgument(classOut.getCanonicalPath()));
+	}
+	
+	public boolean isWithFileForOutput() {
+		return execCommand.contains("{3}");
 	}
 
-	protected CommandLine genExecCommand(String database, File fastq) throws IOException {
-		return CommandLine.parse(genExecLine(database, fastq));
+	protected CommandLine genExecCommand(String database, File fastq, File classOut) throws IOException {
+		return CommandLine.parse(genExecLine(database, fastq, classOut));
 	}
 
-	public void execute2(String database, File fastq, OutputStream outputStream, OutputStream errorStream)
+	public void execute2(String database, File fastq, File classOut, OutputStream outputStream, OutputStream errorStream)
 			throws IOException {
 		Executor executor = new DefaultExecutor();
 		PumpStreamHandler pumpStreamHandler = new PumpStreamHandler(outputStream, errorStream) {
@@ -84,15 +89,15 @@ public class KrakenExecutor {
 			}
 		};
 		executor.setStreamHandler(pumpStreamHandler);
-		int res = executor.execute(genExecCommand(database, fastq));
+		int res = executor.execute(genExecCommand(database, fastq, classOut));
 		if (res != 0) {
 			throw new IllegalStateException("Kraken terminated unsuccesfully");
 		}
 	}
 
-	public void execute(String database, File fastq, OutputStream outputStream, OutputStream errorStream)
+	public void execute(String database, File fastq, File classOut, OutputStream outputStream, OutputStream errorStream)
 			throws InterruptedException, IOException {
-		Process process = Runtime.getRuntime().exec(genExecLine(database, fastq));
+		Process process = Runtime.getRuntime().exec(genExecLine(database, fastq, classOut));
 		handleOutputStream(process.getInputStream(), outputStream);
 		handleErrorStream(process.getErrorStream(), System.err);
 		int res = process.waitFor();
@@ -100,7 +105,7 @@ public class KrakenExecutor {
 			throw new IllegalStateException("Kraken terminated unsuccesfully");
 		}
 	}
-
+	
 	protected void handleOutputStream(InputStream stream, OutputStream outputStream) throws IOException {
 		IOUtils.copyLarge(stream, outputStream);
 	}
