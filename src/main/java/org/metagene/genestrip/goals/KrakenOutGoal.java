@@ -55,7 +55,8 @@ public class KrakenOutGoal extends FileListGoal<GSProject> {
 
 		outFileTofastqFile = new HashMap<File, File>();
 		for (File fastqFile : fastqFiles) {
-			File outFile = project.getOutputFile(name, fastqFile, FileType.KRAKEN_OUT, !project.getConfig().isUseKraken1());		
+			File outFile = project.getOutputFile(name, fastqFile, FileType.KRAKEN_OUT,
+					!project.getConfig().isUseKraken1());
 			outFileTofastqFile.put(outFile, fastqFile);
 			addFile(outFile);
 		}
@@ -68,12 +69,17 @@ public class KrakenOutGoal extends FileListGoal<GSProject> {
 		try {
 			File fastqFile = outFileTofastqFile.get(krakenOut);
 			if (getLogger().isInfoEnabled()) {
-				String execLine = krakenExecutor.genExecLine(getProject().getKrakenDB(), fastqFile);
+				String execLine = krakenExecutor.genExecLine(getProject().getKrakenDB(), fastqFile, krakenOut);
 				getLogger().info("Running kraken with " + execLine);
 			}
-			OutputStream out = StreamProvider.getOutputStreamForFile(krakenOut);
-			krakenExecutor.execute2(getProject().getKrakenDB(), fastqFile, out, System.err);
-			out.close();
+			if (krakenExecutor.isWithFileForOutput()) {
+				krakenExecutor.execute2(getProject().getKrakenDB(), fastqFile, krakenOut, System.out, System.err);
+			}
+			else {
+				OutputStream out = StreamProvider.getOutputStreamForFile(krakenOut);
+				krakenExecutor.execute2(getProject().getKrakenDB(), fastqFile, krakenOut, out, System.err);
+				out.close();
+			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
