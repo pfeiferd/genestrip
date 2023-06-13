@@ -69,7 +69,7 @@ public abstract class Goal<P> {
 			}
 			startMake();
 			for (Goal<P> dep : dependencies) {
-				if (!dep.isMade()) {
+				if (dep != null && !dep.isMade()) {
 					dep.make();
 				}
 			}
