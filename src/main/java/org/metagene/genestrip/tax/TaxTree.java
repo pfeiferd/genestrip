@@ -33,6 +33,7 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -178,6 +179,27 @@ public class TaxTree {
 			counter = initPositions(counter + 1, subNode);
 		}
 		return counter;
+	}
+	
+	public void sortViaTree(List<String> taxids) {
+		Collections.sort(taxids, new Comparator<String>() {
+			@Override
+			public int compare(String o1, String o2) {
+				TaxIdNode a = getNodeByTaxId(o1);
+				TaxIdNode b = getNodeByTaxId(o2);
+				
+				if (a == null && b == null) {
+					return o1.compareTo(o2);
+				}
+				if (a == null) {
+					return -1;
+				}
+				if (b == null) {
+					return 1;
+				}
+				return a.compareTo(b);
+			}
+		});
 	}
 
 	public TaxIdNode getRoot() {
