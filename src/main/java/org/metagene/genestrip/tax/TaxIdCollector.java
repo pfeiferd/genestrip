@@ -52,17 +52,26 @@ public class TaxIdCollector {
 		try (BufferedReader br = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
 			String line = null;
 			while ((line = br.readLine()) != null) {
-				int tab = line.lastIndexOf('\t');
-				String taxId;
-				if (tab != -1) {
-					taxId = line.substring(tab, line.length()).trim();
-				} else {
-					taxId = line.trim();
-				}
-				if (!taxId.isEmpty()) {
-					TaxIdNode node = taxTree.getNodeByTaxId(taxId);
-					if (node != null) {
-						res.add(node);
+				line = line.trim();
+				// Ignore whole line comments.
+				if (!line.startsWith("#")) {
+					// Ignore end of line comments.
+					int commentIndex = line.indexOf('#');
+					if (commentIndex != -1) {
+						line = line.substring(0, commentIndex);
+					}
+					int tab = line.lastIndexOf('\t');
+					String taxId;
+					if (tab != -1) {
+						taxId = line.substring(tab, line.length()).trim();
+					} else {
+						taxId = line.trim();
+					}
+					if (!taxId.isEmpty()) {
+						TaxIdNode node = taxTree.getNodeByTaxId(taxId);
+						if (node != null) {
+							res.add(node);
+						}
 					}
 				}
 			}
@@ -93,7 +102,7 @@ public class TaxIdCollector {
 		}
 		return res;
 	}
-	
+
 	public Set<TaxIdNode> restrictToAncestor(TaxIdNode ancestor, Set<TaxIdNode> taxIds) {
 		Set<TaxIdNode> res = new HashSet<TaxTree.TaxIdNode>();
 
