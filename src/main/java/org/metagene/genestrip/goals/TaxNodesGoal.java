@@ -22,6 +22,10 @@ public class TaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
 		super(project, name, ArraysUtil.append(deps, taxTreeGoal));
 		this.taxTreeGoal = taxTreeGoal;
 	}
+	
+	public ObjectGoal<TaxTree, GSProject> getTaxTreeGoal() {
+		return taxTreeGoal;
+	}
 
 	@Override
 	public void makeThis() {
