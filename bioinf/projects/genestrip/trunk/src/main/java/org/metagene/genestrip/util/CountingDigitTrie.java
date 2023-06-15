@@ -25,7 +25,12 @@
 package org.metagene.genestrip.util;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+
+import org.metagene.genestrip.tax.TaxTree;
 
 public class CountingDigitTrie {
 	private CountingDigitTrie[] children;
@@ -129,8 +134,20 @@ public class CountingDigitTrie {
 		}
 	}
 
+	public static void print(Map<String, Long> map, PrintStream pOut, TaxTree taxTree) {
+		List<String> sortedKeys = new ArrayList<String>(map.keySet());
+		taxTree.sortViaTree(sortedKeys);
+		for (String taxid : sortedKeys) {
+			pOut.print(taxid);
+			pOut.print(';');
+			pOut.println(map.get(taxid));
+		}
+	}
+	
 	public static void print(Map<String, Long> map, PrintStream pOut) {
-		for (String taxid : map.keySet()) {
+		List<String> sortedKeys = new ArrayList<String>(map.keySet());
+		Collections.sort(sortedKeys);
+		for (String taxid : sortedKeys) {
 			pOut.print(taxid);
 			pOut.print(';');
 			pOut.println(map.get(taxid));
