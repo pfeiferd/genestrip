@@ -67,24 +67,24 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 			MyAbstractFastqReader fastqReader = new MyAbstractFastqReader(
 					getProject().getConfig().getMaxReadSizeBytes()) {
 				@Override
-				protected void nextEntry() throws IOException {
+				protected void nextEntry(ReadEntry readEntry) throws IOException {
 					int pos;
-					for (pos = readDescriptorSize - 1; pos >= 0; pos--) {
-						if (readDescriptor[pos] == ':') {
+					for (pos = readEntry.readDescriptorSize - 1; pos >= 0; pos--) {
+						if (readEntry.readDescriptor[pos] == ':') {
 							pos++;
 							break;
 						}
 					}
-					String taxid = countingDigitTrie.inc(readDescriptor, pos, readDescriptorSize);
+					String taxid = countingDigitTrie.inc(readEntry.readDescriptor, pos, readEntry.readDescriptorSize);
 					if (taxIds.contains(taxid)) {
-						trie.put(read, 0, taxid, false);
+						trie.put(readEntry.read, 0, taxid, false);
 					}
 				}
 			};
 			for (File file : krakenFastqGoal.getFiles()) {
 				fastqReader.readFastq(file);
 			}
-			
+
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Trie entries: " + trie.getEntries());
 				getLogger().info("Saving file " + trieFile);
@@ -101,7 +101,7 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 
 	protected static abstract class MyAbstractFastqReader extends AbstractFastqReader {
 		public MyAbstractFastqReader(int maxReadSizeBytes) {
-			super(maxReadSizeBytes);
+			super(maxReadSizeBytes, 0, 0);
 		}
 
 		@Override
