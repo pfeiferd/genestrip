@@ -12,7 +12,7 @@ import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.util.BufferedLineReader;
 import org.metagene.genestrip.util.StreamProvider;
 
-public abstract class AbstractMultiTreadedFastqReader {
+public abstract class AbstractFastqReader {
 	private static final byte[] LINE_3 = new byte[] { '+', '\n' };
 
 	protected final Log logger = LogFactory.getLog(getClass());
@@ -25,7 +25,7 @@ public abstract class AbstractMultiTreadedFastqReader {
 
 	private boolean dump;
 
-	public AbstractMultiTreadedFastqReader(int maxReadSizeBytes, int maxQueueSize, int consumerNumber) {
+	public AbstractFastqReader(int maxReadSizeBytes, int maxQueueSize, int consumerNumber) {
 		bufferedLineReaderFastQ = new BufferedLineReader();
 
 		readStructPool = new ReadEntry[consumerNumber == 0 ? 1 : (maxQueueSize + consumerNumber + 1)];
@@ -33,7 +33,7 @@ public abstract class AbstractMultiTreadedFastqReader {
 			readStructPool[i] = new ReadEntry(maxReadSizeBytes);
 		}
 		blockingQueue = consumerNumber == 0 ? null
-				: new ArrayBlockingQueue<AbstractMultiTreadedFastqReader.ReadEntry>(maxQueueSize);
+				: new ArrayBlockingQueue<AbstractFastqReader.ReadEntry>(maxQueueSize);
 
 		Runnable runnable = new Runnable() {
 			@Override
