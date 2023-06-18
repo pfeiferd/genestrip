@@ -10,7 +10,7 @@ import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.trie.KMerTrie;
-import org.metagene.genestrip.trie.MultiThreadedFastqTrieClassifier;
+import org.metagene.genestrip.trie.FastqTrieClassifier;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
@@ -32,7 +32,7 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 
 	@Override
 	protected void makeFile(File file) {
-		MultiThreadedFastqTrieClassifier c = null;
+		FastqTrieClassifier c = null;
 		try {
 			File filteredFile = null;
 			if (writedFiltered) {
@@ -42,7 +42,7 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 			@SuppressWarnings("unchecked")
 			KMerTrie<String> trie = (KMerTrie<String>) KMerTrie.load(trieGoal.getFile());
 
-			c = new MultiThreadedFastqTrieClassifier(trie, getProject().getConfig().getMaxReadSizeBytes(),
+			c = new FastqTrieClassifier(trie, getProject().getConfig().getMaxReadSizeBytes(),
 					getProject().getConfig().getThreadQueueSize(), getProject().getConfig().getThreads());
 			Map<String, Long> res = c.runClassifier(fastq, filteredFile);
 			c.dump();
