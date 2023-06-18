@@ -114,6 +114,9 @@ public abstract class Goal<P> {
 	public boolean isAllowTransitiveClean() {
 		return true;
 	}
+	
+	public void dump() {
+	}
 
 	public final void clean() {
 		clean(false);

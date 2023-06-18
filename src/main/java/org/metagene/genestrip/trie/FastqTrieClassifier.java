@@ -57,7 +57,6 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 	}
 
 	public Map<String, Long> runClassifier(File fastq, File filteredFile) throws IOException {
-
 		byteCountAccess = StreamProvider.getByteCountingInputStreamForFile(fastq, false);
 		fastqFileSize = Files.size(fastq.toPath());
 
@@ -117,6 +116,10 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 	protected void done() throws IOException {
 		if (logger.isInfoEnabled()) {
 			logger.info("Total indexed: " + indexedC);
+			long stopTime = System.currentTimeMillis();
+			double diff = (stopTime - startTime);
+			logger.info("Elapsed total ms:" + diff);
+			logger.info("Read file time ms: " + getMillis());
 		}
 	}
 

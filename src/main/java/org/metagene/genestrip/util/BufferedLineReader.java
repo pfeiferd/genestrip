@@ -21,6 +21,8 @@ public class BufferedLineReader {
 	private int pos; // Position from which to start reading from the buffer.
 	private InputStream stream;
 	private int bufferFill;
+	
+	private long millis;
 
 	public BufferedLineReader() {
 		this(null);
@@ -56,7 +58,9 @@ public class BufferedLineReader {
 					return size;
 				}
 			}
+			long start = System.currentTimeMillis();
 			bufferFill = stream.read(buffer);
+			millis += System.currentTimeMillis() - start;
 			pos = 0;
 		}
 		return size;
@@ -77,9 +81,15 @@ public class BufferedLineReader {
 					return size;
 				}
 			}
+			long start = System.currentTimeMillis();
 			bufferFill = stream.read(buffer);
+			millis += System.currentTimeMillis() - start;
 			pos = 0;
 		}
 		return size;
+	}
+	
+	public long getMillis() {
+		return millis;
 	}
 }

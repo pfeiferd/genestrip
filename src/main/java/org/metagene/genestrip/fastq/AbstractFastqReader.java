@@ -76,6 +76,10 @@ public abstract class AbstractFastqReader {
 		done();
 	}
 	
+	protected long getMillis() {
+		return bufferedLineReaderFastQ.getMillis();
+	}
+	
 	protected void rewriteInput(OutputStream out) throws IOException {
 		out.write(readDescriptor, 0, readDescriptorSize);
 		out.write('\n');
