@@ -38,7 +38,7 @@ import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
-public class MultiThreadedFastqTrieClassifier extends AbstractFastqReader {
+public class FastqTrieClassifier extends AbstractFastqReader {
 	private final KMerTrie<String> trie;
 	private CountingDigitTrie root;
 
@@ -51,7 +51,7 @@ public class MultiThreadedFastqTrieClassifier extends AbstractFastqReader {
 
 	private PrintStream out;
 
-	public MultiThreadedFastqTrieClassifier(KMerTrie<String> trie, int maxReadSize, int maxQueueSize, int consumerNumber) {
+	public FastqTrieClassifier(KMerTrie<String> trie, int maxReadSize, int maxQueueSize, int consumerNumber) {
 		super(maxReadSize, maxQueueSize, consumerNumber);
 		this.trie = trie;
 	}
