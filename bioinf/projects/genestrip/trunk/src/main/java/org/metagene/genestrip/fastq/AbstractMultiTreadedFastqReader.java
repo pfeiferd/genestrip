@@ -3,6 +3,7 @@ package org.metagene.genestrip.fastq;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -12,7 +13,7 @@ import org.metagene.genestrip.util.BufferedLineReader;
 import org.metagene.genestrip.util.StreamProvider;
 
 public abstract class AbstractMultiTreadedFastqReader {
-	// private static final byte[] LINE_3 = new byte[] { '+', '\n' };
+	private static final byte[] LINE_3 = new byte[] { '+', '\n' };
 
 	protected final Log logger = LogFactory.getLog(getClass());
 
@@ -21,22 +22,23 @@ public abstract class AbstractMultiTreadedFastqReader {
 	private final ReadEntry[] readStructPool;
 	private final BlockingQueue<ReadEntry> blockingQueue;
 	private final Thread[] consumers;
-	
-	private boolean closed;
-	
+
+	private boolean dump;
+
 	public AbstractMultiTreadedFastqReader(int maxReadSizeBytes, int maxQueueSize, int consumerNumber) {
 		bufferedLineReaderFastQ = new BufferedLineReader();
 
-		readStructPool = new ReadEntry[maxQueueSize + consumerNumber + 1];
+		readStructPool = new ReadEntry[consumerNumber == 0 ? 1 : (maxQueueSize + consumerNumber + 1)];
 		for (int i = 0; i < readStructPool.length; i++) {
 			readStructPool[i] = new ReadEntry(maxReadSizeBytes);
 		}
-		blockingQueue = new ArrayBlockingQueue<AbstractMultiTreadedFastqReader.ReadEntry>(maxQueueSize);
+		blockingQueue = consumerNumber == 0 ? null
+				: new ArrayBlockingQueue<AbstractMultiTreadedFastqReader.ReadEntry>(maxQueueSize);
 
 		Runnable runnable = new Runnable() {
 			@Override
 			public void run() {
-				while (!closed) {
+				while (!dump) {
 					try {
 						ReadEntry readStruct = blockingQueue.take();
 						nextEntry(readStruct);
@@ -44,23 +46,23 @@ public abstract class AbstractMultiTreadedFastqReader {
 					} catch (IOException e) {
 						throw new RuntimeException(e);
 					} catch (InterruptedException e) {
-						if (!closed) {
+						if (!dump) {
 							throw new RuntimeException(e);
 						}
 					}
 				}
 			}
 		};
-		
+
 		consumers = new Thread[consumerNumber];
 		for (int i = 0; i < consumers.length; i++) {
 			consumers[i] = new Thread(runnable);
 			consumers[i].start();
 		}
 	}
-	
-	public void close() {
-		closed = true;
+
+	public void dump() {
+		dump = true;
 		for (int i = 0; i < consumers.length; i++) {
 			consumers[i].interrupt();
 		}
@@ -88,6 +90,9 @@ public abstract class AbstractMultiTreadedFastqReader {
 
 		start();
 
+		if (logger.isInfoEnabled()) {
+			logger.info("Number of consumer threads: " + consumers.length);
+		}
 		ReadEntry readStruct = nextFreeReadStruct();
 		for (readStruct.readDescriptorSize = bufferedLineReaderFastQ.nextLine(readStruct.readDescriptor)
 				- 1; readStruct.readDescriptorSize > 0; readStruct.readDescriptorSize = bufferedLineReaderFastQ
@@ -100,20 +105,31 @@ public abstract class AbstractMultiTreadedFastqReader {
 			readStruct.readProbs[readStruct.readProbsSize] = 0;
 
 			reads++;
-			try {
-				blockingQueue.put(readStruct);
-			} catch (InterruptedException e) {
-				throw new RuntimeException(e);
+			if (blockingQueue == null) {
+				nextEntry(readStruct);
+			} else {
+				try {
+					blockingQueue.put(readStruct);
+				} catch (InterruptedException e) {
+					throw new RuntimeException(e);
+				}
 			}
 			readStruct = nextFreeReadStruct();
+			log();
 		}
 		if (logger.isInfoEnabled()) {
 			logger.info("Total number of reads: " + reads);
 		}
 		done();
 	}
+	
+	protected void log() {		
+	}
 
 	private ReadEntry nextFreeReadStruct() {
+		if (blockingQueue == null) {
+			return readStructPool[0];
+		}
 		for (int i = 0; i < readStructPool.length; i++) {
 			if (readStructPool[i].pooled) {
 				readStructPool[i].pooled = false;
@@ -127,12 +143,17 @@ public abstract class AbstractMultiTreadedFastqReader {
 		return bufferedLineReaderFastQ.getMillis();
 	}
 
-	/*
-	 * protected void rewriteInput(OutputStream out) throws IOException {
-	 * out.write(readDescriptor, 0, readDescriptorSize); out.write('\n');
-	 * out.write(read, 0, readSize); out.write('\n'); out.write(LINE_3);
-	 * out.write(readProbs, 0, readProbsSize); out.write('\n'); }
-	 */
+	protected void rewriteInput(ReadEntry readStruct, OutputStream out) throws IOException {
+		synchronized (out) {
+			out.write(readStruct.readDescriptor, 0, readStruct.readDescriptorSize);
+			out.write('\n');
+			out.write(readStruct.read, 0, readStruct.readSize);
+			out.write('\n');
+			out.write(LINE_3);
+			out.write(readStruct.readProbs, 0, readStruct.readProbsSize);
+			out.write('\n');
+		}
+	}
 
 	// Must be thread safe. Can freely operate on readStruct.
 	protected abstract void nextEntry(ReadEntry readStruct) throws IOException;

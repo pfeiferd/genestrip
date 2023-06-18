@@ -38,7 +38,7 @@ import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
-public class MultiTreadedFastqTrieClassifier extends AbstractMultiTreadedFastqReader {
+public class MultiThreadedFastqTrieClassifier extends AbstractMultiTreadedFastqReader {
 	private final KMerTrie<String> trie;
 	private CountingDigitTrie root;
 
@@ -51,8 +51,8 @@ public class MultiTreadedFastqTrieClassifier extends AbstractMultiTreadedFastqRe
 
 	private PrintStream out;
 
-	public MultiTreadedFastqTrieClassifier(KMerTrie<String> trie, int maxReadSize) {
-		super(maxReadSize, 1000, 20);
+	public MultiThreadedFastqTrieClassifier(KMerTrie<String> trie, int maxReadSize, int maxQueueSize, int consumerNumber) {
+		super(maxReadSize, maxQueueSize, consumerNumber);
 		this.trie = trie;
 	}
 
@@ -91,18 +91,22 @@ public class MultiTreadedFastqTrieClassifier extends AbstractMultiTreadedFastqRe
 		if (res) {
 			indexedC++;
 			if (indexed != null) {
-//				rewriteInput(indexed);
+				rewriteInput(entry, indexed);
 			}
 		}
+	}
+	
+	@Override
+	protected void log() {
 		if (logger.isInfoEnabled()) {
 			if (reads % 100000 == 0) {
 				double ratio = byteCountAccess.getBytesRead() / (double) fastqFileSize;
 				long stopTime = System.currentTimeMillis();
-
+				
 				double diff = (stopTime - startTime);
 				double totalTime = diff / ratio;
 				double totalHours = totalTime / 1000 / 60 / 60;
-
+				
 				logger.info("Elapsed hours:" + diff / 1000 / 60 / 60);
 				logger.info("Estimated total hours:" + totalHours);
 				logger.info("Reads processed: " + reads);

@@ -67,7 +67,7 @@ public class Main {
 			}
 
 			target = line.getOptionValue("t", "make");
-
+			
 			String fastqName = line.getOptionValue("f");
 			File fastqFile = null;
 			if (fastqName != null && !fastqName.trim().isEmpty()) {
@@ -109,7 +109,7 @@ public class Main {
 	public String getDefaultGoal() {
 		return "show";
 	}
-
+	
 	protected Options createOptions() {
 		Options options = new Options();
 //		options.addOption(new Option("v", "verbose", true, "Verbose information."));
@@ -134,7 +134,7 @@ public class Main {
 		Option target = Option.builder("t").hasArg().argName("target")
 				.desc("Generation target ('make', 'clean', 'cleanall'), default is 'make'.").build();
 		options.addOption(target);
-
+		
 		Option fastq = Option.builder("f").hasArg().argName("fqfile")
 				.desc("Fastq file in case of filtering or classfication (regarding goals 'filter' and 'classify').")
 				.build();

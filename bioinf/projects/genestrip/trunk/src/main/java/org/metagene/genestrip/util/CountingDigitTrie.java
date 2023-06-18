@@ -44,7 +44,7 @@ public class CountingDigitTrie {
 		return add(digits, 1);
 	}
 
-	public String add(String digits, int add) {
+	public synchronized String add(String digits, int add) {
 		int index;
 		int end = digits.length();
 		CountingDigitTrie node = this, child;
@@ -74,7 +74,7 @@ public class CountingDigitTrie {
 		return add(seq, start, end, 1);
 	}
 
-	public String add(byte[] seq, int start, int end, int add) {
+	public synchronized String add(byte[] seq, int start, int end, int add) {
 		int index;
 		CountingDigitTrie node = this, child;
 		for (int i = start; i < end; i++, node = child) {

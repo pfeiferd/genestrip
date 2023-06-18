@@ -29,11 +29,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 
-import org.metagene.genestrip.fastq.AbstractFastqReader;
+import org.metagene.genestrip.fastq.AbstractMultiTreadedFastqReader;
 import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
-public class FastqBloomFilter extends AbstractFastqReader {
+public class FastqBloomFilter extends AbstractMultiTreadedFastqReader {
 	private final AbstractKMerBloomIndex index;
 	private final int k;
 
@@ -48,8 +48,9 @@ public class FastqBloomFilter extends AbstractFastqReader {
 	private long startTime;
 	private long indexedC;
 
-	public FastqBloomFilter(AbstractKMerBloomIndex index, int minPosCount, double positiveRatio, int maxReadSize) {
-		super(maxReadSize);
+	public FastqBloomFilter(AbstractKMerBloomIndex index, int minPosCount, double positiveRatio, int maxReadSize,
+			int maxQueueSize, int consumerNumber) {
+		super(maxReadSize, maxQueueSize, consumerNumber);
 		this.index = index;
 		this.k = index.getK();
 		this.minPosCount = minPosCount;
@@ -57,12 +58,12 @@ public class FastqBloomFilter extends AbstractFastqReader {
 	}
 
 	@Override
-	protected void nextEntry() throws IOException {
+	protected void nextEntry(ReadEntry readStruct) throws IOException {
 		boolean res = false;
 		if (minPosCount > 0) {
-			res = isAcceptReadByAbs(true) || isAcceptReadByAbs(false);
+			res = isAcceptReadByAbs(readStruct, true) || isAcceptReadByAbs(readStruct, false);
 		} else {
-			res = isAcceptReadByRatio(true) || isAcceptReadByRatio(false);
+			res = isAcceptReadByRatio(readStruct, true) || isAcceptReadByRatio(readStruct, false);
 		}
 		if (res) {
 			out = indexed;
@@ -71,17 +72,21 @@ public class FastqBloomFilter extends AbstractFastqReader {
 			out = notIndexed;
 		}
 		if (out != null) {
-			rewriteInput(out);
+			rewriteInput(readStruct, out);
 		}
+	}
+	
+	@Override
+	protected void log() {
 		if (logger.isInfoEnabled()) {
 			if (reads % 100000 == 0) {
 				double ratio = byteCountAccess.getBytesRead() / (double) fastqFileSize;
 				long stopTime = System.currentTimeMillis();
-
+				
 				double diff = (stopTime - startTime);
 				double totalTime = diff / ratio;
 				double totalHours = totalTime / 1000 / 60 / 60;
-
+				
 				logger.info("Elapsed hours:" + diff / 1000 / 60 / 60);
 				logger.info("Estimated total hours:" + totalHours);
 				logger.info("Reads processed: " + reads);
@@ -95,6 +100,10 @@ public class FastqBloomFilter extends AbstractFastqReader {
 	protected void done() throws IOException {
 		if (logger.isInfoEnabled()) {
 			logger.info("Total indexed: " + indexedC);
+			long stopTime = System.currentTimeMillis();
+			double diff = (stopTime - startTime);
+			logger.info("Elapsed total ms:" + diff);
+			logger.info("Read file time ms: " + getMillis());
 		}
 	}
 
@@ -119,18 +128,18 @@ public class FastqBloomFilter extends AbstractFastqReader {
 
 		byteCountAccess.getInputStream().close();
 	}
-	
+
 	private final int[] badPos = new int[1];
 
-	protected boolean isAcceptReadByAbs(boolean reverse) {
+	protected boolean isAcceptReadByAbs(ReadEntry readStruct, boolean reverse) {
 		int counter = 0;
 		int negCounter = 0;
-		int max = readSize - k + 1;
+		int max = readStruct.readSize - k + 1;
 		int negThreshold = max - minPosCount;
 
 		for (int i = 0; i < max; i++) {
 			badPos[0] = -1;
-			if (index.contains(read, i, reverse, badPos)) {
+			if (index.contains(readStruct.read, i, reverse, badPos)) {
 				counter++;
 				if (counter >= minPosCount) {
 					return true;
@@ -149,16 +158,16 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		return false;
 	}
 
-	protected boolean isAcceptReadByRatio(boolean reverse) {
+	protected boolean isAcceptReadByRatio(ReadEntry readStruct, boolean reverse) {
 		int counter = 0;
 		int negCounter = 0;
-		int max = readSize - k + 1;
+		int max = readStruct.readSize - k + 1;
 		int posCounterThrehold = (int) (max * positiveRatio);
 		int negCounterThreshold = max - posCounterThrehold;
-		
+
 		for (int i = 0; i < max; i++) {
 			badPos[0] = -1;
-			if (index.contains(read, i, reverse, badPos)) {
+			if (index.contains(readStruct.read, i, reverse, badPos)) {
 				counter++;
 				if (counter >= posCounterThrehold) {
 					return true;
