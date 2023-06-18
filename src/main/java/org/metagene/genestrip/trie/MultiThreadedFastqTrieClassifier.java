@@ -32,13 +32,13 @@ import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.metagene.genestrip.fastq.AbstractMultiTreadedFastqReader;
+import org.metagene.genestrip.fastq.AbstractFastqReader;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
-public class MultiThreadedFastqTrieClassifier extends AbstractMultiTreadedFastqReader {
+public class MultiThreadedFastqTrieClassifier extends AbstractFastqReader {
 	private final KMerTrie<String> trie;
 	private CountingDigitTrie root;
 

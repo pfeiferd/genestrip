@@ -29,11 +29,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 
-import org.metagene.genestrip.fastq.AbstractMultiTreadedFastqReader;
+import org.metagene.genestrip.fastq.AbstractFastqReader;
 import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
-public class FastqBloomFilter extends AbstractMultiTreadedFastqReader {
+public class FastqBloomFilter extends AbstractFastqReader {
 	private final AbstractKMerBloomIndex index;
 	private final int k;
 
