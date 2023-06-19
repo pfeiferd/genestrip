@@ -25,6 +25,11 @@
 package org.metagene.genestrip.goals;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,7 +51,7 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 	private final int baseURLLen;
 
 	private List<File> files;
-	private Map<String, String> fileToDir;
+	private Map<String, Object> fileToDir;
 
 	@SafeVarargs
 	public FastaFileDownloadGoal(GSProject project, String name,
@@ -65,13 +70,18 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 	public List<File> getFiles() {
 		if (files == null) {
 			files = new ArrayList<File>();
-			fileToDir = new HashMap<String, String>();
+			fileToDir = new HashMap<String, Object>();
 			for (FTPEntryWithQuality entry : getRelevantEntriesAsList(getProject().getConfig().getFastaQuality(),
 					entryGoal.get())) {
 				String dir = getFtpDirFromURL(entry.getFtpURL());
 				if (dir != null) {
 					files.add(new File(getProject().getFastasDir(), entry.getFileName()));
-					fileToDir.put(entry.getFileName(), getFtpDirFromURL(entry.getFtpURL()));
+					if (entry.getFtpURL() != null) {
+						fileToDir.put(entry.getFileName(), getFtpDirFromURL(entry.getFtpURL()));
+					}
+					else {
+						fileToDir.put(entry.getFileName(), entry.getURL());
+					}
 				}
 			}
 			if (getLogger().isInfoEnabled()) {
@@ -109,6 +119,26 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 
 	@Override
 	protected String getFTPDir(File file) {
-		return fileToDir.get(file.getName());
+		return (String) fileToDir.get(file.getName());
+	}
+	
+	protected boolean isAdditionalFile(File file) {
+		return fileToDir.get(file.getName()) instanceof URL;
+	}
+	
+	@Override
+	public void additionalDownload(File file) throws IOException {
+		URL url = (URL) fileToDir.get(file.getName());
+		
+		if (getLogger().isInfoEnabled()) {
+			getLogger().info("Additional download for " + url.toExternalForm());
+		}
+		ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
+		if (getLogger().isInfoEnabled()) {
+			getLogger().info("Saving file " + file.toString());
+		}
+		FileOutputStream out = new FileOutputStream(file);
+		out.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+		out.close();		
 	}
 }

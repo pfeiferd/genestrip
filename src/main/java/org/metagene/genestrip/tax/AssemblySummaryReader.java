@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -87,7 +88,7 @@ public class AssemblySummaryReader {
 							entry = new ArrayList<FTPEntryWithQuality>();
 							result.put(node, entry);
 						}
-						FTPEntryWithQuality ewq = new FTPEntryWithQuality(ftp, quality);
+						FTPEntryWithQuality ewq = new FTPEntryWithQuality(ftp, quality, null);
 						entry.add(ewq);
 					}
 				}
@@ -104,15 +105,26 @@ public class AssemblySummaryReader {
 		private final String ftpURL;
 		private final String fileName;
 		private final FTPEntryQuality quality;
+		private final URL url;
 
-		public FTPEntryWithQuality(String ftpURL, FTPEntryQuality quality) {
+		public FTPEntryWithQuality(String ftpURL, FTPEntryQuality quality, URL url) {
 			this.ftpURL = ftpURL;
 			this.quality = quality;
-			this.fileName = ftpURL.substring(ftpURL.lastIndexOf('/') + 1) + "_genomic.fna.gz";
+			if (ftpURL != null) {
+				this.fileName = ftpURL.substring(ftpURL.lastIndexOf('/') + 1) + "_genomic.fna.gz";
+			}
+			else {
+				this.fileName = url.getFile();
+			}
+			this.url = url;
 		}
 
 		public String getFtpURL() {
 			return ftpURL;
+		}
+		
+		public URL getURL() {
+			return url;
 		}
 
 		public FTPEntryQuality getQuality() {
@@ -125,7 +137,7 @@ public class AssemblySummaryReader {
 	}
 
 	public enum FTPEntryQuality {
-		COMPLETE_LATEST, COMPLETE, LATEST, NONE;
+		ADDITIONAL, COMPLETE_LATEST, COMPLETE, LATEST, NONE;
 
 		public boolean below(FTPEntryQuality q) {
 			return this.ordinal() > q.ordinal();
