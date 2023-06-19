@@ -55,6 +55,7 @@ import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.Maker;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.tax.AdditionalFastaInfoReader;
 import org.metagene.genestrip.tax.AssemblySummaryReader;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryWithQuality;
 import org.metagene.genestrip.tax.TaxTree;
@@ -146,6 +147,14 @@ public class GSMaker extends Maker<GSProject> {
 					if (getLogger().isInfoEnabled()) {
 						getLogger().info("Total number of entries in assembly summary file: " + nEntriesTotal[0]);
 					}
+
+					AdditionalFastaInfoReader additionalFastaInfoReader = new AdditionalFastaInfoReader(
+							getProject().getConfig().getCommonDir(), taxTreeGoal.get());
+					additionalFastaInfoReader.addRelevantEntries(entries, taxNodesGoal.get(), nEntriesTotal);
+					if (getLogger().isInfoEnabled()) {
+						getLogger().info("Total number of entries in additonal info file: " + nEntriesTotal[0]);
+					}
+
 					set(entries);
 				} catch (IOException e) {
 					throw new RuntimeException(e);
@@ -157,14 +166,14 @@ public class GSMaker extends Maker<GSProject> {
 				projectSetupGoal);
 		registerGoal(fastaDownloadGoal);
 
-		KMerFastqGoal kmerFastqGoal = new KMerFastqGoal(project, "kmerfastq", fastaFilesGoal,
-				fastaDownloadGoal, projectSetupGoal);
+		KMerFastqGoal kmerFastqGoal = new KMerFastqGoal(project, "kmerfastq", fastaFilesGoal, fastaDownloadGoal,
+				projectSetupGoal);
 		registerGoal(kmerFastqGoal);
 
 		FileGoal<GSProject> krakenOutGoal = new KrakenOutGoal(project, "kmerkrakenout", kmerFastqGoal.getFiles(),
 				kmerFastqGoal, projectSetupGoal);
 		registerGoal(krakenOutGoal);
-		
+
 		if (project.getConfig().isUseKraken1()) {
 			krakenOutGoal = new SortKrakenOutGoal(project, "sort", krakenOutGoal);
 			registerGoal(krakenOutGoal);
@@ -239,14 +248,15 @@ public class GSMaker extends Maker<GSProject> {
 					projectSetupGoal);
 			registerGoal(krakenResCountAllGoal);
 
-			FileGoal<GSProject> fastqKrakenOutGoal = new KrakenOutGoal(project, "fastqkrakenout", fastq, projectSetupGoal);
+			FileGoal<GSProject> fastqKrakenOutGoal = new KrakenOutGoal(project, "fastqkrakenout", fastq,
+					projectSetupGoal);
 			registerGoal(fastqKrakenOutGoal);
 
 			if (project.getConfig().isUseKraken1()) {
 				fastqKrakenOutGoal = new SortKrakenOutGoal(project, "sortfastq", fastqKrakenOutGoal);
 				registerGoal(fastqKrakenOutGoal);
 			}
-			
+
 			ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> trieFromKrakenResGoal = new TrieFromKrakenResGoal(project,
 					"triefromkrakenres", fastq, project.getConfig().isWriteFilteredFastq(), taxNodesGoal,
 					fastaFilesGoal, fastqKrakenOutGoal, fastaDownloadGoal, projectSetupGoal);
