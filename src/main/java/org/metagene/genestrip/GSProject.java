@@ -31,7 +31,7 @@ import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
 
 public class GSProject implements DownloadProject {
 	public enum FileType {
-		FASTQ(".fastq"), FASTA(".fasta"), CSV(".csv"), KRAKEN_OUT(".out"), SER(".ser");
+		FASTQ_RES(".fastq"), FASTQ(".fastq"), FASTA(".fasta"), CSV(".csv"), KRAKEN_OUT(".out"), SER(".ser");
 
 		private final String suffix;
 
@@ -50,17 +50,19 @@ public class GSProject implements DownloadProject {
 	private final FTPEntryQuality fastaQuality;
 	private final int kMserSize;
 	private final File fastqFile;
-	private final File resFolder;
+	private final File csvDir;
+	private final File fastqResDir;
 
 	public GSProject(GSConfig config, String name, FTPEntryQuality fastaQuality, int kMerSize, String krakenDB,
-			File fastqFile, File resFolder) {
+			File fastqFile, File csvDir, File fastqResDir) {
 		this.config = config;
 		this.name = name;
 		this.fastaQuality = fastaQuality;
 		this.kMserSize = kMerSize;
 		this.krakenDB = krakenDB;
 		this.fastqFile = fastqFile;
-		this.resFolder = resFolder != null ? resFolder : new File(getProjectsDir(), name + "/csv");
+		this.fastqResDir = fastqResDir;
+		this.csvDir = csvDir != null ? csvDir : new File(getProjectsDir(), name + "/csv");
 	}
 
 	public File getFastqFile() {
@@ -69,6 +71,8 @@ public class GSProject implements DownloadProject {
 
 	public File getDirForType(FileType type) {
 		switch (type) {
+		case FASTQ_RES:
+			return getFastqsResDir();
 		case FASTQ:
 			return getFastqsDir();
 		case FASTA:
@@ -170,6 +174,10 @@ public class GSProject implements DownloadProject {
 	public File getFastqsDir() {
 		return new File(getProjectsDir(), name + "/fastqs");
 	}
+	
+	public File getFastqsResDir() {
+		return fastqResDir == null ? getFastqsDir() : fastqResDir;
+	}
 
 	public File getFiltersDir() {
 		return new File(getProjectsDir(), name + "/filters");
@@ -192,6 +200,6 @@ public class GSProject implements DownloadProject {
 	}
 	
 	public File getResultsDir() {
-		return resFolder;
+		return csvDir;
 	}
 }
