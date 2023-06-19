@@ -75,31 +75,34 @@ public class AdditionalFastaInfoReader {
 
 			int counter = 0;
 			for (CSVRecord record : records) {
-				// Prevent inconsistent entries (they gotta have at least 20 columns)
-				if (record.size() >= 20) {
-					String taxid = record.get(1);
-					String url = record.get(2);
-					String complete = record.get(3);
-					String latest = record.get(4);
-
-					TaxIdNode node = taxTree.getNodeByTaxId(taxid);
-					if (node != null && (filter == null || filter.contains(node))) {
-						FTPEntryQuality quality = FTPEntryQuality.fromString(complete, latest);
-						if (quality == null || FTPEntryQuality.NONE.equals(quality)) {
-							quality = FTPEntryQuality.ADDITIONAL;
-						}
-						if (!FTPEntryQuality.NONE.equals(quality)) {
-							List<FTPEntryWithQuality> entry = result.get(node);
-							if (entry == null) {
-								entry = new ArrayList<FTPEntryWithQuality>();
-								result.put(node, entry);
-							}
-							FTPEntryWithQuality ewq = new FTPEntryWithQuality(null, quality, new URL(url));
-							entry.add(ewq);
-						}
-					}
-					counter++;
+				String taxid = record.get(0);
+				String url = record.get(1);
+				String latest = null;
+				if (record.size() > 2) {
+					latest = record.get(2);
 				}
+				String complete = null;
+				if (record.size() > 3) {
+					complete = record.get(3);
+				}
+
+				TaxIdNode node = taxTree.getNodeByTaxId(taxid);
+				if (node != null && (filter == null || filter.contains(node))) {
+					FTPEntryQuality quality = FTPEntryQuality.fromString(complete, latest);
+					if (quality == null || FTPEntryQuality.NONE.equals(quality)) {
+						quality = FTPEntryQuality.ADDITIONAL;
+					}
+					if (!FTPEntryQuality.NONE.equals(quality)) {
+						List<FTPEntryWithQuality> entry = result.get(node);
+						if (entry == null) {
+							entry = new ArrayList<FTPEntryWithQuality>();
+							result.put(node, entry);
+						}
+						FTPEntryWithQuality ewq = new FTPEntryWithQuality(null, quality, new URL(url));
+						entry.add(ewq);
+					}
+				}
+				counter++;
 			}
 			if (totalEntries != null) {
 				totalEntries[0] = counter;

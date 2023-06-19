@@ -75,8 +75,8 @@ public class AssemblySummaryReader {
 			// Prevent inconsistent entries (they gotta have at least 20 columns)
 			if (record.size() >= 20) {
 				String taxid = record.get(5);
-				String complete = record.get(11);
 				String latest = record.get(10);
+				String complete = record.get(11);
 				String ftp = record.get(19);
 
 				TaxIdNode node = taxTree.getNodeByTaxId(taxid);
