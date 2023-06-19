@@ -158,8 +158,7 @@ public abstract class FileDownloadGoal<P extends DownloadProject> extends FileGo
 		try {
 			if (isAdditionalFile(file)) {
 				additionalDownload(file);
-			}
-			else if (getProject().isUseHttp()) {
+			} else if (getProject().isUseHttp()) {
 				httpDownload(file);
 			} else {
 				ftpDownload(ftpClient, file);
@@ -171,19 +170,21 @@ public abstract class FileDownloadGoal<P extends DownloadProject> extends FileGo
 			if (!getProject().isIgnoreMissingFiles()) {
 				throw e;
 			}
-			if (getProject().isUseHttp()) {
+			if (isAdditionalFile(file)) {
+				getLogger().warn("Missing file for download " + file.getCanonicalPath());
+			} else if (getProject().isUseHttp()) {
 				getLogger().warn("Missing file for download " + buildHttpURL(file));
 			} else {
 				getLogger().warn("Missing file for download " + buildFTPURL(file));
 			}
 		}
 	}
-	
+
 	protected boolean isAdditionalFile(File file) {
 		return false;
 	}
-	
-	public void additionalDownload(File file) throws IOException {	
+
+	public void additionalDownload(File file) throws IOException {
 		throw new FileNotFoundException("No implementation for additional download of file: " + file);
 	}
 
