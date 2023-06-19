@@ -35,7 +35,6 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
 
 public class Main {
 	private final Options options;
@@ -56,34 +55,27 @@ public class Main {
 			String baseDir = line.getOptionValue("d", "./data");
 			config = new GSConfig(new File(baseDir));
 
-			String db = line.getOptionValue("db", null);
-			String kmer = line.getOptionValue("k", "0");
-			int k = Integer.valueOf(kmer);
-
-			String qs = line.getOptionValue("q", null);
-			FTPEntryQuality q = null;
-			if (qs != null) {
-				q = FTPEntryQuality.valueOf(qs.toUpperCase());
-			}
-
 			target = line.getOptionValue("t", "make");
-			
+
 			String fastqName = line.getOptionValue("f");
 			File fastqFile = null;
 			if (fastqName != null && !fastqName.trim().isEmpty()) {
 				fastqFile = new File(fastqName.trim());
 			}
 
-			restArgs = line.getArgs();
-			String projectName = restArgs[0];
 			File resFolder = null;
-
 			String resStr = line.getOptionValue("r");
 			if (resStr != null) {
 				resFolder = new File(resStr);
 			}
 
-			project = new GSProject(config, projectName, q, k, db, fastqFile, resFolder);
+			restArgs = line.getArgs();
+			if (restArgs.length == 0) {
+				throw new ParseException("Missing project name.");
+			}
+			String projectName = restArgs[0];
+
+			project = new GSProject(config, projectName, null, 0, null, fastqFile, resFolder, resFolder);
 			maker = new GSMaker(project);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
@@ -109,39 +101,26 @@ public class Main {
 	public String getDefaultGoal() {
 		return "show";
 	}
-	
+
 	protected Options createOptions() {
 		Options options = new Options();
 //		options.addOption(new Option("v", "verbose", true, "Verbose information."));
 
 		Option baseDir = Option.builder("d").hasArg().argName("path")
-				.desc("Base directrory of files, default is './data'.").build();
+				.desc("Base directrory for all data files. The default is './data'.").build();
 		options.addOption(baseDir);
 
-		Option dbPath = Option.builder("db").hasArg().argName("path")
-				.desc("Path to Kraken database folder, default is from 'Config.properties'.").build();
-		options.addOption(dbPath);
-
-		Option kMerSize = Option.builder("k").hasArg().argName("size")
-				.desc("K-mer size, default is from 'Config.properties'.").build();
-		options.addOption(kMerSize);
-
-		Option quality = Option.builder("q").hasArg().argName("quality").desc(
-				"Quality of fasta files from NCBI ('COMLPETE_LATEST', 'COMPLETE', 'LATEST', 'NONE'), default is from 'Config.properties'.")
-				.build();
-		options.addOption(quality);
-
 		Option target = Option.builder("t").hasArg().argName("target")
-				.desc("Generation target ('make', 'clean', 'cleanall'), default is 'make'.").build();
+				.desc("Generation target ('make', 'clean', 'cleanall'). The default is 'make'.").build();
 		options.addOption(target);
-		
+
 		Option fastq = Option.builder("f").hasArg().argName("fqfile")
-				.desc("Fastq file in case of filtering or classfication (regarding goals 'filter' and 'classify').")
+				.desc("Input fastq file in case of filtering or k-mer matching (regarding goals 'filter' and 'match').")
 				.build();
 		options.addOption(fastq);
 
 		Option resFolder = Option.builder("r").hasArg().argName("path").desc(
-				"Store folder files created via goals 'filter' and 'classify', default is '<base directory >/projects/<project name>/res'.")
+				"Commron store folder for filtered fastq files and csv files created via the goals 'filter' and 'match'. The default is '<base directory>/projects/<project name>/fastq' and '<base directory>/projects/<project name>/csv' respectively.")
 				.build();
 		options.addOption(resFolder);
 
