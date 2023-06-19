@@ -24,6 +24,8 @@
  */
 package org.metagene.genestrip.bloom;
 
+import java.io.IOException;
+
 import org.metagene.genestrip.fasta.AbstractFastaReader;
 import org.metagene.genestrip.util.CGAT;
 
@@ -33,6 +35,11 @@ public class FastaIndexer extends AbstractFastaReader {
 	public FastaIndexer(AbstractKMerBloomIndex index, int bufferSize) {
 		super(bufferSize);
 		this.index = index;
+	}
+	
+	@Override
+	protected void infoLine() throws IOException {
+		index.resetPut();
 	}
 
 	@Override
