@@ -19,7 +19,7 @@ public class FilterGoal extends FileListGoal<GSProject> {
 	@SafeVarargs
 	public FilterGoal(GSProject project, String name, File fastq, boolean writeDump,
 			BloomFilterFileGoal bloomFilterFileGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile("filtered", fastq, FileType.FASTQ),
+		super(project, name, project.getOutputFile("filtered", fastq, FileType.FASTQ_RES),
 				ArraysUtil.append(deps, bloomFilterFileGoal));
 		this.fastq = fastq;
 		this.bloomFilterFileGoal = bloomFilterFileGoal;
@@ -30,7 +30,7 @@ public class FilterGoal extends FileListGoal<GSProject> {
 	protected void makeFile(File file) {
 		FastqBloomFilter f = null;
 		try {
-			File dumpFile = writeDump ? getProject().getOutputFile("dumped", fastq, FileType.FASTQ) : null;
+			File dumpFile = writeDump ? getProject().getOutputFile("dumped", fastq, FileType.FASTQ_RES) : null;
 			f = new FastqBloomFilter(AbstractKMerBloomIndex.load(bloomFilterFileGoal.getFile()),
 					getProject().getConfig().getMinPosCountFilter(), getProject().getConfig().getPosRatioFilter(),
 					getProject().getConfig().getMaxReadSizeBytes(), getProject().getConfig().getThreadQueueSize(),
