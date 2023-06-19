@@ -49,13 +49,13 @@ public class StreamProvider {
 		return bufferSize;
 	}
 
-	public static ByteCountingInputStreamAccess getByteCountingInputStreamForFile(File file, boolean noGZ) throws IOException {
+	public static ByteCountingInputStreamAccess getByteCountingInputStreamForFile(File file, boolean noGZ)
+			throws IOException {
 		final ByteCountingFileInputStream in = new ByteCountingFileInputStream(file);
 		InputStream[] res = new InputStream[1];
-		if (!noGZ &&  isGZIPFile(file)) {
+		if (!noGZ && isGZIPFile(file)) {
 			res[0] = new GZIPInputStream(in, bufferSize);
-		}
-		else {
+		} else {
 			res[0] = new BufferedInputStream(in, bufferSize);
 		}
 		return new ByteCountingInputStreamAccess() {
@@ -63,7 +63,7 @@ public class StreamProvider {
 			public long getBytesRead() {
 				return in.getBytesRead();
 			}
-			
+
 			@Override
 			public InputStream getInputStream() {
 				return res[0];
@@ -102,7 +102,7 @@ public class StreamProvider {
 
 		return name.endsWith(".gz") || name.endsWith(".gzip");
 	}
-	
+
 	public static long guessUncompressedSize(Collection<File> gzipFiles, int maxCheckForGuess) {
 		int i = 0;
 		long cSizeSum = 0;
@@ -111,9 +111,11 @@ public class StreamProvider {
 			if (i == maxCheckForGuess) {
 				break;
 			}
-			cSizeSum += file.length();
-			uSizeSum += getUncompressedSize(file);
-			i++;
+			if (file.exists()) {
+				cSizeSum += file.length();
+				uSizeSum += getUncompressedSize(file);
+				i++;
+			}
 		}
 		if (i < maxCheckForGuess) {
 			return uSizeSum;

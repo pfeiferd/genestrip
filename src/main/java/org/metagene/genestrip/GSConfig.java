@@ -149,6 +149,10 @@ public class GSConfig {
 		return new File(baseDir, "common");
 	}
 
+	public File getAdditionalDir() {
+		return new File(baseDir, "additional");
+	}
+	
 	public boolean isUseHttp() {
 		return Boolean.valueOf(properties.getProperty("useHttp", "true"));
 	}

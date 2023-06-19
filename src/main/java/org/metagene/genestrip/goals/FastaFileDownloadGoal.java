@@ -84,6 +84,16 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 				} else {
 					URL url = entry.getURL();
 					if (url != null) {
+						// Relative path for file url is with respect to projects base directory ...
+						if ("file".equals(url.getProtocol())) {
+							if (!new File(url.getPath()).isAbsolute()) {
+								try {
+									url = new URL("file", null,  new File(getProject().getBaseDir(), url.getFile()).getCanonicalPath());
+								} catch (IOException e) {
+									throw new RuntimeException(e);
+								}
+							}
+						}
 						files.add(file);
 						fileToDir.put(fileName, url);
 					}

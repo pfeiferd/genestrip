@@ -149,7 +149,7 @@ public class GSMaker extends Maker<GSProject> {
 					}
 
 					AdditionalFastaInfoReader additionalFastaInfoReader = new AdditionalFastaInfoReader(
-							getProject().getConfig().getCommonDir(), taxTreeGoal.get());
+							getProject().getConfig().getAdditionalDir(), taxTreeGoal.get());
 					additionalFastaInfoReader.addRelevantEntries(entries, taxNodesGoal.get(), nEntriesTotal);
 					if (getLogger().isInfoEnabled()) {
 						getLogger().info("Total number of entries in additonal info file: " + nEntriesTotal[0]);
