@@ -36,10 +36,10 @@ public class GenestripKMerBloomIndex extends AbstractKMerBloomIndex {
 	public GenestripKMerBloomIndex(String name, int k, long expectedInsertions, double expectedFpp,
 			PutListener putListener) {
 		super(name, k, putListener);
-		index = /* expectedInsertions > MAX_ARRAY_SIZE */ true ? new LargeMurmurCGATBloomFilter(k, expectedInsertions, expectedFpp)
+		index = expectedInsertions > MAX_ARRAY_SIZE ? new LargeMurmurCGATBloomFilter(k, expectedInsertions, expectedFpp)
 				: new MurmurCGATBloomFilter(k, expectedInsertions, expectedFpp);
 	}
-	
+
 	public void clearAndEnsureCapacity(long size) {
 		index.clearAndEnsureCapacity(size);
 	}
