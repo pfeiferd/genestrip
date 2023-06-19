@@ -60,7 +60,7 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 		this.entryGoal = entryGoal;
 		baseURLLen = project.getConfig().getHttpBaseURL().length();
 	}
-	
+
 	@Override
 	public boolean isAllowTransitiveClean() {
 		return false;
@@ -73,14 +73,19 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 			fileToDir = new HashMap<String, Object>();
 			for (FTPEntryWithQuality entry : getRelevantEntriesAsList(getProject().getConfig().getFastaQuality(),
 					entryGoal.get())) {
-				String dir = getFtpDirFromURL(entry.getFtpURL());
-				if (dir != null) {
-					files.add(new File(getProject().getFastasDir(), entry.getFileName()));
-					if (entry.getFtpURL() != null) {
-						fileToDir.put(entry.getFileName(), getFtpDirFromURL(entry.getFtpURL()));
+				String fileName = entry.getFileName();
+				File file = new File(getProject().getFastasDir(), fileName);
+				if (entry.getFtpURL() != null) {
+					String dir = getFtpDirFromURL(entry.getFtpURL());
+					if (dir != null) {
+						files.add(file);
+						fileToDir.put(fileName, dir);
 					}
-					else {
-						fileToDir.put(entry.getFileName(), entry.getURL());
+				} else {
+					URL url = entry.getURL();
+					if (url != null) {
+						files.add(file);
+						fileToDir.put(fileName, url);
 					}
 				}
 			}
@@ -90,7 +95,7 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 		}
 		return files;
 	}
-	
+
 	@Override
 	protected List<File> getFilesToClean() {
 		return Collections.singletonList(getProject().getFastasDir());
@@ -121,15 +126,15 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 	protected String getFTPDir(File file) {
 		return (String) fileToDir.get(file.getName());
 	}
-	
+
 	protected boolean isAdditionalFile(File file) {
 		return fileToDir.get(file.getName()) instanceof URL;
 	}
-	
+
 	@Override
 	public void additionalDownload(File file) throws IOException {
 		URL url = (URL) fileToDir.get(file.getName());
-		
+
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Additional download for " + url.toExternalForm());
 		}
@@ -139,6 +144,6 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 		}
 		FileOutputStream out = new FileOutputStream(file);
 		out.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
-		out.close();		
+		out.close();
 	}
 }

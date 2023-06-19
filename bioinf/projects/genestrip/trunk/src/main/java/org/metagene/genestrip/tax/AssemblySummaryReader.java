@@ -114,7 +114,8 @@ public class AssemblySummaryReader {
 				this.fileName = ftpURL.substring(ftpURL.lastIndexOf('/') + 1) + "_genomic.fna.gz";
 			}
 			else {
-				this.fileName = url.getFile();
+				String path = url.getFile();
+				this.fileName = path.substring(path.lastIndexOf('/') + 1);
 			}
 			this.url = url;
 		}
