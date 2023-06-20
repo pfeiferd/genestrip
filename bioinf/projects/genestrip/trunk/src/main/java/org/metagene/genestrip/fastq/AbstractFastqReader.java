@@ -54,7 +54,7 @@ public abstract class AbstractFastqReader {
 
 		readStructPool = new ReadEntry[consumerNumber == 0 ? 1 : (maxQueueSize + consumerNumber + 1)];
 		for (int i = 0; i < readStructPool.length; i++) {
-			readStructPool[i] = new ReadEntry(maxReadSizeBytes);
+			readStructPool[i] = createReadEntry(maxReadSizeBytes);
 		}
 		blockingQueue = consumerNumber == 0 ? null
 				: new ArrayBlockingQueue<AbstractFastqReader.ReadEntry>(maxQueueSize);
@@ -83,6 +83,10 @@ public abstract class AbstractFastqReader {
 			consumers[i] = new Thread(runnable);
 			consumers[i].start();
 		}
+	}
+	
+	protected ReadEntry createReadEntry(int maxReadSizeBytes) {
+		return new ReadEntry(maxReadSizeBytes);
 	}
 
 	public void dump() {
@@ -143,7 +147,7 @@ public abstract class AbstractFastqReader {
 		}
 		if (blockingQueue != null) {
 			readStruct.pooled = true;
-			// Gentle polling and wait until all consumers are done. 
+			// Gentle polling and waiting until all consumers are done. 
 			boolean stillWorking = true;
 			while (stillWorking) {
 				stillWorking = false;
@@ -211,7 +215,7 @@ public abstract class AbstractFastqReader {
 	protected void start() throws IOException {
 	};
 
-	public static class ReadEntry {
+	protected static class ReadEntry {
 		public boolean pooled;
 
 		public final byte[] readDescriptor;
@@ -225,7 +229,7 @@ public abstract class AbstractFastqReader {
 		
 		public long indexedCounter = 0;
 
-		private ReadEntry(int maxReadSizeBytes) {
+		protected ReadEntry(int maxReadSizeBytes) {
 			readDescriptor = new byte[maxReadSizeBytes];
 			read = new byte[maxReadSizeBytes];
 			readProbs = new byte[maxReadSizeBytes];
