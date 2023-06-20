@@ -76,6 +76,11 @@ public class FastqBloomFilter extends AbstractFastqReader {
 	}
 	
 	@Override
+	protected ReadEntry createReadEntry(int maxReadSizeBytes) {
+		return new MyReadEntry(maxReadSizeBytes);
+	}
+	
+	@Override
 	protected void start() throws IOException {
 		indexedC = 0;
 	}
@@ -138,24 +143,23 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		byteCountAccess.getInputStream().close();
 	}
 
-	private final int[] badPos = new int[1];
-
 	protected boolean isAcceptReadByAbs(ReadEntry readStruct, boolean reverse) {
 		int counter = 0;
 		int negCounter = 0;
 		int max = readStruct.readSize - k + 1;
 		int negThreshold = max - minPosCount;
 
+		MyReadEntry re = (MyReadEntry) readStruct;
 		for (int i = 0; i < max; i++) {
-			badPos[0] = -1;
-			if (index.contains(readStruct.read, i, reverse, badPos)) {
+			re.badPos[0] = -1;
+			if (index.contains(readStruct.read, i, reverse, re.badPos)) {
 				counter++;
 				if (counter >= minPosCount) {
 					return true;
 				}
 			} else {
-				if (badPos[0] > 0) {
-					i += badPos[0];
+				if (re.badPos[0] > 0) {
+					i += re.badPos[0];
 				}
 				negCounter++;
 				if (negCounter > negThreshold) {
@@ -174,16 +178,17 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		int posCounterThrehold = (int) (max * positiveRatio);
 		int negCounterThreshold = max - posCounterThrehold;
 
+		MyReadEntry re = (MyReadEntry) readStruct;
 		for (int i = 0; i < max; i++) {
-			badPos[0] = -1;
-			if (index.contains(readStruct.read, i, reverse, badPos)) {
+			re.badPos[0] = -1;
+			if (index.contains(readStruct.read, i, reverse, re.badPos)) {
 				counter++;
 				if (counter >= posCounterThrehold) {
 					return true;
 				}
 			} else {
-				if (badPos[0] > 0) {
-					i += badPos[0];
+				if (re.badPos[0] > 0) {
+					i += re.badPos[0];
 				}
 				negCounter++;
 				if (negCounter > negCounterThreshold) {
@@ -195,4 +200,11 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		return false;
 	}
 
+	protected static class MyReadEntry extends ReadEntry {
+		public final int[] badPos = new int[1];
+		
+		protected MyReadEntry(int maxReadSizeBytes) {
+			super(maxReadSizeBytes);
+		}
+	}
 }
