@@ -32,6 +32,8 @@ import org.metagene.genestrip.util.CGATRingBuffer;
 
 public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter implements Serializable {
 	private static final long serialVersionUID = 1L;
+	
+	private final int reverseOffset;
 
 //  Experimental stuff: minimize local dependencies of close k-mer bases with regards to generating hash code
 //  by using this array that could help to access the bases in a non-sequential way.
@@ -40,6 +42,8 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 
 	public TwoLongsCGATBloomFilter(int k, long expectedInsertions, double fpp) {
 		super(k, expectedInsertions, fpp);
+		
+		reverseOffset = (k % 2 == 0) ? k - 1 : k;
 
 		List<Integer> indices1 = new ArrayList<Integer>();
 		List<Integer> indices2 = new ArrayList<Integer>();
@@ -125,7 +129,46 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 		putViaHash(hash1, hash2);
 	}
 
-	protected long hash(byte[] seq, int start, boolean even, boolean reverse, int[] badPos) {
+	protected long hashStraight(byte[] seq, int start, boolean even, int[] badPos) {
+		long hash = 0;
+		int c;
+		
+		int max = start + k;
+		for (int i = start + (even ? 0 : 1); i < max; i += 2) {
+			hash = hash << 2;
+			c = CGAT_JUMP_TABLE[seq[i]];
+			if (c == -1) {
+				if (badPos != null) {
+					badPos[0] = i;
+				}
+				return 0;
+			}
+			hash += c;
+		}
+		
+		return hash == 0 ? 1L : hash;
+	}
+	
+	protected long hashReverse(byte[] seq, int start, boolean even, int[] badPos) {
+		long hash = 0;
+		int c;
+		
+		for (int i = start + reverseOffset - (even ? 1 : 2); i >= start; i -= 2) {
+			hash = hash << 2;
+			c = CGAT_REVERSE_JUMP_TABLE[seq[i]];
+			if (c == -1) {
+				if (badPos != null) {
+					badPos[0] = i;
+				}
+				return 0;
+			}
+			hash += c;
+		}
+		
+		return hash == 0 ? 1L : hash;
+	}
+	
+	protected final long hash(byte[] seq, int start, boolean even, boolean reverse, int[] badPos) {
 		long hash = 0;
 		int c;
 
