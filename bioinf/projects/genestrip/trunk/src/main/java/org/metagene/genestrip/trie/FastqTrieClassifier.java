@@ -89,11 +89,20 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		boolean res = classifyRead(entry, false);
 		res |= classifyRead(entry, true);
 		if (res) {
-			indexedC++;
 			if (indexed != null) {
 				rewriteInput(entry, indexed);
 			}
 		}
+	}
+	
+	@Override
+	protected void start() throws IOException {
+		indexedC = 0;
+	}
+	
+	@Override
+	protected void updateWriteStats() {
+		indexedC++;
 	}
 	
 	@Override
