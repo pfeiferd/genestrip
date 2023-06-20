@@ -227,8 +227,6 @@ public abstract class AbstractFastqReader {
 		public final byte[] readProbs;
 		public int readProbsSize;
 		
-		public long indexedCounter = 0;
-
 		protected ReadEntry(int maxReadSizeBytes) {
 			readDescriptor = new byte[maxReadSizeBytes];
 			read = new byte[maxReadSizeBytes];
