@@ -120,7 +120,7 @@ public class KMerTrieTest extends TestCase {
 			for (int j = 0; j < trie.getLen(); j++) {
 				read[j] = cgat[random.nextInt(4)];
 			}
-			if (!bloomFilter.contains(read, 0, false, null)) {
+			if (!bloomFilter.containsStraight(read, 0, null)) {
 				assertNull(trie.get(read, 0, false));
 			}
 		}
