@@ -49,6 +49,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 
 	private OutputStream indexed;
 
+	// A PrintStream is implicitly synchronized. So we don't need to worry about multi threading when using it.
 	private PrintStream out;
 
 	public FastqTrieClassifier(KMerTrie<String> trie, int maxReadSize, int maxQueueSize, int consumerNumber) {
@@ -64,6 +65,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		if (indexed != null) {
 			OutputStream outs = StreamProvider
 					.getOutputStreamForFile(new File(filteredFile.getParent(), filteredFile.getName() + ".out"));
+			// A PrintStream is implicitly synchronized. So we don't need to worry about multi threading when using it.
 			out = new PrintStream(outs);
 		}
 
