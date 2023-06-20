@@ -44,47 +44,44 @@ public abstract class AbstractKMerBloomIndex implements Serializable {
 	protected final CGATRingBuffer byteRingBuffer;
 
 	private long n;
+	
+	private final AbstractCGATBloomFilter filter;
 
-	public AbstractKMerBloomIndex(String name, int k, PutListener putListener) {
+	public AbstractKMerBloomIndex(String name, int k, PutListener putListener, AbstractCGATBloomFilter filter) {
 		this.name = name;
 		this.n = 0;
 		this.creationDate = new Date();
 		this.putListener = putListener;
 		byteRingBuffer = new CGATRingBuffer(k);
+		this.filter = filter;
 	}
-
-	public abstract void putDirectKMer(byte[] kMer, int start);
+	
+	public AbstractCGATBloomFilter getFilter() {
+		return filter;
+	}
 
 	public void put(byte bite) {
 		byteRingBuffer.directPut = null;
 		byteRingBuffer.put(bite);
 		if (byteRingBuffer.filled && byteRingBuffer.isCGAT()) {
 			if (putListener != null) {
-				if (!contains(byteRingBuffer, null)) {
+				if (!filter.containsStraight(byteRingBuffer, null)) {
 					putListener.newEntry(byteRingBuffer);
-					putInternal();
+					filter.put(byteRingBuffer, null);
 					n++;
 				} else {
 					putListener.oldEntry(byteRingBuffer);
 				}
 			} else {
-				putInternal();
+				filter.put(byteRingBuffer, null);
 				n++;
 			}
 		}
 	}
 	
-	protected abstract void putInternal();
-
 	public void resetPut() {
 		byteRingBuffer.reset();
 	}
-
-	public abstract boolean contains(CGATRingBuffer byteRingBuffer, int[] badPos);
-	
-	public abstract boolean contains(byte[] seq, int start, boolean reverse, int[] badPos);
-
-	public abstract long getExpectedInsertions();
 
 	public String getName() {
 		return name;
@@ -101,8 +98,6 @@ public abstract class AbstractKMerBloomIndex implements Serializable {
 	public long getN() {
 		return n;
 	}
-
-	public abstract long getByteSize();
 
 	public void save(File filterFile) throws IOException {
 		ObjectOutputStream oOut = new ObjectOutputStream(StreamProvider.getOutputStreamForFile(filterFile));

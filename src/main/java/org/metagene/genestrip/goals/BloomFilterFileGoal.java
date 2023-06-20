@@ -32,6 +32,7 @@ import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
+import org.metagene.genestrip.bloom.AbstractCGATBloomFilter;
 import org.metagene.genestrip.bloom.AbstractKMerBloomIndex;
 import org.metagene.genestrip.bloom.GenestripKMerBloomIndex;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
@@ -52,8 +53,10 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 
 	@SafeVarargs
 	public BloomFilterFileGoal(GSProject project, String name, BloomFilterSizeGoal sizeGoal,
-			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, FileGoal<GSProject> krakenOutGoal, KMerFastqGoal kmerFastqGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, FileType.SER), ArraysUtil.append(deps, sizeGoal, taxNodesGoal, krakenOutGoal, kmerFastqGoal));
+			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, FileGoal<GSProject> krakenOutGoal,
+			KMerFastqGoal kmerFastqGoal, Goal<GSProject>... deps) {
+		super(project, name, project.getOutputFile(name, FileType.SER),
+				ArraysUtil.append(deps, sizeGoal, taxNodesGoal, krakenOutGoal, kmerFastqGoal));
 		this.taxNodesGoal = taxNodesGoal;
 		this.sizeGoal = sizeGoal;
 		this.krakenOutGoal = krakenOutGoal;
@@ -63,24 +66,27 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 	@Override
 	protected void makeFile(File bloomFilterFile) {
 		try {
-			// I found this out by trial end error: Guava bloom filter cant keep the FP-rate when total entry size is too small.
+			// I found this out by trial end error: Guava bloom filter cant keep the FP-rate
+			// when total entry size is too small.
 			// So keep it to a minimum.
 			// Maybe there is more (bad stuff) to it.
 			long size = Math.max(1000 * 10000, sizeGoal.get());
-			
-			AbstractKMerBloomIndex bloomIndex = new GenestripKMerBloomIndex(bloomFilterFile.getName(), getProject().getkMserSize(),
-					size, 0.0001, null);
+
+			AbstractKMerBloomIndex bloomIndex = new GenestripKMerBloomIndex(bloomFilterFile.getName(),
+					getProject().getkMserSize(), size, 0.0001, null);
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Number of k-mers for " + bloomIndex + ": " + sizeGoal.get());
-				getLogger().info(
-						"Bloom filter array size of " + bloomIndex + ": " + bloomIndex.getByteSize() / 1024 + "KB");
+				getLogger().info("Bloom filter array size of " + bloomIndex + ": "
+						+ bloomIndex.getFilter().getByteSize() / 1024 + "KB");
 			}
 
 			Set<String> taxIds = new HashSet<String>();
 			for (TaxIdNode node : taxNodesGoal.get()) {
 				taxIds.add(node.getTaxId());
 			}
+
+			AbstractCGATBloomFilter bloomFilter = bloomIndex.getFilter();
 
 			KrakenResultFastqMergeListener filter = KrakenResultFastqMergeListener.createFilterByTaxIds(taxIds,
 					new KrakenResultFastqMergeListener() {
@@ -90,7 +96,7 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 						public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read,
 								byte[] readProbs, String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength,
 								byte[] output) {
-							bloomIndex.putDirectKMer(read, 0);
+							bloomFilter.put(read, 0, null);
 							if (++counter % 10000 == 0) {
 								if (getLogger().isInfoEnabled()) {
 									getLogger().info("Added kmers to bloom filter: " + counter);
@@ -106,7 +112,7 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 					getLogger().info("Reading file " + krakenOutGoal.getFiles().get(i));
 					getLogger().info("Reading file " + kmerFastqGoal.getFiles().get(i));
 				}
-				
+
 				InputStream stream1 = StreamProvider.getInputStreamForFile(krakenOutGoal.getFiles().get(i));
 				InputStream stream2 = StreamProvider.getInputStreamForFile(kmerFastqGoal.getFiles().get(i));
 				krakenKMerFastqMerger.process(stream1, stream2, filter);

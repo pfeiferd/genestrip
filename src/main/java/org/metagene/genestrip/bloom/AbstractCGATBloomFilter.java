@@ -131,7 +131,11 @@ public abstract class AbstractCGATBloomFilter implements Serializable {
 
 	public abstract void put(byte[] seq, int start, int[] badPos);
 
-	public abstract boolean contains(byte[] seq, int start, boolean reverse, int[] badPos);
+	public abstract boolean containsReverse(byte[] seq, int start, int[] badPos);
+	
+	public abstract boolean containsStraight(byte[] seq, int start, int[] badPos);
+	
+	public abstract boolean containsReverse(CGATRingBuffer buffer, int[] badPos);
 
-	public abstract boolean contains(CGATRingBuffer buffer, boolean reverse, int[] badPos);
+	public abstract boolean containsStraight(CGATRingBuffer buffer, int[] badPos);		
 }

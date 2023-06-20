@@ -34,11 +34,11 @@ import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
 public class FastqBloomFilter extends AbstractFastqReader {
-	private final AbstractKMerBloomIndex index;
 	private final int k;
 
 	private final double positiveRatio;
 	private final int minPosCount;
+	private final AbstractCGATBloomFilter filter;
 
 	private OutputStream indexed;
 	private OutputStream notIndexed;
@@ -50,7 +50,7 @@ public class FastqBloomFilter extends AbstractFastqReader {
 	public FastqBloomFilter(AbstractKMerBloomIndex index, int minPosCount, double positiveRatio, int maxReadSize,
 			int maxQueueSize, int consumerNumber) {
 		super(maxReadSize, maxQueueSize, consumerNumber);
-		this.index = index;
+		this.filter = index.getFilter();
 		this.k = index.getK();
 		this.minPosCount = minPosCount;
 		this.positiveRatio = positiveRatio;
@@ -74,33 +74,33 @@ public class FastqBloomFilter extends AbstractFastqReader {
 			}
 		}
 	}
-	
+
 	@Override
 	protected ReadEntry createReadEntry(int maxReadSizeBytes) {
 		return new MyReadEntry(maxReadSizeBytes);
 	}
-	
+
 	@Override
 	protected void start() throws IOException {
 		indexedC = 0;
 	}
-	
+
 	@Override
 	protected void updateWriteStats() {
 		indexedC++;
 	}
-	
+
 	@Override
 	protected void log() {
 		if (logger.isInfoEnabled()) {
 			if (reads % 100000 == 0) {
 				double ratio = byteCountAccess.getBytesRead() / (double) fastqFileSize;
 				long stopTime = System.currentTimeMillis();
-				
+
 				double diff = (stopTime - startTime);
 				double totalTime = diff / ratio;
 				double totalHours = totalTime / 1000 / 60 / 60;
-				
+
 				logger.info("Elapsed hours:" + diff / 1000 / 60 / 60);
 				logger.info("Estimated total hours:" + totalHours);
 				logger.info("Reads processed: " + reads);
@@ -150,22 +150,45 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		int negThreshold = max - minPosCount;
 
 		MyReadEntry re = (MyReadEntry) readStruct;
-		for (int i = 0; i < max; i++) {
-			re.badPos[0] = -1;
-			if (index.contains(readStruct.read, i, reverse, re.badPos)) {
-				counter++;
-				if (counter >= minPosCount) {
-					return true;
-				}
-			} else {
-				if (re.badPos[0] > 0) {
-					i += re.badPos[0];
-				}
-				negCounter++;
-				if (negCounter > negThreshold) {
-					return false;
+
+		// The two cases where intoduced for optimization purposes.
+		if (reverse) {
+			for (int i = 0; i < max; i++) {
+				re.badPos[0] = -1;
+				if (filter.containsReverse(readStruct.read, i, re.badPos)) {
+					counter++;
+					if (counter >= minPosCount) {
+						return true;
+					}
+				} else {
+					if (re.badPos[0] > 0) {
+						i += re.badPos[0];
+					}
+					negCounter++;
+					if (negCounter > negThreshold) {
+						return false;
+					}
 				}
 			}
+		}
+		else {
+			for (int i = 0; i < max; i++) {
+				re.badPos[0] = -1;
+				if (filter.containsStraight(readStruct.read, i, re.badPos)) {
+					counter++;
+					if (counter >= minPosCount) {
+						return true;
+					}
+				} else {
+					if (re.badPos[0] > 0) {
+						i += re.badPos[0];
+					}
+					negCounter++;
+					if (negCounter > negThreshold) {
+						return false;
+					}
+				}
+			}			
 		}
 
 		return false;
@@ -179,30 +202,55 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		int negCounterThreshold = max - posCounterThrehold;
 
 		MyReadEntry re = (MyReadEntry) readStruct;
-		for (int i = 0; i < max; i++) {
-			re.badPos[0] = -1;
-			if (index.contains(readStruct.read, i, reverse, re.badPos)) {
-				counter++;
-				if (counter >= posCounterThrehold) {
-					return true;
-				}
-			} else {
-				if (re.badPos[0] > 0) {
-					i += re.badPos[0];
-				}
-				negCounter++;
-				if (negCounter > negCounterThreshold) {
-					return false;
+		
+		// The two cases where intoduced for optimization purposes.
+		if (reverse) {
+			for (int i = 0; i < max; i++) {
+				re.badPos[0] = -1;
+				if (filter.containsReverse(readStruct.read, i, re.badPos)) {
+					counter++;
+					if (counter >= posCounterThrehold) {
+						return true;
+					}
+				} else {
+					if (re.badPos[0] > 0) {
+						i += re.badPos[0];
+					}
+					negCounter++;
+					if (negCounter > negCounterThreshold) {
+						return false;
+					}
 				}
 			}
 		}
+		else {
+			for (int i = 0; i < max; i++) {
+				re.badPos[0] = -1;
+				if (filter.containsStraight(readStruct.read, i, re.badPos)) {
+					counter++;
+					if (counter >= posCounterThrehold) {
+						return true;
+					}
+				} else {
+					if (re.badPos[0] > 0) {
+						i += re.badPos[0];
+					}
+					negCounter++;
+					if (negCounter > negCounterThreshold) {
+						return false;
+					}
+				}
+			}
+		}
+		
+		
 
 		return false;
 	}
 
 	protected static class MyReadEntry extends ReadEntry {
 		public final int[] badPos = new int[1];
-		
+
 		protected MyReadEntry(int maxReadSizeBytes) {
 			super(maxReadSizeBytes);
 		}
