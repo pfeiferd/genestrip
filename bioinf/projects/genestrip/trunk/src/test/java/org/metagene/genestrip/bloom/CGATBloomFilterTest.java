@@ -47,7 +47,7 @@ public class CGATBloomFilterTest extends TestCase {
 	private Random random = new Random(42);
 
 	public void testBloomFilter2() {
-		int k = 35;
+		int k = 36;
 		int size = 5 * 1000 * 1000;
 		double fpp = 0.001;
 
@@ -65,16 +65,16 @@ public class CGATBloomFilterTest extends TestCase {
 			reads.add(read);
 
 			filter.put(read, 0, null);
-			assertTrue(filter.contains(read, 0, false, null));
-			assertTrue(filter.contains(reverseRead, 0, true, null));
+			assertTrue(filter.containsStraight(read, 0, null));
+			assertTrue(filter.containsReverse(reverseRead, 0, null));
 		}
 
 		for (byte[] read : reads) {
 			for (int j = 0; j < k; j++) {
 				reverseRead[k - j - 1] = CGAT.toComplement(read[j]);
 			}
-			assertTrue(filter.contains(read, 0, false, null));
-			assertTrue(filter.contains(reverseRead, 0, true, null));
+			assertTrue(filter.containsStraight(read, 0, null));
+			assertTrue(filter.containsReverse(reverseRead, 0, null));
 		}
 
 		int err = 0;
@@ -83,10 +83,10 @@ public class CGATBloomFilterTest extends TestCase {
 			for (int j = 0; j < k; j++) {
 				read[j] = cgat[random.nextInt(4)];
 			}
-			if (filter.contains(read, 0, false, null)) {
+			if (filter.containsStraight(read, 0, null)) {
 				err++;
 			}
-			if (filter.contains(read, 0, true, null)) {
+			if (filter.containsReverse(read, 0, null)) {
 				err++;
 			}
 		}
@@ -117,14 +117,14 @@ public class CGATBloomFilterTest extends TestCase {
 		trie.visit(new KMerTrieVisitor<Integer>() {
 			@Override
 			public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
-				assertTrue(filter.contains(kmer, 0, false, null));
+				assertTrue(filter.containsStraight(kmer, 0, null));
 			}
 		}, false);
 
 		trie.visit(new KMerTrieVisitor<Integer>() {
 			@Override
 			public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
-				assertTrue(filter.contains(kmer, 0, true, null));
+				assertTrue(filter.containsReverse(kmer, 0, null));
 			}
 		}, true);
 
@@ -133,10 +133,10 @@ public class CGATBloomFilterTest extends TestCase {
 			for (int j = 0; j < k; j++) {
 				read[j] = cgat[random.nextInt(4)];
 			}
-			if (filter.contains(read, 0, false, null)) {
+			if (filter.containsStraight(read, 0, null)) {
 				err++;
 			}
-			if (filter.contains(read, 0, true, null)) {
+			if (filter.containsReverse(read, 0, null)) {
 				err++;
 			}
 		}
@@ -196,7 +196,7 @@ public class CGATBloomFilterTest extends TestCase {
 					@Override
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
 							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
-						assertTrue(filterUnderTest.contains(read, 0, false, null));
+						assertTrue(filterUnderTest.containsStraight(read, 0, null));
 					}
 				}));
 		stream1.close();
@@ -212,7 +212,7 @@ public class CGATBloomFilterTest extends TestCase {
 			for (int j = 0; j < read.length; j++) {
 				read[j] = cgat[random.nextInt(4)];
 			}
-			if (filterUnderTest.contains(read, 0, false, null)) {
+			if (filterUnderTest.containsStraight(read, 0, null)) {
 				err++;
 			}
 		}
