@@ -195,7 +195,11 @@ public abstract class AbstractFastqReader {
 			out.write(LINE_3);
 			out.write(readStruct.readProbs, 0, readStruct.readProbsSize);
 			out.write('\n');
+			updateWriteStats();
 		}
+	}
+	
+	protected void updateWriteStats() {		
 	}
 
 	// Must be thread safe. Can freely operate on readStruct.
@@ -218,6 +222,8 @@ public abstract class AbstractFastqReader {
 
 		public final byte[] readProbs;
 		public int readProbsSize;
+		
+		public long indexedCounter = 0;
 
 		private ReadEntry(int maxReadSizeBytes) {
 			readDescriptor = new byte[maxReadSizeBytes];

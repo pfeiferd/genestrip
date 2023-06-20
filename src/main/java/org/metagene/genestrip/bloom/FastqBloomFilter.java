@@ -42,7 +42,6 @@ public class FastqBloomFilter extends AbstractFastqReader {
 
 	private OutputStream indexed;
 	private OutputStream notIndexed;
-	private OutputStream out;
 	private ByteCountingInputStreamAccess byteCountAccess;
 	private long fastqFileSize;
 	private long startTime;
@@ -66,14 +65,24 @@ public class FastqBloomFilter extends AbstractFastqReader {
 			res = isAcceptReadByRatio(readStruct, true) || isAcceptReadByRatio(readStruct, false);
 		}
 		if (res) {
-			out = indexed;
-			indexedC++;
+			if (indexed != null) {
+				rewriteInput(readStruct, indexed);
+			}
 		} else {
-			out = notIndexed;
+			if (notIndexed != null) {
+				rewriteInput(readStruct, notIndexed);
+			}
 		}
-		if (out != null) {
-			rewriteInput(readStruct, out);
-		}
+	}
+	
+	@Override
+	protected void start() throws IOException {
+		indexedC = 0;
+	}
+	
+	@Override
+	protected void updateWriteStats() {
+		indexedC++;
 	}
 	
 	@Override
