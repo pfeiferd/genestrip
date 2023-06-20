@@ -31,12 +31,12 @@ import org.metagene.genestrip.util.CGATRingBuffer;
 
 public class TabulationCGATBloomFilter extends AbstractCGATBloomFilter {
 	private static final long serialVersionUID = 1L;
-	
+
 	// For tabulation hashing
 	private final int[][][] t;
 	private final int permBytes;
 	private final int sizeInBits;
-	
+
 	public TabulationCGATBloomFilter(int k, long expectedInsertions, double fpp) {
 		super(k, expectedInsertions, fpp);
 
@@ -49,7 +49,7 @@ public class TabulationCGATBloomFilter extends AbstractCGATBloomFilter {
 			int[][] perm = t[i];
 			for (int j = 0; j < perm.length; j++) {
 				for (int l = 0; l < 256; l++) {
-					perm[j][l] = r.nextInt();					
+					perm[j][l] = r.nextInt();
 				}
 			}
 		}
@@ -102,8 +102,8 @@ public class TabulationCGATBloomFilter extends AbstractCGATBloomFilter {
 	private void putViaHash(long hash) {
 		int nextHash;
 		int index;
-		int[][] perm;		
-		
+		int[][] perm;
+
 		for (int i = 0; i < t.length; i++) {
 			perm = t[i];
 			nextHash = 0;
@@ -115,12 +115,12 @@ public class TabulationCGATBloomFilter extends AbstractCGATBloomFilter {
 			if (nextHash < 0) {
 				nextHash = -nextHash;
 			}
-						
+
 			index = nextHash >>> 6;
 			bits[index] = bits[index] | (1L << (nextHash & 0b111111));
 		}
 	}
-	
+
 	public boolean contains(byte[] seq, int start, boolean reverse, int[] badPos) {
 		long hash = hash(seq, start, reverse);
 		return containsHash(hash);
@@ -129,8 +129,8 @@ public class TabulationCGATBloomFilter extends AbstractCGATBloomFilter {
 	private boolean containsHash(long hash) {
 		int nextHash;
 		int index;
-		int[][] perm;		
-		
+		int[][] perm;
+
 		for (int i = 0; i < t.length; i++) {
 			perm = t[i];
 			nextHash = 0;
@@ -142,7 +142,7 @@ public class TabulationCGATBloomFilter extends AbstractCGATBloomFilter {
 			if (nextHash < 0) {
 				nextHash = -nextHash;
 			}
-						
+
 			index = nextHash >>> 6;
 			if (((bits[index] >> (nextHash & 0b111111)) & 1L) == 0) {
 				return false;
@@ -150,9 +150,28 @@ public class TabulationCGATBloomFilter extends AbstractCGATBloomFilter {
 		}
 		return true;
 	}
+	
+	@Override
+	public boolean containsReverse(byte[] seq, int start, int[] badPos) {
+		long hash = hash(seq, start, true);
+		return containsHash(hash);
+	}
 
-	public boolean contains(CGATRingBuffer buffer, boolean reverse, int[] badPos) {
-		long hash = hash(buffer, reverse);
+	@Override
+	public boolean containsStraight(byte[] seq, int start, int[] badPos) {
+		long hash = hash(seq, start, false);
+		return containsHash(hash);
+	}
+	
+	@Override
+	public boolean containsReverse(CGATRingBuffer buffer, int[] badPos) {
+		long hash = hash(buffer, true);
+		return containsHash(hash);
+	}	
+	
+	@Override
+	public boolean containsStraight(CGATRingBuffer buffer, int[] badPos) {
+		long hash = hash(buffer, false);
 		return containsHash(hash);
 	}
 }
