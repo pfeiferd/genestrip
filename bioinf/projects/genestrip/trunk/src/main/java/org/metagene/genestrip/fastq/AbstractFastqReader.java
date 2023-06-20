@@ -141,6 +141,25 @@ public abstract class AbstractFastqReader {
 			readStruct = nextFreeReadStruct();
 			log();
 		}
+		if (blockingQueue != null) {
+			readStruct.pooled = true;
+			// Gentle polling and wait until all consumers are done. 
+			boolean stillWorking = true;
+			while (stillWorking) {
+				stillWorking = false;
+				for (int i = 0; i < readStructPool.length; i++) {
+					if (!readStructPool[i].pooled) {
+						stillWorking = true;
+						try {
+							Thread.sleep(100);
+						} catch (InterruptedException e) {
+							// Ignore.
+						}
+						break;
+					}
+				}
+			}				
+		}
 		if (logger.isInfoEnabled()) {
 			logger.info("Total number of reads: " + reads);
 		}
