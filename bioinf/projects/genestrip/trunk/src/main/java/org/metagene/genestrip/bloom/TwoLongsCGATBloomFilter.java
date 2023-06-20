@@ -32,8 +32,9 @@ import org.metagene.genestrip.util.CGATRingBuffer;
 
 public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter implements Serializable {
 	private static final long serialVersionUID = 1L;
-	
-	private final int reverseOffset;
+
+	private final int reverseEvenOffset;
+	private final int reverseOddOffset;
 
 //  Experimental stuff: minimize local dependencies of close k-mer bases with regards to generating hash code
 //  by using this array that could help to access the bases in a non-sequential way.
@@ -42,8 +43,9 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 
 	public TwoLongsCGATBloomFilter(int k, long expectedInsertions, double fpp) {
 		super(k, expectedInsertions, fpp);
-		
-		reverseOffset = (k % 2 == 0) ? k - 1 : k;
+
+		reverseEvenOffset = k - 1;
+		reverseOddOffset = k - 2;
 
 		List<Integer> indices1 = new ArrayList<Integer>();
 		List<Integer> indices2 = new ArrayList<Integer>();
@@ -58,7 +60,7 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 //		longDistancePerm1 = computBestPerm(indices1);
 //		longDistancePerm2 = computBestPerm(indices2);
 	}
-	
+
 //	private int[] computBestPerm(List<Integer> indices) {
 //		double minValue = Double.MAX_VALUE;
 //		int[] bestPerm = new int[indices.size()];
@@ -106,11 +108,11 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 //	}
 
 	public void put(CGATRingBuffer buffer, int[] badPos) {
-		long hash1 = hash(buffer, true, false, badPos);
+		long hash1 = hashStraight(buffer, true, badPos);
 		if (hash1 == 0) {
 			return;
 		}
-		long hash2 = hash(buffer, false, false, badPos);
+		long hash2 = hashStraight(buffer, false, badPos);
 		if (hash2 == 0) {
 			return;
 		}
@@ -118,11 +120,11 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 	}
 
 	public void put(byte[] seq, int start, int[] badPos) {
-		long hash1 = hash(seq, start, true, false, badPos);
+		long hash1 = hashStraight(seq, start, true, badPos);
 		if (hash1 == 0) {
 			return;
 		}
-		long hash2 = hash(seq, start, false, false, badPos);
+		long hash2 = hashStraight(seq, start, false, badPos);
 		if (hash2 == 0) {
 			return;
 		}
@@ -132,7 +134,7 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 	protected long hashStraight(byte[] seq, int start, boolean even, int[] badPos) {
 		long hash = 0;
 		int c;
-		
+
 		int max = start + k;
 		for (int i = start + (even ? 0 : 1); i < max; i += 2) {
 			hash = hash << 2;
@@ -145,15 +147,15 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 			}
 			hash += c;
 		}
-		
+
 		return hash == 0 ? 1L : hash;
 	}
-	
+
 	protected long hashReverse(byte[] seq, int start, boolean even, int[] badPos) {
 		long hash = 0;
 		int c;
-		
-		for (int i = start + reverseOffset - (even ? 1 : 2); i >= start; i -= 2) {
+
+		for (int i = start + (even ? reverseEvenOffset : reverseOddOffset); i >= start; i -= 2) {
 			hash = hash << 2;
 			c = CGAT_REVERSE_JUMP_TABLE[seq[i]];
 			if (c == -1) {
@@ -164,39 +166,45 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 			}
 			hash += c;
 		}
-		
+
 		return hash == 0 ? 1L : hash;
 	}
-	
-	protected final long hash(byte[] seq, int start, boolean even, boolean reverse, int[] badPos) {
+
+	protected long hashStraight(CGATRingBuffer buffer, boolean even, int[] badPos) {
 		long hash = 0;
 		int c;
 
-		if (reverse) {
-			for (int i = even ? 0 : 1; i < k; i += 2) {
-				hash = hash << 2;
-				c = CGAT_REVERSE_JUMP_TABLE[seq[start + k - i - 1]];
-				if (c == -1) {
-					if (badPos != null) {
-						badPos[0] = k - i - 1;
-					}
-					return 0;
+		for (int i = even ? 0 : 1; i < k; i += 2) {
+			hash = hash << 2;
+			c = CGAT_JUMP_TABLE[buffer.get(i)];
+			if (c == -1) {
+				if (badPos != null) {
+					badPos[0] = i;
 				}
-				hash += c;
+				return 0;
 			}
-		} else {
-			for (int i = even ? 0 : 1; i < k; i += 2) {
-				hash = hash << 2;
-				c = CGAT_JUMP_TABLE[seq[start + i]];
-				if (c == -1) {
-					if (badPos != null) {
-						badPos[0] = i;
-					}
-					return 0;
-				}
-				hash += c;
-			}
+			hash += c;
 		}
+
+		return hash == 0 ? 1L : hash;
+	}
+
+	protected long hashReverse(CGATRingBuffer buffer, boolean even, int[] badPos) {
+		long hash = 0;
+		int c;
+
+		for (int i = even ? reverseEvenOffset : reverseOddOffset; i >= 0; i -= 2) {
+			hash = hash << 2;
+			c = CGAT_REVERSE_JUMP_TABLE[buffer.get(i)];
+			if (c == -1) {
+				if (badPos != null) {
+					badPos[0] = i;
+				}
+				return 0;
+			}
+			hash += c;
+		}
+
 		return hash == 0 ? 1L : hash;
 	}
 
@@ -247,12 +255,26 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 
 	protected abstract int combineLongHashes(long hash1, long hash2, int i);
 
-	public boolean contains(byte[] seq, int start, boolean reverse, int[] badPos) {
-		long hash1 = hash(seq, start, true, reverse, badPos);
+	@Override
+	public boolean containsStraight(byte[] seq, int start, int[] badPos) {
+		long hash1 = hashStraight(seq, start, true, badPos);
 		if (hash1 == 0) {
 			return false;
 		}
-		long hash2 = hash(seq, start, false, reverse, badPos);
+		long hash2 = hashStraight(seq, start, false, badPos);
+		if (hash2 == 0) {
+			return false;
+		}
+		return containsHash(hash1, hash2);
+	}
+
+	@Override
+	public boolean containsReverse(byte[] seq, int start, int[] badPos) {
+		long hash1 = hashReverse(seq, start, true, badPos);
+		if (hash1 == 0) {
+			return false;
+		}
+		long hash2 = hashReverse(seq, start, false, badPos);
 		if (hash2 == 0) {
 			return false;
 		}
@@ -273,12 +295,24 @@ public abstract class TwoLongsCGATBloomFilter extends AbstractCGATBloomFilter im
 		return true;
 	}
 
-	public boolean contains(CGATRingBuffer buffer, boolean reverse, int[] badPos) {
-		long hash1 = hash(buffer, true, reverse, badPos);
+	public boolean containsStraight(CGATRingBuffer buffer, int[] badPos) {
+		long hash1 = hashStraight(buffer, true, badPos);
 		if (hash1 == 0) {
 			return false;
 		}
-		long hash2 = hash(buffer, false, reverse, badPos);
+		long hash2 = hashStraight(buffer, false, badPos);
+		if (hash2 == 0) {
+			return false;
+		}
+		return containsHash(hash1, hash2);
+	}
+
+	public boolean containsReverse(CGATRingBuffer buffer, int[] badPos) {
+		long hash1 = hashReverse(buffer, true, badPos);
+		if (hash1 == 0) {
+			return false;
+		}
+		long hash2 = hashReverse(buffer, false, badPos);
 		if (hash2 == 0) {
 			return false;
 		}

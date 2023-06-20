@@ -52,10 +52,12 @@ public class PolynomialCGATBloomFilter extends AbstractCGATBloomFilter {
 		p = (1 << 31) - 1;
 	}
 
+	@Override
 	public void put(CGATRingBuffer buffer, int[] badPos) {
 		putViaHash(hash(buffer, false));
 	}
 
+	@Override
 	public void put(byte[] seq, int start, int[] badPos) {
 		putViaHash(hash(seq, start, false));
 	}
@@ -118,10 +120,16 @@ public class PolynomialCGATBloomFilter extends AbstractCGATBloomFilter {
 		}
 	}
 	
-	public boolean contains(byte[] seq, int start, boolean reverse, int[] badPos) {
-		return containsHash(hash(seq, start, reverse));
+	@Override
+	public boolean containsReverse(byte[] seq, int start, int[] badPos) {
+		return containsHash(hash(seq, start, true));
 	}
-
+	
+	@Override
+	public boolean containsStraight(byte[] seq, int start, int[] badPos) {
+		return containsHash(hash(seq, start, false));
+	}
+		
 	private boolean containsHash(int hash) {
 		int index, res;
 		int[] c;
@@ -148,8 +156,14 @@ public class PolynomialCGATBloomFilter extends AbstractCGATBloomFilter {
 		}
 		return true;
 	}
-
-	public boolean contains(CGATRingBuffer buffer, boolean reverse, int[] badPos) {
-		return containsHash(hash(buffer, reverse));
+		
+	@Override
+	public boolean containsReverse(CGATRingBuffer buffer, int[] badPos) {
+		return containsHash(hash(buffer, true));
+	}
+	
+	@Override
+	public boolean containsStraight(CGATRingBuffer buffer, int[] badPos) {
+		return containsHash(hash(buffer, false));
 	}
 }
