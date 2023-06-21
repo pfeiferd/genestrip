@@ -59,8 +59,10 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 		FastqTrieClassifier c = null;
 		try {
 			File filteredFile = null;
+			File krakenOutStyleFile = null;
 			if (writedFiltered) {
-				filteredFile = getProject().getOutputFile(getName(), fastq, FileType.FASTQ, false);
+				filteredFile = getProject().getOutputFile(getName(), fastq, FileType.FASTQ_RES, true);
+				krakenOutStyleFile = getProject().getOutputFile(getName(), fastq, FileType.KRAKEN_OUT, false);
 			}
 
 			@SuppressWarnings("unchecked")
@@ -68,7 +70,7 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 
 			c = new FastqTrieClassifier(trie, getProject().getConfig().getMaxReadSizeBytes(),
 					getProject().getConfig().getThreadQueueSize(), getProject().getConfig().getThreads());
-			Map<String, Long> res = c.runClassifier(fastq, filteredFile);
+			Map<String, Long> res = c.runClassifier(fastq, filteredFile, krakenOutStyleFile);
 			c.dump();
 
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
