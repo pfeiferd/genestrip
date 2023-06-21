@@ -67,4 +67,20 @@ public class ByteArrayUtil {
 		}
 		return result;
 	}
+
+	public static int intToByteArrayToInt(int value, byte[] data, int pos) {
+		if (value == 0) {
+			data[pos++] = '0';
+			return pos;
+		}
+		
+		if (value < 0) {
+			data[pos++] = '-';
+		}
+		while (value != 0) {
+			data[pos++] = (byte) ('0' + (value % 10));
+			value /= 10;
+		}
+		return pos;
+	}
 }
