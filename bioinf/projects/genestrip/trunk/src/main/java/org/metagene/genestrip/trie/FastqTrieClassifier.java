@@ -32,6 +32,7 @@ import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.codec.digest.MurmurHash3;
 import org.metagene.genestrip.fastq.AbstractFastqReader;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CountingDigitTrie;
@@ -40,7 +41,9 @@ import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
 public class FastqTrieClassifier extends AbstractFastqReader {
 	private final KMerTrie<String> trie;
+	private final int k;
 	private CountingDigitTrie root;
+	private KmerDuplicationCount duplicationCount;
 
 	private ByteCountingInputStreamAccess byteCountAccess;
 	private long fastqFileSize;
@@ -49,30 +52,45 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 
 	private OutputStream indexed;
 
-	// A PrintStream is implicitly synchronized. So we don't need to worry about multi threading when using it.
+	// A PrintStream is implicitly synchronized. So we don't need to worry about
+	// multi threading when using it.
 	private PrintStream out;
 
 	public FastqTrieClassifier(KMerTrie<String> trie, int maxReadSize, int maxQueueSize, int consumerNumber) {
 		super(maxReadSize, maxQueueSize, consumerNumber);
 		this.trie = trie;
+		this.k = trie.getLen();
 	}
 
-	public Map<String, Long> runClassifier(File fastq, File filteredFile) throws IOException {
+	@Override
+	protected ReadEntry createReadEntry(int maxReadSizeBytes) {
+		return new MyReadEntry(maxReadSizeBytes);
+	}
+
+	public Map<String, Long> runClassifier(File fastq, File filteredFile, File krakenOutStyleFile,
+			KmerDuplicationCount duplicationCount) throws IOException {
 		byteCountAccess = StreamProvider.getByteCountingInputStreamForFile(fastq, false);
 		fastqFileSize = Files.size(fastq.toPath());
 
-		indexed = filteredFile != null ? StreamProvider.getOutputStreamForFile(filteredFile) : null;
-		if (indexed != null) {
-			OutputStream outs = StreamProvider
-					.getOutputStreamForFile(new File(filteredFile.getParent(), filteredFile.getName() + ".out"));
-			// A PrintStream is implicitly synchronized. So we don't need to worry about multi threading when using it.
-			out = new PrintStream(outs);
+		if (filteredFile != null) {
+			indexed = StreamProvider.getOutputStreamForFile(filteredFile);
+		} else {
+			indexed = null;
+		}
+		if (krakenOutStyleFile != null) {
+			// A PrintStream is implicitly synchronized. So we don't need to worry about
+			// multi threading when using it.
+			out = new PrintStream(StreamProvider.getOutputStreamForFile(krakenOutStyleFile));
+		} else {
+			out = null;
 		}
 
 		startTime = System.currentTimeMillis();
 		indexedC = 0;
 
 		root = new CountingDigitTrie();
+		this.duplicationCount = duplicationCount;
+
 		readFastq(byteCountAccess.getInputStream());
 
 		if (indexed != null) {
@@ -88,36 +106,45 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 
 	@Override
 	protected void nextEntry(ReadEntry entry) throws IOException {
-		boolean res = classifyRead(entry, false);
-		res |= classifyRead(entry, true);
-		if (res) {
+		MyReadEntry myEntry = (MyReadEntry) entry;
+		myEntry.bufferPos = 0;
+
+		boolean found = classifyRead(myEntry, false);
+		if (!found) {
+			classifyRead(myEntry, true);
+		}
+		if (found) {
 			if (indexed != null) {
 				rewriteInput(entry, indexed);
 			}
+			if (out != null) {
+				myEntry.printChar('\n');
+				myEntry.flush(out);
+			}
 		}
 	}
-	
+
 	@Override
 	protected void start() throws IOException {
 		indexedC = 0;
 	}
-	
+
 	@Override
 	protected void updateWriteStats() {
 		indexedC++;
 	}
-	
+
 	@Override
 	protected void log() {
 		if (logger.isInfoEnabled()) {
 			if (reads % 100000 == 0) {
 				double ratio = byteCountAccess.getBytesRead() / (double) fastqFileSize;
 				long stopTime = System.currentTimeMillis();
-				
+
 				double diff = (stopTime - startTime);
 				double totalTime = diff / ratio;
 				double totalHours = totalTime / 1000 / 60 / 60;
-				
+
 				logger.info("Elapsed hours:" + diff / 1000 / 60 / 60);
 				logger.info("Estimated total hours:" + totalHours);
 				logger.info("Reads processed: " + reads);
@@ -138,38 +165,188 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		}
 	}
 
-	protected boolean classifyRead(ReadEntry entry, boolean reverse) {
-		String oldRes = null, res = null;
-		int max = entry.readSize - trie.getLen() + 1;
+//	protected boolean classifyRead(ReadEntry entry, boolean reverse) {
+//		String res = null;
+//		int max = entry.readSize - k;
+//		boolean found = false;
+//		for (int i = 0; i <= max; i++) {
+//			res = trie.get(entry.read, i, reverse);
+//			if (res != null) {
+//				found = true;
+//				root.inc(res);
+//			}
+//		}
+//		return found;
+//	}
+
+	protected boolean classifyRead(MyReadEntry entry, boolean reverse) {
 		boolean found = false;
-		int c = 0;
-		for (int i = 0; i < max; i++) {
-			oldRes = res;
-			res = trie.get(entry.read, i, reverse);
-			if (res != null) {
-				if (out != null && !found) {
-					out.print((reverse ? "Reverse " : "") + ByteArrayUtil.toString(entry.readDescriptor));
+		boolean descPrinted = false;
+
+		String taxid = null;
+		int max = entry.readSize - k;
+		int lastFoundIndex = 0;
+		String lastTaxid = null;
+		int contigLen = 0;
+
+		for (int i = 0; i <= max; i++) {
+			taxid = trie.get(entry.read, i, reverse);
+			if (contigLen > 0 && taxid != lastTaxid) {
+				// TODO: Store contigLen stats: (lastTaxid, contigLen)
+				if (out != null) {
+					printKrakenStyleOut(entry, lastTaxid, lastFoundIndex, contigLen, descPrinted, reverse);
+					descPrinted = true;
 				}
+				contigLen = 0;
+			}
+			if (taxid != null) {
 				found = true;
-				root.inc(res);
-				if (out != null && oldRes != res && oldRes != null) {
-					out.print(" " + oldRes + ":" + c + ":" + (i + 1));
-					c = 0;
+				root.inc(taxid);
+				if (duplicationCount != null) {
+					duplicationCount.put(taxid, entry.read, i, reverse);
 				}
-				c++;
-			} else {
-				if (out != null && c > 0) {
-					out.print(" " + oldRes + ":" + c + ":" + (i + 1));
+
+				if (lastTaxid == null || lastTaxid == taxid) {
+					contigLen++;
 				}
-				c = 0;
+				if (lastTaxid == null || lastTaxid != taxid) {
+					lastFoundIndex = i;
+				}
+			}
+			lastTaxid = taxid;
+		}
+		if (found && contigLen > 0) {
+			if (out != null) {
+				// TODO: Store contigLen stats: (lastTaxid, contigLen)
+				printKrakenStyleOut(entry, lastTaxid, lastFoundIndex, contigLen, descPrinted, reverse);
 			}
 		}
-		if (out != null && c > 0) {
-			out.print(" " + oldRes + ":" + c);
-		}
-		if (out != null && found) {
-			out.println();
-		}
+
 		return found;
+	}
+
+	protected void printKrakenStyleOut(MyReadEntry entry, String taxid, int pos, int contigLen, boolean withDesc,
+			boolean reverse) {
+		if (!withDesc) {
+			entry.printBytes(entry.readDescriptor);
+			entry.printChar(' ');
+			entry.printChar(reverse ? 'R' : 'S');
+		}
+		entry.printChar(' ');
+		entry.printString(taxid);
+		entry.printChar(':');
+		entry.printInt(pos);
+		entry.printChar(':');
+		entry.printInt(contigLen);
+	}
+
+	protected static class MyReadEntry extends ReadEntry {
+		public byte[] buffer;
+		public int bufferPos;
+
+		public MyReadEntry(int maxReadSizeBytes) {
+			super(maxReadSizeBytes);
+
+			buffer = new byte[maxReadSizeBytes];
+		}
+
+		public void printChar(char c) {
+			buffer[bufferPos++] = (byte) c;
+		}
+
+		public void printString(String s) {
+			int len = s.length();
+			for (int i = 0; i < len; i++) {
+				buffer[bufferPos++] = (byte) s.charAt(i);
+			}
+		}
+
+		public void printBytes(byte[] bytes) {
+			for (int i = 0; i < bytes.length; i++) {
+				byte b = bytes[i];
+				if (b == 0) {
+					return;
+				}
+				buffer[bufferPos++] = b;
+			}
+		}
+
+		public void printInt(int value) {
+			bufferPos = ByteArrayUtil.intToByteArrayToInt(value, buffer, bufferPos);
+		}
+
+		public void flush(PrintStream out) {
+			out.write(buffer, 0, bufferPos);
+		}
+	}
+
+	public static class KmerDuplicationCount {
+		private final int[] counters;
+		private final String[] taxids;
+		private final int k;
+		private final int seed;
+
+		public KmerDuplicationCount(int size, int k, int seed) {
+			counters = new int[size];
+			taxids = new String[size];
+			this.k = k;
+			this.seed = seed;
+		}
+
+		protected synchronized boolean put(String taxid, byte[] read, int start, boolean reverse) {
+			int hash = MurmurHash3.hash32x86(read, start, k, seed);
+
+			int first = -1;
+			int index = hash % counters.length;
+			for (; first != index && taxids[index] != null
+			// != should be okay here since Strings habe been made unique before.
+					&& taxids[index] != taxid; index = (index + 1) % taxids.length) {
+				if (first == -1) {
+					first = index;
+				}
+			}
+			if (first == index) {
+				return false;
+			}
+			taxids[index] = taxid;
+			counters[index]++;
+
+			return true;
+		}
+
+		public int getUniqeKmers(String taxid) {
+			int kmers = 0;
+			for (int i = 0; i < counters.length; i++) {
+				if (taxids[i] == taxid) {
+					kmers++;
+				}
+			}
+
+			return kmers;
+		}
+
+		public int getKmerCount(String taxid) {
+			int countSum = 0;
+			for (int i = 0; i < counters.length; i++) {
+				if (taxids[i] == taxid) {
+					countSum += counters[i];
+				}
+			}
+
+			return countSum;
+		}
+
+		public double getDuplicationAverage(String taxid) {
+			int kmers = 0;
+			int countSum = 0;
+			for (int i = 0; i < counters.length; i++) {
+				if (taxids[i] == taxid) {
+					countSum += counters[i];
+					kmers++;
+				}
+			}
+
+			return ((double) countSum) / kmers;
+		}
 	}
 }
