@@ -37,13 +37,13 @@ import org.metagene.genestrip.util.StreamProvider;
 
 public class KMerTrie<V extends Serializable> implements Serializable {
 	private static final InternalNullMarker NULL = new InternalNullMarker();
-	
+
 	private static final long serialVersionUID = 1L;
 
 	private static final int[] CGAT_JUMP_TABLE;
 	private static final int[] CGAT_REVERSE_JUMP_TABLE;
 	private static final byte[] DECODE_TABLE, REVERSE_DECODE_TABLE;
-	
+
 	static {
 		CGAT_JUMP_TABLE = new int[Byte.MAX_VALUE];
 		CGAT_REVERSE_JUMP_TABLE = new int[Byte.MAX_VALUE];
@@ -60,11 +60,11 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		CGAT_REVERSE_JUMP_TABLE['G'] = 0;
 		CGAT_REVERSE_JUMP_TABLE['A'] = 3;
 		CGAT_REVERSE_JUMP_TABLE['T'] = 2;
-		
+
 		DECODE_TABLE = new byte[] { 'C', 'G', 'A', 'T' };
 		REVERSE_DECODE_TABLE = new byte[] { 'G', 'C', 'T', 'A' };
 	}
-	
+
 	private final int factor;
 	private final int len;
 	private final Object[] root;
@@ -201,8 +201,8 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 			for (int i = 0; i < arr.length; i++) {
 				int div = 1;
 				for (int j = 0; j < factor && pos + j < len; j++) {
-					kmer[reverse ? (len - 1 - pos - j) : (pos + j)] = (reverse ? REVERSE_DECODE_TABLE : DECODE_TABLE)[(i / div)
-							% 4];
+					kmer[reverse ? (len - 1 - pos - j)
+							: (pos + j)] = (reverse ? REVERSE_DECODE_TABLE : DECODE_TABLE)[(i / div) % 4];
 					div *= 4;
 				}
 				collectValuesHelp(arr[i], pos + factor, kmer, visitor, reverse);
@@ -221,12 +221,13 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		int j = 0;
 		int snPosIndex = 0;
 		int[] jt = reverse ? CGAT_REVERSE_JUMP_TABLE : CGAT_JUMP_TABLE;
+		int base = (reverse ? len - 1 : 0);
 
 		for (int i = 0; i < len && node != null; i += factor) {
 			pos = 0;
 			mult = 1;
 			for (j = 0; j < factor && i + j < len; j++) {
-				byte c = buffer.get(reverse ? (len - i - j - 1) : (i + j));
+				byte c = buffer.get(reverse ? (base - i - j) : (i + j));
 				if (c < 0 || jt[c] == -1) {
 					throw new IllegalArgumentException("Not a CGAT sequence");
 				}
@@ -260,12 +261,13 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		int j = 0;
 		int snPosIndex = 0;
 		int[] jt = reverse ? CGAT_REVERSE_JUMP_TABLE : CGAT_JUMP_TABLE;
-
+		int base = start + (reverse ? len - 1 : 0);
+		
 		for (int i = 0; i < len && node != null; i += factor) {
 			pos = 0;
 			mult = 1;
 			for (j = 0; j < factor && i + j < len; j++) {
-				byte c = CGAT.cgatToUpperCase(nseq[start + (reverse ? (len - i - j - 1) : (i + j))]);
+				byte c = CGAT.CGAT_TO_UPPER_CASE[128 + nseq[base + (reverse ? (- i - j) : (i + j))]];
 				if (c < 0 || jt[c] == -1) {
 					return null; // throw new IllegalArgumentException("Not a CGAT sequence");
 				}
@@ -409,31 +411,26 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		}
 
 		public byte getPosVal(int posIndex) {
-			if (posIndex == 0) {
+			switch (posIndex) {
+			case 0:
 				return pos0;
-			}
-			if (posIndex == 1) {
+			case 1:
 				return pos1;
-			}
-			if (posIndex == 2) {
+			case 2:
 				return pos2;
-			}
-			if (posIndex == 3) {
+			case 3:
 				return pos3;
-			}
-			if (posIndex == 4) {
+			case 4:
 				return pos4;
-			}
-			if (posIndex == 5) {
+			case 5:
 				return pos5;
-			}
-			if (posIndex == 6) {
+			case 6:
 				return pos6;
-			}
-			if (posIndex == 7) {
+			case 7:
 				return pos7;
+			default:
+				throw new IllegalArgumentException("Invalid pos index");
 			}
-			throw new IllegalArgumentException("Inavlid pos index");
 		}
 
 		public int nextPos(int posIndex) {
@@ -497,11 +494,11 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 	public interface KMerTrieVisitor<V extends Serializable> {
 		public void nextValue(KMerTrie<V> trie, byte[] kmer, V value);
 	}
-	
+
 	private static final class InternalNullMarker implements Serializable {
 		private static final long serialVersionUID = 1L;
 
-		private InternalNullMarker() {			
+		private InternalNullMarker() {
 		}
 	}
 }
