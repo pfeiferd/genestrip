@@ -181,11 +181,10 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 
 	protected boolean classifyRead(MyReadEntry entry, boolean reverse) {
 		boolean found = false;
-		boolean descPrinted = false;
+		int prints = 0;
 
 		String taxid = null;
 		int max = entry.readSize - k;
-		int lastFoundIndex = 0;
 		String lastTaxid = null;
 		int contigLen = 0;
 
@@ -194,8 +193,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 			if (contigLen > 0 && taxid != lastTaxid) {
 				// TODO: Store contigLen stats: (lastTaxid, contigLen)
 				if (out != null) {
-					printKrakenStyleOut(entry, lastTaxid, lastFoundIndex, contigLen, descPrinted, reverse);
-					descPrinted = true;
+					printKrakenStyleOut(entry, lastTaxid, contigLen, prints++, reverse);
 				}
 				contigLen = 0;
 			}
@@ -205,37 +203,40 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 				if (duplicationCount != null) {
 					duplicationCount.put(taxid, entry.read, i, reverse);
 				}
-
-				if (lastTaxid == null || lastTaxid == taxid) {
-					contigLen++;
-				}
-				if (lastTaxid == null || lastTaxid != taxid) {
-					lastFoundIndex = i;
-				}
 			}
+			contigLen++;
 			lastTaxid = taxid;
 		}
 		if (found && contigLen > 0) {
 			if (out != null) {
 				// TODO: Store contigLen stats: (lastTaxid, contigLen)
-				printKrakenStyleOut(entry, lastTaxid, lastFoundIndex, contigLen, descPrinted, reverse);
+				printKrakenStyleOut(entry, lastTaxid, contigLen, prints, reverse);
 			}
 		}
 
 		return found;
 	}
 
-	protected void printKrakenStyleOut(MyReadEntry entry, String taxid, int pos, int contigLen, boolean withDesc,
+	protected void printKrakenStyleOut(MyReadEntry entry, String taxid, int contigLen, int state,
 			boolean reverse) {
-		if (!withDesc) {
+		if (state == 0) {
 			entry.printBytes(entry.readDescriptor);
-			entry.printChar(' ');
-			entry.printChar(reverse ? 'R' : 'S');
+			entry.printChar('\t');
+			entry.printChar('0');
+			entry.printChar('\t');
+			entry.printInt(entry.readSize);
+			entry.printChar('\t');
+			// entry.printChar(reverse ? 'R' : 'S');
 		}
-		entry.printChar(' ');
-		entry.printString(taxid);
-		entry.printChar(':');
-		entry.printInt(pos);
+		else {
+			entry.printChar(' ');
+		}
+		if (taxid == null) {
+			entry.printChar('0');			
+		}
+		else {
+			entry.printString(taxid);
+		}
 		entry.printChar(':');
 		entry.printInt(contigLen);
 	}
@@ -348,5 +349,15 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 
 			return ((double) countSum) / kmers;
 		}
+	}
+	
+	public static class StatsPerTaxid {
+		private String taxid;
+		private int reads;
+		private int uniqueKmers;
+		private int kmers;
+		private int sumContigsLen;
+		private int maxContigLen;
+		private int contigs;
 	}
 }
