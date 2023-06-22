@@ -38,13 +38,13 @@ import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.Main;
 import org.metagene.genestrip.bloom.AbstractCGATBloomFilter;
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
+import org.metagene.genestrip.goals.KrakenResCountGoal;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
 import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
-import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 
 import junit.framework.TestCase;
@@ -82,7 +82,7 @@ public class KMerTrieTest extends TestCase {
 
 		InputStream stream1 = StreamProvider.getInputStreamForFile(fromKraken);
 		InputStream stream2 = StreamProvider.getInputStreamForFile(bartHReads);
-		CountingDigitTrie.print(krakenFilter.process(stream1, stream2, filter), System.out);
+		KrakenResCountGoal.print(krakenFilter.process(stream1, stream2, filter), System.out);
 		stream1.close();
 		stream2.close();
 

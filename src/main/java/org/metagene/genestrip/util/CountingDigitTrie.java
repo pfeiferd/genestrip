@@ -133,24 +133,4 @@ public class CountingDigitTrie {
 			}
 		}
 	}
-
-	public static void print(Map<String, Long> map, PrintStream pOut, TaxTree taxTree) {
-		List<String> sortedKeys = new ArrayList<String>(map.keySet());
-		taxTree.sortViaTree(sortedKeys);
-		for (String taxid : sortedKeys) {
-			pOut.print(taxid);
-			pOut.print(';');
-			pOut.println(map.get(taxid));
-		}
-	}
-	
-	public static void print(Map<String, Long> map, PrintStream pOut) {
-		List<String> sortedKeys = new ArrayList<String>(map.keySet());
-		Collections.sort(sortedKeys);
-		for (String taxid : sortedKeys) {
-			pOut.print(taxid);
-			pOut.print(';');
-			pOut.println(map.get(taxid));
-		}
-	}
 }

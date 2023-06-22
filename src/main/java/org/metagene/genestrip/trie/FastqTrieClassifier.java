@@ -38,6 +38,10 @@ import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
+import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.objects.ObjectCollection;
+
 public class FastqTrieClassifier extends AbstractFastqReader {
 	private final KMerTrie<String> trie;
 	private final int k;
@@ -57,11 +61,11 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 	private PrintStream out;
 
 	public FastqTrieClassifier(KMerTrie<String> trie, int maxReadSize, int maxQueueSize, int consumerNumber,
-			int dupCountSize) {
+			boolean withDupCount) {
 		super(maxReadSize, maxQueueSize, consumerNumber);
 		this.trie = trie;
 		this.k = trie.getLen();
-		duplicationCount = dupCountSize > 0 ? new KmerDuplicationCount(dupCountSize, k, 42) : null;
+		duplicationCount = withDupCount ? new KmerDuplicationCount(k, 42) : null;
 	}
 
 	@Override
@@ -114,6 +118,10 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 						logger.info("Warning: inconsistent kmer counts for taxid: " + stats.taxid);
 					}
 				}
+			}
+		} else {
+			for (StatsPerTaxid stats : counts) {
+				stats.uniqueKmers = -1;
 			}
 		}
 		return counts;
@@ -322,69 +330,63 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 	}
 
 	public static class KmerDuplicationCount {
-		private final int[] counters;
-		private final String[] taxids;
+		private final Int2ObjectMap<Entry> map;
 		private final int k;
 		private final int seed;
 
-		public KmerDuplicationCount(int size, int k, int seed) {
-			counters = new int[size];
-			taxids = new String[size];
+		public KmerDuplicationCount(int k, int seed) {
 			this.k = k;
 			this.seed = seed;
+			map = new Int2ObjectLinkedOpenHashMap<Entry>();
 		}
 
 		public void clear() {
-			for (int i = 0; i < taxids.length; i++) {
-				taxids[i] = null;
-				counters[i] = 0;
-			}
+			map.clear();
 		}
 
 		protected boolean put(String taxid, byte[] read, int start, boolean reverse) {
 			int hash = MurmurHash3.hash32x86(read, start, k, seed);
 
-			int first = -1;
-			int index = hash % counters.length;
-
-			synchronized (this) {
-				for (; first != index && taxids[index] != null
-				// != should be okay here since Strings habe been made unique before.
-						&& taxids[index] != taxid; index = (index + 1) % taxids.length) {
-					if (first == -1) {
-						first = index;
-					}
-				}
-				if (first == index) {
+			synchronized (map) {
+				Entry e = map.get(hash);
+				if (e == null) {
+					e = new Entry();
+					e.taxid = taxid;
+					map.put(hash, e);
+				} else if (e.taxid != taxid) {
 					return false;
 				}
-				taxids[index] = taxid;
-				counters[index]++;
+				e.count++;
 			}
-			
+
 			return true;
 		}
 
 		public int getUniqeKmers(String taxid) {
-			int kmers = 0;
-			for (int i = 0; i < taxids.length; i++) {
-				if (taxids[i] == taxid) {
-					kmers++;
+			int res = 0;
+			ObjectCollection<Entry> entries = map.values();
+			for (Entry e : entries) {
+				if (e.taxid == taxid) {
+					res++;
 				}
 			}
-
-			return kmers;
+			return res;
 		}
 
 		public int getKmerCount(String taxid) {
-			int countSum = 0;
-			for (int i = 0; i < counters.length; i++) {
-				if (taxids[i] == taxid) {
-					countSum += counters[i];
+			int res = 0;
+			ObjectCollection<Entry> entries = map.values();
+			for (Entry e : entries) {
+				if (e.taxid == taxid) {
+					res += e.count;
 				}
 			}
+			return res;
+		}
 
-			return countSum;
+		private static class Entry {
+			public int count;
+			public String taxid;
 		}
 	}
 
@@ -399,6 +401,10 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 
 		public StatsPerTaxid(String taxid) {
 			this.taxid = taxid;
+		}
+
+		public String getTaxid() {
+			return taxid;
 		}
 
 		public int getContigs() {

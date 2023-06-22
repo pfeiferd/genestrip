@@ -62,14 +62,14 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 			File krakenOutStyleFile = null;
 			if (writedFiltered) {
 				filteredFile = getProject().getOutputFile(getName(), fastq, FileType.FASTQ_RES, true);
-				krakenOutStyleFile = getProject().getOutputFile(getName(), fastq, FileType.KRAKEN_OUT, false);
+				krakenOutStyleFile = getProject().getOutputFile(getName(), fastq, FileType.KRAKEN_OUT_RES, false);
 			}
 
 			@SuppressWarnings("unchecked")
 			KMerTrie<String> trie = (KMerTrie<String>) KMerTrie.load(trieGoal.getFile());
 
 			c = new FastqTrieClassifier(trie, getProject().getConfig().getMaxReadSizeBytes(),
-					getProject().getConfig().getThreadQueueSize(), getProject().getConfig().getThreads(), 1000000);
+					getProject().getConfig().getThreadQueueSize(), getProject().getConfig().getThreads(), true);
 			List<StatsPerTaxid> res = c.runClassifier(fastq, filteredFile, krakenOutStyleFile);
 			c.dump();
 
