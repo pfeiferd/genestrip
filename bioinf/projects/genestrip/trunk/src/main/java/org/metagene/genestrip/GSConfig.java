@@ -51,8 +51,9 @@ public class GSConfig {
 		return baseDir;
 	}
 
-	// Number of threads for goals 'match' and 'filter'. 
-	// Minimum is 1 (single-threaded), default is -1, which means the number of cores on this computer is used.
+	// Number of threads for goals 'match' and 'filter'.
+	// Minimum is 1 (single-threaded), default is -1, which means the number of
+	// cores on this computer is used.
 	public int getThreads() {
 		int threads = Integer.valueOf(properties.getProperty("threads", "-1"));
 		if (threads < 0) {
@@ -61,9 +62,9 @@ public class GSConfig {
 				threads = 0;
 			}
 		}
-		return threads; 
+		return threads;
 	}
-	
+
 	public int getThreadQueueSize() {
 		return 1000;
 	}
@@ -152,7 +153,7 @@ public class GSConfig {
 	public File getAdditionalDir() {
 		return new File(baseDir, "additional");
 	}
-	
+
 	public boolean isUseHttp() {
 		return Boolean.valueOf(properties.getProperty("useHttp", "true"));
 	}

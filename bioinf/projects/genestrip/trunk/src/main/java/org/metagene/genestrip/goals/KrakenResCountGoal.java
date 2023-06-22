@@ -30,8 +30,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -122,12 +125,12 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 			Map<String, Long> map = new HashMap<String, Long>();
 			out.println("taxid;kmers");
 			kmerCountTrie.collect(map);
-			CountingDigitTrie.print(map, out);
+			print(map, out);
 
 			map.clear();
 			out.println("taxid;classifications");
 			classCountTrie.collect(map);
-			CountingDigitTrie.print(map, out);
+			print(map, out);
 
 			out.close();
 		} catch (IOException e) {
@@ -135,6 +138,16 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 		}
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Finished kraken");
+		}
+	}
+	
+	public static void print(Map<String, Long> map, PrintStream pOut) {
+		List<String> sortedKeys = new ArrayList<String>(map.keySet());
+		Collections.sort(sortedKeys);
+		for (String taxid : sortedKeys) {
+			pOut.print(taxid);
+			pOut.print(';');
+			pOut.println(map.get(taxid));
 		}
 	}
 }
