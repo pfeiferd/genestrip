@@ -29,21 +29,21 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.codec.digest.MurmurHash3;
 import org.metagene.genestrip.fastq.AbstractFastqReader;
 import org.metagene.genestrip.util.ByteArrayUtil;
-import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
 public class FastqTrieClassifier extends AbstractFastqReader {
 	private final KMerTrie<String> trie;
 	private final int k;
-	private CountingDigitTrie root;
-	private KmerDuplicationCount duplicationCount;
+	private final KmerDuplicationCount duplicationCount;
+
+	private TaxidStatsTrie root;
 
 	private ByteCountingInputStreamAccess byteCountAccess;
 	private long fastqFileSize;
@@ -56,10 +56,12 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 	// multi threading when using it.
 	private PrintStream out;
 
-	public FastqTrieClassifier(KMerTrie<String> trie, int maxReadSize, int maxQueueSize, int consumerNumber) {
+	public FastqTrieClassifier(KMerTrie<String> trie, int maxReadSize, int maxQueueSize, int consumerNumber,
+			int dupCountSize) {
 		super(maxReadSize, maxQueueSize, consumerNumber);
 		this.trie = trie;
 		this.k = trie.getLen();
+		duplicationCount = dupCountSize > 0 ? new KmerDuplicationCount(dupCountSize, k, 42) : null;
 	}
 
 	@Override
@@ -67,8 +69,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		return new MyReadEntry(maxReadSizeBytes);
 	}
 
-	public Map<String, Long> runClassifier(File fastq, File filteredFile, File krakenOutStyleFile,
-			KmerDuplicationCount duplicationCount) throws IOException {
+	public List<StatsPerTaxid> runClassifier(File fastq, File filteredFile, File krakenOutStyleFile) throws IOException {
 		byteCountAccess = StreamProvider.getByteCountingInputStreamForFile(fastq, false);
 		fastqFileSize = Files.size(fastq.toPath());
 
@@ -88,8 +89,10 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		startTime = System.currentTimeMillis();
 		indexedC = 0;
 
-		root = new CountingDigitTrie();
-		this.duplicationCount = duplicationCount;
+		root = new TaxidStatsTrie();
+		if (duplicationCount != null) {
+			duplicationCount.clear();
+		}
 
 		readFastq(byteCountAccess.getInputStream());
 
@@ -99,8 +102,19 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		}
 		byteCountAccess.getInputStream().close();
 
-		Map<String, Long> counts = new HashMap<String, Long>();
-		root.collect(counts);
+		List<StatsPerTaxid> counts = new ArrayList<FastqTrieClassifier.StatsPerTaxid>();
+		root.collectValues(counts);
+		
+		if (duplicationCount != null) {
+			for (StatsPerTaxid stats : counts) {
+				stats.uniqueKmers = duplicationCount.getUniqeKmers(stats.taxid);
+				if (stats.kmers != duplicationCount.getKmerCount(stats.taxid)) {
+					if (logger.isInfoEnabled()) {
+						logger.info("Warning: inconsisten kmer counts for taxid: " + stats.taxid);
+					}
+				}
+			}
+		}
 		return counts;
 	}
 
@@ -187,6 +201,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		int max = entry.readSize - k;
 		String lastTaxid = null;
 		int contigLen = 0;
+		StatsPerTaxid stats = null;
 
 		for (int i = 0; i <= max; i++) {
 			taxid = trie.get(entry.read, i, reverse);
@@ -198,8 +213,24 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 				contigLen = 0;
 			}
 			if (taxid != null) {
-				found = true;
-				root.inc(taxid);
+				stats = root.get(taxid);
+				if (stats == null) {
+					stats = root.create(lastTaxid);
+				}
+				synchronized (stats) {
+					if (!found) {
+						stats.reads++;
+					}
+					found = true;
+					stats.kmers++;
+					if (taxid != lastTaxid) {
+						stats.contigs++;
+						stats.sumContigsLen = contigLen;
+						if (contigLen > stats.maxContigLen) {
+							stats.maxContigLen = contigLen;
+						}
+					}
+				}
 				if (duplicationCount != null) {
 					duplicationCount.put(taxid, entry.read, i, reverse);
 				}
@@ -208,8 +239,14 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 			lastTaxid = taxid;
 		}
 		if (found && contigLen > 0) {
+			if (taxid != null) {
+				stats.contigs++;
+				stats.sumContigsLen = contigLen;
+				if (contigLen > stats.maxContigLen) {
+					stats.maxContigLen = contigLen;
+				}
+			}
 			if (out != null) {
-				// TODO: Store contigLen stats: (lastTaxid, contigLen)
 				printKrakenStyleOut(entry, lastTaxid, contigLen, prints, reverse);
 			}
 		}
@@ -217,8 +254,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		return found;
 	}
 
-	protected void printKrakenStyleOut(MyReadEntry entry, String taxid, int contigLen, int state,
-			boolean reverse) {
+	protected void printKrakenStyleOut(MyReadEntry entry, String taxid, int contigLen, int state, boolean reverse) {
 		if (state == 0) {
 			entry.printBytes(entry.readDescriptor);
 			entry.printChar('\t');
@@ -227,14 +263,12 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 			entry.printInt(entry.readSize);
 			entry.printChar('\t');
 			// entry.printChar(reverse ? 'R' : 'S');
-		}
-		else {
+		} else {
 			entry.printChar(' ');
 		}
 		if (taxid == null) {
-			entry.printChar('0');			
-		}
-		else {
+			entry.printChar('0');
+		} else {
 			entry.printString(taxid);
 		}
 		entry.printChar(':');
@@ -294,6 +328,13 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 			this.seed = seed;
 		}
 
+		public void clear() {
+			for (int i = 0; i < taxids.length; i++) {
+				taxids[i] = null;
+				counters[i] = 0;
+			}
+		}
+
 		protected synchronized boolean put(String taxid, byte[] read, int start, boolean reverse) {
 			int hash = MurmurHash3.hash32x86(read, start, k, seed);
 
@@ -317,7 +358,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 
 		public int getUniqeKmers(String taxid) {
 			int kmers = 0;
-			for (int i = 0; i < counters.length; i++) {
+			for (int i = 0; i < taxids.length; i++) {
 				if (taxids[i] == taxid) {
 					kmers++;
 				}
@@ -336,28 +377,105 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 
 			return countSum;
 		}
+	}
 
-		public double getDuplicationAverage(String taxid) {
-			int kmers = 0;
-			int countSum = 0;
-			for (int i = 0; i < counters.length; i++) {
-				if (taxids[i] == taxid) {
-					countSum += counters[i];
-					kmers++;
-				}
-			}
+	public static class StatsPerTaxid {
+		protected String taxid;
+		protected int reads;
+		protected int uniqueKmers;
+		protected int kmers;
+		protected int sumContigsLen;
+		protected int maxContigLen;
+		protected int contigs;
 
-			return ((double) countSum) / kmers;
+		public StatsPerTaxid(String taxid) {
+			this.taxid = taxid;
+		}
+
+		public int getContigs() {
+			return contigs;
+		}
+
+		public int getKmers() {
+			return kmers;
+		}
+
+		public int getMaxContigLen() {
+			return maxContigLen;
+		}
+
+		public int getReads() {
+			return reads;
+		}
+
+		public int getSumContigsLen() {
+			return sumContigsLen;
+		}
+
+		public int getUniqueKmers() {
+			return uniqueKmers;
 		}
 	}
-	
-	public static class StatsPerTaxid {
-		private String taxid;
-		private int reads;
-		private int uniqueKmers;
-		private int kmers;
-		private int sumContigsLen;
-		private int maxContigLen;
-		private int contigs;
+
+	protected static class TaxidStatsTrie {
+		private TaxidStatsTrie[] children;
+		private StatsPerTaxid value;
+
+		public StatsPerTaxid get(String taxid) {
+			int index;
+			int end = taxid.length();
+			TaxidStatsTrie node = this, child;
+			for (int i = 0; i < end; i++, node = child) {
+				index = taxid.charAt(i) - '0';
+				if (index > 9 || index < 0) {
+					return null;
+				}
+				if (node.children == null) {
+					return null;
+				}
+				child = node.children[index];
+				if (child == null) {
+					return null;
+				}
+			}
+			return node.value;
+		}
+
+		public synchronized StatsPerTaxid create(String taxid) {
+			int index;
+			int end = taxid.length();
+			TaxidStatsTrie node = this, child;
+			for (int i = 0; i < end; i++, node = child) {
+				index = taxid.charAt(i) - '0';
+				if (index > 9 || index < 0) {
+					return null;
+				}
+				if (node.children == null) {
+					node.children = new TaxidStatsTrie[10];
+				}
+				child = node.children[index];
+				if (child == null) {
+					child = new TaxidStatsTrie();
+					node.children[index] = child;
+				}
+			}
+			if (node.value == null) {
+				node.value = new StatsPerTaxid(taxid);
+			}
+			return node.value;
+		}
+
+		public void collectValues(List<StatsPerTaxid> list) {
+			if (value != null) {
+				list.add(value);
+			}
+			if (children != null) {
+				for (int i = 0; i < 10; i++) {
+					if (children[i] != null) {
+						children[i].collectValues(list);
+					}
+				}
+			}
+		}
 	}
 }
