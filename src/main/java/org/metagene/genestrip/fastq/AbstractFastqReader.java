@@ -80,9 +80,15 @@ public abstract class AbstractFastqReader {
 
 		consumers = new Thread[consumerNumber];
 		for (int i = 0; i < consumers.length; i++) {
-			consumers[i] = new Thread(runnable);
-			consumers[i].start();
+			consumers[i] = createAndStartThread(runnable, i);
 		}
+	}
+	
+	protected Thread createAndStartThread(Runnable runnable, int i) {
+		Thread t =  new Thread(runnable);
+		t.start();
+		
+		return t;
 	}
 	
 	protected ReadEntry createReadEntry(int maxReadSizeBytes) {
