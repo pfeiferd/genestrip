@@ -69,7 +69,8 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		return new MyReadEntry(maxReadSizeBytes);
 	}
 
-	public List<StatsPerTaxid> runClassifier(File fastq, File filteredFile, File krakenOutStyleFile) throws IOException {
+	public List<StatsPerTaxid> runClassifier(File fastq, File filteredFile, File krakenOutStyleFile)
+			throws IOException {
 		byteCountAccess = StreamProvider.getByteCountingInputStreamForFile(fastq, false);
 		fastqFileSize = Files.size(fastq.toPath());
 
@@ -104,13 +105,13 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 
 		List<StatsPerTaxid> counts = new ArrayList<FastqTrieClassifier.StatsPerTaxid>();
 		root.collectValues(counts);
-		
+
 		if (duplicationCount != null) {
 			for (StatsPerTaxid stats : counts) {
 				stats.uniqueKmers = duplicationCount.getUniqeKmers(stats.taxid);
 				if (stats.kmers != duplicationCount.getKmerCount(stats.taxid)) {
 					if (logger.isInfoEnabled()) {
-						logger.info("Warning: inconsisten kmer counts for taxid: " + stats.taxid);
+						logger.info("Warning: inconsistent kmer counts for taxid: " + stats.taxid);
 					}
 				}
 			}
@@ -206,7 +207,6 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		for (int i = 0; i <= max; i++) {
 			taxid = trie.get(entry.read, i, reverse);
 			if (contigLen > 0 && taxid != lastTaxid) {
-				// TODO: Store contigLen stats: (lastTaxid, contigLen)
 				if (out != null) {
 					printKrakenStyleOut(entry, lastTaxid, contigLen, prints++, reverse);
 				}
@@ -215,7 +215,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 			if (taxid != null) {
 				stats = root.get(taxid);
 				if (stats == null) {
-					stats = root.create(lastTaxid);
+					stats = root.create(taxid);
 				}
 				synchronized (stats) {
 					if (!found) {
@@ -232,7 +232,13 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 					}
 				}
 				if (duplicationCount != null) {
-					duplicationCount.put(taxid, entry.read, i, reverse);
+					if (!duplicationCount.put(taxid, entry.read, i, reverse)) {
+						if (logger.isInfoEnabled()) {
+							synchronized (logger) {
+								logger.info("Warning: duplication cound failed for kmer and taxid " + taxid);
+							}
+						}
+					}
 				}
 			}
 			contigLen++;
@@ -335,24 +341,27 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 			}
 		}
 
-		protected synchronized boolean put(String taxid, byte[] read, int start, boolean reverse) {
+		protected boolean put(String taxid, byte[] read, int start, boolean reverse) {
 			int hash = MurmurHash3.hash32x86(read, start, k, seed);
 
 			int first = -1;
 			int index = hash % counters.length;
-			for (; first != index && taxids[index] != null
-			// != should be okay here since Strings habe been made unique before.
-					&& taxids[index] != taxid; index = (index + 1) % taxids.length) {
-				if (first == -1) {
-					first = index;
-				}
-			}
-			if (first == index) {
-				return false;
-			}
-			taxids[index] = taxid;
-			counters[index]++;
 
+			synchronized (this) {
+				for (; first != index && taxids[index] != null
+				// != should be okay here since Strings habe been made unique before.
+						&& taxids[index] != taxid; index = (index + 1) % taxids.length) {
+					if (first == -1) {
+						first = index;
+					}
+				}
+				if (first == index) {
+					return false;
+				}
+				taxids[index] = taxid;
+				counters[index]++;
+			}
+			
 			return true;
 		}
 
