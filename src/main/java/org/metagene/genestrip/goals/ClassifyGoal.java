@@ -27,16 +27,16 @@ package org.metagene.genestrip.goals;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.Map;
+import java.util.List;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
-import org.metagene.genestrip.trie.KMerTrie;
 import org.metagene.genestrip.trie.FastqTrieClassifier;
+import org.metagene.genestrip.trie.FastqTrieClassifier.StatsPerTaxid;
+import org.metagene.genestrip.trie.KMerTrie;
 import org.metagene.genestrip.util.ArraysUtil;
-import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class ClassifyGoal extends FileListGoal<GSProject> {
@@ -69,12 +69,12 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 			KMerTrie<String> trie = (KMerTrie<String>) KMerTrie.load(trieGoal.getFile());
 
 			c = new FastqTrieClassifier(trie, getProject().getConfig().getMaxReadSizeBytes(),
-					getProject().getConfig().getThreadQueueSize(), getProject().getConfig().getThreads());
-			Map<String, Long> res = c.runClassifier(fastq, filteredFile, krakenOutStyleFile);
+					getProject().getConfig().getThreadQueueSize(), getProject().getConfig().getThreads(), 1000000);
+			List<StatsPerTaxid> res = c.runClassifier(fastq, filteredFile, krakenOutStyleFile);
 			c.dump();
 
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-			CountingDigitTrie.print(res, out);
+			print(res, out);
 			out.close();
 		} catch (IOException | ClassNotFoundException e) {
 			throw new RuntimeException(e);
@@ -83,5 +83,23 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 				c.dump();
 			}
 		}
+	}
+	
+	public static void print(List<StatsPerTaxid> allStats, PrintStream out) {
+		out.print("taxid;kmers;unique kmers;contigs;average contig length;max contig length;");
+		for (StatsPerTaxid stats : allStats) {
+			out.print(stats.getTaxid());
+			out.print(';');
+			out.print(stats.getKmers());
+			out.print(';');
+			out.print(stats.getUniqueKmers());
+			out.print(';');
+			out.print(stats.getContigs());
+			out.print(';');
+			out.print(((double) stats.getSumContigsLen()) / stats.getContigs());
+			out.print(';');
+			out.print(stats.getMaxContigLen());
+			out.println(';');
+		}		
 	}
 }
