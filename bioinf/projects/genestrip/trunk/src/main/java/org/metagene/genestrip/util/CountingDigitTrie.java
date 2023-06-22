@@ -24,13 +24,7 @@
  */
 package org.metagene.genestrip.util;
 
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
-
-import org.metagene.genestrip.tax.TaxTree;
 
 public class CountingDigitTrie {
 	private CountingDigitTrie[] children;
