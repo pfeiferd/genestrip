@@ -69,6 +69,10 @@ public class GSConfig {
 		return 1000;
 	}
 
+	public boolean isCountUniqueKmers() {
+		return Boolean.valueOf(properties.getProperty("countUniqueKmers", "true"));		
+	}
+	
 	public boolean isIgnoreMissingFastas() {
 		return Boolean.valueOf(properties.getProperty("ignoreMissingFastas", "false"));
 	}
