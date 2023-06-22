@@ -235,7 +235,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 					if (!duplicationCount.put(taxid, entry.read, i, reverse)) {
 						if (logger.isInfoEnabled()) {
 							synchronized (logger) {
-								logger.info("Warning: duplication cound failed for kmer and taxid " + taxid);
+								logger.info("Warning: Updating duplication count failed for kmer under taxid " + taxid);
 							}
 						}
 					}
