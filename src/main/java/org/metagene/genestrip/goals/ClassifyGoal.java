@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
 
+import org.metagene.genestrip.GSConfig;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.make.FileListGoal;
@@ -68,8 +69,9 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 			@SuppressWarnings("unchecked")
 			KMerTrie<String> trie = (KMerTrie<String>) KMerTrie.load(trieGoal.getFile());
 
-			c = new FastqTrieClassifier(trie, getProject().getConfig().getMaxReadSizeBytes(),
-					getProject().getConfig().getThreadQueueSize(), getProject().getConfig().getThreads(), true);
+			GSConfig config = getProject().getConfig();
+			c = new FastqTrieClassifier(trie, config.getMaxReadSizeBytes(),
+					config.getThreadQueueSize(), config.getThreads(), config.isCountUniqueKmers());
 			List<StatsPerTaxid> res = c.runClassifier(fastq, filteredFile, krakenOutStyleFile);
 			c.dump();
 
