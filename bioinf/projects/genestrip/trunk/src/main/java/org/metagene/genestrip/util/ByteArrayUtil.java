@@ -83,9 +83,9 @@ public class ByteArrayUtil {
 			value /= 10;
 		}
 		// Reorder:
-		int end = pos;
+		int end = pos - 1;
 		byte h;
-		while (start != end) {
+		while (start < end) {
 			h = data[start];
 			data[start] = data[end];
 			data[end] = h;
