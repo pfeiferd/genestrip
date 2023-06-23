@@ -68,7 +68,7 @@ public class ByteArrayUtil {
 		return result;
 	}
 
-	public static int intToByteArrayToInt(int value, byte[] data, int pos) {
+	public static int intToByteArray(int value, byte[] data, int pos) {
 		if (value == 0) {
 			data[pos++] = '0';
 			return pos;
@@ -77,9 +77,20 @@ public class ByteArrayUtil {
 		if (value < 0) {
 			data[pos++] = '-';
 		}
+		int start = pos;
 		while (value != 0) {
 			data[pos++] = (byte) ('0' + (value % 10));
 			value /= 10;
+		}
+		// Reorder:
+		int end = pos;
+		byte h;
+		while (start != end) {
+			h = data[start];
+			data[start] = data[end];
+			data[end] = h;
+			start++;
+			end--;
 		}
 		return pos;
 	}
