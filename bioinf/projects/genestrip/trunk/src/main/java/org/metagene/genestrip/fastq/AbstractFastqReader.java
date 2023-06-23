@@ -46,10 +46,12 @@ public abstract class AbstractFastqReader {
 	private final ReadEntry[] readStructPool;
 	private final BlockingQueue<ReadEntry> blockingQueue;
 	private final Thread[] consumers;
+	protected final int k;
 
 	private boolean dump;
 
-	public AbstractFastqReader(int maxReadSizeBytes, int maxQueueSize, int consumerNumber) {
+	public AbstractFastqReader(int k, int maxReadSizeBytes, int maxQueueSize, int consumerNumber) {
+		this.k = k;
 		bufferedLineReaderFastQ = new BufferedLineReader();
 
 		readStructPool = new ReadEntry[consumerNumber == 0 ? 1 : (maxQueueSize + consumerNumber + 1)];
