@@ -134,7 +134,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 
 		boolean found = classifyRead(myEntry, false);
 		if (!found) {
-			classifyRead(myEntry, true);
+			found = classifyRead(myEntry, true);
 		}
 		if (found) {
 			if (indexed != null) {
@@ -343,7 +343,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		}
 
 		protected boolean put(String taxid, byte[] read, int start, boolean reverse) {
-			int hash = MurmurHash3.hash32x86(read, start, k, seed);
+			int hash = MurmurHash3.hash32x86(read, start, k, seed); // FIX me this does not respect reverse reads!
 
 			synchronized (map) {
 				Entry e = map.get(hash);
