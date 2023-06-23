@@ -344,12 +344,16 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		}
 
 		protected boolean put(String taxid, MyReadEntry entry, int start, boolean reverse) {
+			int hash;
 			if (reverse) {
 				for (int i = 0; i < k; i++) {
 					entry.reverseKmerBuffer[k - i - 1] = CGAT.CGAT_COMPLEMENT[entry.read[start + i]];
 				}
+				hash = MurmurHash3.hash32x86(entry.reverseKmerBuffer, 0, k, seed);
 			}
-			int hash = MurmurHash3.hash32x86(reverse ? entry.reverseKmerBuffer : entry.read, start, k, seed);
+			else {
+				hash = MurmurHash3.hash32x86(entry.read, start, k, seed);
+			}
 			
 			synchronized (map) {
 				Entry e = map.get(hash);
