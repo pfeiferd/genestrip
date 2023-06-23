@@ -34,8 +34,6 @@ import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
 public class FastqBloomFilter extends AbstractFastqReader {
-	private final int k;
-
 	private final double positiveRatio;
 	private final int minPosCount;
 	private final AbstractCGATBloomFilter filter;
@@ -49,9 +47,8 @@ public class FastqBloomFilter extends AbstractFastqReader {
 
 	public FastqBloomFilter(AbstractKMerBloomIndex index, int minPosCount, double positiveRatio, int maxReadSize,
 			int maxQueueSize, int consumerNumber) {
-		super(maxReadSize, maxQueueSize, consumerNumber);
+		super(index.getK(), maxReadSize, maxQueueSize, consumerNumber);
 		this.filter = index.getFilter();
-		this.k = index.getK();
 		this.minPosCount = minPosCount;
 		this.positiveRatio = positiveRatio;
 	}

@@ -64,7 +64,7 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 				taxIds.add(node.getTaxId());
 			}
 
-			MyAbstractFastqReader fastqReader = new MyAbstractFastqReader(
+			MyAbstractFastqReader fastqReader = new MyAbstractFastqReader(getProject().getConfig().getkMerSize(),
 					getProject().getConfig().getMaxReadSizeBytes()) {
 				@Override
 				protected void nextEntry(ReadEntry readEntry) throws IOException {
@@ -100,8 +100,8 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 	}
 
 	protected static abstract class MyAbstractFastqReader extends AbstractFastqReader {
-		public MyAbstractFastqReader(int maxReadSizeBytes) {
-			super(maxReadSizeBytes, 0, 0);
+		public MyAbstractFastqReader(int k, int maxReadSizeBytes) {
+			super(k, maxReadSizeBytes, 0, 0);
 		}
 
 		@Override

@@ -35,6 +35,7 @@ import java.util.List;
 import org.apache.commons.codec.digest.MurmurHash3;
 import org.metagene.genestrip.fastq.AbstractFastqReader;
 import org.metagene.genestrip.util.ByteArrayUtil;
+import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
@@ -44,7 +45,6 @@ import it.unimi.dsi.fastutil.objects.ObjectCollection;
 
 public class FastqTrieClassifier extends AbstractFastqReader {
 	private final KMerTrie<String> trie;
-	private final int k;
 	private final KmerDuplicationCount duplicationCount;
 
 	private TaxidStatsTrie root;
@@ -62,15 +62,14 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 
 	public FastqTrieClassifier(KMerTrie<String> trie, int maxReadSize, int maxQueueSize, int consumerNumber,
 			boolean withDupCount) {
-		super(maxReadSize, maxQueueSize, consumerNumber);
+		super(trie.getLen(), maxReadSize, maxQueueSize, consumerNumber);
 		this.trie = trie;
-		this.k = trie.getLen();
 		duplicationCount = withDupCount ? new KmerDuplicationCount(k, 42) : null;
 	}
 
 	@Override
 	protected ReadEntry createReadEntry(int maxReadSizeBytes) {
-		return new MyReadEntry(maxReadSizeBytes);
+		return new MyReadEntry(maxReadSizeBytes, k);
 	}
 
 	public List<StatsPerTaxid> runClassifier(File fastq, File filteredFile, File krakenOutStyleFile)
@@ -242,7 +241,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 					}
 				}
 				if (duplicationCount != null) {
-					if (!duplicationCount.put(taxid, entry.read, i, reverse)) {
+					if (!duplicationCount.put(taxid, entry, i, reverse)) {
 						if (logger.isInfoEnabled()) {
 							synchronized (logger) {
 								logger.info("Warning: Updating duplication count failed for kmer under taxid " + taxid);
@@ -292,13 +291,15 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 	}
 
 	protected static class MyReadEntry extends ReadEntry {
-		public byte[] buffer;
+		public final byte[] reverseKmerBuffer;
+		public final byte[] buffer;
 		public int bufferPos;
 
-		public MyReadEntry(int maxReadSizeBytes) {
+		public MyReadEntry(int maxReadSizeBytes, int k) {
 			super(maxReadSizeBytes);
 
 			buffer = new byte[maxReadSizeBytes];
+			reverseKmerBuffer = new byte[k];
 		}
 
 		public void printChar(char c) {
@@ -342,9 +343,14 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 			map.clear();
 		}
 
-		protected boolean put(String taxid, byte[] read, int start, boolean reverse) {
-			int hash = MurmurHash3.hash32x86(read, start, k, seed); // FIX me this does not respect reverse reads!
-
+		protected boolean put(String taxid, MyReadEntry entry, int start, boolean reverse) {
+			if (reverse) {
+				for (int i = 0; i < k; i++) {
+					entry.reverseKmerBuffer[k - i - 1] = CGAT.CGAT_COMPLEMENT[entry.read[start + i]];
+				}
+			}
+			int hash = MurmurHash3.hash32x86(reverse ? entry.reverseKmerBuffer : entry.read, start, k, seed);
+			
 			synchronized (map) {
 				Entry e = map.get(hash);
 				if (e == null) {
