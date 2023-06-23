@@ -142,7 +142,9 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 			}
 			if (out != null) {
 				myEntry.printChar('\n');
-				myEntry.flush(out);
+				synchronized (out) {
+					out.write(myEntry.buffer, 0, myEntry.bufferPos);
+				}
 			}
 		}
 	}
@@ -233,7 +235,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 					stats.kmers++;
 					if (taxid != lastTaxid) {
 						stats.contigs++;
-						stats.sumContigsLen = contigLen;
+						stats.sumContigsLen += contigLen;
 						if (contigLen > stats.maxContigLen) {
 							stats.maxContigLen = contigLen;
 						}
@@ -255,7 +257,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		if (found && contigLen > 0) {
 			if (taxid != null) {
 				stats.contigs++;
-				stats.sumContigsLen = contigLen;
+				stats.sumContigsLen += contigLen;
 				if (contigLen > stats.maxContigLen) {
 					stats.maxContigLen = contigLen;
 				}
@@ -321,11 +323,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		}
 
 		public void printInt(int value) {
-			bufferPos = ByteArrayUtil.intToByteArrayToInt(value, buffer, bufferPos);
-		}
-
-		public void flush(PrintStream out) {
-			out.write(buffer, 0, bufferPos);
+			bufferPos = ByteArrayUtil.intToByteArray(value, buffer, bufferPos);
 		}
 	}
 

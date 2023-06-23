@@ -88,9 +88,11 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 	}
 	
 	public static void print(List<StatsPerTaxid> allStats, PrintStream out) {
-		out.print("taxid;kmers;unique kmers;contigs;average contig length;max contig length;");
+		out.println("taxid;reads;kmers;unique kmers;contigs;average contig length;max contig length;");
 		for (StatsPerTaxid stats : allStats) {
 			out.print(stats.getTaxid());
+			out.print(';');
+			out.print(stats.getReads());
 			out.print(';');
 			out.print(stats.getKmers());
 			out.print(';');
