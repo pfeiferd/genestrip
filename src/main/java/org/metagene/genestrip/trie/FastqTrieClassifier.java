@@ -211,7 +211,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		int max = entry.readSize - k;
 		String lastTaxid = null;
 		int contigLen = 0;
-		StatsPerTaxid stats = null;
+		StatsPerTaxid stats = null, prevStats = null;
 
 		for (int i = 0; i <= max; i++) {
 			taxid = trie.get(entry.read, i, reverse);
@@ -219,18 +219,19 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 				if (out != null) {
 					printKrakenStyleOut(entry, lastTaxid, contigLen, prints++, reverse);
 				}
-				if (stats != null) {
-					synchronized (stats) {
-						stats.contigs++;
-						stats.sumContigsLen += contigLen;
-						if (contigLen > stats.maxContigLen) {
-							stats.maxContigLen = contigLen;
+				if (prevStats != null) {
+					synchronized (prevStats) {
+						prevStats.contigs++;
+						prevStats.sumContigsLen += contigLen;
+						if (contigLen > prevStats.maxContigLen) {
+							prevStats.maxContigLen = contigLen;
 						}
 					}
 				}
 				contigLen = 0;
 			}
 			if (taxid != null) {
+				prevStats = stats;
 				stats = root.get(taxid);
 				if (stats == null) {
 					stats = root.create(taxid);
