@@ -100,7 +100,7 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 			out.print(';');
 			out.print(stats.getContigs());
 			out.print(';');
-			out.print(((double) stats.getSumContigsLen()) / stats.getContigs());
+			out.print(((double) stats.getKmers()) / stats.getContigs());
 			out.print(';');
 			out.print(stats.getMaxContigLen());
 			out.println(';');
