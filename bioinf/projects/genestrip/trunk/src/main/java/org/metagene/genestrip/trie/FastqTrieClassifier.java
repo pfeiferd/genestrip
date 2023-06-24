@@ -222,7 +222,6 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 				if (prevStats != null) {
 					synchronized (prevStats) {
 						prevStats.contigs++;
-						prevStats.sumContigsLen += contigLen;
 						if (contigLen > prevStats.maxContigLen) {
 							prevStats.maxContigLen = contigLen;
 						}
@@ -264,7 +263,6 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 			if (taxid != null) {
 				synchronized (stats) {
 					stats.contigs++;
-					stats.sumContigsLen += contigLen;
 					if (contigLen > stats.maxContigLen) {
 						stats.maxContigLen = contigLen;
 					}
@@ -408,7 +406,6 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		protected int reads;
 		protected int uniqueKmers;
 		protected int kmers;
-		protected int sumContigsLen;
 		protected int maxContigLen;
 		protected int contigs;
 
@@ -434,10 +431,6 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 
 		public int getReads() {
 			return reads;
-		}
-
-		public int getSumContigsLen() {
-			return sumContigsLen;
 		}
 
 		public int getUniqueKmers() {
