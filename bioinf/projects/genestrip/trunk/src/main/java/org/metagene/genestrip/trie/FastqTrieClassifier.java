@@ -219,7 +219,6 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 				if (out != null) {
 					printKrakenStyleOut(entry, lastTaxid, contigLen, prints++, reverse);
 				}
-				contigLen = 0;
 			}
 			if (taxid != null) {
 				stats = root.get(taxid);
@@ -238,6 +237,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 						if (contigLen > stats.maxContigLen) {
 							stats.maxContigLen = contigLen;
 						}
+						contigLen = 0;
 					}
 				}
 				if (duplicationCount != null) {
@@ -249,6 +249,9 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 						}
 					}
 				}
+			}
+			else if (lastTaxid != null) {
+				contigLen = 0;
 			}
 			contigLen++;
 			lastTaxid = taxid;
