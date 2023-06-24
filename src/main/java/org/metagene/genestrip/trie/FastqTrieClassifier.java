@@ -211,6 +211,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		int max = entry.readSize - k;
 		String lastTaxid = null;
 		int contigLen = 0;
+		int lastContigLen = 0;
 		StatsPerTaxid stats = null;
 
 		for (int i = 0; i <= max; i++) {
@@ -219,6 +220,8 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 				if (out != null) {
 					printKrakenStyleOut(entry, lastTaxid, contigLen, prints++, reverse);
 				}
+				lastContigLen = contigLen;
+				contigLen = 0;
 			}
 			if (taxid != null) {
 				stats = root.get(taxid);
@@ -233,11 +236,10 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 					stats.kmers++;
 					if (taxid != lastTaxid) {
 						stats.contigs++;
-						stats.sumContigsLen += contigLen;
-						if (contigLen > stats.maxContigLen) {
-							stats.maxContigLen = contigLen;
+						stats.sumContigsLen += lastContigLen;
+						if (lastContigLen > stats.maxContigLen) {
+							stats.maxContigLen = lastContigLen;
 						}
-						contigLen = 0;
 					}
 				}
 				if (duplicationCount != null) {
@@ -250,22 +252,19 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 					}
 				}
 			}
-			else if (lastTaxid != null) {
-				contigLen = 0;
-			}
 			contigLen++;
 			lastTaxid = taxid;
 		}
 		if (found && contigLen > 0) {
+			if (out != null) {
+				printKrakenStyleOut(entry, lastTaxid, contigLen, prints, reverse);
+			}
 			if (taxid != null) {
 				stats.contigs++;
 				stats.sumContigsLen += contigLen;
 				if (contigLen > stats.maxContigLen) {
 					stats.maxContigLen = contigLen;
 				}
-			}
-			if (out != null) {
-				printKrakenStyleOut(entry, lastTaxid, contigLen, prints, reverse);
 			}
 		}
 
