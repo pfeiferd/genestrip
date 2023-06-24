@@ -227,6 +227,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 							prevStats.maxContigLen = contigLen;
 						}
 					}
+					prevStats = null;
 				}
 				contigLen = 0;
 			}
