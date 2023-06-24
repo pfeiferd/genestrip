@@ -211,7 +211,6 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		int max = entry.readSize - k;
 		String lastTaxid = null;
 		int contigLen = 0;
-		int lastContigLen = 0;
 		StatsPerTaxid stats = null;
 
 		for (int i = 0; i <= max; i++) {
@@ -220,7 +219,15 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 				if (out != null) {
 					printKrakenStyleOut(entry, lastTaxid, contigLen, prints++, reverse);
 				}
-				lastContigLen = contigLen;
+				if (stats != null) {
+					synchronized (stats) {
+						stats.contigs++;
+						stats.sumContigsLen += contigLen;
+						if (contigLen > stats.maxContigLen) {
+							stats.maxContigLen = contigLen;
+						}
+					}
+				}
 				contigLen = 0;
 			}
 			if (taxid != null) {
@@ -229,18 +236,11 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 					stats = root.create(taxid);
 				}
 				synchronized (stats) {
+					stats.kmers++;
 					if (!found) {
 						stats.reads++;
 					}
 					found = true;
-					stats.kmers++;
-					if (taxid != lastTaxid) {
-						stats.contigs++;
-						stats.sumContigsLen += lastContigLen;
-						if (lastContigLen > stats.maxContigLen) {
-							stats.maxContigLen = lastContigLen;
-						}
-					}
 				}
 				if (duplicationCount != null) {
 					if (!duplicationCount.put(taxid, entry, i, reverse)) {
@@ -260,10 +260,12 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 				printKrakenStyleOut(entry, lastTaxid, contigLen, prints, reverse);
 			}
 			if (taxid != null) {
-				stats.contigs++;
-				stats.sumContigsLen += contigLen;
-				if (contigLen > stats.maxContigLen) {
-					stats.maxContigLen = contigLen;
+				synchronized (stats) {
+					stats.contigs++;
+					stats.sumContigsLen += contigLen;
+					if (contigLen > stats.maxContigLen) {
+						stats.maxContigLen = contigLen;
+					}
 				}
 			}
 		}
@@ -352,11 +354,10 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 					entry.reverseKmerBuffer[k - i - 1] = CGAT.CGAT_COMPLEMENT[entry.read[start + i]];
 				}
 				hash = MurmurHash3.hash32x86(entry.reverseKmerBuffer, 0, k, seed);
-			}
-			else {
+			} else {
 				hash = MurmurHash3.hash32x86(entry.read, start, k, seed);
 			}
-			
+
 			synchronized (map) {
 				Entry e = map.get(hash);
 				if (e == null) {
