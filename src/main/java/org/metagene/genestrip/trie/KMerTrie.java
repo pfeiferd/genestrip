@@ -67,7 +67,8 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 
 	private final int factor;
 	private final int len;
-	private final Object[] root;
+	private final int arrSize;
+	private transient Object[] root;
 	private final boolean allowDoubleEntry;
 	private boolean compressed;
 	private long entries;
@@ -90,6 +91,58 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 			size *= 4;
 		}
 		root = new Object[size];
+		arrSize = size;
+	}
+
+	private void writeObject(ObjectOutputStream out) throws IOException {
+		out.defaultWriteObject();
+		writeTree(root, out);
+	}
+
+	private void writeTree(Object node, ObjectOutputStream out) throws IOException {
+		if (node instanceof Object[]) {
+			out.writeByte('[');
+			Object[] array = (Object[]) node;
+			for (int i = 0; i < arrSize; i++) {
+				Object next = array[i];
+				if (next != null) {
+					out.writeByte('(');
+					writeTree(next, out);
+				} else {
+					out.writeByte('*');
+				}
+			}
+		} else if (node instanceof InternalNullMarker) {
+			out.writeByte('x');			
+		} else {
+			out.writeByte('o');
+			out.writeObject(node);
+		}
+	}
+
+	private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+		in.defaultReadObject();
+		root = (Object[]) readTree(in);
+	}
+
+	private Object readTree(ObjectInputStream in) throws IOException, ClassNotFoundException {
+		byte b = in.readByte();
+		switch (b) {
+		case '[':
+			Object[] res = new Object[arrSize];
+			for (int i = 0; i < arrSize; i++) {
+				res[i] = readTree(in);
+			}
+			return res;
+		case '*':
+			return null;
+		case 'x':
+			return NULL;
+		case 'o':
+			return in.readObject();
+		default:
+			throw new IOException("Inconsistent serialization format for kmer trie.");
+		}
 	}
 
 	public int getLen() {
@@ -262,12 +315,12 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		int snPosIndex = 0;
 		int[] jt = reverse ? CGAT_REVERSE_JUMP_TABLE : CGAT_JUMP_TABLE;
 		int base = start + (reverse ? len - 1 : 0);
-		
+
 		for (int i = 0; i < len && node != null; i += factor) {
 			pos = 0;
 			mult = 1;
 			for (j = 0; j < factor && i + j < len; j++) {
-				byte c = CGAT.CGAT_TO_UPPER_CASE[128 + nseq[base + (reverse ? (- i - j) : (i + j))]];
+				byte c = CGAT.CGAT_TO_UPPER_CASE[128 + nseq[base + (reverse ? (-i - j) : (i + j))]];
 				if (c < 0 || jt[c] == -1) {
 					return null; // throw new IllegalArgumentException("Not a CGAT sequence");
 				}
@@ -342,7 +395,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		private byte pos5;
 		private byte pos6;
 		private byte pos7;
-		private Object next;
+		private transient Object next;
 
 		public SmallNode(int pos, Object next) {
 			pos0 = (byte) pos;
@@ -436,6 +489,16 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		public int nextPos(int posIndex) {
 			int next = (posIndex + 1) % 8;
 			return getPosVal(next) == -1 ? 0 : next;
+		}
+		
+		private void writeObject(ObjectOutputStream out) throws IOException {
+			out.defaultWriteObject();
+			out.writeObject(next);
+		}
+
+		private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+			in.defaultReadObject();
+			next = in.readObject();
 		}
 	}
 
