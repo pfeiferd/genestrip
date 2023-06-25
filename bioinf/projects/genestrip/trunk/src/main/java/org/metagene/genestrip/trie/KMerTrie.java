@@ -113,10 +113,9 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 				}
 			}
 		} else if (node instanceof InternalNullMarker) {
-			out.writeByte('x');			
+			out.writeByte('x');
 		} else {
-			out.writeByte('o');
-			out.writeObject(node);
+			SmallNode.writeNext(node, out);
 		}
 	}
 
@@ -134,6 +133,8 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 				res[i] = readTree(in);
 			}
 			return res;
+		case '>':
+			return SmallNode.readSmallNode(in);
 		case '*':
 			return null;
 		case 'x':
@@ -396,6 +397,9 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		private byte pos6;
 		private byte pos7;
 		private transient Object next;
+		
+		public SmallNode() {			
+		}
 
 		public SmallNode(int pos, Object next) {
 			pos0 = (byte) pos;
@@ -490,15 +494,60 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 			int next = (posIndex + 1) % 8;
 			return getPosVal(next) == -1 ? 0 : next;
 		}
-		
+
 		private void writeObject(ObjectOutputStream out) throws IOException {
 			out.defaultWriteObject();
-			out.writeObject(next);
+			writeNext(next, out);
+		}
+
+		public static void writeNext(Object next, ObjectOutputStream out) throws IOException {
+			if (next instanceof SmallNode) {
+				SmallNode sn = (SmallNode) next;
+				out.writeByte('>');
+				out.writeByte(sn.pos0);
+				out.writeByte(sn.pos1);
+				out.writeByte(sn.pos2);
+				out.writeByte(sn.pos3);
+				out.writeByte(sn.pos4);
+				out.writeByte(sn.pos5);
+				out.writeByte(sn.pos6);
+				out.writeByte(sn.pos7);
+				writeNext(sn.next, out);
+			} else {
+				out.writeByte('o');
+				out.writeObject(next);
+			}
 		}
 
 		private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
 			in.defaultReadObject();
-			next = in.readObject();
+			next = readNext(in);
+		}
+		
+		public static SmallNode readSmallNode(ObjectInputStream in) throws IOException, ClassNotFoundException {
+			SmallNode sn = new SmallNode();
+			sn.pos0 = in.readByte();
+			sn.pos1 = in.readByte();
+			sn.pos2 = in.readByte();
+			sn.pos3 = in.readByte();
+			sn.pos4 = in.readByte();
+			sn.pos5 = in.readByte();
+			sn.pos6 = in.readByte();
+			sn.pos7 = in.readByte();
+			sn.next = readNext(in);
+			return sn;			
+		}
+
+		public static Object readNext(ObjectInputStream in) throws IOException, ClassNotFoundException {
+			byte b = in.readByte();
+			switch (b) {
+			case '>':
+				return readSmallNode(in);
+			case 'o':
+				return in.readObject();
+			default:
+				throw new IOException("Inconsistent serialization format for kmer trie.");
+			}
 		}
 	}
 
