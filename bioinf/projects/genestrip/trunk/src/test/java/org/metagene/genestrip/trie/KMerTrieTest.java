@@ -27,6 +27,8 @@ package org.metagene.genestrip.trie;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -56,10 +58,10 @@ public class KMerTrieTest extends TestCase {
 
 		GSProject project = main.getProject();
 
-		File bartHReads = ((FileGoal<GSProject>) main.getMaker().getGoal("kmerfastq")).getFile();		
+		File bartHReads = ((FileGoal<GSProject>) main.getMaker().getGoal("kmerfastq")).getFile();
 		File fromKraken = ((FileGoal<GSProject>) main.getMaker().getGoal("kmerkrakenout")).getFile();
 
-		KMerTrie<String> trie = new KMerTrie<String>(project.getkMserSize());
+		final KMerTrie<String> trie = new KMerTrie<String>(project.getkMserSize());
 
 		AbstractCGATBloomFilter bloomFilter = new MurmurCGATBloomFilter(trie.getLen(), 5 * 1000 * 1000, 0.00001);
 
@@ -93,6 +95,24 @@ public class KMerTrieTest extends TestCase {
 
 		// Test compressed;
 		checkTrie(fromKraken, bartHReads, krakenFilter, trie, bloomFilter, nodes);
+
+		// Check serialization:
+		File tmpdir = Files.createTempDirectory(Paths.get("target"), "serialization-test").toFile();
+		tmpdir.deleteOnExit();
+		File saved = new File(tmpdir, "saved_trie.ser");
+		saved.deleteOnExit();
+		if (saved.exists()) {
+			saved.delete();
+		}
+		trie.save(saved);
+		try {
+			KMerTrie<String> loadedTrie = KMerTrie.load(saved);
+			checkTrie(fromKraken, bartHReads, krakenFilter, loadedTrie, bloomFilter, nodes);
+		} catch (ClassNotFoundException e) {
+			throw new RuntimeException(e);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	private void checkTrie(File fromKraken, File reads, KrakenResultFastqMerger krakenFilter, KMerTrie<String> trie,
@@ -124,6 +144,51 @@ public class KMerTrieTest extends TestCase {
 				assertNull(trie.get(read, 0, false));
 			}
 		}
+	}
+
+	public void testSaveLoad() {
+		byte[] cgat = { 'C', 'G', 'A', 'T' };
+		Random random = new Random(42);
+
+		KMerTrie<Integer> trie = new KMerTrie<Integer>(2, 35, false);
+		Map<List<Byte>, Integer> checkMap = new HashMap<List<Byte>, Integer>();
+		byte[] read = new byte[trie.getLen()];
+		for (int i = 1; i < 1000; i++) {
+			for (int j = 0; j < trie.getLen(); j++) {
+				read[j] = cgat[random.nextInt(4)];
+			}
+			trie.put(read, 0, i, true);
+
+			checkMap.put(byteArrayToList(read), i);
+		}
+		try {
+			// Check serialization:
+			File tmpdir = Files.createTempDirectory(Paths.get("target"), "serialization-test").toFile();
+			tmpdir.deleteOnExit();
+			File saved = new File(tmpdir, "saved_trie.ser");
+			saved.deleteOnExit();
+			if (saved.exists()) {
+				saved.delete();
+			}
+			trie.save(saved);
+
+			KMerTrie<Integer> loadedTrie = KMerTrie.load(saved);
+			loadedTrie.visit(new KMerTrieVisitor<Integer>() {
+				@Override
+				public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
+					List<Byte> key = byteArrayToList(kmer);
+					assertNotNull(value);
+					assertEquals(value, checkMap.get(key));
+					checkMap.remove(key);
+				}
+			}, true);
+			assertTrue(checkMap.isEmpty());
+		} catch (ClassNotFoundException e) {
+			throw new RuntimeException(e);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+
 	}
 
 	public void testVisit() {
