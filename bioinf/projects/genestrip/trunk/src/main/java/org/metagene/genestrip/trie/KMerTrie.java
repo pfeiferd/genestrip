@@ -596,9 +596,10 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		oOut.close();
 	}
 
-	public static KMerTrie<?> load(File filterFile) throws IOException, ClassNotFoundException {
+	public static <T extends Serializable> KMerTrie<T> load(File filterFile) throws IOException, ClassNotFoundException {
 		ObjectInputStream oOut = new ObjectInputStream(StreamProvider.getInputStreamForFile(filterFile));
-		KMerTrie<?> res = (KMerTrie<?>) oOut.readObject();
+		@SuppressWarnings("unchecked")
+		KMerTrie<T> res = (KMerTrie<T>) oOut.readObject();
 		oOut.close();
 		return res;
 	}
