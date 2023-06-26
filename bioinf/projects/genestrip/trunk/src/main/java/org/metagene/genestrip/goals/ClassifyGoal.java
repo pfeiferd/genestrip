@@ -66,8 +66,7 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 				krakenOutStyleFile = getProject().getOutputFile(getName(), fastq, FileType.KRAKEN_OUT_RES, false);
 			}
 
-			@SuppressWarnings("unchecked")
-			KMerTrie<String> trie = (KMerTrie<String>) KMerTrie.load(trieGoal.getFile());
+			KMerTrie<String> trie = KMerTrie.load(trieGoal.getFile());
 
 			GSConfig config = getProject().getConfig();
 			c = new FastqTrieClassifier(trie, config.getMaxReadSizeBytes(),
