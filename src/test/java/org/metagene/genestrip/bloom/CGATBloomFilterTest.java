@@ -32,8 +32,13 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
+import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.Main;
+import org.metagene.genestrip.goals.KrakenResCountGoal;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
 import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
+import org.metagene.genestrip.make.FileGoal;
+import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.KMerTrie;
 import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
@@ -146,45 +151,46 @@ public class CGATBloomFilterTest extends TestCase {
 		assertTrue(testedFp <= fpp * 1.1);
 	}
 
-//	public void testBloomFilterViaProject() throws IOException {
-//		Main main = new Main();
-//		main.parseAndRun(new String[] { "bart_h", "clear", "genall" });
-//
-//		GSProject project = main.getProject();
-//
-//		File bartHReads = ((FileGoal<GSProject>) main.getMaker().getGoal("kmerfastq")).getOutputFile();		
-//		File fromKraken = ((FileGoal<GSProject>) main.getMaker().getGoal("kmerkrakenout")).getOutputFile();
-//
-//		long size = 5 * 1000 * 1000;
-//		double fpp = 0.00001;
-//
-//		AbstractCGATBloomFilter cgatBloomFilter = createFilter(project.getkMserSize(), size, fpp);
-//
-//		@SuppressWarnings("unchecked")
-//		ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal = (ObjectGoal<Set<TaxIdNode>, GSProject>) main.getMaker()
-//				.getGoal("taxids");
-//		Set<TaxIdNode> nodes = taxNodesGoal.get();
-//
-//		KrakenResultFastqMergeListener filter = KrakenResultFastqMergeListener.createFilterByTaxIdNodes(nodes,
-//				new KrakenResultFastqMergeListener() {
-//					@Override
-//					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-//							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
-//						cgatBloomFilter.put(read, 0, null);
-//					}
-//				});
-//
-//		KrakenResultFastqMerger krakenFilter = new KrakenResultFastqMerger(project.getConfig().getMaxReadSizeBytes());
-//
-//		InputStream stream1 = StreamProvider.getInputStreamForFile(fromKraken);
-//		InputStream stream2 = StreamProvider.getInputStreamForFile(bartHReads);
-//		CountingDigitTrie.print(krakenFilter.process(stream1, stream2, filter), System.out);
-//		stream1.close();
-//		stream2.close();
-//
-//		// Test uncompressed:
-//		checkFilter(fromKraken, bartHReads, krakenFilter, cgatBloomFilter, nodes);
-//	}
+	public void testBloomFilterViaProject() throws IOException {
+		Main main = new Main();
+		main.parseAndRun(new String[] { "bart_h", "clear", "genall" });
+
+		GSProject project = main.getProject();
+
+		File bartHReads = ((FileGoal<GSProject>) main.getMaker().getGoal("kmerfastq")).getFile();
+		String outGoal = project.getConfig().isUseKraken1() ? "sort" : "kmerkrakenout";
+		File fromKraken = ((FileGoal<GSProject>) main.getMaker().getGoal(outGoal)).getFile();
+
+		long size = 5 * 1000 * 1000;
+		double fpp = 0.00001;
+
+		AbstractCGATBloomFilter cgatBloomFilter = createFilter(project.getkMserSize(), size, fpp);
+
+		@SuppressWarnings("unchecked")
+		ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal = (ObjectGoal<Set<TaxIdNode>, GSProject>) main.getMaker()
+				.getGoal("taxids");
+		Set<TaxIdNode> nodes = taxNodesGoal.get();
+
+		KrakenResultFastqMergeListener filter = KrakenResultFastqMergeListener.createFilterByTaxIdNodes(nodes,
+				new KrakenResultFastqMergeListener() {
+					@Override
+					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
+							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
+						cgatBloomFilter.put(read, 0, null);
+					}
+				});
+
+		KrakenResultFastqMerger krakenFilter = new KrakenResultFastqMerger(project.getConfig().getMaxReadSizeBytes());
+
+		InputStream stream1 = StreamProvider.getInputStreamForFile(fromKraken);
+		InputStream stream2 = StreamProvider.getInputStreamForFile(bartHReads);
+		KrakenResCountGoal.print(krakenFilter.process(stream1, stream2, filter), System.out);
+		stream1.close();
+		stream2.close();
+
+		// Test uncompressed:
+		checkFilter(fromKraken, bartHReads, krakenFilter, cgatBloomFilter, nodes);
+	}
 
 	private void checkFilter(File fromKraken, File reads, KrakenResultFastqMerger krakenFilter,
 			AbstractCGATBloomFilter filterUnderTest, Set<TaxIdNode> nodes) throws IOException {
@@ -222,7 +228,7 @@ public class CGATBloomFilterTest extends TestCase {
 
 		assertTrue(testedFp <= filterUnderTest.getFpp());
 	}
-	
+
 	protected AbstractCGATBloomFilter createFilter(int k, long size, double fpp) {
 		return new MurmurCGATBloomFilter(k, size, fpp);
 	}

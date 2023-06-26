@@ -59,7 +59,9 @@ public class KMerTrieTest extends TestCase {
 		GSProject project = main.getProject();
 
 		File bartHReads = ((FileGoal<GSProject>) main.getMaker().getGoal("kmerfastq")).getFile();
-		File fromKraken = ((FileGoal<GSProject>) main.getMaker().getGoal("kmerkrakenout")).getFile();
+		
+		String outGoal = project.getConfig().isUseKraken1() ? "sort" : "kmerkrakenout";
+		File fromKraken = ((FileGoal<GSProject>) main.getMaker().getGoal(outGoal)).getFile();
 
 		final KMerTrie<String> trie = new KMerTrie<String>(project.getkMserSize());
 
