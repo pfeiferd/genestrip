@@ -106,7 +106,6 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 			for (int i = 0; i < arrSize; i++) {
 				Object next = array[i];
 				if (next != null) {
-					out.writeByte('(');
 					writeTree(next, out);
 				} else {
 					out.writeByte('*');
