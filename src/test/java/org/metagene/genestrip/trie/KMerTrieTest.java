@@ -153,7 +153,7 @@ public class KMerTrieTest extends TestCase {
 		KMerTrie<Integer> trie = new KMerTrie<Integer>(2, 35, false);
 		Map<List<Byte>, Integer> checkMap = new HashMap<List<Byte>, Integer>();
 		byte[] read = new byte[trie.getLen()];
-		for (int i = 1; i < 1000; i++) {
+		for (int i = 1; i < 1000000; i++) {
 			for (int j = 0; j < trie.getLen(); j++) {
 				read[j] = cgat[random.nextInt(4)];
 			}
