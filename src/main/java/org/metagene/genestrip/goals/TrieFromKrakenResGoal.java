@@ -45,13 +45,13 @@ import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryWithQuality;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.FastaTrieCleaner;
-import org.metagene.genestrip.trie.KMerTrie;
-import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
+import org.metagene.genestrip.trie.KMerStore;
+import org.metagene.genestrip.trie.KMerStore.KMerStoreVisitor;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
-public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> {
+public class TrieFromKrakenResGoal extends ObjectGoal<KMerStore<TaxidWithCount>, GSProject> {
 	private final File fastq;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fastaFilesGoal;
@@ -76,7 +76,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 	@Override
 	public void makeThis() {
 		try {
-			KMerTrie<TaxidWithCount> trie = new KMerTrie<TaxidWithCount>(2, getProject().getkMserSize(), true);
+			KMerStore<TaxidWithCount> trie = getProject().getKMerStoreFactory().createKMerStore(TaxidWithCount.class);
 			Set<TaxIdNode> nodes = taxNodesGoal.get();
 			byte[] kmer = new byte[trie.getLen()];
 
@@ -160,9 +160,9 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 				}
 			}
 
-			trie.visit(new KMerTrieVisitor<TaxidWithCount>() {
+			trie.visit(new KMerStoreVisitor<TaxidWithCount>() {
 				@Override
-				public void nextValue(KMerTrie<TaxidWithCount> trie, byte[] kmer, TaxidWithCount value) {
+				public void nextValue(KMerStore<TaxidWithCount> trie, byte[] kmer, TaxidWithCount value) {
 					ByteArrayUtil.print(kmer, System.out);
 					System.out.println();
 				}

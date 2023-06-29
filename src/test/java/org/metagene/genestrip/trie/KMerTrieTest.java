@@ -27,6 +27,7 @@ package org.metagene.genestrip.trie;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -38,7 +39,6 @@ import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.Main;
-import org.metagene.genestrip.bloom.AbstractCGATBloomFilter;
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
 import org.metagene.genestrip.goals.KrakenResCountGoal;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
@@ -46,12 +46,12 @@ import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
+import org.metagene.genestrip.trie.KMerStore.KMerStoreVisitor;
 import org.metagene.genestrip.util.StreamProvider;
 
 import junit.framework.TestCase;
 
-public class KMerTrieTest extends TestCase {
+public class KMerTrieTest extends TestCase implements KMerStoreFactory {
 	public void testPutGet() throws IOException {
 		Main main = new Main();
 		main.parseAndRun(new String[] { "bart_h", "clear", "genall" });
@@ -59,13 +59,14 @@ public class KMerTrieTest extends TestCase {
 		GSProject project = main.getProject();
 
 		File bartHReads = ((FileGoal<GSProject>) main.getMaker().getGoal("kmerfastq")).getFile();
-		
+
 		String outGoal = project.getConfig().isUseKraken1() ? "sort" : "kmerkrakenout";
 		File fromKraken = ((FileGoal<GSProject>) main.getMaker().getGoal(outGoal)).getFile();
 
-		final KMerTrie<String> trie = new KMerTrie<String>(project.getkMserSize());
+		final KMerStore<String> trie = createKMerStore(String.class, project.getkMserSize());
 
-		AbstractCGATBloomFilter bloomFilter = new MurmurCGATBloomFilter(trie.getLen(), 5 * 1000 * 1000, 0.00001);
+		MurmurCGATBloomFilter bloomFilter = new MurmurCGATBloomFilter(trie.getLen(), 0.00001);
+		bloomFilter.clearAndEnsureCapacity(5 * 1000 * 1000);
 
 		@SuppressWarnings("unchecked")
 		ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal = (ObjectGoal<Set<TaxIdNode>, GSProject>) main.getMaker()
@@ -78,7 +79,7 @@ public class KMerTrieTest extends TestCase {
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
 							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
 						trie.put(read, 0, kmerTaxid, false);
-						bloomFilter.put(read, 0, null);
+						bloomFilter.put(read, 0);
 					}
 				});
 
@@ -93,7 +94,7 @@ public class KMerTrieTest extends TestCase {
 		// Test uncompressed:
 		checkTrie(fromKraken, bartHReads, krakenFilter, trie, bloomFilter, nodes);
 
-		trie.compress();
+		trie.optimize();
 
 		// Test compressed;
 		checkTrie(fromKraken, bartHReads, krakenFilter, trie, bloomFilter, nodes);
@@ -106,9 +107,9 @@ public class KMerTrieTest extends TestCase {
 		if (saved.exists()) {
 			saved.delete();
 		}
-		trie.save(saved);
+		KMerStore.save(trie, saved);
 		try {
-			KMerTrie<String> loadedTrie = KMerTrie.load(saved);
+			KMerStore<String> loadedTrie = KMerStore.load(saved);
 			checkTrie(fromKraken, bartHReads, krakenFilter, loadedTrie, bloomFilter, nodes);
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);
@@ -117,8 +118,8 @@ public class KMerTrieTest extends TestCase {
 		}
 	}
 
-	private void checkTrie(File fromKraken, File reads, KrakenResultFastqMerger krakenFilter, KMerTrie<String> trie,
-			AbstractCGATBloomFilter bloomFilter, Set<TaxIdNode> nodes) throws IOException {
+	private void checkTrie(File fromKraken, File reads, KrakenResultFastqMerger krakenFilter, KMerStore<String> trie,
+			MurmurCGATBloomFilter bloomFilter, Set<TaxIdNode> nodes) throws IOException {
 		// Positive Test:
 		InputStream stream1 = StreamProvider.getInputStreamForFile(fromKraken);
 		InputStream stream2 = StreamProvider.getInputStreamForFile(reads);
@@ -152,7 +153,7 @@ public class KMerTrieTest extends TestCase {
 		byte[] cgat = { 'C', 'G', 'A', 'T' };
 		Random random = new Random(42);
 
-		KMerTrie<Integer> trie = new KMerTrie<Integer>(2, 35, false);
+		KMerStore<Integer> trie = createKMerStore(Integer.class, 35);
 		Map<List<Byte>, Integer> checkMap = new HashMap<List<Byte>, Integer>();
 		byte[] read = new byte[trie.getLen()];
 		for (int i = 1; i < 1000000; i++) {
@@ -172,12 +173,12 @@ public class KMerTrieTest extends TestCase {
 			if (saved.exists()) {
 				saved.delete();
 			}
-			trie.save(saved);
+			KMerStore.save(trie, saved);
 
-			KMerTrie<Integer> loadedTrie = KMerTrie.load(saved);
-			loadedTrie.visit(new KMerTrieVisitor<Integer>() {
+			KMerStore<Integer> loadedTrie = KMerStore.load(saved);
+			loadedTrie.visit(new KMerStoreVisitor<Integer>() {
 				@Override
-				public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
+				public void nextValue(KMerStore<Integer> trie, byte[] kmer, Integer value) {
 					List<Byte> key = byteArrayToList(kmer);
 					assertNotNull(value);
 					assertEquals(value, checkMap.get(key));
@@ -198,7 +199,7 @@ public class KMerTrieTest extends TestCase {
 		Random random = new Random(42);
 
 		for (int k = 0; k < 2; k++) {
-			KMerTrie<Integer> trie = new KMerTrie<Integer>(2, 35, false);
+			KMerStore<Integer> trie = createKMerStore(Integer.class, 35);
 			Map<List<Byte>, Integer> checkMap = new HashMap<List<Byte>, Integer>();
 			byte[] read = new byte[trie.getLen()];
 			for (int i = 1; i < 1000; i++) {
@@ -210,9 +211,9 @@ public class KMerTrieTest extends TestCase {
 				checkMap.put(byteArrayToList(read), i);
 			}
 
-			trie.visit(new KMerTrieVisitor<Integer>() {
+			trie.visit(new KMerStoreVisitor<Integer>() {
 				@Override
-				public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
+				public void nextValue(KMerStore<Integer> trie, byte[] kmer, Integer value) {
 					List<Byte> key = byteArrayToList(kmer);
 					assertNotNull(value);
 					assertEquals(value, checkMap.get(key));
@@ -229,5 +230,10 @@ public class KMerTrieTest extends TestCase {
 			res.add(arr[i]);
 		}
 		return res;
+	}
+
+	@Override
+	public <V extends Serializable> KMerStore<V> createKMerStore(Class<V> clazz, Object... params) {
+		return new KMerTrie<V>(2, (int) params[0], false);
 	}
 }

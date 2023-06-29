@@ -36,7 +36,7 @@ import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.trie.FastqTrieClassifier;
 import org.metagene.genestrip.trie.FastqTrieClassifier.StatsPerTaxid;
-import org.metagene.genestrip.trie.KMerTrie;
+import org.metagene.genestrip.trie.KMerStore;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
@@ -66,7 +66,7 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 				krakenOutStyleFile = getProject().getOutputFile(getName(), fastq, FileType.KRAKEN_OUT_RES, false);
 			}
 
-			KMerTrie<String> trie = KMerTrie.load(trieGoal.getFile());
+			KMerStore<String> trie = KMerStore.load(trieGoal.getFile());
 
 			GSConfig config = getProject().getConfig();
 			c = new FastqTrieClassifier(trie, config.getMaxReadSizeBytes(),

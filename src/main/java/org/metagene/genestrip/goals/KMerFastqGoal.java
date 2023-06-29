@@ -51,7 +51,7 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 	private final Map<File, TaxIdNode> fileToCollectNode;
 	private final Map<TaxIdNode, Set<File>> taxToFastas;
 	private final KMerFastqGenerator generator;
-	
+
 	private final File tempFile;
 
 	@SafeVarargs
@@ -60,8 +60,8 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 		super(project, name, (List<File>) null, ArraysUtil.append(deps, fastaFilesGoal));
 
 		generator = new KMerFastqGenerator(getName(), getProject().getkMserSize(),
-				getProject().getConfig().getKmerFastInitialBloomSize(), getProject().getConfig().getKmerFastBloomFpp(),
-				getProject().getConfig().getMaxReadSizeBytes(), getProject().isIgnoreMissingFiles());
+				getProject().getConfig().getKmerFastBloomFpp(), getProject().getConfig().getMaxReadSizeBytes(),
+				getProject().isIgnoreMissingFiles());
 
 		Rank maxRank = project.getConfig().getMaxRankForFilters();
 		taxToFastas = new HashMap<TaxIdNode, Set<File>>();
@@ -102,8 +102,8 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 			fileToCollectNode.put(file, collectNode);
 			addFile(file);
 		}
-		
-		tempFile = project.getOutputFile(name + "_temp" , FileType.FASTQ);
+
+		tempFile = project.getOutputFile(name + "_temp", FileType.FASTQ);
 	}
 
 	@Override
@@ -114,7 +114,7 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 			}
 
 			TaxIdNode collectNode = fileToCollectNode.get(fastq);
-			
+
 			if (tempFile.exists()) {
 				tempFile.delete();
 			}
@@ -152,9 +152,9 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 			}
 
 			output.close();
-			
+
 			tempFile.renameTo(fastq);
-			
+
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Generated fastq file " + fastq);
 			}

@@ -35,35 +35,10 @@ import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.StreamProvider;
 
-public class KMerTrie<V extends Serializable> implements Serializable {
+public class KMerTrie<V extends Serializable> implements Serializable, KMerStore<V> {
 	private static final InternalNullMarker NULL = new InternalNullMarker();
 
 	private static final long serialVersionUID = 1L;
-
-	private static final int[] CGAT_JUMP_TABLE;
-	private static final int[] CGAT_REVERSE_JUMP_TABLE;
-	private static final byte[] DECODE_TABLE, REVERSE_DECODE_TABLE;
-
-	static {
-		CGAT_JUMP_TABLE = new int[Byte.MAX_VALUE];
-		CGAT_REVERSE_JUMP_TABLE = new int[Byte.MAX_VALUE];
-		for (int i = 0; i < CGAT_JUMP_TABLE.length; i++) {
-			CGAT_JUMP_TABLE[i] = -1;
-			CGAT_REVERSE_JUMP_TABLE[i] = -1;
-		}
-		CGAT_JUMP_TABLE['C'] = 0;
-		CGAT_JUMP_TABLE['G'] = 1;
-		CGAT_JUMP_TABLE['A'] = 2;
-		CGAT_JUMP_TABLE['T'] = 3;
-
-		CGAT_REVERSE_JUMP_TABLE['C'] = 1;
-		CGAT_REVERSE_JUMP_TABLE['G'] = 0;
-		CGAT_REVERSE_JUMP_TABLE['A'] = 3;
-		CGAT_REVERSE_JUMP_TABLE['T'] = 2;
-
-		DECODE_TABLE = new byte[] { 'C', 'G', 'A', 'T' };
-		REVERSE_DECODE_TABLE = new byte[] { 'G', 'C', 'T', 'A' };
-	}
 
 	private final int factor;
 	private final int len;
@@ -163,7 +138,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		int mult;
 		int pos = 0;
 		int j = 0;
-		int[] jt = reverse ? CGAT_REVERSE_JUMP_TABLE : CGAT_JUMP_TABLE;
+		int[] jt = reverse ? CGAT.CGAT_REVERSE_JUMP_TABLE : CGAT.CGAT_JUMP_TABLE;
 
 		for (int i = 0; i < len; i += factor) {
 			pos = 0;
@@ -204,7 +179,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		int mult;
 		int pos = 0;
 		int j = 0;
-		int[] jt = reverse ? CGAT_REVERSE_JUMP_TABLE : CGAT_JUMP_TABLE;
+		int[] jt = reverse ? CGAT.CGAT_REVERSE_JUMP_TABLE : CGAT.CGAT_JUMP_TABLE;
 
 		for (int i = 0; i < len; i += factor) {
 			pos = 0;
@@ -235,7 +210,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		node[pos] = value == null ? NULL : value;
 	}
 
-	public void visit(KMerTrieVisitor<V> visitor, boolean reverse) {
+	public void visit(KMerStoreVisitor<V> visitor, boolean reverse) {
 		if (compressed) {
 			throw new IllegalStateException("Cant collect values on compressed trie (yet)");
 		}
@@ -243,7 +218,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 	}
 
 	@SuppressWarnings("unchecked")
-	private void collectValuesHelp(Object node, int pos, byte[] kmer, KMerTrieVisitor<V> visitor, boolean reverse) {
+	private void collectValuesHelp(Object node, int pos, byte[] kmer, KMerStoreVisitor<V> visitor, boolean reverse) {
 		if (node == null) {
 			return;
 		} else if (pos >= len) {
@@ -255,7 +230,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 				int div = 1;
 				for (int j = 0; j < factor && pos + j < len; j++) {
 					kmer[reverse ? (len - 1 - pos - j)
-							: (pos + j)] = (reverse ? REVERSE_DECODE_TABLE : DECODE_TABLE)[(i / div) % 4];
+							: (pos + j)] = (reverse ? CGAT.REVERSE_DECODE_TABLE : CGAT.DECODE_TABLE)[(i / div) % 4];
 					div *= 4;
 				}
 				collectValuesHelp(arr[i], pos + factor, kmer, visitor, reverse);
@@ -273,7 +248,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		int pos = 0;
 		int j = 0;
 		int snPosIndex = 0;
-		int[] jt = reverse ? CGAT_REVERSE_JUMP_TABLE : CGAT_JUMP_TABLE;
+		int[] jt = reverse ? CGAT.CGAT_REVERSE_JUMP_TABLE : CGAT.CGAT_JUMP_TABLE;
 		int base = (reverse ? len - 1 : 0);
 
 		for (int i = 0; i < len && node != null; i += factor) {
@@ -313,7 +288,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		int pos = 0;
 		int j = 0;
 		int snPosIndex = 0;
-		int[] jt = reverse ? CGAT_REVERSE_JUMP_TABLE : CGAT_JUMP_TABLE;
+		int[] jt = reverse ? CGAT.CGAT_REVERSE_JUMP_TABLE : CGAT.CGAT_JUMP_TABLE;
 		int base = start + (reverse ? len - 1 : 0);
 
 		for (int i = 0; i < len && node != null; i += factor) {
@@ -345,9 +320,17 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		return node instanceof InternalNullMarker ? null : (V) node;
 	}
 
-	public void compress() {
-		compressHelp(root);
-		compressed = true;
+	@Override
+	public void optimize() {
+		if (!compressed) {
+			compressHelp(root);
+			compressed = true;
+		}
+	}
+
+	@Override
+	public boolean isOptimized() {
+		return compressed;
 	}
 
 	private void compressHelp(Object[] parent) {
@@ -396,8 +379,8 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		private byte pos6;
 		private byte pos7;
 		private transient Object next;
-		
-		public SmallNode() {			
+
+		public SmallNode() {
 		}
 
 		public SmallNode(int pos, Object next) {
@@ -522,7 +505,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 			in.defaultReadObject();
 			next = readNext(in);
 		}
-		
+
 		public static SmallNode readSmallNode(ObjectInputStream in) throws IOException, ClassNotFoundException {
 			SmallNode sn = new SmallNode();
 			sn.pos0 = in.readByte();
@@ -534,7 +517,7 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 			sn.pos6 = in.readByte();
 			sn.pos7 = in.readByte();
 			sn.next = readNext(in);
-			return sn;			
+			return sn;
 		}
 
 		public static Object readNext(ObjectInputStream in) throws IOException, ClassNotFoundException {
@@ -593,18 +576,6 @@ public class KMerTrie<V extends Serializable> implements Serializable {
 		ObjectOutputStream oOut = new ObjectOutputStream(StreamProvider.getOutputStreamForFile(trieFile));
 		oOut.writeObject(this);
 		oOut.close();
-	}
-
-	public static <T extends Serializable> KMerTrie<T> load(File filterFile) throws IOException, ClassNotFoundException {
-		ObjectInputStream oOut = new ObjectInputStream(StreamProvider.getInputStreamForFile(filterFile));
-		@SuppressWarnings("unchecked")
-		KMerTrie<T> res = (KMerTrie<T>) oOut.readObject();
-		oOut.close();
-		return res;
-	}
-
-	public interface KMerTrieVisitor<V extends Serializable> {
-		public void nextValue(KMerTrie<V> trie, byte[] kmer, V value);
 	}
 
 	private static final class InternalNullMarker implements Serializable {

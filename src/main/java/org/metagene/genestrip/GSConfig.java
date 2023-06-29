@@ -105,10 +105,6 @@ public class GSConfig {
 		return Double.valueOf(properties.getProperty("kmerFastBloomFpp", " 0.00000000001"));
 	}
 
-	public long getKmerFastInitialBloomSize() {
-		return Long.valueOf(properties.getProperty("kmerFastInitialBloomSize", "100000000"));
-	}
-
 	public String getKrakenBin() {
 		return properties.getProperty("krakenBin");
 	}

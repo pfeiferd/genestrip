@@ -30,10 +30,10 @@ import org.metagene.genestrip.fasta.AbstractFastaReader;
 import org.metagene.genestrip.util.CGATRingBuffer;
 
 public abstract class FastaTrieCleaner<T extends Serializable> extends AbstractFastaReader {
-	private final KMerTrie<T> trie;
+	private final KMerStore<T> trie;
 	private final CGATRingBuffer ringBuffer;
 
-	public FastaTrieCleaner(KMerTrie<T> trie, int bufferSize) {
+	public FastaTrieCleaner(KMerStore<T> trie, int bufferSize) {
 		super(bufferSize);
 		this.trie = trie;
 		this.ringBuffer = new CGATRingBuffer(trie.getLen());

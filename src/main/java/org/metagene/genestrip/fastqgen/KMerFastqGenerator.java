@@ -33,9 +33,9 @@ import java.util.Collection;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.metagene.genestrip.bloom.AbstractKMerBloomIndex;
 import org.metagene.genestrip.bloom.AbstractKMerBloomIndex.PutListener;
 import org.metagene.genestrip.bloom.FastaIndexer;
-import org.metagene.genestrip.bloom.GenestripKMerBloomIndex;
 import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.StreamProvider;
 
@@ -44,13 +44,13 @@ public class KMerFastqGenerator {
 
 	private final FastQWriter fastQWriter;
 	private final FastaIndexer fastaIndexer;
-	private final GenestripKMerBloomIndex index;
+	private final AbstractKMerBloomIndex index;
 	private final boolean ignoreMissingFastas;
 
-	public KMerFastqGenerator(String name, int kmerSize, long expectedSize, double fpp, int readBufferSize,
+	public KMerFastqGenerator(String name, int kmerSize, double fpp, int readBufferSize,
 			boolean ignoreMissingFastas) {
 		fastQWriter = new FastQWriter(name);
-		index = new GenestripKMerBloomIndex(name, kmerSize, expectedSize, fpp, fastQWriter);
+		index = new AbstractKMerBloomIndex(name, kmerSize, fpp, fastQWriter);
 		fastaIndexer = new FastaIndexer(index, readBufferSize);
 		this.ignoreMissingFastas = ignoreMissingFastas;
 	}

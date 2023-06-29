@@ -25,11 +25,15 @@
 package org.metagene.genestrip;
 
 import java.io.File;
+import java.io.Serializable;
 
 import org.metagene.genestrip.make.FileDownloadGoal.DownloadProject;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
+import org.metagene.genestrip.trie.KMerStore;
+import org.metagene.genestrip.trie.KMerStoreFactory;
+import org.metagene.genestrip.trie.KMerTrie;
 
-public class GSProject implements DownloadProject {
+public class GSProject implements DownloadProject,  KMerStoreFactory {
 	public enum FileType {
 		FASTQ_RES(".fastq"), FASTQ(".fastq"), FASTA(".fasta"), CSV(".csv"), KRAKEN_OUT(".out"), KRAKEN_OUT_RES(".out"), SER(".ser");
 
@@ -202,5 +206,14 @@ public class GSProject implements DownloadProject {
 	
 	public File getResultsDir() {
 		return csvDir;
+	}
+	
+	public KMerStoreFactory getKMerStoreFactory() {
+		return this;
+	}
+	
+	@Override
+	public <V extends Serializable> KMerStore<V> createKMerStore(Class<V> clazz, Object... params) {
+		return new KMerTrie<V>(2, getkMserSize(), false);
 	}
 }

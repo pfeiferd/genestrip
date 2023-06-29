@@ -36,7 +36,7 @@ import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.trie.KMerTrie;
+import org.metagene.genestrip.trie.KMerStore;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.CountingDigitTrie;
 
@@ -57,7 +57,7 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 	protected void makeFile(File trieFile) {
 		try {
 			CountingDigitTrie countingDigitTrie = new CountingDigitTrie();
-			KMerTrie<String> trie = new KMerTrie<String>(1, getProject().getkMserSize(), false);
+			KMerStore<String> trie = getProject().getKMerStoreFactory().createKMerStore(String.class, 1);
 
 			Set<String> taxIds = new HashSet<String>();
 			for (TaxIdNode node : taxNodesGoal.get()) {
@@ -89,8 +89,8 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 				getLogger().info("Trie entries: " + trie.getEntries());
 				getLogger().info("Saving file " + trieFile);
 			}
-			trie.compress();
-			trie.save(trieFile);
+			trie.optimize();
+			KMerStore.save(trie, trieFile);
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Saved file " + trieFile);
 			}

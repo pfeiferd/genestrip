@@ -36,7 +36,7 @@ import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 public class FastqBloomFilter extends AbstractFastqReader {
 	private final double positiveRatio;
 	private final int minPosCount;
-	private final AbstractCGATBloomFilter filter;
+	private final MurmurCGATBloomFilter filter;
 
 	private OutputStream indexed;
 	private OutputStream notIndexed;
