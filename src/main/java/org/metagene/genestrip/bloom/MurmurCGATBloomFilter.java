@@ -41,15 +41,15 @@ public class MurmurCGATBloomFilter implements Serializable {
 	protected final int k;
 	protected final double fpp;
 	protected final Random random;
-	
+
 	protected long expectedInsertions;
 	protected long size;
-	
+
 	protected long[] bits;
 	protected long[][] largeBits;
 	protected boolean large;
-	
-	protected int hashes;	
+
+	protected int hashes;
 	protected long[] hashFactors;
 
 	public MurmurCGATBloomFilter(int k, double fpp) {
@@ -61,7 +61,7 @@ public class MurmurCGATBloomFilter implements Serializable {
 		}
 		this.fpp = fpp;
 		this.k = k;
-		
+
 		large = false;
 		random = new Random(42);
 	}
@@ -71,7 +71,7 @@ public class MurmurCGATBloomFilter implements Serializable {
 			throw new IllegalArgumentException("expected insertions must be > 0");
 		}
 		this.expectedInsertions = expectedInsertions;
-		
+
 		if (size >= expectedInsertions) {
 			clearArray();
 		} else {
@@ -82,11 +82,11 @@ public class MurmurCGATBloomFilter implements Serializable {
 			for (int i = 0; i < hashFactors.length; i++) {
 				hashFactors[i] = random.nextLong();
 			}
-			
+
 			initBitArray();
 		}
 	}
-	
+
 	protected void initBitArray() {
 		if (expectedInsertions > MAX_SMALL_CAPACITY || large == true) {
 			large = true;
@@ -100,12 +100,12 @@ public class MurmurCGATBloomFilter implements Serializable {
 			this.bits = new long[(int) size];
 		}
 	}
-	
+
 	protected void clearArray() {
 		if (large) {
 			BigArrays.fill(largeBits, 0);
 		} else {
-			Arrays.fill(bits, 0);		
+			Arrays.fill(bits, 0);
 		}
 	}
 
@@ -136,12 +136,11 @@ public class MurmurCGATBloomFilter implements Serializable {
 	protected long optimalNumOfBits(long n, double p) {
 		return (long) (-n * Math.log(p) / (Math.log(2) * Math.log(2)));
 	}
-	
-	
+
 	public boolean isLarge() {
 		return large;
 	}
-	
+
 	public void makeLarge() {
 		this.large = true;
 	}
@@ -257,21 +256,24 @@ public class MurmurCGATBloomFilter implements Serializable {
 
 	protected long hash(long data, int i) {
 		long hash = hashFactors[i];
-		long k = Long.reverseBytes(data);
+
+		// Reverse byte inlined from Long.reverseBytes()
+		long k = (data & 0x00ff00ff00ff00ffL) << 8 | (data >>> 8) & 0x00ff00ff00ff00ffL;
+		k = (k << 48) | ((k & 0xffff0000L) << 16) | ((k >>> 16) & 0xffff0000L) | (k >>> 48);
+
 		final int length = Long.BYTES;
 		// mix functions
 		k *= C1;
-		k = Long.rotateLeft(k, R1);
+		// Rotate left inlined from Long.rotateLeft()
+		k = (k << R1) | (k >>> -R1);
 		k *= C2;
 		hash ^= k;
-		hash = Long.rotateLeft(hash, R2) * M + N1;
+		// Rotate left inlined from Long.rotateLeft()
+		hash = ((hash << R2) | (hash >>> -R2)) * M + N1;
 		// finalization
 		hash ^= length;
-		hash = fmix64(hash);
-		return hash;
-	}
-
-	private static long fmix64(long hash) {
+		
+		// Inlined from MurmurHash3.fmix64()
 		hash ^= (hash >>> 33);
 		hash *= 0xff51afd7ed558ccdL;
 		hash ^= (hash >>> 33);
