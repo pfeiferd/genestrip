@@ -25,27 +25,258 @@
 package org.metagene.genestrip.bloom;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Random;
 
-import org.apache.commons.codec.digest.MurmurHash3;
+import org.metagene.genestrip.util.CGAT;
+import org.metagene.genestrip.util.CGATRingBuffer;
 
-public class MurmurCGATBloomFilter extends TwoLongsCGATBloomFilter implements Serializable {
+import it.unimi.dsi.fastutil.BigArrays;
+
+public class MurmurCGATBloomFilter implements Serializable {
+	public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
+
 	private static final long serialVersionUID = 1L;
-	
-	private final int[] hashFactors;
 
-	public MurmurCGATBloomFilter(int k, long expectedInsertions, double fpp) {
-		super(k, expectedInsertions, fpp);
+	protected final int k;
+	protected final double fpp;
+	protected final Random random;
+	
+	protected long expectedInsertions;
+	protected long size;
+	
+	protected long[] bits;
+	protected long[][] largeBits;
+	protected boolean large;
+	
+	protected int hashes;	
+	protected long[] hashFactors;
+
+	public MurmurCGATBloomFilter(int k, double fpp) {
+		if (k <= 0) {
+			throw new IllegalArgumentException("k-mer length k must be > 0");
+		}
+		if (fpp <= 0 || fpp >= 1) {
+			throw new IllegalArgumentException("fpp must be a probability");
+		}
+		this.fpp = fpp;
+		this.k = k;
 		
-		Random r = new Random(42);
-		hashFactors = new int[hashes];
-		for (int i = 0; i < hashFactors.length; i++) {
-			hashFactors[i] = r.nextInt();
+		large = false;
+		random = new Random(42);
+	}
+
+	public void clearAndEnsureCapacity(long expectedInsertions) {
+		if (expectedInsertions <= 0) {
+			throw new IllegalArgumentException("expected insertions must be > 0");
+		}
+		this.expectedInsertions = expectedInsertions;
+		
+		if (size >= expectedInsertions) {
+			clearArray();
+		} else {
+			long bits = optimalNumOfBits(expectedInsertions, fpp);
+			size = (bits + 63) / 64;
+			hashes = optimalNumOfHashFunctions(expectedInsertions, bits);
+			hashFactors = new long[hashes];
+			for (int i = 0; i < hashFactors.length; i++) {
+				hashFactors[i] = random.nextLong();
+			}
+			
+			initBitArray();
 		}
 	}
 	
-	@Override
-	protected int combineLongHashes(long hash1, long hash2, int i) {
-		return MurmurHash3.hash32(hash1, hash2, hashFactors[i]);
+	protected void initBitArray() {
+		if (expectedInsertions > MAX_SMALL_CAPACITY || large == true) {
+			large = true;
+			bits = null;
+			if (largeBits == null) {
+				largeBits = BigArrays.ensureCapacity(BigArrays.wrap(new long[0]), size);
+			} else {
+				largeBits = BigArrays.ensureCapacity(largeBits, size);
+			}
+		} else {
+			this.bits = new long[(int) size];
+		}
+	}
+	
+	protected void clearArray() {
+		if (large) {
+			BigArrays.fill(largeBits, 0);
+		} else {
+			Arrays.fill(bits, 0);		
+		}
+	}
+
+	public long getExpectedInsertions() {
+		return expectedInsertions;
+	}
+
+	public int getK() {
+		return k;
+	}
+
+	public int getHashes() {
+		return hashes;
+	}
+
+	public double getFpp() {
+		return fpp;
+	}
+
+	public long getByteSize() {
+		return size * 8;
+	}
+
+	protected int optimalNumOfHashFunctions(long n, long m) {
+		return Math.max(1, (int) Math.round((double) m / n * Math.log(2)));
+	}
+
+	protected long optimalNumOfBits(long n, double p) {
+		return (long) (-n * Math.log(p) / (Math.log(2) * Math.log(2)));
+	}
+	
+	
+	public boolean isLarge() {
+		return large;
+	}
+	
+	public void makeLarge() {
+		this.large = true;
+	}
+
+	public boolean put(CGATRingBuffer buffer) {
+		long data = CGAT.kmerToLongStraight(buffer);
+		if (data == 0) {
+			return false;
+		}
+		putViaHash(data);
+		return true;
+	}
+
+	public boolean put(byte[] seq, int start) {
+		long data = CGAT.kmerToLongStraight(seq, start, k, null);
+		if (data == 0) {
+			return false;
+		}
+		putViaHash(data);
+		return true;
+	}
+
+	protected void putViaHash(long data) {
+		int index;
+		long hash;
+
+		if (large) {
+			for (int i = 0; i < hashes; i++) {
+				hash = hash(data, i);
+				index = (int) ((hash >>> 6) % bits.length);
+				BigArrays.set(largeBits, index, BigArrays.get(largeBits, index) | (1L << (hash & 0b111111)));
+			}
+		} else {
+			for (int i = 0; i < hashes; i++) {
+				hash = hash(data, i);
+				index = (int) ((hash >>> 6) % bits.length);
+				bits[index] = bits[index] | (1L << (data & 0b111111));
+			}
+		}
+	}
+
+	public boolean containsStraight(byte[] seq, int start, int[] badPos) {
+		long data = CGAT.kmerToLongStraight(seq, start, k, badPos);
+		if (data == 0) {
+			return false;
+		}
+		return containsViaHash(data);
+	}
+
+	public boolean containsReverse(byte[] seq, int start, int[] badPos) {
+		long data = CGAT.kmerToLongReverse(seq, start, k, badPos);
+		if (data == 0) {
+			return false;
+		}
+		return containsViaHash(data);
+	}
+
+	protected boolean containsViaHash(long data) {
+		long hash;
+		int index;
+
+		if (large) {
+			for (int i = 0; i < hashes; i++) {
+				hash = hash(data, i);
+				index = (int) ((hash >>> 6) % bits.length);
+				if (((BigArrays.get(largeBits, index) >> (hash & 0b111111)) & 1L) == 0) {
+					return false;
+				}
+			}
+		} else {
+			for (int i = 0; i < hashes; i++) {
+				hash = hash(data, i);
+				index = (int) ((hash >>> 6) % bits.length);
+				if (((bits[index] >> (hash & 0b111111)) & 1L) == 0) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	public boolean containsStraight(CGATRingBuffer buffer) {
+		long data = CGAT.kmerToLongStraight(buffer);
+		if (data == 0) {
+			return false;
+		}
+		return containsViaHash(data);
+	}
+
+	public boolean containsReverse(CGATRingBuffer buffer) {
+		long data = CGAT.kmerToLongReverse(buffer);
+		if (data == 0) {
+			return false;
+		}
+		return containsViaHash(data);
+	}
+
+	/*
+	 * The following code was copied from
+	 * org.apache.commons.codec.digest.MurmurHash3.hash64()
+	 * 
+	 * The original function is deprecated and does not support changing seed.
+	 * That's why its implemented here...
+	 */
+
+	// Constants for 128-bit variant
+	private static final long C1 = 0x87c37b91114253d5L;
+	private static final long C2 = 0x4cf5ad432745937fL;
+	private static final int R1 = 31;
+	private static final int R2 = 27;
+	private static final int M = 5;
+	private static final int N1 = 0x52dce729;
+
+	protected long hash(long data, int i) {
+		long hash = hashFactors[i];
+		long k = Long.reverseBytes(data);
+		final int length = Long.BYTES;
+		// mix functions
+		k *= C1;
+		k = Long.rotateLeft(k, R1);
+		k *= C2;
+		hash ^= k;
+		hash = Long.rotateLeft(hash, R2) * M + N1;
+		// finalization
+		hash ^= length;
+		hash = fmix64(hash);
+		return hash;
+	}
+
+	private static long fmix64(long hash) {
+		hash ^= (hash >>> 33);
+		hash *= 0xff51afd7ed558ccdL;
+		hash ^= (hash >>> 33);
+		hash *= 0xc4ceb9fe1a85ec53L;
+		hash ^= (hash >>> 33);
+		return hash;
 	}
 }

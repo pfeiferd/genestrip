@@ -34,7 +34,7 @@ import java.util.Date;
 import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.StreamProvider;
 
-public abstract class AbstractKMerBloomIndex implements Serializable {
+public class AbstractKMerBloomIndex implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	private final String name;
@@ -45,18 +45,18 @@ public abstract class AbstractKMerBloomIndex implements Serializable {
 
 	private long n;
 	
-	private final AbstractCGATBloomFilter filter;
+	private final MurmurCGATBloomFilter filter;
 
-	public AbstractKMerBloomIndex(String name, int k, PutListener putListener, AbstractCGATBloomFilter filter) {
+	public AbstractKMerBloomIndex(String name, int k, double expectedFpp, PutListener putListener) {
 		this.name = name;
 		this.n = 0;
 		this.creationDate = new Date();
 		this.putListener = putListener;
 		byteRingBuffer = new CGATRingBuffer(k);
-		this.filter = filter;
+		this.filter = new MurmurCGATBloomFilter(k, expectedFpp);
 	}
 	
-	public AbstractCGATBloomFilter getFilter() {
+	public MurmurCGATBloomFilter getFilter() {
 		return filter;
 	}
 
@@ -65,15 +65,15 @@ public abstract class AbstractKMerBloomIndex implements Serializable {
 		byteRingBuffer.put(bite);
 		if (byteRingBuffer.filled && byteRingBuffer.isCGAT()) {
 			if (putListener != null) {
-				if (!filter.containsStraight(byteRingBuffer, null)) {
+				if (!filter.containsStraight(byteRingBuffer)) {
 					putListener.newEntry(byteRingBuffer);
-					filter.put(byteRingBuffer, null);
+					filter.put(byteRingBuffer);
 					n++;
 				} else {
 					putListener.oldEntry(byteRingBuffer);
 				}
 			} else {
-				filter.put(byteRingBuffer, null);
+				filter.put(byteRingBuffer);
 				n++;
 			}
 		}

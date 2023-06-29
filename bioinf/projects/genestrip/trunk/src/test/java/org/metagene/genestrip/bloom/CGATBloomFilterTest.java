@@ -27,6 +27,7 @@ package org.metagene.genestrip.bloom;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -40,14 +41,16 @@ import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.trie.KMerStore;
+import org.metagene.genestrip.trie.KMerStore.KMerStoreVisitor;
+import org.metagene.genestrip.trie.KMerStoreFactory;
 import org.metagene.genestrip.trie.KMerTrie;
-import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.StreamProvider;
 
 import junit.framework.TestCase;
 
-public class CGATBloomFilterTest extends TestCase {
+public class CGATBloomFilterTest extends TestCase implements KMerStoreFactory {
 	private byte[] cgat = { 'C', 'G', 'A', 'T' };
 	private Random random = new Random(42);
 
@@ -56,7 +59,7 @@ public class CGATBloomFilterTest extends TestCase {
 		int size = 5 * 1000 * 1000;
 		double fpp = 0.001;
 
-		AbstractCGATBloomFilter filter = createFilter(k, size, fpp);
+		MurmurCGATBloomFilter filter = createFilter(k, size, fpp);
 
 		byte[] reverseRead = new byte[k];
 		List<byte[]> reads = new ArrayList<byte[]>();
@@ -69,7 +72,7 @@ public class CGATBloomFilterTest extends TestCase {
 			}
 			reads.add(read);
 
-			filter.put(read, 0, null);
+			filter.put(read, 0);
 			assertTrue(filter.containsStraight(read, 0, null));
 			assertTrue(filter.containsReverse(reverseRead, 0, null));
 		}
@@ -106,8 +109,8 @@ public class CGATBloomFilterTest extends TestCase {
 		int size = 5 * 100000;
 		double fpp = 0.001;
 
-		AbstractCGATBloomFilter filter = createFilter(k, size, fpp);
-		KMerTrie<Integer> trie = new KMerTrie<Integer>(k);
+		MurmurCGATBloomFilter filter = createFilter(k, size, fpp);
+		KMerStore<Integer> trie = createKMerStore(Integer.class, k);
 
 		byte[] read = new byte[trie.getLen()];
 
@@ -115,20 +118,20 @@ public class CGATBloomFilterTest extends TestCase {
 			for (int j = 0; j < k; j++) {
 				read[j] = cgat[random.nextInt(4)];
 			}
-			filter.put(read, 0, null);
+			filter.put(read, 0);
 			trie.put(read, 0, i, false);
 		}
 
-		trie.visit(new KMerTrieVisitor<Integer>() {
+		trie.visit(new KMerStoreVisitor<Integer>() {
 			@Override
-			public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
+			public void nextValue(KMerStore<Integer> trie, byte[] kmer, Integer value) {
 				assertTrue(filter.containsStraight(kmer, 0, null));
 			}
 		}, false);
 
-		trie.visit(new KMerTrieVisitor<Integer>() {
+		trie.visit(new KMerStoreVisitor<Integer>() {
 			@Override
-			public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
+			public void nextValue(KMerStore<Integer> trie, byte[] kmer, Integer value) {
 				assertTrue(filter.containsReverse(kmer, 0, null));
 			}
 		}, true);
@@ -164,7 +167,7 @@ public class CGATBloomFilterTest extends TestCase {
 		long size = 5 * 1000 * 1000;
 		double fpp = 0.00001;
 
-		AbstractCGATBloomFilter cgatBloomFilter = createFilter(project.getkMserSize(), size, fpp);
+		MurmurCGATBloomFilter cgatBloomFilter = createFilter(project.getkMserSize(), size, fpp);
 
 		@SuppressWarnings("unchecked")
 		ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal = (ObjectGoal<Set<TaxIdNode>, GSProject>) main.getMaker()
@@ -176,7 +179,7 @@ public class CGATBloomFilterTest extends TestCase {
 					@Override
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
 							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
-						cgatBloomFilter.put(read, 0, null);
+						cgatBloomFilter.put(read, 0);
 					}
 				});
 
@@ -193,7 +196,7 @@ public class CGATBloomFilterTest extends TestCase {
 	}
 
 	private void checkFilter(File fromKraken, File reads, KrakenResultFastqMerger krakenFilter,
-			AbstractCGATBloomFilter filterUnderTest, Set<TaxIdNode> nodes) throws IOException {
+			MurmurCGATBloomFilter filterUnderTest, Set<TaxIdNode> nodes) throws IOException {
 		// Positive Test:
 		InputStream stream1 = StreamProvider.getInputStreamForFile(fromKraken);
 		InputStream stream2 = StreamProvider.getInputStreamForFile(reads);
@@ -229,7 +232,14 @@ public class CGATBloomFilterTest extends TestCase {
 		assertTrue(testedFp <= filterUnderTest.getFpp());
 	}
 
-	protected AbstractCGATBloomFilter createFilter(int k, long size, double fpp) {
-		return new MurmurCGATBloomFilter(k, size, fpp);
+	protected MurmurCGATBloomFilter createFilter(int k, long size, double fpp) {
+		MurmurCGATBloomFilter res = new MurmurCGATBloomFilter(k, fpp);
+		res.clearAndEnsureCapacity(size);
+		return res;
+	}
+	
+	@Override
+	public <V extends Serializable> KMerStore<V> createKMerStore(Class<V> clazz, Object... params) {
+		return new KMerTrie<V>(2, (int) params[0], false);
 	}
 }

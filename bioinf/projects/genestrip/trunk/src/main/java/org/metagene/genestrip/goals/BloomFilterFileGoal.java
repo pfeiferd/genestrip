@@ -32,9 +32,8 @@ import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
-import org.metagene.genestrip.bloom.AbstractCGATBloomFilter;
 import org.metagene.genestrip.bloom.AbstractKMerBloomIndex;
-import org.metagene.genestrip.bloom.GenestripKMerBloomIndex;
+import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
 import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
 import org.metagene.genestrip.make.FileGoal;
@@ -66,14 +65,15 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 	@Override
 	protected void makeFile(File bloomFilterFile) {
 		try {
+
+			AbstractKMerBloomIndex bloomIndex = new AbstractKMerBloomIndex(bloomFilterFile.getName(),
+					getProject().getkMserSize(), 0.0001, null);
 			// I found this out by trial end error: Guava bloom filter cant keep the FP-rate
 			// when total entry size is too small.
 			// So keep it to a minimum.
 			// Maybe there is more (bad stuff) to it.
 			long size = Math.max(1000 * 10000, sizeGoal.get());
-
-			AbstractKMerBloomIndex bloomIndex = new GenestripKMerBloomIndex(bloomFilterFile.getName(),
-					getProject().getkMserSize(), size, 0.0001, null);
+			bloomIndex.getFilter().clearAndEnsureCapacity(size);
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Number of k-mers for " + bloomIndex + ": " + sizeGoal.get());
@@ -86,7 +86,7 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 				taxIds.add(node.getTaxId());
 			}
 
-			AbstractCGATBloomFilter bloomFilter = bloomIndex.getFilter();
+			MurmurCGATBloomFilter bloomFilter = bloomIndex.getFilter();
 
 			KrakenResultFastqMergeListener filter = KrakenResultFastqMergeListener.createFilterByTaxIds(taxIds,
 					new KrakenResultFastqMergeListener() {
@@ -96,7 +96,7 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 						public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read,
 								byte[] readProbs, String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength,
 								byte[] output) {
-							bloomFilter.put(read, 0, null);
+							bloomFilter.put(read, 0);
 							if (++counter % 10000 == 0) {
 								if (getLogger().isInfoEnabled()) {
 									getLogger().info("Added kmers to bloom filter: " + counter);

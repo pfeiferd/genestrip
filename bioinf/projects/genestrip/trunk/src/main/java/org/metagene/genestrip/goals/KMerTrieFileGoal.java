@@ -39,7 +39,7 @@ import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.trie.KMerTrie;
+import org.metagene.genestrip.trie.KMerStore;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
@@ -60,7 +60,7 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 	@Override
 	protected void makeFile(File trieFile) {
 		try {
-			KMerTrie<String> trie = new KMerTrie<String>(1, getProject().getkMserSize(), false);
+			KMerStore<String> trie = getProject().getKMerStoreFactory().createKMerStore(String.class, 1);
 
 			Set<String> taxIds = new HashSet<String>();
 			for (TaxIdNode node : taxNodesGoal.get()) {
@@ -89,8 +89,8 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 				getLogger().info("Trie entries: " + trie.getEntries());
 				getLogger().info("Saving File " + trieFile);
 			}
-			trie.compress();
-			trie.save(trieFile);
+			trie.optimize();
+			KMerStore.save(trie, trieFile);
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("File saved " + trieFile);
 			}
@@ -99,7 +99,7 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 		}
 	}
 	
-	private KrakenResultFastqMergeListener fillKMerTrie(KMerTrie<String> trie,
+	private KrakenResultFastqMergeListener fillKMerTrie(KMerStore<String> trie,
 			KrakenResultFastqMergeListener delegate) {
 		return new KrakenResultFastqMergeListener() {
 			@Override

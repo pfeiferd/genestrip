@@ -30,55 +30,37 @@ import java.util.Arrays;
 import org.metagene.genestrip.util.CGATRingBuffer;
 
 public abstract class AbstractCGATBloomFilter implements Serializable {
+	public static long MAX_CAPACITY = Integer.MAX_VALUE - 8;	
+	
 	private static final long serialVersionUID = 1L;
 
 	protected final static double LOG_2 = Math.log(2);
 
-	protected static final int[] CGAT_JUMP_TABLE;
-	protected static final int[] CGAT_REVERSE_JUMP_TABLE;
-
-	static {
-		CGAT_JUMP_TABLE = new int[Byte.MAX_VALUE];
-		CGAT_REVERSE_JUMP_TABLE = new int[Byte.MAX_VALUE];
-		for (int i = 0; i < CGAT_JUMP_TABLE.length; i++) {
-			CGAT_JUMP_TABLE[i] = -1;
-			CGAT_REVERSE_JUMP_TABLE[i] = -1;
-		}
-		CGAT_JUMP_TABLE['C'] = 0;
-		CGAT_JUMP_TABLE['G'] = 1;
-		CGAT_JUMP_TABLE['A'] = 2;
-		CGAT_JUMP_TABLE['T'] = 3;
-
-		CGAT_REVERSE_JUMP_TABLE['C'] = 1;
-		CGAT_REVERSE_JUMP_TABLE['G'] = 0;
-		CGAT_REVERSE_JUMP_TABLE['A'] = 3;
-		CGAT_REVERSE_JUMP_TABLE['T'] = 2;
-	}
-
 	protected final int k;
-	protected long expectedInsertions;
 	protected final double fpp;
 	protected long size;
 	protected long[] bits;
 	protected int hashes;
+	protected long expectedInsertions;
 
-	public AbstractCGATBloomFilter(int k, long expectedInsertions, double fpp) {
+	public AbstractCGATBloomFilter(int k, double fpp) {
 		if (k <= 0) {
 			throw new IllegalArgumentException("k-mer length k must be > 0");
-		}
-		if (expectedInsertions <= 0) {
-			throw new IllegalArgumentException("expected insertions must be > 0");
 		}
 		if (fpp <= 0 || fpp >= 1) {
 			throw new IllegalArgumentException("fpp must be a probability");
 		}
 		this.fpp = fpp;
 		this.k = k;
-
-		clearAndEnsureCapacity(expectedInsertions);
 	}
 
 	public void clearAndEnsureCapacity(long expectedInsertions) {
+		if (expectedInsertions <= 0) {
+			throw new IllegalArgumentException("expected insertions must be > 0");
+		}
+		if (expectedInsertions > getMaxCapacity()) {
+			throw new IllegalArgumentException("Expected insertions above max capacity");
+		}
 		this.expectedInsertions = expectedInsertions;
 		
 		if (size >= expectedInsertions) {
@@ -90,6 +72,10 @@ public abstract class AbstractCGATBloomFilter implements Serializable {
 
 			initBitArray();
 		}
+	}
+	
+	public long getMaxCapacity() {
+		return MAX_CAPACITY;
 	}
 	
 	protected void clearArray() {
@@ -128,15 +114,15 @@ public abstract class AbstractCGATBloomFilter implements Serializable {
 		return (long) (-n * Math.log(p) / (Math.log(2) * Math.log(2)));
 	}
 
-	public abstract void put(CGATRingBuffer buffer, int[] badPos);
+	public abstract boolean put(CGATRingBuffer buffer);
 
-	public abstract void put(byte[] seq, int start, int[] badPos);
+	public abstract boolean put(byte[] seq, int start);
 
 	public abstract boolean containsReverse(byte[] seq, int start, int[] badPos);
 	
 	public abstract boolean containsStraight(byte[] seq, int start, int[] badPos);
 	
-	public abstract boolean containsReverse(CGATRingBuffer buffer, int[] badPos);
+	public abstract boolean containsReverse(CGATRingBuffer buffer);
 
-	public abstract boolean containsStraight(CGATRingBuffer buffer, int[] badPos);		
+	public abstract boolean containsStraight(CGATRingBuffer buffer);		
 }
