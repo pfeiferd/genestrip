@@ -85,7 +85,8 @@ public class CGAT {
 		int c;
 		int k = buffer.getSize();
 		for (int i = 0; i < k; i++) {
-			res = Long.rotateLeft(res, 2);
+			// Inlined: res = Long.rotateLeft(res, 2);
+			res = (res << 2) | (res >>> -2);
 			c = CGAT_JUMP_TABLE[buffer.get(i)];
 			res += c;
 		}
@@ -97,7 +98,8 @@ public class CGAT {
 		long res = 0;
 		int c;
 		for (int i = buffer.getSize() - 1; i >= 0; i--) {
-			res = Long.rotateLeft(res, 2);
+			// Inlined: res = Long.rotateLeft(res, 2);
+			res = (res << 2) | (res >>> -2);
 			c = CGAT_REVERSE_JUMP_TABLE[buffer.get(i)];
 			res += c;
 		}
@@ -111,7 +113,8 @@ public class CGAT {
 
 		int max = start + k;
 		for (int i = start; i < max; i++) {
-			res = Long.rotateLeft(res, 2);
+			// Inlined: res = Long.rotateLeft(res, 2);
+			res = (res << 2) | (res >>> -2);
 			c = CGAT_JUMP_TABLE[seq[i]];
 			if (c == -1) {
 				if (badPos != null) {
@@ -130,7 +133,8 @@ public class CGAT {
 		int c;
 
 		for (int i = start + k - 1; i >= start; i--) {
-			res = Long.rotateLeft(res, 2);
+			// Inlined: res = Long.rotateLeft(res, 2);
+			res = (res << 2) | (res >>> -2);
 			c = CGAT_REVERSE_JUMP_TABLE[seq[i]];
 			if (c == -1) {
 				if (badPos != null) {
