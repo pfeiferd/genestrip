@@ -109,10 +109,10 @@ public class CGAT {
 		long res = 0;
 		int c;
 
-		int max = start + k - 1;
+		int max = start + k;
 		for (int i = start; i < max; i++) {
 			res = Long.rotateLeft(res, 2);
-			c = CGAT.CGAT_JUMP_TABLE[seq[i]];
+			c = CGAT_JUMP_TABLE[seq[i]];
 			if (c == -1) {
 				if (badPos != null) {
 					badPos[0] = i;

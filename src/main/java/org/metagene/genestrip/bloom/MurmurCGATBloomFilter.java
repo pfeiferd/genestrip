@@ -178,7 +178,7 @@ public class MurmurCGATBloomFilter implements Serializable {
 			for (int i = 0; i < hashes; i++) {
 				hash = hash(data, i);
 				index = (int) ((hash >>> 6) % bits.length);
-				bits[index] = bits[index] | (1L << (data & 0b111111));
+				bits[index] = bits[index] | (1L << (hash & 0b111111));
 			}
 		}
 	}
