@@ -33,8 +33,9 @@ public class K31MerSortedArray<V extends Serializable> implements KMerStore<V> {
 	protected long size;
 
 	private long entries;
-	private boolean optimized;
+	private boolean sorted;
 	private boolean large;
+	private boolean initSize;
 	private short nextValueIndex;
 	private MurmurCGATBloomFilter filter;
 
@@ -50,18 +51,27 @@ public class K31MerSortedArray<V extends Serializable> implements KMerStore<V> {
 		filter = new MurmurCGATBloomFilter(k, fpp);
 	}
 
+	@Override
+	public void initSize(long expectedInsertions) {
+		if (initSize) {
+			throw new IllegalStateException("Cant initlialize size twice.");
+		}
+		initSize = true;
+		clearAndEnsureCapacity(expectedInsertions);
+	}
+	
 	public void clearAndEnsureCapacity(long expectedInsertions) {
 		if (expectedInsertions <= 0) {
-			throw new IllegalArgumentException("expected insertions must be > 0");
+			throw new IllegalArgumentException("Expected insertions must be > 0.");
 		}
 		filter.clearAndEnsureCapacity(expectedInsertions);
-
+		
 		if (size >= expectedInsertions) {
 			clearArray();
 		} else {
 			size = expectedInsertions;
 			initBitArray();
-		}
+		}		
 	}
 
 	protected void initBitArray() {
@@ -124,11 +134,11 @@ public class K31MerSortedArray<V extends Serializable> implements KMerStore<V> {
 	}
 
 	protected boolean putLong(long kmer, V value) {
-		if (optimized) {
-			throw new IllegalStateException("Cannot insert after optimize");
+		if (sorted) {
+			throw new IllegalStateException("Cannot insert after optimize.");
 		}
 		if (entries == size) {
-			throw new IllegalStateException("Capacity exceeded");
+			throw new IllegalStateException("Capacity exceeded.");
 		}
 		if (filter.containsLong(kmer)) {
 			return false;
@@ -172,7 +182,7 @@ public class K31MerSortedArray<V extends Serializable> implements KMerStore<V> {
 		if (filter != null && !filter.containsLong(kmer)) {
 			return null;
 		}
-		if (optimized) {
+		if (sorted) {
 			short index;
 			if (large) {
 				long pos = LongBigArrays.binarySearch(largeKmers, kmer);
@@ -189,7 +199,7 @@ public class K31MerSortedArray<V extends Serializable> implements KMerStore<V> {
 			}
 			return indexMap.get(index);
 		} else {
-			throw new IllegalStateException("get only works when optimized");
+			throw new IllegalStateException("Get only works when optimized / sorted.");
 		}
 	}
 
@@ -213,11 +223,11 @@ public class K31MerSortedArray<V extends Serializable> implements KMerStore<V> {
 				BigArrays.set(largeValueIndexes, a, indexB);
 			}
 		});
-		optimized = true;
+		sorted = true;
 	}
 
 	@Override
 	public boolean isOptimized() {
-		return optimized;
+		return sorted;
 	}
 }

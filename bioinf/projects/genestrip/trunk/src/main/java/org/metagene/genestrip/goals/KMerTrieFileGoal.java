@@ -47,20 +47,25 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final FileGoal<GSProject> krakenOutGoal;
 	private final KMerFastqGoal kmerFastqGoal;
+	private final ObjectGoal<Long, GSProject> sizeGoal;
 
 	@SafeVarargs
 	public KMerTrieFileGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			FileGoal<GSProject> krakenOutGoal, KMerFastqGoal kmerFastqGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, FileType.SER), ArraysUtil.append(deps, taxNodesGoal, kmerFastqGoal, krakenOutGoal));
+			FileGoal<GSProject> krakenOutGoal, KMerFastqGoal kmerFastqGoal, ObjectGoal<Long, GSProject> sizeGoal,
+			Goal<GSProject>... deps) {
+		super(project, name, project.getOutputFile(name, FileType.SER),
+				ArraysUtil.append(deps, taxNodesGoal, kmerFastqGoal, krakenOutGoal, sizeGoal));
 		this.taxNodesGoal = taxNodesGoal;
 		this.krakenOutGoal = krakenOutGoal;
 		this.kmerFastqGoal = kmerFastqGoal;
+		this.sizeGoal = sizeGoal;
 	}
-	
+
 	@Override
 	protected void makeFile(File trieFile) {
 		try {
 			KMerStore<String> trie = getProject().getKMerStoreFactory().createKMerStore(String.class, 1);
+			trie.initSize(sizeGoal.get());
 
 			Set<String> taxIds = new HashSet<String>();
 			for (TaxIdNode node : taxNodesGoal.get()) {
@@ -77,7 +82,7 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 					getLogger().info("Reading file " + krakenOutGoal.getFiles().get(i));
 					getLogger().info("Reading file " + kmerFastqGoal.getFiles().get(i));
 				}
-				
+
 				InputStream stream1 = StreamProvider.getInputStreamForFile(krakenOutGoal.getFiles().get(i));
 				InputStream stream2 = StreamProvider.getInputStreamForFile(kmerFastqGoal.getFiles().get(i));
 				krakenKMerFastqMerger.process(stream1, stream2, filter);
@@ -98,7 +103,7 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	private KrakenResultFastqMergeListener fillKMerTrie(KMerStore<String> trie,
 			KrakenResultFastqMergeListener delegate) {
 		return new KrakenResultFastqMergeListener() {
@@ -108,7 +113,7 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 				if (!trie.put(read, 0, kmerTaxid, false)) {
 					if (getLogger().isWarnEnabled()) {
 						getLogger().warn("Duplicate entry for read regarding taxid " + kmerTaxid);
-					}							
+					}
 				}
 				if (lineCount % 10000 == 0) {
 					if (getLogger().isInfoEnabled()) {

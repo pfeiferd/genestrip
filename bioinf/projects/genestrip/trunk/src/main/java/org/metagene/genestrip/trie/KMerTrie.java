@@ -127,6 +127,17 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 	public long getEntries() {
 		return entries;
 	}
+	
+	@Override
+	public long getSize() {
+		// Unlimited size...
+		return Long.MAX_VALUE;
+	}
+	
+	@Override
+	public void initSize(long size) {
+		// Intentionally empty.
+	}
 
 	public boolean put(CGATRingBuffer buffer, V value, boolean reverse) {
 		if (compressed) {
