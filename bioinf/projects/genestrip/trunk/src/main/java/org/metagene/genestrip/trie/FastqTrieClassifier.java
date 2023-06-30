@@ -32,15 +32,14 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.codec.digest.MurmurHash3;
 import org.metagene.genestrip.fastq.AbstractFastqReader;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
-import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectCollection;
 
 public class FastqTrieClassifier extends AbstractFastqReader {
@@ -64,7 +63,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 			boolean withDupCount) {
 		super(trie.getLen(), maxReadSize, maxQueueSize, consumerNumber);
 		this.trie = trie;
-		duplicationCount = withDupCount ? new KmerDuplicationCount(k, 42) : null;
+		duplicationCount = withDupCount ? new KmerDuplicationCount(k) : null;
 	}
 
 	@Override
@@ -113,8 +112,8 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 			for (StatsPerTaxid stats : counts) {
 				stats.uniqueKmers = duplicationCount.getUniqeKmers(stats.taxid);
 				if (stats.kmers != duplicationCount.getKmerCount(stats.taxid)) {
-					if (logger.isInfoEnabled()) {
-						logger.info("Warning: inconsistent kmer counts for taxid: " + stats.taxid);
+					if (logger.isWarnEnabled()) {
+						logger.warn("Inconsistent kmer counts for taxid: " + stats.taxid);
 					}
 				}
 			}
@@ -247,7 +246,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 					if (!duplicationCount.put(taxid, entry, i, reverse)) {
 						if (logger.isInfoEnabled()) {
 							synchronized (logger) {
-								logger.info("Warning: Updating duplication count failed for kmer under taxid " + taxid);
+								logger.warn("Updating duplication count failed for kmer under taxid " + taxid);
 							}
 						}
 					}
@@ -295,7 +294,6 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 	}
 
 	protected static class MyReadEntry extends ReadEntry {
-		public final byte[] reverseKmerBuffer;
 		public final byte[] buffer;
 		public int bufferPos;
 
@@ -303,7 +301,6 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 			super(maxReadSizeBytes);
 
 			buffer = new byte[maxReadSizeBytes];
-			reverseKmerBuffer = new byte[k];
 		}
 
 		public void printChar(char c) {
@@ -333,14 +330,12 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 	}
 
 	public static class KmerDuplicationCount {
-		private final Int2ObjectMap<Entry> map;
+		private final Long2ObjectMap<Entry> map;
 		private final int k;
-		private final int seed;
 
-		public KmerDuplicationCount(int k, int seed) {
+		public KmerDuplicationCount(int k) {
 			this.k = k;
-			this.seed = seed;
-			map = new Int2ObjectLinkedOpenHashMap<Entry>();
+			map = new Long2ObjectLinkedOpenHashMap<Entry>();
 		}
 
 		public void clear() {
@@ -348,22 +343,19 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		}
 
 		protected boolean put(String taxid, MyReadEntry entry, int start, boolean reverse) {
-			int hash;
+			long kmer;
 			if (reverse) {
-				for (int i = 0; i < k; i++) {
-					entry.reverseKmerBuffer[k - i - 1] = CGAT.CGAT_COMPLEMENT[entry.read[start + i]];
-				}
-				hash = MurmurHash3.hash32x86(entry.reverseKmerBuffer, 0, k, seed);
+				kmer = CGAT.kmerToLongReverse(entry.read, 0, k, null);
 			} else {
-				hash = MurmurHash3.hash32x86(entry.read, start, k, seed);
+				kmer = CGAT.kmerToLongStraight(entry.read, 0, k, null);
 			}
 
 			synchronized (map) {
-				Entry e = map.get(hash);
+				Entry e = map.get(kmer);
 				if (e == null) {
 					e = new Entry();
 					e.taxid = taxid;
-					map.put(hash, e);
+					map.put(kmer, e);
 				} else if (e.taxid != taxid) {
 					return false;
 				}

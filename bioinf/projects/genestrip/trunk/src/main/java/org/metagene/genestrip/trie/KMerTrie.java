@@ -48,7 +48,7 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 	private boolean compressed;
 	private long entries;
 
-	public KMerTrie(int len) {
+	public KMerTrie(int len, boolean allowDoubleEntry) {
 		this(2, len, false);
 	}
 
@@ -128,7 +128,7 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 		return entries;
 	}
 
-	public void put(CGATRingBuffer buffer, V value, boolean reverse) {
+	public boolean put(CGATRingBuffer buffer, V value, boolean reverse) {
 		if (compressed) {
 			throw new IllegalStateException("Cant insert in compressed trie");
 		}
@@ -160,16 +160,19 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 				node = next;
 			}
 		}
-		if (!allowDoubleEntry && node[pos] != null && !node[pos].equals(value)) {
-			throw new IllegalStateException("double entry " + node[pos] + " " + value);
-		}
 		if (node[pos] == null) {
+			node[pos] = value == null ? NULL : value;
 			entries++;
+			return true;
+		} else if (allowDoubleEntry) {
+			node[pos] = value == null ? NULL : value;
+			return true;
+		} else {
+			return false;
 		}
-		node[pos] = value == null ? NULL : value;
 	}
 
-	public void put(byte[] nseq, int start, V value, boolean reverse) {
+	public boolean put(byte[] nseq, int start, V value, boolean reverse) {
 		if (compressed) {
 			throw new IllegalStateException("Cant insert in compressed trie");
 		}
@@ -201,16 +204,19 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 				node = next;
 			}
 		}
-		if (!allowDoubleEntry && node[pos] != null && !node[pos].equals(value)) {
-			throw new IllegalStateException("double entry " + node[pos] + " " + value);
-		}
 		if (node[pos] == null) {
+			node[pos] = value == null ? NULL : value;
 			entries++;
+			return true;
+		} else if (allowDoubleEntry) {
+			node[pos] = value == null ? NULL : value;
+			return true;
+		} else {
+			return false;
 		}
-		node[pos] = value == null ? NULL : value;
 	}
 
-	public void visit(KMerStoreVisitor<V> visitor, boolean reverse) {
+	public void visit(KMerTrieVisitor<V> visitor, boolean reverse) {
 		if (compressed) {
 			throw new IllegalStateException("Cant collect values on compressed trie (yet)");
 		}
@@ -218,7 +224,7 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 	}
 
 	@SuppressWarnings("unchecked")
-	private void collectValuesHelp(Object node, int pos, byte[] kmer, KMerStoreVisitor<V> visitor, boolean reverse) {
+	private void collectValuesHelp(Object node, int pos, byte[] kmer, KMerTrieVisitor<V> visitor, boolean reverse) {
 		if (node == null) {
 			return;
 		} else if (pos >= len) {
@@ -583,5 +589,9 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 
 		private InternalNullMarker() {
 		}
+	}
+
+	public interface KMerTrieVisitor<V extends Serializable> {
+		public void nextValue(KMerTrie<V> trie, byte[] kmer, V value);
 	}
 }

@@ -14,24 +14,19 @@ public interface KMerStore<V extends Serializable> {
 
 	public long getEntries();
 
-	public void put(CGATRingBuffer buffer, V value, boolean reverse);
+	public boolean put(CGATRingBuffer buffer, V value, boolean reverse);
 
-	public void put(byte[] nseq, int start, V value, boolean reverse);
+	public boolean put(byte[] nseq, int start, V value, boolean reverse);
 
 	public V get(CGATRingBuffer buffer, boolean reverse);
 
 	public V get(byte[] nseq, int start, boolean reverse);
 
-	public void visit(KMerStoreVisitor<V> visitor, boolean reverse);
 	
 	public void optimize();
 	
 	public boolean isOptimized();
-
-	public interface KMerStoreVisitor<V extends Serializable> {
-		public void nextValue(KMerStore<V> trie, byte[] kmer, V value);
-	}
-
+	
 	public static <T extends Serializable> void save(KMerStore<T> store, File trieFile) throws IOException {
 		ObjectOutputStream oOut = new ObjectOutputStream(StreamProvider.getOutputStreamForFile(trieFile));
 		oOut.writeObject(store);
