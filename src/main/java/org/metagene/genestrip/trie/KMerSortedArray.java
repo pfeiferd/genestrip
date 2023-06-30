@@ -17,7 +17,7 @@ import it.unimi.dsi.fastutil.longs.LongComparator;
 import it.unimi.dsi.fastutil.shorts.Short2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.shorts.Short2ObjectMap;
 
-public class K31MerSortedArray<V extends Serializable> implements KMerStore<V> {
+public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
 
 	private long[] kmers;
@@ -39,7 +39,7 @@ public class K31MerSortedArray<V extends Serializable> implements KMerStore<V> {
 	private short nextValueIndex;
 	private MurmurCGATBloomFilter filter;
 
-	public K31MerSortedArray(int k, double fpp, List<V> initialValues) {
+	public KMerSortedArray(int k, double fpp, List<V> initialValues) {
 		this.k = k;
 		indexMap = new Short2ObjectLinkedOpenHashMap<V>(initialValues.size());
 		valueMap = new HashMap<V, Short>(initialValues.size());
