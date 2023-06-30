@@ -26,6 +26,7 @@ public interface KMerStore<V extends Serializable> {
 
 	public V get(byte[] nseq, int start, boolean reverse);
 
+	public void visit(KMerStoreVisitor<V> visitor);
 	
 	public void optimize();
 	
@@ -44,5 +45,9 @@ public interface KMerStore<V extends Serializable> {
 		KMerStore<T> res = (KMerStore<T>) oOut.readObject();
 		oOut.close();
 		return res;
+	}
+	
+	public interface KMerStoreVisitor<V extends Serializable> {
+		public void nextValue(KMerStore<V> trie, long kmer, V value);
 	}
 }

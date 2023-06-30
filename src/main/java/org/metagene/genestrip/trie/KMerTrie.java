@@ -233,6 +233,16 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 		}
 		collectValuesHelp(root, 0, new byte[len], visitor, reverse);
 	}
+	
+	@Override
+	public void visit(KMerStoreVisitor<V> visitor) {
+		visit(new KMerTrieVisitor<V>() {			
+			@Override
+			public void nextValue(KMerTrie<V> trie, byte[] kmer, V value) {
+				visitor.nextValue(KMerTrie.this, CGAT.kmerToLongReverse(kmer, 0, len, null), value);
+			}
+		}, false);
+	}
 
 	@SuppressWarnings("unchecked")
 	private void collectValuesHelp(Object node, int pos, byte[] kmer, KMerTrieVisitor<V> visitor, boolean reverse) {
