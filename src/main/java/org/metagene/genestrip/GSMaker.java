@@ -60,7 +60,7 @@ import org.metagene.genestrip.tax.AssemblySummaryReader;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryWithQuality;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.trie.KMerStore;
+import org.metagene.genestrip.trie.KMerTrie;
 
 public class GSMaker extends Maker<GSProject> {
 	public GSMaker(GSProject project) {
@@ -257,7 +257,7 @@ public class GSMaker extends Maker<GSProject> {
 				registerGoal(fastqKrakenOutGoal);
 			}
 
-			ObjectGoal<KMerStore<TaxidWithCount>, GSProject> trieFromKrakenResGoal = new TrieFromKrakenResGoal(project,
+			ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> trieFromKrakenResGoal = new TrieFromKrakenResGoal(project,
 					"triefromkrakenres", fastq, project.getConfig().isWriteFilteredFastq(), taxNodesGoal,
 					fastaFilesGoal, fastqKrakenOutGoal, fastaDownloadGoal, projectSetupGoal);
 			registerGoal(trieFromKrakenResGoal);

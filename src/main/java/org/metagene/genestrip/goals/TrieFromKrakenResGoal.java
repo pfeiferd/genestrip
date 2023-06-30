@@ -45,13 +45,13 @@ import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryWithQuality;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.FastaTrieCleaner;
-import org.metagene.genestrip.trie.KMerStore;
-import org.metagene.genestrip.trie.KMerStore.KMerStoreVisitor;
+import org.metagene.genestrip.trie.KMerTrie;
+import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
-public class TrieFromKrakenResGoal extends ObjectGoal<KMerStore<TaxidWithCount>, GSProject> {
+public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> {
 	private final File fastq;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fastaFilesGoal;
@@ -76,7 +76,8 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerStore<TaxidWithCount>,
 	@Override
 	public void makeThis() {
 		try {
-			KMerStore<TaxidWithCount> trie = getProject().getKMerStoreFactory().createKMerStore(TaxidWithCount.class);
+			KMerTrie<TaxidWithCount> trie = new KMerTrie<TrieFromKrakenResGoal.TaxidWithCount>(
+					getProject().getkMserSize(), true);
 			Set<TaxIdNode> nodes = taxNodesGoal.get();
 			byte[] kmer = new byte[trie.getLen()];
 
@@ -115,7 +116,11 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerStore<TaxidWithCount>,
 								TaxidWithCount tc = trie.get(kmer, 0, false);
 								if (tc == null) {
 									tc = new TaxidWithCount(kmerTaxid);
-									trie.put(kmer, 0, tc, false);
+									if (!trie.put(kmer, 0, tc, false)) {
+										if (getLogger().isWarnEnabled()) {
+											getLogger().warn("Duplicate entry for read regarding taxid " + kmerTaxid);
+										}							
+									}
 								}
 								tc.inc();
 							}
@@ -123,7 +128,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerStore<TaxidWithCount>,
 					}));
 			stream1.close();
 			stream2.close();
-			
+
 			if (printStream != null) {
 				printStream.close();
 			}
@@ -160,9 +165,9 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerStore<TaxidWithCount>,
 				}
 			}
 
-			trie.visit(new KMerStoreVisitor<TaxidWithCount>() {
+			trie.visit(new KMerTrieVisitor<TaxidWithCount>() {
 				@Override
-				public void nextValue(KMerStore<TaxidWithCount> trie, byte[] kmer, TaxidWithCount value) {
+				public void nextValue(KMerTrie<TaxidWithCount> trie, byte[] kmer, TaxidWithCount value) {
 					ByteArrayUtil.print(kmer, System.out);
 					System.out.println();
 				}

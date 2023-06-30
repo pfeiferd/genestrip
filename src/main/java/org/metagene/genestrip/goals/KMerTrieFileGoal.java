@@ -105,7 +105,11 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 			@Override
 			public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
 					String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
-				trie.put(read, 0, kmerTaxid, false);
+				if (!trie.put(read, 0, kmerTaxid, false)) {
+					if (getLogger().isWarnEnabled()) {
+						getLogger().warn("Duplicate entry for read regarding taxid " + kmerTaxid);
+					}							
+				}
 				if (lineCount % 10000 == 0) {
 					if (getLogger().isInfoEnabled()) {
 						getLogger().info("Trie entries:" + trie.getEntries());

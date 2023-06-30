@@ -72,11 +72,12 @@ public class MurmurCGATBloomFilter implements Serializable {
 		}
 		this.expectedInsertions = expectedInsertions;
 
-		if (size >= expectedInsertions) {
+		long bits = optimalNumOfBits(expectedInsertions, fpp);
+		long newSize = (bits + 63) / 64;
+		if (size >= newSize) {
 			clearArray();
 		} else {
-			long bits = optimalNumOfBits(expectedInsertions, fpp);
-			size = (bits + 63) / 64;
+			size = newSize;
 			hashes = optimalNumOfHashFunctions(expectedInsertions, bits);
 			hashFactors = new long[hashes];
 			for (int i = 0; i < hashFactors.length; i++) {
@@ -88,7 +89,7 @@ public class MurmurCGATBloomFilter implements Serializable {
 	}
 
 	protected void initBitArray() {
-		if (expectedInsertions > MAX_SMALL_CAPACITY || large == true) {
+		if (size > MAX_SMALL_CAPACITY || large == true) {
 			large = true;
 			bits = null;
 			if (largeBits == null) {
@@ -163,6 +164,14 @@ public class MurmurCGATBloomFilter implements Serializable {
 		return true;
 	}
 
+	public boolean putLong(long data) {
+		if (data == 0) {
+			return false;
+		}
+		putViaHash(data);
+		return true;
+	}
+	
 	protected void putViaHash(long data) {
 		int index;
 		long hash;
@@ -236,6 +245,13 @@ public class MurmurCGATBloomFilter implements Serializable {
 			return false;
 		}
 		return containsViaHash(data);
+	}
+	
+	public boolean containsLong(long data) {
+		if (data == 0) {
+			return false;
+		}
+		return containsViaHash(data);		
 	}
 
 	/*
