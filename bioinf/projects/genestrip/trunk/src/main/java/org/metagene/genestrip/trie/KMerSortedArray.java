@@ -230,4 +230,23 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	public boolean isOptimized() {
 		return sorted;
 	}
+	
+	@Override
+	public void visit(KMerStoreVisitor<V> visitor) {
+		V value;
+		long kmer;
+		short sindex;
+		for (long i = 0; i < entries; i++) {
+			if (large) {
+				kmer = BigArrays.get(largeKmers, i);
+				sindex = BigArrays.get(largeValueIndexes, i);
+			}
+			else {
+				kmer = kmers[(int) i];
+				sindex = valueIndexes[(int) i];
+			}
+			value = indexMap.get(sindex);
+			visitor.nextValue(this, kmer, value);
+		}
+	}
 }
