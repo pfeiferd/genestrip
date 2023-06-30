@@ -13,6 +13,10 @@ public interface KMerStore<V extends Serializable> {
 	public int getLen();
 
 	public long getEntries();
+	
+	public void initSize(long size);
+	
+	public long getSize();
 
 	public boolean put(CGATRingBuffer buffer, V value, boolean reverse);
 
