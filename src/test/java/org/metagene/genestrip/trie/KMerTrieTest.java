@@ -46,7 +46,7 @@ import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.trie.KMerStore.KMerStoreVisitor;
+import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
 import org.metagene.genestrip.util.StreamProvider;
 
 import junit.framework.TestCase;
@@ -153,7 +153,7 @@ public class KMerTrieTest extends TestCase implements KMerStoreFactory {
 		byte[] cgat = { 'C', 'G', 'A', 'T' };
 		Random random = new Random(42);
 
-		KMerStore<Integer> trie = createKMerStore(Integer.class, 35);
+		KMerTrie<Integer> trie = createKMerStore(Integer.class, 35);
 		Map<List<Byte>, Integer> checkMap = new HashMap<List<Byte>, Integer>();
 		byte[] read = new byte[trie.getLen()];
 		for (int i = 1; i < 1000000; i++) {
@@ -175,10 +175,11 @@ public class KMerTrieTest extends TestCase implements KMerStoreFactory {
 			}
 			KMerStore.save(trie, saved);
 
-			KMerStore<Integer> loadedTrie = KMerStore.load(saved);
-			loadedTrie.visit(new KMerStoreVisitor<Integer>() {
+			@SuppressWarnings({ "unchecked", "rawtypes" })
+			KMerTrie<Integer> loadedTrie = (KMerTrie) KMerStore.load(saved);
+			loadedTrie.visit(new KMerTrieVisitor<Integer>() {
 				@Override
-				public void nextValue(KMerStore<Integer> trie, byte[] kmer, Integer value) {
+				public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
 					List<Byte> key = byteArrayToList(kmer);
 					assertNotNull(value);
 					assertEquals(value, checkMap.get(key));
@@ -199,7 +200,7 @@ public class KMerTrieTest extends TestCase implements KMerStoreFactory {
 		Random random = new Random(42);
 
 		for (int k = 0; k < 2; k++) {
-			KMerStore<Integer> trie = createKMerStore(Integer.class, 35);
+			KMerTrie<Integer> trie = createKMerStore(Integer.class, 35);
 			Map<List<Byte>, Integer> checkMap = new HashMap<List<Byte>, Integer>();
 			byte[] read = new byte[trie.getLen()];
 			for (int i = 1; i < 1000; i++) {
@@ -211,9 +212,9 @@ public class KMerTrieTest extends TestCase implements KMerStoreFactory {
 				checkMap.put(byteArrayToList(read), i);
 			}
 
-			trie.visit(new KMerStoreVisitor<Integer>() {
+			trie.visit(new KMerTrieVisitor<Integer>() {
 				@Override
-				public void nextValue(KMerStore<Integer> trie, byte[] kmer, Integer value) {
+				public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
 					List<Byte> key = byteArrayToList(kmer);
 					assertNotNull(value);
 					assertEquals(value, checkMap.get(key));
@@ -233,7 +234,7 @@ public class KMerTrieTest extends TestCase implements KMerStoreFactory {
 	}
 
 	@Override
-	public <V extends Serializable> KMerStore<V> createKMerStore(Class<V> clazz, Object... params) {
+	public <V extends Serializable> KMerTrie<V> createKMerStore(Class<V> clazz, Object... params) {
 		return new KMerTrie<V>(2, (int) params[0], false);
 	}
 }

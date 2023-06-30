@@ -41,10 +41,9 @@ import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.trie.KMerStore;
-import org.metagene.genestrip.trie.KMerStore.KMerStoreVisitor;
 import org.metagene.genestrip.trie.KMerStoreFactory;
 import org.metagene.genestrip.trie.KMerTrie;
+import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.StreamProvider;
 
@@ -107,10 +106,10 @@ public class CGATBloomFilterTest extends TestCase implements KMerStoreFactory {
 	public void testBloomFilter() {
 		int k = 35;
 		int size = 5 * 100000;
-		double fpp = 0.001;
+		double fpp = 0.0001;
 
 		MurmurCGATBloomFilter filter = createFilter(k, size, fpp);
-		KMerStore<Integer> trie = createKMerStore(Integer.class, k);
+		KMerTrie<Integer> trie = createKMerStore(Integer.class, k);
 
 		byte[] read = new byte[trie.getLen()];
 
@@ -122,16 +121,16 @@ public class CGATBloomFilterTest extends TestCase implements KMerStoreFactory {
 			trie.put(read, 0, i, false);
 		}
 
-		trie.visit(new KMerStoreVisitor<Integer>() {
+		trie.visit(new KMerTrieVisitor<Integer>() {
 			@Override
-			public void nextValue(KMerStore<Integer> trie, byte[] kmer, Integer value) {
+			public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
 				assertTrue(filter.containsStraight(kmer, 0, null));
 			}
 		}, false);
 
-		trie.visit(new KMerStoreVisitor<Integer>() {
+		trie.visit(new KMerTrieVisitor<Integer>() {
 			@Override
-			public void nextValue(KMerStore<Integer> trie, byte[] kmer, Integer value) {
+			public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
 				assertTrue(filter.containsReverse(kmer, 0, null));
 			}
 		}, true);
@@ -239,7 +238,7 @@ public class CGATBloomFilterTest extends TestCase implements KMerStoreFactory {
 	}
 	
 	@Override
-	public <V extends Serializable> KMerStore<V> createKMerStore(Class<V> clazz, Object... params) {
+	public <V extends Serializable> KMerTrie<V> createKMerStore(Class<V> clazz, Object... params) {
 		return new KMerTrie<V>(2, (int) params[0], false);
 	}
 }
