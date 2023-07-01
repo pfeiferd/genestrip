@@ -64,7 +64,7 @@ public class KMerTrieFileGoal extends FileListGoal<GSProject> {
 	@Override
 	protected void makeFile(File trieFile) {
 		try {
-			KMerStore<String> trie = getProject().getKMerStoreFactory().createKMerStore(String.class, 1);
+			KMerStore<String> trie = getProject().getKMerStoreFactory().createKMerStore(String.class);
 			trie.initSize(sizeGoal.get());
 
 			Set<String> taxIds = new HashSet<String>();

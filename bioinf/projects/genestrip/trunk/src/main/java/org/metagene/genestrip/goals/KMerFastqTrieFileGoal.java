@@ -57,7 +57,7 @@ public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
 	protected void makeFile(File trieFile) {
 		try {
 			CountingDigitTrie countingDigitTrie = new CountingDigitTrie();
-			KMerStore<String> trie = getProject().getKMerStoreFactory().createKMerStore(String.class, 1);
+			KMerStore<String> trie = getProject().getKMerStoreFactory().createKMerStore(String.class);
 
 			Set<String> taxIds = new HashSet<String>();
 			for (TaxIdNode node : taxNodesGoal.get()) {
