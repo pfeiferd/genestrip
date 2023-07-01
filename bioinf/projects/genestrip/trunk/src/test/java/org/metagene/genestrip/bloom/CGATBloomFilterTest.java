@@ -111,7 +111,7 @@ public class CGATBloomFilterTest extends TestCase implements KMerStoreFactory {
 		MurmurCGATBloomFilter filter = createFilter(k, size, fpp);
 		KMerTrie<Integer> trie = createKMerStore(Integer.class, k);
 
-		byte[] read = new byte[trie.getLen()];
+		byte[] read = new byte[trie.getK()];
 
 		for (int i = 1; i < size; i++) {
 			for (int j = 0; j < k; j++) {
