@@ -24,6 +24,11 @@
  */
 package org.metagene.genestrip.trie;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,6 +42,7 @@ import java.util.Random;
 import java.util.Set;
 
 import org.junit.Ignore;
+import org.junit.Test;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.Main;
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
@@ -51,9 +57,7 @@ import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.StreamProvider;
 
-import junit.framework.TestCase;
-
-public abstract class AbstractKMerStoreTest extends TestCase implements KMerStoreFactory {
+public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
 	protected final Random random = new Random(42);
 
 	protected int k = 31;
@@ -61,6 +65,7 @@ public abstract class AbstractKMerStoreTest extends TestCase implements KMerStor
 	protected int negativeTestSize = testSize;
 
 	@Ignore
+	@Test
 	public void testChain() throws IOException {
 		Main main = new Main();
 		main.parseAndRun(new String[] { "bart_h", "clear", "genall" });
@@ -139,6 +144,7 @@ public abstract class AbstractKMerStoreTest extends TestCase implements KMerStor
 		}
 	}
 
+	@Test
 	public void testSaveLoad() {
 		KMerStore<Integer> store = createKMerStore(Integer.class, k);
 		store.initSize(testSize);
@@ -246,6 +252,7 @@ public abstract class AbstractKMerStoreTest extends TestCase implements KMerStor
 		}
 	}
 
+	@Test
 	public void testPutGet() {
 		KMerStore<Integer> store = createKMerStore(Integer.class, k);
 		store.initSize(testSize);
@@ -257,6 +264,7 @@ public abstract class AbstractKMerStoreTest extends TestCase implements KMerStor
 		checkStoreContent(testSize, store, controlMap);
 	}
 
+	@Test
 	public void testVisit() {
 		KMerStore<Integer> store = createKMerStore(Integer.class, k);
 		store.initSize(testSize);

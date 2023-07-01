@@ -24,6 +24,8 @@
  */
 package org.metagene.genestrip.bloom;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,6 +35,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
+import org.junit.Test;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.Main;
 import org.metagene.genestrip.goals.KrakenResCountGoal;
@@ -47,12 +50,11 @@ import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.StreamProvider;
 
-import junit.framework.TestCase;
-
-public class CGATBloomFilterTest extends TestCase implements KMerStoreFactory {
+public class CGATBloomFilterTest implements KMerStoreFactory {
 	private byte[] cgat = { 'C', 'G', 'A', 'T' };
 	private Random random = new Random(42);
 
+	@Test
 	public void testBloomFilter2() {
 		int k = 36;
 		int size = 5 * 1000 * 1000;
@@ -103,6 +105,7 @@ public class CGATBloomFilterTest extends TestCase implements KMerStoreFactory {
 		assertTrue(testedFp <= fpp * 1.1);
 	}
 
+	@Test
 	public void testBloomFilter() {
 		int k = 35;
 		int size = 5 * 100000;
@@ -153,6 +156,7 @@ public class CGATBloomFilterTest extends TestCase implements KMerStoreFactory {
 		assertTrue(testedFp <= fpp * 1.1);
 	}
 
+	@Test
 	public void testBloomFilterViaProject() throws IOException {
 		Main main = new Main();
 		main.parseAndRun(new String[] { "bart_h", "clear", "genall" });

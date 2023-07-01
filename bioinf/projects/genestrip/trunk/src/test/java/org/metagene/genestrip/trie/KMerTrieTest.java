@@ -24,16 +24,22 @@
  */
 package org.metagene.genestrip.trie;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.Test;
 import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
 import org.metagene.genestrip.util.CGAT;
 
 public class KMerTrieTest extends AbstractKMerStoreTest {
+	@Test
 	public void testVisitTrie() {
 		KMerTrie<Integer> trie = createKMerStore(Integer.class, k);
 		trie.initSize(testSize);
