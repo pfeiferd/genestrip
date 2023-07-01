@@ -41,12 +41,15 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 	public KMerSortedArray(int k, double fpp, List<V> initialValues) {
 		this.k = k;
-		indexMap = new Short2ObjectLinkedOpenHashMap<V>(initialValues.size());
-		valueMap = new HashMap<V, Short>(initialValues.size());
-		for (V v : initialValues) {
-			valueMap.put(v, nextValueIndex);
-			indexMap.put(nextValueIndex, v);
-			nextValueIndex++;
+		int s = initialValues == null ? 0 : initialValues.size();
+		indexMap = new Short2ObjectLinkedOpenHashMap<V>(s);
+		valueMap = new HashMap<V, Short>(s);
+		if (initialValues != null) {
+			for (V v : initialValues) {
+				valueMap.put(v, nextValueIndex);
+				indexMap.put(nextValueIndex, v);
+				nextValueIndex++;
+			}
 		}
 		filter = new MurmurCGATBloomFilter(k, fpp);
 	}
@@ -59,19 +62,19 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		initSize = true;
 		clearAndEnsureCapacity(expectedInsertions);
 	}
-	
+
 	public void clearAndEnsureCapacity(long expectedInsertions) {
 		if (expectedInsertions <= 0) {
 			throw new IllegalArgumentException("Expected insertions must be > 0.");
 		}
 		filter.clearAndEnsureCapacity(expectedInsertions);
-		
+
 		if (size >= expectedInsertions) {
 			clearArray();
 		} else {
 			size = expectedInsertions;
 			initBitArray();
-		}		
+		}
 	}
 
 	protected void initBitArray() {
@@ -195,7 +198,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				if (pos < 0) {
 					return null;
 				}
-				index =valueIndexes[pos];
+				index = valueIndexes[pos];
 			}
 			return indexMap.get(index);
 		} else {
@@ -205,24 +208,49 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 	@Override
 	public void optimize() {
-		BigArrays.quickSort(0, entries, new LongComparator() {
-			@Override
-			public int compare(long k1, long k2) {
-				return k1 < k2 ? -1 : k1 > k2 ? 1 : 0;
-			}
-		}, new BigSwapper() {
-			@Override
-			public void swap(long a, long b) {
-				long kmerA = BigArrays.get(largeKmers, a);
-				long kmerB = BigArrays.get(largeKmers, b);
-				BigArrays.set(largeKmers, b, kmerA);
-				BigArrays.set(largeKmers, a, kmerB);
-				short indexA = BigArrays.get(largeValueIndexes, a);
-				short indexB = BigArrays.get(largeValueIndexes, b);
-				BigArrays.set(largeValueIndexes, b, indexA);
-				BigArrays.set(largeValueIndexes, a, indexB);
-			}
-		});
+		if (large) {
+			BigArrays.quickSort(0, entries, new LongComparator() {
+				@Override
+				public int compare(long k1, long k2) {
+					long kmer1 = BigArrays.get(largeKmers, k1);
+					long kmer2 = BigArrays.get(largeKmers, k2);
+					return kmer1 < kmer2 ? -1 : kmer1 > kmer2 ? 1 : 0;
+				}
+			}, new BigSwapper() {
+				@Override
+				public void swap(long a, long b) {
+					long kmerA = BigArrays.get(largeKmers, a);
+					long kmerB = BigArrays.get(largeKmers, b);
+					BigArrays.set(largeKmers, b, kmerA);
+					BigArrays.set(largeKmers, a, kmerB);
+					short indexA = BigArrays.get(largeValueIndexes, a);
+					short indexB = BigArrays.get(largeValueIndexes, b);
+					BigArrays.set(largeValueIndexes, b, indexA);
+					BigArrays.set(largeValueIndexes, a, indexB);
+				}
+			});
+		} else {
+			BigArrays.quickSort(0, entries, new LongComparator() {
+				@Override
+				public int compare(long k1, long k2) {
+					long kmer1 = kmers[(int) k1];
+					long kmer2 = kmers[(int) k2];
+					return kmer1 < kmer2 ? -1 : kmer1 > kmer2 ? 1 : 0;
+				}
+			}, new BigSwapper() {
+				@Override
+				public void swap(long a, long b) {
+					long kmerA = kmers[(int) a];
+					long kmerB = kmers[(int) b];
+					kmers[(int) a] = kmerA;
+					kmers[(int) b] = kmerB;
+					short indexA = valueIndexes[(int) a];
+					short indexB = valueIndexes[(int) b];
+					valueIndexes[(int) a] = indexA;
+					valueIndexes[(int) b] = indexB;
+				}
+			});
+		}
 		sorted = true;
 	}
 
@@ -230,7 +258,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	public boolean isOptimized() {
 		return sorted;
 	}
-	
+
 	@Override
 	public void visit(KMerStoreVisitor<V> visitor) {
 		V value;
@@ -240,8 +268,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			if (large) {
 				kmer = BigArrays.get(largeKmers, i);
 				sindex = BigArrays.get(largeValueIndexes, i);
-			}
-			else {
+			} else {
 				kmer = kmers[(int) i];
 				sindex = valueIndexes[(int) i];
 			}
