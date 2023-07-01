@@ -274,13 +274,11 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 
 	protected void printKrakenStyleOut(MyReadEntry entry, String taxid, int contigLen, int state, boolean reverse) {
 		if (state == 0) {
+			entry.printString("U\t");
 			entry.printBytes(entry.readDescriptor);
-			entry.printChar('\t');
-			entry.printChar('0');
-			entry.printChar('\t');
+			entry.printString("\t0\t");
 			entry.printInt(entry.readSize);
 			entry.printChar('\t');
-			// entry.printChar(reverse ? 'R' : 'S');
 		} else {
 			entry.printChar(' ');
 		}
