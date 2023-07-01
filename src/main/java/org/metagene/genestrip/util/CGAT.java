@@ -147,4 +147,17 @@ public class CGAT {
 
 		return res == 0 ? 1 : res;
 	}
+
+	public static void reverse(byte[] seq) {
+		int start = 0;
+		int end = seq.length - 1;
+		byte h;
+		while (start < end) {
+			h = CGAT_COMPLEMENT[seq[start]];
+			seq[start] = CGAT_COMPLEMENT[seq[end]];
+			seq[end] = h;
+			start++;
+			end--;
+		}
+	}	
 }
