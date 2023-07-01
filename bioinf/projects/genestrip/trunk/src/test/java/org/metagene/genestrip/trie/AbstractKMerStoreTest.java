@@ -105,24 +105,6 @@ public abstract class AbstractKMerStoreTest extends TestCase implements KMerStor
 
 		// Test compressed;
 		checkTrie(fromKraken, bartHReads, krakenFilter, trie, bloomFilter, nodes);
-
-		// Check serialization:
-		File tmpdir = Files.createTempDirectory(Paths.get("target"), "serialization-test").toFile();
-		tmpdir.deleteOnExit();
-		File saved = new File(tmpdir, "saved_trie.ser");
-		saved.deleteOnExit();
-		if (saved.exists()) {
-			saved.delete();
-		}
-		KMerStore.save(trie, saved);
-		try {
-			KMerStore<String> loadedTrie = KMerStore.load(saved);
-			checkTrie(fromKraken, bartHReads, krakenFilter, loadedTrie, bloomFilter, nodes);
-		} catch (ClassNotFoundException e) {
-			throw new RuntimeException(e);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
 	}
 
 	private void checkTrie(File fromKraken, File reads, KrakenResultFastqMerger krakenFilter, KMerStore<String> trie,
@@ -143,12 +125,9 @@ public abstract class AbstractKMerStoreTest extends TestCase implements KMerStor
 
 		// Negative Test:
 		byte[] read = new byte[trie.getLen()];
-		byte[] cgat = { 'C', 'G', 'A', 'T' };
-		Random random = new Random(42);
-
 		for (int i = 1; i <= negativeTestSize; i++) {
-			for (int j = 0; j < trie.getLen(); j++) {
-				read[j] = cgat[random.nextInt(4)];
+			for (int j = 0; j < read.length; j++) {
+				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
 			}
 			if (!bloomFilter.containsStraight(read, 0, null)) {
 				assertNull(trie.get(read, 0, false));

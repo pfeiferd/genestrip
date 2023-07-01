@@ -32,8 +32,43 @@ import java.util.Map;
 import java.util.Random;
 
 import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
+import org.metagene.genestrip.util.CGAT;
 
 public class KMerTrieTest extends AbstractKMerStoreTest {
+	public void testVisitTrie() {
+		KMerTrie<Integer> trie = createKMerStore(Integer.class, k);
+		trie.initSize(testSize);
+
+		Map<List<Byte>, Integer> checkMap = new HashMap<List<Byte>, Integer>();
+		fillStore(testSize, trie, checkMap, null);
+		trie.optimize();
+
+		Map<List<Byte>, Integer> checkMap2 = new HashMap<List<Byte>, Integer>(checkMap);
+		
+		trie.visit(new KMerTrieVisitor<Integer>() {
+			@Override
+			public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
+				List<Byte> key = byteArrayToList(kmer);
+				assertNotNull(value);
+				assertEquals(value, checkMap.get(key));
+				checkMap.remove(key);
+			}
+		}, false);
+		assertTrue(checkMap.isEmpty());
+
+		trie.visit(new KMerTrieVisitor<Integer>() {
+			@Override
+			public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
+				CGAT.reverse(kmer);
+				List<Byte> key = byteArrayToList(kmer);
+				assertNotNull(value);
+				assertEquals(value, checkMap2.get(key));
+				checkMap2.remove(key);
+			}
+		}, true);
+		assertTrue(checkMap2.isEmpty());
+	}
+
 	public void testVisit2() {
 		byte[] cgat = { 'C', 'G', 'A', 'T' };
 		Random random = new Random(42);
