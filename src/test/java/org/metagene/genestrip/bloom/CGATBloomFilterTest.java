@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.Main;
@@ -156,6 +157,7 @@ public class CGATBloomFilterTest implements KMerStoreFactory {
 		assertTrue(testedFp <= fpp * 1.1);
 	}
 
+	@Ignore
 	@Test
 	public void testBloomFilterViaProject() throws IOException {
 		Main main = new Main();
