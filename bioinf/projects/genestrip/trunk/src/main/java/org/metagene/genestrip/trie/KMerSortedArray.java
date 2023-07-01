@@ -18,6 +18,8 @@ import it.unimi.dsi.fastutil.shorts.Short2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.shorts.Short2ObjectMap;
 
 public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
+	private static final long serialVersionUID = 1L;
+
 	public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
 
 	private long[] kmers;
@@ -214,7 +216,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				public int compare(long k1, long k2) {
 					long kmer1 = BigArrays.get(largeKmers, k1);
 					long kmer2 = BigArrays.get(largeKmers, k2);
-					return kmer1 < kmer2 ? -1 : kmer1 > kmer2 ? 1 : 0;
+					return Long.compare(kmer1, kmer2);
 				}
 			}, new BigSwapper() {
 				@Override
@@ -235,19 +237,19 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				public int compare(long k1, long k2) {
 					long kmer1 = kmers[(int) k1];
 					long kmer2 = kmers[(int) k2];
-					return kmer1 < kmer2 ? -1 : kmer1 > kmer2 ? 1 : 0;
+					return Long.compare(kmer1, kmer2);
 				}
 			}, new BigSwapper() {
 				@Override
 				public void swap(long a, long b) {
 					long kmerA = kmers[(int) a];
 					long kmerB = kmers[(int) b];
-					kmers[(int) a] = kmerA;
-					kmers[(int) b] = kmerB;
+					kmers[(int) b] = kmerA;
+					kmers[(int) a] = kmerB;
 					short indexA = valueIndexes[(int) a];
 					short indexB = valueIndexes[(int) b];
-					valueIndexes[(int) a] = indexA;
-					valueIndexes[(int) b] = indexB;
+					valueIndexes[(int) b] = indexA;
+					valueIndexes[(int) a] = indexB;
 				}
 			});
 		}
