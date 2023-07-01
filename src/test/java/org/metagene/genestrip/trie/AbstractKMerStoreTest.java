@@ -29,7 +29,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -45,15 +47,19 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.trie.KMerStore.KMerStoreVisitor;
 import org.metagene.genestrip.util.CGAT;
+import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.StreamProvider;
 
 import junit.framework.TestCase;
 
 public abstract class AbstractKMerStoreTest extends TestCase implements KMerStoreFactory {
+	protected final int k = 35;
 	protected final int testSize = 1000000;
 	protected final int negativeTestSize = 5 * 1000 * 1000;
-	
-	public void testPutGet() throws IOException {
+	protected final Random random = new Random(42);
+
+
+	public void testChain() throws IOException {
 		Main main = new Main();
 		main.parseAndRun(new String[] { "bart_h", "clear", "genall" });
 
@@ -151,22 +157,13 @@ public abstract class AbstractKMerStoreTest extends TestCase implements KMerStor
 	}
 
 	public void testSaveLoad() {
-		byte[] cgat = { 'C', 'G', 'A', 'T' };
-		Random random = new Random(42);
-
-		KMerStore<Integer> trie = createKMerStore(Integer.class, 35);
-		trie.initSize(testSize);
+		KMerStore<Integer> store = createKMerStore(Integer.class, k);
+		store.initSize(testSize);
 		
-		Map<Long, Integer> checkMap = new HashMap<Long, Integer>();
-		byte[] read = new byte[trie.getLen()];
-		for (int i = 1; i <= testSize; i++) {
-			for (int j = 0; j < trie.getLen(); j++) {
-				read[j] = cgat[random.nextInt(4)];
-			}
-			trie.put(read, 0, i, false);
-			checkMap.put(CGAT.kmerToLongStraight(read, 0, trie.getLen(), null), i);
-		}
-		trie.optimize();
+		Map<List<Byte>, Integer> controlMap = new HashMap<List<Byte>, Integer>();
+		Map<Long, Integer> kmerMap = new HashMap<Long, Integer>();
+		fillStore(testSize, store, controlMap, kmerMap);
+		store.optimize();
 		
 		try {
 			// Check serialization:
@@ -177,18 +174,11 @@ public abstract class AbstractKMerStoreTest extends TestCase implements KMerStor
 			if (saved.exists()) {
 				saved.delete();
 			}
-			KMerStore.save(trie, saved);
+			KMerStore.save(store, saved);
 
-			KMerStore<Integer> loadedTrie = KMerStore.load(saved);
-			loadedTrie.visit(new KMerStoreVisitor<Integer>() {
-				@Override
-				public void nextValue(KMerStore<Integer> trie, long kmer, Integer value) {
-					assertNotNull(value);
-					assertEquals(value, checkMap.get(kmer));
-					checkMap.remove(kmer);
-				}
-			});
-			assertTrue(checkMap.isEmpty());
+			KMerStore<Integer> loadedStore = KMerStore.load(saved);
+			checkStoreContent(testSize, loadedStore, controlMap);
+			checkVisitation(loadedStore, kmerMap);			
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);
 		} catch (IOException e) {
@@ -197,33 +187,109 @@ public abstract class AbstractKMerStoreTest extends TestCase implements KMerStor
 
 	}
 
-	public void testVisit() {
-		byte[] cgat = { 'C', 'G', 'A', 'T' };
-		Random random = new Random(42);
-
-		KMerStore<Integer> trie = createKMerStore(Integer.class, 35);
-		trie.initSize(testSize);
-		
-		Map<Long, Integer> checkMap = new HashMap<Long, Integer>();
-		byte[] read = new byte[trie.getLen()];
-		for (int i = 1; i <= testSize; i++) {
-			for (int j = 0; j < trie.getLen(); j++) {
-				read[j] = cgat[random.nextInt(4)];
+	protected void fillStore(int nValues, KMerStore<Integer> store, Map<List<Byte>, Integer> controlMap,
+			Map<Long, Integer> controlMap2) {
+		byte[] read = new byte[store.getLen()];
+		List<Byte> readAsList = null;
+		for (int i = 1; i <= nValues; i++) {
+			if (controlMap != null) {
+				readAsList = new ArrayList<Byte>();
 			}
-			trie.put(read, 0, i, false);
-
-			checkMap.put(CGAT.kmerToLongStraight(read, 0, trie.getLen(), null), i);
+			for (int j = 0; j < store.getLen(); j++) {
+				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
+				if (controlMap != null) {
+					readAsList.add(read[j]);
+				}
+			}
+			store.put(read, 0, i, false);
+			if (controlMap != null) {
+				controlMap.put(readAsList, i);
+			}
+			if (controlMap2 != null) {
+				controlMap2.put(CGAT.kmerToLongStraight(read, 0, k, null), i);
+			}
 		}
-		trie.optimize();
+	}
 
-		trie.visit(new KMerStoreVisitor<Integer>() {
+	protected void checkStoreContent(int negTestValues, KMerStore<Integer> store, Map<List<Byte>, Integer> controlMap) {
+		byte[] read = new byte[store.getLen()];
+		CGATRingBuffer ringBuffer = new CGATRingBuffer(read.length);
+
+		for (List<Byte> key : controlMap.keySet()) {
+			Integer v = controlMap.get(key);
+			for (int j = 0; j < read.length; j++) {
+				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
+				ringBuffer.put(read[j]);
+			}
+
+			assertEquals(v, store.get(read, 0, false));
+			assertEquals(v, store.get(ringBuffer, false));
+
+			CGAT.reverse(read);
+			for (int j = 0; j < read.length; j++) {
+				ringBuffer.put(read[j]);
+			}
+			assertEquals(v, store.get(read, 0, true));
+			assertEquals(v, store.get(ringBuffer, true));
+		}
+
+		List<Byte> readAsList = new ArrayList<Byte>();
+		for (int i = 1; i <= negativeTestSize; i++) {
+			readAsList.clear();
+			for (int j = 0; j < read.length; j++) {
+				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
+				readAsList.add(read[j]);
+				ringBuffer.put(read[j]);
+			}
+			if (!controlMap.containsKey(readAsList)) {
+				assertNull(store.get(read, 0, false));
+				assertNull(store.get(ringBuffer, false));
+			}
+
+			CGAT.reverse(read);
+			readAsList.clear();
+			for (int j = 0; j < read.length; j++) {
+				readAsList.add(read[j]);
+				ringBuffer.put(read[j]);
+			}
+			if (!controlMap.containsKey(readAsList)) {
+				assertNull(store.get(read, 0, true));
+				assertNull(store.get(ringBuffer, true));
+			}
+		}
+	}
+	
+	public void testPutGet() {
+		KMerStore<Integer> store = createKMerStore(Integer.class, k);
+		store.initSize(testSize);
+		
+		Map<List<Byte>, Integer> controlMap = new HashMap<List<Byte>, Integer>();
+		fillStore(testSize, store, controlMap, null);
+		store.optimize();
+		
+		checkStoreContent(testSize, store, controlMap);
+	}
+
+	public void testVisit() {
+		KMerStore<Integer> store = createKMerStore(Integer.class, k);
+		store.initSize(testSize);
+		
+		Map<Long, Integer> kmerMap = new HashMap<Long, Integer>();
+		fillStore(testSize, store, null, kmerMap);
+		store.optimize();
+		
+		checkVisitation(store, kmerMap);
+	}
+	
+	protected void checkVisitation(KMerStore<Integer> store, Map<Long, Integer> kmerMap) {
+		store.visit(new KMerStoreVisitor<Integer>() {
 			@Override
 			public void nextValue(KMerStore<Integer> trie, long kmer, Integer value) {
 				assertNotNull(value);
-				assertEquals(value, checkMap.get(kmer));
-				checkMap.remove(kmer);
+				assertEquals(value, kmerMap.get(kmer));
+				kmerMap.remove(kmer);
 			}
 		});
-		assertTrue(checkMap.isEmpty());
+		assertTrue(kmerMap.isEmpty());		
 	}
 }
