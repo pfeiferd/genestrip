@@ -61,7 +61,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 
 	public FastqTrieClassifier(KMerStore<String> trie, int maxReadSize, int maxQueueSize, int consumerNumber,
 			boolean withDupCount) {
-		super(trie.getLen(), maxReadSize, maxQueueSize, consumerNumber);
+		super(trie.getK(), maxReadSize, maxQueueSize, consumerNumber);
 		this.trie = trie;
 		duplicationCount = withDupCount ? new KmerDuplicationCount(k) : null;
 	}

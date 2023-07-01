@@ -79,7 +79,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 			KMerTrie<TaxidWithCount> trie = new KMerTrie<TrieFromKrakenResGoal.TaxidWithCount>(
 					getProject().getkMserSize(), true);
 			Set<TaxIdNode> nodes = taxNodesGoal.get();
-			byte[] kmer = new byte[trie.getLen()];
+			byte[] kmer = new byte[trie.getK()];
 
 			KrakenResultFastqMerger merger = new KrakenResultFastqMerger(
 					getProject().getConfig().getMaxReadSizeBytes());

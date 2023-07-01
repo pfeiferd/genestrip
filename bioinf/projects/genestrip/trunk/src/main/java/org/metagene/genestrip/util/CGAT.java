@@ -159,5 +159,8 @@ public class CGAT {
 			start++;
 			end--;
 		}
+		if (start == end) {
+			seq[start] = CGAT_COMPLEMENT[seq[start]];
+		}
 	}	
 }

@@ -113,7 +113,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	}
 
 	@Override
-	public int getLen() {
+	public int getK() {
 		return k;
 	}
 
