@@ -149,9 +149,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	}
 
 	protected boolean putLong(long kmer, V value) {
-		if (sorted) {
-			throw new IllegalStateException("Cannot insert after optimize.");
-		}
+		sorted = false;
 		if (entries == size) {
 			throw new IllegalStateException("Capacity exceeded.");
 		}
