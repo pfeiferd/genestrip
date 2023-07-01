@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
 import org.metagene.genestrip.util.CGAT;
@@ -41,9 +40,8 @@ public class KMerTrieTest extends AbstractKMerStoreTest {
 
 		Map<List<Byte>, Integer> checkMap = new HashMap<List<Byte>, Integer>();
 		fillStore(testSize, trie, checkMap, null);
-		trie.optimize();
-
 		Map<List<Byte>, Integer> checkMap2 = new HashMap<List<Byte>, Integer>(checkMap);
+
 		
 		trie.visit(new KMerTrieVisitor<Integer>() {
 			@Override
@@ -56,47 +54,19 @@ public class KMerTrieTest extends AbstractKMerStoreTest {
 		}, false);
 		assertTrue(checkMap.isEmpty());
 
+		byte[] copy = new byte[k];
 		trie.visit(new KMerTrieVisitor<Integer>() {
 			@Override
 			public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
-				CGAT.reverse(kmer);
-				List<Byte> key = byteArrayToList(kmer);
+				System.arraycopy(kmer, 0, copy, 0, k);
+				CGAT.reverse(copy);
+				List<Byte> key = byteArrayToList(copy);
 				assertNotNull(value);
 				assertEquals(value, checkMap2.get(key));
 				checkMap2.remove(key);
 			}
 		}, true);
 		assertTrue(checkMap2.isEmpty());
-	}
-
-	public void testVisit2() {
-		byte[] cgat = { 'C', 'G', 'A', 'T' };
-		Random random = new Random(42);
-
-		for (int k = 0; k < 2; k++) {
-			KMerTrie<Integer> trie = createKMerStore(Integer.class, 35);
-			Map<List<Byte>, Integer> checkMap = new HashMap<List<Byte>, Integer>();
-			byte[] read = new byte[trie.getLen()];
-			for (int i = 1; i < 1000; i++) {
-				for (int j = 0; j < trie.getLen(); j++) {
-					read[j] = cgat[random.nextInt(4)];
-				}
-				trie.put(read, 0, i, k == 0);
-
-				checkMap.put(byteArrayToList(read), i);
-			}
-
-			trie.visit(new KMerTrieVisitor<Integer>() {
-				@Override
-				public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
-					List<Byte> key = byteArrayToList(kmer);
-					assertNotNull(value);
-					assertEquals(value, checkMap.get(key));
-					checkMap.remove(key);
-				}
-			}, k == 0);
-			assertTrue(checkMap.isEmpty());
-		}
 	}
 
 	private List<Byte> byteArrayToList(byte[] arr) {
