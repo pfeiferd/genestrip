@@ -120,7 +120,7 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 		}
 	}
 
-	public int getLen() {
+	public int getK() {
 		return len;
 	}
 
@@ -239,7 +239,7 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 		visit(new KMerTrieVisitor<V>() {			
 			@Override
 			public void nextValue(KMerTrie<V> trie, byte[] kmer, V value) {
-				visitor.nextValue(KMerTrie.this, CGAT.kmerToLongReverse(kmer, 0, len, null), value);
+				visitor.nextValue(KMerTrie.this, CGAT.kmerToLongStraight(kmer, 0, len, null), value);
 			}
 		}, false);
 	}
