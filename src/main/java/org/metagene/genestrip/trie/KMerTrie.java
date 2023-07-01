@@ -119,6 +119,11 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 			throw new IOException("Inconsistent serialization format for kmer trie.");
 		}
 	}
+	
+	@Override
+	public int getMaxValues() {
+		return -1;
+	}
 
 	public int getK() {
 		return len;

@@ -113,6 +113,11 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	}
 
 	@Override
+	public int getMaxValues() {
+		return 65534;
+	}
+	
+	@Override
 	public int getK() {
 		return k;
 	}
@@ -156,6 +161,9 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		Short index = valueMap.get(value);
 		short sindex;
 		if (index == null) {
+			if (nextValueIndex == -1) {
+				throw new IllegalStateException("Too many different values - only 65534 are possible.");
+			}
 			valueMap.put(value, nextValueIndex);
 			indexMap.put(nextValueIndex, value);
 			sindex = nextValueIndex;
