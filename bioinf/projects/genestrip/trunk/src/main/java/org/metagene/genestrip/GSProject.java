@@ -219,7 +219,7 @@ public class GSProject implements DownloadProject,  KMerStoreFactory {
 			return new KMerTrie<V>(2, getkMserSize(), false);
 		}
 		else {
-			return new KMerSortedArray<V>(kMserSize, 0.000000001, null);
+			return new KMerSortedArray<V>(getkMserSize(), 0.000000001, null);
 		}
 	}
 }
