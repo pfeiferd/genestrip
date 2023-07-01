@@ -29,6 +29,7 @@ import java.io.Serializable;
 
 import org.metagene.genestrip.make.FileDownloadGoal.DownloadProject;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
+import org.metagene.genestrip.trie.KMerSortedArray;
 import org.metagene.genestrip.trie.KMerStore;
 import org.metagene.genestrip.trie.KMerStoreFactory;
 import org.metagene.genestrip.trie.KMerTrie;
@@ -214,6 +215,11 @@ public class GSProject implements DownloadProject,  KMerStoreFactory {
 	
 	@Override
 	public <V extends Serializable> KMerStore<V> createKMerStore(Class<V> clazz, Object... params) {
-		return new KMerTrie<V>(2, getkMserSize(), false);
+		if (config.isUseTrie()) {
+			return new KMerTrie<V>(2, getkMserSize(), false);
+		}
+		else {
+			return new KMerSortedArray<V>(kMserSize, 0.000000001, null);
+		}
 	}
 }
