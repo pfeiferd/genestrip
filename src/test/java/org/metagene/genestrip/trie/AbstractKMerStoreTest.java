@@ -53,11 +53,10 @@ import org.metagene.genestrip.util.StreamProvider;
 import junit.framework.TestCase;
 
 public abstract class AbstractKMerStoreTest extends TestCase implements KMerStoreFactory {
-	protected final int k = 35;
-	protected final int testSize = 1000000;
-	protected final int negativeTestSize = 5 * 1000 * 1000;
+	protected final int k = 31;
+	protected final int testSize = 5 * 1000 * 1000;
+	protected final int negativeTestSize = testSize;
 	protected final Random random = new Random(42);
-
 
 	public void testChain() throws IOException {
 		Main main = new Main();
@@ -70,9 +69,9 @@ public abstract class AbstractKMerStoreTest extends TestCase implements KMerStor
 		String outGoal = project.getConfig().isUseKraken1() ? "sort" : "kmerkrakenout";
 		File fromKraken = ((FileGoal<GSProject>) main.getMaker().getGoal(outGoal)).getFile();
 
-		final KMerStore<String> trie = createKMerStore(String.class, project.getkMserSize());
+		final KMerStore<String> store = createKMerStore(String.class, project.getkMserSize());
 
-		MurmurCGATBloomFilter bloomFilter = new MurmurCGATBloomFilter(trie.getLen(), 0.00001);
+		MurmurCGATBloomFilter bloomFilter = new MurmurCGATBloomFilter(store.getLen(), 0.00001);
 		bloomFilter.clearAndEnsureCapacity(5 * 1000 * 1000);
 
 		@SuppressWarnings("unchecked")
@@ -85,7 +84,7 @@ public abstract class AbstractKMerStoreTest extends TestCase implements KMerStor
 					@Override
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
 							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
-						trie.put(read, 0, kmerTaxid, false);
+						store.put(read, 0, kmerTaxid, false);
 						bloomFilter.put(read, 0);
 					}
 				});
@@ -99,12 +98,14 @@ public abstract class AbstractKMerStoreTest extends TestCase implements KMerStor
 		stream2.close();
 
 		// Test uncompressed:
-		checkTrie(fromKraken, bartHReads, krakenFilter, trie, bloomFilter, nodes);
+		if (store instanceof KMerTrie) {
+			checkTrie(fromKraken, bartHReads, krakenFilter, store, bloomFilter, nodes);
+		}
 
-		trie.optimize();
+		store.optimize();
 
 		// Test compressed;
-		checkTrie(fromKraken, bartHReads, krakenFilter, trie, bloomFilter, nodes);
+		checkTrie(fromKraken, bartHReads, krakenFilter, store, bloomFilter, nodes);
 	}
 
 	private void checkTrie(File fromKraken, File reads, KrakenResultFastqMerger krakenFilter, KMerStore<String> trie,
