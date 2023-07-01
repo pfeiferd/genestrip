@@ -53,10 +53,11 @@ import org.metagene.genestrip.util.StreamProvider;
 import junit.framework.TestCase;
 
 public abstract class AbstractKMerStoreTest extends TestCase implements KMerStoreFactory {
-	protected final int k = 31;
-	protected final int testSize = 5 * 1000 * 1000;
-	protected final int negativeTestSize = testSize;
 	protected final Random random = new Random(42);
+	
+	protected int k = 31;
+	protected int testSize = 5 * 1000 * 1000;
+	protected int negativeTestSize = testSize;
 
 	public void testChain() throws IOException {
 		Main main = new Main();
