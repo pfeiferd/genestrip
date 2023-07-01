@@ -172,11 +172,12 @@ public abstract class AbstractKMerStoreTest extends TestCase implements KMerStor
 
 	}
 
-	protected void fillStore(int nValues, KMerStore<Integer> store, Map<List<Byte>, Integer> controlMap,
+	protected void fillStore(int nEntries, KMerStore<Integer> store, Map<List<Byte>, Integer> controlMap,
 			Map<Long, Integer> controlMap2) {
+		int maxValue = store.getMaxValues();
 		byte[] read = new byte[store.getK()];
 		List<Byte> readAsList = null;
-		for (int i = 1; i <= nValues; i++) {
+		for (int i = 1; i <= nEntries; i++) {
 			if (controlMap != null) {
 				readAsList = new ArrayList<Byte>();
 			}
@@ -186,12 +187,13 @@ public abstract class AbstractKMerStoreTest extends TestCase implements KMerStor
 					readAsList.add(read[j]);
 				}
 			}
-			store.put(read, 0, i, false);
+			int v = maxValue == -1 ? i : i % store.getMaxValues();
+			store.put(read, 0, v, false);
 			if (controlMap != null) {
-				controlMap.put(readAsList, i);
+				controlMap.put(readAsList, v);
 			}
 			if (controlMap2 != null) {
-				controlMap2.put(CGAT.kmerToLongStraight(read, 0, k, null), i);
+				controlMap2.put(CGAT.kmerToLongStraight(read, 0, k, null), v);
 			}
 		}
 	}
