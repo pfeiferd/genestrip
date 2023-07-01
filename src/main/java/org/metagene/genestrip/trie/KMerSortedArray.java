@@ -42,6 +42,10 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	private MurmurCGATBloomFilter filter;
 
 	public KMerSortedArray(int k, double fpp, List<V> initialValues) {
+		this(k, fpp, initialValues, false);
+	}
+	
+	public KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge) {
 		this.k = k;
 		int s = initialValues == null ? 0 : initialValues.size();
 		indexMap = new Short2ObjectLinkedOpenHashMap<V>(s);
@@ -54,6 +58,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			}
 		}
 		filter = new MurmurCGATBloomFilter(k, fpp);
+		large = enforceLarge;
 	}
 
 	@Override
