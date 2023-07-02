@@ -42,14 +42,20 @@ import org.metagene.genestrip.util.StreamProvider;
 
 public class SortKrakenOutGoal extends FileListGoal<GSProject> {
 	private final Map<File, File> goalFileToKrakeFile;
+	private final FileGoal<GSProject> krakenOutGoal;
 
 	@SafeVarargs
 	public SortKrakenOutGoal(GSProject project, String name, FileGoal<GSProject> krakenOutGoal,
 			Goal<GSProject>... deps) {
-		super(project, name, (List<File>)null, ArraysUtil.append(deps, krakenOutGoal));
+		super(project, name, (List<File>) null, ArraysUtil.append(deps, krakenOutGoal));
+		this.krakenOutGoal = krakenOutGoal;
 		goalFileToKrakeFile = new HashMap<File, File>();
+	}
+
+	@Override
+	protected void provideFiles() {
 		for (File file : krakenOutGoal.getFiles()) {
-			File goalFile = project.getOutputFile(name, file, FileType.KRAKEN_OUT);
+			File goalFile = getProject().getOutputFile(getName(), file, FileType.KRAKEN_OUT);
 			addFile(goalFile);
 			goalFileToKrakeFile.put(goalFile, file);
 		}

@@ -48,22 +48,28 @@ import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class KMerFastqGoal extends FileListGoal<GSProject> {
-	private final Map<File, TaxIdNode> fileToCollectNode;
-	private final Map<TaxIdNode, Set<File>> taxToFastas;
+	private final ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fastaFilesGoal;
 	private final KMerFastqGenerator generator;
-
 	private final File tempFile;
+	
+	private Map<File, TaxIdNode> fileToCollectNode;
+	private Map<TaxIdNode, Set<File>> taxToFastas;
 
 	@SafeVarargs
 	public KMerFastqGoal(GSProject project, String name,
 			ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fastaFilesGoal, Goal<GSProject>... deps) {
 		super(project, name, (List<File>) null, ArraysUtil.append(deps, fastaFilesGoal));
-
+		this.fastaFilesGoal = fastaFilesGoal;
 		generator = new KMerFastqGenerator(getName(), getProject().getkMserSize(),
 				getProject().getConfig().getKmerFastBloomFpp(), getProject().getConfig().getMaxReadSizeBytes(),
 				getProject().isIgnoreMissingFiles());
 
-		Rank maxRank = project.getConfig().getMaxRankForFilters();
+		tempFile = project.getOutputFile(name + "_temp", FileType.FASTQ);
+	}
+	
+	@Override
+	protected void provideFiles() {
+		Rank maxRank = getProject().getConfig().getMaxRankForFilters();
 		taxToFastas = new HashMap<TaxIdNode, Set<File>>();
 		for (TaxIdNode key : fastaFilesGoal.get().keySet()) {
 			List<FTPEntryWithQuality> entries = fastaFilesGoal.get().get(key);
@@ -98,12 +104,15 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 		}
 		fileToCollectNode = new HashMap<File, TaxTree.TaxIdNode>();
 		for (TaxIdNode collectNode : aboveMaxRank) {
-			File file = project.getOutputFile(name + "_" + collectNode.getTaxId(), FileType.FASTQ);
+			File file = getProject().getOutputFile(getName() + "_" + collectNode.getTaxId(), FileType.FASTQ);
 			fileToCollectNode.put(file, collectNode);
 			addFile(file);
 		}
-
-		tempFile = project.getOutputFile(name + "_temp", FileType.FASTQ);
+	}
+	
+	@Override
+	public List<File> getFiles() {
+		return super.getFiles();
 	}
 
 	@Override

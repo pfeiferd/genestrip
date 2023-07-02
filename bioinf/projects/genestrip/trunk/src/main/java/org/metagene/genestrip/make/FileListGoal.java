@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.List;
 
 public abstract class FileListGoal<P> extends FileGoal<P> {
+	private boolean filesProvided;
 	private final List<File> files;
 		
 	@SafeVarargs
@@ -52,7 +53,14 @@ public abstract class FileListGoal<P> extends FileGoal<P> {
 		files.add(file);
 	}
 	
+	protected void provideFiles() {
+	}
+	
 	public List<File> getFiles() {
+		if (!filesProvided) {
+			provideFiles();
+			filesProvided = true;
+		}
 		return files;
 	}	
 }
