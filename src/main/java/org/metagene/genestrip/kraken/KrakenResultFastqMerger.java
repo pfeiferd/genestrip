@@ -120,11 +120,11 @@ public class KrakenResultFastqMerger {
 								if (outReadDescriptor[j] != readDescriptor[j + 1]) {
 //									System.out.println(ByteArrayUtil.toString(outReadDescriptor));
 //									System.out.println(ByteArrayUtil.toString(readDescriptor));
-									throw new IllegalStateException("In consistent files for read " + readCount);
+									throw new IllegalStateException("Inconsistent files for read " + readCount);
 								}
 							}
 							if (j == outReadDescriptor.length) {
-								throw new IllegalStateException("In consistent kraken output...");
+								throw new IllegalStateException("Inconsistent kraken output...");
 							}
 						}
 
