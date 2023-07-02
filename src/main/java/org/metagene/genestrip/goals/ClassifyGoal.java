@@ -34,9 +34,9 @@ import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
-import org.metagene.genestrip.trie.FastqClassifier;
-import org.metagene.genestrip.trie.FastqClassifier.StatsPerTaxid;
-import org.metagene.genestrip.trie.KMerStore;
+import org.metagene.genestrip.store.FastqClassifier;
+import org.metagene.genestrip.store.KMerStore;
+import org.metagene.genestrip.store.FastqClassifier.StatsPerTaxid;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
