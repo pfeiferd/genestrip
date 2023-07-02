@@ -55,12 +55,12 @@ import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.Maker;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.store.KMerTrie;
 import org.metagene.genestrip.tax.AdditionalFastaInfoReader;
 import org.metagene.genestrip.tax.AssemblySummaryReader;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryWithQuality;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.trie.KMerTrie;
 
 public class GSMaker extends Maker<GSProject> {
 	public GSMaker(GSProject project) {

@@ -28,11 +28,11 @@ import java.io.File;
 import java.io.Serializable;
 
 import org.metagene.genestrip.make.FileDownloadGoal.DownloadProject;
+import org.metagene.genestrip.store.KMerSortedArray;
+import org.metagene.genestrip.store.KMerStore;
+import org.metagene.genestrip.store.KMerStoreFactory;
+import org.metagene.genestrip.store.KMerTrie;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
-import org.metagene.genestrip.trie.KMerSortedArray;
-import org.metagene.genestrip.trie.KMerStore;
-import org.metagene.genestrip.trie.KMerStoreFactory;
-import org.metagene.genestrip.trie.KMerTrie;
 
 public class GSProject implements DownloadProject,  KMerStoreFactory {
 	public enum FileType {
