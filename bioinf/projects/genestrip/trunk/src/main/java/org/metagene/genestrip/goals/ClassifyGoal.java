@@ -34,19 +34,19 @@ import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
-import org.metagene.genestrip.trie.FastqTrieClassifier;
-import org.metagene.genestrip.trie.FastqTrieClassifier.StatsPerTaxid;
+import org.metagene.genestrip.trie.FastqClassifier;
+import org.metagene.genestrip.trie.FastqClassifier.StatsPerTaxid;
 import org.metagene.genestrip.trie.KMerStore;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class ClassifyGoal extends FileListGoal<GSProject> {
 	private final File fastq;
-	private final KMerTrieFileGoal trieGoal;
+	private final KMerStoreFileGoal trieGoal;
 	private final boolean writedFiltered;
 
 	@SafeVarargs
-	public ClassifyGoal(GSProject project, String name, File fastq, KMerTrieFileGoal trieGoal, boolean writeFiltered,
+	public ClassifyGoal(GSProject project, String name, File fastq, KMerStoreFileGoal trieGoal, boolean writeFiltered,
 			Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, fastq, FileType.CSV, false),
 				ArraysUtil.append(deps, trieGoal));
@@ -57,7 +57,7 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 
 	@Override
 	protected void makeFile(File file) {
-		FastqTrieClassifier c = null;
+		FastqClassifier c = null;
 		try {
 			File filteredFile = null;
 			File krakenOutStyleFile = null;
@@ -69,7 +69,7 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 			KMerStore<String> trie = KMerStore.load(trieGoal.getFile());
 
 			GSConfig config = getProject().getConfig();
-			c = new FastqTrieClassifier(trie, config.getMaxReadSizeBytes(),
+			c = new FastqClassifier(trie, config.getMaxReadSizeBytes(),
 					config.getThreadQueueSize(), config.getThreads(), config.isCountUniqueKmers());
 			List<StatsPerTaxid> res = c.runClassifier(fastq, filteredFile, krakenOutStyleFile);
 			c.dump();

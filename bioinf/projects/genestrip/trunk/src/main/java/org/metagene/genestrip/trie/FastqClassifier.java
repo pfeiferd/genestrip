@@ -42,7 +42,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectCollection;
 
-public class FastqTrieClassifier extends AbstractFastqReader {
+public class FastqClassifier extends AbstractFastqReader {
 	private final KMerStore<String> trie;
 	private final KmerDuplicationCount duplicationCount;
 
@@ -59,7 +59,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 	// multi threading when using it.
 	private PrintStream out;
 
-	public FastqTrieClassifier(KMerStore<String> trie, int maxReadSize, int maxQueueSize, int consumerNumber,
+	public FastqClassifier(KMerStore<String> trie, int maxReadSize, int maxQueueSize, int consumerNumber,
 			boolean withDupCount) {
 		super(trie.getK(), maxReadSize, maxQueueSize, consumerNumber);
 		this.trie = trie;
@@ -105,7 +105,7 @@ public class FastqTrieClassifier extends AbstractFastqReader {
 		}
 		byteCountAccess.getInputStream().close();
 
-		List<StatsPerTaxid> counts = new ArrayList<FastqTrieClassifier.StatsPerTaxid>();
+		List<StatsPerTaxid> counts = new ArrayList<FastqClassifier.StatsPerTaxid>();
 		root.collectValues(counts);
 
 		if (duplicationCount != null) {

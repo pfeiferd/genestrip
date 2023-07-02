@@ -39,8 +39,8 @@ import org.metagene.genestrip.goals.ClassifyGoal;
 import org.metagene.genestrip.goals.FastaFileDownloadGoal;
 import org.metagene.genestrip.goals.FilterGoal;
 import org.metagene.genestrip.goals.KMerFastqGoal;
-import org.metagene.genestrip.goals.KMerFastqTrieFileGoal;
-import org.metagene.genestrip.goals.KMerTrieFileGoal;
+import org.metagene.genestrip.goals.KMerFastqStoreFileGoal;
+import org.metagene.genestrip.goals.KMerStoreFileGoal;
 import org.metagene.genestrip.goals.KrakenFastqFileGoal;
 import org.metagene.genestrip.goals.KrakenOutGoal;
 import org.metagene.genestrip.goals.KrakenResCountGoal;
@@ -182,7 +182,7 @@ public class GSMaker extends Maker<GSProject> {
 				krakenOutGoal);
 		registerGoal(bloomFilterSizeGoal);
 
-		KMerTrieFileGoal trieGoal = new KMerTrieFileGoal(project, "trie", taxNodesGoal, krakenOutGoal, kmerFastqGoal,
+		KMerStoreFileGoal trieGoal = new KMerStoreFileGoal(project, "trie", taxNodesGoal, krakenOutGoal, kmerFastqGoal,
 				bloomFilterSizeGoal, projectSetupGoal);
 		registerGoal(trieGoal);
 
@@ -190,7 +190,7 @@ public class GSMaker extends Maker<GSProject> {
 				krakenOutGoal, kmerFastqGoal, projectSetupGoal);
 		registerGoal(krakenFastqGoal);
 
-		Goal<GSProject> kMerFastqTrieFileGoal = new KMerFastqTrieFileGoal(project, "trie2", taxNodesGoal,
+		Goal<GSProject> kMerFastqTrieFileGoal = new KMerFastqStoreFileGoal(project, "trie2", taxNodesGoal,
 				krakenFastqGoal, projectSetupGoal);
 		registerGoal(kMerFastqTrieFileGoal);
 
