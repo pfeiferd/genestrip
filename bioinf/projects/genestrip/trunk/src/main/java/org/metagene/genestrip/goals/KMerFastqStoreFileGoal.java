@@ -78,8 +78,8 @@ public class KMerFastqStoreFileGoal extends FileListGoal<GSProject> {
 					String taxid = countingDigitTrie.inc(readEntry.readDescriptor, pos, readEntry.readDescriptorSize);
 					if (taxIds.contains(taxid)) {
 						if (!trie.put(readEntry.read, 0, taxid, false)) {
-							if (getLogger().isWarnEnabled()) {
-								getLogger().warn("Duplicate entry for read regarding taxid " + taxid);
+							if (getLogger().isInfoEnabled()) {
+								getLogger().info("Duplicate entry for read regarding taxid " + taxid);
 							}							
 						}
 					}
@@ -90,7 +90,7 @@ public class KMerFastqStoreFileGoal extends FileListGoal<GSProject> {
 			}
 
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Trie entries: " + trie.getEntries());
+				getLogger().info("Store entries: " + trie.getEntries());
 				getLogger().info("Saving file " + trieFile);
 			}
 			trie.optimize();

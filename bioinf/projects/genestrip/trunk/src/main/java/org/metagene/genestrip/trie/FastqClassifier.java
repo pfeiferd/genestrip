@@ -43,7 +43,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectCollection;
 
 public class FastqClassifier extends AbstractFastqReader {
-	private final KMerStore<String> trie;
+	private final KMerStore<String> kmerStore;
 	private final KmerDuplicationCount duplicationCount;
 
 	private TaxidStatsTrie root;
@@ -59,10 +59,10 @@ public class FastqClassifier extends AbstractFastqReader {
 	// multi threading when using it.
 	private PrintStream out;
 
-	public FastqClassifier(KMerStore<String> trie, int maxReadSize, int maxQueueSize, int consumerNumber,
+	public FastqClassifier(KMerStore<String> kmerStore, int maxReadSize, int maxQueueSize, int consumerNumber,
 			boolean withDupCount) {
-		super(trie.getK(), maxReadSize, maxQueueSize, consumerNumber);
-		this.trie = trie;
+		super(kmerStore.getK(), maxReadSize, maxQueueSize, consumerNumber);
+		this.kmerStore = kmerStore;
 		duplicationCount = withDupCount ? new KmerDuplicationCount(k) : null;
 	}
 
@@ -213,7 +213,7 @@ public class FastqClassifier extends AbstractFastqReader {
 		StatsPerTaxid stats = null, prevStats = null;
 
 		for (int i = 0; i <= max; i++) {
-			taxid = trie.get(entry.read, i, reverse);
+			taxid = kmerStore.get(entry.read, i, reverse);
 			if (contigLen > 0 && taxid != lastTaxid) {
 				if (out != null) {
 					printKrakenStyleOut(entry, lastTaxid, contigLen, prints++, reverse);

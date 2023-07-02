@@ -64,16 +64,37 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 	@Override
 	protected void makeFile(File trieFile) {
 		try {
-			KMerStore<String> trie = getProject().getKMerStoreFactory().createKMerStore(String.class);
-			trie.initSize(sizeGoal.get());
+			KMerStore<String> store = getProject().getKMerStoreFactory().createKMerStore(String.class);
+			store.initSize(sizeGoal.get());
 
 			Set<String> taxIds = new HashSet<String>();
 			for (TaxIdNode node : taxNodesGoal.get()) {
 				taxIds.add(node.getTaxId());
 			}
 
-			KrakenResultFastqMergeListener filter = KrakenResultFastqMergeListener.createFilterByTaxIds(taxIds,
-					fillKMerTrie(trie, null));
+			KrakenResultFastqMergeListener filter = new KrakenResultFastqMergeListener() {
+				private long counter;
+				
+				@Override
+				public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
+						String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
+					counter++;
+					if (taxIds.contains(kmerTaxid)) {
+						if (!store.put(read, 0, kmerTaxid, false)) {
+							if (getLogger().isInfoEnabled()) {
+								getLogger().info("Duplicate entry for read regarding taxid " + kmerTaxid);
+							}
+						}
+						if (lineCount % 10000 == 0) {
+							if (getLogger().isInfoEnabled()) {
+								getLogger().info("Store entries:" + store.getEntries());
+								getLogger().info("Store put ratio:" + ((double) store.getEntries() / counter));
+							}
+						}
+					}
+				}
+			};
+
 			KrakenResultFastqMerger krakenKMerFastqMerger = new KrakenResultFastqMerger(
 					getProject().getConfig().getMaxReadSizeBytes());
 
@@ -91,41 +112,16 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 			}
 
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Trie entries: " + trie.getEntries());
+				getLogger().info("Stored entries: " + store.getEntries());
 				getLogger().info("Saving File " + trieFile);
 			}
-			trie.optimize();
-			KMerStore.save(trie, trieFile);
+			store.optimize();
+			KMerStore.save(store, trieFile);
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("File saved " + trieFile);
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-	private KrakenResultFastqMergeListener fillKMerTrie(KMerStore<String> trie,
-			KrakenResultFastqMergeListener delegate) {
-		return new KrakenResultFastqMergeListener() {
-			@Override
-			public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-					String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
-				if (!trie.put(read, 0, kmerTaxid, false)) {
-					if (getLogger().isWarnEnabled()) {
-						getLogger().warn("Duplicate entry for read regarding taxid " + kmerTaxid);
-					}
-				}
-				if (lineCount % 10000 == 0) {
-					if (getLogger().isInfoEnabled()) {
-						getLogger().info("Trie entries:" + trie.getEntries());
-						getLogger().info("Trie put ratio:" + ((double) trie.getEntries() / lineCount));
-					}
-				}
-				if (delegate != null) {
-					delegate.newTaxIdForRead(lineCount, readDescriptor, read, readProbs, krakenTaxid, bps, pos,
-							kmerTaxid, hitLength, output);
-				}
-			}
-		};
 	}
 }
