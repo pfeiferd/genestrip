@@ -224,7 +224,6 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		if (sorted) {
 			return;
 		}
-		filter = null;
 		if (large) {
 			BigArrays.quickSort(0, entries, new LongComparator() {
 				@Override
