@@ -72,9 +72,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 				taxIds.add(node.getTaxId());
 			}
 
-			KrakenResultFastqMergeListener filter = new KrakenResultFastqMergeListener() {
-				private long counter;
-				
+			MyKrakenResultFastqMergeListener filter = new MyKrakenResultFastqMergeListener() {
 				@Override
 				public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
 						String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
@@ -85,10 +83,10 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 								getLogger().info("Duplicate entry for read regarding taxid " + kmerTaxid);
 							}
 						}
-						if (lineCount % 10000 == 0) {
+						if (lineCount % 1000000 == 0) {
 							if (getLogger().isInfoEnabled()) {
 								getLogger().info("Store entries:" + store.getEntries());
-								getLogger().info("Store put ratio:" + ((double) store.getEntries() / counter));
+								getLogger().info("Store entry ratio:" + ((double) store.getEntries() / counter));
 							}
 						}
 					}
@@ -112,7 +110,8 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 			}
 
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Stored entries: " + store.getEntries());
+				getLogger().info("Total stored entries: " + store.getEntries());
+				getLogger().info("Total store entry ratio:" + ((double) store.getEntries() / filter.counter));
 				getLogger().info("Saving File " + trieFile);
 			}
 			store.optimize();
@@ -123,5 +122,9 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	private abstract static class MyKrakenResultFastqMergeListener implements KrakenResultFastqMergeListener {
+		protected long counter = 0;
 	}
 }
