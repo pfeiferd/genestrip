@@ -29,7 +29,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -45,22 +44,19 @@ import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.trie.KMerStoreFactory;
 import org.metagene.genestrip.trie.KMerTrie;
 import org.metagene.genestrip.trie.KMerTrie.KMerTrieVisitor;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.StreamProvider;
 
-public class CGATBloomFilterTest implements KMerStoreFactory {
-	private byte[] cgat = { 'C', 'G', 'A', 'T' };
-	private Random random = new Random(42);
+public class CGATBloomFilterTest {
+	protected Random random = new Random(42);
+	protected int k = 31;
+	protected int size = 5 * 1000 * 1000;
+	protected double fpp = 0.0001;
 
 	@Test
-	public void testBloomFilter2() {
-		int k = 36;
-		int size = 5 * 1000 * 1000;
-		double fpp = 0.001;
-
+	public void testPutContains() {
 		MurmurCGATBloomFilter filter = createFilter(k, size, fpp);
 
 		byte[] reverseRead = new byte[k];
@@ -69,7 +65,7 @@ public class CGATBloomFilterTest implements KMerStoreFactory {
 		for (int i = 1; i < size; i++) {
 			byte[] read = new byte[k];
 			for (int j = 0; j < k; j++) {
-				read[j] = cgat[random.nextInt(4)];
+				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
 				reverseRead[k - j - 1] = CGAT.toComplement(read[j]);
 			}
 			reads.add(read);
@@ -91,7 +87,7 @@ public class CGATBloomFilterTest implements KMerStoreFactory {
 		byte[] read = new byte[k];
 		for (int i = 1; i < size; i++) {
 			for (int j = 0; j < k; j++) {
-				read[j] = cgat[random.nextInt(4)];
+				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
 			}
 			if (filter.containsStraight(read, 0, null)) {
 				err++;
@@ -107,19 +103,15 @@ public class CGATBloomFilterTest implements KMerStoreFactory {
 	}
 
 	@Test
-	public void testBloomFilter() {
-		int k = 35;
-		int size = 5 * 100000;
-		double fpp = 0.0001;
-
+	public void testPutGetViaTrie() {
 		MurmurCGATBloomFilter filter = createFilter(k, size, fpp);
-		KMerTrie<Integer> trie = createKMerStore(Integer.class, k);
+		KMerTrie<Integer> trie = new KMerTrie<Integer>(2, k, false);
 
 		byte[] read = new byte[trie.getK()];
 
 		for (int i = 1; i < size; i++) {
 			for (int j = 0; j < k; j++) {
-				read[j] = cgat[random.nextInt(4)];
+				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
 			}
 			filter.put(read, 0);
 			trie.put(read, 0, i, false);
@@ -142,7 +134,7 @@ public class CGATBloomFilterTest implements KMerStoreFactory {
 		int err = 0;
 		for (int i = 1; i < size; i++) {
 			for (int j = 0; j < k; j++) {
-				read[j] = cgat[random.nextInt(4)];
+				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
 			}
 			if (filter.containsStraight(read, 0, null)) {
 				err++;
@@ -169,9 +161,6 @@ public class CGATBloomFilterTest implements KMerStoreFactory {
 		String outGoal = project.getConfig().isUseKraken1() ? "sort" : "kmerkrakenout";
 		File fromKraken = ((FileGoal<GSProject>) main.getMaker().getGoal(outGoal)).getFile();
 
-		long size = 5 * 1000 * 1000;
-		double fpp = 0.00001;
-
 		MurmurCGATBloomFilter cgatBloomFilter = createFilter(project.getkMserSize(), size, fpp);
 
 		@SuppressWarnings("unchecked")
@@ -196,7 +185,6 @@ public class CGATBloomFilterTest implements KMerStoreFactory {
 		stream1.close();
 		stream2.close();
 
-		// Test uncompressed:
 		checkFilter(fromKraken, bartHReads, krakenFilter, cgatBloomFilter, nodes);
 	}
 
@@ -218,13 +206,12 @@ public class CGATBloomFilterTest implements KMerStoreFactory {
 
 		// Negative Test:
 		byte[] read = new byte[filterUnderTest.getK()];
-		byte[] cgat = { 'C', 'G', 'A', 'T' };
 		Random random = new Random(42);
 
 		int err = 0;
 		for (int i = 1; i < filterUnderTest.getExpectedInsertions(); i++) {
 			for (int j = 0; j < read.length; j++) {
-				read[j] = cgat[random.nextInt(4)];
+				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
 			}
 			if (filterUnderTest.containsStraight(read, 0, null)) {
 				err++;
@@ -241,10 +228,5 @@ public class CGATBloomFilterTest implements KMerStoreFactory {
 		MurmurCGATBloomFilter res = new MurmurCGATBloomFilter(k, fpp);
 		res.clearAndEnsureCapacity(size);
 		return res;
-	}
-	
-	@Override
-	public <V extends Serializable> KMerTrie<V> createKMerStore(Class<V> clazz, Object... params) {
-		return new KMerTrie<V>(2, (int) params[0], false);
 	}
 }
