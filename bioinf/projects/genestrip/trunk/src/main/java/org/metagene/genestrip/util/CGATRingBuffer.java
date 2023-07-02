@@ -89,9 +89,9 @@ public class CGATRingBuffer implements Serializable {
 		return invalidCPos == 0;
 	}
 
-	public void toStream(PrintStream stream) {
+	public void toPrintStream(PrintStream stream) {
 		for (int i = 0; i < data.length; i++) {
-			stream.append((char) get(i));
+			stream.print((char) get(i));
 		}
 	}
 }

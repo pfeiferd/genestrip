@@ -130,7 +130,7 @@ public class KMerFastqGenerator {
 		public void newEntry(CGATRingBuffer buffer) {
 			added++;
 			printBeforeRead();
-			buffer.toStream(printStream);
+			buffer.toPrintStream(printStream);
 			printStream.println();
 			printAfterRead(buffer.getSize());
 		}
