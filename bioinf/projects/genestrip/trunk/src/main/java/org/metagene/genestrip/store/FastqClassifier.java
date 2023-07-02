@@ -43,6 +43,8 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectCollection;
 
 public class FastqClassifier extends AbstractFastqReader {
+	public static final long DEFAULT_LOG_UPDATE_CYCLE = 1000000;
+	
 	private final KMerStore<String> kmerStore;
 	private final KmerDuplicationCount duplicationCount;
 
@@ -54,6 +56,8 @@ public class FastqClassifier extends AbstractFastqReader {
 	private long indexedC;
 
 	private OutputStream indexed;
+	
+	private long logUpdateCycle = DEFAULT_LOG_UPDATE_CYCLE;
 
 	// A PrintStream is implicitly synchronized. So we don't need to worry about
 	// multi threading when using it.
@@ -159,8 +163,8 @@ public class FastqClassifier extends AbstractFastqReader {
 
 	@Override
 	protected void log() {
-		if (logger.isInfoEnabled()) {
-			if (reads % 100000 == 0) {
+		if (reads % logUpdateCycle == 0) {
+			if (logger.isInfoEnabled()) {
 				double ratio = byteCountAccess.getBytesRead() / (double) fastqFileSize;
 				long stopTime = System.currentTimeMillis();
 
@@ -176,6 +180,14 @@ public class FastqClassifier extends AbstractFastqReader {
 			}
 		}
 	}
+	
+	public long getLogUpdateCycle() {
+		return logUpdateCycle;
+	}
+	
+	public void setLogUpdateCycle(long logUpdateCycle) {
+		this.logUpdateCycle = logUpdateCycle;
+	}
 
 	@Override
 	protected void done() throws IOException {
@@ -187,20 +199,6 @@ public class FastqClassifier extends AbstractFastqReader {
 			logger.info("Read file time ms: " + getMillis());
 		}
 	}
-
-//	protected boolean classifyRead(ReadEntry entry, boolean reverse) {
-//		String res = null;
-//		int max = entry.readSize - k;
-//		boolean found = false;
-//		for (int i = 0; i <= max; i++) {
-//			res = trie.get(entry.read, i, reverse);
-//			if (res != null) {
-//				found = true;
-//				root.inc(res);
-//			}
-//		}
-//		return found;
-//	}
 
 	protected boolean classifyRead(MyReadEntry entry, boolean reverse) {
 		boolean found = false;
