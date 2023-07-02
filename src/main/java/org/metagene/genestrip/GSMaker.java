@@ -170,8 +170,7 @@ public class GSMaker extends Maker<GSProject> {
 				projectSetupGoal);
 		registerGoal(kmerFastqGoal);
 
-		FileGoal<GSProject> krakenOutGoal = new KrakenOutGoal(project, "kmerkrakenout", kmerFastqGoal.getFiles(),
-				kmerFastqGoal, projectSetupGoal);
+		FileGoal<GSProject> krakenOutGoal = new KrakenOutGoal(project, "kmerkrakenout", kmerFastqGoal, projectSetupGoal);
 		registerGoal(krakenOutGoal);
 
 		if (project.getConfig().isUseKraken1()) {

@@ -27,7 +27,6 @@ package org.metagene.genestrip.goals;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,28 +36,40 @@ import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.kraken.KrakenExecutor;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class KrakenOutGoal extends FileListGoal<GSProject> {
+	private final KMerFastqGoal kmerFastqGoal;
 	private final Map<File, File> outFileTofastqFile;
 
 	@SafeVarargs
 	public KrakenOutGoal(GSProject project, String name, File fastqFile, Goal<GSProject>... deps) {
-		this(project, name, Collections.singletonList(
-				project.getOutputFile(name, fastqFile, FileType.KRAKEN_OUT, !project.getConfig().isUseKraken1())),
-				deps);
+		super(project, name, (List<File>) null, deps);
+		kmerFastqGoal = null;
+		File out = project.getOutputFile(name, fastqFile, FileType.KRAKEN_OUT, !project.getConfig().isUseKraken1());
+		outFileTofastqFile = new HashMap<File, File>();
+		outFileTofastqFile.put(out, fastqFile);
+		addFile(out);
 	}
 
 	@SafeVarargs
-	public KrakenOutGoal(GSProject project, String name, List<File> fastqFiles, Goal<GSProject>... deps) {
-		super(project, name, (List<File>) null, deps);
-
+	public KrakenOutGoal(GSProject project, String name, KMerFastqGoal kmerFastqGoal, Goal<GSProject>... deps) {
+		super(project, name, (List<File>) null, ArraysUtil.append(deps, kmerFastqGoal));
+		this.kmerFastqGoal = kmerFastqGoal;
 		outFileTofastqFile = new HashMap<File, File>();
-		for (File fastqFile : fastqFiles) {
-			File outFile = project.getOutputFile(name, fastqFile, FileType.KRAKEN_OUT,
-					!project.getConfig().isUseKraken1());
-			outFileTofastqFile.put(outFile, fastqFile);
-			addFile(outFile);
+	}
+
+	@Override
+	protected void provideFiles() {
+		if (kmerFastqGoal != null) {
+			List<File> fastqFiles = kmerFastqGoal.getFiles();
+			for (File fastqFile : fastqFiles) {
+				File outFile = getProject().getOutputFile(getName(), fastqFile, FileType.KRAKEN_OUT,
+						!getProject().getConfig().isUseKraken1());
+				outFileTofastqFile.put(outFile, fastqFile);
+				addFile(outFile);
+			}
 		}
 	}
 
@@ -74,8 +85,7 @@ public class KrakenOutGoal extends FileListGoal<GSProject> {
 			}
 			if (krakenExecutor.isWithFileForOutput()) {
 				krakenExecutor.execute2(getProject().getKrakenDB(), fastqFile, krakenOut, System.out, System.err);
-			}
-			else {
+			} else {
 				OutputStream out = StreamProvider.getOutputStreamForFile(krakenOut);
 				krakenExecutor.execute2(getProject().getKrakenDB(), fastqFile, krakenOut, out, System.err);
 				out.close();
