@@ -40,12 +40,12 @@ import org.metagene.genestrip.trie.KMerStore;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.CountingDigitTrie;
 
-public class KMerFastqTrieFileGoal extends FileListGoal<GSProject> {
+public class KMerFastqStoreFileGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final KrakenFastqFileGoal krakenFastqGoal;
 
 	@SafeVarargs
-	public KMerFastqTrieFileGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
+	public KMerFastqStoreFileGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
 			KrakenFastqFileGoal krakenFastqGoal, Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, FileType.SER),
 				ArraysUtil.append(deps, taxNodesGoal, krakenFastqGoal));

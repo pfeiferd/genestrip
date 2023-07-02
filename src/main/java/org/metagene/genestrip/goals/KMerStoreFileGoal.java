@@ -43,14 +43,14 @@ import org.metagene.genestrip.trie.KMerStore;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
-public class KMerTrieFileGoal extends FileListGoal<GSProject> {
+public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final FileGoal<GSProject> krakenOutGoal;
 	private final KMerFastqGoal kmerFastqGoal;
 	private final ObjectGoal<Long, GSProject> sizeGoal;
 
 	@SafeVarargs
-	public KMerTrieFileGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
+	public KMerStoreFileGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
 			FileGoal<GSProject> krakenOutGoal, KMerFastqGoal kmerFastqGoal, ObjectGoal<Long, GSProject> sizeGoal,
 			Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, FileType.SER),
