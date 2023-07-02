@@ -38,8 +38,8 @@ import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
-import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectCollection;
 
 public class FastqClassifier extends AbstractFastqReader {
@@ -333,7 +333,7 @@ public class FastqClassifier extends AbstractFastqReader {
 
 		public KmerDuplicationCount(int k) {
 			this.k = k;
-			map = new Long2ObjectLinkedOpenHashMap<Entry>();
+			map = new Long2ObjectOpenHashMap<Entry>();
 		}
 
 		public void clear() {
