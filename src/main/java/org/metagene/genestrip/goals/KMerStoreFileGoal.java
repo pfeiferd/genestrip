@@ -86,8 +86,8 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 						}
 						if (lineCount % 1000000 == 0) {
 							if (getLogger().isInfoEnabled()) {
-								getLogger().info("Store entries:" + store.getEntries());
-								getLogger().info("Store entry ratio:" + ((double) store.getEntries() / counter));
+								getLogger().info("Store entries: " + store.getEntries());
+								getLogger().info("Store entry ratio: " + ((double) store.getEntries() / counter));
 							}
 						}
 					}
@@ -112,8 +112,8 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Total stored entries: " + store.getEntries());
-				getLogger().info("Total store entry ratio:" + ((double) store.getEntries() / filter.counter));
-				getLogger().info("Saving File " + storeFile);
+				getLogger().info("Total store entry ratio: " + ((double) store.getEntries() / filter.counter));
+				getLogger().info("Saving file " + storeFile);
 			}
 			store.optimize();
 			KMerStoreWrapper wrapper = new KMerStoreWrapper(store, taxNodesGoal.get());
