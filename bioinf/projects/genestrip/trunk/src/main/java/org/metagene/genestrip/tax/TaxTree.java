@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,7 +41,9 @@ import java.util.Map;
 
 import org.metagene.genestrip.util.StreamProvider;
 
-public class TaxTree {
+public class TaxTree implements Serializable {
+	private static final long serialVersionUID = 1L;
+
 	public enum Rank {
 		NO_RANK("no rank"), SUPERKINGDOM("superkingdom"), KINGDOM("kingdom"), PHYLUM("phylum"), SUBPHYLUM("subphylum"),
 		SUPERCLASS("superclass"), CLASS("class"), SUBCLASS("subclass"), SUPERORDER("superorder"), ORDER("order"),
@@ -230,7 +233,9 @@ public class TaxTree {
 		return taxIdToNode.get(taxId);
 	}
 
-	public static class TaxIdNode implements Comparable<TaxIdNode> {
+	public static class TaxIdNode implements Comparable<TaxIdNode>, Serializable {		
+		private static final long serialVersionUID = 1L;
+		
 		private final String taxId;
 		private final String parentTaxId;
 		private String name;
