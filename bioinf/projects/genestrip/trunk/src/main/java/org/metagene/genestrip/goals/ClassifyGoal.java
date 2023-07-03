@@ -35,23 +35,24 @@ import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.store.FastqClassifier;
-import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.store.FastqClassifier.StatsPerTaxid;
+import org.metagene.genestrip.store.KMerStoreWrapper;
+import org.metagene.genestrip.store.ResultReporter;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class ClassifyGoal extends FileListGoal<GSProject> {
 	private final File fastq;
-	private final KMerStoreFileGoal trieGoal;
+	private final KMerStoreFileGoal storeGoal;
 	private final boolean writedFiltered;
 
 	@SafeVarargs
-	public ClassifyGoal(GSProject project, String name, File fastq, KMerStoreFileGoal trieGoal, boolean writeFiltered,
+	public ClassifyGoal(GSProject project, String name, File fastq, KMerStoreFileGoal storeGoal, boolean writeFiltered,
 			Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, fastq, FileType.CSV, false),
-				ArraysUtil.append(deps, trieGoal));
+				ArraysUtil.append(deps, storeGoal));
 		this.fastq = fastq;
-		this.trieGoal = trieGoal;
+		this.storeGoal = storeGoal;
 		this.writedFiltered = writeFiltered;
 	}
 
@@ -66,16 +67,16 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 				krakenOutStyleFile = getProject().getOutputFile(getName(), fastq, FileType.KRAKEN_OUT_RES, false);
 			}
 
-			KMerStore<String> trie = KMerStore.load(trieGoal.getFile());
+			KMerStoreWrapper wrapper = KMerStoreWrapper.load(storeGoal.getFile());
 
 			GSConfig config = getProject().getConfig();
-			c = new FastqClassifier(trie, config.getMaxReadSizeBytes(),
+			c = new FastqClassifier(wrapper.getKmerStore(), config.getMaxReadSizeBytes(),
 					config.getThreadQueueSize(), config.getThreads(), config.isCountUniqueKmers());
 			List<StatsPerTaxid> res = c.runClassifier(fastq, filteredFile, krakenOutStyleFile);
 			c.dump();
 
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-			print(res, out);
+			new ResultReporter(wrapper.getTaxids()).print(res, out);
 			out.close();
 		} catch (IOException | ClassNotFoundException e) {
 			throw new RuntimeException(e);
@@ -84,25 +85,5 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 				c.dump();
 			}
 		}
-	}
-	
-	public static void print(List<StatsPerTaxid> allStats, PrintStream out) {
-		out.println("taxid;reads;kmers;unique kmers;contigs;average contig length;max contig length;");
-		for (StatsPerTaxid stats : allStats) {
-			out.print(stats.getTaxid());
-			out.print(';');
-			out.print(stats.getReads());
-			out.print(';');
-			out.print(stats.getKmers());
-			out.print(';');
-			out.print(stats.getUniqueKmers());
-			out.print(';');
-			out.print(stats.getContigs());
-			out.print(';');
-			out.print(((double) stats.getKmers()) / stats.getContigs());
-			out.print(';');
-			out.print(stats.getMaxContigLen());
-			out.println(';');
-		}		
-	}
+	}	
 }

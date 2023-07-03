@@ -39,6 +39,7 @@ import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.KMerStore;
+import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
@@ -62,7 +63,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 	}
 
 	@Override
-	protected void makeFile(File trieFile) {
+	protected void makeFile(File storeFile) {
 		try {
 			KMerStore<String> store = getProject().getKMerStoreFactory().createKMerStore(String.class);
 			store.initSize(sizeGoal.get());
@@ -112,12 +113,13 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Total stored entries: " + store.getEntries());
 				getLogger().info("Total store entry ratio:" + ((double) store.getEntries() / filter.counter));
-				getLogger().info("Saving File " + trieFile);
+				getLogger().info("Saving File " + storeFile);
 			}
 			store.optimize();
-			KMerStore.save(store, trieFile);
+			KMerStoreWrapper wrapper = new KMerStoreWrapper(store, taxNodesGoal.get());
+			wrapper.save(storeFile);
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("File saved " + trieFile);
+				getLogger().info("File saved " + storeFile);
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
