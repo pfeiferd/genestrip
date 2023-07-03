@@ -181,7 +181,7 @@ public class TaxTree {
 		return counter;
 	}
 	
-	public void sortViaTree(List<String> taxids) {
+	public List<String> sortTaxidsViaTree(List<String> taxids) {
 		Collections.sort(taxids, new Comparator<String>() {
 			@Override
 			public int compare(String o1, String o2) {
@@ -200,8 +200,28 @@ public class TaxTree {
 				return a.compareTo(b);
 			}
 		});
+		return taxids;
 	}
 
+	public static List<TaxIdNode> sortNodes(List<TaxIdNode> taxids) {
+		Collections.sort(taxids, new Comparator<TaxIdNode>() {
+			@Override
+			public int compare(TaxIdNode a, TaxIdNode b) {
+				if (a == null && b == null) {
+					return 0;
+				}
+				if (a == null) {
+					return -1;
+				}
+				if (b == null) {
+					return 1;
+				}
+				return a.compareTo(b);
+			}
+		});
+		return taxids;
+	}
+	
 	public TaxIdNode getRoot() {
 		return root;
 	}
@@ -219,9 +239,9 @@ public class TaxTree {
 		private int position;
 		private Rank rank;
 
-		public TaxIdNode(String taxId, String name, Rank rank) {
-			this.parentTaxId = name;
+		public TaxIdNode(String taxId, String parentTaxId, Rank rank) {
 			this.taxId = taxId;
+			this.parentTaxId = parentTaxId;
 			this.rank = rank;
 			subNodes = new ArrayList<TaxIdNode>();
 		}
@@ -270,6 +290,13 @@ public class TaxTree {
 		@Override
 		public String toString() {
 			return "Node: " + taxId;
+		}
+		
+		public TaxIdNode shallowCopy() {
+			TaxIdNode copy = new TaxIdNode(taxId, parentTaxId, rank);
+			copy.name = name;
+			copy.position = position;
+			return copy;
 		}
 	}
 

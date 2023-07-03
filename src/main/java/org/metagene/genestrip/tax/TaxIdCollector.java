@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -125,6 +126,18 @@ public class TaxIdCollector {
 			}
 		}
 		return res;
+	}
+	
+	public List<TaxIdNode> sortNodes(Set<TaxIdNode> nodes) {
+		return TaxTree.sortNodes(new ArrayList<TaxIdNode>(nodes));
+	}
+	
+	public List<TaxIdNode> nodesAsShallowCopies(List<TaxIdNode> list) {		
+		List<TaxIdNode> res = new ArrayList<TaxIdNode>();		
+		for (TaxIdNode node : list) {
+			res.add(node.shallowCopy());
+		}
+		return res;		
 	}
 
 	private void completeFilterlist(Set<TaxIdNode> filter, TaxIdNode node) {
