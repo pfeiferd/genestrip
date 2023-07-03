@@ -2,9 +2,7 @@ package org.metagene.genestrip.store;
 
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
 import org.metagene.genestrip.util.CGAT;
@@ -14,8 +12,10 @@ import it.unimi.dsi.fastutil.BigArrays;
 import it.unimi.dsi.fastutil.BigSwapper;
 import it.unimi.dsi.fastutil.longs.LongBigArrays;
 import it.unimi.dsi.fastutil.longs.LongComparator;
-import it.unimi.dsi.fastutil.shorts.Short2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ShortMap;
+import it.unimi.dsi.fastutil.objects.Object2ShortOpenHashMap;
 import it.unimi.dsi.fastutil.shorts.Short2ObjectMap;
+import it.unimi.dsi.fastutil.shorts.Short2ObjectOpenHashMap;
 
 public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	private static final long serialVersionUID = 1L;
@@ -29,7 +29,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	private short[][] largeValueIndexes;
 
 	private final int k;
-	private final Map<V, Short> valueMap;
+	private final Object2ShortMap<V> valueMap;
 	private final Short2ObjectMap<V> indexMap;
 
 	protected long size;
@@ -44,14 +44,18 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	public KMerSortedArray(int k, double fpp, List<V> initialValues) {
 		this(k, fpp, initialValues, false);
 	}
-	
+
 	public KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge) {
 		this.k = k;
 		int s = initialValues == null ? 0 : initialValues.size();
-		indexMap = new Short2ObjectLinkedOpenHashMap<V>(s);
-		valueMap = new HashMap<V, Short>(s);
+		indexMap = new Short2ObjectOpenHashMap<V>(s);
+		valueMap = new Object2ShortOpenHashMap<V>(s);
+		nextValueIndex = 1;
 		if (initialValues != null) {
 			for (V v : initialValues) {
+				if (nextValueIndex == 0) {
+					throw new IllegalStateException("Too many different values - only 65534 are possible.");
+				}
 				valueMap.put(v, nextValueIndex);
 				indexMap.put(nextValueIndex, v);
 				nextValueIndex++;
@@ -116,7 +120,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	public int getMaxValues() {
 		return 65534;
 	}
-	
+
 	@Override
 	public int getK() {
 		return k;
@@ -149,25 +153,28 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	}
 
 	protected boolean putLong(long kmer, V value) {
+		if (value == null) {
+			throw new NullPointerException("null is not allowed as a value.");
+		}
 		sorted = false;
 		if (entries == size) {
 			throw new IllegalStateException("Capacity exceeded.");
 		}
 		if (filter.containsLong(kmer)) {
-			return false;
+			V v = getLong(kmer);
+			if (v != null) {
+				return v.equals(value);
+			}
 		}
-		Short index = valueMap.get(value);
-		short sindex;
-		if (index == null) {
-			if (nextValueIndex == -1) {
+		short sindex = valueMap.getShort(value);
+		if (sindex == valueMap.defaultReturnValue()) {
+			if (nextValueIndex == 0) {
 				throw new IllegalStateException("Too many different values - only 65534 are possible.");
 			}
 			valueMap.put(value, nextValueIndex);
 			indexMap.put(nextValueIndex, value);
 			sindex = nextValueIndex;
 			nextValueIndex++;
-		} else {
-			sindex = index;
 		}
 		if (large) {
 			BigArrays.set(largeKmers, entries, kmer);
@@ -198,8 +205,8 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		if (filter != null && !filter.containsLong(kmer)) {
 			return null;
 		}
+		short index;
 		if (sorted) {
-			short index;
 			if (large) {
 				long pos = LongBigArrays.binarySearch(largeKmers, kmer);
 				if (pos < 0) {
@@ -213,10 +220,35 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				}
 				index = valueIndexes[pos];
 			}
-			return indexMap.get(index);
 		} else {
-			throw new IllegalStateException("Get only works when optimized / sorted.");
+			if (large) {
+				long pos = -1;
+				long length = BigArrays.length(largeKmers);
+				for (long i = 0; i < length; i++) {
+					if (BigArrays.get(largeKmers, i) == kmer) {
+						pos = i;
+						break;
+					}					
+				}
+				if (pos < 0) {
+					return null;
+				}
+				index = BigArrays.get(largeValueIndexes, pos);
+			} else {
+				int pos = -1;
+				for (int i = 0; i < kmers.length; i++) {
+					if (kmers[i] == kmer) {
+						pos = i;
+						break;
+					}
+				}
+				if (pos < 0) {
+					return null;
+				}
+				index = valueIndexes[pos];
+			}
 		}
+		return indexMap.get(index);
 	}
 
 	@Override
