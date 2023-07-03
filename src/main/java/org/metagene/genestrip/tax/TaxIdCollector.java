@@ -128,11 +128,11 @@ public class TaxIdCollector {
 		return res;
 	}
 	
-	public List<TaxIdNode> sortNodes(Set<TaxIdNode> nodes) {
+	public static List<TaxIdNode> sortNodes(Set<TaxIdNode> nodes) {
 		return TaxTree.sortNodes(new ArrayList<TaxIdNode>(nodes));
 	}
 	
-	public List<TaxIdNode> nodesAsShallowCopies(List<TaxIdNode> list) {		
+	public static List<TaxIdNode> nodesAsShallowCopies(List<TaxIdNode> list) {		
 		List<TaxIdNode> res = new ArrayList<TaxIdNode>();		
 		for (TaxIdNode node : list) {
 			res.add(node.shallowCopy());
