@@ -227,8 +227,10 @@ public class FastqClassifier extends AbstractFastqReader {
 				}
 				contigLen = 0;
 			}
+			contigLen++;
+			lastTaxid = taxid;
+			prevStats = stats;
 			if (taxid != null) {
-				prevStats = stats;
 				stats = root.get(taxid);
 				if (stats == null) {
 					stats = root.create(taxid);
@@ -250,8 +252,6 @@ public class FastqClassifier extends AbstractFastqReader {
 					}
 				}
 			}
-			contigLen++;
-			lastTaxid = taxid;
 		}
 		if (found && contigLen > 0) {
 			if (out != null) {
