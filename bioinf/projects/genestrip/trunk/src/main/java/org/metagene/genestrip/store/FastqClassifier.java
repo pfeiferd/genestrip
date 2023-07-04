@@ -260,6 +260,14 @@ public class FastqClassifier extends AbstractFastqReader {
 			if (out != null) {
 				printKrakenStyleOut(entry, lastTaxid, contigLen, prints, reverse);
 			}
+			if (prevStats != null) {
+				synchronized (prevStats) {
+					prevStats.contigs++;
+					if (contigLen > prevStats.maxContigLen) {
+						prevStats.maxContigLen = contigLen;
+					}
+				}
+			}
 			if (stats != null) {
 				synchronized (stats) {
 					stats.contigs++;
