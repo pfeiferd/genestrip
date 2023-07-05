@@ -244,7 +244,7 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 		visit(new KMerTrieVisitor<V>() {			
 			@Override
 			public void nextValue(KMerTrie<V> trie, byte[] kmer, V value) {
-				visitor.nextValue(KMerTrie.this, CGAT.kmerToLongStraight(kmer, 0, len, null), value);
+				visitor.nextValue(KMerTrie.this, CGAT.kMerToLongStraight(kmer, 0, len, null), value);
 			}
 		}, false);
 	}

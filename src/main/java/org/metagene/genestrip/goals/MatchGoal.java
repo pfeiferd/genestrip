@@ -27,7 +27,6 @@ package org.metagene.genestrip.goals;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.List;
 
 import org.metagene.genestrip.GSConfig;
 import org.metagene.genestrip.GSProject;
@@ -35,7 +34,7 @@ import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.store.FastqKMerMatcher;
-import org.metagene.genestrip.store.FastqKMerMatcher.StatsPerTaxid;
+import org.metagene.genestrip.store.FastqKMerMatcher.Result;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.store.ResultReporter;
 import org.metagene.genestrip.util.ArraysUtil;
@@ -72,7 +71,7 @@ public class MatchGoal extends FileListGoal<GSProject> {
 			GSConfig config = getProject().getConfig();
 			c = new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(),
 					config.getThreadQueueSize(), config.getThreads(), config.isCountUniqueKmers());
-			List<StatsPerTaxid> res = c.runClassifier(fastq, filteredFile, krakenOutStyleFile);
+			Result res = c.runClassifier(fastq, filteredFile, krakenOutStyleFile);
 			c.dump();
 
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));

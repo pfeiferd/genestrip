@@ -42,6 +42,8 @@ public abstract class AbstractFastqReader {
 	protected final Log logger = LogFactory.getLog(getClass());
 
 	protected long reads;
+	protected long kMers;
+
 	private final BufferedLineReader bufferedLineReaderFastQ;
 	private final ReadEntry[] readStructPool;
 	private final BlockingQueue<ReadEntry> blockingQueue;
@@ -122,6 +124,7 @@ public abstract class AbstractFastqReader {
 
 	protected void readFastq(InputStream inputStream) throws IOException {
 		reads = 0;
+		kMers = 0;
 		bufferedLineReaderFastQ.setInputStream(inputStream);
 
 		start();
@@ -141,6 +144,7 @@ public abstract class AbstractFastqReader {
 			readStruct.readProbs[readStruct.readProbsSize] = 0;
 
 			reads++;
+			kMers += readStruct.readSize - k + 1;
 			if (blockingQueue == null) {
 				nextEntry(readStruct);
 			} else {

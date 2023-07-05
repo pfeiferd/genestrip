@@ -203,7 +203,7 @@ public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
 				controlMap.put(readAsList, v);
 			}
 			if (controlMap2 != null) {
-				controlMap2.put(CGAT.kmerToLongStraight(read, 0, k, null), v);
+				controlMap2.put(CGAT.kMerToLongStraight(read, 0, k, null), v);
 			}
 		}
 	}
