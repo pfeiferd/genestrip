@@ -44,11 +44,11 @@ import it.unimi.dsi.fastutil.objects.ObjectCollection;
 
 public class FastqClassifier extends AbstractFastqReader {
 	public static final long DEFAULT_LOG_UPDATE_CYCLE = 1000000;
-	
-	private final KMerStore<String> kmerStore;
-	private final KmerDuplicationCount duplicationCount;
 
-	private TaxidStatsTrie root;
+	private final KMerStore<String> kmerStore;
+	protected final KmerDuplicationCount duplicationCount;
+
+	protected TaxidStatsTrie root;
 
 	private ByteCountingInputStreamAccess byteCountAccess;
 	private long fastqFileSize;
@@ -56,12 +56,12 @@ public class FastqClassifier extends AbstractFastqReader {
 	private long indexedC;
 
 	private OutputStream indexed;
-	
+
 	private long logUpdateCycle = DEFAULT_LOG_UPDATE_CYCLE;
 
 	// A PrintStream is implicitly synchronized. So we don't need to worry about
 	// multi threading when using it.
-	private PrintStream out;
+	protected PrintStream out;
 
 	public FastqClassifier(KMerStore<String> kmerStore, int maxReadSize, int maxQueueSize, int consumerNumber,
 			boolean withDupCount) {
@@ -96,7 +96,7 @@ public class FastqClassifier extends AbstractFastqReader {
 		startTime = System.currentTimeMillis();
 		indexedC = 0;
 
-		root = new TaxidStatsTrie();
+		initRoot();
 		if (duplicationCount != null) {
 			duplicationCount.clear();
 		}
@@ -128,7 +128,11 @@ public class FastqClassifier extends AbstractFastqReader {
 		}
 		return counts;
 	}
-
+	
+	protected void initRoot() {
+		root = new TaxidStatsTrie();
+	}
+	
 	@Override
 	protected void nextEntry(ReadEntry entry) throws IOException {
 		MyReadEntry myEntry = (MyReadEntry) entry;
@@ -180,11 +184,11 @@ public class FastqClassifier extends AbstractFastqReader {
 			}
 		}
 	}
-	
+
 	public long getLogUpdateCycle() {
 		return logUpdateCycle;
 	}
-	
+
 	public void setLogUpdateCycle(long logUpdateCycle) {
 		this.logUpdateCycle = logUpdateCycle;
 	}
@@ -208,7 +212,7 @@ public class FastqClassifier extends AbstractFastqReader {
 		int max = entry.readSize - k;
 		String lastTaxid = null;
 		int contigLen = 0;
-		StatsPerTaxid stats = null, prevStats = null;
+		StatsPerTaxid stats = null;
 
 		for (int i = 0; i <= max; i++) {
 			taxid = kmerStore.get(entry.read, i, reverse);
@@ -216,20 +220,18 @@ public class FastqClassifier extends AbstractFastqReader {
 				if (out != null) {
 					printKrakenStyleOut(entry, lastTaxid, contigLen, prints++, reverse);
 				}
-				if (prevStats != null) {
-					synchronized (prevStats) {
-						prevStats.contigs++;
-						if (contigLen > prevStats.maxContigLen) {
-							prevStats.maxContigLen = contigLen;
+				if (stats != null) {
+					synchronized (stats) {
+						stats.contigs++;
+						if (contigLen > stats.maxContigLen) {
+							stats.maxContigLen = contigLen;
 						}
 					}
-					prevStats = null;
 				}
 				contigLen = 0;
 			}
 			contigLen++;
 			lastTaxid = taxid;
-			prevStats = stats;
 			if (taxid != null) {
 				stats = root.get(taxid);
 				if (stats == null) {
@@ -237,10 +239,11 @@ public class FastqClassifier extends AbstractFastqReader {
 				}
 				synchronized (stats) {
 					stats.kmers++;
+					// TODO: This is wrong if there are two taxids (or more) in the same read. The read counter is only increased for the first one.
 					if (!found) {
 						stats.reads++;
 					}
-					found = true;
+					found = true; 
 				}
 				if (duplicationCount != null) {
 					if (!duplicationCount.put(taxid, entry, i, reverse)) {
@@ -251,28 +254,21 @@ public class FastqClassifier extends AbstractFastqReader {
 						}
 					}
 				}
-			}
-			else {
+			} else {
 				stats = null;
 			}
 		}
-		if (found && contigLen > 0) {
-			if (out != null) {
-				printKrakenStyleOut(entry, lastTaxid, contigLen, prints, reverse);
-			}
-			if (prevStats != null) {
-				synchronized (prevStats) {
-					prevStats.contigs++;
-					if (contigLen > prevStats.maxContigLen) {
-						prevStats.maxContigLen = contigLen;
-					}
+		if (found) {
+			if (contigLen > 0) {
+				if (out != null) {
+					printKrakenStyleOut(entry, lastTaxid, contigLen, prints, reverse);
 				}
-			}
-			if (stats != null) {
-				synchronized (stats) {
-					stats.contigs++;
-					if (contigLen > stats.maxContigLen) {
-						stats.maxContigLen = contigLen;
+				if (stats != null) {
+					synchronized (stats) {
+						stats.contigs++;
+						if (contigLen > stats.maxContigLen) {
+							stats.maxContigLen = contigLen;
+						}
 					}
 				}
 			}
@@ -300,7 +296,7 @@ public class FastqClassifier extends AbstractFastqReader {
 		entry.printInt(contigLen);
 	}
 
-	protected static class MyReadEntry extends ReadEntry {
+	public static class MyReadEntry extends ReadEntry {
 		public final byte[] buffer;
 		public int bufferPos;
 
@@ -352,9 +348,9 @@ public class FastqClassifier extends AbstractFastqReader {
 		protected boolean put(String taxid, MyReadEntry entry, int start, boolean reverse) {
 			long kmer;
 			if (reverse) {
-				kmer = CGAT.kmerToLongReverse(entry.read, 0, k, null);
+				kmer = CGAT.kmerToLongReverse(entry.read, start, k, null);
 			} else {
-				kmer = CGAT.kmerToLongStraight(entry.read, 0, k, null);
+				kmer = CGAT.kmerToLongStraight(entry.read, start, k, null);
 			}
 
 			synchronized (map) {
@@ -394,6 +390,11 @@ public class FastqClassifier extends AbstractFastqReader {
 			return res;
 		}
 
+		public int getKmerCount(long kmerCode) {
+			Entry e = map.get(kmerCode);
+			return e == null ? 0 : e.count;
+		}
+		
 		private static class Entry {
 			public int count;
 			public String taxid;
@@ -402,9 +403,9 @@ public class FastqClassifier extends AbstractFastqReader {
 
 	public static class StatsPerTaxid {
 		protected String taxid;
-		protected int reads;
-		protected int uniqueKmers;
-		protected int kmers;
+		protected long reads;
+		protected long uniqueKmers;
+		protected long kmers;
 		protected int maxContigLen;
 		protected int contigs;
 
@@ -420,7 +421,7 @@ public class FastqClassifier extends AbstractFastqReader {
 			return contigs;
 		}
 
-		public int getKmers() {
+		public long getKmers() {
 			return kmers;
 		}
 
@@ -428,11 +429,11 @@ public class FastqClassifier extends AbstractFastqReader {
 			return maxContigLen;
 		}
 
-		public int getReads() {
+		public long getReads() {
 			return reads;
 		}
 
-		public int getUniqueKmers() {
+		public long getUniqueKmers() {
 			return uniqueKmers;
 		}
 	}

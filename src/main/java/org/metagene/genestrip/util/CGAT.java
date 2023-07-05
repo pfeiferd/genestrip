@@ -91,7 +91,7 @@ public class CGAT {
 			res += c;
 		}
 
-		return res == 0 ? 1 : res;
+		return res;
 	}
 
 	public static long kmerToLongReverse(CGATRingBuffer buffer) {
@@ -104,13 +104,15 @@ public class CGAT {
 			res += c;
 		}
 
-		return res == 0 ? 1 : res;
+		return res;
 	}
 
 	public static long kmerToLongStraight(byte[] seq, int start, int k, int[] badPos) {
 		long res = 0;
 		int c;
-
+		if (badPos != null) {
+			badPos[0] = -1;
+		}
 		int max = start + k;
 		for (int i = start; i < max; i++) {
 			// Inlined: res = Long.rotateLeft(res, 2);
@@ -120,18 +122,20 @@ public class CGAT {
 				if (badPos != null) {
 					badPos[0] = i;
 				}
-				return 0;
+				return -1;
 			}
 			res += c;
 		}
 
-		return res == 0 ? 1 : res;
+		return res;
 	}
 
 	public static long kmerToLongReverse(byte[] seq, int start, int k, int[] badPos) {
 		long res = 0;
 		int c;
-
+		if (badPos != null) {
+			badPos[0] = -1;
+		}
 		for (int i = start + k - 1; i >= start; i--) {
 			// Inlined: res = Long.rotateLeft(res, 2);
 			res = (res << 2) | (res >>> -2);
@@ -140,12 +144,12 @@ public class CGAT {
 				if (badPos != null) {
 					badPos[0] = i;
 				}
-				return 0;
+				return -1;
 			}
 			res += c;
 		}
 
-		return res == 0 ? 1 : res;
+		return res;
 	}
 
 	public static void reverse(byte[] seq) {

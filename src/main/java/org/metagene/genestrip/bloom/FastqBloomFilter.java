@@ -151,14 +151,13 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		// The two cases where intoduced for optimization purposes.
 		if (reverse) {
 			for (int i = 0; i < max; i++) {
-				re.badPos[0] = -1;
 				if (filter.containsReverse(readStruct.read, i, re.badPos)) {
 					counter++;
 					if (counter >= minPosCount) {
 						return true;
 					}
 				} else {
-					if (re.badPos[0] > 0) {
+					if (re.badPos[0] >= 0) {
 						i += re.badPos[0];
 					}
 					negCounter++;
@@ -170,14 +169,13 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		}
 		else {
 			for (int i = 0; i < max; i++) {
-				re.badPos[0] = -1;
 				if (filter.containsStraight(readStruct.read, i, re.badPos)) {
 					counter++;
 					if (counter >= minPosCount) {
 						return true;
 					}
 				} else {
-					if (re.badPos[0] > 0) {
+					if (re.badPos[0] >= 0) {
 						i += re.badPos[0];
 					}
 					negCounter++;
@@ -203,14 +201,13 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		// The two cases where intoduced for optimization purposes.
 		if (reverse) {
 			for (int i = 0; i < max; i++) {
-				re.badPos[0] = -1;
 				if (filter.containsReverse(readStruct.read, i, re.badPos)) {
 					counter++;
 					if (counter >= posCounterThrehold) {
 						return true;
 					}
 				} else {
-					if (re.badPos[0] > 0) {
+					if (re.badPos[0] >= 0) {
 						i += re.badPos[0];
 					}
 					negCounter++;
@@ -222,14 +219,13 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		}
 		else {
 			for (int i = 0; i < max; i++) {
-				re.badPos[0] = -1;
 				if (filter.containsStraight(readStruct.read, i, re.badPos)) {
 					counter++;
 					if (counter >= posCounterThrehold) {
 						return true;
 					}
 				} else {
-					if (re.badPos[0] > 0) {
+					if (re.badPos[0] >= 0) {
 						i += re.badPos[0];
 					}
 					negCounter++;
