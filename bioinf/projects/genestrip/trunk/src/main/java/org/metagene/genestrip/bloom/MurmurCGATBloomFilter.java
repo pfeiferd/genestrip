@@ -146,30 +146,16 @@ public class MurmurCGATBloomFilter implements Serializable {
 		this.large = true;
 	}
 
-	public boolean put(CGATRingBuffer buffer) {
-		long data = CGAT.kmerToLongStraight(buffer);
-		if (data == 0) {
-			return false;
-		}
-		putViaHash(data);
-		return true;
+	public void put(CGATRingBuffer buffer) {
+		putViaHash(CGAT.kmerToLongStraight(buffer));
 	}
 
-	public boolean put(byte[] seq, int start) {
-		long data = CGAT.kmerToLongStraight(seq, start, k, null);
-		if (data == 0) {
-			return false;
-		}
-		putViaHash(data);
-		return true;
+	public void put(byte[] seq, int start) {
+		putViaHash(CGAT.kmerToLongStraight(seq, start, k, null));
 	}
 
-	public boolean putLong(long data) {
-		if (data == 0) {
-			return false;
-		}
+	public void putLong(long data) {
 		putViaHash(data);
-		return true;
 	}
 	
 	protected void putViaHash(long data) {
@@ -193,7 +179,7 @@ public class MurmurCGATBloomFilter implements Serializable {
 
 	public boolean containsStraight(byte[] seq, int start, int[] badPos) {
 		long data = CGAT.kmerToLongStraight(seq, start, k, badPos);
-		if (data == 0) {
+		if (data == -1 && badPos != null && badPos[0] == -1) {
 			return false;
 		}
 		return containsViaHash(data);
@@ -201,7 +187,7 @@ public class MurmurCGATBloomFilter implements Serializable {
 
 	public boolean containsReverse(byte[] seq, int start, int[] badPos) {
 		long data = CGAT.kmerToLongReverse(seq, start, k, badPos);
-		if (data == 0) {
+		if (data == -1 && badPos != null && badPos[0] == -1) {
 			return false;
 		}
 		return containsViaHash(data);
