@@ -6,9 +6,9 @@ import java.util.Arrays;
 import java.util.Random;
 
 import org.junit.Test;
-import org.metagene.genestrip.store.FastqClassifier;
-import org.metagene.genestrip.store.FastqClassifier.MyReadEntry;
-import org.metagene.genestrip.store.FastqClassifier.StatsPerTaxid;
+import org.metagene.genestrip.store.FastqKMerMatcher;
+import org.metagene.genestrip.store.FastqKMerMatcher.MyReadEntry;
+import org.metagene.genestrip.store.FastqKMerMatcher.StatsPerTaxid;
 import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGAT;
@@ -157,7 +157,7 @@ public class FastqMatcherTest {
 		}
 	}
 
-	protected static class MyFastqMatcher extends FastqClassifier {
+	protected static class MyFastqMatcher extends FastqKMerMatcher {
 		public MyFastqMatcher(KMerStore<String> kmerStore, int maxReadSize, int maxQueueSize, int consumerNumber,
 				boolean withDupCount) {
 			super(kmerStore, maxReadSize, maxQueueSize, consumerNumber, withDupCount);
