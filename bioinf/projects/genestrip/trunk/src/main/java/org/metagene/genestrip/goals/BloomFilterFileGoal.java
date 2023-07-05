@@ -67,7 +67,7 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 		try {
 
 			AbstractKMerBloomIndex bloomIndex = new AbstractKMerBloomIndex(bloomFilterFile.getName(),
-					getProject().getkMserSize(), 0.0001, null);
+					getProject().getKMserSize(), 0.0001, null);
 			// I found this out by trial end error: Guava bloom filter cant keep the FP-rate
 			// when total entry size is too small.
 			// So keep it to a minimum.

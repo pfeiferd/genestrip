@@ -81,7 +81,7 @@ public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
 		String outGoal = project.getConfig().isUseKraken1() ? "sort" : "kmerkrakenout";
 		File fromKraken = ((FileGoal<GSProject>) main.getMaker().getGoal(outGoal)).getFile();
 
-		final KMerStore<String> store = createKMerStore(String.class, project.getkMserSize());
+		final KMerStore<String> store = createKMerStore(String.class, project.getKMserSize());
 
 		MurmurCGATBloomFilter bloomFilter = new MurmurCGATBloomFilter(store.getK(), 0.00001);
 		bloomFilter.clearAndEnsureCapacity(5 * 1000 * 1000);
