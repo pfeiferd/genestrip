@@ -147,8 +147,8 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 	@Override
 	public boolean put(byte[] nseq, int start, V value, boolean reverse) {
-		long kmer = reverse ? CGAT.kmerToLongReverse(nseq, start, k, null)
-				: CGAT.kmerToLongStraight(nseq, start, k, null);
+		long kmer = reverse ? CGAT.kMerToLongReverse(nseq, start, k, null)
+				: CGAT.kMerToLongStraight(nseq, start, k, null);
 		return putLong(kmer, value);
 	}
 
@@ -196,8 +196,8 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 	@Override
 	public V get(byte[] nseq, int start, boolean reverse) {
-		long kmer = reverse ? CGAT.kmerToLongReverse(nseq, start, k, null)
-				: CGAT.kmerToLongStraight(nseq, start, k, null);
+		long kmer = reverse ? CGAT.kMerToLongReverse(nseq, start, k, null)
+				: CGAT.kMerToLongStraight(nseq, start, k, null);
 		return getLong(kmer);
 	}
 
