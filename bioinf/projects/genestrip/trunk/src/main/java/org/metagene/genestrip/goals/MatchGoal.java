@@ -34,20 +34,20 @@ import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
-import org.metagene.genestrip.store.FastqClassifier;
-import org.metagene.genestrip.store.FastqClassifier.StatsPerTaxid;
+import org.metagene.genestrip.store.FastqKMerMatcher;
+import org.metagene.genestrip.store.FastqKMerMatcher.StatsPerTaxid;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.store.ResultReporter;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
-public class ClassifyGoal extends FileListGoal<GSProject> {
+public class MatchGoal extends FileListGoal<GSProject> {
 	private final File fastq;
 	private final KMerStoreFileGoal storeGoal;
 	private final boolean writedFiltered;
 
 	@SafeVarargs
-	public ClassifyGoal(GSProject project, String name, File fastq, KMerStoreFileGoal storeGoal, boolean writeFiltered,
+	public MatchGoal(GSProject project, String name, File fastq, KMerStoreFileGoal storeGoal, boolean writeFiltered,
 			Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, fastq, FileType.CSV, false),
 				ArraysUtil.append(deps, storeGoal));
@@ -58,7 +58,7 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 
 	@Override
 	protected void makeFile(File file) {
-		FastqClassifier c = null;
+		FastqKMerMatcher c = null;
 		try {
 			File filteredFile = null;
 			File krakenOutStyleFile = null;
@@ -70,7 +70,7 @@ public class ClassifyGoal extends FileListGoal<GSProject> {
 			KMerStoreWrapper wrapper = KMerStoreWrapper.load(storeGoal.getFile());
 
 			GSConfig config = getProject().getConfig();
-			c = new FastqClassifier(wrapper.getKmerStore(), config.getMaxReadSizeBytes(),
+			c = new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(),
 					config.getThreadQueueSize(), config.getThreads(), config.isCountUniqueKmers());
 			List<StatsPerTaxid> res = c.runClassifier(fastq, filteredFile, krakenOutStyleFile);
 			c.dump();
