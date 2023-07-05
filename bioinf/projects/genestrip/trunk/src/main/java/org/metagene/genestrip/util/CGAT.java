@@ -107,7 +107,7 @@ public class CGAT {
 		return res;
 	}
 
-	public static long kmerToLongStraight(byte[] seq, int start, int k, int[] badPos) {
+	public static long kMerToLongStraight(byte[] seq, int start, int k, int[] badPos) {
 		long res = 0;
 		int c;
 		if (badPos != null) {
@@ -130,7 +130,7 @@ public class CGAT {
 		return res;
 	}
 
-	public static long kmerToLongReverse(byte[] seq, int start, int k, int[] badPos) {
+	public static long kMerToLongReverse(byte[] seq, int start, int k, int[] badPos) {
 		long res = 0;
 		int c;
 		if (badPos != null) {

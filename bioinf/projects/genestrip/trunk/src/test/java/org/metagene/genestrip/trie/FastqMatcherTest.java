@@ -81,7 +81,7 @@ public class FastqMatcherTest {
 
 			for (int j = 0; j < taxids.length; j++) {
 				StatsPerTaxid stats = matcher.getStats(taxids[j]);
-				assertEquals(stats.getKmers(), counters[j]);
+				assertEquals(stats.getKMers(), counters[j]);
 				assertEquals(counters[j], matcher.getDuplicationCount().getKmerCount((long) j));
 				assertEquals(contigs[j], stats.getContigs());
 				assertEquals(maxContigLen[j], stats.getMaxContigLen());
