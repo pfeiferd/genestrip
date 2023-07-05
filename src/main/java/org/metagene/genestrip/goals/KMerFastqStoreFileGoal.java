@@ -65,7 +65,7 @@ public class KMerFastqStoreFileGoal extends FileListGoal<GSProject> {
 				taxIds.add(node.getTaxId());
 			}
 
-			MyAbstractFastqReader fastqReader = new MyAbstractFastqReader(getProject().getConfig().getkMerSize(),
+			MyAbstractFastqReader fastqReader = new MyAbstractFastqReader(getProject().getConfig().getKMerSize(),
 					getProject().getConfig().getMaxReadSizeBytes()) {
 				@Override
 				protected void nextEntry(ReadEntry readEntry) throws IOException {
