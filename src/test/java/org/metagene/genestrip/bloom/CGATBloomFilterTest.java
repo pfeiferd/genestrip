@@ -161,7 +161,7 @@ public class CGATBloomFilterTest {
 		String outGoal = project.getConfig().isUseKraken1() ? "sort" : "kmerkrakenout";
 		File fromKraken = ((FileGoal<GSProject>) main.getMaker().getGoal(outGoal)).getFile();
 
-		MurmurCGATBloomFilter cgatBloomFilter = createFilter(project.getkMserSize(), size, fpp);
+		MurmurCGATBloomFilter cgatBloomFilter = createFilter(project.getKMserSize(), size, fpp);
 
 		@SuppressWarnings("unchecked")
 		ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal = (ObjectGoal<Set<TaxIdNode>, GSProject>) main.getMaker()

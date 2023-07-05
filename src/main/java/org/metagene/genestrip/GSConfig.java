@@ -105,8 +105,8 @@ public class GSConfig {
 		return Double.valueOf(properties.getProperty("posRatioFilter", "0.2"));
 	}
 
-	public double getKmerFastBloomFpp() {
-		return Double.valueOf(properties.getProperty("kmerFastBloomFpp", " 0.00000000001"));
+	public double getKMerFastBloomFpp() {
+		return Double.valueOf(properties.getProperty("kMerFastBloomFpp", " 0.00000000001"));
 	}
 
 	public String getKrakenBin() {
@@ -146,7 +146,7 @@ public class GSConfig {
 		return properties.getProperty("httpBaseURL", NCBI_HTTP_BASE_URL);
 	}
 
-	public int getkMerSize() {
+	public int getKMerSize() {
 		return Integer.valueOf(properties.getProperty("kMerSize", "35"));
 	}
 

@@ -157,8 +157,8 @@ public class GSProject implements DownloadProject,  KMerStoreFactory {
 		return config.getBaseDir();
 	}
 
-	public int getkMserSize() {
-		return kMserSize <= 0 ? config.getkMerSize() : kMserSize;
+	public int getKMserSize() {
+		return kMserSize <= 0 ? config.getKMerSize() : kMserSize;
 	}
 
 	public FTPEntryQuality getFastaQuality() {
@@ -216,10 +216,10 @@ public class GSProject implements DownloadProject,  KMerStoreFactory {
 	@Override
 	public <V extends Serializable> KMerStore<V> createKMerStore(Class<V> clazz, Object... params) {
 		if (config.isUseTrie()) {
-			return new KMerTrie<V>(2, getkMserSize(), false);
+			return new KMerTrie<V>(2, getKMserSize(), false);
 		}
 		else {
-			return new KMerSortedArray<V>(getkMserSize(), 0.000000001, null);
+			return new KMerSortedArray<V>(getKMserSize(), 0.000000001, null);
 		}
 	}
 }
