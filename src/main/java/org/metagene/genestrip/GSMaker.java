@@ -35,7 +35,7 @@ import java.util.Set;
 import org.metagene.genestrip.goals.AssemblyFileDownloadGoal;
 import org.metagene.genestrip.goals.BloomFilterFileGoal;
 import org.metagene.genestrip.goals.BloomFilterSizeGoal;
-import org.metagene.genestrip.goals.ClassifyGoal;
+import org.metagene.genestrip.goals.MatchGoal;
 import org.metagene.genestrip.goals.FastaFileDownloadGoal;
 import org.metagene.genestrip.goals.FilterGoal;
 import org.metagene.genestrip.goals.KMerFastqGoal;
@@ -235,7 +235,7 @@ public class GSMaker extends Maker<GSProject> {
 					project.getConfig().isWriteDumpedFastq(), bloomFilterFileGoal, projectSetupGoal);
 			registerGoal(filterGoal);
 
-			Goal<GSProject> classifyGoal = new ClassifyGoal(project, "match", fastq, trieGoal,
+			Goal<GSProject> classifyGoal = new MatchGoal(project, "match", fastq, trieGoal,
 					project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
 			registerGoal(classifyGoal);
 

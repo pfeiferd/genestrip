@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.metagene.genestrip.store.FastqClassifier.StatsPerTaxid;
+import org.metagene.genestrip.store.FastqKMerMatcher.StatsPerTaxid;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 public class ResultReporter {
