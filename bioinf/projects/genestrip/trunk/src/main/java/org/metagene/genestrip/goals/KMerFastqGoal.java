@@ -60,8 +60,8 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 			ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fastaFilesGoal, Goal<GSProject>... deps) {
 		super(project, name, (List<File>) null, ArraysUtil.append(deps, fastaFilesGoal));
 		this.fastaFilesGoal = fastaFilesGoal;
-		generator = new KMerFastqGenerator(getName(), getProject().getkMserSize(),
-				getProject().getConfig().getKmerFastBloomFpp(), getProject().getConfig().getMaxReadSizeBytes(),
+		generator = new KMerFastqGenerator(getName(), getProject().getKMserSize(),
+				getProject().getConfig().getKMerFastBloomFpp(), getProject().getConfig().getMaxReadSizeBytes(),
 				getProject().isIgnoreMissingFiles());
 
 		tempFile = project.getOutputFile(name + "_temp", FileType.FASTQ);
