@@ -338,7 +338,11 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		}
 
 		public void flush(PrintStream out) {
-			out.print("U\t");
+			if (readTaxId != null) {
+				out.print("U\t");
+			} else {
+				out.print("C\t");
+			}
 			ByteArrayUtil.print(readDescriptor, out);
 			out.print('\t');
 			if (readTaxId != null) {
