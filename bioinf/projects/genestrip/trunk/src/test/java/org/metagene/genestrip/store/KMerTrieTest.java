@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
-import org.metagene.genestrip.store.KMerTrie;
 import org.metagene.genestrip.store.KMerTrie.KMerTrieVisitor;
 import org.metagene.genestrip.util.CGAT;
 
