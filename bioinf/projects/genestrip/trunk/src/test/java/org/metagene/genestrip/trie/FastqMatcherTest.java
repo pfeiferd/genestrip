@@ -7,9 +7,9 @@ import java.util.Map;
 import java.util.Random;
 
 import org.junit.Test;
-import org.metagene.genestrip.store.FastqKMerMatcher;
-import org.metagene.genestrip.store.FastqKMerMatcher.MyReadEntry;
-import org.metagene.genestrip.store.FastqKMerMatcher.StatsPerTaxid;
+import org.metagene.genestrip.match.FastqKMerMatcher;
+import org.metagene.genestrip.match.FastqKMerMatcher.MyReadEntry;
+import org.metagene.genestrip.match.FastqKMerMatcher.StatsPerTaxid;
 import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGAT;
