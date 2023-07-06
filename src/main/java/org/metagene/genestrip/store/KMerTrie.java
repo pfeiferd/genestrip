@@ -30,6 +30,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.util.Map;
 
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATRingBuffer;
@@ -118,6 +119,11 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 		default:
 			throw new IOException("Inconsistent serialization format for kmer trie.");
 		}
+	}
+	
+	@Override
+	public Map<V, Long> getNKmersPerTaxid() {
+		throw new UnsupportedOperationException("Not yet implemented.");
 	}
 	
 	@Override

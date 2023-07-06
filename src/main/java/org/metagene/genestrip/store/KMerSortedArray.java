@@ -2,7 +2,9 @@ package org.metagene.genestrip.store;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
 import org.metagene.genestrip.util.CGAT;
@@ -117,6 +119,30 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	}
 
 	@Override
+	public Map<V, Long> getNKmersPerTaxid() {
+		long[] countArray = new long[nextValueIndex - 1];
+		if (large) {
+			for (long i = 0; i < entries; i++) {
+				short index = BigArrays.get(largeValueIndexes, i);
+				countArray[index - 1]++;
+			}
+		} else {
+			for (int i = 0; i < entries; i++) {
+				short index = valueIndexes[i];
+				countArray[index - 1]++;
+			}
+		}
+
+		Map<V, Long> map = new HashMap<V, Long>();
+		for (short index = 1; index < nextValueIndex; index++) {
+			map.put(indexMap.get(index), countArray[index - 1]);
+		}
+		map.put(null, entries);
+		
+		return map;
+	}
+
+	@Override
 	public int getMaxValues() {
 		return 65534;
 	}
@@ -208,13 +234,13 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		short index;
 		if (sorted) {
 			if (large) {
-				long pos = LongBigArrays.binarySearch(largeKmers, kmer);
+				long pos = LongBigArrays.binarySearch(largeKmers, 0, entries, kmer);
 				if (pos < 0) {
 					return null;
 				}
 				index = BigArrays.get(largeValueIndexes, pos);
 			} else {
-				int pos = Arrays.binarySearch(kmers, kmer);
+				int pos = Arrays.binarySearch(kmers, 0, (int) entries, kmer);
 				if (pos < 0) {
 					return null;
 				}
@@ -223,12 +249,11 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		} else {
 			if (large) {
 				long pos = -1;
-				long length = BigArrays.length(largeKmers);
-				for (long i = 0; i < length; i++) {
+				for (long i = 0; i < entries; i++) {
 					if (BigArrays.get(largeKmers, i) == kmer) {
 						pos = i;
 						break;
-					}					
+					}
 				}
 				if (pos < 0) {
 					return null;
@@ -236,7 +261,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				index = BigArrays.get(largeValueIndexes, pos);
 			} else {
 				int pos = -1;
-				for (int i = 0; i < kmers.length; i++) {
+				for (int i = 0; i < entries; i++) {
 					if (kmers[i] == kmer) {
 						pos = i;
 						break;
