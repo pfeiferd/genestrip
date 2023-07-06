@@ -26,9 +26,6 @@ package org.metagene.genestrip.store;
 
 import java.io.Serializable;
 
-import org.metagene.genestrip.store.KMerSortedArray;
-import org.metagene.genestrip.store.KMerStore;
-
 public class KMerSortedArrayTest extends AbstractKMerStoreTest {
 	@Override
 	public <V extends Serializable> KMerStore<V> createKMerStore(Class<V> clazz, Object... params) {
