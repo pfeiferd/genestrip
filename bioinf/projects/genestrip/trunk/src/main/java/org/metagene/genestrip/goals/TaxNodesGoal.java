@@ -85,7 +85,8 @@ public class TaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
 			Rank rank = getProject().getConfig().getMaxRankForFilters();
 			taxIdNodes = taxIdCollector.restrictToMaxRank(rank, taxIdNodes);
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Number of tax ids restricted to rank " + rank  + ": " + taxIdNodes.size());
+				getLogger().info("Number of tax ids restricted to rank " + rank  + "or below: " + taxIdNodes.size());
+				getLogger().info("Final taxid nodes: " + taxIdNodes);
 			}
 			
 			set(taxIdNodes);
