@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.Random;
 
 import org.junit.Test;
-import org.metagene.genestrip.match.FastqKMerMatcher;
 import org.metagene.genestrip.match.FastqKMerMatcher.MyReadEntry;
 import org.metagene.genestrip.match.FastqKMerMatcher.StatsPerTaxid;
 import org.metagene.genestrip.store.KMerStore;
@@ -15,7 +14,7 @@ import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATRingBuffer;
 
-public class FastqMatcherTest {
+public class FastqKMerMatcherTest {
 	private Random random = new Random(42);
 	private static final String[] taxids = new String[] { "1", "2", "3" };
 
