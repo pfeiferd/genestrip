@@ -1,4 +1,4 @@
-package org.metagene.genestrip.trie;
+package org.metagene.genestrip.match;
 
 import static org.junit.Assert.assertEquals;
 
