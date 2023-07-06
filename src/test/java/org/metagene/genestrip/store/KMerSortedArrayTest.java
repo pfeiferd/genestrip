@@ -22,16 +22,16 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.trie;
+package org.metagene.genestrip.store;
 
 import java.io.Serializable;
 
 import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerStore;
 
-public class KMerLargeSortedArrayTest extends AbstractKMerStoreTest {
+public class KMerSortedArrayTest extends AbstractKMerStoreTest {
 	@Override
 	public <V extends Serializable> KMerStore<V> createKMerStore(Class<V> clazz, Object... params) {
-		return new KMerSortedArray<V>((int) params[0], 0.000001, null, true);
+		return new KMerSortedArray<V>((int) params[0], 0.000001, null, false);
 	}
 }
