@@ -22,7 +22,7 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.store;
+package org.metagene.genestrip.match;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.metagene.genestrip.fastq.AbstractFastqReader;
+import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.StreamProvider;

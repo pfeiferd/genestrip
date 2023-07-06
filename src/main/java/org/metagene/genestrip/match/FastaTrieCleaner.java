@@ -22,11 +22,12 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.store;
+package org.metagene.genestrip.match;
 
 import java.io.Serializable;
 
 import org.metagene.genestrip.fasta.AbstractFastaReader;
+import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.util.CGATRingBuffer;
 
 public abstract class FastaTrieCleaner<T extends Serializable> extends AbstractFastaReader {

@@ -1,12 +1,12 @@
-package org.metagene.genestrip.store;
+package org.metagene.genestrip.match;
 
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.metagene.genestrip.store.FastqKMerMatcher.Result;
-import org.metagene.genestrip.store.FastqKMerMatcher.StatsPerTaxid;
+import org.metagene.genestrip.match.FastqKMerMatcher.Result;
+import org.metagene.genestrip.match.FastqKMerMatcher.StatsPerTaxid;
 import org.metagene.genestrip.tax.TaxTree.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
