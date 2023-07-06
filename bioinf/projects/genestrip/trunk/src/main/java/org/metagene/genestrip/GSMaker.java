@@ -46,6 +46,7 @@ import org.metagene.genestrip.goals.KrakenOutGoal;
 import org.metagene.genestrip.goals.KrakenResCountGoal;
 import org.metagene.genestrip.goals.KrakenResErrorGoal;
 import org.metagene.genestrip.goals.SortKrakenOutGoal;
+import org.metagene.genestrip.goals.StoreInfoGoal;
 import org.metagene.genestrip.goals.TaxIdFileDownloadGoal;
 import org.metagene.genestrip.goals.TaxNodesGoal;
 import org.metagene.genestrip.goals.TrieFromKrakenResGoal;
@@ -182,17 +183,21 @@ public class GSMaker extends Maker<GSProject> {
 				krakenOutGoal);
 		registerGoal(bloomFilterSizeGoal);
 
-		KMerStoreFileGoal trieGoal = new KMerStoreFileGoal(project, "store", taxNodesGoal, krakenOutGoal, kmerFastqGoal,
+		KMerStoreFileGoal storeGoal = new KMerStoreFileGoal(project, "store", taxNodesGoal, krakenOutGoal, kmerFastqGoal,
 				bloomFilterSizeGoal, projectSetupGoal);
-		registerGoal(trieGoal);
+		registerGoal(storeGoal);
 
+		Goal<GSProject> storeInfoGoal = new StoreInfoGoal(project, "storeinfo", storeGoal, projectSetupGoal);
+		registerGoal(storeInfoGoal);
+				
 		KrakenFastqFileGoal krakenFastqGoal = new KrakenFastqFileGoal(project, "krakenfastq", taxNodesGoal,
 				krakenOutGoal, kmerFastqGoal, projectSetupGoal);
 		registerGoal(krakenFastqGoal);
 
-		Goal<GSProject> kMerFastqTrieFileGoal = new KMerFastqStoreFileGoal(project, "store2", taxNodesGoal,
+		Goal<GSProject> kMerFastqStoreFileGoal = new KMerFastqStoreFileGoal(project, "store2", taxNodesGoal,
 				krakenFastqGoal, projectSetupGoal);
-		registerGoal(kMerFastqTrieFileGoal);
+		registerGoal(kMerFastqStoreFileGoal);
+		
 
 		BloomFilterFileGoal bloomFilterFileGoal = new BloomFilterFileGoal(project, "bloom", bloomFilterSizeGoal,
 				taxNodesGoal, krakenOutGoal, kmerFastqGoal, projectSetupGoal);
@@ -217,7 +222,7 @@ public class GSMaker extends Maker<GSProject> {
 		};
 		registerGoal(showGoals);
 
-		Goal<GSProject> all = new Goal<GSProject>(project, "genall", kMerFastqTrieFileGoal, bloomFilterFileGoal) {
+		Goal<GSProject> all = new Goal<GSProject>(project, "genall", kMerFastqStoreFileGoal, bloomFilterFileGoal) {
 			@Override
 			public boolean isMade() {
 				return false;
@@ -235,7 +240,7 @@ public class GSMaker extends Maker<GSProject> {
 					project.getConfig().isWriteDumpedFastq(), bloomFilterFileGoal, projectSetupGoal);
 			registerGoal(filterGoal);
 
-			Goal<GSProject> classifyGoal = new MatchGoal(project, "match", fastq, trieGoal,
+			Goal<GSProject> classifyGoal = new MatchGoal(project, "match", fastq, storeGoal,
 					project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
 			registerGoal(classifyGoal);
 
