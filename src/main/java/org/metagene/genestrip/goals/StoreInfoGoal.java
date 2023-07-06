@@ -32,8 +32,8 @@ import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.match.ResultReporter;
 import org.metagene.genestrip.store.KMerStoreWrapper;
-import org.metagene.genestrip.store.ResultReporter;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 

@@ -41,7 +41,7 @@ import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.store.FastaTrieCleaner;
+import org.metagene.genestrip.match.FastaTrieCleaner;
 import org.metagene.genestrip.store.KMerTrie;
 import org.metagene.genestrip.store.KMerTrie.KMerTrieVisitor;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
