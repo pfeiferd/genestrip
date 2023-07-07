@@ -159,19 +159,20 @@ public class MurmurCGATBloomFilter implements Serializable {
 	}
 	
 	protected void putViaHash(long data) {
-		int index;
 		long hash;
 
 		if (large) {
+			long index;
 			for (int i = 0; i < hashes; i++) {
 				hash = hash(data, i);
-				index = (int) ((hash >>> 6) % bits.length);
+				index = ((hash >>> 6) % size);
 				BigArrays.set(largeBits, index, BigArrays.get(largeBits, index) | (1L << (hash & 0b111111)));
 			}
 		} else {
+			int index;
 			for (int i = 0; i < hashes; i++) {
 				hash = hash(data, i);
-				index = (int) ((hash >>> 6) % bits.length);
+				index = (int) ((hash >>> 6) % size);
 				bits[index] = bits[index] | (1L << (hash & 0b111111));
 			}
 		}
@@ -195,20 +196,21 @@ public class MurmurCGATBloomFilter implements Serializable {
 
 	protected boolean containsViaHash(long data) {
 		long hash;
-		int index;
 
 		if (large) {
+			long index;
 			for (int i = 0; i < hashes; i++) {
 				hash = hash(data, i);
-				index = (int) ((hash >>> 6) % bits.length);
+				index = ((hash >>> 6) % size);
 				if (((BigArrays.get(largeBits, index) >> (hash & 0b111111)) & 1L) == 0) {
 					return false;
 				}
 			}
 		} else {
+			int index;
 			for (int i = 0; i < hashes; i++) {
 				hash = hash(data, i);
-				index = (int) ((hash >>> 6) % bits.length);
+				index = (int) ((hash >>> 6) % size);
 				if (((bits[index] >> (hash & 0b111111)) & 1L) == 0) {
 					return false;
 				}
