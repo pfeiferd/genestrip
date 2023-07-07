@@ -162,7 +162,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			map.put(indexMap.get(index), countArray[index - 1]);
 		}
 		map.put(null, entries);
-		
+
 		return map;
 	}
 
@@ -211,7 +211,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			throw new IllegalStateException("Capacity exceeded.");
 		}
 		if (filter.containsLong(kmer)) {
-			V v = getLong(kmer);
+			V v = getLong(kmer, null);
 			if (v != null) {
 				return v.equals(value);
 			}
@@ -241,17 +241,23 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	@Override
 	public V get(CGATRingBuffer buffer, boolean reverse) {
 		long kmer = reverse ? CGAT.kmerToLongReverse(buffer) : CGAT.kmerToLongStraight(buffer);
-		return getLong(kmer);
+		return getLong(kmer, null);
 	}
 
 	@Override
 	public V get(byte[] nseq, int start, boolean reverse) {
 		long kmer = reverse ? CGAT.kMerToLongReverse(nseq, start, k, null)
 				: CGAT.kMerToLongStraight(nseq, start, k, null);
-		return getLong(kmer);
+		return getLong(kmer, null);
 	}
 
-	protected V getLong(long kmer) {
+	public V get(byte[] nseq, int start, boolean reverse, long[] indexStore) {
+		long kmer = reverse ? CGAT.kMerToLongReverse(nseq, start, k, null)
+				: CGAT.kMerToLongStraight(nseq, start, k, null);
+		return getLong(kmer, indexStore);
+	}
+
+	protected V getLong(long kmer, long[] indexStore) {
 		if (filter != null && !filter.containsLong(kmer)) {
 			return null;
 		}
@@ -296,6 +302,9 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				}
 				index = valueIndexes[pos];
 			}
+		}
+		if (indexStore != null) {
+			indexStore[0] = index;
 		}
 		return indexMap.get(index);
 	}
