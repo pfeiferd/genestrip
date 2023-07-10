@@ -35,8 +35,9 @@ import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.match.FastqKMerMatcher;
 import org.metagene.genestrip.match.ResultReporter;
-import org.metagene.genestrip.match.FastqKMerMatcher.Result;
+import org.metagene.genestrip.match.ResultReporter.Result;
 import org.metagene.genestrip.store.KMerStoreWrapper;
+import org.metagene.genestrip.store.KMerUniqueCounterBits;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
@@ -69,9 +70,11 @@ public class MatchGoal extends FileListGoal<GSProject> {
 			KMerStoreWrapper wrapper = KMerStoreWrapper.load(storeGoal.getFile());
 
 			GSConfig config = getProject().getConfig();
-			c = new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(),
-					config.getThreadQueueSize(), config.getThreads(), config.isCountUniqueKmers());
-			Result res = c.runClassifier(fastq, filteredFile, krakenOutStyleFile);
+
+			c = new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
+					config.getThreads());
+			Result res = c.runClassifier(fastq, filteredFile, krakenOutStyleFile,
+					config.isCountUniqueKmers() ? new KMerUniqueCounterBits(wrapper.getKmerStore()) : null);
 			c.dump();
 
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
@@ -84,5 +87,5 @@ public class MatchGoal extends FileListGoal<GSProject> {
 				c.dump();
 			}
 		}
-	}	
+	}
 }

@@ -39,19 +39,19 @@ import org.metagene.genestrip.util.StreamProvider;
 public class KMerStoreWrapper implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
-	private final KMerStore<String> kmerStore;
+	private final KMerSortedArray<String> kmerStore;
 	private final List<TaxIdNode> taxids;
 	
-	public KMerStoreWrapper(KMerStore<String> kmerStore, Set<TaxIdNode> taxids) {
+	public KMerStoreWrapper(KMerSortedArray<String> kmerStore, Set<TaxIdNode> taxids) {
 		this(kmerStore, TaxIdCollector.nodesAsShallowCopies(TaxIdCollector.sortNodes(taxids)));
 	}
 	
-	public KMerStoreWrapper(KMerStore<String> kmerStore, List<TaxIdNode> taxids) {
+	public KMerStoreWrapper(KMerSortedArray<String> kmerStore, List<TaxIdNode> taxids) {
 		this.kmerStore = kmerStore;
 		this.taxids = taxids;		
 	}
 	
-	public KMerStore<String> getKmerStore() {
+	public KMerSortedArray<String> getKmerStore() {
 		return kmerStore;
 	}
 	

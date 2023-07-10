@@ -26,9 +26,7 @@ package org.metagene.genestrip.store;
 
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
 import org.metagene.genestrip.util.CGAT;
@@ -38,6 +36,8 @@ import it.unimi.dsi.fastutil.BigArrays;
 import it.unimi.dsi.fastutil.BigSwapper;
 import it.unimi.dsi.fastutil.longs.LongBigArrays;
 import it.unimi.dsi.fastutil.longs.LongComparator;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
+import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ShortMap;
 import it.unimi.dsi.fastutil.objects.Object2ShortOpenHashMap;
 import it.unimi.dsi.fastutil.shorts.Short2ObjectMap;
@@ -76,11 +76,12 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		int s = initialValues == null ? 0 : initialValues.size();
 		indexMap = new Short2ObjectOpenHashMap<V>(s);
 		valueMap = new Object2ShortOpenHashMap<V>(s);
-		nextValueIndex = 1;
+		nextValueIndex = 0;
 		if (initialValues != null) {
 			for (V v : initialValues) {
-				if (nextValueIndex == 0) {
-					throw new IllegalStateException("Too many different values - only 65534 are possible.");
+				if (nextValueIndex == Short.MAX_VALUE) {
+					throw new IllegalStateException(
+							"Too many different values - only " + (Short.MAX_VALUE + 1) + " are possible.");
 				}
 				valueMap.put(v, nextValueIndex);
 				indexMap.put(nextValueIndex, v);
@@ -89,6 +90,18 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		}
 		filter = new MurmurCGATBloomFilter(k, fpp);
 		large = enforceLarge;
+	}
+
+	public int getNValues() {
+		return nextValueIndex;
+	}
+
+	public V getValueForIndex(short index) {
+		return indexMap.get(index);
+	}
+
+	public short getIndexForValue(V value) {
+		return valueMap.getOrDefault(value, (short) -1);
 	}
 
 	@Override
@@ -104,7 +117,8 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		if (expectedInsertions <= 0) {
 			throw new IllegalArgumentException("Expected insertions must be > 0.");
 		}
-		filter.clearAndEnsureCapacity(expectedInsertions);
+		filter.clear();
+		filter.ensureExpectedSize(expectedInsertions, false);
 
 		if (size >= expectedInsertions) {
 			clearArray();
@@ -142,8 +156,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		}
 	}
 
-	@Override
-	public Map<V, Long> getNKmersPerTaxid() {
+	public Object2LongMap<V> getNKmersPerTaxid() {
 		long[] countArray = new long[nextValueIndex - 1];
 		if (large) {
 			for (long i = 0; i < entries; i++) {
@@ -157,7 +170,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			}
 		}
 
-		Map<V, Long> map = new HashMap<V, Long>();
+		Object2LongMap<V> map = new Object2LongOpenHashMap<V>();
 		for (short index = 1; index < nextValueIndex; index++) {
 			map.put(indexMap.get(index), countArray[index - 1]);
 		}
@@ -166,9 +179,8 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		return map;
 	}
 
-	@Override
 	public int getMaxValues() {
-		return 65534;
+		return Short.MAX_VALUE + 1;
 	}
 
 	@Override
@@ -191,7 +203,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 	@Override
 	public boolean put(CGATRingBuffer buffer, V value, boolean reverse) {
-		long kmer = reverse ? CGAT.kmerToLongReverse(buffer) : CGAT.kmerToLongStraight(buffer);
+		long kmer = reverse ? CGAT.kMerToLongReverse(buffer) : CGAT.kMerToLongStraight(buffer);
 		return putLong(kmer, value);
 	}
 
@@ -218,8 +230,9 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		}
 		short sindex = valueMap.getShort(value);
 		if (sindex == valueMap.defaultReturnValue()) {
-			if (nextValueIndex == 0) {
-				throw new IllegalStateException("Too many different values - only 65534 are possible.");
+			if (nextValueIndex == Short.MAX_VALUE) {
+				throw new IllegalStateException(
+						"Too many different values - only " + (Short.MAX_VALUE + 1) + " are possible.");
 			}
 			valueMap.put(value, nextValueIndex);
 			indexMap.put(nextValueIndex, value);
@@ -240,7 +253,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 	@Override
 	public V get(CGATRingBuffer buffer, boolean reverse) {
-		long kmer = reverse ? CGAT.kmerToLongReverse(buffer) : CGAT.kmerToLongStraight(buffer);
+		long kmer = reverse ? CGAT.kMerToLongReverse(buffer) : CGAT.kMerToLongStraight(buffer);
 		return getLong(kmer, null);
 	}
 
@@ -257,7 +270,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		return getLong(kmer, indexStore);
 	}
 
-	protected V getLong(long kmer, long[] indexStore) {
+	public V getLong(long kmer, long[] indexStore) {
 		if (filter != null && !filter.containsLong(kmer)) {
 			return null;
 		}
@@ -382,4 +395,24 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			visitor.nextValue(this, kmer, value);
 		}
 	}
+
+	public void visit(KMerSortedArrayVisitor<V> visitor) {
+		long kmer;
+		short sindex;
+		for (long i = 0; i < entries; i++) {
+			if (large) {
+				kmer = BigArrays.get(largeKmers, i);
+				sindex = BigArrays.get(largeValueIndexes, i);
+			} else {
+				kmer = kmers[(int) i];
+				sindex = valueIndexes[(int) i];
+			}
+			visitor.nextValue(this, kmer, sindex, i);
+		}
+	}
+
+	public interface KMerSortedArrayVisitor<V extends Serializable> {
+		public void nextValue(KMerStore<V> trie, long kmer, short index, long i);
+	}
+
 }

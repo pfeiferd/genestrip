@@ -68,9 +68,10 @@ public class KMerFastqGenerator {
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Estimated total uncompressed size: " + (expectedSize / 1024 / 1024) + " MB");
 		}
-		index.getFilter().clearAndEnsureCapacity(expectedSize);
+		index.getFilter().clear();
+		index.getFilter().ensureExpectedSize(expectedSize, false);
 		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Bloom filter array size of " + index + ": " + index.getFilter().getByteSize() / 1024 + " KB");
+			getLogger().info("Bloom filter array size of " + index + ": " + index.getFilter().getBitSize() / 8 / 1024 + " KB");
 		}
 
 		int max = fastaFiles.size();

@@ -29,16 +29,11 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.util.Map;
 
 import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.StreamProvider;
 
 public interface KMerStore<V extends Serializable> extends Serializable {
-	public int getMaxValues();
-
-	public Map<V, Long> getNKmersPerTaxid();
-
 	public int getK();
 
 	public long getEntries();

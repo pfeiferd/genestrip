@@ -35,7 +35,7 @@ import org.metagene.genestrip.fastq.AbstractFastqReader;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.store.KMerStore;
+import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
@@ -58,7 +58,7 @@ public class KMerFastqStoreFileGoal extends FileListGoal<GSProject> {
 	protected void makeFile(File storeFile) {
 		try {
 			CountingDigitTrie countingDigitTrie = new CountingDigitTrie();
-			KMerStore<String> trie = getProject().getKMerStoreFactory().createKMerStore(String.class);
+			KMerSortedArray<String> store = (KMerSortedArray<String>) getProject().getKMerStoreFactory().createKMerStore(String.class);
 
 			Set<String> taxIds = new HashSet<String>();
 			for (TaxIdNode node : taxNodesGoal.get()) {
@@ -78,7 +78,7 @@ public class KMerFastqStoreFileGoal extends FileListGoal<GSProject> {
 					}
 					String taxid = countingDigitTrie.inc(readEntry.readDescriptor, pos, readEntry.readDescriptorSize);
 					if (taxIds.contains(taxid)) {
-						if (!trie.put(readEntry.read, 0, taxid, false)) {
+						if (!store.put(readEntry.read, 0, taxid, false)) {
 							if (getLogger().isInfoEnabled()) {
 								getLogger().info("Duplicate entry for read regarding taxid " + taxid);
 							}							
@@ -91,11 +91,11 @@ public class KMerFastqStoreFileGoal extends FileListGoal<GSProject> {
 			}
 
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Store entries: " + trie.getEntries());
+				getLogger().info("Store entries: " + store.getEntries());
 				getLogger().info("Saving file " + storeFile);
 			}
-			trie.optimize();			
-			KMerStoreWrapper wrapper = new KMerStoreWrapper(trie, taxNodesGoal.get());			
+			store.optimize();			
+			KMerStoreWrapper wrapper = new KMerStoreWrapper(store, taxNodesGoal.get());			
 			wrapper.save(storeFile);
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Saved file " + storeFile);

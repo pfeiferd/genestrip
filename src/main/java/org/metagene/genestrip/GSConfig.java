@@ -81,9 +81,9 @@ public class GSConfig {
 		return Boolean.valueOf(properties.getProperty("useGenBank", "false"));
 	}
 	
-	public boolean isUseTrie() {
-		return Boolean.valueOf(properties.getProperty("useTrie", "false"));		
-	}
+//	public boolean isUseTrie() {
+//		return Boolean.valueOf(properties.getProperty("useTrie", "false"));		
+//	}
 
 	public boolean isWriteDumpedFastq() {
 		return Boolean.valueOf(properties.getProperty("writeDumpedFastq", "false"));

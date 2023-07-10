@@ -33,24 +33,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.metagene.genestrip.fastq.AbstractFastqReader;
+import org.metagene.genestrip.match.ResultReporter.Result;
+import org.metagene.genestrip.match.ResultReporter.StatsPerTaxid;
 import org.metagene.genestrip.store.KMerSortedArray;
-import org.metagene.genestrip.store.KMerStore;
+import org.metagene.genestrip.store.KMerUniqueCounter;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGAT;
-import org.metagene.genestrip.util.LargeBitVector;
 import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.objects.ObjectCollection;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 
 public class FastqKMerMatcher extends AbstractFastqReader {
 	public static final long DEFAULT_LOG_UPDATE_CYCLE = 1000000;
 
-	private final KMerStore<String> kmerStore;
-	protected final KmerDuplicationCount duplicationCount;
+	private final KMerSortedArray<String> kmerStore;
 
+	protected KMerUniqueCounter uniqueCounter;
 	protected TaxidStatsTrie root;
 
 	private ByteCountingInputStreamAccess byteCountAccess;
@@ -66,11 +65,9 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	// multi threading when using it.
 	protected PrintStream out;
 
-	public FastqKMerMatcher(KMerStore<String> kmerStore, int maxReadSize, int maxQueueSize, int consumerNumber,
-			boolean withDupCount) {
+	public FastqKMerMatcher(KMerSortedArray<String> kmerStore, int maxReadSize, int maxQueueSize, int consumerNumber) {
 		super(kmerStore.getK(), maxReadSize, maxQueueSize, consumerNumber);
 		this.kmerStore = kmerStore;
-		duplicationCount = withDupCount ? new KmerDuplicationCount(kmerStore) : null;
 	}
 
 	@Override
@@ -78,7 +75,8 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		return new MyReadEntry(maxReadSizeBytes, k);
 	}
 
-	public Result runClassifier(File fastq, File filteredFile, File krakenOutStyleFile) throws IOException {
+	public Result runClassifier(File fastq, File filteredFile, File krakenOutStyleFile,
+			KMerUniqueCounter uniqueCounter) throws IOException {
 		byteCountAccess = StreamProvider.getByteCountingInputStreamForFile(fastq, false);
 		fastqFileSize = Files.size(fastq.toPath());
 
@@ -98,8 +96,9 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		startTime = System.currentTimeMillis();
 
 		initRoot();
-		if (duplicationCount != null) {
-			duplicationCount.clear();
+		this.uniqueCounter = uniqueCounter;
+		if (uniqueCounter != null) {
+			uniqueCounter.clear();
 		}
 
 		readFastq(byteCountAccess.getInputStream());
@@ -110,20 +109,23 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		}
 		byteCountAccess.getInputStream().close();
 
-		List<StatsPerTaxid> counts = new ArrayList<FastqKMerMatcher.StatsPerTaxid>();
-		root.collectValues(counts);
+		List<StatsPerTaxid> allStats = new ArrayList<StatsPerTaxid>();
+		root.collectValues(allStats);
+		root = null;
 
-		if (duplicationCount != null) {
-			for (StatsPerTaxid stats : counts) {
-				stats.uniqueKmers = duplicationCount.getUniqeKmers(stats.taxid);
+		if (uniqueCounter != null) {
+			Object2IntMap<String> counts = uniqueCounter.getUniqueKmerCounts();
+			for (StatsPerTaxid stats : allStats) {
+				stats.uniqueKmers = counts.getInt(stats.getTaxid());
 			}
+			this.uniqueCounter = null;
 		} else {
-			for (StatsPerTaxid stats : counts) {
+			for (StatsPerTaxid stats : allStats) {
 				stats.uniqueKmers = -1;
 			}
 		}
 
-		return new Result(counts, reads, kMers);
+		return new Result(allStats, reads, kMers);
 	}
 
 	protected void initRoot() {
@@ -213,7 +215,10 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		StatsPerTaxid stats = null;
 
 		for (int i = 0; i <= max; i++) {
-			taxid = kmerStore.get(entry.read, i, reverse);
+			long kmer = reverse ? CGAT.kMerToLongReverse(entry.read, i, k, null)
+					: CGAT.kMerToLongStraight(entry.read, i, k, null);
+
+			taxid = kmerStore.getLong(kmer, entry.indexPos);
 			if (contigLen > 0 && taxid != lastTaxid) {
 				if (out != null) {
 					printKrakenStyleOut(entry, lastTaxid, contigLen, prints++, reverse);
@@ -250,8 +255,8 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 					}
 					found = true;
 				}
-				if (duplicationCount != null) {
-					duplicationCount.put(taxid, entry, i, reverse);
+				if (uniqueCounter != null) {
+					uniqueCounter.put(kmer, taxid, entry.indexPos[0]);
 				}
 			} else {
 				stats = null;
@@ -351,101 +356,6 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		}
 	}
 
-	protected static class KmerDuplicationCount {
-		private final LargeBitVector bitVector;
-		private final Long2ObjectMap<String> map;
-		private final int k;
-
-		public KmerDuplicationCount(KMerStore<String> store) {
-			this.k = store.getK();
-			if (store instanceof KMerSortedArray) {
-				map = null;
-				bitVector = new LargeBitVector(store.getSize());
-			} else {
-				map = new Long2ObjectOpenHashMap<String>();
-				bitVector = null;
-			}
-		}
-
-		public void clear() {
-			if (map != null) {
-				map.clear();
-			} else {
-				bitVector.clear();
-			}
-		}
-
-		public void put(long index) {
-			bitVector.set(index);
-		}
-
-		public void put(String taxid, MyReadEntry entry, int start, boolean reverse) {
-			long kmer;
-			if (reverse) {
-				kmer = CGAT.kMerToLongReverse(entry.read, start, k, null);
-			} else {
-				kmer = CGAT.kMerToLongStraight(entry.read, start, k, null);
-			}
-
-			synchronized (map) {
-				map.put(kmer, taxid);
-			}
-		}
-
-		public int getUniqeKmers(String taxid) {
-			if (map != null) {
-				int res = 0;
-				ObjectCollection<String> entries = map.values();
-				for (String s : entries) {
-					if (s == taxid) {
-						res++;
-					}
-				}
-				return res;
-			}
-			else {
-				// TODO
-			}
-		}
-	}
-
-	public static class StatsPerTaxid {
-		protected String taxid;
-		protected long reads;
-		protected long uniqueKmers;
-		protected long kmers;
-		protected int maxContigLen;
-		protected int contigs;
-
-		public StatsPerTaxid(String taxid) {
-			this.taxid = taxid;
-		}
-
-		public String getTaxid() {
-			return taxid;
-		}
-
-		public int getContigs() {
-			return contigs;
-		}
-
-		public long getKMers() {
-			return kmers;
-		}
-
-		public int getMaxContigLen() {
-			return maxContigLen;
-		}
-
-		public long getReads() {
-			return reads;
-		}
-
-		public long getUniqueKMers() {
-			return uniqueKmers;
-		}
-	}
-
 	protected static class TaxidStatsTrie {
 		private TaxidStatsTrie[] children;
 		private StatsPerTaxid value;
@@ -508,27 +418,4 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		}
 	}
 
-	public static class Result {
-		private final List<StatsPerTaxid> stats;
-		private final long totalReads;
-		private final long totalKMers;
-
-		public Result(List<StatsPerTaxid> stats, long totalReads, long totalKMers) {
-			this.stats = stats;
-			this.totalReads = totalReads;
-			this.totalKMers = totalKMers;
-		}
-
-		public List<StatsPerTaxid> getStats() {
-			return stats;
-		}
-
-		public long getTotalKMers() {
-			return totalKMers;
-		}
-
-		public long getTotalReads() {
-			return totalReads;
-		}
-	}
 }

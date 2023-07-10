@@ -93,6 +93,16 @@ public class LargeBitVector {
 		return size * 64;
 	}
 
+	public void clear(long index) {
+		if (largeBits != null) {
+			long arrayIndex = ((index >>> 6) % size);
+			BigArrays.set(largeBits, arrayIndex, BigArrays.get(largeBits, arrayIndex) & ~(1L << (index & 0b111111)));
+		} else {
+			int arrayIndex = (int) ((index >>> 6) % size);
+			bits[arrayIndex] = bits[arrayIndex] & ~(1L << (index & 0b111111));
+		}
+	}
+	
 	public void set(long index) {
 		if (largeBits != null) {
 			long arrayIndex = ((index >>> 6) % size);

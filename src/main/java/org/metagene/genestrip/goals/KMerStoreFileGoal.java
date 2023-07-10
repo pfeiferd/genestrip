@@ -38,6 +38,7 @@ import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
@@ -116,7 +117,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 				getLogger().info("Saving file " + storeFile);
 			}
 			store.optimize();
-			KMerStoreWrapper wrapper = new KMerStoreWrapper(store, taxNodesGoal.get());
+			KMerStoreWrapper wrapper = new KMerStoreWrapper((KMerSortedArray<String>) store, taxNodesGoal.get());
 			wrapper.save(storeFile);
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("File saved " + storeFile);
@@ -125,7 +126,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	private abstract static class MyKrakenResultFastqMergeListener implements KrakenResultFastqMergeListener {
 		protected long counter = 0;
 	}
