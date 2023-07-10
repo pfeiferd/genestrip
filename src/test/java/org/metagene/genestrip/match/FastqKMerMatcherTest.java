@@ -52,8 +52,8 @@ public class FastqKMerMatcherTest {
 	}
 
 	protected void testMatchReadHelp(boolean bitMap) {
-		int readLength = 10;
-		int entries = 200;
+		int readLength = 150;
+		int entries = 2000;
 
 		KMerSortedArray<String> store = new KMerSortedArray<String>(1, 0.0001, Arrays.asList(TAXIDS), false);
 		store.initSize(3);

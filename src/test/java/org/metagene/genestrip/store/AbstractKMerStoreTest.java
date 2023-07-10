@@ -193,7 +193,7 @@ public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
 					readAsList.add(read[j]);
 				}
 			}
-			int v = i % (KMerSortedArray.MAX_VALUES - 1);
+			int v = i % KMerSortedArray.MAX_VALUES;
 			store.put(read, 0, v, false);
 			if (controlMap != null) {
 				controlMap.put(readAsList, v);
