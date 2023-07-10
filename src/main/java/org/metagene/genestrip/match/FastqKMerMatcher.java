@@ -96,10 +96,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		startTime = System.currentTimeMillis();
 
 		initRoot();
-		this.uniqueCounter = uniqueCounter;
-		if (uniqueCounter != null) {
-			uniqueCounter.clear();
-		}
+		initUniqueCounter(uniqueCounter);
 
 		readFastq(byteCountAccess.getInputStream());
 
@@ -130,6 +127,13 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 
 	protected void initRoot() {
 		root = new TaxidStatsTrie();
+	}
+	
+	protected void initUniqueCounter(KMerUniqueCounter uniqueCounter) {
+		this.uniqueCounter = uniqueCounter;
+		if (uniqueCounter != null) {
+			uniqueCounter.clear();
+		}
 	}
 
 	@Override
