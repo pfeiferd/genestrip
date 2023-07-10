@@ -148,42 +148,21 @@ public class FastqBloomFilter extends AbstractFastqReader {
 
 		MyReadEntry re = (MyReadEntry) readStruct;
 
-		// The two cases where intoduced for optimization purposes.
-		if (reverse) {
-			for (int i = 0; i < max; i++) {
-				if (filter.containsReverse(readStruct.read, i, re.badPos)) {
-					counter++;
-					if (counter >= minPosCount) {
-						return true;
-					}
-				} else {
-					if (re.badPos[0] >= 0) {
-						i += re.badPos[0];
-					}
-					negCounter++;
-					if (negCounter > negThreshold) {
-						return false;
-					}
+		for (int i = 0; i < max; i++) {
+			if (filter.contains(readStruct.read, i, re.badPos, reverse)) {
+				counter++;
+				if (counter >= minPosCount) {
+					return true;
+				}
+			} else {
+				if (re.badPos[0] >= 0) {
+					i += re.badPos[0];
+				}
+				negCounter++;
+				if (negCounter > negThreshold) {
+					return false;
 				}
 			}
-		}
-		else {
-			for (int i = 0; i < max; i++) {
-				if (filter.containsStraight(readStruct.read, i, re.badPos)) {
-					counter++;
-					if (counter >= minPosCount) {
-						return true;
-					}
-				} else {
-					if (re.badPos[0] >= 0) {
-						i += re.badPos[0];
-					}
-					negCounter++;
-					if (negCounter > negThreshold) {
-						return false;
-					}
-				}
-			}			
 		}
 
 		return false;
@@ -197,46 +176,23 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		int negCounterThreshold = max - posCounterThrehold;
 
 		MyReadEntry re = (MyReadEntry) readStruct;
-		
-		// The two cases where intoduced for optimization purposes.
-		if (reverse) {
-			for (int i = 0; i < max; i++) {
-				if (filter.containsReverse(readStruct.read, i, re.badPos)) {
-					counter++;
-					if (counter >= posCounterThrehold) {
-						return true;
-					}
-				} else {
-					if (re.badPos[0] >= 0) {
-						i += re.badPos[0];
-					}
-					negCounter++;
-					if (negCounter > negCounterThreshold) {
-						return false;
-					}
+
+		for (int i = 0; i < max; i++) {
+			if (filter.contains(readStruct.read, i, re.badPos, reverse)) {
+				counter++;
+				if (counter >= posCounterThrehold) {
+					return true;
+				}
+			} else {
+				if (re.badPos[0] >= 0) {
+					i += re.badPos[0];
+				}
+				negCounter++;
+				if (negCounter > negCounterThreshold) {
+					return false;
 				}
 			}
 		}
-		else {
-			for (int i = 0; i < max; i++) {
-				if (filter.containsStraight(readStruct.read, i, re.badPos)) {
-					counter++;
-					if (counter >= posCounterThrehold) {
-						return true;
-					}
-				} else {
-					if (re.badPos[0] >= 0) {
-						i += re.badPos[0];
-					}
-					negCounter++;
-					if (negCounter > negCounterThreshold) {
-						return false;
-					}
-				}
-			}
-		}
-		
-		
 
 		return false;
 	}

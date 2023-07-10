@@ -27,34 +27,69 @@ package org.metagene.genestrip.util;
 import java.util.Arrays;
 
 import it.unimi.dsi.fastutil.BigArrays;
+import it.unimi.dsi.fastutil.longs.LongBigArrays;
 
 public class LargeBitVector {
 	public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
 
-	private final long size;
-	protected final long[] bits;
-	protected final long[][] largeBits;
+	protected long size;
+	protected long[] bits;
+	protected long[][] largeBits;
 
-	public LargeBitVector(long size) {
-		this.size = (size + 63) / 64;
-		if (size > MAX_SMALL_CAPACITY) {
-			bits = null;
-			largeBits = BigArrays.ensureCapacity(BigArrays.wrap(new long[0]), size);
-		} else {
-			bits = new long[(int) size];
-			largeBits = null;
-		}
+	public LargeBitVector(long initialSize) {
+		this(initialSize, false);
 	}
-	
+
+	public LargeBitVector(long initialSize, boolean enforceLarge) {
+		size = 0;
+		ensureCapacity(initialSize, enforceLarge);
+	}
+
 	public void clear() {
 		if (largeBits != null) {
 			BigArrays.fill(largeBits, 0);
-		} else {
+		} else if (bits != null) {
 			Arrays.fill(bits, 0);
-		}		
+		}
 	}
-	
-	public long getSizeBitSize() {
+
+	/**
+	 * Ensure that the bit vector has at least the desired size. The bit vector
+	 * might be enlarged but never gets smaller in size.
+	 * 
+	 * @param newSize The desired size in bits.
+	 * @return Whether the vector got bigger or not.
+	 */
+	public boolean ensureCapacity(long newSize, boolean enforceLarge) {
+		newSize = (newSize + 63) / 64;
+		if (newSize > size) {
+			size = newSize;
+			if (size > MAX_SMALL_CAPACITY || enforceLarge) {
+				if (bits != null) {
+					largeBits = BigArrays.wrap(bits);
+				}
+				largeBits = BigArrays.ensureCapacity(largeBits == null ? LongBigArrays.EMPTY_BIG_ARRAY : largeBits,
+						size);
+				bits = null;
+			} else {
+				long[] oldBits = bits;
+				bits = new long[(int) size];
+				if (oldBits != null) {
+					System.arraycopy(oldBits, 0, bits, 0, oldBits.length);
+				}
+				largeBits = null;
+			}
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	public boolean isLarge() {
+		return largeBits != null;
+	}
+
+	public long getBitSize() {
 		return size * 64;
 	}
 
