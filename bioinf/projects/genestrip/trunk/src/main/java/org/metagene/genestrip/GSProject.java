@@ -31,7 +31,6 @@ import org.metagene.genestrip.make.FileDownloadGoal.DownloadProject;
 import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.store.KMerStoreFactory;
-import org.metagene.genestrip.store.KMerTrie;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
 
 public class GSProject implements DownloadProject,  KMerStoreFactory {
@@ -215,11 +214,11 @@ public class GSProject implements DownloadProject,  KMerStoreFactory {
 	
 	@Override
 	public <V extends Serializable> KMerStore<V> createKMerStore(Class<V> clazz, Object... params) {
-		if (config.isUseTrie()) {
-			return new KMerTrie<V>(2, getKMserSize(), false);
-		}
-		else {
+//		if (config.isUseTrie()) {
+//			return new KMerTrie<V>(2, getKMserSize(), false);
+//		}
+//		else {
 			return new KMerSortedArray<V>(getKMserSize(), 0.000000001, null);
-		}
+//		}
 	}
 }
