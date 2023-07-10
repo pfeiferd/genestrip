@@ -1,13 +1,13 @@
 package org.metagene.genestrip.store;
 
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 public interface KMerUniqueCounter {
+	public void clear();
 
-	void clear();
+	public void put(long kmer, String taxid, long index);
 
-	void put(long kmer, String taxid, long index);
-
-	Object2IntMap<String> getUniqueKmerCounts();
-
+	public Object2LongMap<String> getUniqueKmerCounts();
+	
+	public int getUniqueKmerCount(String taxid);
 }

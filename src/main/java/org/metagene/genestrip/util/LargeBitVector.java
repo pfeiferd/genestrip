@@ -24,12 +24,15 @@
  */
 package org.metagene.genestrip.util;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 import it.unimi.dsi.fastutil.BigArrays;
 import it.unimi.dsi.fastutil.longs.LongBigArrays;
 
-public class LargeBitVector {
+public class LargeBitVector implements Serializable{
+	private static final long serialVersionUID = 1L;
+
 	public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
 
 	protected long size;

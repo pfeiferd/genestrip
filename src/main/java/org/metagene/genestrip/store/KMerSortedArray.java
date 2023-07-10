@@ -101,7 +101,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	public short getIndexForValue(V value) {
 		return valueMap.getOrDefault(value, (short) -1);
 	}
-	
+
 	@Override
 	public void initSize(long size) {
 		if (initSize) {
@@ -207,8 +207,8 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				return v.equals(value);
 			}
 		}
-		short sindex = valueMap.getShort(value);
-		if (sindex == valueMap.defaultReturnValue()) {
+		short sindex = valueMap.getOrDefault(value, (short) -1);
+		if (sindex == -1) {
 			if (nextValueIndex == Short.MAX_VALUE) {
 				throw new IllegalStateException("Too many different values - only " + MAX_VALUES + " are possible.");
 			}
