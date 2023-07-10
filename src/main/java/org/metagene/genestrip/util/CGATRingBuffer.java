@@ -33,8 +33,6 @@ public class CGATRingBuffer implements Serializable {
 	// Made public for fast access:
 	public int end;
 	public byte[] data;
-	public byte[] directPut;
-	public int directPutStart;
 	public boolean filled;
 
 	private int invalidCPos;

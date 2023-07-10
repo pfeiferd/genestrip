@@ -61,7 +61,6 @@ public class AbstractKMerBloomIndex implements Serializable {
 	}
 
 	public void put(byte bite) {
-		byteRingBuffer.directPut = null;
 		byteRingBuffer.put(bite);
 		if (byteRingBuffer.filled && byteRingBuffer.isCGAT()) {
 			if (putListener != null) {
