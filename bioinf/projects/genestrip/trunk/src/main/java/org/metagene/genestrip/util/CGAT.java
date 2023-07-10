@@ -80,7 +80,11 @@ public class CGAT {
 		return CGAT_COMPLEMENT[c];
 	}
 
-	public static long kmerToLongStraight(CGATRingBuffer buffer) {
+	public static long kMerToLong(CGATRingBuffer buffer, boolean reverse) {
+		return reverse ? kMerToLongReverse(buffer) : kMerToLongStraight(buffer);
+	}
+	
+	public static long kMerToLongStraight(CGATRingBuffer buffer) {
 		long res = 0;
 		int c;
 		int k = buffer.getSize();
@@ -94,7 +98,7 @@ public class CGAT {
 		return res;
 	}
 
-	public static long kmerToLongReverse(CGATRingBuffer buffer) {
+	public static long kMerToLongReverse(CGATRingBuffer buffer) {
 		long res = 0;
 		int c;
 		for (int i = buffer.getSize() - 1; i >= 0; i--) {
@@ -105,6 +109,10 @@ public class CGAT {
 		}
 
 		return res;
+	}
+	
+	public static long kMerToLong(byte[] seq, int start, int k, int[] badPos, boolean reverse) {
+		return reverse ? kMerToLongReverse(seq, start, k, badPos) : kMerToLongStraight(seq, start, k, badPos);
 	}
 
 	public static long kMerToLongStraight(byte[] seq, int start, int k, int[] badPos) {
