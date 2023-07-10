@@ -113,7 +113,7 @@ public class MurmurCGATBloomFilter implements Serializable {
 	}
 
 	public void put(CGATRingBuffer buffer) {
-		putViaHash(CGAT.kmerToLongStraight(buffer));
+		putViaHash(CGAT.kMerToLongStraight(buffer));
 	}
 
 	public void put(byte[] seq, int start) {
@@ -149,7 +149,7 @@ public class MurmurCGATBloomFilter implements Serializable {
 	}
 
 	public boolean contains(CGATRingBuffer buffer, boolean reverse) {
-		long data = reverse ? CGAT.kmerToLongReverse(buffer) : CGAT.kmerToLongStraight(buffer);
+		long data = reverse ? CGAT.kMerToLongReverse(buffer) : CGAT.kMerToLongStraight(buffer);
 		return containsViaHash(data);
 	}
 
