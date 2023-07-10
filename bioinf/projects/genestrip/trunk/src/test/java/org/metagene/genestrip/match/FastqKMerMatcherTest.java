@@ -25,6 +25,7 @@
 package org.metagene.genestrip.match;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.util.Arrays;
 import java.util.Random;
@@ -33,30 +34,38 @@ import org.junit.Test;
 import org.metagene.genestrip.match.FastqKMerMatcher.MyReadEntry;
 import org.metagene.genestrip.match.ResultReporter.StatsPerTaxid;
 import org.metagene.genestrip.store.KMerSortedArray;
+import org.metagene.genestrip.store.KMerUniqueCounter;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
+import org.metagene.genestrip.store.KMerUniqueCounterMap;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGAT;
 
 public class FastqKMerMatcherTest {
 	private static final String[] TAXIDS = new String[] { "1", "2", "3" };
-	
+
 	private Random random = new Random(42);
 
 	@Test
 	public void testMatchRead() {
-		int readLength = 150;
+		testMatchReadHelp(true);
+		testMatchReadHelp(false);
+	}
+
+	protected void testMatchReadHelp(boolean bitMap) {
+		int readLength = 10;
 		int entries = 200;
-		
+
 		KMerSortedArray<String> store = new KMerSortedArray<String>(1, 0.0001, Arrays.asList(TAXIDS), false);
+		store.initSize(3);
 		byte[] read = new byte[] { 'C' };
 		store.put(read, 0, TAXIDS[0], false);
 		read[0] = 'G';
-		store.put(read, 0, TAXIDS[0], false);
+		store.put(read, 0, TAXIDS[1], false);
 		read[0] = 'A';
-		store.put(read, 0, TAXIDS[0], false);
+		store.put(read, 0, TAXIDS[2], false);
 
 		MyFastqMatcher matcher = new MyFastqMatcher(store, readLength, 1, 0);
-		KMerUniqueCounterBits uniqueCounterMap = new KMerUniqueCounterBits(store);
+		KMerUniqueCounter uniqueCounter = bitMap ? new KMerUniqueCounterMap() : new KMerUniqueCounterBits(store);
 
 		MyReadEntry entry = new MyReadEntry(2000, 1);
 		entry.readSize = readLength;
@@ -66,23 +75,25 @@ public class FastqKMerMatcherTest {
 		int[] maxContigLen = new int[TAXIDS.length];
 		int previousPos = 0;
 		int contigLen;
+		boolean[] used = new boolean[TAXIDS.length];
 
 		for (int i = 1; i <= entries; i++) {
 			// We check correctness of stats for each read separately.
 			Arrays.fill(counters, 0);
 			Arrays.fill(contigs, 0);
 			Arrays.fill(maxContigLen, 0);
+			Arrays.fill(used, false);
 			matcher.initRoot();
-			uniqueCounterMap.clear();
+			matcher.initUniqueCounter(uniqueCounter);
 			entry.bufferPos = 0;
 			contigLen = 0;
 
 			for (int j = 0; j < readLength; j++) {
 				int pos = random.nextInt(4);
 				entry.read[j] = CGAT.DECODE_TABLE[pos];
-				System.out.print((char) entry.read[j]);
 				if (pos != 3) {
 					counters[pos]++;
+					used[pos] = true;
 				}
 				if (j > 0) {
 					if (pos != previousPos) {
@@ -104,7 +115,6 @@ public class FastqKMerMatcherTest {
 					maxContigLen[previousPos] = contigLen;
 				}
 			}
-			ByteArrayUtil.print(entry.read, System.out);
 			matcher.classifyRead(entry, false);
 
 			ByteArrayUtil.print(entry.read, System.out);
@@ -114,16 +124,21 @@ public class FastqKMerMatcherTest {
 
 			for (int j = 0; j < TAXIDS.length; j++) {
 				StatsPerTaxid stats = matcher.getStats(TAXIDS[j]);
-				assertEquals(stats.getKMers(), counters[j]);
-				assertEquals(counters[j], uniqueCounterMap.getUniqueKmerCount(TAXIDS[j]));
-				assertEquals(contigs[j], stats.getContigs());
-				assertEquals(maxContigLen[j], stats.getMaxContigLen());
+				if (!used[j]) {
+					assertNull(stats);
+				} else {
+					assertEquals(counters[j], stats.getKMers());
+					assertEquals(used[j] ? 1 : 0, uniqueCounter.getUniqueKmerCount(TAXIDS[j]));
+					assertEquals(contigs[j], stats.getContigs());
+					assertEquals(maxContigLen[j], stats.getMaxContigLen());
+				}
 			}
 		}
 	}
 
 	protected static class MyFastqMatcher extends FastqKMerMatcher {
-		public MyFastqMatcher(KMerSortedArray<String> kmerStore, int maxReadSize, int maxQueueSize, int consumerNumber) {
+		public MyFastqMatcher(KMerSortedArray<String> kmerStore, int maxReadSize, int maxQueueSize,
+				int consumerNumber) {
 			super(kmerStore, maxReadSize, maxQueueSize, consumerNumber);
 			out = System.out;
 		}
@@ -131,6 +146,11 @@ public class FastqKMerMatcherTest {
 		@Override
 		public void initRoot() {
 			super.initRoot();
+		}
+
+		@Override
+		public void initUniqueCounter(KMerUniqueCounter uniqueCounter) {
+			super.initUniqueCounter(uniqueCounter);
 		}
 
 		public StatsPerTaxid getStats(String taxid) {
