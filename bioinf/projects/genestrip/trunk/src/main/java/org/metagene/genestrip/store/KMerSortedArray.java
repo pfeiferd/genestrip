@@ -44,6 +44,8 @@ import it.unimi.dsi.fastutil.shorts.Short2ObjectMap;
 import it.unimi.dsi.fastutil.shorts.Short2ObjectOpenHashMap;
 
 public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
+	public static final int MAX_VALUES = Short.MAX_VALUE + 1;
+
 	private static final long serialVersionUID = 1L;
 
 	public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
@@ -57,19 +59,15 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	private final int k;
 	private final Object2ShortMap<V> valueMap;
 	private final Short2ObjectMap<V> indexMap;
+	private final boolean enforceLarge;
 
 	protected long size;
 
 	private long entries;
 	private boolean sorted;
-	private boolean large;
 	private boolean initSize;
 	private short nextValueIndex;
 	private MurmurCGATBloomFilter filter;
-
-	public KMerSortedArray(int k, double fpp, List<V> initialValues) {
-		this(k, fpp, initialValues, false);
-	}
 
 	public KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge) {
 		this.k = k;
@@ -77,11 +75,12 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		indexMap = new Short2ObjectOpenHashMap<V>(s);
 		valueMap = new Object2ShortOpenHashMap<V>(s);
 		nextValueIndex = 0;
+		this.enforceLarge = enforceLarge;
 		if (initialValues != null) {
 			for (V v : initialValues) {
-				if (nextValueIndex == Short.MAX_VALUE) {
+				if (nextValueIndex == MAX_VALUES) {
 					throw new IllegalStateException(
-							"Too many different values - only " + (Short.MAX_VALUE + 1) + " are possible.");
+							"Too many different values - only " + MAX_VALUES + " are possible.");
 				}
 				valueMap.put(v, nextValueIndex);
 				indexMap.put(nextValueIndex, v);
@@ -89,7 +88,6 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			}
 		}
 		filter = new MurmurCGATBloomFilter(k, fpp);
-		large = enforceLarge;
 	}
 
 	public int getNValues() {
@@ -103,43 +101,23 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	public short getIndexForValue(V value) {
 		return valueMap.getOrDefault(value, (short) -1);
 	}
-
+	
 	@Override
-	public void initSize(long expectedInsertions) {
+	public void initSize(long size) {
 		if (initSize) {
 			throw new IllegalStateException("Cant initlialize size twice.");
 		}
-		initSize = true;
-		clearAndEnsureCapacity(expectedInsertions);
-	}
-
-	public void clearAndEnsureCapacity(long expectedInsertions) {
-		if (expectedInsertions <= 0) {
+		if (size <= 0) {
 			throw new IllegalArgumentException("Expected insertions must be > 0.");
 		}
+		initSize = true;
 		filter.clear();
-		filter.ensureExpectedSize(expectedInsertions, false);
+		filter.ensureExpectedSize(size, false);
+		this.size = size;
 
-		if (size >= expectedInsertions) {
-			clearArray();
-		} else {
-			size = expectedInsertions;
-			initBitArray();
-		}
-	}
-
-	protected void initBitArray() {
-		if (size > MAX_SMALL_CAPACITY || large == true) {
-			large = true;
-			kmers = null;
-			valueIndexes = null;
-			if (largeKmers == null) {
-				largeKmers = BigArrays.ensureCapacity(BigArrays.wrap(new long[0]), size);
-				largeValueIndexes = BigArrays.ensureCapacity(BigArrays.wrap(new short[0]), size);
-			} else {
-				largeKmers = BigArrays.ensureCapacity(largeKmers, size);
-				largeValueIndexes = BigArrays.ensureCapacity(largeValueIndexes, size);
-			}
+		if (size > MAX_SMALL_CAPACITY || enforceLarge) {
+			largeKmers = BigArrays.ensureCapacity(BigArrays.wrap(new long[0]), size);
+			largeValueIndexes = BigArrays.ensureCapacity(BigArrays.wrap(new short[0]), size);
 		} else {
 			kmers = new long[(int) size];
 			valueIndexes = new short[(int) size];
@@ -147,7 +125,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	}
 
 	protected void clearArray() {
-		if (large) {
+		if (largeKmers != null) {
 			BigArrays.fill(largeKmers, 0);
 			BigArrays.fill(largeValueIndexes, (short) 0);
 		} else {
@@ -158,7 +136,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 	public Object2LongMap<V> getNKmersPerTaxid() {
 		long[] countArray = new long[nextValueIndex - 1];
-		if (large) {
+		if (largeKmers != null) {
 			for (long i = 0; i < entries; i++) {
 				short index = BigArrays.get(largeValueIndexes, i);
 				countArray[index - 1]++;
@@ -193,12 +171,13 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		return entries;
 	}
 
+	@Override
 	public long getSize() {
 		return size;
 	}
 
 	public boolean isLarge() {
-		return large;
+		return largeKmers != null;
 	}
 
 	@Override
@@ -231,15 +210,14 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		short sindex = valueMap.getShort(value);
 		if (sindex == valueMap.defaultReturnValue()) {
 			if (nextValueIndex == Short.MAX_VALUE) {
-				throw new IllegalStateException(
-						"Too many different values - only " + (Short.MAX_VALUE + 1) + " are possible.");
+				throw new IllegalStateException("Too many different values - only " + MAX_VALUES + " are possible.");
 			}
 			valueMap.put(value, nextValueIndex);
 			indexMap.put(nextValueIndex, value);
 			sindex = nextValueIndex;
 			nextValueIndex++;
 		}
-		if (large) {
+		if (largeKmers != null) {
 			BigArrays.set(largeKmers, entries, kmer);
 			BigArrays.set(largeValueIndexes, entries, sindex);
 		} else {
@@ -276,7 +254,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		}
 		short index;
 		if (sorted) {
-			if (large) {
+			if (largeKmers != null) {
 				long pos = LongBigArrays.binarySearch(largeKmers, 0, entries, kmer);
 				if (pos < 0) {
 					return null;
@@ -290,7 +268,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				index = valueIndexes[pos];
 			}
 		} else {
-			if (large) {
+			if (largeKmers != null) {
 				long pos = -1;
 				for (long i = 0; i < entries; i++) {
 					if (BigArrays.get(largeKmers, i) == kmer) {
@@ -327,7 +305,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		if (sorted) {
 			return;
 		}
-		if (large) {
+		if (largeKmers != null) {
 			BigArrays.quickSort(0, entries, new LongComparator() {
 				@Override
 				public int compare(long k1, long k2) {
@@ -384,7 +362,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		long kmer;
 		short sindex;
 		for (long i = 0; i < entries; i++) {
-			if (large) {
+			if (largeKmers != null) {
 				kmer = BigArrays.get(largeKmers, i);
 				sindex = BigArrays.get(largeValueIndexes, i);
 			} else {
@@ -400,7 +378,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		long kmer;
 		short sindex;
 		for (long i = 0; i < entries; i++) {
-			if (large) {
+			if (largeKmers != null) {
 				kmer = BigArrays.get(largeKmers, i);
 				sindex = BigArrays.get(largeValueIndexes, i);
 			} else {

@@ -28,7 +28,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.PrintStream;
 import java.io.Serializable;
 
 import org.metagene.genestrip.util.CGAT;
@@ -51,7 +50,7 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 	public KMerTrie(int len, boolean allowDoubleEntry) {
 		this(2, len, false);
 	}
-
+	
 	public KMerTrie(int factor, int len, boolean allowDoubleEntry) {
 		if (factor > 3 || factor < 1) {
 			throw new IllegalArgumentException("factor must be >= 1 and <= 3");
@@ -138,7 +137,8 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 	public void initSize(long size) {
 		// Intentionally empty.
 	}
-
+	
+	@Override
 	public boolean put(CGATRingBuffer buffer, V value, boolean reverse) {
 		if (compressed) {
 			throw new IllegalStateException("Cant insert in compressed trie");
@@ -183,6 +183,7 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 		}
 	}
 
+	@Override
 	public boolean put(byte[] nseq, int start, V value, boolean reverse) {
 		if (compressed) {
 			throw new IllegalStateException("Cant insert in compressed trie");
@@ -268,6 +269,7 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 	}
 
 	@SuppressWarnings("unchecked")
+	@Override
 	public V get(CGATRingBuffer buffer, boolean reverse) {
 		Object node = root;
 
@@ -308,6 +310,7 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 	}
 
 	@SuppressWarnings("unchecked")
+	@Override
 	public V get(byte[] nseq, int start, boolean reverse) {
 		Object node = root;
 
@@ -558,45 +561,6 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 				throw new IOException("Inconsistent serialization format for kmer trie.");
 			}
 		}
-	}
-
-	public void writeAsJSON(PrintStream out) {
-		writeAsJSONHelp(out, root);
-	}
-
-	protected void writeAsJSONHelp(PrintStream out, Object node) {
-		if (node instanceof Object[]) {
-			Object[] array = (Object[]) node;
-			out.print('[');
-			for (int i = 0; i < array.length; i++) {
-				if (i != 0) {
-					out.print(',');
-				}
-				writeAsJSONHelp(out, array[i]);
-			}
-			out.print(']');
-		} else if (node instanceof SmallNode) {
-			out.print('[');
-			out.print('\"');
-			SmallNode sn = (SmallNode) node;
-			for (int pos = 0; pos != -1; pos = sn.nextPos(pos)) {
-				out.print((char) sn.getPosVal(pos));
-			}
-			out.print('\"');
-			out.print(',');
-			writeAsJSONHelp(out, sn.next);
-			out.print(']');
-		} else if (node instanceof String) {
-			out.print('\"');
-			out.print(node);
-			out.print('\"');
-		} else {
-			valueToJSON(out, node);
-		}
-	}
-
-	protected void valueToJSON(PrintStream out, Object value) {
-		out.print(value);
 	}
 
 	public void save(File trieFile) throws IOException {
