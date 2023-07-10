@@ -183,7 +183,7 @@ public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
 			Map<Long, Integer> controlMap2) {
 		byte[] read = new byte[store.getK()];
 		List<Byte> readAsList = null;
-		for (int i = 1; i <= nEntries; i++) {
+		for (int i = 0; i < nEntries; i++) {
 			if (controlMap != null) {
 				readAsList = new ArrayList<Byte>();
 			}
@@ -193,7 +193,7 @@ public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
 					readAsList.add(read[j]);
 				}
 			}
-			int v = i % KMerSortedArray.MAX_VALUES;
+			int v = i % (KMerSortedArray.MAX_VALUES - 1);
 			store.put(read, 0, v, false);
 			if (controlMap != null) {
 				controlMap.put(readAsList, v);

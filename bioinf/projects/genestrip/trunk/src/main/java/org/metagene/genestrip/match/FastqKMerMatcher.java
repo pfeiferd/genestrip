@@ -42,7 +42,7 @@ import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 public class FastqKMerMatcher extends AbstractFastqReader {
 	public static final long DEFAULT_LOG_UPDATE_CYCLE = 1000000;
@@ -114,9 +114,9 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		root = null;
 
 		if (uniqueCounter != null) {
-			Object2IntMap<String> counts = uniqueCounter.getUniqueKmerCounts();
+			Object2LongMap<String> counts = uniqueCounter.getUniqueKmerCounts();
 			for (StatsPerTaxid stats : allStats) {
-				stats.uniqueKmers = counts.getInt(stats.getTaxid());
+				stats.uniqueKmers = counts.getLong(stats.getTaxid());
 			}
 			this.uniqueCounter = null;
 		} else {

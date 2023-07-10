@@ -3,8 +3,8 @@ package org.metagene.genestrip.store;
 import org.metagene.genestrip.store.KMerSortedArray.KMerSortedArrayVisitor;
 import org.metagene.genestrip.util.LargeBitVector;
 
-import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2LongLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 public class KMerUniqueCounterBits implements KMerUniqueCounter {
 	private final KMerSortedArray<String> store;
@@ -26,10 +26,10 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 	}
 
 	@Override
-	public Object2IntMap<String> getUniqueKmerCounts() {
-		Object2IntMap<String> res = new Object2IntLinkedOpenHashMap<String>();
-		int[] valueCounter = new int[store.getNValues()];
-		((KMerSortedArray<String>) store).visit(new KMerSortedArrayVisitor<String>() {
+	public Object2LongMap<String> getUniqueKmerCounts() {
+		Object2LongMap<String> res = new Object2LongLinkedOpenHashMap<String>();
+		long[] valueCounter = new long[store.getNValues()];
+		store.visit(new KMerSortedArrayVisitor<String>() {
 			@Override
 			public void nextValue(KMerStore<String> trie, long kmer, short index, long i) {
 				if (bitVector.get(i)) {
@@ -43,5 +43,24 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 		}
 
 		return res;
+	}
+	
+	@Override
+	public int getUniqueKmerCount(String taxid) {
+		final short sindex = store.getIndexForValue(taxid);
+		if (sindex < 0) {
+			return 0;
+		}
+		int[] count = new int[1];
+		store.visit(new KMerSortedArrayVisitor<String>() {
+			@Override
+			public void nextValue(KMerStore<String> trie, long kmer, short index, long i) {
+				if (index == sindex && bitVector.get(i)) {
+					count[0]++;
+				}
+			}
+		});
+		
+		return count[0];
 	}
 }
