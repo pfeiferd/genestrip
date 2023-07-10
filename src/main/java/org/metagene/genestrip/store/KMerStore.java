@@ -34,11 +34,11 @@ import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.StreamProvider;
 
 public interface KMerStore<V extends Serializable> extends Serializable {
+	public void initSize(long size);
+	
 	public int getK();
 
 	public long getEntries();
-
-	public void initSize(long size);
 
 	public long getSize();
 
