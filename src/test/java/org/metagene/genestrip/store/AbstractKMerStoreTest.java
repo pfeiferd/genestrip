@@ -80,7 +80,8 @@ public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
 		final KMerStore<String> store = createKMerStore(String.class, project.getKMserSize());
 
 		MurmurCGATBloomFilter bloomFilter = new MurmurCGATBloomFilter(store.getK(), 0.00001);
-		bloomFilter.clearAndEnsureCapacity(5 * 1000 * 1000);
+		bloomFilter.clear();
+		bloomFilter.ensureExpectedSize(5 * 1000 * 1000, false);
 
 		@SuppressWarnings("unchecked")
 		ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal = (ObjectGoal<Set<TaxIdNode>, GSProject>) main.getMaker()
@@ -138,7 +139,7 @@ public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
 			for (int j = 0; j < read.length; j++) {
 				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
 			}
-			if (!bloomFilter.containsStraight(read, 0, null)) {
+			if (!bloomFilter.contains(read, 0, null, false)) {
 				assertNull(trie.get(read, 0, false));
 			}
 		}
@@ -180,7 +181,6 @@ public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
 
 	protected void fillStore(int nEntries, KMerStore<Integer> store, Map<List<Byte>, Integer> controlMap,
 			Map<Long, Integer> controlMap2) {
-		int maxValue = store.getMaxValues();
 		byte[] read = new byte[store.getK()];
 		List<Byte> readAsList = null;
 		for (int i = 1; i <= nEntries; i++) {
@@ -193,7 +193,7 @@ public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
 					readAsList.add(read[j]);
 				}
 			}
-			int v = maxValue == -1 ? i : i % store.getMaxValues();
+			int v = i % KMerSortedArray.MAX_VALUES;
 			store.put(read, 0, v, false);
 			if (controlMap != null) {
 				controlMap.put(readAsList, v);
