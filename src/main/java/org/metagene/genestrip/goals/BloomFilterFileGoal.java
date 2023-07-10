@@ -73,12 +73,13 @@ public class BloomFilterFileGoal extends FileListGoal<GSProject> {
 			// So keep it to a minimum.
 			// Maybe there is more (bad stuff) to it.
 			long size = Math.max(1000 * 10000, sizeGoal.get());
-			bloomIndex.getFilter().clearAndEnsureCapacity(size);
+			bloomIndex.getFilter().clear();
+			bloomIndex.getFilter().ensureExpectedSize(size, false);
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Number of k-mers for " + bloomIndex + ": " + sizeGoal.get());
 				getLogger().info("Bloom filter array size of " + bloomIndex + ": "
-						+ bloomIndex.getFilter().getByteSize() / 1024 + "KB");
+						+ bloomIndex.getFilter().getBitSize() / 8 /  1024 + "KB");
 			}
 
 			Set<String> taxIds = new HashSet<String>();
