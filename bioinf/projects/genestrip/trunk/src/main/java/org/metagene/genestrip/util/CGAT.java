@@ -29,7 +29,9 @@ public class CGAT {
 	public static final byte[] CGAT_COMPLEMENT = new byte[127];
 	public static final int[] CGAT_JUMP_TABLE;
 	public static final int[] CGAT_REVERSE_JUMP_TABLE;
-	public static final byte[] DECODE_TABLE, REVERSE_DECODE_TABLE;
+	
+	public static final byte[] DECODE_TABLE = new byte[] { 'C', 'G', 'A', 'T' };
+	public static final byte[] REVERSE_DECODE_TABLE = new byte[] { 'G', 'C', 'T', 'A' };
 
 	static {
 		for (int i = 0; i < CGAT_TO_UPPER_CASE.length; i++) {
@@ -63,9 +65,6 @@ public class CGAT {
 		CGAT_REVERSE_JUMP_TABLE['G'] = 0;
 		CGAT_REVERSE_JUMP_TABLE['A'] = 3;
 		CGAT_REVERSE_JUMP_TABLE['T'] = 2;
-
-		DECODE_TABLE = new byte[] { 'C', 'G', 'A', 'T' };
-		REVERSE_DECODE_TABLE = new byte[] { 'G', 'C', 'T', 'A' };
 	}
 
 	public static byte cgatToUpperCase(byte c) {
@@ -83,7 +82,7 @@ public class CGAT {
 	public static long kMerToLong(CGATRingBuffer buffer, boolean reverse) {
 		return reverse ? kMerToLongReverse(buffer) : kMerToLongStraight(buffer);
 	}
-	
+
 	public static long kMerToLongStraight(CGATRingBuffer buffer) {
 		long res = 0;
 		int c;
@@ -110,7 +109,7 @@ public class CGAT {
 
 		return res;
 	}
-	
+
 	public static long kMerToLong(byte[] seq, int start, int k, int[] badPos, boolean reverse) {
 		return reverse ? kMerToLongReverse(seq, start, k, badPos) : kMerToLongStraight(seq, start, k, badPos);
 	}
@@ -174,5 +173,5 @@ public class CGAT {
 		if (start == end) {
 			seq[start] = CGAT_COMPLEMENT[seq[start]];
 		}
-	}	
+	}
 }
