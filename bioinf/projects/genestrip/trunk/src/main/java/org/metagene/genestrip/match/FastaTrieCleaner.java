@@ -44,7 +44,7 @@ public abstract class FastaTrieCleaner<T extends Serializable> extends AbstractF
 	protected void dataLine() {
 		for (int i = 0; i < size - 1; i++) {
 			ringBuffer.put(target[i]);
-			if (ringBuffer.filled && ringBuffer.isCGAT()) {
+			if (ringBuffer.isFilled() && ringBuffer.isCGAT()) {
 				T res = trie.get(ringBuffer, false);
 //				System.out.println(res + ": Found " + ringBuffer);
 				if (isMatchingValue(res)) {

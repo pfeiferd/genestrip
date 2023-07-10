@@ -30,11 +30,9 @@ import java.io.Serializable;
 public class CGATRingBuffer implements Serializable {
 	private static final long serialVersionUID = 1L;
 
-	// Made public for fast access:
-	public int end;
-	public byte[] data;
-	public boolean filled;
-
+	private int end;
+	private byte[] data;
+	private boolean filled;
 	private int invalidCPos;
 
 	public CGATRingBuffer(int size) {
