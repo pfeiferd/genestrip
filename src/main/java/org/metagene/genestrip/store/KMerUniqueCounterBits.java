@@ -12,7 +12,7 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 
 	public KMerUniqueCounterBits(KMerSortedArray<String> store) {
 		this.store = store;
-		bitVector = new LargeBitVector(store.getSize());
+		bitVector = new LargeBitVector(store.getEntries());
 	}
 
 	@Override
