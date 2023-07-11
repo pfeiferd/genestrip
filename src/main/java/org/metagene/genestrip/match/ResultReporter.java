@@ -43,14 +43,18 @@ public class ResultReporter {
 	}
 
 	public void printStoreInfo(Map<String, StoreStatsPerTaxid> allStats, PrintStream out) {
-		out.println("name;rank;taxid;stored kmers;total kmers;contigs;average contig length;max contig length;");
+		out.println("name;rank;taxid;stored kmers;total kmers;stored ratio;contigs;average contig length;max contig length;");
+
+		StoreStatsPerTaxid stats = allStats.get(null);
 		out.print("TOTAL;");
 		out.print(Rank.SUPERKINGDOM);
 		out.print(';');
 		out.print("1;");
-		out.print(allStats.get(null).getStoredKMers());
+		out.print(stats.getStoredKMers());
 		out.print(';');
-		out.print(allStats.get(null).getTotalKMers());
+		out.print(stats.getTotalKMers());
+		out.print(';');
+		out.print(((double) stats.getStoredKMers()) / stats.getTotalKMers());
 		out.print(';');
 		out.print(0);
 		out.print(';');
@@ -58,8 +62,9 @@ public class ResultReporter {
 		out.print(';');
 		out.print(0);
 		out.println(';');
+
 		for (TaxIdNode taxNode : taxids) {
-			StoreStatsPerTaxid stats = allStats.get(taxNode.getTaxId());
+			stats = allStats.get(taxNode.getTaxId());
 			if (stats != null) {
 				out.print(taxNode.getName());
 				out.print(';');
@@ -70,6 +75,8 @@ public class ResultReporter {
 				out.print(stats.getStoredKMers());
 				out.print(';');
 				out.print(stats.getTotalKMers());
+				out.print(';');
+				out.print(((double) stats.getStoredKMers()) / stats.getTotalKMers());
 				out.print(';');
 				out.print(stats.getContigs());
 				out.print(';');
