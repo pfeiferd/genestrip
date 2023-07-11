@@ -40,6 +40,8 @@ import org.metagene.genestrip.store.KMerUniqueCounterMap;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGAT;
 
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
+
 public class FastqKMerMatcherTest {
 	private static final String[] TAXIDS = new String[] { "1", "2", "3" };
 
@@ -52,7 +54,7 @@ public class FastqKMerMatcherTest {
 	}
 
 	protected void testMatchReadHelp(boolean bitMap) {
-		int readLength = 150;
+		int readLength = 5;
 		int entries = 2000;
 
 		KMerSortedArray<String> store = new KMerSortedArray<String>(1, 0.0001, Arrays.asList(TAXIDS), false);
@@ -122,6 +124,7 @@ public class FastqKMerMatcherTest {
 			System.out.write(entry.buffer, 0, entry.bufferPos);
 			System.out.println();
 
+			Object2LongMap<String> map = uniqueCounter.getUniqueKmerCounts();
 			for (int j = 0; j < TAXIDS.length; j++) {
 				StatsPerTaxid stats = matcher.getStats(TAXIDS[j]);
 				if (!used[j]) {
@@ -129,6 +132,7 @@ public class FastqKMerMatcherTest {
 				} else {
 					assertEquals(counters[j], stats.getKMers());
 					assertEquals(used[j] ? 1 : 0, uniqueCounter.getUniqueKmerCount(TAXIDS[j]));
+					assertEquals(used[j] ? 1 : 0, map.getLong(TAXIDS[j]));
 					assertEquals(contigs[j], stats.getContigs());
 					assertEquals(maxContigLen[j], stats.getMaxContigLen());
 				}
