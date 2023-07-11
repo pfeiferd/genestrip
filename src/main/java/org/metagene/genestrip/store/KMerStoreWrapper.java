@@ -84,6 +84,7 @@ public class KMerStoreWrapper implements Serializable {
 	public static class StoreStatsPerTaxid implements Serializable {
 		private static final long serialVersionUID = 1L;
 		
+		// TODO: Nicer to use setter methods here... (?)
 		public long totalKMers;
 		public long storedKMers;
 		public long contigs;
