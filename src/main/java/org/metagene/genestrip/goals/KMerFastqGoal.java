@@ -53,7 +53,7 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 	private final File tempFile;
 	
 	private Map<File, TaxIdNode> fileToCollectNode;
-	private Map<TaxIdNode, Set<File>> taxToFastas;
+	private Map<TaxIdNode, Map<TaxIdNode,File>> taxToFastas;
 
 	@SafeVarargs
 	public KMerFastqGoal(GSProject project, String name,
@@ -70,8 +70,9 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 	@Override
 	protected void provideFiles() {
 		Rank maxRank = getProject().getConfig().getMaxRankForFilters();
-		taxToFastas = new HashMap<TaxIdNode, Set<File>>();
+		taxToFastas = new HashMap<TaxIdNode, Map<TaxIdNode,File>>();
 		for (TaxIdNode key : fastaFilesGoal.get().keySet()) {
+			TaxIdNode fastaFileNode = key;
 			List<FTPEntryWithQuality> entries = fastaFilesGoal.get().get(key);
 			while (key.getRank() != null && key.getRank().isBelow(maxRank)) {
 				key = key.getParent();
@@ -82,16 +83,16 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 				}
 				continue;
 			}
-			Set<File> files = taxToFastas.get(key);
+			Map<TaxIdNode, File> files = taxToFastas.get(key);
 			boolean isNew = false;
 			if (files == null) {
 				isNew = true;
-				files = new HashSet<File>();
+				files = new HashMap<TaxIdNode,File>();
 			}
 			FTPEntryQuality minQuality = getProject().getConfig().getFastaQuality();
 			for (FTPEntryWithQuality entry : entries) {
 				if (minQuality == null || !entry.getQuality().below(minQuality)) {
-					files.add(new File(getProject().getFastasDir(), entry.getFileName()));
+					files.put(fastaFileNode, new File(getProject().getFastasDir(), entry.getFileName()));
 				}
 			}
 			if (isNew && !files.isEmpty()) {
@@ -148,12 +149,12 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 			 */
 			for (TaxIdNode child : subnodes) {
 				counter++;
-				Set<File> fastas = taxToFastas.get(child);
+				Map<TaxIdNode, File> fastas = taxToFastas.get(child);
 				if (fastas != null) {
 					if (getLogger().isInfoEnabled()) {
 						getLogger().info("Processing taxid (" + counter + "/" + max + "): " + child.getName());
 					}
-					long addedKmers = generator.add(child, fastas);
+					long addedKmers = generator.add(fastas);
 					if (getLogger().isInfoEnabled()) {
 						getLogger().info("Entered K-mers: " + addedKmers);
 					}

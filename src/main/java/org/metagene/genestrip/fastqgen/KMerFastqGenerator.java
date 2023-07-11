@@ -29,7 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.util.Collection;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -67,8 +67,8 @@ public class KMerFastqGenerator {
 		return logger;
 	}
 
-	public long add(TaxIdNode taxNode, Collection<File> fastaFiles) throws IOException {
-		long expectedSize = StreamProvider.guessUncompressedSize(fastaFiles, 10);
+	public long add(Map<TaxIdNode, File> fastaFiles) throws IOException {
+		long expectedSize = StreamProvider.guessUncompressedSize(fastaFiles.values(), 10);
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Estimated total uncompressed size: " + (expectedSize / 1024 / 1024) + " MB");
 		}
@@ -79,10 +79,11 @@ public class KMerFastqGenerator {
 					"Bloom filter array size of " + index + ": " + index.getFilter().getBitSize() / 8 / 1024 + " KB");
 		}
 
-		currentTaxid = taxNode != null ? taxNode.getTaxId() : null;
 		int max = fastaFiles.size();
 		int counter = 0;
-		for (File fasta : fastaFiles) {
+		for (TaxIdNode fastaNode : fastaFiles.keySet()) {
+			File fasta = fastaFiles.get(fastaNode);
+			currentTaxid = fastaNode.getTaxId();
 			counter++;
 			if (fasta.exists()) {
 				if (getLogger().isInfoEnabled()) {
