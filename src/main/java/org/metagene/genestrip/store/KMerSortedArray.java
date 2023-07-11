@@ -241,28 +241,29 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		return getLong(kmer, indexStore);
 	}
 
-	public V getLong(long kmer, long[] indexStore) {
+	public V getLong(long kmer, long[] posStore) {
 		if (filter != null && !filter.containsLong(kmer)) {
 			return null;
 		}
 		short index;
+		long pos;
 		if (sorted) {
 			if (largeKmers != null) {
-				long pos = LongBigArrays.binarySearch(largeKmers, 0, entries, kmer);
+				pos = LongBigArrays.binarySearch(largeKmers, 0, entries, kmer);
 				if (pos < 0) {
 					return null;
 				}
 				index = BigArrays.get(largeValueIndexes, pos);
 			} else {
-				int pos = Arrays.binarySearch(kmers, 0, (int) entries, kmer);
+				pos = Arrays.binarySearch(kmers, 0, (int) entries, kmer);
 				if (pos < 0) {
 					return null;
 				}
-				index = valueIndexes[pos];
+				index = valueIndexes[(int) pos];
 			}
 		} else {
 			if (largeKmers != null) {
-				long pos = -1;
+				pos = -1;
 				for (long i = 0; i < entries; i++) {
 					if (BigArrays.get(largeKmers, i) == kmer) {
 						pos = i;
@@ -274,7 +275,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				}
 				index = BigArrays.get(largeValueIndexes, pos);
 			} else {
-				int pos = -1;
+				pos = -1;
 				for (int i = 0; i < entries; i++) {
 					if (kmers[i] == kmer) {
 						pos = i;
@@ -284,11 +285,11 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				if (pos < 0) {
 					return null;
 				}
-				index = valueIndexes[pos];
+				index = valueIndexes[(int) pos];
 			}
 		}
-		if (indexStore != null) {
-			indexStore[0] = index;
+		if (posStore != null) {
+			posStore[0] = pos;
 		}
 		return indexMap.get(index);
 	}
