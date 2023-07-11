@@ -89,7 +89,6 @@ public class ResultReporter {
 //				out.print('0');
 //				out.println(';');
 			}
-			out.println(';');
 		}
 	}
 
