@@ -27,7 +27,9 @@ package org.metagene.genestrip.goals;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
@@ -38,10 +40,12 @@ import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.match.ResultReporter.StoreStatsPerTaxid;
 import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
+import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class KMerStoreFileGoal extends FileListGoal<GSProject> {
@@ -74,12 +78,42 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 				taxIds.add(node.getTaxId());
 			}
 
+			Map<String, StoreStatsPerTaxid> storeStats = new HashMap<String, StoreStatsPerTaxid>();
+
 			MyKrakenResultFastqMergeListener filter = new MyKrakenResultFastqMergeListener() {
 				@Override
 				public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-						String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
+						String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output,
+						CountingDigitTrie root) {
 					counter++;
+					int colonPos = 0;
+					int times = 0;
+					for (colonPos = 0; readDescriptor[colonPos] != 0; colonPos++) {
+						if (readDescriptor[colonPos] == ':') {
+							times++;
+							if (times == 3) {
+								break;
+							}
+						}
+					}
+					if (times == 3) {
+						int end;
+						for (end = colonPos; readDescriptor[end] != 0; end++)
+							;
+						String taxid = root.get(readDescriptor, colonPos + 1, end);
+						if (taxid != null && taxIds.contains(taxid)) {
+							updateKMerStats(taxid);
+						}
+					}
 					if (taxIds.contains(kmerTaxid)) {
+						if (lastKMerTaxid == kmerTaxid) {
+							contig++;							
+						}
+						else {
+							updateContigStats();
+							contig = 0;
+						}
+						lastKMerTaxid = kmerTaxid;
 						if (!store.put(read, 0, kmerTaxid, false)) {
 							if (getLogger().isInfoEnabled()) {
 								getLogger().info("Duplicate entry for read regarding taxid " + kmerTaxid);
@@ -91,9 +125,15 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 								getLogger().info("Store entry ratio: " + ((double) store.getEntries() / counter));
 							}
 						}
+					} else {
+						updateContigStats();
+						contig = 0;
+						lastKMerTaxid = null;
 					}
 				}
 			};
+			filter.storeStats = storeStats;
+			filter.totalStats = filter.getStats(null);
 
 			KrakenResultFastqMerger krakenKMerFastqMerger = new KrakenResultFastqMerger(
 					getProject().getConfig().getMaxReadSizeBytes());
@@ -106,10 +146,16 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 
 				InputStream stream1 = StreamProvider.getInputStreamForFile(krakenOutGoal.getFiles().get(i));
 				InputStream stream2 = StreamProvider.getInputStreamForFile(kmerFastqGoal.getFiles().get(i));
+
+				filter.contig = 0;
+				filter.lastKMerTaxid = null;
 				krakenKMerFastqMerger.process(stream1, stream2, filter);
+				filter.updateContigStats();
+				
 				stream1.close();
 				stream2.close();
 			}
+
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Total stored entries: " + store.getEntries());
@@ -117,7 +163,8 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 				getLogger().info("Saving file " + storeFile);
 			}
 			store.optimize();
-			KMerStoreWrapper wrapper = new KMerStoreWrapper((KMerSortedArray<String>) store, taxNodesGoal.get());
+			KMerStoreWrapper wrapper = new KMerStoreWrapper((KMerSortedArray<String>) store, taxNodesGoal.get(),
+					storeStats);
 			wrapper.save(storeFile);
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("File saved " + storeFile);
@@ -128,6 +175,37 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 	}
 
 	private abstract static class MyKrakenResultFastqMergeListener implements KrakenResultFastqMergeListener {
+		protected StoreStatsPerTaxid totalStats;
+		protected Map<String, StoreStatsPerTaxid> storeStats;
+		protected String lastKMerTaxid;
 		protected long counter = 0;
+		protected int contig;
+
+		public void updateContigStats() {
+			if (lastKMerTaxid != null && contig > 0) {
+				StoreStatsPerTaxid stats = getStats(lastKMerTaxid);
+				stats.contigs++;
+				stats.storedKMers += contig;
+				totalStats.storedKMers += contig;
+				if (contig > stats.maxContigLen) {
+					stats.maxContigLen = contig;
+				}
+			}
+		}
+		
+		public void updateKMerStats(String taxid) {
+			StoreStatsPerTaxid stats = getStats(taxid);
+			stats.totalKMers++;
+			totalStats.totalKMers++;
+		}
+		
+		private StoreStatsPerTaxid getStats(String taxid) {
+			StoreStatsPerTaxid res = storeStats.get(taxid);
+			if (res == null) {
+				res = new StoreStatsPerTaxid();
+				storeStats.put(taxid, res);
+			}
+			return res;
+		}
 	}
 }

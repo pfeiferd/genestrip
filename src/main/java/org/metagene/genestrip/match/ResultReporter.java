@@ -39,31 +39,53 @@ public class ResultReporter {
 		this.taxids = taxids;
 	}
 
-	public void printStoreInfo(Map<String, Long> counts, PrintStream out) {
-		out.println("name;rank;taxid;stored kmers;");
+	public void printStoreInfo(Map<String, StoreStatsPerTaxid> allStats, PrintStream out) {
+		out.println("name;rank;taxid;stored kmers;total kmers;contigs;average contig length;max contig length;");
 		out.print("TOTAL;");
 		out.print(Rank.SUPERKINGDOM);
 		out.print(';');
 		out.print("1;");
-		out.print(counts.get(null));
+		out.print(allStats.get(null).getStoredKMers());
+		out.print(';');
+		out.print(allStats.get(null).getTotalKMers());
 		out.println(';');
 		for (TaxIdNode taxNode : taxids) {
-			Long count = counts.get(taxNode.getTaxId());
-			if (count == null) {
-				count = 0L;
-			}
 			out.print(taxNode.getName());
 			out.print(';');
 			out.print(taxNode.getRank());
 			out.print(';');
 			out.print(taxNode.getTaxId());
 			out.print(';');
-			out.print(count);
+			StoreStatsPerTaxid stats = allStats.get(taxNode.getTaxId());
+			if (stats != null) {
+				out.print(stats.getStoredKMers());
+				out.print(';');
+				out.print(stats.getTotalKMers());
+				out.print(';');
+				out.print(stats.getContigs());
+				out.print(';');
+				out.print(((double) stats.getStoredKMers()) / stats.getContigs());
+				out.print(';');
+				out.print(stats.getMaxContigLen());
+				out.println(';');								
+			}
+			else {
+				out.print(0);
+				out.print(';');
+				out.print(0);
+				out.print(';');
+				out.print(0);
+				out.print(';');
+				out.print('-');
+				out.print(';');
+				out.print('0');
+				out.println(';');												
+			}
 			out.println(';');
 		}
 	}
 
-	public void print(Result res, PrintStream out) {
+	public void printMatchResult(Result res, PrintStream out) {
 		Map<String, StatsPerTaxid> taxid2Stats = new HashMap<String, StatsPerTaxid>();
 		for (StatsPerTaxid stats : res.getStats()) {
 			taxid2Stats.put(stats.getTaxid(), stats);
@@ -162,6 +184,29 @@ public class ResultReporter {
 
 		public long getTotalReads() {
 			return totalReads;
+		}
+	}
+	
+	public static class StoreStatsPerTaxid {
+		public long totalKMers;
+		public long storedKMers;
+		public long contigs;
+		public long maxContigLen;
+		
+		public long getContigs() {
+			return contigs;
+		}
+		
+		public long getMaxContigLen() {
+			return maxContigLen;
+		}
+		
+		public long getStoredKMers() {
+			return storedKMers;
+		}
+		
+		public long getTotalKMers() {
+			return totalKMers;
 		}
 	}
 }

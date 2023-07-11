@@ -55,6 +55,7 @@ import org.metagene.genestrip.store.KMerStore.KMerStoreVisitor;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATRingBuffer;
+import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 
 public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
@@ -92,7 +93,7 @@ public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
 				new KrakenResultFastqMergeListener() {
 					@Override
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
+							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output, CountingDigitTrie root) {
 						store.put(read, 0, kmerTaxid, false);
 						bloomFilter.put(read, 0);
 					}
@@ -126,7 +127,7 @@ public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
 				KrakenResultFastqMergeListener.createFilterByTaxIdNodes(nodes, new KrakenResultFastqMergeListener() {
 					@Override
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
+							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output, CountingDigitTrie root) {
 						assertEquals(kmerTaxid, trie.get(read, 0, false));
 					}
 				}));

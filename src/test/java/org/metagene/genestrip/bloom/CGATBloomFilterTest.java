@@ -47,6 +47,7 @@ import org.metagene.genestrip.store.KMerTrie;
 import org.metagene.genestrip.store.KMerTrie.KMerTrieVisitor;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.CGAT;
+import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class CGATBloomFilterTest {
@@ -172,7 +173,7 @@ public class CGATBloomFilterTest {
 				new KrakenResultFastqMergeListener() {
 					@Override
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
+							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output, CountingDigitTrie root) {
 						cgatBloomFilter.put(read, 0);
 					}
 				});
@@ -197,7 +198,7 @@ public class CGATBloomFilterTest {
 				KrakenResultFastqMergeListener.createFilterByTaxIdNodes(nodes, new KrakenResultFastqMergeListener() {
 					@Override
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
+							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output, CountingDigitTrie root) {
 						assertTrue(filterUnderTest.contains(read, 0, null, false));
 					}
 				}));

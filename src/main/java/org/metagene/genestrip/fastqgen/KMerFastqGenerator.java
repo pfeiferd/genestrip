@@ -36,10 +36,13 @@ import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.bloom.AbstractKMerBloomIndex;
 import org.metagene.genestrip.bloom.AbstractKMerBloomIndex.PutListener;
 import org.metagene.genestrip.bloom.FastaIndexer;
+import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class KMerFastqGenerator {
+	public static final String GENESTRIP_ID = "@GENESTRIP";
+
 	private final Log logger = LogFactory.getLog(KMerFastqGenerator.class);
 
 	private final FastQWriter fastQWriter;
@@ -47,8 +50,9 @@ public class KMerFastqGenerator {
 	private final AbstractKMerBloomIndex index;
 	private final boolean ignoreMissingFastas;
 
-	public KMerFastqGenerator(String name, int kmerSize, double fpp, int readBufferSize,
-			boolean ignoreMissingFastas) {
+	private String currentTaxid;
+
+	public KMerFastqGenerator(String name, int kmerSize, double fpp, int readBufferSize, boolean ignoreMissingFastas) {
 		fastQWriter = new FastQWriter(name);
 		index = new AbstractKMerBloomIndex(name, kmerSize, fpp, fastQWriter);
 		fastaIndexer = new FastaIndexer(index, readBufferSize);
@@ -63,7 +67,7 @@ public class KMerFastqGenerator {
 		return logger;
 	}
 
-	public long add(Collection<File> fastaFiles) throws IOException {
+	public long add(TaxIdNode taxNode, Collection<File> fastaFiles) throws IOException {
 		long expectedSize = StreamProvider.guessUncompressedSize(fastaFiles, 10);
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Estimated total uncompressed size: " + (expectedSize / 1024 / 1024) + " MB");
@@ -71,9 +75,11 @@ public class KMerFastqGenerator {
 		index.getFilter().clear();
 		index.getFilter().ensureExpectedSize(expectedSize, false);
 		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Bloom filter array size of " + index + ": " + index.getFilter().getBitSize() / 8 / 1024 + " KB");
+			getLogger().info(
+					"Bloom filter array size of " + index + ": " + index.getFilter().getBitSize() / 8 / 1024 + " KB");
 		}
 
+		currentTaxid = taxNode != null ? taxNode.getTaxId() : null;
 		int max = fastaFiles.size();
 		int counter = 0;
 		for (File fasta : fastaFiles) {
@@ -102,7 +108,7 @@ public class KMerFastqGenerator {
 		return fastQWriter.getAdded();
 	}
 
-	public static class FastQWriter implements PutListener {
+	protected class FastQWriter implements PutListener {
 		private final Log logger = LogFactory.getLog(FastQWriter.class);
 
 		private final String id;
@@ -160,11 +166,17 @@ public class KMerFastqGenerator {
 			printBasicID();
 			printStream.print(id);
 			printStream.print(':');
-			printStream.println(added);
+			printStream.print(added);
+			if (currentTaxid != null) {
+				printStream.print(':');
+				printStream.print(currentTaxid);
+			}
+			printStream.println();
 		}
 
 		protected void printBasicID() {
-			printStream.print("@GENESTRIP:");
+			printStream.print(GENESTRIP_ID);
+			printStream.print(':');
 		}
 
 		protected void printAfterRead(int readLength) {

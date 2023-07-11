@@ -153,7 +153,7 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 					if (getLogger().isInfoEnabled()) {
 						getLogger().info("Processing taxid (" + counter + "/" + max + "): " + child.getName());
 					}
-					long addedKmers = generator.add(fastas);
+					long addedKmers = generator.add(child, fastas);
 					if (getLogger().isInfoEnabled()) {
 						getLogger().info("Entered K-mers: " + addedKmers);
 					}

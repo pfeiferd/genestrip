@@ -30,17 +30,18 @@ import java.util.Set;
 
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
+import org.metagene.genestrip.util.CountingDigitTrie;
 
 public interface KrakenResultFastqMergeListener {
 	public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-			String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output);
+			String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output, CountingDigitTrie root);
 
 	public static KrakenResultFastqMergeListener createPrintListener(PrintStream out,
 			KrakenResultFastqMergeListener delegate, boolean withKrakenOut) {
 		return new KrakenResultFastqMergeListener() {
 			@Override
 			public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-					String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
+					String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output, CountingDigitTrie root) {
 				ByteArrayUtil.print(readDescriptor, out);
 				out.println();
 				ByteArrayUtil.print(read, out);
@@ -54,7 +55,7 @@ public interface KrakenResultFastqMergeListener {
 				}
 				if (delegate != null) {
 					delegate.newTaxIdForRead(lineCount, readDescriptor, read, readProbs, krakenTaxid, bps, pos,
-							kmerTaxid, hitLength, output);
+							kmerTaxid, hitLength, output, null);
 				}
 			}
 		};
@@ -74,10 +75,10 @@ public interface KrakenResultFastqMergeListener {
 		return new KrakenResultFastqMergeListener() {
 			@Override
 			public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-					String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
+					String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output, CountingDigitTrie root) {
 				if (taxIds.contains(kmerTaxid)) {
 					delegate.newTaxIdForRead(lineCount, readDescriptor, read, readProbs, krakenTaxid, bps, pos,
-							kmerTaxid, hitLength, output);
+							kmerTaxid, hitLength, output, null);
 				}
 			}
 		};

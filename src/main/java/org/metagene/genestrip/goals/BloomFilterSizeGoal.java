@@ -37,6 +37,7 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
+import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class BloomFilterSizeGoal extends ObjectGoal<Long, GSProject> {
@@ -65,7 +66,7 @@ public class BloomFilterSizeGoal extends ObjectGoal<Long, GSProject> {
 						@Override
 						public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read,
 								byte[] readProbs, String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength,
-								byte[] output) {
+								byte[] output, CountingDigitTrie root) {
 							counter[0]++;
 						}
 					});

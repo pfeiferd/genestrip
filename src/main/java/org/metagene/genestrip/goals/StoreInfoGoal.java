@@ -52,7 +52,7 @@ public class StoreInfoGoal extends FileListGoal<GSProject> {
 		try {
 			KMerStoreWrapper wrapper = KMerStoreWrapper.load(storeGoal.getFile());
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-			new ResultReporter(wrapper.getTaxids()).printStoreInfo(wrapper.getKmerStore().getNKmersPerTaxid(), out);
+			new ResultReporter(wrapper.getTaxids()).printStoreInfo(wrapper.getStoreStats(), out);
 			out.close();
 		} catch (IOException | ClassNotFoundException e) {
 			throw new RuntimeException(e);
