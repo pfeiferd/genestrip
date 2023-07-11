@@ -32,7 +32,7 @@ import java.util.Random;
 
 import org.junit.Test;
 import org.metagene.genestrip.match.FastqKMerMatcher.MyReadEntry;
-import org.metagene.genestrip.match.ResultReporter.StatsPerTaxid;
+import org.metagene.genestrip.match.FastqKMerMatcher.StatsPerTaxid;
 import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerUniqueCounter;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;

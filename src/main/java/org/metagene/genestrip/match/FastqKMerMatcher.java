@@ -33,8 +33,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.metagene.genestrip.fastq.AbstractFastqReader;
-import org.metagene.genestrip.match.ResultReporter.Result;
-import org.metagene.genestrip.match.ResultReporter.StatsPerTaxid;
 import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerUniqueCounter;
 import org.metagene.genestrip.util.ByteArrayUtil;
@@ -75,8 +73,8 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		return new MyReadEntry(maxReadSizeBytes, k);
 	}
 
-	public Result runClassifier(File fastq, File filteredFile, File krakenOutStyleFile,
-			KMerUniqueCounter uniqueCounter) throws IOException {
+	public Result runClassifier(File fastq, File filteredFile, File krakenOutStyleFile, KMerUniqueCounter uniqueCounter)
+			throws IOException {
 		byteCountAccess = StreamProvider.getByteCountingInputStreamForFile(fastq, false);
 		fastqFileSize = Files.size(fastq.toPath());
 
@@ -128,7 +126,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	protected void initRoot() {
 		root = new TaxidStatsTrie();
 	}
-	
+
 	protected void initUniqueCounter(KMerUniqueCounter uniqueCounter) {
 		this.uniqueCounter = uniqueCounter;
 		if (uniqueCounter != null) {
@@ -422,4 +420,64 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		}
 	}
 
+	public static class Result {
+		private final List<StatsPerTaxid> stats;
+		private final long totalReads;
+		private final long totalKMers;
+
+		public Result(List<StatsPerTaxid> stats, long totalReads, long totalKMers) {
+			this.stats = stats;
+			this.totalReads = totalReads;
+			this.totalKMers = totalKMers;
+		}
+
+		public List<StatsPerTaxid> getStats() {
+			return stats;
+		}
+
+		public long getTotalKMers() {
+			return totalKMers;
+		}
+
+		public long getTotalReads() {
+			return totalReads;
+		}
+	}
+
+	public static class StatsPerTaxid {
+		protected String taxid;
+		protected long reads;
+		protected long uniqueKmers;
+		protected long kmers;
+		protected int maxContigLen;
+		protected int contigs;
+
+		public StatsPerTaxid(String taxid) {
+			this.taxid = taxid;
+		}
+
+		public String getTaxid() {
+			return taxid;
+		}
+
+		public int getContigs() {
+			return contigs;
+		}
+
+		public long getKMers() {
+			return kmers;
+		}
+
+		public int getMaxContigLen() {
+			return maxContigLen;
+		}
+
+		public long getReads() {
+			return reads;
+		}
+
+		public long getUniqueKMers() {
+			return uniqueKmers;
+		}
+	}
 }
