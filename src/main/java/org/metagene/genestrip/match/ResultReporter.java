@@ -51,16 +51,22 @@ public class ResultReporter {
 		out.print(allStats.get(null).getStoredKMers());
 		out.print(';');
 		out.print(allStats.get(null).getTotalKMers());
+		out.print(';');
+		out.print(0);
+		out.print(';');
+		out.print('-');
+		out.print(';');
+		out.print(0);
 		out.println(';');
 		for (TaxIdNode taxNode : taxids) {
-			out.print(taxNode.getName());
-			out.print(';');
-			out.print(taxNode.getRank());
-			out.print(';');
-			out.print(taxNode.getTaxId());
-			out.print(';');
 			StoreStatsPerTaxid stats = allStats.get(taxNode.getTaxId());
 			if (stats != null) {
+				out.print(taxNode.getName());
+				out.print(';');
+				out.print(taxNode.getRank());
+				out.print(';');
+				out.print(taxNode.getTaxId());
+				out.print(';');
 				out.print(stats.getStoredKMers());
 				out.print(';');
 				out.print(stats.getTotalKMers());
@@ -71,17 +77,17 @@ public class ResultReporter {
 				out.print(';');
 				out.print(stats.getMaxContigLen());
 				out.println(';');
-			} else {
-				out.print(0);
-				out.print(';');
-				out.print(0);
-				out.print(';');
-				out.print(0);
-				out.print(';');
-				out.print('-');
-				out.print(';');
-				out.print('0');
-				out.println(';');
+//			} else {
+//				out.print(0);
+//				out.print(';');
+//				out.print(0);
+//				out.print(';');
+//				out.print(0);
+//				out.print(';');
+//				out.print('-');
+//				out.print(';');
+//				out.print('0');
+//				out.println(';');
 			}
 			out.println(';');
 		}
