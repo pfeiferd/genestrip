@@ -49,6 +49,7 @@ import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryWithQuality;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.ByteArrayUtil;
+import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> {
@@ -100,12 +101,12 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 						@Override
 						public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read,
 								byte[] readProbs, String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength,
-								byte[] output) {
+								byte[] output, CountingDigitTrie root) {
 							if (lastLineCount != lineCount) {
 								lastLineCount = lineCount;
 								if (printListener != null) {
 									printListener.newTaxIdForRead(lineCount, readDescriptor, read, readProbs,
-											krakenTaxid, bps, pos, kmerTaxid, hitLength, output);
+											krakenTaxid, bps, pos, kmerTaxid, hitLength, output, null);
 								}
 							}
 							for (int j = 0; j < hitLength; j++) {
