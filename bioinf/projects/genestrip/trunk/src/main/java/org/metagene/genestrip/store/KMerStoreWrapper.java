@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.metagene.genestrip.match.ResultReporter.StoreStatsPerTaxid;
 import org.metagene.genestrip.tax.TaxIdCollector;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.StreamProvider;
@@ -80,5 +79,30 @@ public class KMerStoreWrapper implements Serializable {
 		KMerStoreWrapper res = (KMerStoreWrapper) oOut.readObject();
 		oOut.close();
 		return res;
+	}
+
+	public static class StoreStatsPerTaxid implements Serializable {
+		private static final long serialVersionUID = 1L;
+		
+		public long totalKMers;
+		public long storedKMers;
+		public long contigs;
+		public long maxContigLen;
+
+		public long getContigs() {
+			return contigs;
+		}
+
+		public long getMaxContigLen() {
+			return maxContigLen;
+		}
+
+		public long getStoredKMers() {
+			return storedKMers;
+		}
+
+		public long getTotalKMers() {
+			return totalKMers;
+		}
 	}
 }

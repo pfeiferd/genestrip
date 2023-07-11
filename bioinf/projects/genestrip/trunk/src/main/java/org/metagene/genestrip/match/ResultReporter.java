@@ -29,6 +29,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.metagene.genestrip.match.FastqKMerMatcher.Result;
+import org.metagene.genestrip.match.FastqKMerMatcher.StatsPerTaxid;
+import org.metagene.genestrip.store.KMerStoreWrapper.StoreStatsPerTaxid;
 import org.metagene.genestrip.tax.TaxTree.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
@@ -67,9 +70,8 @@ public class ResultReporter {
 				out.print(((double) stats.getStoredKMers()) / stats.getContigs());
 				out.print(';');
 				out.print(stats.getMaxContigLen());
-				out.println(';');								
-			}
-			else {
+				out.println(';');
+			} else {
 				out.print(0);
 				out.print(';');
 				out.print(0);
@@ -79,7 +81,7 @@ public class ResultReporter {
 				out.print('-');
 				out.print(';');
 				out.print('0');
-				out.println(';');												
+				out.println(';');
 			}
 			out.println(';');
 		}
@@ -123,90 +125,6 @@ public class ResultReporter {
 				out.print(stats.getMaxContigLen());
 				out.println(';');
 			}
-		}
-	}
-	
-	public static class StatsPerTaxid {
-		protected String taxid;
-		protected long reads;
-		protected long uniqueKmers;
-		protected long kmers;
-		protected int maxContigLen;
-		protected int contigs;
-
-		public StatsPerTaxid(String taxid) {
-			this.taxid = taxid;
-		}
-
-		public String getTaxid() {
-			return taxid;
-		}
-
-		public int getContigs() {
-			return contigs;
-		}
-
-		public long getKMers() {
-			return kmers;
-		}
-
-		public int getMaxContigLen() {
-			return maxContigLen;
-		}
-
-		public long getReads() {
-			return reads;
-		}
-
-		public long getUniqueKMers() {
-			return uniqueKmers;
-		}
-	}
-
-	public static class Result {
-		private final List<StatsPerTaxid> stats;
-		private final long totalReads;
-		private final long totalKMers;
-
-		public Result(List<StatsPerTaxid> stats, long totalReads, long totalKMers) {
-			this.stats = stats;
-			this.totalReads = totalReads;
-			this.totalKMers = totalKMers;
-		}
-
-		public List<StatsPerTaxid> getStats() {
-			return stats;
-		}
-
-		public long getTotalKMers() {
-			return totalKMers;
-		}
-
-		public long getTotalReads() {
-			return totalReads;
-		}
-	}
-	
-	public static class StoreStatsPerTaxid {
-		public long totalKMers;
-		public long storedKMers;
-		public long contigs;
-		public long maxContigLen;
-		
-		public long getContigs() {
-			return contigs;
-		}
-		
-		public long getMaxContigLen() {
-			return maxContigLen;
-		}
-		
-		public long getStoredKMers() {
-			return storedKMers;
-		}
-		
-		public long getTotalKMers() {
-			return totalKMers;
 		}
 	}
 }
