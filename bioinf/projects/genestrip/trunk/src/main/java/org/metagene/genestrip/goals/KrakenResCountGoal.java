@@ -92,7 +92,7 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 
 					@Override
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output) {
+							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output, CountingDigitTrie root) {
 						if (taxIds == null || taxIds.contains(kmerTaxid)) {
 							kmerCountTrie.add(kmerTaxid, hitLength);
 //							System.out.println(ByteArrayUtil.toString(output));

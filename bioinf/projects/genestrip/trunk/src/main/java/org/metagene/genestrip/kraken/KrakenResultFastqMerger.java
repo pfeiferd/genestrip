@@ -151,7 +151,7 @@ public class KrakenResultFastqMerger {
 
 					if (taxidStr != null && listener != null) {
 						listener.newTaxIdForRead(readCount, readDescriptor, read, readProbs, classTaxid, bps, readPos,
-								taxidStr, frN, krakenChars);
+								taxidStr, frN, krakenChars, root);
 					}
 					readPos += frN;
 
@@ -164,7 +164,7 @@ public class KrakenResultFastqMerger {
 
 				if (taxidStr != null && listener != null) {
 					listener.newTaxIdForRead(readCount, readDescriptor, read, readProbs, classTaxid, bps, readPos,
-							taxidStr, frN, krakenChars);
+							taxidStr, frN, krakenChars, root);
 				}
 			}
 		}
