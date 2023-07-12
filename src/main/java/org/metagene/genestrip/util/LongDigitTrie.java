@@ -26,12 +26,12 @@ package org.metagene.genestrip.util;
 
 import java.util.Map;
 
-public class CountingDigitTrie {
-	private CountingDigitTrie[] children;
+public class LongDigitTrie {
+	private LongDigitTrie[] children;
 	private long value;
 	private String digits;
 
-	public CountingDigitTrie() {
+	public LongDigitTrie() {
 	}
 
 	public String inc(String digits) {
@@ -41,18 +41,18 @@ public class CountingDigitTrie {
 	public String add(String digits, int add) {
 		int index;
 		int end = digits.length();
-		CountingDigitTrie node = this, child;
+		LongDigitTrie node = this, child;
 		for (int i = 0; i < end; i++, node = child) {
 			index = digits.charAt(i) - '0';
 			if (index > 9 || index < 0) {
 				return null;
 			}
 			if (node.children == null) {
-				node.children = new CountingDigitTrie[10];
+				node.children = new LongDigitTrie[10];
 			}
 			child = node.children[index];
 			if (child == null) {
-				child = new CountingDigitTrie();
+				child = new LongDigitTrie();
 				node.children[index] = child;
 			}
 		}
@@ -70,18 +70,18 @@ public class CountingDigitTrie {
 
 	public String add(byte[] seq, int start, int end, int add) {
 		int index;
-		CountingDigitTrie node = this, child;
+		LongDigitTrie node = this, child;
 		for (int i = start; i < end; i++, node = child) {
 			index = seq[i] - '0';
 			if (index > 9 || index < 0) {
 				return null;
 			}
 			if (node.children == null) {
-				node.children = new CountingDigitTrie[10];
+				node.children = new LongDigitTrie[10];
 			}
 			child = node.children[index];
 			if (child == null) {
-				child = new CountingDigitTrie();
+				child = new LongDigitTrie();
 				node.children[index] = child;
 			}
 		}
@@ -94,18 +94,18 @@ public class CountingDigitTrie {
 
 	public String get(byte[] seq, int start, int end) {
 		int index;
-		CountingDigitTrie node = this, child;
+		LongDigitTrie node = this, child;
 		for (int i = start; i < end; i++, node = child) {
 			index = seq[i] - '0';
 			if (index > 9 || index < 0) {
 				return null;
 			}
 			if (node.children == null) {
-				node.children = new CountingDigitTrie[10];
+				node.children = new LongDigitTrie[10];
 			}
 			child = node.children[index];
 			if (child == null) {
-				child = new CountingDigitTrie();
+				child = new LongDigitTrie();
 				node.children[index] = child;
 			}
 		}
