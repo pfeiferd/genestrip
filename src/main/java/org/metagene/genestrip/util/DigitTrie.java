@@ -52,19 +52,19 @@ public class DigitTrie<V> {
 	public V get(byte[] seq, int start, int end) {
 		return get(seq, start, end, false);
 	}
-	
+
 	public V get(byte[] seq, int start, int end, boolean create) {
 		DigitTrie<V> node = getNode(seq, start, end, create);
-		if (node == null) {
-			return null;
+		if (node == null && create) {
+			throw new IllegalStateException("Cant get node via sequence " + new String(seq, start, end - start));
 		}
 		if (node.value == null && create) {
 			node.value = createInGet(seq, start, end);
 		}
-		
+
 		return node.value;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	private DigitTrie<V> getNode(byte[] seq, int start, int end, boolean create) {
 		int index;
@@ -76,30 +76,28 @@ public class DigitTrie<V> {
 			}
 			if (node.children == null && create) {
 				node.children = new DigitTrie[10];
-			}
-			else {
+			} else {
 				return null;
 			}
 			child = node.children[index];
 			if (child == null && create) {
 				child = new DigitTrie<V>();
 				node.children[index] = child;
-			}
-			else {
+			} else {
 				return null;
 			}
 		}
 		return node;
 	}
-	
+
 	protected V createInGet(byte[] seq, int start, int end) {
 		return null;
 	}
-	
+
 	public V get(String digits) {
 		return get(digits, false);
 	}
-	
+
 	public V get(String digits, boolean create) {
 		DigitTrie<V> node = getNode(digits, create);
 		if (node == null) {
@@ -108,10 +106,10 @@ public class DigitTrie<V> {
 		if (node.value == null && create) {
 			node.value = createInGet(digits);
 		}
-		
+
 		return node.value;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	private DigitTrie<V> getNode(String digits, boolean create) {
 		int index;
@@ -124,26 +122,24 @@ public class DigitTrie<V> {
 			}
 			if (node.children == null && create) {
 				node.children = new DigitTrie[10];
-			}
-			else {
+			} else {
 				return null;
 			}
 			child = node.children[index];
 			if (child == null && create) {
 				child = new DigitTrie<V>();
 				node.children[index] = child;
-			}
-			else {
+			} else {
 				return null;
 			}
 		}
 		return node;
 	}
-	
+
 	protected V createInGet(String digits) {
 		return null;
 	}
-	
+
 	public void collect(Collection<V> collection) {
 		if (value != null) {
 			collection.add(value);
