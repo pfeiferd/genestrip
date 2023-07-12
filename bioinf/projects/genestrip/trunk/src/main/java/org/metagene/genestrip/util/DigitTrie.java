@@ -55,9 +55,11 @@ public class DigitTrie<V> {
 
 	public V get(byte[] seq, int start, int end, boolean create) {
 		DigitTrie<V> node = getNode(seq, start, end, create);
-		if (node == null && create) {
+		if (node == null) {
+			if (create) {
+				throw new IllegalStateException("Cant get node via sequence " + new String(seq, start, end - start));				
+			}
 			return null;
-			//throw new IllegalStateException("Cant get node via sequence " + new String(seq, start, end - start));
 		}
 		if (node.value == null && create) {
 			node.value = createInGet(seq, start, end);
