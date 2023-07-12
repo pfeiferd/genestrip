@@ -56,7 +56,8 @@ public class DigitTrie<V> {
 	public V get(byte[] seq, int start, int end, boolean create) {
 		DigitTrie<V> node = getNode(seq, start, end, create);
 		if (node == null && create) {
-			throw new IllegalStateException("Cant get node via sequence " + new String(seq, start, end - start));
+			return null;
+			//throw new IllegalStateException("Cant get node via sequence " + new String(seq, start, end - start));
 		}
 		if (node.value == null && create) {
 			node.value = createInGet(seq, start, end);
@@ -74,17 +75,21 @@ public class DigitTrie<V> {
 			if (index > 9 || index < 0) {
 				return null;
 			}
-			if (node.children == null && create) {
-				node.children = new DigitTrie[10];
-			} else {
-				return null;
+			if (node.children == null) {
+				if (create) {
+					node.children = new DigitTrie[10];
+				} else {
+					return null;
+				}
 			}
 			child = node.children[index];
-			if (child == null && create) {
-				child = new DigitTrie<V>();
-				node.children[index] = child;
-			} else {
-				return null;
+			if (child == null) {
+				if (create) {
+					child = new DigitTrie<V>();
+					node.children[index] = child;
+				} else {
+					return null;
+				}
 			}
 		}
 		return node;
@@ -120,17 +125,21 @@ public class DigitTrie<V> {
 			if (index > 9 || index < 0) {
 				return null;
 			}
-			if (node.children == null && create) {
-				node.children = new DigitTrie[10];
-			} else {
-				return null;
+			if (node.children == null) {
+				if (create) {
+					node.children = new DigitTrie[10];
+				} else {
+					return null;
+				}
 			}
 			child = node.children[index];
-			if (child == null && create) {
-				child = new DigitTrie<V>();
-				node.children[index] = child;
-			} else {
-				return null;
+			if (child == null) {
+				if (create) {
+					child = new DigitTrie<V>();
+					node.children[index] = child;
+				} else {
+					return null;
+				}
 			}
 		}
 		return node;
