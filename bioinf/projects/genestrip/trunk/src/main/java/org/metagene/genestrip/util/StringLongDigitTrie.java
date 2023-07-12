@@ -1,5 +1,7 @@
 package org.metagene.genestrip.util;
 
+import java.io.Serializable;
+
 import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
 
 public class StringLongDigitTrie extends DigitTrie<StringLong> {
@@ -22,7 +24,8 @@ public class StringLongDigitTrie extends DigitTrie<StringLong> {
 		return stringLong;
 	}
 
-	public static class StringLong {
+	public static class StringLong implements Serializable {
+		private static final long serialVersionUID = 1L;
 		private String stringValue;
 		private long longValue;
 		
