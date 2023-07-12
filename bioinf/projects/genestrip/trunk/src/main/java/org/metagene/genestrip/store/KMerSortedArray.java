@@ -180,6 +180,8 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				: CGAT.kMerToLongStraight(nseq, start, k, null);
 		return putLong(kmer, value);
 	}
+	
+	private int c = 0;
 
 	protected boolean putLong(long kmer, V value) {
 		if (value == null) {
@@ -192,6 +194,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		if (filter.containsLong(kmer)) {
 			V v = getLong(kmer, null);
 			if (v != null) {
+				System.out.println("Spending my time..." + c++);
 				return v.equals(value);
 			}
 		}
