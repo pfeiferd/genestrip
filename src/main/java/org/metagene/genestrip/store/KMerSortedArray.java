@@ -194,6 +194,8 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			throw new IllegalStateException("Capacity exceeded.");
 		}
 		if (filter.containsLong(kmer)) {
+			// Fail fast - we could check if the kmer is indeed stored, but it's way too slow because
+			// of linear search in the kmer array...
 			return false;
 		}
 		short sindex = getAddValueIndex(value);
