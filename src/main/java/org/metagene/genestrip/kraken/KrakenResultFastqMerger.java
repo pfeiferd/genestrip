@@ -26,14 +26,15 @@ package org.metagene.genestrip.kraken;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.util.BufferedLineReader;
 import org.metagene.genestrip.util.ByteArrayUtil;
-import org.metagene.genestrip.util.CountingDigitTrie;
+import org.metagene.genestrip.util.StringLongDigitTrie;
+import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
 
 public class KrakenResultFastqMerger {
 	protected static final Log logger = LogFactory.getLog(KrakenResultFastqMerger.class);
@@ -57,9 +58,9 @@ public class KrakenResultFastqMerger {
 		bufferedLineReaderFastQ = new BufferedLineReader();
 	}
 
-	public Map<String, Long> process(InputStream fromKraken, InputStream fromFastQ,
+	public List<StringLong> process(InputStream fromKraken, InputStream fromFastQ,
 			KrakenResultFastqMergeListener listener) throws IOException {
-		CountingDigitTrie root = new CountingDigitTrie();
+		StringLongDigitTrie root = new StringLongDigitTrie();
 
 		int krakenPos;
 		long readCount = 0;
@@ -169,8 +170,8 @@ public class KrakenResultFastqMerger {
 			}
 		}
 
-		Map<String, Long> map = new HashMap<String, Long>();
-		root.collect(map);
-		return map;
+		List<StringLong> list = new ArrayList<StringLongDigitTrie.StringLong>();
+		root.collect(list);
+		return list;
 	}
 }

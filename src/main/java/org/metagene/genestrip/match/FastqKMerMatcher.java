@@ -37,6 +37,7 @@ import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerUniqueCounter;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGAT;
+import org.metagene.genestrip.util.DigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
@@ -105,7 +106,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		byteCountAccess.getInputStream().close();
 
 		List<StatsPerTaxid> allStats = new ArrayList<StatsPerTaxid>();
-		root.collectValues(allStats);
+		root.collect(allStats);
 		root = null;
 
 		if (uniqueCounter != null) {
@@ -240,7 +241,9 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 			if (taxid != null) {
 				stats = root.get(taxid);
 				if (stats == null) {
-					stats = root.create(taxid);
+					synchronized (root) {
+						stats = root.get(taxid, true);
+					}
 				}
 				synchronized (stats) {
 					stats.kmers++;
@@ -358,65 +361,10 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		}
 	}
 
-	protected static class TaxidStatsTrie {
-		private TaxidStatsTrie[] children;
-		private StatsPerTaxid value;
-
-		public StatsPerTaxid get(String taxid) {
-			int index;
-			int end = taxid.length();
-			TaxidStatsTrie node = this, child;
-			for (int i = 0; i < end; i++, node = child) {
-				index = taxid.charAt(i) - '0';
-				if (index > 9 || index < 0) {
-					return null;
-				}
-				if (node.children == null) {
-					return null;
-				}
-				child = node.children[index];
-				if (child == null) {
-					return null;
-				}
-			}
-			return node.value;
-		}
-
-		public synchronized StatsPerTaxid create(String taxid) {
-			int index;
-			int end = taxid.length();
-			TaxidStatsTrie node = this, child;
-			for (int i = 0; i < end; i++, node = child) {
-				index = taxid.charAt(i) - '0';
-				if (index > 9 || index < 0) {
-					return null;
-				}
-				if (node.children == null) {
-					node.children = new TaxidStatsTrie[10];
-				}
-				child = node.children[index];
-				if (child == null) {
-					child = new TaxidStatsTrie();
-					node.children[index] = child;
-				}
-			}
-			if (node.value == null) {
-				node.value = new StatsPerTaxid(taxid);
-			}
-			return node.value;
-		}
-
-		public void collectValues(List<StatsPerTaxid> list) {
-			if (value != null) {
-				list.add(value);
-			}
-			if (children != null) {
-				for (int i = 0; i < 10; i++) {
-					if (children[i] != null) {
-						children[i].collectValues(list);
-					}
-				}
-			}
+	protected static class TaxidStatsTrie extends DigitTrie<StatsPerTaxid> {
+		@Override
+		protected StatsPerTaxid createInGet(String digits) {
+			return new StatsPerTaxid(digits);
 		}
 	}
 
