@@ -46,7 +46,6 @@ import org.junit.Test;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.Main;
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
-import org.metagene.genestrip.goals.KrakenResCountGoal;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
 import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
 import org.metagene.genestrip.make.FileGoal;
@@ -55,8 +54,8 @@ import org.metagene.genestrip.store.KMerStore.KMerStoreVisitor;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATRingBuffer;
-import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
+import org.metagene.genestrip.util.StringLongDigitTrie;
 
 public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
 	protected final Random random = new Random(42);
@@ -93,7 +92,7 @@ public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
 				new KrakenResultFastqMergeListener() {
 					@Override
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output, CountingDigitTrie root) {
+							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output, StringLongDigitTrie root) {
 						store.put(read, 0, kmerTaxid, false);
 						bloomFilter.put(read, 0);
 					}
@@ -103,7 +102,7 @@ public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
 
 		InputStream stream1 = StreamProvider.getInputStreamForFile(fromKraken);
 		InputStream stream2 = StreamProvider.getInputStreamForFile(bartHReads);
-		KrakenResCountGoal.print(krakenFilter.process(stream1, stream2, filter), System.out);
+		krakenFilter.process(stream1, stream2, filter);
 		stream1.close();
 		stream2.close();
 
@@ -127,7 +126,7 @@ public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
 				KrakenResultFastqMergeListener.createFilterByTaxIdNodes(nodes, new KrakenResultFastqMergeListener() {
 					@Override
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output, CountingDigitTrie root) {
+							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output, StringLongDigitTrie root) {
 						assertEquals(kmerTaxid, trie.get(read, 0, false));
 					}
 				}));
