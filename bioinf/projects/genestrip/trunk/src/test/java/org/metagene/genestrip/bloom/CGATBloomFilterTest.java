@@ -38,7 +38,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.Main;
-import org.metagene.genestrip.goals.KrakenResCountGoal;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
 import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
 import org.metagene.genestrip.make.FileGoal;
@@ -47,8 +46,8 @@ import org.metagene.genestrip.store.KMerTrie;
 import org.metagene.genestrip.store.KMerTrie.KMerTrieVisitor;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.CGAT;
-import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
+import org.metagene.genestrip.util.StringLongDigitTrie;
 
 public class CGATBloomFilterTest {
 	protected Random random = new Random(42);
@@ -173,7 +172,7 @@ public class CGATBloomFilterTest {
 				new KrakenResultFastqMergeListener() {
 					@Override
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output, CountingDigitTrie root) {
+							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output, StringLongDigitTrie root) {
 						cgatBloomFilter.put(read, 0);
 					}
 				});
@@ -182,7 +181,7 @@ public class CGATBloomFilterTest {
 
 		InputStream stream1 = StreamProvider.getInputStreamForFile(fromKraken);
 		InputStream stream2 = StreamProvider.getInputStreamForFile(bartHReads);
-		KrakenResCountGoal.print(krakenFilter.process(stream1, stream2, filter), System.out);
+		krakenFilter.process(stream1, stream2, filter);
 		stream1.close();
 		stream2.close();
 
@@ -198,7 +197,7 @@ public class CGATBloomFilterTest {
 				KrakenResultFastqMergeListener.createFilterByTaxIdNodes(nodes, new KrakenResultFastqMergeListener() {
 					@Override
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output, CountingDigitTrie root) {
+							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output, StringLongDigitTrie root) {
 						assertTrue(filterUnderTest.contains(read, 0, null, false));
 					}
 				}));
