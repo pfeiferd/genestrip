@@ -39,7 +39,7 @@ import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
-import org.metagene.genestrip.util.CountingDigitTrie;
+import org.metagene.genestrip.util.DigitTrie;
 
 public class KMerFastqStoreFileGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
@@ -57,7 +57,12 @@ public class KMerFastqStoreFileGoal extends FileListGoal<GSProject> {
 	@Override
 	protected void makeFile(File storeFile) {
 		try {
-			CountingDigitTrie countingDigitTrie = new CountingDigitTrie();
+			DigitTrie<String> countingDigitTrie = new DigitTrie<String>() {
+				@Override
+				protected String createInGet(byte[] seq, int start, int end) {
+					return new String(seq, start, end - start);
+				}
+			};
 			KMerSortedArray<String> store = (KMerSortedArray<String>) getProject().getKMerStoreFactory().createKMerStore(String.class);
 
 			Set<String> taxIds = new HashSet<String>();
@@ -76,7 +81,7 @@ public class KMerFastqStoreFileGoal extends FileListGoal<GSProject> {
 							break;
 						}
 					}
-					String taxid = countingDigitTrie.inc(readEntry.readDescriptor, pos, readEntry.readDescriptorSize);
+					String taxid = countingDigitTrie.get(readEntry.readDescriptor, pos, readEntry.readDescriptorSize, true);
 					if (taxIds.contains(taxid)) {
 						if (!store.put(readEntry.read, 0, taxid, false)) {
 							if (getLogger().isInfoEnabled()) {

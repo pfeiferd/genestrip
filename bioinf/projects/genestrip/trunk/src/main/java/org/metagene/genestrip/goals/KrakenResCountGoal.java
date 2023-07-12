@@ -31,11 +31,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
@@ -48,8 +45,9 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
-import org.metagene.genestrip.util.CountingDigitTrie;
+import org.metagene.genestrip.util.DigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
+import org.metagene.genestrip.util.StringLongDigitTrie;
 
 public class KrakenResCountGoal extends FileListGoal<GSProject> {
 	private final File fastq;
@@ -66,8 +64,13 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 
 	@Override
 	protected void makeFile(File file) throws IOException {
-		CountingDigitTrie kmerCountTrie = new CountingDigitTrie();
-		CountingDigitTrie classCountTrie = new CountingDigitTrie();
+		DigitTrie<KrakenResStats> countingTrie = new DigitTrie<KrakenResStats>() {
+			protected KrakenResStats createInGet(String taxid) {
+				KrakenResStats stats = new KrakenResStats();
+				stats.taxid = taxid;
+				return stats;
+			}
+		};
 
 		final Set<String> taxIds;
 
@@ -81,9 +84,9 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 		}
 
 		KrakenExecutor krakenExecutor = new KrakenExecutor(getProject().getConfig().getKrakenBin(),
-				getProject().getConfig().getKrakenExecExpr()) {			
+				getProject().getConfig().getKrakenExecExpr()) {
 			@Override
-			protected void handleOutputStream(InputStream stream, OutputStream out) throws IOException {				
+			protected void handleOutputStream(InputStream stream, OutputStream out) throws IOException {
 				KrakenResultFastqMerger parser = new KrakenResultFastqMerger(
 						getProject().getConfig().getMaxReadSizeBytes());
 
@@ -92,17 +95,20 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 
 					@Override
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output, CountingDigitTrie root) {
+							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output,
+							StringLongDigitTrie root) {
 						if (taxIds == null || taxIds.contains(kmerTaxid)) {
-							kmerCountTrie.add(kmerTaxid, hitLength);
-//							System.out.println(ByteArrayUtil.toString(output));
+							KrakenResStats stats = countingTrie.get(kmerTaxid, true);
+							stats.kmers += hitLength;
 						}
 						if (lineCount != lastLine) {
 							lastLine = lineCount;
 							if (taxIds == null || taxIds.contains(krakenTaxid)) {
-//								System.out.println("Classification: " + ByteArrayUtil.toString(output));
-//								System.out.println(krakenTaxid + " " + bps + " " + kmerTaxid);
-								classCountTrie.inc(krakenTaxid);
+								KrakenResStats stats = countingTrie.get(krakenTaxid, true);
+								stats.reads++;
+								if (kmerTaxid == krakenTaxid) {
+									stats.kmersInMatchingReads += hitLength;
+								}
 							}
 						}
 					}
@@ -117,20 +123,14 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 			if (krakenExecutor.isWithFileForOutput()) {
 				throw new IOException("This goal does not work with an outfile as a parameter (like in krakenuniq)");
 			}
-			
+
 			krakenExecutor.execute2(getProject().getKrakenDB(), fastq, file, null, System.err);
 
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
 
-			Map<String, Long> map = new HashMap<String, Long>();
-			out.println("taxid;kmers");
-			kmerCountTrie.collect(map);
-			print(map, out);
-
-			map.clear();
-			out.println("taxid;classifications");
-			classCountTrie.collect(map);
-			print(map, out);
+			List<KrakenResStats> list = new ArrayList<KrakenResStats>();
+			countingTrie.collect(list);
+			print(list, out);
 
 			out.close();
 		} catch (IOException e) {
@@ -140,14 +140,31 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 			getLogger().info("Finished kraken");
 		}
 	}
-	
-	public static void print(Map<String, Long> map, PrintStream pOut) {
-		List<String> sortedKeys = new ArrayList<String>(map.keySet());
-		Collections.sort(sortedKeys);
-		for (String taxid : sortedKeys) {
-			pOut.print(taxid);
-			pOut.print(';');
-			pOut.println(map.get(taxid));
+
+	protected void print(List<KrakenResStats> list, PrintStream out) {
+		out.println("taxid;reads;kmers;kmers in matching reads");
+		for (KrakenResStats stats : list) {
+			out.print(stats.taxid);
+			out.print(';');
+			out.print(stats.reads);
+			out.print(';');
+			out.print(stats.kmers);
+			out.print(';');
+			out.print(stats.kmersInMatchingReads);
+			out.println(';');
+		}
+	}
+
+	protected static class KrakenResStats implements Comparable<KrakenResStats> {
+		protected String taxid;
+
+		protected long reads;
+		protected long kmers;
+		protected long kmersInMatchingReads;
+
+		@Override
+		public int compareTo(KrakenResStats o) {
+			return taxid.compareTo(o.taxid);
 		}
 	}
 }

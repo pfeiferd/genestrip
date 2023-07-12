@@ -45,8 +45,9 @@ import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.store.KMerStoreWrapper.StoreStatsPerTaxid;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
-import org.metagene.genestrip.util.CountingDigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
+import org.metagene.genestrip.util.StringLongDigitTrie;
+import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
 
 public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
@@ -84,7 +85,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 				@Override
 				public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
 						String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output,
-						CountingDigitTrie root) {
+						StringLongDigitTrie root) {
 					counter++;
 					int colonPos = 0;
 					int times = 0;
@@ -100,9 +101,12 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 						int end;
 						for (end = colonPos; readDescriptor[end] != 0; end++)
 							;
-						String taxid = root.get(readDescriptor, colonPos + 1, end);
-						if (taxid != null && taxIds.contains(taxid)) {
-							updateKMerStats(taxid);
+						StringLong sl = root.get(readDescriptor, colonPos + 1, end);
+						if (sl != null) {
+							String taxid = sl.getStringValue();
+							if (taxid != null && taxIds.contains(taxid)) {
+								updateKMerStats(taxid);
+							}
 						}
 					}
 					if (taxIds.contains(kmerTaxid)) {
