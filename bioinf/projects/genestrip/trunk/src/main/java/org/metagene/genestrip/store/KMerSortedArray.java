@@ -180,9 +180,11 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				: CGAT.kMerToLongStraight(nseq, start, k, null);
 		return putLong(kmer, value);
 	}
-	
-	private int c = 0;
 
+	/**
+	 * 
+	 * @return true if put succeeded, false if (probably) some value is already stored under that kmer.
+	 */
 	protected boolean putLong(long kmer, V value) {
 		if (value == null) {
 			throw new NullPointerException("null is not allowed as a value.");
@@ -192,11 +194,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			throw new IllegalStateException("Capacity exceeded.");
 		}
 		if (filter.containsLong(kmer)) {
-			V v = getLong(kmer, null);
-			if (v != null) {
-				System.out.println("Spending my time..." + c++);
-				return v.equals(value);
-			}
+			return false;
 		}
 		short sindex = getAddValueIndex(value);
 		if (largeKmers != null) {
@@ -210,7 +208,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		filter.putLong(kmer);
 		return true;
 	}
-	
+
 	protected short getAddValueIndex(V value) {
 		short sindex = valueMap.getOrDefault(value, (short) -1);
 		if (sindex == -1) {
