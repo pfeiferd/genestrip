@@ -120,7 +120,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 						lastKMerTaxid = kmerTaxid;
 						if (!store.put(read, 0, kmerTaxid, false)) {
 							if (getLogger().isInfoEnabled()) {
-								getLogger().info("Duplicate entry for read regarding taxid " + kmerTaxid);
+								getLogger().info("Potential duplicate entry for kmer regarding taxid " + kmerTaxid);
 							}
 						}
 						if (lineCount % 1000000 == 0) {
