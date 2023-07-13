@@ -106,7 +106,7 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 							if (taxIds == null || taxIds.contains(krakenTaxid)) {
 								KrakenResStats stats = countingTrie.get(krakenTaxid, true);
 								stats.reads++;
-								if (kmerTaxid == krakenTaxid) {
+								if (kmerTaxid != null && kmerTaxid.equals(krakenTaxid)) {
 									stats.kmersInMatchingReads += hitLength;
 								}
 							}
