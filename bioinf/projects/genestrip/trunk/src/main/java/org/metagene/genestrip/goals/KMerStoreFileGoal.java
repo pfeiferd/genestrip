@@ -97,23 +97,23 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 							}
 						}
 					}
+					String descriptorTaxid = null;
 					if (times == 3) {
 						int end;
 						for (end = colonPos; readDescriptor[end] != 0; end++)
 							;
 						StringLong sl = root.get(readDescriptor, colonPos + 1, end);
 						if (sl != null) {
-							String taxid = sl.getStringValue();
-							if (taxid != null && taxIds.contains(taxid)) {
-								updateKMerStats(taxid);
+							descriptorTaxid = sl.getStringValue();
+							if (descriptorTaxid != null && taxIds.contains(descriptorTaxid)) {
+								updateKMerStats(descriptorTaxid);
 							}
 						}
 					}
 					if (taxIds.contains(kmerTaxid)) {
 						if (lastKMerTaxid == kmerTaxid) {
-							contig++;							
-						}
-						else {
+							contig++;
+						} else {
 							updateContigStats();
 							contig = 0;
 						}
@@ -134,6 +134,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 						contig = 0;
 						lastKMerTaxid = null;
 					}
+					lastDescriptorTaxid = descriptorTaxid;
 				}
 			};
 			filter.storeStats = storeStats;
@@ -153,13 +154,13 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 
 				filter.contig = 0;
 				filter.lastKMerTaxid = null;
+				filter.lastDescriptorTaxid = null;
 				krakenKMerFastqMerger.process(stream1, stream2, filter);
 				filter.updateContigStats();
-				
+
 				stream1.close();
 				stream2.close();
 			}
-
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Total stored entries: " + store.getEntries());
@@ -184,25 +185,28 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 		protected String lastKMerTaxid;
 		protected long counter = 0;
 		protected int contig;
+		protected String lastDescriptorTaxid;
 
 		public void updateContigStats() {
-			if (lastKMerTaxid != null && contig > 0) {
-				StoreStatsPerTaxid stats = getStats(lastKMerTaxid);
+			if (lastDescriptorTaxid != null && contig > 0) {
+				StoreStatsPerTaxid stats = getStats(lastDescriptorTaxid);
 				stats.contigs++;
 				stats.storedKMers += contig;
-				totalStats.storedKMers += contig;
 				if (contig > stats.maxContigLen) {
 					stats.maxContigLen = contig;
 				}
 			}
+			totalStats.storedKMers += contig;
 		}
-		
-		public void updateKMerStats(String taxid) {
-			StoreStatsPerTaxid stats = getStats(taxid);
-			stats.totalKMers++;
+
+		public void updateKMerStats(String descriptorTaxid) {
+			if (descriptorTaxid != null) {
+				StoreStatsPerTaxid stats = getStats(descriptorTaxid);
+				stats.totalKMers++;
+			}
 			totalStats.totalKMers++;
 		}
-		
+
 		private StoreStatsPerTaxid getStats(String taxid) {
 			StoreStatsPerTaxid res = storeStats.get(taxid);
 			if (res == null) {
