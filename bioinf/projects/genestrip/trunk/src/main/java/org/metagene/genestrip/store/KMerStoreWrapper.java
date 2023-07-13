@@ -30,7 +30,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.metagene.genestrip.tax.TaxIdCollector;
@@ -42,15 +41,15 @@ public class KMerStoreWrapper implements Serializable {
 
 	private final KMerSortedArray<String> kmerStore;
 	private final List<TaxIdNode> taxids;
-	private final Map<String, StoreStatsPerTaxid> storeStats;
+	private final List<StoreStatsPerTaxid> storeStats;
 
 	public KMerStoreWrapper(KMerSortedArray<String> kmerStore, Set<TaxIdNode> taxids,
-			Map<String, StoreStatsPerTaxid> storeStats) {
+			List<StoreStatsPerTaxid> storeStats) {
 		this(kmerStore, TaxIdCollector.nodesAsShallowCopies(TaxIdCollector.sortNodes(taxids)), storeStats);
 	}
 
 	public KMerStoreWrapper(KMerSortedArray<String> kmerStore, List<TaxIdNode> taxids,
-			Map<String, StoreStatsPerTaxid> storeStats) {
+			List<StoreStatsPerTaxid> storeStats) {
 		this.kmerStore = kmerStore;
 		this.taxids = taxids;
 		this.storeStats = storeStats;
@@ -64,7 +63,7 @@ public class KMerStoreWrapper implements Serializable {
 		return taxids;
 	}
 
-	public Map<String, StoreStatsPerTaxid> getStoreStats() {
+	public List<StoreStatsPerTaxid> getStoreStats() {
 		return storeStats;
 	}
 
@@ -84,11 +83,21 @@ public class KMerStoreWrapper implements Serializable {
 	public static class StoreStatsPerTaxid implements Serializable {
 		private static final long serialVersionUID = 1L;
 		
+		private final String taxid;
+		
 		// TODO: Nicer to use setter methods here... (?)
 		public long totalKMers;
 		public long storedKMers;
 		public long contigs;
 		public long maxContigLen;
+		
+		public StoreStatsPerTaxid(String taxid) {
+			this.taxid = taxid;
+		}
+		
+		public String getTaxid() {
+			return taxid;
+		}
 
 		public long getContigs() {
 			return contigs;

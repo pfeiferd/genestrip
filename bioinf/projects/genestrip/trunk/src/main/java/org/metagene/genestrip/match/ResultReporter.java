@@ -42,10 +42,15 @@ public class ResultReporter {
 		this.taxids = taxids;
 	}
 
-	public void printStoreInfo(Map<String, StoreStatsPerTaxid> allStats, PrintStream out) {
+	public void printStoreInfo(List<StoreStatsPerTaxid> statsList, PrintStream out) {
 		out.println("name;rank;taxid;stored kmers;total kmers;stored ratio;contigs;average contig length;max contig length;");
 
-		StoreStatsPerTaxid stats = allStats.get(null);
+		Map<String, StoreStatsPerTaxid> map = new HashMap<String, StoreStatsPerTaxid>();
+		for (StoreStatsPerTaxid stats : statsList) {
+			map.put(stats.getTaxid(), stats);
+		}
+		
+		StoreStatsPerTaxid stats = map.get(null);
 		out.print("TOTAL;");
 		out.print(Rank.SUPERKINGDOM);
 		out.print(';');
@@ -64,7 +69,7 @@ public class ResultReporter {
 		out.println(';');
 
 		for (TaxIdNode taxNode : taxids) {
-			stats = allStats.get(taxNode.getTaxId());
+			stats = map.get(taxNode.getTaxId());
 			if (stats != null) {
 				out.print(taxNode.getName());
 				out.print(';');
