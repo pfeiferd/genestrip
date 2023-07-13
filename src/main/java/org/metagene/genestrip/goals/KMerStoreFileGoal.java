@@ -27,9 +27,9 @@ package org.metagene.genestrip.goals;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
@@ -45,6 +45,7 @@ import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.store.KMerStoreWrapper.StoreStatsPerTaxid;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
+import org.metagene.genestrip.util.DigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StringLongDigitTrie;
 import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
@@ -79,7 +80,11 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 				taxIds.add(node.getTaxId());
 			}
 
-			Map<String, StoreStatsPerTaxid> storeStats = new HashMap<String, StoreStatsPerTaxid>();
+			DigitTrie<StoreStatsPerTaxid> storeStats = new DigitTrie<StoreStatsPerTaxid>() {
+				protected StoreStatsPerTaxid createInGet(String digits) {
+					return new StoreStatsPerTaxid(digits);
+				}
+			};
 
 			MyKrakenResultFastqMergeListener filter = new MyKrakenResultFastqMergeListener() {
 				@Override
@@ -138,7 +143,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 				}
 			};
 			filter.storeStats = storeStats;
-			filter.totalStats = filter.getStats(null);
+			filter.totalStats = new StoreStatsPerTaxid(null);
 
 			KrakenResultFastqMerger krakenKMerFastqMerger = new KrakenResultFastqMerger(
 					getProject().getConfig().getMaxReadSizeBytes());
@@ -168,8 +173,11 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 				getLogger().info("Saving file " + storeFile);
 			}
 			store.optimize();
-			KMerStoreWrapper wrapper = new KMerStoreWrapper((KMerSortedArray<String>) store, taxNodesGoal.get(),
-					storeStats);
+
+			List<StoreStatsPerTaxid> list = new ArrayList<StoreStatsPerTaxid>();
+			storeStats.collect(list);
+
+			KMerStoreWrapper wrapper = new KMerStoreWrapper((KMerSortedArray<String>) store, taxNodesGoal.get(), list);
 			wrapper.save(storeFile);
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("File saved " + storeFile);
@@ -181,7 +189,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 
 	private abstract static class MyKrakenResultFastqMergeListener implements KrakenResultFastqMergeListener {
 		protected StoreStatsPerTaxid totalStats;
-		protected Map<String, StoreStatsPerTaxid> storeStats;
+		protected DigitTrie<StoreStatsPerTaxid> storeStats;
 		protected String lastKMerTaxid;
 		protected long counter = 0;
 		protected int contig;
@@ -189,7 +197,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 
 		public void updateContigStats() {
 			if (lastDescriptorTaxid != null && contig > 0) {
-				StoreStatsPerTaxid stats = getStats(lastDescriptorTaxid);
+				StoreStatsPerTaxid stats = storeStats.get(lastDescriptorTaxid);
 				stats.contigs++;
 				stats.storedKMers += contig;
 				if (contig > stats.maxContigLen) {
@@ -201,19 +209,10 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 
 		public void updateKMerStats(String descriptorTaxid) {
 			if (descriptorTaxid != null) {
-				StoreStatsPerTaxid stats = getStats(descriptorTaxid);
+				StoreStatsPerTaxid stats = storeStats.get(descriptorTaxid);
 				stats.totalKMers++;
 			}
 			totalStats.totalKMers++;
-		}
-
-		private StoreStatsPerTaxid getStats(String taxid) {
-			StoreStatsPerTaxid res = storeStats.get(taxid);
-			if (res == null) {
-				res = new StoreStatsPerTaxid();
-				storeStats.put(taxid, res);
-			}
-			return res;
 		}
 	}
 }
