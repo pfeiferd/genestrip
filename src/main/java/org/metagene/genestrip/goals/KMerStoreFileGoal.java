@@ -113,7 +113,17 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 							if (descriptorTaxid != null && taxIds.contains(descriptorTaxid)) {
 								updateKMerStats(descriptorTaxid);
 							}
+							else {
+								if (getLogger().isInfoEnabled()) {
+									getLogger().info("Bad taxid in read descriptor " + descriptorTaxid);
+								}								
+							}
 						}
+					}
+					else {
+						if (getLogger().isInfoEnabled()) {
+							getLogger().info("Missing taxid in read descriptor");
+						}														
 					}
 					if (taxIds.contains(kmerTaxid)) {
 						if (lastKMerTaxid == kmerTaxid) {
