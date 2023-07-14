@@ -111,19 +111,17 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 						if (sl != null) {
 							descriptorTaxid = sl.getStringValue();
 							if (descriptorTaxid != null && taxIds.contains(descriptorTaxid)) {
-								updateKMerStats(descriptorTaxid);
-							}
-							else {
+								updateTotalKMers(descriptorTaxid);
+							} else {
 								if (getLogger().isInfoEnabled()) {
 									getLogger().info("Bad taxid in read descriptor " + descriptorTaxid);
-								}								
+								}
 							}
 						}
-					}
-					else {
+					} else {
 						if (getLogger().isInfoEnabled()) {
 							getLogger().info("Missing taxid in read descriptor");
-						}														
+						}
 					}
 					if (taxIds.contains(kmerTaxid)) {
 						if (lastKMerTaxid == kmerTaxid) {
@@ -137,6 +135,9 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 							if (getLogger().isInfoEnabled()) {
 								getLogger().info("Potential duplicate entry for kmer regarding taxid " + kmerTaxid);
 							}
+						}
+						else {
+							updateStoredKMers(descriptorTaxid);
 						}
 						if (lineCount % 1000000 == 0) {
 							if (getLogger().isInfoEnabled()) {
@@ -207,18 +208,26 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 		protected String lastDescriptorTaxid;
 
 		public void updateContigStats() {
-			if (lastDescriptorTaxid != null && contig > 0) {
-				StoreStatsPerTaxid stats = storeStats.get(lastDescriptorTaxid, true);
-				stats.contigs++;
-				stats.storedKMers += contig;
-				if (contig > stats.maxContigLen) {
-					stats.maxContigLen = contig;
+			if (contig > 0) {
+				if (lastDescriptorTaxid != null) {
+					StoreStatsPerTaxid stats = storeStats.get(lastDescriptorTaxid, true);
+					stats.contigs++;
+					if (contig > stats.maxContigLen) {
+						stats.maxContigLen = contig;
+					}
 				}
-				totalStats.storedKMers += contig;
 			}
 		}
 
-		public void updateKMerStats(String descriptorTaxid) {
+		public void updateStoredKMers(String descriptorTaxid) {
+			if (descriptorTaxid != null) {
+				StoreStatsPerTaxid stats = storeStats.get(descriptorTaxid, true);
+				stats.storedKMers++;
+			}
+			totalStats.storedKMers++;
+		}
+
+		public void updateTotalKMers(String descriptorTaxid) {
 			if (descriptorTaxid != null) {
 				StoreStatsPerTaxid stats = storeStats.get(descriptorTaxid, true);
 				stats.totalKMers++;
