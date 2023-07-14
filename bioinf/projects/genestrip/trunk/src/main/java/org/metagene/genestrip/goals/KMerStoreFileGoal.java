@@ -186,6 +186,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 
 			List<StoreStatsPerTaxid> list = new ArrayList<StoreStatsPerTaxid>();
 			storeStats.collect(list);
+			list.add(filter.totalStats);
 
 			KMerStoreWrapper wrapper = new KMerStoreWrapper((KMerSortedArray<String>) store, taxNodesGoal.get(), list);
 			wrapper.save(storeFile);
