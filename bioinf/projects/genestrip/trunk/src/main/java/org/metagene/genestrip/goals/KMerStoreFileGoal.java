@@ -219,7 +219,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 
 		public void updateKMerStats(String descriptorTaxid) {
 			if (descriptorTaxid != null) {
-				StoreStatsPerTaxid stats = storeStats.get(descriptorTaxid);
+				StoreStatsPerTaxid stats = storeStats.get(descriptorTaxid, true);
 				stats.totalKMers++;
 			}
 			totalStats.totalKMers++;
