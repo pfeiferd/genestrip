@@ -107,7 +107,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 						int end;
 						for (end = colonPos; readDescriptor[end] != 0; end++)
 							;
-						StringLong sl = root.get(readDescriptor, colonPos + 1, end);
+						StringLong sl = root.get(readDescriptor, colonPos + 1, end, true);
 						if (sl != null) {
 							descriptorTaxid = sl.getStringValue();
 							if (descriptorTaxid != null && taxIds.contains(descriptorTaxid)) {
