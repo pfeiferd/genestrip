@@ -207,7 +207,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 
 		public void updateContigStats() {
 			if (lastDescriptorTaxid != null && contig > 0) {
-				StoreStatsPerTaxid stats = storeStats.get(lastDescriptorTaxid);
+				StoreStatsPerTaxid stats = storeStats.get(lastDescriptorTaxid, true);
 				stats.contigs++;
 				stats.storedKMers += contig;
 				if (contig > stats.maxContigLen) {
