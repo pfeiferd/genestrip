@@ -80,9 +80,6 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 				taxIds.add(node.getTaxId());
 			}
 
-			System.out.println("***taxids***");
-			System.out.println(taxIds);
-
 			DigitTrie<StoreStatsPerTaxid> storeStats = new DigitTrie<StoreStatsPerTaxid>() {
 				protected StoreStatsPerTaxid createInGet(String digits) {
 					return new StoreStatsPerTaxid(digits);
@@ -105,18 +102,11 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 							}
 						}
 					}
-					if ("47466".equals(kmerTaxid)) {
-						System.out.println("---found---");
-					}
 					String descriptorTaxid = null;
 					if (times == 3) {
 						int end;
 						for (end = colonPos; readDescriptor[end] != 0; end++)
 							;
-						if ("47466".equals(kmerTaxid)) {
-							System.out.println("---found again---");
-							System.out.println(new String(readDescriptor, colonPos + 1, end -  colonPos + 1));
-						}
 						StringLong sl = root.get(readDescriptor, colonPos + 1, end, true);
 						descriptorTaxid = sl.getStringValue();
 						if (descriptorTaxid != null && taxIds.contains(descriptorTaxid)) {
