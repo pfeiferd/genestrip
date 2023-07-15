@@ -23,6 +23,14 @@ public class StringLongDigitTrie extends DigitTrie<StringLong> {
 
 		return stringLong;
 	}
+	
+	@Override
+	protected StringLong createInGet(String digits) {
+		StringLong stringLong = new StringLong();
+		stringLong.stringValue = digits;
+		
+		return stringLong;
+	}
 
 	public static class StringLong implements Serializable {
 		private static final long serialVersionUID = 1L;
