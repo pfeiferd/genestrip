@@ -79,7 +79,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 			for (TaxIdNode node : taxNodesGoal.get()) {
 				taxIds.add(node.getTaxId());
 			}
-			
+
 			System.out.println("***taxids***");
 			System.out.println(taxIds);
 
@@ -111,14 +111,12 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 						for (end = colonPos; readDescriptor[end] != 0; end++)
 							;
 						StringLong sl = root.get(readDescriptor, colonPos + 1, end, true);
-						if (sl != null) {
-							descriptorTaxid = sl.getStringValue();
-							if (descriptorTaxid != null && taxIds.contains(descriptorTaxid)) {
-								updateTotalKMers(descriptorTaxid);
-							} else {
-								if (getLogger().isInfoEnabled()) {
-									getLogger().info("Bad taxid in read descriptor " + descriptorTaxid);
-								}
+						descriptorTaxid = sl.getStringValue();
+						if (descriptorTaxid != null && taxIds.contains(descriptorTaxid)) {
+							updateTotalKMers(descriptorTaxid);
+						} else {
+							if (getLogger().isInfoEnabled()) {
+								getLogger().info("Bad taxid in read descriptor " + descriptorTaxid);
 							}
 						}
 					} else {
@@ -138,8 +136,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 							if (getLogger().isInfoEnabled()) {
 								getLogger().info("Potential duplicate entry for kmer regarding taxid " + kmerTaxid);
 							}
-						}
-						else {
+						} else {
 							updateStoredKMers(descriptorTaxid);
 						}
 						if (lineCount % 1000000 == 0) {
@@ -231,10 +228,11 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 		}
 
 		public void updateTotalKMers(String descriptorTaxid) {
-			if (descriptorTaxid != null) {
-				StoreStatsPerTaxid stats = storeStats.get(descriptorTaxid, true);
-				stats.totalKMers++;
+			if ("47466".equals(descriptorTaxid)) {
+				System.out.println("---found---");
 			}
+			StoreStatsPerTaxid stats = storeStats.get(descriptorTaxid, true);
+			stats.totalKMers++;
 			totalStats.totalKMers++;
 		}
 	}
