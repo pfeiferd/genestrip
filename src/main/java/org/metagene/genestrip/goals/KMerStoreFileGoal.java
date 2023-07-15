@@ -105,11 +105,18 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 							}
 						}
 					}
+					if ("47466".equals(kmerTaxid)) {
+						System.out.println("---found---");
+					}
 					String descriptorTaxid = null;
 					if (times == 3) {
 						int end;
 						for (end = colonPos; readDescriptor[end] != 0; end++)
 							;
+						if ("47466".equals(kmerTaxid)) {
+							System.out.println("---found again---");
+							System.out.println(new String(readDescriptor, colonPos + 1, end -  colonPos + 1));
+						}
 						StringLong sl = root.get(readDescriptor, colonPos + 1, end, true);
 						descriptorTaxid = sl.getStringValue();
 						if (descriptorTaxid != null && taxIds.contains(descriptorTaxid)) {
@@ -228,9 +235,6 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 		}
 
 		public void updateTotalKMers(String descriptorTaxid) {
-			if ("47466".equals(descriptorTaxid)) {
-				System.out.println("---found---");
-			}
 			StoreStatsPerTaxid stats = storeStats.get(descriptorTaxid, true);
 			stats.totalKMers++;
 			totalStats.totalKMers++;
