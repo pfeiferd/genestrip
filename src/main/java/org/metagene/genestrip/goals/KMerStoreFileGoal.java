@@ -79,6 +79,9 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 			for (TaxIdNode node : taxNodesGoal.get()) {
 				taxIds.add(node.getTaxId());
 			}
+			
+			System.out.println("***taxids***");
+			System.out.println(taxIds);
 
 			DigitTrie<StoreStatsPerTaxid> storeStats = new DigitTrie<StoreStatsPerTaxid>() {
 				protected StoreStatsPerTaxid createInGet(String digits) {
