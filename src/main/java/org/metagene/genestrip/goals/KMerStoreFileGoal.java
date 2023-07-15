@@ -130,8 +130,9 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 						}
 						lastKMerTaxid = kmerTaxid;
 						if (!store.put(read, 0, kmerTaxid, false)) {
-							if (getLogger().isInfoEnabled()) {
-								getLogger().info("Potential duplicate entry for kmer regarding taxid " + kmerTaxid);
+							// On level trace, because of too many annoying messages that don't help anybody...
+							if (getLogger().isTraceEnabled()) {
+								getLogger().trace("Potential duplicate entry for kmer regarding taxid " + kmerTaxid);
 							}
 						} else {
 							updateStoredKMers(descriptorTaxid);
