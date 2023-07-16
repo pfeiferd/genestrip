@@ -112,14 +112,16 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 			}
 
 			GSConfig config = getProject().getConfig();
-			if (matcher != null) {
+			if (matcher == null) {
 				wrapper = KMerStoreWrapper.load(storeGoal.getFile());
 				matcher = new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(),
 						config.getThreadQueueSize(), config.getThreads());
 				reporter = new ResultReporter(wrapper.getTaxids());
 				uniqueCounter = config.isCountUniqueKmers() ? new KMerUniqueCounterBits(wrapper.getKmerStore()) : null;
 			}
-			uniqueCounter.clear();
+			if (uniqueCounter != null) {
+				uniqueCounter.clear();
+			}
 			Result res = matcher.runClassifier(prefixAndFastq.file, filteredFile, krakenOutStyleFile, uniqueCounter);
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
 			reporter.printMatchResult(res, out);
