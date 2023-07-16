@@ -35,7 +35,6 @@ import java.util.Set;
 import org.metagene.genestrip.goals.AssemblyFileDownloadGoal;
 import org.metagene.genestrip.goals.BloomFilterFileGoal;
 import org.metagene.genestrip.goals.BloomFilterSizeGoal;
-import org.metagene.genestrip.goals.MatchGoal;
 import org.metagene.genestrip.goals.FastaFileDownloadGoal;
 import org.metagene.genestrip.goals.FilterGoal;
 import org.metagene.genestrip.goals.KMerFastqGoal;
@@ -45,6 +44,8 @@ import org.metagene.genestrip.goals.KrakenFastqFileGoal;
 import org.metagene.genestrip.goals.KrakenOutGoal;
 import org.metagene.genestrip.goals.KrakenResCountGoal;
 import org.metagene.genestrip.goals.KrakenResErrorGoal;
+import org.metagene.genestrip.goals.MatchGoal;
+import org.metagene.genestrip.goals.MultiMatchGoal;
 import org.metagene.genestrip.goals.SortKrakenOutGoal;
 import org.metagene.genestrip.goals.StoreInfoGoal;
 import org.metagene.genestrip.goals.TaxIdFileDownloadGoal;
@@ -234,25 +235,29 @@ public class GSMaker extends Maker<GSProject> {
 		};
 		registerDefaultGoal(all);
 
-		File fastq = project.getFastqFile();
-		if (fastq != null) {
-			Goal<GSProject> filterGoal = new FilterGoal(project, "filter", fastq,
+		File fastqOrCSV = project.getFastqOrCSVFile();
+		if (fastqOrCSV != null) {
+			Goal<GSProject> filterGoal = new FilterGoal(project, "filter", fastqOrCSV,
 					project.getConfig().isWriteDumpedFastq(), bloomFilterFileGoal, projectSetupGoal);
 			registerGoal(filterGoal);
 
-			Goal<GSProject> classifyGoal = new MatchGoal(project, "match", fastq, storeGoal,
+			Goal<GSProject> classifyGoal = new MatchGoal(project, "match", fastqOrCSV, storeGoal,
 					project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
 			registerGoal(classifyGoal);
 
-			Goal<GSProject> krakenResCountGoal = new KrakenResCountGoal(project, "krakenres", fastq, taxNodesGoal,
+			Goal<GSProject> multiMatchGoal = new MultiMatchGoal(project, "multimatch", fastqOrCSV, storeGoal,
+					project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
+			registerGoal(multiMatchGoal);
+			
+			Goal<GSProject> krakenResCountGoal = new KrakenResCountGoal(project, "krakenres", fastqOrCSV, taxNodesGoal,
 					projectSetupGoal);
 			registerGoal(krakenResCountGoal);
 
-			Goal<GSProject> krakenResCountAllGoal = new KrakenResCountGoal(project, "krakenresall", fastq, null,
+			Goal<GSProject> krakenResCountAllGoal = new KrakenResCountGoal(project, "krakenresall", fastqOrCSV, null,
 					projectSetupGoal);
 			registerGoal(krakenResCountAllGoal);
 
-			FileGoal<GSProject> fastqKrakenOutGoal = new KrakenOutGoal(project, "fastqkrakenout", fastq,
+			FileGoal<GSProject> fastqKrakenOutGoal = new KrakenOutGoal(project, "fastqkrakenout", fastqOrCSV,
 					projectSetupGoal);
 			registerGoal(fastqKrakenOutGoal);
 
@@ -262,11 +267,11 @@ public class GSMaker extends Maker<GSProject> {
 			}
 
 			ObjectGoal<KMerTrie<TaxidWithCount>, GSProject> trieFromKrakenResGoal = new TrieFromKrakenResGoal(project,
-					"triefromkrakenres", fastq, project.getConfig().isWriteFilteredFastq(), taxNodesGoal,
+					"triefromkrakenres", fastqOrCSV, project.getConfig().isWriteFilteredFastq(), taxNodesGoal,
 					fastaFilesGoal, fastqKrakenOutGoal, fastaDownloadGoal, projectSetupGoal);
 			registerGoal(trieFromKrakenResGoal);
 
-			Goal<GSProject> krakenResErrorGoal = new KrakenResErrorGoal(project, "krakenerr", fastq,
+			Goal<GSProject> krakenResErrorGoal = new KrakenResErrorGoal(project, "krakenerr", fastqOrCSV,
 					trieFromKrakenResGoal, projectSetupGoal);
 			registerGoal(krakenResErrorGoal);
 		}
