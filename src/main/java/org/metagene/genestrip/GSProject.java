@@ -53,26 +53,26 @@ public class GSProject implements DownloadProject,  KMerStoreFactory {
 	private final String krakenDB;
 	private final FTPEntryQuality fastaQuality;
 	private final int kMserSize;
-	private final File fastqFile;
+	private final File fastqOrCSVFile;
 	private final File csvDir;
 	private final File fastqResDir;
 
 	public GSProject(GSConfig config, String name, FTPEntryQuality fastaQuality, int kMerSize, String krakenDB,
-			File fastqFile, File csvDir, File fastqResDir) {
+			File fastqOrCSVFile, File csvDir, File fastqResDir) {
 		this.config = config;
 		this.name = name;
 		this.fastaQuality = fastaQuality;
 		this.kMserSize = kMerSize;
 		this.krakenDB = krakenDB;
-		this.fastqFile = fastqFile;
+		this.fastqOrCSVFile = fastqOrCSVFile;
 		this.fastqResDir = fastqResDir;
 		this.csvDir = csvDir != null ? csvDir : new File(getProjectsDir(), name + "/csv");
 	}
 
-	public File getFastqFile() {
-		return fastqFile;
+	public File getFastqOrCSVFile() {
+		return fastqOrCSVFile;
 	}
-
+	
 	public File getDirForType(FileType type) {
 		switch (type) {
 		case FASTQ_RES:

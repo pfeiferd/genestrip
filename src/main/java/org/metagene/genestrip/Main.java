@@ -114,8 +114,9 @@ public class Main {
 				.desc("Generation target ('make', 'clean', 'cleanall'). The default is 'make'.").build();
 		options.addOption(target);
 
-		Option fastq = Option.builder("f").hasArg().argName("fqfile")
-				.desc("Input fastq file in case of filtering or k-mer matching (regarding goals 'filter' and 'match').")
+		Option fastq = Option.builder("f").hasArg().argName("fqfile").desc(
+				"Input fastq file in case of filtering or k-mer matching (regarding goals 'filter' and 'match') or "
+						+ "csv file with a list of fastq files to be processed via 'multimatch'. Each line should have the format '<prefix> <path to fastq file>'.")
 				.build();
 		options.addOption(fastq);
 
