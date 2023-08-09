@@ -26,6 +26,7 @@ package org.metagene.genestrip;
 
 import java.io.File;
 import java.io.Serializable;
+import java.util.List;
 
 import org.metagene.genestrip.make.FileDownloadGoal.DownloadProject;
 import org.metagene.genestrip.store.KMerSortedArray;
@@ -51,17 +52,15 @@ public class GSProject implements DownloadProject,  KMerStoreFactory {
 	private final GSConfig config;
 	private final String name;
 	private final String krakenDB;
-	private final FTPEntryQuality fastaQuality;
 	private final int kMserSize;
 	private final File fastqOrCSVFile;
 	private final File csvDir;
 	private final File fastqResDir;
 
-	public GSProject(GSConfig config, String name, FTPEntryQuality fastaQuality, int kMerSize, String krakenDB,
+	public GSProject(GSConfig config, String name, int kMerSize, String krakenDB,
 			File fastqOrCSVFile, File csvDir, File fastqResDir) {
 		this.config = config;
 		this.name = name;
-		this.fastaQuality = fastaQuality;
 		this.kMserSize = kMerSize;
 		this.krakenDB = krakenDB;
 		this.fastqOrCSVFile = fastqOrCSVFile;
@@ -160,8 +159,8 @@ public class GSProject implements DownloadProject,  KMerStoreFactory {
 		return kMserSize <= 0 ? config.getKMerSize() : kMserSize;
 	}
 
-	public FTPEntryQuality getFastaQuality() {
-		return fastaQuality == null ? config.getFastaQuality() : fastaQuality;
+	public List<FTPEntryQuality> getFastaQuality() {
+		return config.getFastaQualities();
 	}
 
 	public String getName() {

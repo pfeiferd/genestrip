@@ -75,7 +75,7 @@ public class Main {
 			}
 			String projectName = restArgs[0];
 
-			project = new GSProject(config, projectName, null, 0, null, fastqFile, resFolder, resFolder);
+			project = new GSProject(config, projectName, 0, null, fastqFile, resFolder, resFolder);
 			maker = new GSMaker(project);
 		} catch (IOException e) {
 			throw new RuntimeException(e);

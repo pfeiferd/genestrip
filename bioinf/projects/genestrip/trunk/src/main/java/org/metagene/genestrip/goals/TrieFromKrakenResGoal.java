@@ -44,7 +44,6 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.match.FastaTrieCleaner;
 import org.metagene.genestrip.store.KMerTrie;
 import org.metagene.genestrip.store.KMerTrie.KMerTrieVisitor;
-import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryWithQuality;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
@@ -120,7 +119,7 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 									if (!trie.put(kmer, 0, tc, false)) {
 										if (getLogger().isWarnEnabled()) {
 											getLogger().warn("Duplicate entry for read regarding taxid " + kmerTaxid);
-										}							
+										}
 									}
 								}
 								tc.inc();
@@ -134,7 +133,6 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 				printStream.close();
 			}
 
-			FTPEntryQuality minQuality = getProject().getConfig().getFastaQuality();
 			String[] matchingTaxId = new String[1];
 
 			FastaTrieCleaner<TaxidWithCount> fastaTrieCleaner = new FastaTrieCleaner<TaxidWithCount>(trie,
@@ -152,15 +150,12 @@ public class TrieFromKrakenResGoal extends ObjectGoal<KMerTrie<TaxidWithCount>, 
 
 				if (entryList != null) {
 					for (FTPEntryWithQuality entry : entryList) {
-						if (minQuality == null || !entry.getQuality().below(minQuality)) {
-
-							File file = new File(getProject().getFastasDir(), entry.getFileName());
-							if (getLogger().isInfoEnabled()) {
-								getLogger().info("Cleaning via file " + file);
-							}
-							if (file.exists()) {
-								fastaTrieCleaner.readFasta(file);
-							}
+						File file = new File(getProject().getFastasDir(), entry.getFileName());
+						if (getLogger().isInfoEnabled()) {
+							getLogger().info("Cleaning via file " + file);
+						}
+						if (file.exists()) {
+							fastaTrieCleaner.readFasta(file);
 						}
 					}
 				}

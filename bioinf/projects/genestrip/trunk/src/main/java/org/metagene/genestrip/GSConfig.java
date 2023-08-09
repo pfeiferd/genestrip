@@ -27,7 +27,10 @@ package org.metagene.genestrip;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
+import java.util.StringTokenizer;
 
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
 import org.metagene.genestrip.tax.TaxTree;
@@ -70,9 +73,9 @@ public class GSConfig {
 	}
 
 	public boolean isCountUniqueKmers() {
-		return Boolean.valueOf(properties.getProperty("countUniqueKmers", "true"));		
+		return Boolean.valueOf(properties.getProperty("countUniqueKmers", "true"));
 	}
-	
+
 	public boolean isIgnoreMissingFastas() {
 		return Boolean.valueOf(properties.getProperty("ignoreMissingFastas", "false"));
 	}
@@ -80,7 +83,7 @@ public class GSConfig {
 	public boolean isUseGenBank() {
 		return Boolean.valueOf(properties.getProperty("useGenBank", "false"));
 	}
-	
+
 //	public boolean isUseTrie() {
 //		return Boolean.valueOf(properties.getProperty("useTrie", "false"));		
 //	}
@@ -133,9 +136,20 @@ public class GSConfig {
 		return Boolean.valueOf(properties.getProperty("useKraken1", "false"));
 	}
 
-	public FTPEntryQuality getFastaQuality() {
-		String qs = properties.getProperty("fastaQuality");
-		return qs == null ? FTPEntryQuality.COMPLETE_LATEST : FTPEntryQuality.valueOf(qs);
+	public List<FTPEntryQuality> getFastaQualities() {
+		String qs = properties.getProperty("fastaQualities");
+		List<FTPEntryQuality> res = new ArrayList<FTPEntryQuality>();
+		if (qs != null) {
+			StringTokenizer tokenizer = new StringTokenizer(qs, ",;");
+			while (tokenizer.hasMoreTokens()) {
+				res.add(FTPEntryQuality.valueOf(tokenizer.nextToken()));
+			}
+		}
+		if (res.isEmpty()) {
+			res.add(FTPEntryQuality.COMPLETE_LATEST);
+			res.add(FTPEntryQuality.CHROMOSOME_LATEST);
+		}
+		return res;
 	}
 
 	public String getFtpBaseURL() {
