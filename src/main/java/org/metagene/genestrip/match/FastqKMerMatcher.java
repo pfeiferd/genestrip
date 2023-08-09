@@ -30,6 +30,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.metagene.genestrip.fastq.AbstractFastqReader;
@@ -52,7 +53,11 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	protected TaxidStatsTrie root;
 
 	private ByteCountingInputStreamAccess byteCountAccess;
-	private long fastqFileSize;
+	private int coveredCounter;
+	private int totalCount;
+	private File currentFastq;
+	private long fastqsFileSize;
+	private long coveredFilesSize;
 	private long startTime;
 	private long indexedC;
 
@@ -76,8 +81,11 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 
 	public Result runClassifier(File fastq, File filteredFile, File krakenOutStyleFile, KMerUniqueCounter uniqueCounter)
 			throws IOException {
-		byteCountAccess = StreamProvider.getByteCountingInputStreamForFile(fastq, false);
-		fastqFileSize = Files.size(fastq.toPath());
+		return runClassifier(Collections.singletonList(fastq), filteredFile, krakenOutStyleFile, uniqueCounter);
+	}
+	
+	public Result runClassifier(List<File> fastqs, File filteredFile, File krakenOutStyleFile, KMerUniqueCounter uniqueCounter)
+			throws IOException {
 
 		if (filteredFile != null) {
 			indexed = StreamProvider.getOutputStreamForFile(filteredFile);
@@ -96,14 +104,26 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 
 		initRoot();
 		initUniqueCounter(uniqueCounter);
+		
+		totalCount = fastqs.size();
+		for (File fastq : fastqs) {			
+			fastqsFileSize += Files.size(fastq.toPath());
+		}
+		coveredCounter = 0;
+		for (File fastq : fastqs) {
+			currentFastq = fastq;
+			byteCountAccess = StreamProvider.getByteCountingInputStreamForFile(fastq, false);
+			readFastq(byteCountAccess.getInputStream());
+			coveredFilesSize += byteCountAccess.getBytesRead();
+			byteCountAccess.getInputStream().close();
+			coveredCounter++;
+		}
 
-		readFastq(byteCountAccess.getInputStream());
 
 		if (indexed != null) {
 			indexed.close();
 			out.close();
 		}
-		byteCountAccess.getInputStream().close();
 
 		List<StatsPerTaxid> allStats = new ArrayList<StatsPerTaxid>();
 		root.collect(allStats);
@@ -160,6 +180,9 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	@Override
 	protected void start() throws IOException {
 		indexedC = 0;
+		if (logger.isInfoEnabled()) {
+			logger.info("Processing fastq file (" + coveredCounter + "/" + totalCount + "): " + currentFastq);
+		}
 	}
 
 	@Override
@@ -171,7 +194,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	protected void log() {
 		if (reads % logUpdateCycle == 0) {
 			if (logger.isInfoEnabled()) {
-				double ratio = byteCountAccess.getBytesRead() / (double) fastqFileSize;
+				double ratio = (coveredFilesSize + byteCountAccess.getBytesRead()) / (double) fastqsFileSize;
 				long stopTime = System.currentTimeMillis();
 
 				double diff = (stopTime - startTime);
