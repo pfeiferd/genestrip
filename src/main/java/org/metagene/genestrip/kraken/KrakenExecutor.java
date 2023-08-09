@@ -53,9 +53,9 @@ public class KrakenExecutor {
 		for (File fastq : fastqs) {
 			if (!first) {
 				fastqsStr.append(" ");
-				first = false;
 			}
 			fastqsStr.append(StringUtils.quoteArgument(fastq.getCanonicalPath()));
+			first = false;
 		}
 		return MessageFormat.format(execCommand, bin, StringUtils.quoteArgument(database), fastqsStr.toString(),
 				StringUtils.quoteArgument(classOut.getCanonicalPath()));
