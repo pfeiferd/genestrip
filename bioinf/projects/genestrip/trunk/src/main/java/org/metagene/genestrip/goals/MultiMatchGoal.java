@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.Reader;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,7 +51,7 @@ import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class MultiMatchGoal extends FileListGoal<GSProject> {
-	private final Map<File, PrefixAndFile> csvFileToFastq;
+	private final Map<File, List<File>> fileToFastqs;
 	private final File csvFile;
 	private final KMerStoreFileGoal storeGoal;
 	private final boolean writedFiltered;
@@ -67,7 +68,7 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 		this.csvFile = csvFile;
 		this.storeGoal = storeGoal;
 		this.writedFiltered = writeFiltered;
-		csvFileToFastq = new HashMap<File, PrefixAndFile>();
+		fileToFastqs = new HashMap<File, List<File>>();
 	}
 
 	@Override
@@ -83,9 +84,14 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 				String fastqFilePath = record.get(1);
 				File fastq = new File(fastqFilePath);
 				if (fastq.exists()) {
-					File matchFile = getProject().getOutputFile(prefix + "_" + getName(), fastq, FileType.CSV, false);
-					addFile(matchFile);
-					csvFileToFastq.put(matchFile, new PrefixAndFile(prefix, fastq));
+					File matchFile = getProject().getOutputFile(prefix + "_" + getName(), null, FileType.CSV, false);
+					List<File> fastqs = fileToFastqs.get(matchFile);
+					if (fastqs == null) {
+						fastqs = new ArrayList<File>();
+						fileToFastqs.put(matchFile, fastqs);
+						addFile(matchFile);
+					}
+					fastqs.add(fastq);
 				} else {
 					getLogger().warn("Ignoring missing fastq file " + fastq + ".");
 				}
@@ -102,13 +108,11 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 		try {
 			File filteredFile = null;
 			File krakenOutStyleFile = null;
-			PrefixAndFile prefixAndFastq = csvFileToFastq.get(file);
+			List<File> fastqs = fileToFastqs.get(file);
 
 			if (writedFiltered) {
-				filteredFile = getProject().getOutputFile(prefixAndFastq.prefix + "_" + getName(), prefixAndFastq.file,
-						FileType.FASTQ_RES, true);
-				krakenOutStyleFile = getProject().getOutputFile(prefixAndFastq.prefix + "_" + getName(),
-						prefixAndFastq.file, FileType.KRAKEN_OUT_RES, false);
+				filteredFile = getProject().getOutputFile(getName(), file, FileType.FASTQ_RES, true);
+				krakenOutStyleFile = getProject().getOutputFile(getName(), file, FileType.KRAKEN_OUT_RES, false);
 			}
 
 			GSConfig config = getProject().getConfig();
@@ -122,7 +126,7 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 			if (uniqueCounter != null) {
 				uniqueCounter.clear();
 			}
-			Result res = matcher.runClassifier(prefixAndFastq.file, filteredFile, krakenOutStyleFile, uniqueCounter);
+			Result res = matcher.runClassifier(fastqs, filteredFile, krakenOutStyleFile, uniqueCounter);
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
 			reporter.printMatchResult(res, out);
 			out.close();
