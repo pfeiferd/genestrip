@@ -167,7 +167,7 @@ public class AssemblySummaryReader {
 	}
 
 	public enum FTPEntryQuality {
-		ADDITIONAL, COMPLETE_LATEST, COMPLETE, CHROMOSOME_LATEST, CHROMOSOME, LATEST, NONE;
+		ADDITIONAL, COMPLETE_LATEST, COMPLETE, CHROMOSOME_LATEST, CHROMOSOME, CONTIG_LATEST, CONTIG, LATEST, NONE;
 
 		public boolean below(FTPEntryQuality q) {
 			return this.ordinal() > q.ordinal();
@@ -185,6 +185,12 @@ public class AssemblySummaryReader {
 					return CHROMOSOME_LATEST;
 				} else {
 					return CHROMOSOME;
+				}
+			} else if ("Contig".equals(complete)) {
+				if ("latest".equals(latest)) {
+					return CONTIG_LATEST;
+				} else {
+					return CONTIG;
 				}
 			} else {
 				if ("latest".equals(latest)) {
