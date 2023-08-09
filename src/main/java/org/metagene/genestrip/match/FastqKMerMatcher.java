@@ -181,7 +181,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	protected void start() throws IOException {
 		indexedC = 0;
 		if (logger.isInfoEnabled()) {
-			logger.info("Processing fastq file (" + coveredCounter + "/" + totalCount + "): " + currentFastq);
+			logger.info("Processing fastq file (" + (coveredCounter + 1) + "/" + totalCount + "): " + currentFastq);
 		}
 	}
 
