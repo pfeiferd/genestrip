@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.MessageFormat;
+import java.util.List;
 
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
@@ -46,22 +47,30 @@ public class KrakenExecutor {
 		this.bin = StringUtils.quoteArgument(bin);
 	}
 
-	public String genExecLine(String database, File fastq, File classOut) throws IOException {
-		return MessageFormat.format(execCommand, bin, StringUtils.quoteArgument(database),
-				StringUtils.quoteArgument(fastq.getCanonicalPath()),
+	public String genExecLine(String database, List<File> fastqs, File classOut) throws IOException {
+		StringBuilder fastqsStr = new StringBuilder();
+		boolean first = true;
+		for (File fastq : fastqs) {
+			if (!first) {
+				fastqsStr.append(" ");
+				first = false;
+			}
+			fastqsStr.append(StringUtils.quoteArgument(fastq.getCanonicalPath()));
+		}
+		return MessageFormat.format(execCommand, bin, StringUtils.quoteArgument(database), fastqsStr.toString(),
 				StringUtils.quoteArgument(classOut.getCanonicalPath()));
 	}
-	
+
 	public boolean isWithFileForOutput() {
 		return execCommand.contains("{3}");
 	}
 
-	protected CommandLine genExecCommand(String database, File fastq, File classOut) throws IOException {
-		return CommandLine.parse(genExecLine(database, fastq, classOut));
+	protected CommandLine genExecCommand(String database, List<File> fastqs, File classOut) throws IOException {
+		return CommandLine.parse(genExecLine(database, fastqs, classOut));
 	}
 
-	public void execute2(String database, File fastq, File classOut, OutputStream outputStream, OutputStream errorStream)
-			throws IOException {
+	public void execute2(String database, List<File> fastqs, File classOut, OutputStream outputStream,
+			OutputStream errorStream) throws IOException {
 		Executor executor = new DefaultExecutor();
 		PumpStreamHandler pumpStreamHandler = new PumpStreamHandler(outputStream, errorStream) {
 			@Override
@@ -89,15 +98,15 @@ public class KrakenExecutor {
 			}
 		};
 		executor.setStreamHandler(pumpStreamHandler);
-		int res = executor.execute(genExecCommand(database, fastq, classOut));
+		int res = executor.execute(genExecCommand(database, fastqs, classOut));
 		if (res != 0) {
 			throw new IllegalStateException("Kraken terminated unsuccesfully");
 		}
 	}
 
-	public void execute(String database, File fastq, File classOut, OutputStream outputStream, OutputStream errorStream)
+	public void execute(String database, List<File> fastqs, File classOut, OutputStream outputStream, OutputStream errorStream)
 			throws InterruptedException, IOException {
-		Process process = Runtime.getRuntime().exec(genExecLine(database, fastq, classOut));
+		Process process = Runtime.getRuntime().exec(genExecLine(database, fastqs, classOut));
 		handleOutputStream(process.getInputStream(), outputStream);
 		handleErrorStream(process.getErrorStream(), System.err);
 		int res = process.waitFor();
@@ -105,7 +114,7 @@ public class KrakenExecutor {
 			throw new IllegalStateException("Kraken terminated unsuccesfully");
 		}
 	}
-	
+
 	protected void handleOutputStream(InputStream stream, OutputStream outputStream) throws IOException {
 		IOUtils.copyLarge(stream, outputStream);
 	}
