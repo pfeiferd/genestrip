@@ -75,7 +75,7 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 	@SafeVarargs
 	public KrakenResCountGoal(GSProject project, String name, File csvFile, boolean csv,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, Goal<GSProject>... deps) {
-		super(project, name, (File) null, ArraysUtil.append(deps, taxNodesGoal));
+		super(project, name, (List<File>) null, ArraysUtil.append(deps, taxNodesGoal));
 		this.taxNodesGoal = taxNodesGoal;
 		this.csvFile = csvFile;
 		fastq = null;
