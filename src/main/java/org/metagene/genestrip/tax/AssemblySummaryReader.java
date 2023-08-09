@@ -31,6 +31,7 @@ import java.io.Reader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -58,11 +59,8 @@ public class AssemblySummaryReader {
 		this.assFileName = assFileName;
 	}
 
-	public Map<TaxIdNode, List<FTPEntryWithQuality>> getRelevantEntries(Set<TaxIdNode> filter) throws IOException {
-		return getRelevantEntries(filter, null);
-	}
-
-	public Map<TaxIdNode, List<FTPEntryWithQuality>> getRelevantEntries(Set<TaxIdNode> filter, int[] totalEntries) throws IOException {
+	public Map<TaxIdNode, List<FTPEntryWithQuality>> getRelevantEntries(Set<TaxIdNode> filter, List<FTPEntryQuality> minQualities, int[] totalEntries)
+			throws IOException {
 		Map<TaxIdNode, List<FTPEntryWithQuality>> result = new HashMap<TaxIdNode, List<FTPEntryWithQuality>>();
 
 		Reader in = new InputStreamReader(StreamProvider.getInputStreamForFile(new File(baseDir, assFileName)));
@@ -93,8 +91,40 @@ public class AssemblySummaryReader {
 					}
 				}
 				counter++;
+			}
+		}
+		
+		if (minQualities != null) {
+			for (List<FTPEntryWithQuality> values : result.values()) {
+				boolean found = false;
+				// Try the qualities in given order:
+				for (FTPEntryQuality q : minQualities) {
+					for (FTPEntryWithQuality entry : values) {
+						if (!entry.getQuality().below(q)) {
+							// At least one entry matches the required quality q.
+							found = true;
+							break;
+						}
+					}
+					if (found) {
+						// Remove all entries that don't match the quality q
+						Iterator<FTPEntryWithQuality> it = values.iterator();
+						while (it.hasNext()) {
+							if (it.next().getQuality().below(q)) {
+								it.remove();
+							}
+						}
+						
+						break;
+					}
+				}
+				// If not matches were found, then the required qualities are exhausted and we got to delete all entries.
+				if (!found) {
+					values.clear();
+				}
 			}			
 		}
+		
 		if (totalEntries != null) {
 			totalEntries[0] = counter;
 		}
@@ -112,8 +142,7 @@ public class AssemblySummaryReader {
 			this.quality = quality;
 			if (ftpURL != null) {
 				this.fileName = ftpURL.substring(ftpURL.lastIndexOf('/') + 1) + "_genomic.fna.gz";
-			}
-			else {
+			} else {
 				String path = url.getFile();
 				this.fileName = path.substring(path.lastIndexOf('/') + 1);
 			}
@@ -123,7 +152,7 @@ public class AssemblySummaryReader {
 		public String getFtpURL() {
 			return ftpURL;
 		}
-		
+
 		public URL getURL() {
 			return url;
 		}
@@ -138,12 +167,12 @@ public class AssemblySummaryReader {
 	}
 
 	public enum FTPEntryQuality {
-		ADDITIONAL, COMPLETE_LATEST, COMPLETE, LATEST, NONE;
+		ADDITIONAL, COMPLETE_LATEST, COMPLETE, CHROMOSOME_LATEST, CHROMOSOME, LATEST, NONE;
 
 		public boolean below(FTPEntryQuality q) {
 			return this.ordinal() > q.ordinal();
 		}
-
+		
 		public static FTPEntryQuality fromString(String complete, String latest) {
 			if ("Complete Genome".equals(complete)) {
 				if ("latest".equals(latest)) {
@@ -151,12 +180,18 @@ public class AssemblySummaryReader {
 				} else {
 					return COMPLETE;
 				}
+			} else if ("Chromosome".equals(complete)) {
+				if ("latest".equals(latest)) {
+					return CHROMOSOME_LATEST;
+				} else {
+					return CHROMOSOME;
+				}
 			} else {
 				if ("latest".equals(latest)) {
 					return LATEST;
 				} else {
 					return NONE;
-				}
+				}				
 			}
 		}
 	}

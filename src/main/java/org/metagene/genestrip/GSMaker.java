@@ -144,8 +144,8 @@ public class GSMaker extends Maker<GSProject> {
 							getProject().getConfig().getCommonDir(), getProject().getConfig().isUseGenBank(),
 							taxTreeGoal.get());
 					int[] nEntriesTotal = new int[1];
-					Map<TaxIdNode, List<FTPEntryWithQuality>> entries = assemblySummaryReader
-							.getRelevantEntries(taxNodesGoal.get(), nEntriesTotal);
+					Map<TaxIdNode, List<FTPEntryWithQuality>> entries = assemblySummaryReader.getRelevantEntries(
+							taxNodesGoal.get(), getProject().getConfig().getFastaQualities(), nEntriesTotal);
 					if (getLogger().isInfoEnabled()) {
 						getLogger().info("Total number of entries in assembly summary file: " + nEntriesTotal[0]);
 					}
@@ -172,7 +172,8 @@ public class GSMaker extends Maker<GSProject> {
 				projectSetupGoal);
 		registerGoal(kmerFastqGoal);
 
-		FileGoal<GSProject> krakenOutGoal = new KrakenOutGoal(project, "kmerkrakenout", kmerFastqGoal, projectSetupGoal);
+		FileGoal<GSProject> krakenOutGoal = new KrakenOutGoal(project, "kmerkrakenout", kmerFastqGoal,
+				projectSetupGoal);
 		registerGoal(krakenOutGoal);
 
 		if (project.getConfig().isUseKraken1()) {
@@ -184,13 +185,13 @@ public class GSMaker extends Maker<GSProject> {
 				krakenOutGoal);
 		registerGoal(bloomFilterSizeGoal);
 
-		KMerStoreFileGoal storeGoal = new KMerStoreFileGoal(project, "store", taxNodesGoal, krakenOutGoal, kmerFastqGoal,
-				bloomFilterSizeGoal, projectSetupGoal);
+		KMerStoreFileGoal storeGoal = new KMerStoreFileGoal(project, "store", taxNodesGoal, krakenOutGoal,
+				kmerFastqGoal, bloomFilterSizeGoal, projectSetupGoal);
 		registerGoal(storeGoal);
 
 		Goal<GSProject> storeInfoGoal = new StoreInfoGoal(project, "storeinfo", storeGoal, projectSetupGoal);
 		registerGoal(storeInfoGoal);
-				
+
 		KrakenFastqFileGoal krakenFastqGoal = new KrakenFastqFileGoal(project, "krakenfastq", taxNodesGoal,
 				krakenOutGoal, kmerFastqGoal, projectSetupGoal);
 		registerGoal(krakenFastqGoal);
@@ -198,7 +199,6 @@ public class GSMaker extends Maker<GSProject> {
 		Goal<GSProject> kMerFastqStoreFileGoal = new KMerFastqStoreFileGoal(project, "store2", taxNodesGoal,
 				krakenFastqGoal, projectSetupGoal);
 		registerGoal(kMerFastqStoreFileGoal);
-		
 
 		BloomFilterFileGoal bloomFilterFileGoal = new BloomFilterFileGoal(project, "bloom", bloomFilterSizeGoal,
 				taxNodesGoal, krakenOutGoal, kmerFastqGoal, projectSetupGoal);
@@ -248,7 +248,7 @@ public class GSMaker extends Maker<GSProject> {
 			Goal<GSProject> multiMatchGoal = new MultiMatchGoal(project, "multimatch", fastqOrCSV, storeGoal,
 					project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
 			registerGoal(multiMatchGoal);
-			
+
 			Goal<GSProject> krakenResCountGoal = new KrakenResCountGoal(project, "krakenres", fastqOrCSV, taxNodesGoal,
 					projectSetupGoal);
 			registerGoal(krakenResCountGoal);

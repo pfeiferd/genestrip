@@ -39,7 +39,6 @@ import org.metagene.genestrip.fastqgen.KMerFastqGenerator;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
 import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryWithQuality;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.Rank;
@@ -51,9 +50,9 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fastaFilesGoal;
 	private final KMerFastqGenerator generator;
 	private final File tempFile;
-	
+
 	private Map<File, TaxIdNode> fileToCollectNode;
-	private Map<TaxIdNode, Map<TaxIdNode,File>> taxToFastas;
+	private Map<TaxIdNode, Map<TaxIdNode, File>> taxToFastas;
 
 	@SafeVarargs
 	public KMerFastqGoal(GSProject project, String name,
@@ -66,11 +65,11 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 
 		tempFile = project.getOutputFile(name + "_temp", FileType.FASTQ);
 	}
-	
+
 	@Override
 	protected void provideFiles() {
 		Rank maxRank = getProject().getConfig().getMaxRankForFilters();
-		taxToFastas = new HashMap<TaxIdNode, Map<TaxIdNode,File>>();
+		taxToFastas = new HashMap<TaxIdNode, Map<TaxIdNode, File>>();
 		for (TaxIdNode key : fastaFilesGoal.get().keySet()) {
 			TaxIdNode fastaFileNode = key;
 			List<FTPEntryWithQuality> entries = fastaFilesGoal.get().get(key);
@@ -87,13 +86,10 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 			boolean isNew = false;
 			if (files == null) {
 				isNew = true;
-				files = new HashMap<TaxIdNode,File>();
+				files = new HashMap<TaxIdNode, File>();
 			}
-			FTPEntryQuality minQuality = getProject().getConfig().getFastaQuality();
 			for (FTPEntryWithQuality entry : entries) {
-				if (minQuality == null || !entry.getQuality().below(minQuality)) {
-					files.put(fastaFileNode, new File(getProject().getFastasDir(), entry.getFileName()));
-				}
+				files.put(fastaFileNode, new File(getProject().getFastasDir(), entry.getFileName()));
 			}
 			if (isNew && !files.isEmpty()) {
 				taxToFastas.put(key, files);
@@ -110,7 +106,7 @@ public class KMerFastqGoal extends FileListGoal<GSProject> {
 			addFile(file);
 		}
 	}
-	
+
 	@Override
 	public List<File> getFiles() {
 		return super.getFiles();

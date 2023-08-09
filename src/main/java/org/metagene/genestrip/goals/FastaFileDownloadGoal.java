@@ -71,7 +71,7 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 		if (files == null) {
 			files = new ArrayList<File>();
 			fileToDir = new HashMap<String, Object>();
-			for (FTPEntryWithQuality entry : getRelevantEntriesAsList(getProject().getConfig().getFastaQuality(),
+			for (FTPEntryWithQuality entry : getRelevantEntriesAsList(getProject().getConfig().getFastaQualities(),
 					entryGoal.get())) {
 				String fileName = entry.getFileName();
 				File file = new File(getProject().getFastasDir(), fileName);
@@ -88,7 +88,8 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 						if ("file".equals(url.getProtocol())) {
 							if (!new File(url.getPath()).isAbsolute()) {
 								try {
-									url = new URL("file", null,  new File(getProject().getBaseDir(), url.getFile()).getCanonicalPath());
+									url = new URL("file", null,
+											new File(getProject().getBaseDir(), url.getFile()).getCanonicalPath());
 								} catch (IOException e) {
 									throw new RuntimeException(e);
 								}
@@ -111,14 +112,23 @@ public class FastaFileDownloadGoal extends FileDownloadGoal<GSProject> {
 		return Collections.singletonList(getProject().getFastasDir());
 	}
 
-	private List<FTPEntryWithQuality> getRelevantEntriesAsList(FTPEntryQuality minQuality,
+	private List<FTPEntryWithQuality> getRelevantEntriesAsList(List<FTPEntryQuality> minQualities,
 			Map<TaxIdNode, List<FTPEntryWithQuality>> entries) {
 		List<FTPEntryWithQuality> res = new ArrayList<AssemblySummaryReader.FTPEntryWithQuality>();
 
 		for (List<FTPEntryWithQuality> values : entries.values()) {
-			for (FTPEntryWithQuality entry : values) {
-				if (minQuality == null || !entry.getQuality().below(minQuality)) {
-					res.add(entry);
+			boolean found = false;
+			// Try the qualities in given order:
+			for (FTPEntryQuality q : minQualities) {
+				for (FTPEntryWithQuality entry : values) {
+					if (!entry.getQuality().below(q)) {
+						res.add(entry);
+						found = true;
+					}
+				}
+				// Only if no entries for the taxid were found to match q, then the next best quality level will be tried.
+				if (found) {
+					break;
 				}
 			}
 		}
