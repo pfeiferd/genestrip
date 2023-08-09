@@ -28,10 +28,8 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
@@ -88,12 +86,9 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 	protected void provideFiles() {
 		if (fastq == null) {
 			try {
-				Reader in = new InputStreamReader(StreamProvider.getInputStreamForFile(csvFile));
-				CSVFormat format = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#').setDelimiter(' ')
-						.setRecordSeparator('\n').build();
-				Iterable<CSVRecord> records = format.parse(in);
+				CSVParser parser = MultiMatchGoal.readCSVFile(csvFile);
 
-				for (CSVRecord record : records) {
+				for (CSVRecord record : parser) {
 					String prefix = record.get(0);
 					String fastqFilePath = record.get(1);
 					File fastq = new File(fastqFilePath);
@@ -112,7 +107,7 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 					}
 				}
 
-				in.close();
+				parser.close();
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}

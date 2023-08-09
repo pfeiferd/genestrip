@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.metagene.genestrip.GSConfig;
 import org.metagene.genestrip.GSProject;
@@ -74,12 +75,9 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 	@Override
 	protected void provideFiles() {
 		try {
-			Reader in = new InputStreamReader(StreamProvider.getInputStreamForFile(csvFile));
-			CSVFormat format = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#').setDelimiter(' ')
-					.setRecordSeparator('\n').build();
-			Iterable<CSVRecord> records = format.parse(in);
+			CSVParser parser = readCSVFile(csvFile);
 
-			for (CSVRecord record : records) {
+			for (CSVRecord record : parser) {
 				String prefix = record.get(0);
 				String fastqFilePath = record.get(1);
 				File fastq = new File(fastqFilePath);
@@ -97,7 +95,7 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 				}
 			}
 
-			in.close();
+			parser.close();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -133,6 +131,13 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 		} catch (IOException | ClassNotFoundException e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	public static CSVParser readCSVFile(File csvFile) throws IOException {
+		Reader in = new InputStreamReader(StreamProvider.getInputStreamForFile(csvFile));
+		CSVFormat format = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#').setDelimiter(' ')
+				.setRecordSeparator('\n').build();
+		return format.parse(in);		
 	}
 
 	@Override
