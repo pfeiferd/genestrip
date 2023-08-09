@@ -27,6 +27,7 @@ package org.metagene.genestrip.goals;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,7 +79,7 @@ public class KrakenOutGoal extends FileListGoal<GSProject> {
 		KrakenExecutor krakenExecutor = new KrakenExecutor(getProject().getConfig().getKrakenBin(),
 				getProject().getConfig().getKrakenExecExpr());
 		try {
-			File fastqFile = outFileTofastqFile.get(krakenOut);
+			List<File> fastqFile = Collections.singletonList(outFileTofastqFile.get(krakenOut));
 			if (getLogger().isInfoEnabled()) {
 				String execLine = krakenExecutor.genExecLine(getProject().getKrakenDB(), fastqFile, krakenOut);
 				getLogger().info("Running kraken with " + execLine);

@@ -102,7 +102,7 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	@Override
 	protected void makeFile(File file) {
 		try {
