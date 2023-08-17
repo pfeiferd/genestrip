@@ -24,11 +24,17 @@
  */
 package org.metagene.genestrip.match;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVRecord;
 import org.metagene.genestrip.match.FastqKMerMatcher.Result;
 import org.metagene.genestrip.match.FastqKMerMatcher.StatsPerTaxid;
 import org.metagene.genestrip.store.KMerStoreWrapper.StoreStatsPerTaxid;
@@ -36,6 +42,9 @@ import org.metagene.genestrip.tax.TaxTree.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 public class ResultReporter {
+	private static final CSVFormat format = CSVFormat.DEFAULT.builder().setQuote(null).setDelimiter(';')
+			.setRecordSeparator('\n').build();
+
 	private final List<TaxIdNode> taxids;
 
 	public ResultReporter(List<TaxIdNode> taxids) {
@@ -43,13 +52,14 @@ public class ResultReporter {
 	}
 
 	public void printStoreInfo(List<StoreStatsPerTaxid> statsList, PrintStream out) {
-		out.println("name;rank;taxid;stored kmers;total kmers;stored ratio;contigs;average contig length;max contig length;");
+		out.println(
+				"name;rank;taxid;stored kmers;total kmers;stored ratio;contigs;average contig length;max contig length;");
 
 		Map<String, StoreStatsPerTaxid> map = new HashMap<String, StoreStatsPerTaxid>();
 		for (StoreStatsPerTaxid stats : statsList) {
 			map.put(stats.getTaxid(), stats);
 		}
-		
+
 		StoreStatsPerTaxid stats = map.get(null);
 		out.print("TOTAL;");
 		out.print(Rank.SUPERKINGDOM);
@@ -102,6 +112,35 @@ public class ResultReporter {
 //				out.println(';');
 			}
 		}
+	}
+
+	public static List<StatsPerTaxid> readStoreInfo(InputStream in) throws IOException {
+		Iterable<CSVRecord> records = format.parse(new InputStreamReader(in));
+
+		List<StatsPerTaxid> res = new ArrayList<StatsPerTaxid>();
+		boolean first = true;
+		for (CSVRecord record : records) {
+			if (first) {
+				first = false;
+				continue;
+			}
+			String taxid = record.get(2);
+			String reads = record.get(3);
+			String kmers = record.get(4);
+			String uniqueKmers = record.get(5);
+			String contigs = record.get(6);
+			String maxContigLen = record.get(8);
+			
+			StatsPerTaxid stats = new StatsPerTaxid(taxid);
+			stats.reads = Long.parseLong(reads);
+			stats.kmers = Long.parseLong(kmers);
+			stats.uniqueKmers = Long.parseLong(uniqueKmers);
+			stats.contigs = Integer.parseInt(contigs);
+			stats.maxContigLen = Integer.parseInt(maxContigLen);
+			res.add(stats);
+		}
+
+		return res;
 	}
 
 	public void printMatchResult(Result res, PrintStream out) {

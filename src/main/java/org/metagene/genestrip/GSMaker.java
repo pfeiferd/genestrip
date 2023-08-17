@@ -245,7 +245,7 @@ public class GSMaker extends Maker<GSProject> {
 					project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
 			registerGoal(classifyGoal);
 
-			Goal<GSProject> multiMatchGoal = new MultiMatchGoal(project, "multimatch", fastqOrCSV, storeGoal,
+			Goal<GSProject> multiMatchGoal = new MultiMatchGoal(project, MultiMatchGoal.NAME, fastqOrCSV, storeGoal,
 					project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
 			registerGoal(multiMatchGoal);
 
@@ -253,18 +253,18 @@ public class GSMaker extends Maker<GSProject> {
 					projectSetupGoal);
 			registerGoal(krakenResCountGoal);
 
-			Goal<GSProject> multiKrakenResCountGoal = new KrakenResCountGoal(project, "multikrakenres", fastqOrCSV, true, taxNodesGoal,
-					projectSetupGoal);
+			Goal<GSProject> multiKrakenResCountGoal = new KrakenResCountGoal(project, "multikrakenres", fastqOrCSV,
+					true, taxNodesGoal, projectSetupGoal);
 			registerGoal(multiKrakenResCountGoal);
-			
+
 			Goal<GSProject> krakenResCountAllGoal = new KrakenResCountGoal(project, "krakenresall", fastqOrCSV, null,
 					projectSetupGoal);
 			registerGoal(krakenResCountAllGoal);
 
-			Goal<GSProject> multiKrakenResCountAllGoal = new KrakenResCountGoal(project, "multikrakenresall", fastqOrCSV, true, null,
-					projectSetupGoal);
+			Goal<GSProject> multiKrakenResCountAllGoal = new KrakenResCountGoal(project, "multikrakenresall",
+					fastqOrCSV, true, null, projectSetupGoal);
 			registerGoal(multiKrakenResCountAllGoal);
-			
+
 			FileGoal<GSProject> fastqKrakenOutGoal = new KrakenOutGoal(project, "fastqkrakenout", fastqOrCSV,
 					projectSetupGoal);
 			registerGoal(fastqKrakenOutGoal);
