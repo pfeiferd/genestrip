@@ -52,6 +52,8 @@ import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class MultiMatchGoal extends FileListGoal<GSProject> {
+	public static final String NAME = "multimatch";
+	
 	private final Map<File, List<File>> fileToFastqs;
 	private final File csvFile;
 	private final KMerStoreFileGoal storeGoal;
