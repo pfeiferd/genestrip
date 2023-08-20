@@ -114,7 +114,34 @@ public class ResultReporter {
 		}
 	}
 
-	public static List<StatsPerTaxid> readStoreInfo(InputStream in) throws IOException {
+	public static List<StoreStatsPerTaxid> readStoreInfoCSV(InputStream in) throws IOException {
+		Iterable<CSVRecord> records = format.parse(new InputStreamReader(in));
+
+		List<StoreStatsPerTaxid> res = new ArrayList<StoreStatsPerTaxid>();
+		boolean first = true;
+		for (CSVRecord record : records) {
+			if (first) {
+				first = false;
+				continue;
+			}
+			String taxid = record.get(2);
+			String storedKMers = record.get(3);
+			String totalKMers = record.get(4);
+			String contigs = record.get(6);
+			String maxContigLen = record.get(8);
+			
+			StoreStatsPerTaxid stats = new StoreStatsPerTaxid(taxid);
+			stats.storedKMers = Long.parseLong(storedKMers);
+			stats.totalKMers = Long.parseLong(totalKMers);
+			stats.contigs = Long.parseLong(contigs);
+			stats.maxContigLen = Long.parseLong(maxContigLen);
+			res.add(stats);
+		}
+
+		return res;
+	}
+	
+	public static List<StatsPerTaxid> readResultCSV(InputStream in) throws IOException {
 		Iterable<CSVRecord> records = format.parse(new InputStreamReader(in));
 
 		List<StatsPerTaxid> res = new ArrayList<StatsPerTaxid>();
