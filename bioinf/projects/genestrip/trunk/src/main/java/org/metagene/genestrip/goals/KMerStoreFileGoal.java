@@ -110,7 +110,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 						StringLong sl = root.get(readDescriptor, colonPos + 1, end, true);
 						descriptorTaxid = sl.getStringValue();
 						if (descriptorTaxid != null && taxIds.contains(descriptorTaxid)) {
-							updateTotalKMers(descriptorTaxid);
+							updateTotalKMers(kmerTaxid); // TODO: was descriptorTaxid before - what's better?
 						} else {
 							if (getLogger().isInfoEnabled()) {
 								getLogger().info("Bad taxid in read descriptor " + descriptorTaxid);
@@ -135,7 +135,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 								getLogger().trace("Potential duplicate entry for kmer regarding taxid " + kmerTaxid);
 							}
 						} else {
-							updateStoredKMers(descriptorTaxid);
+							updateStoredKMers(kmerTaxid); // TODO: was descriptorTaxid before - what's better?
 						}
 						if (lineCount % 1000000 == 0) {
 							if (getLogger().isInfoEnabled()) {
@@ -207,8 +207,8 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 
 		public void updateContigStats() {
 			if (contig > 0) {
-				if (lastDescriptorTaxid != null) {
-					StoreStatsPerTaxid stats = storeStats.get(lastDescriptorTaxid, true);
+				if (lastKMerTaxid != null) { // TODO: was lastDescriptorTaxid before - what's better?
+					StoreStatsPerTaxid stats = storeStats.get(lastKMerTaxid, true); // TODO: was lastDescriptorTaxid before - what's better?
 					stats.contigs++;
 					if (contig > stats.maxContigLen) {
 						stats.maxContigLen = contig;
