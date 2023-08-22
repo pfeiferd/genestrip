@@ -43,6 +43,7 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.store.KMerStoreWrapper.StoreStatsPerTaxid;
+import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.DigitTrie;
@@ -51,17 +52,19 @@ import org.metagene.genestrip.util.StringLongDigitTrie;
 import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
 
 public class KMerStoreFileGoal extends FileListGoal<GSProject> {
+	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final FileGoal<GSProject> krakenOutGoal;
 	private final KMerFastqGoal kmerFastqGoal;
 	private final ObjectGoal<Long, GSProject> sizeGoal;
 
 	@SafeVarargs
-	public KMerStoreFileGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			FileGoal<GSProject> krakenOutGoal, KMerFastqGoal kmerFastqGoal, ObjectGoal<Long, GSProject> sizeGoal,
-			Goal<GSProject>... deps) {
+	public KMerStoreFileGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
+			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, FileGoal<GSProject> krakenOutGoal,
+			KMerFastqGoal kmerFastqGoal, ObjectGoal<Long, GSProject> sizeGoal, Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, FileType.SER),
 				ArraysUtil.append(deps, taxNodesGoal, kmerFastqGoal, krakenOutGoal, sizeGoal));
+		this.taxTreeGoal = taxTreeGoal;
 		this.taxNodesGoal = taxNodesGoal;
 		this.krakenOutGoal = krakenOutGoal;
 		this.kmerFastqGoal = kmerFastqGoal;
@@ -85,6 +88,8 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 					return new StoreStatsPerTaxid(digits);
 				}
 			};
+
+			final TaxTree taxTree = taxTreeGoal.get();
 
 			MyKrakenResultFastqMergeListener filter = new MyKrakenResultFastqMergeListener() {
 				@Override
@@ -121,7 +126,11 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 							getLogger().info("Missing taxid in read descriptor");
 						}
 					}
-					if (taxIds.contains(kmerTaxid)) {
+
+					boolean consistentTaxIds = true;
+
+					if (taxIds.contains(kmerTaxid)
+							&& (consistentTaxIds = isAncestorOf(taxTree, kmerTaxid, descriptorTaxid))) {
 						if (lastKMerTaxid == kmerTaxid) {
 							contig++;
 						} else {
@@ -130,7 +139,8 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 						}
 						lastKMerTaxid = kmerTaxid;
 						if (!store.put(read, 0, kmerTaxid, false)) {
-							// On level trace, because of too many annoying messages that don't help anybody...
+							// On level trace, because of too many annoying messages that don't help
+							// anybody...
 							if (getLogger().isTraceEnabled()) {
 								getLogger().trace("Potential duplicate entry for kmer regarding taxid " + kmerTaxid);
 							}
@@ -144,6 +154,18 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 							}
 						}
 					} else {
+						if (!consistentTaxIds) {
+							if (getLogger().isWarnEnabled()) {
+								getLogger().warn("Insonsistent descriptor and kmer tax id: " + descriptorTaxid + " "
+										+ kmerTaxid);
+								TaxIdNode node1 = taxTree.getNodeByTaxId(descriptorTaxid);
+								TaxIdNode node2 = taxTree.getNodeByTaxId(kmerTaxid);
+								if (node1 != null && node2 != null) {
+									getLogger().warn("Insonsistent descriptor and kmer tax id: " + node1.getName() + " "
+											+ node2.getName());
+								}
+							}
+						}
 						updateContigStats();
 						contig = 0;
 						lastKMerTaxid = null;
@@ -197,6 +219,17 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 		}
 	}
 
+	private boolean isAncestorOf(TaxTree tree, String taxid, String ancestorTaxId) {
+		TaxIdNode node1 = tree.getNodeByTaxId(taxid);
+		if (node1 != null) {
+			TaxIdNode node2 = tree.getNodeByTaxId(ancestorTaxId);
+			if (tree.isAncestorOf(node1, node2)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private abstract static class MyKrakenResultFastqMergeListener implements KrakenResultFastqMergeListener {
 		protected StoreStatsPerTaxid totalStats;
 		protected DigitTrie<StoreStatsPerTaxid> storeStats;
@@ -208,7 +241,8 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 		public void updateContigStats() {
 			if (contig > 0) {
 				if (lastKMerTaxid != null) { // TODO: was lastDescriptorTaxid before - what's better?
-					StoreStatsPerTaxid stats = storeStats.get(lastKMerTaxid, true); // TODO: was lastDescriptorTaxid before - what's better?
+					StoreStatsPerTaxid stats = storeStats.get(lastKMerTaxid, true); // TODO: was lastDescriptorTaxid
+																					// before - what's better?
 					stats.contigs++;
 					if (contig > stats.maxContigLen) {
 						stats.maxContigLen = contig;
