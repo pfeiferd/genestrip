@@ -185,8 +185,8 @@ public class GSMaker extends Maker<GSProject> {
 				krakenOutGoal);
 		registerGoal(bloomFilterSizeGoal);
 
-		KMerStoreFileGoal storeGoal = new KMerStoreFileGoal(project, "store", taxNodesGoal, krakenOutGoal,
-				kmerFastqGoal, bloomFilterSizeGoal, projectSetupGoal);
+		KMerStoreFileGoal storeGoal = new KMerStoreFileGoal(project, "store", taxTreeGoal, taxNodesGoal, krakenOutGoal,
+				kmerFastqGoal, bloomFilterSizeGoal, projectSetupGoal, taxTreeGoal);
 		registerGoal(storeGoal);
 
 		Goal<GSProject> storeInfoGoal = new StoreInfoGoal(project, "storeinfo", storeGoal, projectSetupGoal);
