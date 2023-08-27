@@ -130,7 +130,8 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 					boolean consistentTaxIds = true;
 
 					if (taxIds.contains(kmerTaxid)
-							&& (consistentTaxIds = isAncestorOf(taxTree, kmerTaxid, descriptorTaxid))) {
+							//&& (consistentTaxIds = isAncestorOf(taxTree, kmerTaxid, descriptorTaxid))
+							) {
 						if (lastKMerTaxid == kmerTaxid) {
 							contig++;
 						} else {
@@ -223,7 +224,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 		TaxIdNode node1 = tree.getNodeByTaxId(taxid);
 		if (node1 != null) {
 			TaxIdNode node2 = tree.getNodeByTaxId(ancestorTaxId);
-			if (tree.isAncestorOf(node1, node2)) {
+			if (node2 != null && tree.isAncestorOf(node1, node2)) {
 				return true;
 			}
 		}
