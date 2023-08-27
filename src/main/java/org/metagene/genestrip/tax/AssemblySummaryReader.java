@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.StreamProvider;
@@ -45,6 +46,9 @@ public class AssemblySummaryReader {
 	public static final String ASSEMLY_SUM_REFSEQ = "assembly_summary_refseq.txt";
 	public static final String ASSEMLY_SUM_GENBANK = "assembly_summary_genbank.txt";
 
+	private static final CSVFormat format = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#')
+			.setDelimiter('\t').setRecordSeparator('\n').build();
+	
 	private final File baseDir;
 	private final TaxTree taxTree;
 	private final String assFileName;
@@ -59,14 +63,11 @@ public class AssemblySummaryReader {
 		this.assFileName = assFileName;
 	}
 
-	public Map<TaxIdNode, List<FTPEntryWithQuality>> getRelevantEntries(Set<TaxIdNode> filter, List<FTPEntryQuality> minQualities, int[] totalEntries)
-			throws IOException {
+	public Map<TaxIdNode, List<FTPEntryWithQuality>> getRelevantEntries(Set<TaxIdNode> filter,
+			List<FTPEntryQuality> minQualities, int[] totalEntries) throws IOException {
 		Map<TaxIdNode, List<FTPEntryWithQuality>> result = new HashMap<TaxIdNode, List<FTPEntryWithQuality>>();
 
-		Reader in = new InputStreamReader(StreamProvider.getInputStreamForFile(new File(baseDir, assFileName)));
-		CSVFormat format = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#').setDelimiter('\t')
-				.setRecordSeparator('\n').build();
-		Iterable<CSVRecord> records = format.parse(in);
+		Iterable<CSVRecord> records = getCSV();
 
 		int counter = 0;
 		for (CSVRecord record : records) {
@@ -93,7 +94,7 @@ public class AssemblySummaryReader {
 				counter++;
 			}
 		}
-		
+
 		if (minQualities != null) {
 			for (List<FTPEntryWithQuality> values : result.values()) {
 				boolean found = false;
@@ -114,21 +115,27 @@ public class AssemblySummaryReader {
 								it.remove();
 							}
 						}
-						
+
 						break;
 					}
 				}
-				// If not matches were found, then the required qualities are exhausted and we got to delete all entries.
+				// If not matches were found, then the required qualities are exhausted and we
+				// got to delete all entries.
 				if (!found) {
 					values.clear();
 				}
-			}			
+			}
 		}
-		
+
 		if (totalEntries != null) {
 			totalEntries[0] = counter;
 		}
 		return result;
+	}
+
+	public CSVParser getCSV() throws IOException {
+		Reader in = new InputStreamReader(StreamProvider.getInputStreamForFile(new File(baseDir, assFileName)));
+		return format.parse(in);
 	}
 
 	public static class FTPEntryWithQuality {
@@ -172,7 +179,7 @@ public class AssemblySummaryReader {
 		public boolean below(FTPEntryQuality q) {
 			return this.ordinal() > q.ordinal();
 		}
-		
+
 		public static FTPEntryQuality fromString(String complete, String latest) {
 			if ("Complete Genome".equals(complete)) {
 				if ("latest".equals(latest)) {
@@ -197,7 +204,7 @@ public class AssemblySummaryReader {
 					return LATEST;
 				} else {
 					return NONE;
-				}				
+				}
 			}
 		}
 	}
