@@ -88,6 +88,7 @@ public class KMerStoreWrapper implements Serializable {
 		// TODO: Nicer to use setter methods here... (?)
 		public long totalKMers;
 		public long storedKMers;
+		public long assignedKMers;
 		public long contigs;
 		public long maxContigLen;
 		
@@ -113,6 +114,10 @@ public class KMerStoreWrapper implements Serializable {
 
 		public long getTotalKMers() {
 			return totalKMers;
+		}
+		
+		public long getAssignedKMers() {
+			return assignedKMers;
 		}
 	}
 }
