@@ -115,7 +115,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 						StringLong sl = root.get(readDescriptor, colonPos + 1, end, true);
 						descriptorTaxid = sl.getStringValue();
 						if (descriptorTaxid != null && taxIds.contains(descriptorTaxid)) {
-							updateTotalKMers(kmerTaxid); // TODO: was descriptorTaxid before - what's better?
+							updateTotalKMers(descriptorTaxid);
 						} else {
 							if (getLogger().isInfoEnabled()) {
 								getLogger().info("Bad taxid in read descriptor " + descriptorTaxid);
@@ -130,8 +130,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 					boolean consistentTaxIds = true;
 
 					if (taxIds.contains(kmerTaxid)
-							//&& (consistentTaxIds = isAncestorOf(taxTree, kmerTaxid, descriptorTaxid))
-							) {
+							&& (consistentTaxIds = isConsistent(taxTree, kmerTaxid, descriptorTaxid))) {
 						if (lastKMerTaxid == kmerTaxid) {
 							contig++;
 						} else {
@@ -146,7 +145,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 								getLogger().trace("Potential duplicate entry for kmer regarding taxid " + kmerTaxid);
 							}
 						} else {
-							updateStoredKMers(kmerTaxid); // TODO: was descriptorTaxid before - what's better?
+							updateStoredKMers(descriptorTaxid, kmerTaxid);
 						}
 						if (lineCount % 1000000 == 0) {
 							if (getLogger().isInfoEnabled()) {
@@ -171,7 +170,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 						contig = 0;
 						lastKMerTaxid = null;
 					}
-					lastDescriptorTaxid = descriptorTaxid;
+//					lastDescriptorTaxid = descriptorTaxid;
 				}
 			};
 			filter.storeStats = storeStats;
@@ -191,7 +190,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 
 				filter.contig = 0;
 				filter.lastKMerTaxid = null;
-				filter.lastDescriptorTaxid = null;
+//				filter.lastDescriptorTaxid = null;
 				krakenKMerFastqMerger.process(stream1, stream2, filter);
 				filter.updateContigStats();
 
@@ -220,11 +219,11 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 		}
 	}
 
-	private boolean isAncestorOf(TaxTree tree, String taxid, String ancestorTaxId) {
+	private boolean isConsistent(TaxTree tree, String taxid, String ancestorTaxId) {
 		TaxIdNode node1 = tree.getNodeByTaxId(taxid);
 		if (node1 != null) {
 			TaxIdNode node2 = tree.getNodeByTaxId(ancestorTaxId);
-			if (node2 != null && tree.isAncestorOf(node1, node2)) {
+			if (node2 != null && (tree.isAncestorOf(node1, node2) || tree.isAncestorOf(node2, node1))) {
 				return true;
 			}
 		}
@@ -237,13 +236,12 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 		protected String lastKMerTaxid;
 		protected long counter = 0;
 		protected int contig;
-		protected String lastDescriptorTaxid;
+//		protected String lastDescriptorTaxid;
 
 		public void updateContigStats() {
 			if (contig > 0) {
-				if (lastKMerTaxid != null) { // TODO: was lastDescriptorTaxid before - what's better?
-					StoreStatsPerTaxid stats = storeStats.get(lastKMerTaxid, true); // TODO: was lastDescriptorTaxid
-																					// before - what's better?
+				if (lastKMerTaxid != null) {
+					StoreStatsPerTaxid stats = storeStats.get(lastKMerTaxid, true);
 					stats.contigs++;
 					if (contig > stats.maxContigLen) {
 						stats.maxContigLen = contig;
@@ -252,10 +250,14 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 			}
 		}
 
-		public void updateStoredKMers(String descriptorTaxid) {
+		public void updateStoredKMers(String descriptorTaxid, String assignedTaxid) {
 			if (descriptorTaxid != null) {
 				StoreStatsPerTaxid stats = storeStats.get(descriptorTaxid, true);
 				stats.storedKMers++;
+			}
+			if (assignedTaxid != null) {
+				StoreStatsPerTaxid stats = storeStats.get(assignedTaxid, true);
+				stats.assignedKMers++;
 			}
 			totalStats.storedKMers++;
 		}
