@@ -131,12 +131,14 @@ public class ResultReporter {
 			String taxid = record.get(2);
 			String storedKMers = record.get(3);
 			String totalKMers = record.get(4);
-			String contigs = record.get(6);
-			String maxContigLen = record.get(8);
+			String assignedKMers = record.get(6);
+			String contigs = record.get(7);
+			String maxContigLen = record.get(9);
 			
 			StoreStatsPerTaxid stats = new StoreStatsPerTaxid(taxid);
 			stats.storedKMers = Long.parseLong(storedKMers);
 			stats.totalKMers = Long.parseLong(totalKMers);
+			stats.assignedKMers = Long.parseLong(assignedKMers);
 			stats.contigs = Long.parseLong(contigs);
 			stats.maxContigLen = Long.parseLong(maxContigLen);
 			res.add(stats);
