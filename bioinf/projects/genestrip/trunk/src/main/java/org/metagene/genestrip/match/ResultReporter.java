@@ -134,7 +134,7 @@ public class ResultReporter {
 			String assignedKMers = record.get(6);
 			String contigs = record.get(7);
 			String maxContigLen = record.get(9);
-			
+
 			StoreStatsPerTaxid stats = new StoreStatsPerTaxid(taxid);
 			stats.storedKMers = Long.parseLong(storedKMers);
 			stats.totalKMers = Long.parseLong(totalKMers);
@@ -146,7 +146,7 @@ public class ResultReporter {
 
 		return res;
 	}
-	
+
 	public static List<StatsPerTaxid> readResultCSV(InputStream in) throws IOException {
 		Iterable<CSVRecord> records = format.parse(new InputStreamReader(in));
 
@@ -163,7 +163,7 @@ public class ResultReporter {
 			String uniqueKmers = record.get(5);
 			String contigs = record.get(6);
 			String maxContigLen = record.get(8);
-			
+
 			StatsPerTaxid stats = new StatsPerTaxid(taxid);
 			stats.reads = Long.parseLong(reads);
 			stats.kmers = Long.parseLong(kmers);
@@ -176,13 +176,22 @@ public class ResultReporter {
 		return res;
 	}
 
-	public void printMatchResult(Result res, PrintStream out) {
+	public void printMatchResult(Result res, PrintStream out, List<StoreStatsPerTaxid> storeStats) {
 		Map<String, StatsPerTaxid> taxid2Stats = new HashMap<String, StatsPerTaxid>();
 		for (StatsPerTaxid stats : res.getStats()) {
 			taxid2Stats.put(stats.getTaxid(), stats);
 		}
+		UniqueKMerEstimator estimator = storeStats == null ? null : new UniqueKMerEstimator(storeStats);
+		if (estimator != null) {
+			estimator.setTotalKMers(res.getTotalKMers());
+		}
 
-		out.println("name;rank;taxid;reads;kmers;unique kmers;contigs;average contig length;max contig length;");
+		out.print("name;rank;taxid;reads;kmers;unique kmers;contigs;average contig length;max contig length;");
+		if (estimator != null) {
+			out.println("normalized kmers; exp. unique kmers; unique kmers / exp.; est. p(unique kmers | kmers); estimate valid;");
+		} else {
+			out.println();
+		}
 		out.print("TOTAL;");
 		out.print(Rank.SUPERKINGDOM);
 		out.print(';');
@@ -190,7 +199,12 @@ public class ResultReporter {
 		out.print(res.getTotalReads());
 		out.print(';');
 		out.print(res.getTotalKMers());
-		out.println(";0;0;0;0;");
+		out.print(";0;0;0;0;");
+		if (estimator != null) {
+			out.println("0;0;0;0;");
+		} else {
+			out.println();
+		}
 
 		for (TaxIdNode taxNode : taxids) {
 			StatsPerTaxid stats = taxid2Stats.get(taxNode.getTaxId());
@@ -212,7 +226,22 @@ public class ResultReporter {
 				out.print(((double) stats.getKMers()) / stats.getContigs());
 				out.print(';');
 				out.print(stats.getMaxContigLen());
-				out.println(';');
+				out.print(';');
+				if (estimator != null) {
+					out.print(estimator.getNormalizedKMers(stats));
+					out.print(';');
+					out.print(stats.getUniqueKMers() / estimator.getExpectedUniqueKMers(stats));
+					out.print(';');
+					out.print(estimator.getExpectedUniqueKMers(stats));
+					out.print(';');
+					out.print(estimator.getUniqueKMerCountMatchProb(stats));
+					out.print(';');
+					out.print(estimator.isProbEstimateInRange(stats));
+					out.print(';');
+					out.println();
+				} else {
+					out.println();
+				}
 			}
 		}
 	}
