@@ -82,20 +82,20 @@ public class KMerStoreWrapper implements Serializable {
 
 	public static class StoreStatsPerTaxid implements Serializable {
 		private static final long serialVersionUID = 1L;
-		
+
 		private final String taxid;
-		
-		// TODO: Nicer to use setter methods here... (?)
+
+		// Made public for efficiency reasons
 		public long totalKMers;
 		public long storedKMers;
 		public long assignedKMers;
 		public long contigs;
 		public long maxContigLen;
-		
+
 		public StoreStatsPerTaxid(String taxid) {
 			this.taxid = taxid;
 		}
-		
+
 		public String getTaxid() {
 			return taxid;
 		}
@@ -115,7 +115,7 @@ public class KMerStoreWrapper implements Serializable {
 		public long getTotalKMers() {
 			return totalKMers;
 		}
-		
+
 		public long getAssignedKMers() {
 			return assignedKMers;
 		}
