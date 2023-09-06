@@ -9,7 +9,7 @@ import org.metagene.genestrip.match.FastqKMerMatcher.StatsPerTaxid;
 import org.metagene.genestrip.store.KMerStoreWrapper.StoreStatsPerTaxid;
 
 public class UniqueKMerEstimator {
-	private StatsPerTaxid totalStats;
+	private long totalKMers;
 	private final Map<String, StoreStatsPerTaxid> taxidToStoreStats;
 
 	public UniqueKMerEstimator(List<StoreStatsPerTaxid> storeStatsPerTaxid) {
@@ -19,16 +19,16 @@ public class UniqueKMerEstimator {
 		}
 	}
 
-	public void setTotalStats(StatsPerTaxid totalStats) {
-		this.totalStats = totalStats;
+	public void setTotalKMers(long totalKMers) {
+		this.totalKMers = totalKMers;
 	}
 
-	public StatsPerTaxid getTotalStats() {
-		return totalStats;
+	public long getTotalKMers() {
+		return totalKMers;
 	}
 
 	public double getNormalizedKMers(StatsPerTaxid stats) {
-		return ((double) stats.getKMers()) / totalStats.getKMers()
+		return ((double) stats.getKMers()) / totalKMers
 				/ taxidToStoreStats.get(stats.getTaxid()).assignedKMers;
 	}
 
