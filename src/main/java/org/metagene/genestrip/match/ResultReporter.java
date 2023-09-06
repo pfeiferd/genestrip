@@ -230,9 +230,9 @@ public class ResultReporter {
 				if (estimator != null) {
 					out.print(estimator.getNormalizedKMers(stats));
 					out.print(';');
-					out.print(stats.getUniqueKMers() / estimator.getExpectedUniqueKMers(stats));
-					out.print(';');
 					out.print(estimator.getExpectedUniqueKMers(stats));
+					out.print(';');
+					out.print(stats.getUniqueKMers() / estimator.getExpectedUniqueKMers(stats));
 					out.print(';');
 					out.print(estimator.getUniqueKMerCountMatchProb(stats));
 					out.print(';');
