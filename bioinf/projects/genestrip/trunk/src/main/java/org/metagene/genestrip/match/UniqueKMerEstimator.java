@@ -64,7 +64,7 @@ public class UniqueKMerEstimator {
 		
 		NormalDistribution nd = new NormalDistribution(mean, sd);
 		
-		return nd.cumulativeProbability(stats.getUniqueKMers()) * 2;
+		return nd.cumulativeProbability(mean - Math.abs(mean - stats.getUniqueKMers())) * 2;
 	}
 
 	/*
