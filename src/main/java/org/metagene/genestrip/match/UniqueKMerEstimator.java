@@ -28,8 +28,7 @@ public class UniqueKMerEstimator {
 	}
 
 	public double getNormalizedKMers(StatsPerTaxid stats) {
-		return ((double) stats.getKMers()) / totalKMers
-				/ taxidToStoreStats.get(stats.getTaxid()).assignedKMers;
+		return ((double) stats.getKMers()) / totalKMers / taxidToStoreStats.get(stats.getTaxid()).assignedKMers;
 	}
 
 	/*
@@ -56,15 +55,21 @@ public class UniqueKMerEstimator {
 	}
 
 	/*
-	 * From https://arxiv.org/pdf/1602.05822.pdf Normal distribution approximates P(k) from (1)
+	 * From https://arxiv.org/pdf/1602.05822.pdf Normal distribution approximates
+	 * P(k) from (1)
 	 */
-	public double getUniqueKMerCountMatchProb(StatsPerTaxid stats) {
+	public double getUniqueKMerCountMatchScore(StatsPerTaxid stats) {
 		double mean = getExpectedUniqueKMers(stats);
 		double sd = Math.sqrt(getUniqueKMersVariance(stats));
-		
+
 		NormalDistribution nd = new NormalDistribution(mean, sd);
-		
-		return nd.cumulativeProbability(mean - Math.abs(mean - stats.getUniqueKMers())) * 2;
+
+		// We use the densitiy at X = unique kmers. We devide it by the maximum density
+		// (at the mean) to obtain a score value between 0 and 1.
+		return nd.density(stats.getUniqueKMers()) / nd.density(mean);
+
+// Old attempt: P(X <= mean - |mean - unique kmers| or X >= mean + |mean - unique kmers|)  		
+//		return nd.cumulativeProbability(mean - Math.abs(mean - stats.getUniqueKMers())) * 2;
 	}
 
 	/*
