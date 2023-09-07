@@ -234,7 +234,7 @@ public class ResultReporter {
 					out.print(';');
 					out.print(stats.getUniqueKMers() / estimator.getExpectedUniqueKMers(stats));
 					out.print(';');
-					out.print(estimator.getUniqueKMerCountMatchProb(stats));
+					out.print(estimator.getUniqueKMerCountMatchScore(stats));
 					out.print(';');
 					out.print(estimator.isProbEstimateInRange(stats));
 					out.print(';');
