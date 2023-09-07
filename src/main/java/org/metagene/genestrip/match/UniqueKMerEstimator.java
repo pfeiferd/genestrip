@@ -62,6 +62,9 @@ public class UniqueKMerEstimator {
 		double mean = getExpectedUniqueKMers(stats);
 		double sd = Math.sqrt(getUniqueKMersVariance(stats));
 
+		if (sd == 0) {
+			return 0;
+		}
 		NormalDistribution nd = new NormalDistribution(mean, sd);
 
 		// We use the densitiy at X = unique kmers. We devide it by the maximum density
