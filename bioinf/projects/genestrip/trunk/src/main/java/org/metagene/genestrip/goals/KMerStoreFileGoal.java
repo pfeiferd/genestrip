@@ -204,6 +204,41 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 				getLogger().info("Saving file " + storeFile);
 			}
 			store.optimize();
+			
+			if (store.isWithCounts()) {
+				if (getLogger().isInfoEnabled()) {
+					getLogger().info("Setting counts for stored kmers");
+				}
+				
+				final long[] indexStore = new long[0];
+				
+				MyKrakenResultFastqMergeListener countsFilter = new MyKrakenResultFastqMergeListener() {
+					@Override
+					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
+							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output,
+							StringLongDigitTrie root) {
+						if (taxIds.contains(kmerTaxid)) {
+							store.get(read, 0, false, indexStore);
+							store.incCount(indexStore[0]);
+						}
+					}
+				};
+				
+				for (int i = 0; i < krakenOutGoal.getFiles().size(); i++) {
+					if (getLogger().isInfoEnabled()) {
+						getLogger().info("Reading file " + krakenOutGoal.getFiles().get(i));
+						getLogger().info("Reading file " + kmerFastqGoal.getFiles().get(i));
+					}
+
+					InputStream stream1 = StreamProvider.getInputStreamForFile(krakenOutGoal.getFiles().get(i));
+					InputStream stream2 = StreamProvider.getInputStreamForFile(kmerFastqGoal.getFiles().get(i));
+
+					krakenKMerFastqMerger.process(stream1, stream2, countsFilter);
+
+					stream1.close();
+					stream2.close();
+				}				
+			}
 
 			List<StoreStatsPerTaxid> list = new ArrayList<StoreStatsPerTaxid>();
 			storeStats.collect(list);
