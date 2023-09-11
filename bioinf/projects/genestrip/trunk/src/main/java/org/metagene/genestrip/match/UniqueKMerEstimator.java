@@ -32,7 +32,7 @@ public class UniqueKMerEstimator {
 	}
 
 	public double getNormalizedKMers(StatsPerTaxid stats) {
-		long totalStoredWithCounts = taxidToStoreStats.get(null).getStoredKMersWithCounts();
+		long totalStoredWithCounts = taxidToStoreStats.get(null).getAssignedKMersWithCounts();
 		return ((double) stats.getKMers()) * totalStoredWithCounts / totalKMers
 				/ taxidToStoreStats.get(stats.getTaxid()).assignedKMers;
 	}
