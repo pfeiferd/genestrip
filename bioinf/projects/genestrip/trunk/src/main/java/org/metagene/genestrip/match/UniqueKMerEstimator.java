@@ -52,7 +52,9 @@ public class UniqueKMerEstimator {
 				String taxId = store.getValueForIndex(index);
 				if (taxId.equals(statsTax)) {
 					byte count = store.getCount(i);
-					res[0] += count * (1 - Math.pow(1 - 1 / count, A));
+					if (count > 0) {
+						res[0] += count * (1 - Math.pow(1 - 1 / count, A));
+					}
 				}
 			}
 		});
