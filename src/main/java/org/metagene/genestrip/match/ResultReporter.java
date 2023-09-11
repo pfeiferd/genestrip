@@ -37,6 +37,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 import org.metagene.genestrip.match.FastqKMerMatcher.Result;
 import org.metagene.genestrip.match.FastqKMerMatcher.StatsPerTaxid;
+import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.store.KMerStoreWrapper.StoreStatsPerTaxid;
 import org.metagene.genestrip.tax.TaxTree.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
@@ -184,12 +185,12 @@ public class ResultReporter {
 		return res;
 	}
 
-	public void printMatchResult(Result res, PrintStream out, List<StoreStatsPerTaxid> storeStats) {
+	public void printMatchResult(Result res, PrintStream out, KMerStoreWrapper wrapper) {
 		Map<String, StatsPerTaxid> taxid2Stats = new HashMap<String, StatsPerTaxid>();
 		for (StatsPerTaxid stats : res.getStats()) {
 			taxid2Stats.put(stats.getTaxid(), stats);
 		}
-		UniqueKMerEstimator estimator = storeStats == null ? null : new UniqueKMerEstimator(storeStats);
+		UniqueKMerEstimator estimator = wrapper == null ? null : new UniqueKMerEstimator(wrapper);
 		if (estimator != null) {
 			estimator.setTotalKMers(res.getTotalKMers());
 		}
