@@ -204,26 +204,39 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 				getLogger().info("Saving file " + storeFile);
 			}
 			store.optimize();
-			
+
 			if (store.isWithCounts()) {
 				if (getLogger().isInfoEnabled()) {
-					getLogger().info("Setting counts for stored kmers");
+					getLogger().info("Setting counts for stored kmers.");
 				}
-				
+
 				final long[] indexStore = new long[0];
-				
+
 				MyKrakenResultFastqMergeListener countsFilter = new MyKrakenResultFastqMergeListener() {
 					@Override
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
 							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output,
 							StringLongDigitTrie root) {
 						if (taxIds.contains(kmerTaxid)) {
-							store.get(read, 0, false, indexStore);
-							store.incCount(indexStore[0]);
+							String storedTaxid = store.get(read, 0, false, indexStore);
+							if (storedTaxid == null) {
+								if (getLogger().isWarnEnabled()) {
+									getLogger().warn("Missing stored kmer for taxid " + kmerTaxid);
+								}
+							} else if (!storedTaxid.equals(kmerTaxid)) {
+								if (getLogger().isWarnEnabled()) {
+									getLogger().warn("Inconsistent taxid for kmer. Expected: " + kmerTaxid
+											+ " Actural: " + storedTaxid);
+								}
+
+							} else {
+								byte count = store.incCount(indexStore[0]);
+								filter.updateKMerCounts(kmerTaxid, count);
+							}
 						}
 					}
 				};
-				
+
 				for (int i = 0; i < krakenOutGoal.getFiles().size(); i++) {
 					if (getLogger().isInfoEnabled()) {
 						getLogger().info("Reading file " + krakenOutGoal.getFiles().get(i));
@@ -237,7 +250,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 
 					stream1.close();
 					stream2.close();
-				}				
+				}
 			}
 
 			List<StoreStatsPerTaxid> list = new ArrayList<StoreStatsPerTaxid>();
@@ -301,6 +314,16 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 			StoreStatsPerTaxid stats = storeStats.get(descriptorTaxid, true);
 			stats.totalKMers++;
 			totalStats.totalKMers++;
+		}
+
+		public void updateKMerCounts(String assignedTaxid, byte count) {
+			if (assignedTaxid != null) {
+				StoreStatsPerTaxid stats = storeStats.get(assignedTaxid, true);
+				stats.assignedKMersWithCounts++;
+				if (count > stats.maxCount) {
+					stats.maxCount = count;
+				}
+			}
 		}
 	}
 }

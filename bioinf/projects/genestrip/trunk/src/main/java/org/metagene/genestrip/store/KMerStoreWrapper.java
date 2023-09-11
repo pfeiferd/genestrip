@@ -91,6 +91,10 @@ public class KMerStoreWrapper implements Serializable {
 		public long assignedKMers;
 		public long contigs;
 		public long maxContigLen;
+		
+		// TODO
+		public long assignedKMersWithCounts;
+		public byte maxCount;
 
 		public StoreStatsPerTaxid(String taxid) {
 			this.taxid = taxid;
@@ -118,6 +122,14 @@ public class KMerStoreWrapper implements Serializable {
 
 		public long getAssignedKMers() {
 			return assignedKMers;
+		}
+		
+		public long getAssignedKMersWithCounts() {
+			return assignedKMersWithCounts;
+		}
+		
+		public byte getMaxCount() {
+			return maxCount;
 		}
 	}
 }
