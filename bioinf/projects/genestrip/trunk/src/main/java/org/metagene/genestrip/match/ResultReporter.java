@@ -80,7 +80,7 @@ public class ResultReporter {
 		out.print(';');
 		out.print(0);
 		out.print(';');
-		out.print(0);
+		out.print(stats.getAssignedKMersWithCounts());
 		out.print(';');
 		out.print(0);
 		out.println(';');
