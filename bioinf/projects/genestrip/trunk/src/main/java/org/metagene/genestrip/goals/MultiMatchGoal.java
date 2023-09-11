@@ -128,7 +128,7 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 			}
 			Result res = matcher.runClassifier(fastqs, filteredFile, krakenOutStyleFile, uniqueCounter);
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-			reporter.printMatchResult(res, out, wrapper.getStoreStats());
+			reporter.printMatchResult(res, out, wrapper);
 			out.close();
 		} catch (IOException | ClassNotFoundException e) {
 			throw new RuntimeException(e);
