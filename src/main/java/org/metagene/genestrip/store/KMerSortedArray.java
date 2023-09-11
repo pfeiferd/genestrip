@@ -288,9 +288,9 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		countsChanged = true;
 		if (largeCounts != null) {
 			BigArrays.incr(largeCounts, index);
-			return count++;
+			return ++count;
 		} else {
-			return counts[(int) index]++;
+			return ++counts[(int) index];
 		}
 	}
 
