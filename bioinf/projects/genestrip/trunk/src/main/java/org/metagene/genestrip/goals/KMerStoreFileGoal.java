@@ -205,6 +205,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 			}
 			store.optimize();
 
+			// We must do this as a second step AFTER optimization such that kmers can be found quickly via binary search...
 			if (store.isWithCounts()) {
 				if (getLogger().isInfoEnabled()) {
 					getLogger().info("Setting counts for stored kmers.");
