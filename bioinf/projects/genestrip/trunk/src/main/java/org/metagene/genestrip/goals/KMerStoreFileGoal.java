@@ -211,7 +211,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 					getLogger().info("Setting counts for stored kmers.");
 				}
 
-				final long[] indexStore = new long[0];
+				final long[] indexStore = new long[1];
 
 				MyKrakenResultFastqMergeListener countsFilter = new MyKrakenResultFastqMergeListener() {
 					@Override
