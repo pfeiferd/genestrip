@@ -320,8 +320,12 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 			if (assignedTaxid != null) {
 				StoreStatsPerTaxid stats = storeStats.get(assignedTaxid, true);
 				stats.assignedKMersWithCounts++;
+				totalStats.assignedKMersWithCounts++;
 				if (count > stats.maxCount) {
 					stats.maxCount = count;
+				}
+				if (count > totalStats.maxCount) {
+					totalStats.maxCount = count;
 				}
 			}
 		}
