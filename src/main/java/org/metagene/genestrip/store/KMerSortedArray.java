@@ -49,28 +49,35 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	private static final long serialVersionUID = 1L;
 
 	public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
+	
+	public static byte EXCLUDED_KMER_VIA_COUNT = Byte.MIN_VALUE;
 
 	private long[] kmers;
+	private byte[] counts;
 	private short[] valueIndexes;
 
 	private long[][] largeKmers;
+	private byte[][] largeCounts;
 	private short[][] largeValueIndexes;
 
 	private final int k;
 	private final Object2ShortMap<V> valueMap;
 	private final Short2ObjectMap<V> indexMap;
 	private final boolean enforceLarge;
+	private final boolean withCounts;
 
 	protected long size;
 
 	private long entries;
 	private boolean sorted;
+	private boolean countsChanged;
 	private boolean initSize;
 	private short nextValueIndex;
 	private MurmurCGATBloomFilter filter;
 
-	public KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge) {
+	public KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge, boolean withCounts) {
 		this.k = k;
+		this.withCounts = withCounts;
 		int s = initialValues == null ? 0 : initialValues.size();
 		indexMap = new Short2ObjectOpenHashMap<V>(s);
 		valueMap = new Object2ShortOpenHashMap<V>(s);
@@ -112,9 +119,15 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		if (size > MAX_SMALL_CAPACITY || enforceLarge) {
 			largeKmers = BigArrays.ensureCapacity(BigArrays.wrap(new long[0]), size);
 			largeValueIndexes = BigArrays.ensureCapacity(BigArrays.wrap(new short[0]), size);
+			if (withCounts) {
+				largeCounts = BigArrays.ensureCapacity(BigArrays.wrap(new byte[0]), size);
+			}
 		} else {
 			kmers = new long[(int) size];
 			valueIndexes = new short[(int) size];
+			if (withCounts) {
+				counts = new byte[(int) size];
+			}
 		}
 	}
 
@@ -122,9 +135,17 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		if (largeKmers != null) {
 			BigArrays.fill(largeKmers, 0);
 			BigArrays.fill(largeValueIndexes, (short) 0);
+			if (withCounts) {
+				BigArrays.fill(largeCounts, (byte) 0);
+				countsChanged = false;
+			}
 		} else {
 			Arrays.fill(kmers, 0);
 			Arrays.fill(valueIndexes, (short) 0);
+			if (withCounts) {
+				Arrays.fill(counts, (byte) 0);
+				countsChanged = false;
+			}
 		}
 	}
 
@@ -168,6 +189,11 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		return largeKmers != null;
 	}
 
+	
+	public boolean isWithCounts() {
+		return withCounts;
+	}
+	
 	@Override
 	public boolean put(CGATRingBuffer buffer, V value, boolean reverse) {
 		long kmer = reverse ? CGAT.kMerToLongReverse(buffer) : CGAT.kMerToLongStraight(buffer);
@@ -183,7 +209,8 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 	/**
 	 * 
-	 * @return true if put succeeded, false if (probably) some value is already stored under that kmer.
+	 * @return true if put succeeded, false if (probably) some value is already
+	 *         stored under that kmer.
 	 */
 	protected boolean putLong(long kmer, V value) {
 		if (value == null) {
@@ -194,7 +221,8 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			throw new IllegalStateException("Capacity exceeded.");
 		}
 		if (filter.containsLong(kmer)) {
-			// Fail fast - we could check if the kmer is indeed stored, but it's way too slow because
+			// Fail fast - we could check if the kmer is indeed stored, but it's way too
+			// slow because
 			// of linear search in the kmer array...
 			return false;
 		}
@@ -242,6 +270,28 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		long kmer = reverse ? CGAT.kMerToLongReverse(nseq, start, k, null)
 				: CGAT.kMerToLongStraight(nseq, start, k, null);
 		return getLong(kmer, indexStore);
+	}
+
+	public byte getCount(long index) {
+		if (largeCounts != null) {
+			return BigArrays.get(largeCounts, index);
+		} else {
+			return counts[(int) index];
+		}
+	}
+
+	public byte incCount(long index) {
+		byte count = getCount(index);
+		if (count == EXCLUDED_KMER_VIA_COUNT) {
+			return count;
+		}
+		countsChanged = true;
+		if (largeCounts != null) {
+			BigArrays.incr(largeCounts, index);
+			return count++;
+		} else {
+			return counts[(int) index]++;
+		}
 	}
 
 	public V getLong(long kmer, long[] posStore) {
@@ -294,6 +344,9 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		if (posStore != null) {
 			posStore[0] = pos;
 		}
+		if (withCounts && getCount(index) == EXCLUDED_KMER_VIA_COUNT) {
+			return null;
+		}
 		return indexMap.get(index);
 	}
 
@@ -321,6 +374,12 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 					short indexB = BigArrays.get(largeValueIndexes, b);
 					BigArrays.set(largeValueIndexes, b, indexA);
 					BigArrays.set(largeValueIndexes, a, indexB);
+					if (withCounts && countsChanged) {
+						byte countA = BigArrays.get(largeCounts, a);
+						byte countB = BigArrays.get(largeCounts, b);
+						BigArrays.set(largeCounts, b, countA);
+						BigArrays.set(largeCounts, a, countB);						
+					}
 				}
 			});
 		} else {
@@ -342,6 +401,12 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 					short indexB = valueIndexes[(int) b];
 					valueIndexes[(int) b] = indexA;
 					valueIndexes[(int) a] = indexB;
+					if (withCounts && countsChanged) {
+						byte countA = counts[(int) a];
+						byte countB = counts[(int) b];
+						counts[(int) b] = countA;
+						counts[(int) a] = countB;
+					}
 				}
 			});
 		}
@@ -382,12 +447,14 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				kmer = kmers[(int) i];
 				sindex = valueIndexes[(int) i];
 			}
-			visitor.nextValue(this, kmer, sindex, i);
+			if (!withCounts || getCount(i) != EXCLUDED_KMER_VIA_COUNT) {
+				visitor.nextValue(this, kmer, sindex, i);
+			}
 		}
 	}
 
 	public interface KMerSortedArrayVisitor<V extends Serializable> {
-		public void nextValue(KMerStore<V> trie, long kmer, short index, long i);
+		public void nextValue(KMerSortedArray<V> trie, long kmer, short index, long i);
 	}
 
 }

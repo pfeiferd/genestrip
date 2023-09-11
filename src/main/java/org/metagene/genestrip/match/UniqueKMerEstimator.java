@@ -1,20 +1,24 @@
 package org.metagene.genestrip.match;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.math3.distribution.NormalDistribution;
 import org.metagene.genestrip.match.FastqKMerMatcher.StatsPerTaxid;
+import org.metagene.genestrip.store.KMerSortedArray;
+import org.metagene.genestrip.store.KMerSortedArray.KMerSortedArrayVisitor;
+import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.store.KMerStoreWrapper.StoreStatsPerTaxid;
 
 public class UniqueKMerEstimator {
 	private long totalKMers;
+	private final KMerStoreWrapper storeWrapper;
 	private final Map<String, StoreStatsPerTaxid> taxidToStoreStats;
 
-	public UniqueKMerEstimator(List<StoreStatsPerTaxid> storeStatsPerTaxid) {
+	public UniqueKMerEstimator(KMerStoreWrapper storeWrapper) {
+		this.storeWrapper = storeWrapper;
 		taxidToStoreStats = new HashMap<String, StoreStatsPerTaxid>();
-		for (StoreStatsPerTaxid stats : storeStatsPerTaxid) {
+		for (StoreStatsPerTaxid stats : storeWrapper.getStoreStats()) {
 			taxidToStoreStats.put(stats.getTaxid(), stats);
 		}
 	}
@@ -28,7 +32,31 @@ public class UniqueKMerEstimator {
 	}
 
 	public double getNormalizedKMers(StatsPerTaxid stats) {
-		return ((double) stats.getKMers()) / totalKMers / taxidToStoreStats.get(stats.getTaxid()).assignedKMers;
+		long totalStoredWithCounts = taxidToStoreStats.get(null).getStoredKMersWithCounts();
+		return ((double) stats.getKMers()) * totalStoredWithCounts / totalKMers
+				/ taxidToStoreStats.get(stats.getTaxid()).assignedKMers;
+	}
+
+	public double getExpectedUniqueKMersWithCounts(StatsPerTaxid stats) {
+		if (!storeWrapper.getKmerStore().isWithCounts()) {
+			throw new IllegalStateException();
+		}
+
+		String statsTax = stats.getTaxid();
+		double A = stats.getKMers();
+
+		double[] res = new double[0];
+		storeWrapper.getKmerStore().visit(new KMerSortedArrayVisitor<String>() {
+			@Override
+			public void nextValue(KMerSortedArray<String> store, long kmer, short index, long i) {
+				String taxId = store.getValueForIndex(index);
+				if (taxId.equals(statsTax)) {
+					byte count = store.getCount(i);
+					res[0] += count * (1 - Math.pow(1 - 1 / count, A));
+				}
+			}
+		});
+		return res[0];
 	}
 
 	/*

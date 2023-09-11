@@ -53,7 +53,7 @@ public class ResultReporter {
 
 	public void printStoreInfo(List<StoreStatsPerTaxid> statsList, PrintStream out) {
 		out.println(
-				"name;rank;taxid;stored kmers;total kmers;stored ratio;assigned kmers;contigs;average contig length;max contig length;");
+				"name;rank;taxid;stored unique kmers;total kmers;stored ratio;assigned kmers;contigs;average contig length;max contig length;assigned kmers with counts; max count;");
 
 		Map<String, StoreStatsPerTaxid> map = new HashMap<String, StoreStatsPerTaxid>();
 		for (StoreStatsPerTaxid stats : statsList) {
@@ -76,6 +76,10 @@ public class ResultReporter {
 		out.print(0);
 		out.print(';');
 		out.print('-');
+		out.print(';');
+		out.print(0);
+		out.print(';');
+		out.print(0);
 		out.print(';');
 		out.print(0);
 		out.println(';');
@@ -102,6 +106,10 @@ public class ResultReporter {
 				out.print(((double) stats.getStoredKMers()) / stats.getContigs());
 				out.print(';');
 				out.print(stats.getMaxContigLen());
+				out.print(';');
+				out.print(stats.getAssignedKMersWithCounts());
+				out.print(';');
+				out.print(stats.getMaxCount());
 				out.println(';');
 //			} else {
 //				out.print(0);

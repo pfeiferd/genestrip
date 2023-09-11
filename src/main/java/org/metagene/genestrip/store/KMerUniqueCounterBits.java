@@ -31,7 +31,7 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 		long[] valueCounter = new long[store.getNValues()];
 		store.visit(new KMerSortedArrayVisitor<String>() {
 			@Override
-			public void nextValue(KMerStore<String> trie, long kmer, short index, long i) {
+			public void nextValue(KMerSortedArray<String> trie, long kmer, short index, long i) {
 				if (bitVector.get(i)) {
 					valueCounter[index]++;
 				}
@@ -54,7 +54,7 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 		int[] count = new int[1];
 		store.visit(new KMerSortedArrayVisitor<String>() {
 			@Override
-			public void nextValue(KMerStore<String> trie, long kmer, short index, long i) {
+			public void nextValue(KMerSortedArray<String> trie, long kmer, short index, long i) {
 				if (index == sindex && bitVector.get(i)) {
 					count[0]++;
 				}

@@ -57,7 +57,7 @@ public class FastqKMerMatcherTest {
 		int readLength = 5;
 		int entries = 2000;
 
-		KMerSortedArray<String> store = new KMerSortedArray<String>(1, 0.0001, Arrays.asList(TAXIDS), false);
+		KMerSortedArray<String> store = new KMerSortedArray<String>(1, 0.0001, Arrays.asList(TAXIDS), false, true);
 		store.initSize(3);
 		byte[] read = new byte[] { 'C' };
 		store.put(read, 0, TAXIDS[0], false);
