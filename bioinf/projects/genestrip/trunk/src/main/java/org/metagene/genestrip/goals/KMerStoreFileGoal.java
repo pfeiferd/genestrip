@@ -155,16 +155,11 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 						}
 					} else {
 						if (!consistentTaxIds) {
-							if (getLogger().isWarnEnabled()) {
-								getLogger().warn("Insonsistent descriptor and kmer tax id: " + descriptorTaxid + " "
-										+ kmerTaxid);
-								TaxIdNode node1 = taxTree.getNodeByTaxId(descriptorTaxid);
-								TaxIdNode node2 = taxTree.getNodeByTaxId(kmerTaxid);
-								if (node1 != null && node2 != null) {
-									getLogger().warn("Insonsistent descriptor and kmer tax id: " + node1.getName() + " "
-											+ node2.getName());
-								}
-							}
+							inconsistencyCounter++;
+//							if (getLogger().isWarnEnabled()) {
+//								getLogger().warn("Insonsistent descriptor and kmer tax id: " + descriptorTaxid + " "
+//										+ kmerTaxid);
+//							}
 						}
 						updateContigStats();
 						contig = 0;
@@ -198,22 +193,28 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 				stream2.close();
 			}
 
+			if (filter.inconsistencyCounter > 0) {
+				if (getLogger().isWarnEnabled()) {
+					getLogger().warn(
+							"Insonsistencies between  descriptor and kmer tax id: " + filter.inconsistencyCounter);
+				}
+			}
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Total stored entries: " + store.getEntries());
 				getLogger().info("Total store entry ratio: " + ((double) store.getEntries() / filter.counter));
 				getLogger().info("Saving file " + storeFile);
+
 			}
 			store.optimize();
 
-			// We must do this as a second step AFTER optimization such that kmers can be found quickly via binary search...
+			// We must do this as a second step AFTER optimization such that kmers can be
+			// found quickly via binary search...
 			if (store.isWithCounts()) {
 				if (getLogger().isInfoEnabled()) {
 					getLogger().info("Setting counts for stored kmers.");
 				}
 
-				final long[] indexStore = new long[1];
-
-				MyKrakenResultFastqMergeListener countsFilter = new MyKrakenResultFastqMergeListener() {
+				MyKrakenResultFastqMergeListener2 countsFilter = new MyKrakenResultFastqMergeListener2() {
 					@Override
 					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
 							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output,
@@ -221,9 +222,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 						if (taxIds.contains(kmerTaxid)) {
 							String storedTaxid = store.get(read, 0, false, indexStore);
 							if (storedTaxid == null) {
-								if (getLogger().isWarnEnabled()) {
-									getLogger().warn("Missing stored kmer for taxid " + kmerTaxid);
-								}
+								missingEntriesCounter++;
 							} else if (!storedTaxid.equals(kmerTaxid)) {
 								if (getLogger().isWarnEnabled()) {
 									getLogger().warn("Inconsistent taxid for kmer. Expected: " + kmerTaxid
@@ -232,11 +231,13 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 
 							} else {
 								byte count = store.incCount(indexStore[0]);
-								filter.updateKMerCounts(kmerTaxid, count);
+								updateKMerCounts(kmerTaxid, count);
 							}
 						}
 					}
 				};
+				countsFilter.storeStats = filter.storeStats;
+				countsFilter.totalStats = filter.totalStats;
 
 				for (int i = 0; i < krakenOutGoal.getFiles().size(); i++) {
 					if (getLogger().isInfoEnabled()) {
@@ -248,6 +249,10 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 					InputStream stream2 = StreamProvider.getInputStreamForFile(kmerFastqGoal.getFiles().get(i));
 
 					krakenKMerFastqMerger.process(stream1, stream2, countsFilter);
+
+					if (countsFilter.missingEntriesCounter > 0 && getLogger().isWarnEnabled()) {
+						getLogger().warn("Missing stored kmer for taxids: " + countsFilter.missingEntriesCounter);
+					}
 
 					stream1.close();
 					stream2.close();
@@ -285,6 +290,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 		protected String lastKMerTaxid;
 		protected long counter = 0;
 		protected int contig;
+		protected long inconsistencyCounter = 0;
 //		protected String lastDescriptorTaxid;
 
 		public void updateContigStats() {
@@ -316,6 +322,13 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 			stats.totalKMers++;
 			totalStats.totalKMers++;
 		}
+	}
+
+	private abstract static class MyKrakenResultFastqMergeListener2 implements KrakenResultFastqMergeListener {
+		protected StoreStatsPerTaxid totalStats;
+		protected DigitTrie<StoreStatsPerTaxid> storeStats;
+		protected final long[] indexStore = new long[1];
+		protected long missingEntriesCounter = 0;
 
 		public void updateKMerCounts(String assignedTaxid, byte count) {
 			if (assignedTaxid != null) {
