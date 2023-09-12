@@ -96,6 +96,7 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 					target[k] = target[k - 1];
 				}
 				target[j] = count;
+				return;
 			}
 		}		
 	}
