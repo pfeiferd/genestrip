@@ -64,7 +64,6 @@ public class LargeShortVector implements Serializable {
 	 * @return Whether the vector got bigger or not.
 	 */
 	public boolean ensureCapacity(long newSize, boolean enforceLarge) {
-		newSize = (newSize + 63) / 64;
 		if (newSize > size) {
 			size = newSize;
 			if (size > MAX_SMALL_CAPACITY || enforceLarge) {
@@ -92,6 +91,10 @@ public class LargeShortVector implements Serializable {
 		return largeShorts != null;
 	}
 
+	public long getSize() {
+		return size;
+	}
+	
 	public short inc(long index) {
 		if (largeShorts != null) {
 			BigArrays.incr(largeShorts, index);
