@@ -121,7 +121,7 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 				matcher = new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(),
 						config.getThreadQueueSize(), config.getThreads());
 				reporter = new ResultReporter(wrapper.getTaxids());
-				uniqueCounter = config.isCountUniqueKmers() ? new KMerUniqueCounterBits(wrapper.getKmerStore()) : null;
+				uniqueCounter = config.isCountUniqueKmers() ? new KMerUniqueCounterBits(wrapper.getKmerStore(), true) : null;
 			}
 			if (uniqueCounter != null) {
 				uniqueCounter.clear();
