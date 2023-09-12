@@ -92,7 +92,7 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 	private void updateMaxCounts(short count, short[] target) {
 		for (int j = 0; j < target.length; j++) {
 			if (count > target[j]) {
-				for (int k = j + 1; k < target.length; k++) {
+				for (int k = target.length - 1; k > j; k--) {
 					target[k] = target[k - 1];
 				}
 				target[j] = count;
