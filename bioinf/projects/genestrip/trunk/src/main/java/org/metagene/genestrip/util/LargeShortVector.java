@@ -28,31 +28,31 @@ import java.io.Serializable;
 import java.util.Arrays;
 
 import it.unimi.dsi.fastutil.BigArrays;
-import it.unimi.dsi.fastutil.longs.LongBigArrays;
+import it.unimi.dsi.fastutil.shorts.ShortBigArrays;
 
-public class LargeBitVector implements Serializable {
+public class LargeShortVector implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
 
 	protected long size;
-	protected long[] bits;
-	protected long[][] largeBits;
+	protected short[] shorts;
+	protected short[][] largeShorts;
 
-	public LargeBitVector(long initialSize) {
+	public LargeShortVector(long initialSize) {
 		this(initialSize, false);
 	}
 
-	public LargeBitVector(long initialSize, boolean enforceLarge) {
+	public LargeShortVector(long initialSize, boolean enforceLarge) {
 		size = 0;
 		ensureCapacity(initialSize, enforceLarge);
 	}
 
 	public void clear() {
-		if (largeBits != null) {
-			BigArrays.fill(largeBits, 0);
-		} else if (bits != null) {
-			Arrays.fill(bits, 0);
+		if (largeShorts != null) {
+			BigArrays.fill(largeShorts, (short) 0);
+		} else if (shorts != null) {
+			Arrays.fill(shorts, (short) 0);
 		}
 	}
 
@@ -68,19 +68,19 @@ public class LargeBitVector implements Serializable {
 		if (newSize > size) {
 			size = newSize;
 			if (size > MAX_SMALL_CAPACITY || enforceLarge) {
-				if (bits != null) {
-					largeBits = BigArrays.wrap(bits);
+				if (shorts != null) {
+					largeShorts = BigArrays.wrap(shorts);
 				}
-				largeBits = BigArrays.ensureCapacity(largeBits == null ? LongBigArrays.EMPTY_BIG_ARRAY : largeBits,
-						size);
-				bits = null;
+				largeShorts = BigArrays
+						.ensureCapacity(largeShorts == null ? ShortBigArrays.EMPTY_BIG_ARRAY : largeShorts, size);
+				shorts = null;
 			} else {
-				long[] oldBits = bits;
-				bits = new long[(int) size];
-				if (oldBits != null) {
-					System.arraycopy(oldBits, 0, bits, 0, oldBits.length);
+				short[] oldShorts = shorts;
+				shorts = new short[(int) size];
+				if (oldShorts != null) {
+					System.arraycopy(oldShorts, 0, shorts, 0, oldShorts.length);
 				}
-				largeBits = null;
+				largeShorts = null;
 			}
 			return true;
 		} else {
@@ -89,40 +89,23 @@ public class LargeBitVector implements Serializable {
 	}
 
 	public boolean isLarge() {
-		return largeBits != null;
+		return largeShorts != null;
 	}
 
-	public long getBitSize() {
-		return size * 64;
-	}
-
-	public void clear(long index) {
-		if (largeBits != null) {
-			long arrayIndex = ((index >>> 6) % size);
-			BigArrays.set(largeBits, arrayIndex, BigArrays.get(largeBits, arrayIndex) & ~(1L << (index & 0b111111)));
+	public short inc(long index) {
+		if (largeShorts != null) {
+			BigArrays.incr(largeShorts, index);
+			return BigArrays.get(largeShorts, index);
 		} else {
-			int arrayIndex = (int) ((index >>> 6) % size);
-			bits[arrayIndex] = bits[arrayIndex] & ~(1L << (index & 0b111111));
-		}
-	}
-	
-	public void set(long index) {
-		if (largeBits != null) {
-			long arrayIndex = ((index >>> 6) % size);
-			BigArrays.set(largeBits, arrayIndex, BigArrays.get(largeBits, arrayIndex) | (1L << (index & 0b111111)));
-		} else {
-			int arrayIndex = (int) ((index >>> 6) % size);
-			bits[arrayIndex] = bits[arrayIndex] | (1L << (index & 0b111111));
+			return ++shorts[(int) index];
 		}
 	}
 
-	public boolean get(long index) {
-		if (largeBits != null) {
-			long arrayIndex = ((index >>> 6) % size);
-			return ((BigArrays.get(largeBits, arrayIndex) >> (index & 0b111111)) & 1L) == 1;
+	public short get(long index) {
+		if (largeShorts != null) {
+			return BigArrays.get(largeShorts, index);
 		} else {
-			int arrayIndex = (int) ((index >>> 6) % size);
-			return (((bits[arrayIndex] >> (index & 0b111111)) & 1L) == 1);
+			return shorts[(int) index];
 		}
 	}
 }
