@@ -186,10 +186,7 @@ public class ResultReporter {
 	}
 
 	public void printMatchResult(Result res, PrintStream out, KMerStoreWrapper wrapper) {
-		Map<String, StatsPerTaxid> taxid2Stats = new HashMap<String, StatsPerTaxid>();
-		for (StatsPerTaxid stats : res.getStats()) {
-			taxid2Stats.put(stats.getTaxid(), stats);
-		}
+		Map<String, StatsPerTaxid> taxid2Stats = res.getTaxid2Stats();
 		UniqueKMerEstimator estimator = wrapper == null ? null : new UniqueKMerEstimator(wrapper);
 		if (estimator != null) {
 			estimator.setTotalKMers(res.getTotalKMers());
@@ -197,10 +194,12 @@ public class ResultReporter {
 
 		out.print("name;rank;taxid;reads;kmers;unique kmers;contigs;average contig length;max contig length;");
 		if (estimator != null) {
-			out.println("normalized kmers; exp. unique kmers; unique kmers / exp.; est. p(unique kmers | kmers); estimate valid;");
-		} else {
-			out.println();
+			out.print("normalized kmers; exp. unique kmers; unique kmers / exp.; est. p(unique kmers | kmers); estimate valid;");
 		}
+		if (res.isWithMaxKMerCounts()) {
+			out.print("max kmer counts;");
+		}
+		out.println();
 		out.print("TOTAL;");
 		out.print(Rank.SUPERKINGDOM);
 		out.print(';');
@@ -210,10 +209,19 @@ public class ResultReporter {
 		out.print(res.getTotalKMers());
 		out.print(";0;0;0;0;");
 		if (estimator != null) {
-			out.println("0;0;0;0;");
-		} else {
-			out.println();
+			out.print("0;0;0;0;");
 		}
+		if (res.isWithMaxKMerCounts()) {
+			short[] counts = res.getTotalMaxCounts();
+			if (counts != null) {
+				for (int i = 0; i < counts.length; i++) {
+					out.print(counts[i]);
+					out.print('|');							
+				}
+			}
+			out.print(';');
+		}
+		out.println();
 
 		for (TaxIdNode taxNode : taxids) {
 			StatsPerTaxid stats = taxid2Stats.get(taxNode.getTaxId());
@@ -247,10 +255,18 @@ public class ResultReporter {
 					out.print(';');
 					out.print(estimator.isProbEstimateInRange(stats));
 					out.print(';');
-					out.println();
-				} else {
-					out.println();
 				}
+				if (res.isWithMaxKMerCounts()) {
+					short[] counts = stats.getMaxKMerCounts();
+					if (counts != null) {
+						for (int i = 0; i < counts.length; i++) {
+							out.print(counts[i]);
+							out.print('|');							
+						}
+					}
+					out.print(';');
+				}
+				out.println();
 			}
 		}
 	}
