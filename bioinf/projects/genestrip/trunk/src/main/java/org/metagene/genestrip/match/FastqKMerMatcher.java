@@ -143,7 +143,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 			}
 			if (uniqueCounter instanceof KMerUniqueCounterBits) {
 				if (((KMerUniqueCounterBits) uniqueCounter).isWithCounts()) {
-					countMap = ((KMerUniqueCounterBits) uniqueCounter).getMaxCountsCounts(20);
+					countMap = ((KMerUniqueCounterBits) uniqueCounter).getMaxCountsCounts(200);
 					for (StatsPerTaxid stats : allStats) {
 						stats.maxKMerCounts = countMap.get(stats.getTaxid());
 					}
