@@ -116,10 +116,11 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 						descriptorTaxid = sl.getStringValue();
 						if (descriptorTaxid != null && taxIds.contains(descriptorTaxid)) {
 							updateTotalKMers(descriptorTaxid);
-						} else {
-							if (getLogger().isInfoEnabled()) {
-								getLogger().info("Bad taxid in read descriptor " + descriptorTaxid);
-							}
+// This may cause way too much log output and is not really important...							
+//						} else {
+//							if (getLogger().isInfoEnabled()) {
+//								getLogger().info("Bad taxid in read descriptor " + descriptorTaxid);
+//							}
 						}
 					} else {
 						if (getLogger().isInfoEnabled()) {
