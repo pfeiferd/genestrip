@@ -183,4 +183,12 @@ public class GSConfig {
 	public int getMaxBloomFilterSize() {
 		return Integer.valueOf(properties.getProperty("maxBloomFilterSize", Integer.toString(Integer.MAX_VALUE)));
 	}
+	
+	public String getRefSeqReleaseName() {
+		return properties.getProperty("refSeqReleaseName", "release220");
+	}
+	
+	public File getRefSeqDir() {
+		return new File(getCommonDir(), "refseq");
+	}
 }

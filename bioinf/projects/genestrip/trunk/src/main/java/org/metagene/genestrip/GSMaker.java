@@ -52,6 +52,9 @@ import org.metagene.genestrip.goals.TaxIdFileDownloadGoal;
 import org.metagene.genestrip.goals.TaxNodesGoal;
 import org.metagene.genestrip.goals.TrieFromKrakenResGoal;
 import org.metagene.genestrip.goals.TrieFromKrakenResGoal.TaxidWithCount;
+import org.metagene.genestrip.goals.refseq.RefSeqCatalogDownloadGoal;
+import org.metagene.genestrip.goals.refseq.RefSeqCategory;
+import org.metagene.genestrip.goals.refseq.RefSeqFnaFilesDownloadGoal;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
@@ -74,7 +77,7 @@ public class GSMaker extends Maker<GSProject> {
 				project.getKrakenOutDir(), project.getResultsDir());
 
 		Goal<GSProject> commonSetupGoal = new FileListGoal<GSProject>(project, "commonsetup",
-				project.getConfig().getCommonDir()) {
+				Arrays.asList(project.getConfig().getCommonDir(), project.getConfig().getRefSeqDir())) {
 			@Override
 			protected void makeFile(File file) throws IOException {
 				file.mkdir();
@@ -283,5 +286,12 @@ public class GSMaker extends Maker<GSProject> {
 					trieFromKrakenResGoal, projectSetupGoal);
 			registerGoal(krakenResErrorGoal);
 		}
+		
+		RefSeqCatalogDownloadGoal refSeqCatalogGoal = new RefSeqCatalogDownloadGoal(project, "refseqcat", commonSetupGoal);
+		registerGoal(refSeqCatalogGoal);
+		
+		Goal<GSProject> refSeqFnaFilesGoal = new RefSeqFnaFilesDownloadGoal(project, "refseqfna", Arrays.asList(RefSeqCategory.viral), refSeqCatalogGoal);
+		registerGoal(refSeqFnaFilesGoal);
+		
 	}
 }
