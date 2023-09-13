@@ -42,7 +42,7 @@ public class RefSeqFnaFilesDownloadGoal extends FileDownloadGoal<GSProject> {
 				String filename = record.get(1);
 				RefSeqCategory cat = getCategoryForFile(filename, categories);
 				if (cat != null) {
-					if (isFnaFileName(filename)) {
+					if (isRelevantFileName(filename)) {
 						File file = new File(project.getConfig().getRefSeqDir(), filename);
 						files.add(file);
 						file2Cat.put(file, cat);
@@ -55,11 +55,11 @@ public class RefSeqFnaFilesDownloadGoal extends FileDownloadGoal<GSProject> {
 		}
 	}
 
-	private boolean isFnaFileName(String filename) {
-		return filename.endsWith(".fna.gz") || filename.endsWith(".fna");
+	protected boolean isRelevantFileName(String filename) {
+		return filename.endsWith(".genomic.fna.gz") || filename.endsWith(".genomic.fna");
 	}
 
-	private RefSeqCategory getCategoryForFile(String filename, Collection<RefSeqCategory> categories) {
+	protected RefSeqCategory getCategoryForFile(String filename, Collection<RefSeqCategory> categories) {
 		for (RefSeqCategory cat : categories) {
 			if (filename.startsWith(cat.name() + ".")) {
 				return cat;
