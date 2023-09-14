@@ -19,7 +19,7 @@ import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class RefSeqFnaFilesDownloadGoal extends FileDownloadGoal<GSProject> {
-	private static final CSVFormat format = CSVFormat.DEFAULT.builder().setDelimiter('\t').setRecordSeparator('\n')
+	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setDelimiter('\t').setRecordSeparator('\n')
 			.build();
 
 	private final List<File> files;
@@ -37,7 +37,7 @@ public class RefSeqFnaFilesDownloadGoal extends FileDownloadGoal<GSProject> {
 
 		try {
 			Reader in = new InputStreamReader(StreamProvider.getInputStreamForFile(installedFiles));
-			Iterable<CSVRecord> records = format.parse(in);
+			Iterable<CSVRecord> records = FORMAT.parse(in);
 			for (CSVRecord record : records) {
 				String filename = record.get(1);
 				RefSeqCategory cat = getCategoryForFile(filename, categories);
@@ -53,6 +53,10 @@ public class RefSeqFnaFilesDownloadGoal extends FileDownloadGoal<GSProject> {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	public RefSeqCategory getCategoryForFile(File file) {
+		return file2Cat.get(file);
 	}
 
 	protected boolean isRelevantFileName(String filename) {
@@ -70,7 +74,7 @@ public class RefSeqFnaFilesDownloadGoal extends FileDownloadGoal<GSProject> {
 
 	@Override
 	protected String getFTPDir(File file) {
-		return RefSeqCatalogDownloadGoal.RELEASE_FOLDER + "/" + file2Cat.get(file).name();
+		return RefSeqCatalogDownloadGoal.RELEASE_FOLDER + "/" + file2Cat.get(file).getDirectory();
 	}
 
 	@Override
