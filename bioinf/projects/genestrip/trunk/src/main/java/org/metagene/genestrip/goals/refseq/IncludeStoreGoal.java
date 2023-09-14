@@ -1,0 +1,123 @@
+package org.metagene.genestrip.goals.refseq;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+
+import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.GSProject.FileType;
+import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
+import org.metagene.genestrip.fasta.AbstractFastaReader;
+import org.metagene.genestrip.make.FileListGoal;
+import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.store.KMerSortedArray;
+import org.metagene.genestrip.store.KMerStoreWrapper;
+import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.ArraysUtil;
+import org.metagene.genestrip.util.CGATRingBuffer;
+
+public class IncludeStoreGoal extends FileListGoal<GSProject> {
+	private final Collection<RefSeqCategory> includeCategories;
+	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
+	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
+	private final AccessionCollectionGoal accessionCollectionGoal;
+	private final ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal;
+
+	@SafeVarargs
+	public IncludeStoreGoal(GSProject project, String name, Collection<RefSeqCategory> includeCategories,
+			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+			AccessionCollectionGoal accessionCollectionGoal,
+			ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal, Goal<GSProject>... deps) {
+		super(project, name, project.getOutputFile(name, FileType.SER),
+				ArraysUtil.append(deps, taxNodesGoal, fnaFilesGoal, accessionCollectionGoal, bloomFilterGoal));
+		this.includeCategories = includeCategories;
+		this.taxNodesGoal = taxNodesGoal;
+		this.fnaFilesGoal = fnaFilesGoal;
+		this.accessionCollectionGoal = accessionCollectionGoal;
+		this.bloomFilterGoal = bloomFilterGoal;
+	}
+
+	@Override
+	public void makeFile(File storeFile) {
+		long size = bloomFilterGoal.get().getBitSize();
+		KMerSortedArray<String> store = new KMerSortedArray<String>(getProject().getConfig().getKMerSize(), 0.000000001,
+				null, false, false, bloomFilterGoal.get());
+		store.initSize(size);
+
+		try {
+			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getKMerSize(),
+					getProject().getConfig().getMaxReadSizeBytes(), store);
+
+			for (File fnaFile : fnaFilesGoal.getFiles()) {
+				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
+				if (includeCategories.contains(cat)) {
+					fastaReader.readFasta(fnaFile);
+				}
+			}
+
+			store.optimize();
+
+			KMerStoreWrapper wrapper = new KMerStoreWrapper((KMerSortedArray<String>) store, taxNodesGoal.get(), null);
+			wrapper.save(storeFile);
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("File saved " + storeFile);
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected class MyFastaReader extends AbstractFastaReader {
+		private boolean inStoreRegion;
+		private TaxIdNode node;
+		private final Map<String, TaxIdNode> accessionMap;
+		private final Set<TaxIdNode> taxNodes;
+		private final KMerSortedArray<String> store;
+		private final CGATRingBuffer byteRingBuffer;
+
+		public MyFastaReader(int kmerSize, int bufferSize, KMerSortedArray<String> store) {
+			super(bufferSize);
+			inStoreRegion = false;
+			accessionMap = accessionCollectionGoal.get();
+			taxNodes = taxNodesGoal.get();
+			byteRingBuffer = new CGATRingBuffer(kmerSize);
+			this.store = store;
+		}
+
+		@Override
+		protected void infoLine() throws IOException {
+			if (taxNodes.isEmpty()) {
+				inStoreRegion = true;
+			} else {
+				int i = 0;
+				for (; i < size; i++) {
+					if (target[i] == ' ' || target[i] == '\n') {
+						break;
+					}
+				}
+				String accession = new String(target, 1, i);
+				node = accessionMap.get(accession);
+				if (node != null) {
+					inStoreRegion = taxNodes.contains(node);
+				} else {
+					inStoreRegion = false;
+				}
+			}
+		}
+
+		@Override
+		protected void dataLine() throws IOException {
+			if (inStoreRegion) {
+				for (int i = 0; i < size - 1; i++) {
+					byteRingBuffer.put(target[i]);
+					if (byteRingBuffer.isFilled() && byteRingBuffer.isCGAT()) {
+						store.put(byteRingBuffer, node.getTaxId(), false);
+					}
+				}
+			}
+		}
+	}
+}
