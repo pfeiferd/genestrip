@@ -49,7 +49,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	private static final long serialVersionUID = 1L;
 
 	public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
-	
+
 	public static byte EXCLUDED_KMER_VIA_COUNT = Byte.MIN_VALUE;
 
 	private long[] kmers;
@@ -75,7 +75,8 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	private short nextValueIndex;
 	private MurmurCGATBloomFilter filter;
 
-	public KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge, boolean withCounts) {
+	public KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge, boolean withCounts,
+			MurmurCGATBloomFilter filter) {
 		this.k = k;
 		this.withCounts = withCounts;
 		int s = initialValues == null ? 0 : initialValues.size();
@@ -88,7 +89,11 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				getAddValueIndex(v);
 			}
 		}
-		filter = new MurmurCGATBloomFilter(k, fpp);
+		this.filter = filter;
+	}
+
+	public KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge, boolean withCounts) {
+		this(k, fpp, initialValues, enforceLarge, withCounts, new MurmurCGATBloomFilter(k, fpp));
 	}
 
 	public int getNValues() {
@@ -189,11 +194,10 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		return largeKmers != null;
 	}
 
-	
 	public boolean isWithCounts() {
 		return withCounts;
 	}
-	
+
 	@Override
 	public boolean put(CGATRingBuffer buffer, V value, boolean reverse) {
 		long kmer = reverse ? CGAT.kMerToLongReverse(buffer) : CGAT.kMerToLongStraight(buffer);
@@ -378,7 +382,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 						byte countA = BigArrays.get(largeCounts, a);
 						byte countB = BigArrays.get(largeCounts, b);
 						BigArrays.set(largeCounts, b, countA);
-						BigArrays.set(largeCounts, a, countB);						
+						BigArrays.set(largeCounts, a, countB);
 					}
 				}
 			});
