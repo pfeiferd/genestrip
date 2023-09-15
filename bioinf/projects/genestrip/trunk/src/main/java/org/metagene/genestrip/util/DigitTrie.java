@@ -73,13 +73,13 @@ public class DigitTrie<V> {
 		int index;
 		DigitTrie<V> node = this, child;
 		for (int i = start; i < end; i++, node = child) {
-			index = seq[i] - '0';
-			if (index > 9 || index < 0) {
+			index = mapToIndex(seq[i]);
+			if (index < 0 || index >= range()) {
 				return null;
 			}
 			if (node.children == null) {
 				if (create) {
-					node.children = new DigitTrie[10];
+					node.children = new DigitTrie[range()];
 				} else {
 					return null;
 				}
@@ -95,6 +95,14 @@ public class DigitTrie<V> {
 			}
 		}
 		return node;
+	}
+	
+	protected int mapToIndex(byte bite) {
+		return bite - '0';
+	}
+	
+	protected int range() {
+		return 10;
 	}
 
 	protected V createInGet(byte[] seq, int start, int end) {
@@ -123,7 +131,7 @@ public class DigitTrie<V> {
 		int end = digits.length();
 		DigitTrie<V> node = this, child;
 		for (int i = 0; i < end; i++, node = child) {
-			index = digits.charAt(i) - '0';
+			index = mapToIndex((byte) digits.charAt(i));
 			if (index > 9 || index < 0) {
 				return null;
 			}
