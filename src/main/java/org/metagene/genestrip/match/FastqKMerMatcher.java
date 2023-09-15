@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.Serializable;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -400,6 +401,8 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	}
 
 	protected static class TaxidStatsTrie extends DigitTrie<StatsPerTaxid> {
+		private static final long serialVersionUID = 1L;
+
 		@Override
 		protected StatsPerTaxid createInGet(String digits) {
 			return new StatsPerTaxid(digits);
@@ -440,7 +443,9 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		}
 	}
 
-	public static class StatsPerTaxid {
+	public static class StatsPerTaxid implements Serializable {
+		private static final long serialVersionUID = 1L;
+		
 		protected String taxid;
 		protected long reads;
 		protected long uniqueKmers;
