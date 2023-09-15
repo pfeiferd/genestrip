@@ -132,12 +132,12 @@ public class DigitTrie<V> {
 		DigitTrie<V> node = this, child;
 		for (int i = 0; i < end; i++, node = child) {
 			index = mapToIndex((byte) digits.charAt(i));
-			if (index > 9 || index < 0) {
+			if (index < 0 || index >= range()) {
 				return null;
 			}
 			if (node.children == null) {
 				if (create) {
-					node.children = new DigitTrie[10];
+					node.children = new DigitTrie[range()];
 				} else {
 					return null;
 				}
