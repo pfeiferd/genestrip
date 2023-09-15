@@ -28,10 +28,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
 import org.metagene.genestrip.goals.AssemblyFileDownloadGoal;
 import org.metagene.genestrip.goals.BloomFilterFileGoal;
 import org.metagene.genestrip.goals.BloomFilterSizeGoal;
@@ -52,9 +54,14 @@ import org.metagene.genestrip.goals.TaxIdFileDownloadGoal;
 import org.metagene.genestrip.goals.TaxNodesGoal;
 import org.metagene.genestrip.goals.TrieFromKrakenResGoal;
 import org.metagene.genestrip.goals.TrieFromKrakenResGoal.TaxidWithCount;
+import org.metagene.genestrip.goals.refseq.AccessionCollectionGoal;
+import org.metagene.genestrip.goals.refseq.IncludeBloomFilterGoal;
+import org.metagene.genestrip.goals.refseq.IncludeSizeGoal;
+import org.metagene.genestrip.goals.refseq.IncludeStoreGoal;
 import org.metagene.genestrip.goals.refseq.RefSeqCatalogDownloadGoal;
 import org.metagene.genestrip.goals.refseq.RefSeqCategory;
 import org.metagene.genestrip.goals.refseq.RefSeqFnaFilesDownloadGoal;
+import org.metagene.genestrip.goals.refseq.UpdateStoreGoal;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
@@ -286,12 +293,41 @@ public class GSMaker extends Maker<GSProject> {
 					trieFromKrakenResGoal, projectSetupGoal);
 			registerGoal(krakenResErrorGoal);
 		}
-		
-		RefSeqCatalogDownloadGoal refSeqCatalogGoal = new RefSeqCatalogDownloadGoal(project, "refseqcat", commonSetupGoal);
+
+		Collection<RefSeqCategory> coveredCategories = Arrays.asList(RefSeqCategory.viral);
+		Collection<RefSeqCategory> includedCategories = Arrays.asList(RefSeqCategory.viral);
+
+		if (!coveredCategories.containsAll(includedCategories)) {
+			throw new IllegalStateException("Covered categories must contain included categories.");
+		}
+
+		RefSeqCatalogDownloadGoal refSeqCatalogGoal = new RefSeqCatalogDownloadGoal(project, "refseqcat",
+				commonSetupGoal);
 		registerGoal(refSeqCatalogGoal);
-		
-		Goal<GSProject> refSeqFnaFilesGoal = new RefSeqFnaFilesDownloadGoal(project, "refseqfna", Arrays.asList(RefSeqCategory.viral), refSeqCatalogGoal);
+
+		RefSeqFnaFilesDownloadGoal refSeqFnaFilesGoal = new RefSeqFnaFilesDownloadGoal(project, "refseqfna",
+				coveredCategories, refSeqCatalogGoal);
 		registerGoal(refSeqFnaFilesGoal);
-		
+
+		ObjectGoal<Map<String, TaxIdNode>, GSProject> accessCollGoal = new AccessionCollectionGoal(project, "access",
+				taxTreeGoal, refSeqCatalogGoal, refSeqFnaFilesGoal);
+		registerGoal(accessCollGoal);
+
+		IncludeSizeGoal includeSizeGoal = new IncludeSizeGoal(project, "includesize", includedCategories, taxNodesGoal,
+				refSeqFnaFilesGoal, accessCollGoal);
+		registerGoal(includeSizeGoal);
+
+		ObjectGoal<MurmurCGATBloomFilter, GSProject> includeBloomGoal = new IncludeBloomFilterGoal(project,
+				"includebloom", taxNodesGoal, refSeqFnaFilesGoal, accessCollGoal, includeSizeGoal);
+		registerGoal(includeBloomGoal);
+
+		IncludeStoreGoal includeStoreGoal = new IncludeStoreGoal(project, "tempstore", taxNodesGoal, refSeqFnaFilesGoal,
+				accessCollGoal, includeSizeGoal, includeBloomGoal);
+		registerGoal(includeStoreGoal);
+
+		UpdateStoreGoal updateStoreGoal = new UpdateStoreGoal(project, "newstore", taxTreeGoal, taxNodesGoal,
+				refSeqFnaFilesGoal, accessCollGoal, includeStoreGoal);
+		registerGoal(updateStoreGoal);
+
 	}
 }
