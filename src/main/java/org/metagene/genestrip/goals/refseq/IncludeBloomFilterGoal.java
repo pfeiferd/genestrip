@@ -16,19 +16,19 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
 
 public class IncludeBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSProject> {
-	private final Collection<RefSeqCategory> includeCategories;
+	private final Collection<RefSeqCategory> includedCategories;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-	private final AccessionCollectionGoal accessionCollectionGoal;
+	private final ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionCollectionGoal;
 	private final ObjectGoal<Long, GSProject> sizeGoal;
 
 	@SafeVarargs
-	public IncludeBloomFilterGoal(GSProject project, String name, Collection<RefSeqCategory> includeCategories,
-			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-			AccessionCollectionGoal accessionCollectionGoal, ObjectGoal<Long, GSProject> sizeGoal,
+	public IncludeBloomFilterGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
+			RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+			ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionCollectionGoal, IncludeSizeGoal sizeGoal,
 			Goal<GSProject>... deps) {
 		super(project, name, ArraysUtil.append(deps, taxNodesGoal, fnaFilesGoal, accessionCollectionGoal, sizeGoal));
-		this.includeCategories = includeCategories;
+		this.includedCategories = sizeGoal.getIncludedCategories();
 		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
 		this.accessionCollectionGoal = accessionCollectionGoal;
@@ -46,7 +46,7 @@ public class IncludeBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GS
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
-				if (includeCategories.contains(cat)) {
+				if (includedCategories.contains(cat)) {
 					fastaReader.readFasta(fnaFile);
 				}
 			}

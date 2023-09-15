@@ -24,18 +24,18 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 	private final Collection<RefSeqCategory> categories;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-	private final AccessionCollectionGoal accessionCollectionGoal;
+	private final ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionCollectionGoal;
 	private final IncludeStoreGoal includeStoreGoal;
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 
 	@SafeVarargs
-	public UpdateStoreGoal(GSProject project, String name, Collection<RefSeqCategory> categories,
-			ObjectGoal<TaxTree, GSProject> taxTreeGoal, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			RefSeqFnaFilesDownloadGoal fnaFilesGoal, AccessionCollectionGoal accessionCollectionGoal,
-			IncludeStoreGoal includeStoreGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, FileType.SER),
-				ArraysUtil.append(deps, taxTreeGoal,taxNodesGoal, fnaFilesGoal, accessionCollectionGoal, includeStoreGoal));
-		this.categories = categories;
+	public UpdateStoreGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
+			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+			ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionCollectionGoal, IncludeStoreGoal includeStoreGoal,
+			Goal<GSProject>... deps) {
+		super(project, name, project.getOutputFile(name, FileType.SER), ArraysUtil.append(deps, taxTreeGoal,
+				taxNodesGoal, fnaFilesGoal, accessionCollectionGoal, includeStoreGoal));
+		this.categories = fnaFilesGoal.getCategories();
 		this.taxTreeGoal = taxTreeGoal;
 		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
@@ -59,6 +59,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 				}
 			}
 
+			// TODO: How to best create the store stats?
 			KMerStoreWrapper wrapper2 = new KMerStoreWrapper((KMerSortedArray<String>) store, taxNodesGoal.get(), null);
 			wrapper2.save(storeFile);
 			if (getLogger().isInfoEnabled()) {
@@ -73,7 +74,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 
 	protected class MyFastaReader extends AbstractFastaReader {
 		private TaxIdNode node;
-		
+
 		private final TaxTree taxTree;
 		private final Map<String, TaxIdNode> accessionMap;
 		private final KMerSortedArray<String> store;
@@ -91,7 +92,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 				@Override
 				public String getUpdateValue(String oldValue) {
 					TaxIdNode oldNode = taxTree.getNodeByTaxId(oldValue);
-					
+
 					TaxIdNode newNode = taxTree.getLeastCommonAncestor(oldNode, node);
 					if (newNode == oldNode) {
 						return oldValue;

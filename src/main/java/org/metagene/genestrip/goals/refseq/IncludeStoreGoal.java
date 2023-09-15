@@ -23,17 +23,17 @@ public class IncludeStoreGoal extends FileListGoal<GSProject> {
 	private final Collection<RefSeqCategory> includeCategories;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-	private final AccessionCollectionGoal accessionCollectionGoal;
+	private final ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionCollectionGoal;
 	private final ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal;
 
 	@SafeVarargs
-	public IncludeStoreGoal(GSProject project, String name, Collection<RefSeqCategory> includeCategories,
-			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-			AccessionCollectionGoal accessionCollectionGoal,
+	public IncludeStoreGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
+			RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+			ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionCollectionGoal, IncludeSizeGoal includeSizeGoal,
 			ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, FileType.SER),
-				ArraysUtil.append(deps, taxNodesGoal, fnaFilesGoal, accessionCollectionGoal, bloomFilterGoal));
-		this.includeCategories = includeCategories;
+		super(project, name, project.getOutputFile(name, FileType.SER), ArraysUtil.append(deps, taxNodesGoal,
+				fnaFilesGoal, accessionCollectionGoal, includeSizeGoal, bloomFilterGoal));
+		this.includeCategories = includeSizeGoal.getIncludedCategories();
 		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
 		this.accessionCollectionGoal = accessionCollectionGoal;

@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,7 @@ public class RefSeqFnaFilesDownloadGoal extends FileDownloadGoal<GSProject> {
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setDelimiter('\t').setRecordSeparator('\n')
 			.build();
 
+	private final Collection<RefSeqCategory> categories;
 	private final List<File> files;
 	private final Map<File, RefSeqCategory> file2Cat;
 
@@ -32,6 +34,7 @@ public class RefSeqFnaFilesDownloadGoal extends FileDownloadGoal<GSProject> {
 
 		files = new ArrayList<File>();
 		file2Cat = new HashMap<File, RefSeqCategory>();
+		this.categories = Collections.unmodifiableCollection(categories);
 
 		File installedFiles = catalogDLGoal.getInstalledFilesFile();
 
@@ -40,7 +43,7 @@ public class RefSeqFnaFilesDownloadGoal extends FileDownloadGoal<GSProject> {
 			Iterable<CSVRecord> records = FORMAT.parse(in);
 			for (CSVRecord record : records) {
 				String filename = record.get(1);
-				RefSeqCategory cat = getCategoryForFile(filename, categories);
+				RefSeqCategory cat = getCategoryForFileName(filename);
 				if (cat != null) {
 					if (isRelevantFileName(filename)) {
 						File file = new File(project.getConfig().getRefSeqDir(), filename);
@@ -55,6 +58,10 @@ public class RefSeqFnaFilesDownloadGoal extends FileDownloadGoal<GSProject> {
 		}
 	}
 	
+	public Collection<RefSeqCategory> getCategories() {
+		return categories;
+	}
+	
 	public RefSeqCategory getCategoryForFile(File file) {
 		return file2Cat.get(file);
 	}
@@ -63,7 +70,7 @@ public class RefSeqFnaFilesDownloadGoal extends FileDownloadGoal<GSProject> {
 		return filename.endsWith(".genomic.fna.gz") || filename.endsWith(".genomic.fna");
 	}
 
-	protected RefSeqCategory getCategoryForFile(String filename, Collection<RefSeqCategory> categories) {
+	protected RefSeqCategory getCategoryForFileName(String filename) {
 		for (RefSeqCategory cat : categories) {
 			if (filename.startsWith(cat.name() + ".")) {
 				return cat;

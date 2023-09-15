@@ -3,6 +3,7 @@ package org.metagene.genestrip.goals.refseq;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,23 +15,27 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
 
 public class IncludeSizeGoal extends ObjectGoal<Long, GSProject> {
-	private final Collection<RefSeqCategory> includeCategories;
+	private final Collection<RefSeqCategory> includedCategories;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-	private final AccessionCollectionGoal accessionCollectionGoal;
+	private final ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionCollectionGoal;
 	
 	private final int kmerSize;
 
 	@SafeVarargs
 	public IncludeSizeGoal(GSProject project, String name, Collection<RefSeqCategory> includeCategories,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-			AccessionCollectionGoal accessionCollectionGoal, Goal<GSProject>... deps) {
+			ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionCollectionGoal, Goal<GSProject>... deps) {
 		super(project, name, ArraysUtil.append(deps, taxNodesGoal, fnaFilesGoal, accessionCollectionGoal));
-		this.includeCategories = includeCategories;
+		this.includedCategories = Collections.unmodifiableCollection(includeCategories);
 		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
 		this.accessionCollectionGoal = accessionCollectionGoal;
 		kmerSize = project.getConfig().getKMerSize();
+	}
+	
+	public Collection<RefSeqCategory> getIncludedCategories() {
+		return includedCategories;
 	}
 
 	@Override
@@ -40,7 +45,7 @@ public class IncludeSizeGoal extends ObjectGoal<Long, GSProject> {
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
-				if (includeCategories.contains(cat)) {
+				if (includedCategories.contains(cat)) {
 					fastaReader.readFasta(fnaFile);
 				}
 			}
