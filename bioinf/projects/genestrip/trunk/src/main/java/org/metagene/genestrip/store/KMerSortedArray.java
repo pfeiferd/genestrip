@@ -297,34 +297,40 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			return ++counts[(int) index];
 		}
 	}
-	
-	public boolean update(CGATRingBuffer buffer, V value, boolean reverse) {
+
+	public boolean update(CGATRingBuffer buffer, UpdateValueProvider<V> provider, boolean reverse) {
 		if (!sorted) {
 			throw new IllegalStateException("Updated only works when optimized.");
-		}
-		if (value == null) {
-			throw new NullPointerException("null is not allowed as a value.");
 		}
 
 		long kmer = reverse ? CGAT.kMerToLongReverse(buffer) : CGAT.kMerToLongStraight(buffer);
 
 		long pos;
+		short index;
 		if (largeKmers != null) {
 			pos = LongBigArrays.binarySearch(largeKmers, 0, entries, kmer);
 			if (pos < 0) {
 				return false;
 			}
+			index = BigArrays.get(largeValueIndexes, pos);
 		} else {
 			pos = Arrays.binarySearch(kmers, 0, (int) entries, kmer);
 			if (pos < 0) {
 				return false;
 			}
+			index = valueIndexes[(int) pos];
 		}
-		short index = getAddValueIndex(value);
-		if (largeKmers != null) {
-			BigArrays.set(largeValueIndexes, pos, index);
-		} else {
-			valueIndexes[(int) pos] = index;
+		V oldValue = indexMap.get(index);
+		V newValue = provider.getUpdateValue(oldValue);
+		if (newValue == null) {
+			throw new NullPointerException("null is not allowed as a value.");
+		}
+		if (newValue != oldValue && !newValue.equals(oldValue)) {
+			if (largeKmers != null) {
+				BigArrays.set(largeValueIndexes, pos, index);
+			} else {
+				valueIndexes[(int) pos] = index;
+			}
 		}
 		return true;
 	}
@@ -492,4 +498,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		public void nextValue(KMerSortedArray<V> trie, long kmer, short index, long i);
 	}
 
+	public interface UpdateValueProvider<V extends Serializable> {
+		public V getUpdateValue(V oldValue);
+	}
 }
