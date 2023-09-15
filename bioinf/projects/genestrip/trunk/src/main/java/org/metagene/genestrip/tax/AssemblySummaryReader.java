@@ -46,7 +46,7 @@ public class AssemblySummaryReader {
 	public static final String ASSEMLY_SUM_REFSEQ = "assembly_summary_refseq.txt";
 	public static final String ASSEMLY_SUM_GENBANK = "assembly_summary_genbank.txt";
 
-	private static final CSVFormat format = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#')
+	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#')
 			.setDelimiter('\t').setRecordSeparator('\n').build();
 	
 	private final File baseDir;
@@ -135,7 +135,7 @@ public class AssemblySummaryReader {
 
 	public CSVParser getCSV() throws IOException {
 		Reader in = new InputStreamReader(StreamProvider.getInputStreamForFile(new File(baseDir, assFileName)));
-		return format.parse(in);
+		return FORMAT.parse(in);
 	}
 
 	public static class FTPEntryWithQuality {
