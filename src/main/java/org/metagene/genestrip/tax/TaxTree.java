@@ -108,6 +108,17 @@ public class TaxTree implements Serializable {
 		return false;
 	}
 
+	public TaxIdNode getLeastCommonAncestor(TaxIdNode node1, TaxIdNode node2) {
+		for (; node1 != null; node1 = node1.getParent()) {
+			for (TaxIdNode ancestor2 = node2; ancestor2 != null; ancestor2 = ancestor2.getParent()) {
+				if (node1 == ancestor2) {
+					return node1;
+				}				
+			}
+		}
+		return null;
+	}
+
 	protected InputStream createNodesResource(File path) throws IOException {
 		return StreamProvider.getInputStreamForFile(new File(path, NODES_DMP));
 	}
@@ -183,14 +194,14 @@ public class TaxTree implements Serializable {
 		}
 		return counter;
 	}
-	
+
 	public List<String> sortTaxidsViaTree(List<String> taxids) {
 		Collections.sort(taxids, new Comparator<String>() {
 			@Override
 			public int compare(String o1, String o2) {
 				TaxIdNode a = getNodeByTaxId(o1);
 				TaxIdNode b = getNodeByTaxId(o2);
-				
+
 				if (a == null && b == null) {
 					return o1.compareTo(o2);
 				}
@@ -224,7 +235,7 @@ public class TaxTree implements Serializable {
 		});
 		return taxids;
 	}
-	
+
 	public TaxIdNode getRoot() {
 		return root;
 	}
@@ -233,9 +244,9 @@ public class TaxTree implements Serializable {
 		return taxIdToNode.get(taxId);
 	}
 
-	public static class TaxIdNode implements Comparable<TaxIdNode>, Serializable {		
+	public static class TaxIdNode implements Comparable<TaxIdNode>, Serializable {
 		private static final long serialVersionUID = 1L;
-		
+
 		private final String taxId;
 		private final String parentTaxId;
 		private String name;
@@ -296,7 +307,7 @@ public class TaxTree implements Serializable {
 		public String toString() {
 			return "Node: " + taxId;
 		}
-		
+
 		public TaxIdNode shallowCopy() {
 			TaxIdNode copy = new TaxIdNode(taxId, parentTaxId, rank);
 			copy.name = name;
