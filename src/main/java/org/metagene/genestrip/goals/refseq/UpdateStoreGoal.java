@@ -3,7 +3,6 @@ package org.metagene.genestrip.goals.refseq;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
@@ -18,28 +17,29 @@ import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
+import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGATRingBuffer;
 
 public class UpdateStoreGoal extends FileListGoal<GSProject> {
 	private final Collection<RefSeqCategory> categories;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-	private final ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionCollectionGoal;
+	private final ObjectGoal<AccessionTrie<TaxIdNode>, GSProject> accessionTrieGoal;
 	private final IncludeStoreGoal includeStoreGoal;
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 
 	@SafeVarargs
 	public UpdateStoreGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-			ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionCollectionGoal, IncludeStoreGoal includeStoreGoal,
+			ObjectGoal<AccessionTrie<TaxIdNode>, GSProject> accessionTrieGoal, IncludeStoreGoal includeStoreGoal,
 			Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, FileType.SER), ArraysUtil.append(deps, taxTreeGoal,
-				taxNodesGoal, fnaFilesGoal, accessionCollectionGoal, includeStoreGoal));
+				taxNodesGoal, fnaFilesGoal, accessionTrieGoal, includeStoreGoal));
 		this.categories = fnaFilesGoal.getCategories();
 		this.taxTreeGoal = taxTreeGoal;
 		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
-		this.accessionCollectionGoal = accessionCollectionGoal;
+		this.accessionTrieGoal = accessionTrieGoal;
 		this.includeStoreGoal = includeStoreGoal;
 	}
 
@@ -76,7 +76,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 		private TaxIdNode node;
 
 		private final TaxTree taxTree;
-		private final Map<String, TaxIdNode> accessionMap;
+		private final AccessionTrie<TaxIdNode> accessionTrie;
 		private final KMerSortedArray<String> store;
 		private final CGATRingBuffer byteRingBuffer;
 
@@ -85,16 +85,15 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 		public MyFastaReader(int kmerSize, int bufferSize, KMerSortedArray<String> store) {
 			super(bufferSize);
 			taxTree = taxTreeGoal.get();
-			accessionMap = accessionCollectionGoal.get();
+			accessionTrie = accessionTrieGoal.get();
 			byteRingBuffer = new CGATRingBuffer(kmerSize);
 			this.store = store;
 			provider = new UpdateValueProvider<String>() {
 				@Override
 				public String getUpdateValue(String oldValue) {
-					TaxIdNode oldNode = taxTree.getNodeByTaxId(oldValue);
-
+					TaxIdNode oldNode = taxTree.getTaxIdNodeTrie().get(oldValue);
 					TaxIdNode newNode = taxTree.getLeastCommonAncestor(oldNode, node);
-					if (newNode == oldNode) {
+					if (newNode == null || newNode == oldNode) {
 						return oldValue;
 					}
 					return newNode.getTaxId();
@@ -104,14 +103,13 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 
 		@Override
 		protected void infoLine() throws IOException {
-			int i = 0;
-			for (; i < size; i++) {
-				if (target[i] == ' ' || target[i] == '\n') {
-					break;
-				}
+			int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
+			if (pos >= 0) {
+				node = accessionTrie.get(target, 1, pos);
 			}
-			String accession = new String(target, 1, i);
-			node = accessionMap.get(accession);
+			else {
+				node = null;
+			}
 		}
 
 		@Override

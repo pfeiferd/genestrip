@@ -83,6 +83,7 @@ public class KMerStoreFileGoal extends FileListGoal<GSProject> {
 				taxIds.add(node.getTaxId());
 			}
 
+			@SuppressWarnings("serial")
 			DigitTrie<StoreStatsPerTaxid> storeStats = new DigitTrie<StoreStatsPerTaxid>() {
 				protected StoreStatsPerTaxid createInGet(String digits) {
 					return new StoreStatsPerTaxid(digits);

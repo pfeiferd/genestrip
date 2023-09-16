@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
@@ -18,14 +17,14 @@ public class IncludeSizeGoal extends ObjectGoal<Long, GSProject> {
 	private final Collection<RefSeqCategory> includedCategories;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-	private final ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionCollectionGoal;
+	private final ObjectGoal<AccessionTrie<TaxIdNode>, GSProject> accessionCollectionGoal;
 	
 	private final int kmerSize;
 
 	@SafeVarargs
 	public IncludeSizeGoal(GSProject project, String name, Collection<RefSeqCategory> includeCategories,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-			ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionCollectionGoal, Goal<GSProject>... deps) {
+			ObjectGoal<AccessionTrie<TaxIdNode>, GSProject> accessionCollectionGoal, Goal<GSProject>... deps) {
 		super(project, name, ArraysUtil.append(deps, taxNodesGoal, fnaFilesGoal, accessionCollectionGoal));
 		this.includedCategories = Collections.unmodifiableCollection(includeCategories);
 		this.taxNodesGoal = taxNodesGoal;
@@ -59,14 +58,14 @@ public class IncludeSizeGoal extends ObjectGoal<Long, GSProject> {
 	protected class MyFastaReader extends AbstractFastaReader {
 		private long counter;
 		private boolean inCountRegion;
-		private Map<String, TaxIdNode> accessionMap;
+		private AccessionTrie<TaxIdNode> accessionTrie;
 		private Set<TaxIdNode> taxNodes;
 
 		public MyFastaReader(int bufferSize) {
 			super(bufferSize);
 			counter = 0;
 			inCountRegion = false;
-			accessionMap = accessionCollectionGoal.get();
+			accessionTrie = accessionCollectionGoal.get();
 			taxNodes = taxNodesGoal.get();
 		}
 
@@ -84,8 +83,7 @@ public class IncludeSizeGoal extends ObjectGoal<Long, GSProject> {
 						break;
 					}
 				}
-				String accession = new String(target, 1, i);
-				TaxIdNode node = accessionMap.get(accession);
+				TaxIdNode node = accessionTrie.get(target, 1, i);
 				if (node != null) {
 					inCountRegion = taxNodes.contains(node);
 				} else {

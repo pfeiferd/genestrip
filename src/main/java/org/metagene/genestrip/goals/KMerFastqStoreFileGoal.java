@@ -57,6 +57,7 @@ public class KMerFastqStoreFileGoal extends FileListGoal<GSProject> {
 	@Override
 	protected void makeFile(File storeFile) {
 		try {
+			@SuppressWarnings("serial")
 			DigitTrie<String> countingDigitTrie = new DigitTrie<String>() {
 				@Override
 				protected String createInGet(byte[] seq, int start, int end) {

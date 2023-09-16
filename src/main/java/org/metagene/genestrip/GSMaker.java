@@ -54,7 +54,8 @@ import org.metagene.genestrip.goals.TaxIdFileDownloadGoal;
 import org.metagene.genestrip.goals.TaxNodesGoal;
 import org.metagene.genestrip.goals.TrieFromKrakenResGoal;
 import org.metagene.genestrip.goals.TrieFromKrakenResGoal.TaxidWithCount;
-import org.metagene.genestrip.goals.refseq.AccessionCollectionGoal;
+import org.metagene.genestrip.goals.refseq.AccessionTrieGoal;
+import org.metagene.genestrip.goals.refseq.AccessionTrie;
 import org.metagene.genestrip.goals.refseq.IncludeBloomFilterGoal;
 import org.metagene.genestrip.goals.refseq.IncludeSizeGoal;
 import org.metagene.genestrip.goals.refseq.IncludeStoreGoal;
@@ -309,7 +310,7 @@ public class GSMaker extends Maker<GSProject> {
 				coveredCategories, refSeqCatalogGoal);
 		registerGoal(refSeqFnaFilesGoal);
 
-		ObjectGoal<Map<String, TaxIdNode>, GSProject> accessCollGoal = new AccessionCollectionGoal(project, "access",
+		ObjectGoal<AccessionTrie<TaxIdNode>, GSProject> accessCollGoal = new AccessionTrieGoal(project, "acctrie",
 				taxTreeGoal, refSeqCatalogGoal, refSeqFnaFilesGoal);
 		registerGoal(accessCollGoal);
 

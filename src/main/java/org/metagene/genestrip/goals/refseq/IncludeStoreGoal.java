@@ -3,7 +3,6 @@ package org.metagene.genestrip.goals.refseq;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
@@ -17,26 +16,27 @@ import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
+import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGATRingBuffer;
 
 public class IncludeStoreGoal extends FileListGoal<GSProject> {
 	private final Collection<RefSeqCategory> includeCategories;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-	private final ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionCollectionGoal;
+	private final ObjectGoal<AccessionTrie<TaxIdNode>, GSProject> accessionTrieGoal;
 	private final ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal;
 
 	@SafeVarargs
 	public IncludeStoreGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-			ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionCollectionGoal, IncludeSizeGoal includeSizeGoal,
-			ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal, Goal<GSProject>... deps) {
+			RefSeqFnaFilesDownloadGoal fnaFilesGoal, ObjectGoal<AccessionTrie<TaxIdNode>, GSProject> accessionTrieGoal,
+			IncludeSizeGoal includeSizeGoal, ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal,
+			Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, FileType.SER), ArraysUtil.append(deps, taxNodesGoal,
-				fnaFilesGoal, accessionCollectionGoal, includeSizeGoal, bloomFilterGoal));
+				fnaFilesGoal, accessionTrieGoal, includeSizeGoal, bloomFilterGoal));
 		this.includeCategories = includeSizeGoal.getIncludedCategories();
 		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
-		this.accessionCollectionGoal = accessionCollectionGoal;
+		this.accessionTrieGoal = accessionTrieGoal;
 		this.bloomFilterGoal = bloomFilterGoal;
 	}
 
@@ -73,7 +73,7 @@ public class IncludeStoreGoal extends FileListGoal<GSProject> {
 	protected class MyFastaReader extends AbstractFastaReader {
 		private boolean inStoreRegion;
 		private TaxIdNode node;
-		private final Map<String, TaxIdNode> accessionMap;
+		private final AccessionTrie<TaxIdNode> accessionTrie;
 		private final Set<TaxIdNode> taxNodes;
 		private final KMerSortedArray<String> store;
 		private final CGATRingBuffer byteRingBuffer;
@@ -81,7 +81,7 @@ public class IncludeStoreGoal extends FileListGoal<GSProject> {
 		public MyFastaReader(int kmerSize, int bufferSize, KMerSortedArray<String> store) {
 			super(bufferSize);
 			inStoreRegion = false;
-			accessionMap = accessionCollectionGoal.get();
+			accessionTrie = accessionTrieGoal.get();
 			taxNodes = taxNodesGoal.get();
 			byteRingBuffer = new CGATRingBuffer(kmerSize);
 			this.store = store;
@@ -92,18 +92,14 @@ public class IncludeStoreGoal extends FileListGoal<GSProject> {
 			if (taxNodes.isEmpty()) {
 				inStoreRegion = true;
 			} else {
-				int i = 0;
-				for (; i < size; i++) {
-					if (target[i] == ' ' || target[i] == '\n') {
-						break;
+				int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
+				if (pos >= 0) {
+					node = accessionTrie.get(target, 1, pos);
+					if (node != null) {
+						inStoreRegion = taxNodes.contains(node);
+					} else {
+						inStoreRegion = false;
 					}
-				}
-				String accession = new String(target, 1, i);
-				node = accessionMap.get(accession);
-				if (node != null) {
-					inStoreRegion = taxNodes.contains(node);
-				} else {
-					inStoreRegion = false;
 				}
 			}
 		}
