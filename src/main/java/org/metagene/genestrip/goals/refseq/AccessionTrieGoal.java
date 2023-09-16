@@ -65,7 +65,7 @@ public class AccessionTrieGoal extends ObjectGoal<AccessionTrie<TaxIdNode>, GSPr
 
 			long recordCounter = 0;
 			long startTime = System.currentTimeMillis();
-			while ((size = reader.nextLine(target)) >= 0) {
+			while ((size = reader.nextLine(target)) > 0) {
 				int pos1 = ByteArrayUtil.indexOf(target, 0, size, '\t');
 				int pos2 = ByteArrayUtil.indexOf(target, pos1 + 1, size, '\t');
 				int pos3 = ByteArrayUtil.indexOf(target, pos2 + 1, size, '\t');

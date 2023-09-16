@@ -24,20 +24,15 @@
  */
 package org.metagene.genestrip.tax;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.Serializable;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.metagene.genestrip.util.BufferedLineReader;
 import org.metagene.genestrip.util.ByteArrayUtil;
@@ -87,7 +82,6 @@ public class TaxTree implements Serializable {
 	public static final String NAMES_DMP = "names.dmp";
 
 	private final TaxIdNode root;
-//	private final Map<String, TaxIdNode> taxIdToNode;
 	private final TaxIdNodeTrie taxIdNodeTrie;
 
 	public TaxTree(File path) {
@@ -140,7 +134,7 @@ public class TaxTree implements Serializable {
 		int size;
 		byte[] target = new byte[2000];
 
-		while ((size = br.nextLine(target)) >= 0) {
+		while ((size = br.nextLine(target)) > 0) {
 			boolean scientific = ByteArrayUtil.indexOf(target, 0, size, "scientific name") != -1;
 			int a = ByteArrayUtil.indexOf(target, 0, size, '|');
 			int b = ByteArrayUtil.indexOf(target, a + 1, size, '|');
@@ -163,22 +157,24 @@ public class TaxTree implements Serializable {
 		byte[] target = new byte[2000];
 
 		BufferedLineReader br = new BufferedLineReader(stream);
-		while ((size = br.nextLine(target)) >= 0) {
+		while ((size = br.nextLine(target)) > 0) {
 			int a = ByteArrayUtil.indexOf(target, 0, size, '|');
 			int b = ByteArrayUtil.indexOf(target, a + 1, size, '|');
 			int c = ByteArrayUtil.indexOf(target, b + 1, size, '|');
 			if (a != -1 && b != -1) {
-				TaxIdNode nodeA = taxIdNodeTrie.get(target, 0, a, true);
-				TaxIdNode nodeB = taxIdNodeTrie.get(target, a + 1, b, true);
-				
-				nodeA.parent = nodeB;
-				nodeB.addSubNode(nodeA);
-				String level = new String(target, b + 1, c - b - 1);
+				TaxIdNode nodeA = taxIdNodeTrie.get(target, 0, a - 1, true);
+				TaxIdNode nodeB = taxIdNodeTrie.get(target, a + 2, b - 1, true);
+
+				if (nodeA != nodeB) {
+					nodeA.parent = nodeB;
+					nodeB.addSubNode(nodeA);
+				}
+				String level = new String(target, b + 3, c - b - 2);
 				nodeA.rank = Rank.byName(level);
 
-				if (nodeA == nodeB && "1".equals(nodeA.name)) {
+				if (nodeA == nodeB && "1".equals(nodeA.taxId)) {
 					res = nodeA;
-				} 
+				}
 			}
 		}
 		br.close();
