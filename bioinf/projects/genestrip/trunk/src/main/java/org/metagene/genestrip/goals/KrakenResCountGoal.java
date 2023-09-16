@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -116,6 +117,7 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 
 	@Override
 	protected void makeFile(File file) throws IOException {
+		@SuppressWarnings("serial")
 		DigitTrie<KrakenResStats> countingTrie = new DigitTrie<KrakenResStats>() {
 			protected KrakenResStats createInGet(String taxid) {
 				KrakenResStats stats = new KrakenResStats();
@@ -208,7 +210,9 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 		}
 	}
 
-	protected static class KrakenResStats implements Comparable<KrakenResStats> {
+	protected static class KrakenResStats implements Comparable<KrakenResStats>, Serializable {
+		private static final long serialVersionUID = 1L;
+
 		protected String taxid;
 
 		protected long reads;

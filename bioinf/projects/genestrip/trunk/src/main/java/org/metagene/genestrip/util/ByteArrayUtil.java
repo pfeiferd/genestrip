@@ -27,6 +27,32 @@ package org.metagene.genestrip.util;
 import java.io.PrintStream;
 
 public class ByteArrayUtil {
+	public static int indexOf(byte[] array, int start, int end, char c) {
+		for (int i = start; i < end; i++) {
+			if (array[i] == c) {
+				return i;
+			}
+		}
+		return -1;
+	}
+	
+	public static int indexOf(byte[] array, int start, int end, String str) {
+		int len = str.length();
+		for (int i = start; i < end - len - 1; i++) {
+			boolean found = true;
+			for (int j = 0; j < len; j++) {
+				if (array[i + j] != str.charAt(j)) {
+					found = false;
+					break;
+				}
+			}
+			if (found) {
+				return i;
+			}
+		}
+		return -1;
+	}
+	
 	public static String toString(byte[] array) {
 		int i;
 		for (i = 0; i < array.length; i++) {

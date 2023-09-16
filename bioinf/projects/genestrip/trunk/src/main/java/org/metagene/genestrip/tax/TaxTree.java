@@ -39,6 +39,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.metagene.genestrip.util.BufferedLineReader;
+import org.metagene.genestrip.util.ByteArrayUtil;
+import org.metagene.genestrip.util.DigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class TaxTree implements Serializable {
@@ -84,17 +87,22 @@ public class TaxTree implements Serializable {
 	public static final String NAMES_DMP = "names.dmp";
 
 	private final TaxIdNode root;
-	private final Map<String, TaxIdNode> taxIdToNode;
+//	private final Map<String, TaxIdNode> taxIdToNode;
+	private final TaxIdNodeTrie taxIdNodeTrie;
 
 	public TaxTree(File path) {
 		try {
-			taxIdToNode = new HashMap<String, TaxIdNode>();
-			root = readNodesFromStream(createNodesResource(path), taxIdToNode);
-			readNamesFromStream(createNamesResource(path), taxIdToNode);
+			taxIdNodeTrie = new TaxIdNodeTrie();
+			root = readNodesFromStream(createNodesResource(path));
+			readNamesFromStream(createNamesResource(path));
 			initPositions(0, root);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	public TaxIdNodeTrie getTaxIdNodeTrie() {
+		return taxIdNodeTrie;
 	}
 
 	public boolean isAncestorOf(TaxIdNode node, TaxIdNode ancestor) {
@@ -113,7 +121,7 @@ public class TaxTree implements Serializable {
 			for (TaxIdNode ancestor2 = node2; ancestor2 != null; ancestor2 = ancestor2.getParent()) {
 				if (node1 == ancestor2) {
 					return node1;
-				}				
+				}
 			}
 		}
 		return null;
@@ -127,62 +135,53 @@ public class TaxTree implements Serializable {
 		return StreamProvider.getInputStreamForFile(new File(path, NAMES_DMP));
 	}
 
-	protected void readNamesFromStream(InputStream stream, Map<String, TaxIdNode> taxIdToNode) throws IOException {
-		try (BufferedReader br = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-			String line = null;
-			while ((line = br.readLine()) != null) {
-				boolean scientific = line.indexOf("scientific name") != -1;
-				int a = line.indexOf("|");
-				int b = line.indexOf("|", a + 1);
-				if (a != -1 && b != -1) {
-					String taxA = line.substring(0, a).trim();
-					String name = line.substring(a + 1, b).trim();
+	protected void readNamesFromStream(InputStream stream) throws IOException {
+		BufferedLineReader br = new BufferedLineReader(stream);
+		int size;
+		byte[] target = new byte[2000];
 
-					TaxIdNode node = taxIdToNode.get(taxA);
-					if (node != null) {
-						if (node.name == null || scientific) {
-							node.name = name;
-						}
+		while ((size = br.nextLine(target)) >= 0) {
+			boolean scientific = ByteArrayUtil.indexOf(target, 0, size, "scientific name") != -1;
+			int a = ByteArrayUtil.indexOf(target, 0, size, '|');
+			int b = ByteArrayUtil.indexOf(target, a + 1, size, '|');
+			if (a != -1 && b != -1) {
+				TaxIdNode node = taxIdNodeTrie.get(target, 0, a);
+				if (node != null) {
+					String name = new String(target, a + 1, b - a - 1);
+					if (node.name == null || scientific) {
+						node.name = name;
 					}
 				}
 			}
 		}
+		br.close();
 	}
 
-	protected TaxIdNode readNodesFromStream(InputStream stream, Map<String, TaxIdNode> taxIdToNode) throws IOException {
+	protected TaxIdNode readNodesFromStream(InputStream stream) throws IOException {
 		TaxIdNode res = null;
-		try (BufferedReader br = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-			String line = null;
-			while ((line = br.readLine()) != null) {
-				int a = line.indexOf("|");
-				int b = line.indexOf("|", a + 1);
-				int c = line.indexOf("|", b + 1);
-				if (a != -1 && b != -1) {
-					String taxA = line.substring(0, a).trim();
-					String taxB = line.substring(a + 1, b).trim();
-					String level = line.substring(b + 1, c).trim();
+		int size;
+		byte[] target = new byte[2000];
 
-					TaxIdNode nodeA;
-					if (taxA.equals(taxB) && taxA.equals("1")) {
-						res = nodeA = new TaxIdNode(taxA, null, Rank.byName(level));
-					} else {
-//						if (Rank.byName(level) == null) {
-//							System.out.println(level);
-//						}
-						nodeA = new TaxIdNode(taxA, taxB, Rank.byName(level));
-					}
-					taxIdToNode.put(taxA, nodeA);
-				}
+		BufferedLineReader br = new BufferedLineReader(stream);
+		while ((size = br.nextLine(target)) >= 0) {
+			int a = ByteArrayUtil.indexOf(target, 0, size, '|');
+			int b = ByteArrayUtil.indexOf(target, a + 1, size, '|');
+			int c = ByteArrayUtil.indexOf(target, b + 1, size, '|');
+			if (a != -1 && b != -1) {
+				TaxIdNode nodeA = taxIdNodeTrie.get(target, 0, a, true);
+				TaxIdNode nodeB = taxIdNodeTrie.get(target, a + 1, b, true);
+				
+				nodeA.parent = nodeB;
+				nodeB.addSubNode(nodeA);
+				String level = new String(target, b + 1, c - b - 1);
+				nodeA.rank = Rank.byName(level);
+
+				if (nodeA == nodeB && "1".equals(nodeA.name)) {
+					res = nodeA;
+				} 
 			}
 		}
-
-		for (TaxIdNode node : taxIdToNode.values()) {
-			TaxIdNode parent = taxIdToNode.get(node.getParentTaxId());
-			if (parent != null) {
-				parent.addSubNode(node);
-				node.parent = parent;
-			}
-		}
+		br.close();
 
 		return res;
 	}
@@ -241,23 +240,26 @@ public class TaxTree implements Serializable {
 	}
 
 	public TaxIdNode getNodeByTaxId(String taxId) {
-		return taxIdToNode.get(taxId);
+		return taxIdNodeTrie.get(taxId);
 	}
 
 	public static class TaxIdNode implements Comparable<TaxIdNode>, Serializable {
 		private static final long serialVersionUID = 1L;
 
 		private final String taxId;
-		private final String parentTaxId;
 		private String name;
 		private final List<TaxIdNode> subNodes;
 		private TaxIdNode parent;
 		private int position;
 		private Rank rank;
 
-		public TaxIdNode(String taxId, String parentTaxId, Rank rank) {
+		public TaxIdNode(String taxId) {
 			this.taxId = taxId;
-			this.parentTaxId = parentTaxId;
+			subNodes = new ArrayList<TaxIdNode>();
+		}
+
+		public TaxIdNode(String taxId, Rank rank) {
+			this.taxId = taxId;
 			this.rank = rank;
 			subNodes = new ArrayList<TaxIdNode>();
 		}
@@ -280,10 +282,6 @@ public class TaxTree implements Serializable {
 
 		public String getTaxId() {
 			return taxId;
-		}
-
-		public String getParentTaxId() {
-			return parentTaxId;
 		}
 
 		public List<TaxIdNode> getSubNodes() {
@@ -309,7 +307,7 @@ public class TaxTree implements Serializable {
 		}
 
 		public TaxIdNode shallowCopy() {
-			TaxIdNode copy = new TaxIdNode(taxId, parentTaxId, rank);
+			TaxIdNode copy = new TaxIdNode(taxId, rank);
 			copy.name = name;
 			copy.position = position;
 			return copy;
@@ -334,5 +332,14 @@ public class TaxTree implements Serializable {
 	public static void main(String[] args) throws IOException {
 		File file = new File("sortedSpecies.txt");
 		new TaxTree(new File("db/")).writeSortedSpecies(new PrintWriter(file));
+	}
+
+	public static class TaxIdNodeTrie extends DigitTrie<TaxIdNode> {
+		private static final long serialVersionUID = 1L;
+
+		@Override
+		protected TaxIdNode createInGet(byte[] seq, int start, int end) {
+			return new TaxIdNode(new String(seq, start, end - start));
+		}
 	}
 }

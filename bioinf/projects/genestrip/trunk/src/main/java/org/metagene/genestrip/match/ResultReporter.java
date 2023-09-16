@@ -43,7 +43,7 @@ import org.metagene.genestrip.tax.TaxTree.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 public class ResultReporter {
-	private static final CSVFormat format = CSVFormat.DEFAULT.builder().setQuote(null).setDelimiter(';')
+	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setDelimiter(';')
 			.setRecordSeparator('\n').build();
 
 	private final List<TaxIdNode> taxids;
@@ -128,7 +128,7 @@ public class ResultReporter {
 	}
 
 	public static List<StoreStatsPerTaxid> readStoreInfoCSV(InputStream in) throws IOException {
-		Iterable<CSVRecord> records = format.parse(new InputStreamReader(in));
+		Iterable<CSVRecord> records = FORMAT.parse(new InputStreamReader(in));
 
 		List<StoreStatsPerTaxid> res = new ArrayList<StoreStatsPerTaxid>();
 		boolean first = true;
@@ -157,7 +157,7 @@ public class ResultReporter {
 	}
 
 	public static List<StatsPerTaxid> readResultCSV(InputStream in) throws IOException {
-		Iterable<CSVRecord> records = format.parse(new InputStreamReader(in));
+		Iterable<CSVRecord> records = FORMAT.parse(new InputStreamReader(in));
 
 		List<StatsPerTaxid> res = new ArrayList<StatsPerTaxid>();
 		boolean first = true;

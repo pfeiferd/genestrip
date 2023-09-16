@@ -116,4 +116,8 @@ public class BufferedLineReader {
 	public long getMillis() {
 		return millis;
 	}
+	
+	public void close() throws IOException {
+		stream.close();
+	}
 }
