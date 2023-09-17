@@ -4,9 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.fasta.AbstractFastaReader;
 import org.metagene.genestrip.make.Goal;
@@ -16,17 +17,19 @@ import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
 public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
+	protected final Log logger = LogFactory.getLog(getClass());
+	
 	private final Collection<RefSeqCategory> includedCategories;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-	private final ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionCollectionGoal;
+	private final ObjectGoal<AccessionMap, GSProject> accessionCollectionGoal;
 
 	private final int kmerSize;
 
 	@SafeVarargs
 	public FillSizeGoal(GSProject project, String name, Collection<RefSeqCategory> includeCategories,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-			ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionCollectionGoal, Goal<GSProject>... deps) {
+			ObjectGoal<AccessionMap, GSProject> accessionCollectionGoal, Goal<GSProject>... deps) {
 		super(project, name, ArraysUtil.append(deps, taxNodesGoal, fnaFilesGoal, accessionCollectionGoal));
 		this.includedCategories = Collections.unmodifiableCollection(includeCategories);
 		this.taxNodesGoal = taxNodesGoal;
@@ -50,6 +53,9 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 					fastaReader.readFasta(fnaFile);
 				}
 			}
+			if (logger.isInfoEnabled()) {
+				logger.info("Accesion map size determined:" + fastaReader.getCounter());				
+			}
 
 			set(fastaReader.getCounter());
 		} catch (IOException e) {
@@ -60,7 +66,7 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 	protected class MyFastaReader extends AbstractFastaReader {
 		private long counter;
 		private boolean inCountRegion;
-		private Map<String, TaxIdNode> accessionTrie;
+		private AccessionMap accessionTrie;
 		private Set<TaxIdNode> taxNodes;
 
 		public MyFastaReader(int bufferSize) {
@@ -82,8 +88,7 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 				inCountRegion = false;
 				int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
 				if (pos >= 0) {
-					String accession = new String(target, 1, pos - 1);
-					TaxIdNode node = accessionTrie.get(accession);
+					TaxIdNode node = accessionTrie.get(target, 1, pos);
 					if (node != null) {
 						inCountRegion = taxNodes.contains(node);
 					}
@@ -104,7 +109,9 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 
 		@Override
 		protected void done() throws IOException {
-			counter -= kmerSize + 1;
+			if (inCountRegion) {
+				counter -= kmerSize - 1;
+			}
 		}
 	}
 }

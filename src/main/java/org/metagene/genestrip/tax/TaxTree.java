@@ -40,6 +40,8 @@ import org.metagene.genestrip.util.DigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class TaxTree implements Serializable {
+	private static int MAX_LINE_SIZE = 4096;
+	
 	private static final long serialVersionUID = 1L;
 
 	public enum Rank {
@@ -128,7 +130,7 @@ public class TaxTree implements Serializable {
 	protected void readNamesFromStream(InputStream stream) throws IOException {
 		BufferedLineReader br = new BufferedLineReader(stream);
 		int size;
-		byte[] target = new byte[2000];
+		byte[] target = new byte[MAX_LINE_SIZE];
 
 		while ((size = br.nextLine(target)) > 0) {
 			boolean scientific = ByteArrayUtil.indexOf(target, 0, size, "scientific name") != -1;
@@ -150,7 +152,7 @@ public class TaxTree implements Serializable {
 	protected TaxIdNode readNodesFromStream(InputStream stream) throws IOException {
 		TaxIdNode res = null;
 		int size;
-		byte[] target = new byte[2000];
+		byte[] target = new byte[MAX_LINE_SIZE];
 
 		BufferedLineReader br = new BufferedLineReader(stream);
 		while ((size = br.nextLine(target)) > 0) {

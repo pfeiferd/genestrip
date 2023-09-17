@@ -99,7 +99,7 @@ public class GSConfig {
 	public int getMaxReadSizeBytes() {
 		return Integer.valueOf(properties.getProperty("maxReadSizeBytes", "8192"));
 	}
-
+	
 	public int getMinPosCountFilter() {
 		return Integer.valueOf(properties.getProperty("minPosCountFilter", "1"));
 	}
