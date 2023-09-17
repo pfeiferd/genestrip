@@ -38,7 +38,7 @@ public class ByteArrayUtil {
 	
 	public static int indexOf(byte[] array, int start, int end, String str) {
 		int len = str.length();
-		for (int i = start; i < end - len - 1; i++) {
+		for (int i = start; i <= end - len; i++) {
 			boolean found = true;
 			for (int j = 0; j < len; j++) {
 				if (array[i + j] != str.charAt(j)) {
@@ -63,8 +63,21 @@ public class ByteArrayUtil {
 		return new String(array, 0, i);
 	}
 
+	public static void println(byte[] array, PrintStream ps) {
+		println(array, 0, array.length, ps);
+	}
+	
 	public static void print(byte[] array, PrintStream ps) {
-		for (int i = 0; i < array.length; i++) {
+		print(array, 0, array.length, ps);
+	}
+	
+	public static void println(byte[] array, int start, int end, PrintStream ps) {
+		print(array, start, end, ps);
+		ps.println();
+	}
+	
+	public static void print(byte[] array, int start, int end, PrintStream ps) {
+		for (int i = start; i < array.length && i < end; i++) {
 			if (array[i] == 0) {
 				break;
 			}

@@ -95,10 +95,6 @@ public class TaxTree implements Serializable {
 		}
 	}
 
-	public TaxIdNodeTrie getTaxIdNodeTrie() {
-		return taxIdNodeTrie;
-	}
-
 	public boolean isAncestorOf(TaxIdNode node, TaxIdNode ancestor) {
 		while (node != null) {
 			if (node.equals(ancestor)) {
@@ -139,9 +135,9 @@ public class TaxTree implements Serializable {
 			int a = ByteArrayUtil.indexOf(target, 0, size, '|');
 			int b = ByteArrayUtil.indexOf(target, a + 1, size, '|');
 			if (a != -1 && b != -1) {
-				TaxIdNode node = taxIdNodeTrie.get(target, 0, a);
+				TaxIdNode node = taxIdNodeTrie.get(target, 0, a - 1);
 				if (node != null) {
-					String name = new String(target, a + 1, b - a - 1);
+					String name = new String(target, a + 2, b - a - 3);
 					if (node.name == null || scientific) {
 						node.name = name;
 					}
@@ -158,6 +154,7 @@ public class TaxTree implements Serializable {
 
 		BufferedLineReader br = new BufferedLineReader(stream);
 		while ((size = br.nextLine(target)) > 0) {
+//			ByteArrayUtil.print(target, System.out);
 			int a = ByteArrayUtil.indexOf(target, 0, size, '|');
 			int b = ByteArrayUtil.indexOf(target, a + 1, size, '|');
 			int c = ByteArrayUtil.indexOf(target, b + 1, size, '|');
@@ -169,8 +166,7 @@ public class TaxTree implements Serializable {
 					nodeA.parent = nodeB;
 					nodeB.addSubNode(nodeA);
 				}
-				String level = new String(target, b + 3, c - b - 2);
-				nodeA.rank = Rank.byName(level);
+				nodeA.rank = getRank(target, b + 2, c - 1);
 
 				if (nodeA == nodeB && "1".equals(nodeA.taxId)) {
 					res = nodeA;
@@ -182,6 +178,15 @@ public class TaxTree implements Serializable {
 		return res;
 	}
 
+	protected Rank getRank(byte[] outerArray, int start, int end) {
+		for (Rank rank  : Rank.values()) {
+			if (ByteArrayUtil.indexOf(outerArray, start, end, rank.getName()) != -1) {
+				return rank;
+			}
+		}
+		return null;
+	}
+	
 	protected int initPositions(int counter, TaxIdNode taxIdNode) {
 		taxIdNode.position = counter;
 		for (TaxIdNode subNode : taxIdNode.subNodes) {
@@ -237,6 +242,10 @@ public class TaxTree implements Serializable {
 
 	public TaxIdNode getNodeByTaxId(String taxId) {
 		return taxIdNodeTrie.get(taxId);
+	}
+	
+	public TaxIdNode getNodeByTaxId(byte[] seq, int start, int end) {
+		return taxIdNodeTrie.get(seq, start, end);
 	}
 
 	public static class TaxIdNode implements Comparable<TaxIdNode>, Serializable {
