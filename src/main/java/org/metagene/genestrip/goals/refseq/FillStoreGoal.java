@@ -3,6 +3,7 @@ package org.metagene.genestrip.goals.refseq;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
@@ -19,17 +20,17 @@ import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGATRingBuffer;
 
-public class IncludeStoreGoal extends FileListGoal<GSProject> {
+public class FillStoreGoal extends FileListGoal<GSProject> {
 	private final Collection<RefSeqCategory> includeCategories;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-	private final ObjectGoal<AccessionTrie<TaxIdNode>, GSProject> accessionTrieGoal;
+	private final ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionTrieGoal;
 	private final ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal;
 
 	@SafeVarargs
-	public IncludeStoreGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			RefSeqFnaFilesDownloadGoal fnaFilesGoal, ObjectGoal<AccessionTrie<TaxIdNode>, GSProject> accessionTrieGoal,
-			IncludeSizeGoal includeSizeGoal, ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal,
+	public FillStoreGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
+			RefSeqFnaFilesDownloadGoal fnaFilesGoal, ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionTrieGoal,
+			FillSizeGoal includeSizeGoal, ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal,
 			Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, FileType.SER), ArraysUtil.append(deps, taxNodesGoal,
 				fnaFilesGoal, accessionTrieGoal, includeSizeGoal, bloomFilterGoal));
@@ -73,7 +74,7 @@ public class IncludeStoreGoal extends FileListGoal<GSProject> {
 	protected class MyFastaReader extends AbstractFastaReader {
 		private boolean inStoreRegion;
 		private TaxIdNode node;
-		private final AccessionTrie<TaxIdNode> accessionTrie;
+		private final Map<String, TaxIdNode> accessionTrie;
 		private final Set<TaxIdNode> taxNodes;
 		private final KMerSortedArray<String> store;
 		private final CGATRingBuffer byteRingBuffer;
@@ -92,13 +93,13 @@ public class IncludeStoreGoal extends FileListGoal<GSProject> {
 			if (taxNodes.isEmpty()) {
 				inStoreRegion = true;
 			} else {
+				inStoreRegion = false;
 				int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
 				if (pos >= 0) {
-					node = accessionTrie.get(target, 1, pos);
+					String accession = new String(target, 1, pos - 1);
+					TaxIdNode node = accessionTrie.get(accession);
 					if (node != null) {
 						inStoreRegion = taxNodes.contains(node);
-					} else {
-						inStoreRegion = false;
 					}
 				}
 			}

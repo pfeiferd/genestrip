@@ -33,7 +33,6 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxIdCollector;
 import org.metagene.genestrip.tax.TaxTree;
-import org.metagene.genestrip.tax.TaxTree.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
 
@@ -82,12 +81,12 @@ public class TaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
 				}
 			}
 			
-			Rank rank = getProject().getConfig().getMaxRankForFilters();
-			taxIdNodes = taxIdCollector.restrictToMaxRank(rank, taxIdNodes);
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Number of tax ids restricted to rank " + rank  + "or below: " + taxIdNodes.size());
-				getLogger().info("Final taxid nodes: " + taxIdNodes);
-			}
+//			Rank rank = getProject().getConfig().getMaxRankForFilters();
+//			taxIdNodes = taxIdCollector.restrictToMaxRank(rank, taxIdNodes);
+//			if (getLogger().isInfoEnabled()) {
+//				getLogger().info("Number of tax ids restricted to rank " + rank  + "or below: " + taxIdNodes.size());
+//				getLogger().info("Final taxid nodes: " + taxIdNodes);
+//			}
 			
 			set(taxIdNodes);
 		} catch (IOException e) {

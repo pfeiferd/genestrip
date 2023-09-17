@@ -3,6 +3,7 @@ package org.metagene.genestrip.goals.refseq;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
@@ -24,14 +25,14 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 	private final Collection<RefSeqCategory> categories;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-	private final ObjectGoal<AccessionTrie<TaxIdNode>, GSProject> accessionTrieGoal;
-	private final IncludeStoreGoal includeStoreGoal;
+	private final ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionTrieGoal;
+	private final FillStoreGoal includeStoreGoal;
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 
 	@SafeVarargs
 	public UpdateStoreGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-			ObjectGoal<AccessionTrie<TaxIdNode>, GSProject> accessionTrieGoal, IncludeStoreGoal includeStoreGoal,
+			ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionTrieGoal, FillStoreGoal includeStoreGoal,
 			Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, FileType.SER), ArraysUtil.append(deps, taxTreeGoal,
 				taxNodesGoal, fnaFilesGoal, accessionTrieGoal, includeStoreGoal));
@@ -76,7 +77,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 		private TaxIdNode node;
 
 		private final TaxTree taxTree;
-		private final AccessionTrie<TaxIdNode> accessionTrie;
+		private final Map<String, TaxIdNode> accessionTrie;
 		private final KMerSortedArray<String> store;
 		private final CGATRingBuffer byteRingBuffer;
 
@@ -91,7 +92,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 			provider = new UpdateValueProvider<String>() {
 				@Override
 				public String getUpdateValue(String oldValue) {
-					TaxIdNode oldNode = taxTree.getTaxIdNodeTrie().get(oldValue);
+					TaxIdNode oldNode = taxTree.getNodeByTaxId(oldValue);
 					TaxIdNode newNode = taxTree.getLeastCommonAncestor(oldNode, node);
 					if (newNode == null || newNode == oldNode) {
 						return oldValue;
@@ -103,12 +104,11 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 
 		@Override
 		protected void infoLine() throws IOException {
+			node = null;
 			int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
 			if (pos >= 0) {
-				node = accessionTrie.get(target, 1, pos);
-			}
-			else {
-				node = null;
+				String accession = new String(target, 1, pos - 1);
+				node = accessionTrie.get(accession);
 			}
 		}
 

@@ -3,6 +3,7 @@ package org.metagene.genestrip.goals.refseq;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
@@ -15,17 +16,17 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
-public class IncludeBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSProject> {
+public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSProject> {
 	private final Collection<RefSeqCategory> includedCategories;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-	private final ObjectGoal<AccessionTrie<TaxIdNode>, GSProject> accessionTrieGoal;
+	private final ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionTrieGoal;
 	private final ObjectGoal<Long, GSProject> sizeGoal;
 
 	@SafeVarargs
-	public IncludeBloomFilterGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			RefSeqFnaFilesDownloadGoal fnaFilesGoal, ObjectGoal<AccessionTrie<TaxIdNode>, GSProject> accessionTrieGoal,
-			IncludeSizeGoal sizeGoal, Goal<GSProject>... deps) {
+	public FillBloomFilterGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
+			RefSeqFnaFilesDownloadGoal fnaFilesGoal, ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionTrieGoal,
+			FillSizeGoal sizeGoal, Goal<GSProject>... deps) {
 		super(project, name, ArraysUtil.append(deps, taxNodesGoal, fnaFilesGoal, accessionTrieGoal, sizeGoal));
 		this.includedCategories = sizeGoal.getIncludedCategories();
 		this.taxNodesGoal = taxNodesGoal;
@@ -58,7 +59,7 @@ public class IncludeBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GS
 
 	protected class MyFastaReader extends FastaIndexer {
 		private boolean inCountRegion;
-		private AccessionTrie<TaxIdNode> accessionTrie;
+		private Map<String, TaxIdNode> accessionTrie;
 		private Set<TaxIdNode> taxNodes;
 
 		public MyFastaReader(AbstractKMerBloomIndex bloomIndex, int bufferSize) {
@@ -74,13 +75,13 @@ public class IncludeBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GS
 			if (taxNodes.isEmpty()) {
 				inCountRegion = true;
 			} else {
+				inCountRegion = false;
 				int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
 				if (pos >= 0) {
-					TaxIdNode node = accessionTrie.get(target, 1, pos);
+					String accession = new String(target, 1, pos - 1);
+					TaxIdNode node = accessionTrie.get(accession);
 					if (node != null) {
 						inCountRegion = taxNodes.contains(node);
-					} else {
-						inCountRegion = false;
 					}
 				}
 			}
