@@ -73,16 +73,17 @@ public class DigitTrie<V extends Serializable> implements Serializable {
 
 	@SuppressWarnings("unchecked")
 	private DigitTrie<V> getNode(byte[] seq, int start, int end, boolean create) {
-		int index;
+		int index, pos;
 		DigitTrie<V> node = this, child;
 		for (int i = start; i < end; i++, node = child) {
-			index = mapToIndex(seq[i]);
-			if (index < 0 || index >= range()) {
+			pos = i - start;
+			index = mapToIndex(seq[i], pos);
+			if (index < 0 || index >= range(pos)) {
 				return null;
 			}
 			if (node.children == null) {
 				if (create) {
-					node.children = new DigitTrie[range()];
+					node.children = new DigitTrie[range(pos)];
 				} else {
 					return null;
 				}
@@ -100,11 +101,11 @@ public class DigitTrie<V extends Serializable> implements Serializable {
 		return node;
 	}
 	
-	protected int mapToIndex(byte bite) {
+	protected int mapToIndex(byte bite, int pos) {
 		return bite - '0';
 	}
 	
-	protected int range() {
+	protected int range(int pos) {
 		return 10;
 	}
 
@@ -134,13 +135,13 @@ public class DigitTrie<V extends Serializable> implements Serializable {
 		int end = digits.length();
 		DigitTrie<V> node = this, child;
 		for (int i = 0; i < end; i++, node = child) {
-			index = mapToIndex((byte) digits.charAt(i));
-			if (index < 0 || index >= range()) {
+			index = mapToIndex((byte) digits.charAt(i), i);
+			if (index < 0 || index >= range(i)) {
 				return null;
 			}
 			if (node.children == null) {
 				if (create) {
-					node.children = new DigitTrie[range()];
+					node.children = new DigitTrie[range(i)];
 				} else {
 					return null;
 				}

@@ -47,8 +47,8 @@ public class RefSeqFnaFilesDownloadGoal extends FileDownloadGoal<GSProject> {
 				if (cat != null) {
 					if (isRelevantFileName(filename)) {
 						File file = new File(project.getConfig().getRefSeqDir(), filename);
-						files.add(file);
-						file2Cat.put(file, cat);
+//						files.add(file);
+//						file2Cat.put(file, cat);
 					}
 				}
 			}

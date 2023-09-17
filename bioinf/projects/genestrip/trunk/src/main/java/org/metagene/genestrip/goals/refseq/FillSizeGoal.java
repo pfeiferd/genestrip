@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
@@ -12,19 +13,20 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
+import org.metagene.genestrip.util.ByteArrayUtil;
 
-public class IncludeSizeGoal extends ObjectGoal<Long, GSProject> {
+public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 	private final Collection<RefSeqCategory> includedCategories;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-	private final ObjectGoal<AccessionTrie<TaxIdNode>, GSProject> accessionCollectionGoal;
-	
+	private final ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionCollectionGoal;
+
 	private final int kmerSize;
 
 	@SafeVarargs
-	public IncludeSizeGoal(GSProject project, String name, Collection<RefSeqCategory> includeCategories,
+	public FillSizeGoal(GSProject project, String name, Collection<RefSeqCategory> includeCategories,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-			ObjectGoal<AccessionTrie<TaxIdNode>, GSProject> accessionCollectionGoal, Goal<GSProject>... deps) {
+			ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionCollectionGoal, Goal<GSProject>... deps) {
 		super(project, name, ArraysUtil.append(deps, taxNodesGoal, fnaFilesGoal, accessionCollectionGoal));
 		this.includedCategories = Collections.unmodifiableCollection(includeCategories);
 		this.taxNodesGoal = taxNodesGoal;
@@ -32,7 +34,7 @@ public class IncludeSizeGoal extends ObjectGoal<Long, GSProject> {
 		this.accessionCollectionGoal = accessionCollectionGoal;
 		kmerSize = project.getConfig().getKMerSize();
 	}
-	
+
 	public Collection<RefSeqCategory> getIncludedCategories() {
 		return includedCategories;
 	}
@@ -58,7 +60,7 @@ public class IncludeSizeGoal extends ObjectGoal<Long, GSProject> {
 	protected class MyFastaReader extends AbstractFastaReader {
 		private long counter;
 		private boolean inCountRegion;
-		private AccessionTrie<TaxIdNode> accessionTrie;
+		private Map<String, TaxIdNode> accessionTrie;
 		private Set<TaxIdNode> taxNodes;
 
 		public MyFastaReader(int bufferSize) {
@@ -77,17 +79,14 @@ public class IncludeSizeGoal extends ObjectGoal<Long, GSProject> {
 			if (taxNodes.isEmpty()) {
 				inCountRegion = true;
 			} else {
-				int i = 0;
-				for (; i < size; i++) {
-					if (target[i] == ' ' || target[i] == '\n') {
-						break;
+				inCountRegion = false;
+				int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
+				if (pos >= 0) {
+					String accession = new String(target, 1, pos - 1);
+					TaxIdNode node = accessionTrie.get(accession);
+					if (node != null) {
+						inCountRegion = taxNodes.contains(node);
 					}
-				}
-				TaxIdNode node = accessionTrie.get(target, 1, i);
-				if (node != null) {
-					inCountRegion = taxNodes.contains(node);
-				} else {
-					inCountRegion = false;
 				}
 			}
 		}
@@ -102,7 +101,7 @@ public class IncludeSizeGoal extends ObjectGoal<Long, GSProject> {
 		public long getCounter() {
 			return counter;
 		}
-		
+
 		@Override
 		protected void done() throws IOException {
 			counter -= kmerSize + 1;
