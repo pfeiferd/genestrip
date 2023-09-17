@@ -3,7 +3,6 @@ package org.metagene.genestrip.goals.refseq;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
@@ -24,12 +23,12 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 	private final Collection<RefSeqCategory> includeCategories;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-	private final ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionTrieGoal;
+	private final ObjectGoal<AccessionMap, GSProject> accessionTrieGoal;
 	private final ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal;
 
 	@SafeVarargs
 	public FillStoreGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			RefSeqFnaFilesDownloadGoal fnaFilesGoal, ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionTrieGoal,
+			RefSeqFnaFilesDownloadGoal fnaFilesGoal, ObjectGoal<AccessionMap, GSProject> accessionTrieGoal,
 			FillSizeGoal includeSizeGoal, ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal,
 			Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, FileType.SER), ArraysUtil.append(deps, taxNodesGoal,
@@ -74,7 +73,7 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 	protected class MyFastaReader extends AbstractFastaReader {
 		private boolean inStoreRegion;
 		private TaxIdNode node;
-		private final Map<String, TaxIdNode> accessionTrie;
+		private final AccessionMap accessionTrie;
 		private final Set<TaxIdNode> taxNodes;
 		private final KMerSortedArray<String> store;
 		private final CGATRingBuffer byteRingBuffer;
@@ -96,8 +95,7 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 				inStoreRegion = false;
 				int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
 				if (pos >= 0) {
-					String accession = new String(target, 1, pos - 1);
-					TaxIdNode node = accessionTrie.get(accession);
+					TaxIdNode node = accessionTrie.get(target, 1, pos);
 					if (node != null) {
 						inStoreRegion = taxNodes.contains(node);
 					}

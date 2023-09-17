@@ -3,7 +3,6 @@ package org.metagene.genestrip.goals.refseq;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
@@ -20,12 +19,12 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 	private final Collection<RefSeqCategory> includedCategories;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-	private final ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionTrieGoal;
+	private final ObjectGoal<AccessionMap, GSProject> accessionTrieGoal;
 	private final ObjectGoal<Long, GSProject> sizeGoal;
 
 	@SafeVarargs
 	public FillBloomFilterGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			RefSeqFnaFilesDownloadGoal fnaFilesGoal, ObjectGoal<Map<String, TaxIdNode>, GSProject> accessionTrieGoal,
+			RefSeqFnaFilesDownloadGoal fnaFilesGoal, ObjectGoal<AccessionMap, GSProject> accessionTrieGoal,
 			FillSizeGoal sizeGoal, Goal<GSProject>... deps) {
 		super(project, name, ArraysUtil.append(deps, taxNodesGoal, fnaFilesGoal, accessionTrieGoal, sizeGoal));
 		this.includedCategories = sizeGoal.getIncludedCategories();
@@ -59,7 +58,7 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 
 	protected class MyFastaReader extends FastaIndexer {
 		private boolean inCountRegion;
-		private Map<String, TaxIdNode> accessionTrie;
+		private AccessionMap accessionTrie;
 		private Set<TaxIdNode> taxNodes;
 
 		public MyFastaReader(AbstractKMerBloomIndex bloomIndex, int bufferSize) {
@@ -78,8 +77,7 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 				inCountRegion = false;
 				int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
 				if (pos >= 0) {
-					String accession = new String(target, 1, pos - 1);
-					TaxIdNode node = accessionTrie.get(accession);
+					TaxIdNode node = accessionTrie.get(target, 1, pos);
 					if (node != null) {
 						inCountRegion = taxNodes.contains(node);
 					}

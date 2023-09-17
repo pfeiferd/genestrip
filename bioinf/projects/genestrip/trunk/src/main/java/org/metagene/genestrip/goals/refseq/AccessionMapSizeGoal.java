@@ -10,33 +10,26 @@ import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.tax.TaxTree;
-import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.BufferedLineReader;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.StreamProvider;
 import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
-public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
+public class AccessionMapSizeGoal extends ObjectGoal<Integer, GSProject> {
 	private static int MAX_LINE_SIZE = 2048;
 
 	protected final Log logger = LogFactory.getLog(getClass());
 
 	private final long recordLogCycle = 1000 * 1000 * 10;
 
-	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
-	private final ObjectGoal<Integer, GSProject> accessionMapSizeGoal;
 	private final Collection<RefSeqCategory> categories;
 	private final File catalogFile;
 
 	@SafeVarargs
-	public AccessionMapGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
-			RefSeqCatalogDownloadGoal catalogGoal, RefSeqFnaFilesDownloadGoal downloadGoal,
-			ObjectGoal<Integer, GSProject> accessionMapSizeGoal, Goal<GSProject>... deps) {
-		super(project, name, ArraysUtil.append(deps, catalogGoal, downloadGoal, accessionMapSizeGoal));
-		this.taxTreeGoal = taxTreeGoal;
-		this.accessionMapSizeGoal = accessionMapSizeGoal;
+	public AccessionMapSizeGoal(GSProject project, String name, RefSeqCatalogDownloadGoal catalogGoal,
+			RefSeqFnaFilesDownloadGoal downloadGoal, Goal<GSProject>... deps) {
+		super(project, name, ArraysUtil.append(deps, catalogGoal, downloadGoal));
 		this.categories = downloadGoal.getCategories();
 		catalogFile = catalogGoal.getCatalogFile();
 	}
@@ -50,16 +43,13 @@ public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
 			long totalCatSize = Files.size(catalogFile.toPath());
 			byte[] target = new byte[MAX_LINE_SIZE];
 
-			TaxTree taxTree = taxTreeGoal.get();
-
-			AccessionMap map = new AccesionMapImpl(accessionMapSizeGoal.get());
-
 			// The file is huge, apache csv reader would be too slow and burn too many
 			// string.
 			// Therefore manual coding for parsing and
 			int size;
 			BufferedLineReader reader = new BufferedLineReader(byteCountAccess.getInputStream());
 
+			int counter = 0;
 			long recordCounter = 0;
 			long startTime = System.currentTimeMillis();
 			while ((size = reader.nextLine(target)) > 0) {
@@ -67,12 +57,9 @@ public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
 				int pos2 = ByteArrayUtil.indexOf(target, pos1 + 1, size, '\t');
 				int pos3 = ByteArrayUtil.indexOf(target, pos2 + 1, size, '\t');
 				int pos4 = ByteArrayUtil.indexOf(target, pos3 + 1, size, '\t');
-				if (isGenomicAccession(target, pos2 + 1)) {
-					if (containsCategory(target, pos3 + 1, pos4, categories)) {
-						TaxIdNode node = taxTree.getNodeByTaxId(target, 0, pos1);
-						if (node != null) {
-							map.put(target, pos2 + 1, pos3, node);
-						}
+				if (AccessionMapGoal.isGenomicAccession(target, pos2 + 1)) {
+					if (AccessionMapGoal.containsCategory(target, pos3 + 1, pos4, categories)) {
+						counter++;
 					}
 				}
 
@@ -92,28 +79,20 @@ public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
 				}
 				recordCounter++;
 			}
+
 			reader.close();
-			map.optimize();
-			set(map);
+			if (logger.isInfoEnabled()) {
+				logger.info("Map size determined:" + counter);
+			}
+			set(counter);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	public static boolean containsCategory(byte[] outerArray, int start, int end, Collection<RefSeqCategory> categories) {
+	protected boolean containsCategory(byte[] outerArray, int start, int end) {
 		for (RefSeqCategory cat : categories) {
 			if (ByteArrayUtil.indexOf(outerArray, start, end, cat.getDirectory()) != -1) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	protected static final String[] GENOMIC_ACCESSION_PREFIXES = { "AC_", "NC_", "NG_", "NT_", "NW_", "NZ_" };
-
-	public static boolean isGenomicAccession(byte[] outerArray, int start) {
-		for (String prefix : GENOMIC_ACCESSION_PREFIXES) {
-			if (ByteArrayUtil.indexOf(outerArray, start, start + 3, prefix) != -1) {
 				return true;
 			}
 		}

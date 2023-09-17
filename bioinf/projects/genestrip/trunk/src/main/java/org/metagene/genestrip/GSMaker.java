@@ -54,7 +54,9 @@ import org.metagene.genestrip.goals.TaxIdFileDownloadGoal;
 import org.metagene.genestrip.goals.TaxNodesGoal;
 import org.metagene.genestrip.goals.TrieFromKrakenResGoal;
 import org.metagene.genestrip.goals.TrieFromKrakenResGoal.TaxidWithCount;
+import org.metagene.genestrip.goals.refseq.AccessionMap;
 import org.metagene.genestrip.goals.refseq.AccessionMapGoal;
+import org.metagene.genestrip.goals.refseq.AccessionMapSizeGoal;
 import org.metagene.genestrip.goals.refseq.FillBloomFilterGoal;
 import org.metagene.genestrip.goals.refseq.FillSizeGoal;
 import org.metagene.genestrip.goals.refseq.FillStoreGoal;
@@ -294,7 +296,8 @@ public class GSMaker extends Maker<GSProject> {
 			registerGoal(krakenResErrorGoal);
 		}
 
-		Collection<RefSeqCategory> coveredCategories = Arrays.asList(RefSeqCategory.viral /*, RefSeqCategory.bacteria */);
+		Collection<RefSeqCategory> coveredCategories = Arrays
+				.asList(RefSeqCategory.viral /* , RefSeqCategory.bacteria */);
 		Collection<RefSeqCategory> includedCategories = Arrays.asList(RefSeqCategory.viral);
 
 		if (!coveredCategories.containsAll(includedCategories)) {
@@ -309,16 +312,20 @@ public class GSMaker extends Maker<GSProject> {
 				coveredCategories, refSeqCatalogGoal);
 		registerGoal(refSeqFnaFilesGoal);
 
-		ObjectGoal<Map<String, TaxIdNode>, GSProject> accessCollGoal = new AccessionMapGoal(project, "accmap",
-				taxTreeGoal, refSeqCatalogGoal, refSeqFnaFilesGoal);
+		ObjectGoal<Integer, GSProject> accessMapSizeGoal = new AccessionMapSizeGoal(project, "accmapsize",
+				refSeqCatalogGoal, refSeqFnaFilesGoal);
+		registerGoal(accessMapSizeGoal);
+
+		ObjectGoal<AccessionMap, GSProject> accessCollGoal = new AccessionMapGoal(project, "accmap", taxTreeGoal,
+				refSeqCatalogGoal, refSeqFnaFilesGoal, accessMapSizeGoal);
 		registerGoal(accessCollGoal);
 
 		FillSizeGoal includeSizeGoal = new FillSizeGoal(project, "fillsize", includedCategories, taxNodesGoal,
 				refSeqFnaFilesGoal, accessCollGoal);
 		registerGoal(includeSizeGoal);
 
-		ObjectGoal<MurmurCGATBloomFilter, GSProject> includeBloomGoal = new FillBloomFilterGoal(project,
-				"fillbloom", taxNodesGoal, refSeqFnaFilesGoal, accessCollGoal, includeSizeGoal);
+		ObjectGoal<MurmurCGATBloomFilter, GSProject> includeBloomGoal = new FillBloomFilterGoal(project, "fillbloom",
+				taxNodesGoal, refSeqFnaFilesGoal, accessCollGoal, includeSizeGoal);
 		registerGoal(includeBloomGoal);
 
 		FillStoreGoal includeStoreGoal = new FillStoreGoal(project, "fillstore", taxNodesGoal, refSeqFnaFilesGoal,
