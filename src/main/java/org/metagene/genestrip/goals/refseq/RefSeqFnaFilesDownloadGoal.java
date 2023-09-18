@@ -66,6 +66,9 @@ public class RefSeqFnaFilesDownloadGoal extends FileDownloadGoal<GSProject> {
 	@Override
 	public List<File> getFiles() {
 		if (files == null) {
+			// There is no other way: The catalog file must be there early, in order to get the file list....
+			catalogDLGoal.make();
+			
 			files = new ArrayList<File>();
 			file2Cat = new HashMap<File, RefSeqCategory>();
 
