@@ -23,45 +23,24 @@ public class RefSeqFnaFilesDownloadGoal extends FileDownloadGoal<GSProject> {
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setDelimiter('\t').setRecordSeparator('\n')
 			.build();
 
+	private final RefSeqCatalogDownloadGoal catalogDLGoal;
 	private final Collection<RefSeqCategory> categories;
-	private final List<File> files;
-	private final Map<File, RefSeqCategory> file2Cat;
+	private List<File> files;
+	private Map<File, RefSeqCategory> file2Cat;
 
 	@SafeVarargs
 	public RefSeqFnaFilesDownloadGoal(GSProject project, String name, Collection<RefSeqCategory> categories,
 			RefSeqCatalogDownloadGoal catalogDLGoal, Goal<GSProject>... deps) {
 		super(project, name, ArraysUtil.append(deps, catalogDLGoal));
 
-		files = new ArrayList<File>();
-		file2Cat = new HashMap<File, RefSeqCategory>();
 		this.categories = Collections.unmodifiableCollection(categories);
-
-		File installedFiles = catalogDLGoal.getInstalledFilesFile();
-
-		try {
-			Reader in = new InputStreamReader(StreamProvider.getInputStreamForFile(installedFiles));
-			Iterable<CSVRecord> records = FORMAT.parse(in);
-			for (CSVRecord record : records) {
-				String filename = record.get(1);
-				RefSeqCategory cat = getCategoryForFileName(filename);
-				if (cat != null) {
-					if (isRelevantFileName(filename)) {
-						File file = new File(project.getConfig().getRefSeqDir(), filename);
-						files.add(file);
-						file2Cat.put(file, cat);
-					}
-				}
-			}
-			in.close();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		this.catalogDLGoal = catalogDLGoal;
 	}
-	
+
 	public Collection<RefSeqCategory> getCategories() {
 		return categories;
 	}
-	
+
 	public RefSeqCategory getCategoryForFile(File file) {
 		return file2Cat.get(file);
 	}
@@ -86,6 +65,31 @@ public class RefSeqFnaFilesDownloadGoal extends FileDownloadGoal<GSProject> {
 
 	@Override
 	public List<File> getFiles() {
+		if (files == null) {
+			files = new ArrayList<File>();
+			file2Cat = new HashMap<File, RefSeqCategory>();
+
+			File installedFiles = catalogDLGoal.getInstalledFilesFile();
+
+			try {
+				Reader in = new InputStreamReader(StreamProvider.getInputStreamForFile(installedFiles));
+				Iterable<CSVRecord> records = FORMAT.parse(in);
+				for (CSVRecord record : records) {
+					String filename = record.get(1);
+					RefSeqCategory cat = getCategoryForFileName(filename);
+					if (cat != null) {
+						if (isRelevantFileName(filename)) {
+							File file = new File(getProject().getConfig().getRefSeqDir(), filename);
+							files.add(file);
+							file2Cat.put(file, cat);
+						}
+					}
+				}
+				in.close();
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
 		return files;
 	}
 }
