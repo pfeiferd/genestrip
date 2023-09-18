@@ -89,16 +89,12 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 
 		@Override
 		protected void infoLine() throws IOException {
-			if (taxNodes.isEmpty()) {
-				inStoreRegion = true;
-			} else {
-				inStoreRegion = false;
-				int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
-				if (pos >= 0) {
-					TaxIdNode node = accessionTrie.get(target, 1, pos);
-					if (node != null) {
-						inStoreRegion = taxNodes.contains(node);
-					}
+			inStoreRegion = false;
+			int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
+			if (pos >= 0) {
+				node = accessionTrie.get(target, 1, pos);
+				if (node != null) {
+					inStoreRegion = taxNodes.isEmpty() || taxNodes.contains(node);
 				}
 			}
 		}

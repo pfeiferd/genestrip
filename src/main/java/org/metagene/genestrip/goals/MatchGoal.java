@@ -31,6 +31,7 @@ import java.io.PrintStream;
 import org.metagene.genestrip.GSConfig;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
+import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.match.FastqKMerMatcher;
@@ -43,11 +44,11 @@ import org.metagene.genestrip.util.StreamProvider;
 
 public class MatchGoal extends FileListGoal<GSProject> {
 	private final File fastq;
-	private final KMerStoreFileGoal storeGoal;
+	private final FileGoal<GSProject> storeGoal;
 	private final boolean writedFiltered;
 
 	@SafeVarargs
-	public MatchGoal(GSProject project, String name, File fastq, KMerStoreFileGoal storeGoal, boolean writeFiltered,
+	public MatchGoal(GSProject project, String name, File fastq, FileGoal<GSProject> storeGoal, boolean writeFiltered,
 			Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, fastq, FileType.CSV, false),
 				ArraysUtil.append(deps, storeGoal));

@@ -86,7 +86,6 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 				if (pos >= 0) {
 					TaxIdNode node = accessionTrie.get(target, 1, pos);
 					if (node != null) {
-						ByteArrayUtil.println(target, 1, pos, System.out);
 						inCountRegion = taxNodes.contains(node);
 					}
 				}
