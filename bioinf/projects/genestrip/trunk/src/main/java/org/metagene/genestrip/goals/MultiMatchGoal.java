@@ -40,6 +40,7 @@ import org.apache.commons.csv.CSVRecord;
 import org.metagene.genestrip.GSConfig;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
+import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.match.FastqKMerMatcher;
@@ -56,7 +57,7 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 	
 	private final Map<File, List<File>> fileToFastqs;
 	private final File csvFile;
-	private final KMerStoreFileGoal storeGoal;
+	private final FileGoal<GSProject> storeGoal;
 	private final boolean writedFiltered;
 
 	private FastqKMerMatcher matcher;
@@ -65,7 +66,7 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 	private KMerUniqueCounter uniqueCounter;
 
 	@SafeVarargs
-	public MultiMatchGoal(GSProject project, String name, File csvFile, KMerStoreFileGoal storeGoal,
+	public MultiMatchGoal(GSProject project, String name, File csvFile, FileGoal<GSProject> storeGoal,
 			boolean writeFiltered, Goal<GSProject>... deps) {
 		super(project, name, (List<File>) null, ArraysUtil.append(deps, storeGoal));
 		this.csvFile = csvFile;

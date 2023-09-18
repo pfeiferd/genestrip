@@ -320,21 +320,29 @@ public class GSMaker extends Maker<GSProject> {
 				refSeqCatalogGoal, refSeqFnaFilesGoal, accessMapSizeGoal);
 		registerGoal(accessCollGoal);
 
-		FillSizeGoal includeSizeGoal = new FillSizeGoal(project, "fillsize", includedCategories, taxNodesGoal,
+		FillSizeGoal fillSizeGoal = new FillSizeGoal(project, "fillsize", includedCategories, taxNodesGoal,
 				refSeqFnaFilesGoal, accessCollGoal);
-		registerGoal(includeSizeGoal);
+		registerGoal(fillSizeGoal);
 
-		ObjectGoal<MurmurCGATBloomFilter, GSProject> includeBloomGoal = new FillBloomFilterGoal(project, "fillbloom",
-				taxNodesGoal, refSeqFnaFilesGoal, accessCollGoal, includeSizeGoal);
-		registerGoal(includeBloomGoal);
+		ObjectGoal<MurmurCGATBloomFilter, GSProject> fillBloomGoal = new FillBloomFilterGoal(project, "fillbloom",
+				taxNodesGoal, refSeqFnaFilesGoal, accessCollGoal, fillSizeGoal);
+		registerGoal(fillBloomGoal);
 
-		FillStoreGoal includeStoreGoal = new FillStoreGoal(project, "fillstore", taxNodesGoal, refSeqFnaFilesGoal,
-				accessCollGoal, includeSizeGoal, includeBloomGoal);
-		registerGoal(includeStoreGoal);
+		FillStoreGoal fillStoreGoal = new FillStoreGoal(project, "fillstore", taxNodesGoal, refSeqFnaFilesGoal,
+				accessCollGoal, fillSizeGoal, fillBloomGoal, projectSetupGoal);
+		registerGoal(fillStoreGoal);
 
 		UpdateStoreGoal updateStoreGoal = new UpdateStoreGoal(project, "updatestore", taxTreeGoal, taxNodesGoal,
-				refSeqFnaFilesGoal, accessCollGoal, includeStoreGoal);
+				refSeqFnaFilesGoal, accessCollGoal, fillStoreGoal, projectSetupGoal);
 		registerGoal(updateStoreGoal);
 
+		Goal<GSProject> matchGoal = new MatchGoal(project, "newmatch", fastqOrCSV, updateStoreGoal,
+				project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
+		registerGoal(matchGoal);
+
+		Goal<GSProject> multiMatchGoal = new MultiMatchGoal(project, "new" + MultiMatchGoal.NAME, fastqOrCSV, updateStoreGoal,
+				project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
+		registerGoal(multiMatchGoal);
+		
 	}
 }
