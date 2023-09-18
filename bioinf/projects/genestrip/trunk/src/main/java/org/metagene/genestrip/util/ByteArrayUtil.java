@@ -35,7 +35,7 @@ public class ByteArrayUtil {
 		}
 		return -1;
 	}
-	
+
 	public static int indexOf(byte[] array, int start, int end, String str) {
 		int len = str.length();
 		for (int i = start; i <= end - len; i++) {
@@ -52,7 +52,20 @@ public class ByteArrayUtil {
 		}
 		return -1;
 	}
-	
+
+	public static boolean startsWith(byte[] array, int start, String str) {
+		int len = str.length();
+		if (array.length < start + len) {
+			return false;
+		}
+		for (int j = 0; j < len; j++) {
+			if (array[start + j] != str.charAt(j)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	public static String toString(byte[] array) {
 		int i;
 		for (i = 0; i < array.length; i++) {
@@ -66,16 +79,16 @@ public class ByteArrayUtil {
 	public static void println(byte[] array, PrintStream ps) {
 		println(array, 0, array.length, ps);
 	}
-	
+
 	public static void print(byte[] array, PrintStream ps) {
 		print(array, 0, array.length, ps);
 	}
-	
+
 	public static void println(byte[] array, int start, int end, PrintStream ps) {
 		print(array, start, end, ps);
 		ps.println();
 	}
-	
+
 	public static void print(byte[] array, int start, int end, PrintStream ps) {
 		for (int i = start; i < array.length && i < end; i++) {
 			if (array[i] == 0) {
@@ -112,7 +125,7 @@ public class ByteArrayUtil {
 			data[pos++] = '0';
 			return pos;
 		}
-		
+
 		if (value < 0) {
 			data[pos++] = '-';
 		}

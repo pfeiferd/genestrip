@@ -6,8 +6,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.fasta.AbstractFastaReader;
 import org.metagene.genestrip.make.Goal;
@@ -17,8 +15,6 @@ import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
 public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
-	protected final Log logger = LogFactory.getLog(getClass());
-	
 	private final Collection<RefSeqCategory> includedCategories;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
@@ -53,8 +49,8 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 					fastaReader.readFasta(fnaFile);
 				}
 			}
-			if (logger.isInfoEnabled()) {
-				logger.info("Accesion map size determined:" + fastaReader.getCounter());				
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("Store size determined:" + fastaReader.getCounter());				
 			}
 
 			set(fastaReader.getCounter());
@@ -90,6 +86,7 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 				if (pos >= 0) {
 					TaxIdNode node = accessionTrie.get(target, 1, pos);
 					if (node != null) {
+						ByteArrayUtil.println(target, 1, pos, System.out);
 						inCountRegion = taxNodes.contains(node);
 					}
 				}
