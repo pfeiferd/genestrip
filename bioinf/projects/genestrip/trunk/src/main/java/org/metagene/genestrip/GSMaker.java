@@ -297,8 +297,8 @@ public class GSMaker extends Maker<GSProject> {
 		}
 
 		Collection<RefSeqCategory> coveredCategories = Arrays
-				.asList(RefSeqCategory.viral /* , RefSeqCategory.bacteria */);
-		Collection<RefSeqCategory> includedCategories = Arrays.asList(RefSeqCategory.viral);
+				.asList(RefSeqCategory.viral , RefSeqCategory.bacteria);
+		Collection<RefSeqCategory> includedCategories = Arrays.asList(RefSeqCategory.bacteria);
 
 		if (!coveredCategories.containsAll(includedCategories)) {
 			throw new IllegalStateException("Covered categories must contain included categories.");
@@ -336,13 +336,13 @@ public class GSMaker extends Maker<GSProject> {
 				refSeqFnaFilesGoal, accessCollGoal, fillStoreGoal, projectSetupGoal);
 		registerGoal(updateStoreGoal);
 
-		Goal<GSProject> matchGoal = new MatchGoal(project, "newmatch", fastqOrCSV, updateStoreGoal,
+		Goal<GSProject> newMatchGoal = new MatchGoal(project, "newmatch", fastqOrCSV, updateStoreGoal,
 				project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
-		registerGoal(matchGoal);
+		registerGoal(newMatchGoal);
 
-		Goal<GSProject> multiMatchGoal = new MultiMatchGoal(project, "new" + MultiMatchGoal.NAME, fastqOrCSV, updateStoreGoal,
+		Goal<GSProject> newMultiMatchGoal = new MultiMatchGoal(project, "new" + MultiMatchGoal.NAME, fastqOrCSV, updateStoreGoal,
 				project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
-		registerGoal(multiMatchGoal);
+		registerGoal(newMultiMatchGoal);
 		
 	}
 }
