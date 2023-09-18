@@ -79,7 +79,7 @@ public class MatchGoal extends FileListGoal<GSProject> {
 			c.dump();
 
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-			new ResultReporter(wrapper.getTaxids()).printMatchResult(res, out, wrapper);
+			new ResultReporter(wrapper.getTaxids()).printMatchResult(res, out, null /* TODO */);
 			out.close();
 		} catch (IOException | ClassNotFoundException e) {
 			throw new RuntimeException(e);
