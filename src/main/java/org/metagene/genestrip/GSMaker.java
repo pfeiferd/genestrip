@@ -294,8 +294,8 @@ public class GSMaker extends Maker<GSProject> {
 			registerGoal(krakenResErrorGoal);
 		}
 
-		Collection<RefSeqCategory> coveredCategories = Arrays.asList(RefSeqCategory.VIRAL /*, RefSeqCategory.bacteria */);
-		Collection<RefSeqCategory> includedCategories = Arrays.asList(RefSeqCategory.VIRAL);
+		Collection<RefSeqCategory> coveredCategories = Arrays.asList(RefSeqCategory.BACTERIA /*, RefSeqCategory.bacteria */);
+		Collection<RefSeqCategory> includedCategories = Arrays.asList(RefSeqCategory.BACTERIA);
 
 		if (!coveredCategories.containsAll(includedCategories)) {
 			throw new IllegalStateException("Covered categories must contain included categories.");
