@@ -91,6 +91,7 @@ public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
+			Collections.sort(files);
 		}
 		return files;
 	}
