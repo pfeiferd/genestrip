@@ -32,7 +32,7 @@ public class AccessionMapSizeGoal extends ObjectGoal<Integer, GSProject> {
 				set(counter);
 				
 				if (getLogger().isInfoEnabled()) {
-					getLogger().info("Map size determined:" + counter);
+					getLogger().info("Map size determined: " + counter);
 				}
 			}
 			
