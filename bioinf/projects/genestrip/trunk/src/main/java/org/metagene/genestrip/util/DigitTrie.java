@@ -118,6 +118,9 @@ public class DigitTrie<V extends Serializable> implements Serializable {
 	}
 
 	public V get(String digits, boolean create) {
+		if (digits == null) {
+			return null;
+		}
 		DigitTrie<V> node = getNode(digits, create);
 		if (node == null) {
 			return null;

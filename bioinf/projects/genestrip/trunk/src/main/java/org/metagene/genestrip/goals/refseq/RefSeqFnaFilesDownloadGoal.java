@@ -50,7 +50,7 @@ public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
 
 	protected RefSeqCategory getCategoryForFileName(String filename) {
 		for (RefSeqCategory cat : categories) {
-			if (filename.startsWith(cat.name() + ".")) {
+			if (filename.startsWith(cat.getDirectory() + ".")) {
 				return cat;
 			}
 		}

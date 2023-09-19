@@ -10,18 +10,19 @@ import org.metagene.genestrip.util.ArraysUtil;
 
 public class AccessionMapSizeGoal extends ObjectGoal<Integer, GSProject> {
 	private final Collection<RefSeqCategory> categories;
-	private final File catalogFile;
+	private final RefSeqCatalogDownloadGoal catalogGoal;
 
 	@SafeVarargs
 	public AccessionMapSizeGoal(GSProject project, String name, RefSeqCatalogDownloadGoal catalogGoal,
 			RefSeqFnaFilesDownloadGoal downloadGoal, Goal<GSProject>... deps) {
 		super(project, name, ArraysUtil.append(deps, catalogGoal, downloadGoal));
+		this.catalogGoal = catalogGoal;
 		this.categories = downloadGoal.getCategories();
-		catalogFile = catalogGoal.getCatalogFile();
 	}
 
 	@Override
 	public void makeThis() {
+		File catalogFile = catalogGoal.getCatalogFile();
 		AccessionFileProcessor processor = new AccessionFileProcessor(categories) {
 			private int counter = 0;
 			

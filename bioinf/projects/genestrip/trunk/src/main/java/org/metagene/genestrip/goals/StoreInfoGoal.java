@@ -30,6 +30,7 @@ import java.io.PrintStream;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
+import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -41,10 +42,10 @@ import org.metagene.genestrip.util.StreamProvider;
 
 public class StoreInfoGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
-	private final KMerStoreFileGoal storeGoal;
+	private final FileGoal<GSProject> storeGoal;
 
 	@SafeVarargs
-	public StoreInfoGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal, KMerStoreFileGoal storeGoal, Goal<GSProject>... deps) {
+	public StoreInfoGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal, FileGoal<GSProject> storeGoal, Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, storeGoal.getFile(), FileType.CSV, false),
 				ArraysUtil.append(deps, taxTreeGoal, storeGoal));
 		this.taxTreeGoal = taxTreeGoal;

@@ -202,10 +202,6 @@ public class GSMaker extends Maker<GSProject> {
 				kmerFastqGoal, bloomFilterSizeGoal, projectSetupGoal, taxTreeGoal);
 		registerGoal(storeGoal);
 
-		Goal<GSProject> storeInfoGoal = new StoreInfoGoal(project, "storeinfo", taxTreeGoal, storeGoal,
-				projectSetupGoal);
-		registerGoal(storeInfoGoal);
-
 		KrakenFastqFileGoal krakenFastqGoal = new KrakenFastqFileGoal(project, "krakenfastq", taxNodesGoal,
 				krakenOutGoal, kmerFastqGoal, projectSetupGoal);
 		registerGoal(krakenFastqGoal);
@@ -298,8 +294,8 @@ public class GSMaker extends Maker<GSProject> {
 			registerGoal(krakenResErrorGoal);
 		}
 
-		Collection<RefSeqCategory> coveredCategories = Arrays.asList(RefSeqCategory.viral, RefSeqCategory.bacteria);
-		Collection<RefSeqCategory> includedCategories = Arrays.asList(RefSeqCategory.bacteria);
+		Collection<RefSeqCategory> coveredCategories = Arrays.asList(RefSeqCategory.VIRAL /*, RefSeqCategory.bacteria */);
+		Collection<RefSeqCategory> includedCategories = Arrays.asList(RefSeqCategory.VIRAL);
 
 		if (!coveredCategories.containsAll(includedCategories)) {
 			throw new IllegalStateException("Covered categories must contain included categories.");
@@ -336,7 +332,7 @@ public class GSMaker extends Maker<GSProject> {
 				accessCollGoal, fillSizeGoal, fillBloomGoal, projectSetupGoal);
 		registerGoal(fillStoreGoal);
 
-		UpdateStoreGoal updateStoreGoal = new UpdateStoreGoal(project, "updatestore", taxTreeGoal, refSeqFnaFilesGoal,
+		FileGoal<GSProject> updateStoreGoal = new UpdateStoreGoal(project, "updatestore", taxTreeGoal, refSeqFnaFilesGoal,
 				accessCollGoal, fillStoreGoal, projectSetupGoal);
 		registerGoal(updateStoreGoal);
 
@@ -348,5 +344,8 @@ public class GSMaker extends Maker<GSProject> {
 				taxTreeGoal, updateStoreGoal, project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
 		registerGoal(newMultiMatchGoal);
 
+		Goal<GSProject> storeInfoGoal = new StoreInfoGoal(project, "storeinfo", taxTreeGoal, updateStoreGoal,
+				projectSetupGoal);
+		registerGoal(storeInfoGoal);
 	}
 }

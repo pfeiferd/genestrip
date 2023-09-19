@@ -41,34 +41,23 @@ public class RefSeqCatalogDownloadGoal extends RefSeqDownloadGoal {
 	public static final String CATALOG_BASE_NAME = "RefSeq-release{0}.catalog.gz";
 	public static final String FILES_INSTALLED_NAME = "release{0}.files.installed";
 
-	private final List<File> files;
+	private final FileGoal<GSProject> releaseNumberGoal;
+	private List<File> files;
 
 	@SafeVarargs
 	public RefSeqCatalogDownloadGoal(GSProject project, String name, FileGoal<GSProject> releaseNumberGoal,
 			Goal<GSProject>... deps) {
 		super(project, name, ArraysUtil.append(deps, releaseNumberGoal));
-
-		try {
-			byte[] encoded = Files.readAllBytes(releaseNumberGoal.getFile().toPath());
-			String releaseNumber = new String(encoded).trim();
-
-			String catalog = MessageFormat.format(CATALOG_BASE_NAME, releaseNumber);
-			String filesInstalled = MessageFormat.format(FILES_INSTALLED_NAME, releaseNumber);
-
-			files = new ArrayList<File>();
-
-			files.add(new File(project.getConfig().getRefSeqDir(), catalog));
-			files.add(new File(project.getConfig().getRefSeqDir(), filesInstalled));
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		this.releaseNumberGoal = releaseNumberGoal;
 	}
 
 	public File getCatalogFile() {
+		getFiles();
 		return files.get(0);
 	}
 
 	public File getInstalledFilesFile() {
+		getFiles();
 		return files.get(1);
 	}
 
@@ -79,6 +68,23 @@ public class RefSeqCatalogDownloadGoal extends RefSeqDownloadGoal {
 
 	@Override
 	public List<File> getFiles() {
+		if (files == null) {
+			releaseNumberGoal.make();
+			try {
+				byte[] encoded = Files.readAllBytes(releaseNumberGoal.getFile().toPath());
+				String releaseNumber = new String(encoded).trim();
+
+				String catalog = MessageFormat.format(CATALOG_BASE_NAME, releaseNumber);
+				String filesInstalled = MessageFormat.format(FILES_INSTALLED_NAME, releaseNumber);
+
+				files = new ArrayList<File>();
+
+				files.add(new File(getProject().getConfig().getRefSeqDir(), catalog));
+				files.add(new File(getProject().getConfig().getRefSeqDir(), filesInstalled));
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}			
+		}
 		return files;
 	}
 

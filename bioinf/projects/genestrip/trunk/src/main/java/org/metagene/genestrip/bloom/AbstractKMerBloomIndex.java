@@ -43,19 +43,16 @@ public class AbstractKMerBloomIndex implements Serializable {
 
 	protected final CGATRingBuffer byteRingBuffer;
 
-	private long n;
-	
 	private final MurmurCGATBloomFilter filter;
 
 	public AbstractKMerBloomIndex(String name, int k, double expectedFpp, PutListener putListener) {
 		this.name = name;
-		this.n = 0;
 		this.creationDate = new Date();
 		this.putListener = putListener;
 		byteRingBuffer = new CGATRingBuffer(k);
 		this.filter = new MurmurCGATBloomFilter(k, expectedFpp);
 	}
-	
+
 	public MurmurCGATBloomFilter getFilter() {
 		return filter;
 	}
@@ -63,21 +60,19 @@ public class AbstractKMerBloomIndex implements Serializable {
 	public void put(byte bite) {
 		byteRingBuffer.put(bite);
 		if (byteRingBuffer.isFilled() && byteRingBuffer.isCGAT()) {
-			if (putListener != null) {
-				if (!filter.contains(byteRingBuffer, false)) {
+			if (!filter.contains(byteRingBuffer, false)) {
+				if (putListener != null) {
 					putListener.newEntry(byteRingBuffer);
-					filter.put(byteRingBuffer);
-					n++;
-				} else {
+				}
+				filter.put(byteRingBuffer);
+			} else {
+				if (putListener != null) {
 					putListener.oldEntry(byteRingBuffer);
 				}
-			} else {
-				filter.put(byteRingBuffer);
-				n++;
 			}
 		}
 	}
-	
+
 	public void resetPut() {
 		byteRingBuffer.reset();
 	}
@@ -92,10 +87,6 @@ public class AbstractKMerBloomIndex implements Serializable {
 
 	public int getK() {
 		return byteRingBuffer.getSize();
-	}
-
-	public long getN() {
-		return n;
 	}
 
 	public void save(File filterFile) throws IOException {

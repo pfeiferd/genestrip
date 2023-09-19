@@ -64,17 +64,22 @@ public class ResultReporter {
 		out.print(stats.getLong(null));
 		out.println(';');
 
-		for (String taxId : stats.keySet()) {
-			TaxIdNode taxNode = taxTree.getNodeByTaxId(taxId);
-			if (taxNode != null) {
-				out.print(taxNode.getName());
-				out.print(';');
-				out.print(taxNode.getRank());
-				out.print(';');
-				out.print(taxNode.getTaxId());
-				out.print(';');
-				out.print(stats.getLong(taxId));
-				out.println(';');
+		List<String> sortedTaxIds = new ArrayList<String>(stats.keySet());
+		taxTree.sortTaxidsViaTree(sortedTaxIds);
+		
+		for (String taxId : sortedTaxIds) {
+			if (taxId != null) {
+				TaxIdNode taxNode = taxTree.getNodeByTaxId(taxId);
+				if (taxNode != null) {
+					out.print(taxNode.getName());
+					out.print(';');
+					out.print(taxNode.getRank());
+					out.print(';');
+					out.print(taxNode.getTaxId());
+					out.print(';');
+					out.print(stats.getLong(taxId));
+					out.println(';');
+				}
 			}
 		}
 	}

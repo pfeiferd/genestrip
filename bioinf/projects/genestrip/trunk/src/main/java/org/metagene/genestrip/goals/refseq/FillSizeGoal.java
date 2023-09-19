@@ -50,7 +50,7 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 				}
 			}
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Store size determined:" + fastaReader.getCounter());				
+				getLogger().info("Store size determined: " + fastaReader.getCounter());
 			}
 
 			set(fastaReader.getCounter());
@@ -78,16 +78,12 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 			if (inCountRegion) {
 				counter -= kmerSize - 1;
 			}
-			if (taxNodes.isEmpty()) {
-				inCountRegion = true;
-			} else {
-				inCountRegion = false;
-				int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
-				if (pos >= 0) {
-					TaxIdNode node = accessionTrie.get(target, 1, pos);
-					if (node != null) {
-						inCountRegion = taxNodes.contains(node);
-					}
+			inCountRegion = false;
+			int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
+			if (pos >= 0) {
+				TaxIdNode node = accessionTrie.get(target, 1, pos);
+				if (node != null) {
+					inCountRegion = taxNodes.isEmpty() || taxNodes.contains(node);
 				}
 			}
 		}
