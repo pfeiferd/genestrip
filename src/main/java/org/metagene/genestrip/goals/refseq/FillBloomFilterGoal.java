@@ -7,31 +7,27 @@ import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
-import org.metagene.genestrip.fasta.AbstractFastaReader;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
-import org.metagene.genestrip.util.ByteArrayUtil;
-import org.metagene.genestrip.util.CGAT;
-import org.metagene.genestrip.util.CGATRingBuffer;
 
 public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSProject> {
 	private final Collection<RefSeqCategory> includedCategories;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-	private final ObjectGoal<AccessionMap, GSProject> accessionTrieGoal;
+	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 	private final ObjectGoal<Long, GSProject> sizeGoal;
 
 	@SafeVarargs
 	public FillBloomFilterGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			RefSeqFnaFilesDownloadGoal fnaFilesGoal, ObjectGoal<AccessionMap, GSProject> accessionTrieGoal,
+			RefSeqFnaFilesDownloadGoal fnaFilesGoal, ObjectGoal<AccessionMap, GSProject> accessionMapGoal,
 			FillSizeGoal sizeGoal, Goal<GSProject>... deps) {
-		super(project, name, ArraysUtil.append(deps, taxNodesGoal, fnaFilesGoal, accessionTrieGoal, sizeGoal));
+		super(project, name, ArraysUtil.append(deps, taxNodesGoal, fnaFilesGoal, accessionMapGoal, sizeGoal));
 		this.includedCategories = sizeGoal.getIncludedCategories();
 		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
-		this.accessionTrieGoal = accessionTrieGoal;
+		this.accessionMapGoal = accessionMapGoal;
 		this.sizeGoal = sizeGoal;
 	}
 
@@ -42,7 +38,8 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 					0.000000001);
 			filter.ensureExpectedSize(sizeGoal.get(), false);
 
-			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getMaxReadSizeBytes(), filter);
+			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getMaxReadSizeBytes(),
+					taxNodesGoal.get(), accessionMapGoal.get(), filter);
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
@@ -60,46 +57,19 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 		}
 	}
 
-	protected class MyFastaReader extends AbstractFastaReader {
-		private boolean inStoreRegion;
-		private TaxIdNode node;
-		private final AccessionMap accessionTrie;
-		private final Set<TaxIdNode> taxNodes;
+	protected class MyFastaReader extends AbstractStoreFastaReader {
 		private final MurmurCGATBloomFilter filter;
-		private final CGATRingBuffer byteRingBuffer;
 
-		public MyFastaReader(int bufferSize, MurmurCGATBloomFilter filter) {
-			super(bufferSize);
-			inStoreRegion = false;
-			accessionTrie = accessionTrieGoal.get();
-			taxNodes = taxNodesGoal.get();
-			byteRingBuffer = new CGATRingBuffer(filter.getK());
+		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
+				MurmurCGATBloomFilter filter) {
+			super(bufferSize, taxNodes, accessionMap, filter.getK());
 			this.filter = filter;
 		}
-
+		
 		@Override
-		protected void infoLine() throws IOException {
-			inStoreRegion = false;
-			int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
-			if (pos >= 0) {
-				node = accessionTrie.get(target, 1, pos);
-				if (node != null) {
-					inStoreRegion = taxNodes.isEmpty() || taxNodes.contains(node);
-				}
-			}
-		}
-
-		@Override
-		protected void dataLine() {
-			if (inStoreRegion) {
-				for (int i = 0; i < size - 1; i++) {
-					byteRingBuffer.put(CGAT.cgatToUpperCase(target[i]));
-					if (byteRingBuffer.isFilled() && byteRingBuffer.isCGAT()) {
-						if (!filter.contains(byteRingBuffer, false)) {
-							filter.put(byteRingBuffer);
-						}
-					}
-				}
+		protected void handleStore() {
+			if (!filter.contains(byteRingBuffer, false)) {
+				filter.put(byteRingBuffer);
 			}
 		}
 	}

@@ -6,7 +6,6 @@ import java.util.Collection;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
-import org.metagene.genestrip.fasta.AbstractFastaReader;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -16,8 +15,6 @@ import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
-import org.metagene.genestrip.util.ByteArrayUtil;
-import org.metagene.genestrip.util.CGATRingBuffer;
 
 public class UpdateStoreGoal extends FileListGoal<GSProject> {
 	private final Collection<RefSeqCategory> categories;
@@ -45,8 +42,8 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 			KMerStoreWrapper wrapper = KMerStoreWrapper.load(includeStoreGoal.getFile());
 			KMerSortedArray<String> store = wrapper.getKmerStore();
 
-			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getKMerSize(),
-					getProject().getConfig().getMaxReadSizeBytes(), store);
+			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getMaxReadSizeBytes(),
+					taxTreeGoal.get(), accessionTrieGoal.get(), store);
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
@@ -67,21 +64,14 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 		}
 	}
 
-	protected class MyFastaReader extends AbstractFastaReader {
-		private TaxIdNode node;
-
-		private final TaxTree taxTree;
-		private final AccessionMap accessionTrie;
+	protected class MyFastaReader extends AbstractStoreFastaReader {
 		private final KMerSortedArray<String> store;
-		private final CGATRingBuffer byteRingBuffer;
 
 		private final UpdateValueProvider<String> provider;
 
-		public MyFastaReader(int kmerSize, int bufferSize, KMerSortedArray<String> store) {
-			super(bufferSize);
-			taxTree = taxTreeGoal.get();
-			accessionTrie = accessionTrieGoal.get();
-			byteRingBuffer = new CGATRingBuffer(kmerSize);
+		public MyFastaReader(int bufferSize, TaxTree taxTree, AccessionMap accessionMap,
+				KMerSortedArray<String> store) {
+			super(bufferSize, null, accessionMap, store.getK());
 			this.store = store;
 			provider = new UpdateValueProvider<String>() {
 				@Override
@@ -94,25 +84,17 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 					return newNode.getTaxId();
 				}
 			};
+			includeRegion = true;
 		}
 
 		@Override
 		protected void infoLine() throws IOException {
-			node = null;
-			int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
-			if (pos >= 0) {
-				node = accessionTrie.get(target, 1, pos);
-			}
+			byteRingBuffer.reset();
 		}
-
+				
 		@Override
-		protected void dataLine() throws IOException {
-			for (int i = 0; i < size - 1; i++) {
-				byteRingBuffer.put(target[i]);
-				if (byteRingBuffer.isFilled() && byteRingBuffer.isCGAT()) {
-					store.update(byteRingBuffer, provider, false);
-				}
-			}
+		protected void handleStore() {
+			store.update(byteRingBuffer, provider, false);
 		}
 	}
 }
