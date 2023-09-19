@@ -44,14 +44,14 @@ public class LargeBitVector implements Serializable {
 	}
 
 	public LargeBitVector(long initialSize, boolean enforceLarge) {
-		size = 0;
+		size = -1;
 		ensureCapacity(initialSize, enforceLarge);
 	}
 
 	public void clear() {
 		if (largeBits != null) {
 			BigArrays.fill(largeBits, 0);
-		} else if (bits != null) {
+		} else {
 			Arrays.fill(bits, 0);
 		}
 	}
