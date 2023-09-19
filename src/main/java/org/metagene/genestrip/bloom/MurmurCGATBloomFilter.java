@@ -64,6 +64,7 @@ public class MurmurCGATBloomFilter implements Serializable {
 
 	public void clear() {
 		bitVector.clear();
+		entries = 0;
 	}
 		
 	public void ensureExpectedSize(long expectedInsertions, boolean enforceLarge) {

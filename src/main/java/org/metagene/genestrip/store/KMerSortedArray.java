@@ -140,8 +140,8 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			throw new IllegalArgumentException("Expected insertions must be > 0.");
 		}
 		initSize = true;
-		filter.clear();
 		filter.ensureExpectedSize(size, false);
+		filter.clear();
 		this.size = size;
 
 		if (size > MAX_SMALL_CAPACITY || enforceLarge) {
@@ -159,23 +159,24 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		}
 	}
 
-	protected void clearArray() {
-		if (largeKmers != null) {
-			BigArrays.fill(largeKmers, 0);
-			BigArrays.fill(largeValueIndexes, (short) 0);
-			if (withCounts) {
-				BigArrays.fill(largeCounts, (byte) 0);
-				countsChanged = false;
-			}
-		} else {
-			Arrays.fill(kmers, 0);
-			Arrays.fill(valueIndexes, (short) 0);
-			if (withCounts) {
-				Arrays.fill(counts, (byte) 0);
-				countsChanged = false;
-			}
-		}
-	}
+// TODO: Can this be deleted?	
+//	protected void clearArray() {
+//		if (largeKmers != null) {
+//			BigArrays.fill(largeKmers, 0);
+//			BigArrays.fill(largeValueIndexes, (short) 0);
+//			if (withCounts) {
+//				BigArrays.fill(largeCounts, (byte) 0);
+//				countsChanged = false;
+//			}
+//		} else {
+//			Arrays.fill(kmers, 0);
+//			Arrays.fill(valueIndexes, (short) 0);
+//			if (withCounts) {
+//				Arrays.fill(counts, (byte) 0);
+//				countsChanged = false;
+//			}
+//		}
+//	}
 
 	public Object2LongMap<V> getNKmersPerTaxid() {
 		long[] countArray = new long[nextValueIndex];

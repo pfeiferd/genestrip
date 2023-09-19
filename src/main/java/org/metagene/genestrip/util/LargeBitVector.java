@@ -51,7 +51,7 @@ public class LargeBitVector implements Serializable {
 	public void clear() {
 		if (largeBits != null) {
 			BigArrays.fill(largeBits, 0);
-		} else if (bits != null) {
+		} else {
 			Arrays.fill(bits, 0);
 		}
 	}
