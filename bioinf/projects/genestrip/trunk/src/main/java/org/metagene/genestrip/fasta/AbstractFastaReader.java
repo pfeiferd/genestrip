@@ -34,7 +34,7 @@ import org.metagene.genestrip.util.BufferedLineReader;
 import org.metagene.genestrip.util.StreamProvider;
 
 public abstract class AbstractFastaReader {
-	private final Log logger = LogFactory.getLog(getClass());
+	private final Log logger = LogFactory.getLog("fastreader");
 	
 	private final BufferedLineReader bufferedLineReader;
 	protected final byte[] target;
@@ -59,7 +59,7 @@ public abstract class AbstractFastaReader {
 		}
 	}
 	
-	public Log getLogger() {
+	protected Log getLogger() {
 		return logger;
 	}
 

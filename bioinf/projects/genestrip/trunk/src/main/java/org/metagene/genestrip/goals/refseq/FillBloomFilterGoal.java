@@ -57,7 +57,7 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 		}
 	}
 
-	protected class MyFastaReader extends AbstractStoreFastaReader {
+	protected static class MyFastaReader extends AbstractStoreFastaReader {
 		private final MurmurCGATBloomFilter filter;
 
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
