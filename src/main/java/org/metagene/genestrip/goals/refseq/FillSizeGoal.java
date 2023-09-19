@@ -18,8 +18,6 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 
-	private final int kmerSize;
-
 	@SafeVarargs
 	public FillSizeGoal(GSProject project, String name, Collection<RefSeqCategory> includeCategories,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
@@ -29,7 +27,6 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
 		this.accessionMapGoal = accessionMapGoal;
-		kmerSize = project.getConfig().getKMerSize();
 	}
 
 	public Collection<RefSeqCategory> getIncludedCategories() {
@@ -40,7 +37,7 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 	public void makeThis() {
 		try {
 			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getMaxReadSizeBytes(),
-					taxNodesGoal.get(), accessionMapGoal.get());
+					taxNodesGoal.get(), accessionMapGoal.get(), getProject().getConfig().getKMerSize());
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
@@ -58,18 +55,20 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 		}
 	}
 
-	protected class MyFastaReader extends AbstractRefSeqFastaReader {
+	protected static class MyFastaReader extends AbstractRefSeqFastaReader {
 		private long counter;
+		private final int k;
 
-		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap) {
+		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k) {
 			super(bufferSize, taxNodes, accessionMap);
+			this.k = k;
 			counter = 0;
 		}
 
 		@Override
 		protected void infoLine() throws IOException {
 			if (includeRegion) {
-				counter -= kmerSize - 1;
+				counter -= k - 1;
 			}
 			super.infoLine();
 		}
@@ -88,7 +87,7 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 		@Override
 		protected void done() throws IOException {
 			if (includeRegion) {
-				counter -= kmerSize - 1;
+				counter -= k - 1;
 			}
 		}
 	}

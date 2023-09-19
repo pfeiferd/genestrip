@@ -17,7 +17,7 @@ public abstract class AccessionFileProcessor {
 	protected static final String[] GENOMIC_ACCESSION_PREFIXES = { "AC_", "NC_", "NG_", "NT_", "NW_", "NZ_" };
 	
 
-	protected final Log logger = LogFactory.getLog(getClass());
+	protected final Log logger = LogFactory.getLog("accreader");
 
 	private final long recordLogCycle = 1000 * 1000 * 10;
 	private final Collection<RefSeqCategory> categories;

@@ -53,8 +53,8 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 					fastaReader.readFasta(fnaFile);
 				}
 			}
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Not stored kmers: " + fastaReader.tooManyCounter);
+			if (getLogger().isWarnEnabled()) {
+				getLogger().warn("Not stored kmers: " + fastaReader.tooManyCounter);
 			}
 
 			store.optimize();
@@ -69,7 +69,7 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 		}
 	}
 
-	protected class MyFastaReader extends AbstractStoreFastaReader {
+	protected static class MyFastaReader extends AbstractStoreFastaReader {
 		private final KMerSortedArray<String> store;
 		private long tooManyCounter;
 
