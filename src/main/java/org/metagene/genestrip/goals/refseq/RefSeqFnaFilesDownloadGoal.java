@@ -14,12 +14,11 @@ import java.util.Map;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.make.FileDownloadGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
-public class RefSeqFnaFilesDownloadGoal extends FileDownloadGoal<GSProject> {
+public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setDelimiter('\t').setRecordSeparator('\n')
 			.build();
 
@@ -60,7 +59,7 @@ public class RefSeqFnaFilesDownloadGoal extends FileDownloadGoal<GSProject> {
 
 	@Override
 	protected String getFTPDir(File file) {
-		return RefSeqCatalogDownloadGoal.RELEASE_FOLDER + "/" + file2Cat.get(file).getDirectory();
+		return RELEASE_FOLDER + "/" + file2Cat.get(file).getDirectory();
 	}
 
 	@Override

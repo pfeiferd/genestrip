@@ -38,8 +38,11 @@ import org.metagene.genestrip.tax.TaxTree.Rank;
 
 public class GSConfig {
 	public static final String CONFIG_PROPERTIES = "Config.properties";
-	public static final String NCBI_URL = "ftp.ncbi.nih.gov";
+	public static final String NCBI_FTP_URL = "ftp.ncbi.nih.gov";
 	public static final String NCBI_HTTP_BASE_URL = "https://ftp.ncbi.nlm.nih.gov";
+	public static final String REF_SEQ_HTTP_BASE_URL = NCBI_HTTP_BASE_URL + "/refseq";
+	public static final String REF_SEQ_FTP_URL = NCBI_FTP_URL;
+	
 
 	private final File baseDir;
 	private final Properties properties;
@@ -153,7 +156,7 @@ public class GSConfig {
 	}
 
 	public String getFtpBaseURL() {
-		return properties.getProperty("ftpBaseURL", NCBI_URL);
+		return properties.getProperty("ftpBaseURL", NCBI_FTP_URL);
 	}
 
 	public String getHttpBaseURL() {
@@ -161,7 +164,7 @@ public class GSConfig {
 	}
 
 	public int getKMerSize() {
-		return Integer.valueOf(properties.getProperty("kMerSize", "35"));
+		return Integer.valueOf(properties.getProperty("kMerSize", "31"));
 	}
 
 	public File getCommonDir() {
@@ -184,11 +187,15 @@ public class GSConfig {
 		return Integer.valueOf(properties.getProperty("maxBloomFilterSize", Integer.toString(Integer.MAX_VALUE)));
 	}
 	
-	public String getRefSeqReleaseName() {
-		return properties.getProperty("refSeqReleaseName", "release220");
-	}
-	
 	public File getRefSeqDir() {
 		return new File(getCommonDir(), "refseq");
 	}
+	
+	public String getRefSeqHttpBaseURL() {
+		return properties.getProperty("refseqHttpBaseURL", REF_SEQ_HTTP_BASE_URL);
+	}
+
+	public String getRefSeqFTPBaseURL() {
+		return properties.getProperty("refseqHttpBaseURL", REF_SEQ_FTP_URL);
+	}	
 }

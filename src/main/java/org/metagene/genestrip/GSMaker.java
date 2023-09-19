@@ -63,6 +63,7 @@ import org.metagene.genestrip.goals.refseq.FillStoreGoal;
 import org.metagene.genestrip.goals.refseq.RefSeqCatalogDownloadGoal;
 import org.metagene.genestrip.goals.refseq.RefSeqCategory;
 import org.metagene.genestrip.goals.refseq.RefSeqFnaFilesDownloadGoal;
+import org.metagene.genestrip.goals.refseq.RefSeqRNumDownloadGoal;
 import org.metagene.genestrip.goals.refseq.UpdateStoreGoal;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.FileListGoal;
@@ -201,7 +202,8 @@ public class GSMaker extends Maker<GSProject> {
 				kmerFastqGoal, bloomFilterSizeGoal, projectSetupGoal, taxTreeGoal);
 		registerGoal(storeGoal);
 
-		Goal<GSProject> storeInfoGoal = new StoreInfoGoal(project, "storeinfo", storeGoal, projectSetupGoal);
+		Goal<GSProject> storeInfoGoal = new StoreInfoGoal(project, "storeinfo", taxTreeGoal, storeGoal,
+				projectSetupGoal);
 		registerGoal(storeInfoGoal);
 
 		KrakenFastqFileGoal krakenFastqGoal = new KrakenFastqFileGoal(project, "krakenfastq", taxNodesGoal,
@@ -253,12 +255,12 @@ public class GSMaker extends Maker<GSProject> {
 					project.getConfig().isWriteDumpedFastq(), bloomFilterFileGoal, projectSetupGoal);
 			registerGoal(filterGoal);
 
-			Goal<GSProject> classifyGoal = new MatchGoal(project, "match", fastqOrCSV, storeGoal,
+			Goal<GSProject> classifyGoal = new MatchGoal(project, "match", fastqOrCSV, taxTreeGoal, storeGoal,
 					project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
 			registerGoal(classifyGoal);
 
-			Goal<GSProject> multiMatchGoal = new MultiMatchGoal(project, MultiMatchGoal.NAME, fastqOrCSV, storeGoal,
-					project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
+			Goal<GSProject> multiMatchGoal = new MultiMatchGoal(project, MultiMatchGoal.NAME, fastqOrCSV, taxTreeGoal,
+					storeGoal, project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
 			registerGoal(multiMatchGoal);
 
 			Goal<GSProject> krakenResCountGoal = new KrakenResCountGoal(project, "krakenres", fastqOrCSV, taxNodesGoal,
@@ -296,16 +298,18 @@ public class GSMaker extends Maker<GSProject> {
 			registerGoal(krakenResErrorGoal);
 		}
 
-		Collection<RefSeqCategory> coveredCategories = Arrays
-				.asList(RefSeqCategory.viral , RefSeqCategory.bacteria);
+		Collection<RefSeqCategory> coveredCategories = Arrays.asList(RefSeqCategory.viral, RefSeqCategory.bacteria);
 		Collection<RefSeqCategory> includedCategories = Arrays.asList(RefSeqCategory.bacteria);
 
 		if (!coveredCategories.containsAll(includedCategories)) {
 			throw new IllegalStateException("Covered categories must contain included categories.");
 		}
+		
+		FileGoal<GSProject> releaseNumberGoal = new RefSeqRNumDownloadGoal(project, "refseqrelease", commonSetupGoal);
+		registerGoal(releaseNumberGoal);
 
 		RefSeqCatalogDownloadGoal refSeqCatalogGoal = new RefSeqCatalogDownloadGoal(project, "refseqcat",
-				commonSetupGoal);
+				releaseNumberGoal, commonSetupGoal);
 		registerGoal(refSeqCatalogGoal);
 
 		RefSeqFnaFilesDownloadGoal refSeqFnaFilesGoal = new RefSeqFnaFilesDownloadGoal(project, "refseqfna",
@@ -332,17 +336,17 @@ public class GSMaker extends Maker<GSProject> {
 				accessCollGoal, fillSizeGoal, fillBloomGoal, projectSetupGoal);
 		registerGoal(fillStoreGoal);
 
-		UpdateStoreGoal updateStoreGoal = new UpdateStoreGoal(project, "updatestore", taxTreeGoal, taxNodesGoal,
-				refSeqFnaFilesGoal, accessCollGoal, fillStoreGoal, projectSetupGoal);
+		UpdateStoreGoal updateStoreGoal = new UpdateStoreGoal(project, "updatestore", taxTreeGoal, refSeqFnaFilesGoal,
+				accessCollGoal, fillStoreGoal, projectSetupGoal);
 		registerGoal(updateStoreGoal);
 
-		Goal<GSProject> newMatchGoal = new MatchGoal(project, "newmatch", fastqOrCSV, updateStoreGoal,
+		Goal<GSProject> newMatchGoal = new MatchGoal(project, "newmatch", fastqOrCSV, taxTreeGoal, updateStoreGoal,
 				project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
 		registerGoal(newMatchGoal);
 
-		Goal<GSProject> newMultiMatchGoal = new MultiMatchGoal(project, "new" + MultiMatchGoal.NAME, fastqOrCSV, updateStoreGoal,
-				project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
+		Goal<GSProject> newMultiMatchGoal = new MultiMatchGoal(project, "new" + MultiMatchGoal.NAME, fastqOrCSV,
+				taxTreeGoal, updateStoreGoal, project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
 		registerGoal(newMultiMatchGoal);
-		
+
 	}
 }

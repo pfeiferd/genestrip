@@ -29,42 +29,26 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.util.List;
-import java.util.Set;
 
-import org.metagene.genestrip.tax.TaxIdCollector;
-import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.StreamProvider;
+
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 public class KMerStoreWrapper implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	private final KMerSortedArray<String> kmerStore;
-	private final List<TaxIdNode> taxids;
-	private final List<StoreStatsPerTaxid> storeStats;
 
-	public KMerStoreWrapper(KMerSortedArray<String> kmerStore, Set<TaxIdNode> taxids,
-			List<StoreStatsPerTaxid> storeStats) {
-		this(kmerStore, TaxIdCollector.nodesAsShallowCopies(TaxIdCollector.sortNodes(taxids)), storeStats);
-	}
-
-	public KMerStoreWrapper(KMerSortedArray<String> kmerStore, List<TaxIdNode> taxids,
-			List<StoreStatsPerTaxid> storeStats) {
+	public KMerStoreWrapper(KMerSortedArray<String> kmerStore) {
 		this.kmerStore = kmerStore;
-		this.taxids = taxids;
-		this.storeStats = storeStats;
 	}
 
 	public KMerSortedArray<String> getKmerStore() {
 		return kmerStore;
 	}
-
-	public List<TaxIdNode> getTaxids() {
-		return taxids;
-	}
-
-	public List<StoreStatsPerTaxid> getStoreStats() {
-		return storeStats;
+	
+	public Object2LongMap<String> getStats() {
+		return kmerStore.getStats();
 	}
 
 	public void save(File file) throws IOException {

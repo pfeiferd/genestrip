@@ -25,37 +25,45 @@
 package org.metagene.genestrip.goals.refseq;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.make.FileDownloadGoal;
+import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.util.ArraysUtil;
 
-public class RefSeqCatalogDownloadGoal extends FileDownloadGoal<GSProject> {
-	public static final String RELEASE_FOLDER = "/refseq/release";
+public class RefSeqCatalogDownloadGoal extends RefSeqDownloadGoal {
 	public static final String CATALOG_FOLDER = RELEASE_FOLDER + "/release-catalog";
-	public static final String CATALOG_BASE_NAME = "RefSeq-{0}.catalog.gz";
-	public static final String FILES_INSTALLED_NAME = "{0}.files.installed";
+	public static final String CATALOG_BASE_NAME = "RefSeq-release{0}.catalog.gz";
+	public static final String FILES_INSTALLED_NAME = "release{0}.files.installed";
 
 	private final List<File> files;
 
 	@SafeVarargs
-	public RefSeqCatalogDownloadGoal(GSProject project, String name, Goal<GSProject>... deps) {
-		super(project, name, deps);
-		
-		String releaseName = project.getConfig().getRefSeqReleaseName();
-		
-		String catalog = MessageFormat.format(CATALOG_BASE_NAME, releaseName);
-		String filesInstalled = MessageFormat.format(FILES_INSTALLED_NAME, releaseName);
-				
-		files = new ArrayList<File>();
-		
-		files.add(new File(project.getConfig().getRefSeqDir(), catalog));
-		files.add(new File(project.getConfig().getRefSeqDir(), filesInstalled));
+	public RefSeqCatalogDownloadGoal(GSProject project, String name, FileGoal<GSProject> releaseNumberGoal,
+			Goal<GSProject>... deps) {
+		super(project, name, ArraysUtil.append(deps, releaseNumberGoal));
+
+		try {
+			byte[] encoded = Files.readAllBytes(releaseNumberGoal.getFile().toPath());
+			String releaseNumber = new String(encoded).trim();
+
+			String catalog = MessageFormat.format(CATALOG_BASE_NAME, releaseNumber);
+			String filesInstalled = MessageFormat.format(FILES_INSTALLED_NAME, releaseNumber);
+
+			files = new ArrayList<File>();
+
+			files.add(new File(project.getConfig().getRefSeqDir(), catalog));
+			files.add(new File(project.getConfig().getRefSeqDir(), filesInstalled));
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
-	
+
 	public File getCatalogFile() {
 		return files.get(0);
 	}
@@ -63,7 +71,7 @@ public class RefSeqCatalogDownloadGoal extends FileDownloadGoal<GSProject> {
 	public File getInstalledFilesFile() {
 		return files.get(1);
 	}
-	
+
 	@Override
 	public boolean isAllowTransitiveClean() {
 		return false;

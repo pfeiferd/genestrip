@@ -34,25 +34,29 @@ import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.match.FastqKMerMatcher;
 import org.metagene.genestrip.match.FastqKMerMatcher.Result;
 import org.metagene.genestrip.match.ResultReporter;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
+import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class MatchGoal extends FileListGoal<GSProject> {
 	private final File fastq;
+	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 	private final FileGoal<GSProject> storeGoal;
 	private final boolean writedFiltered;
 
 	@SafeVarargs
-	public MatchGoal(GSProject project, String name, File fastq, FileGoal<GSProject> storeGoal, boolean writeFiltered,
+	public MatchGoal(GSProject project, String name, File fastq, ObjectGoal<TaxTree, GSProject> taxTreeGoal, FileGoal<GSProject> storeGoal, boolean writeFiltered,
 			Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, fastq, FileType.CSV, false),
-				ArraysUtil.append(deps, storeGoal));
+				ArraysUtil.append(deps, taxTreeGoal, storeGoal));
 		this.fastq = fastq;
+		this.taxTreeGoal = taxTreeGoal;
 		this.storeGoal = storeGoal;
 		this.writedFiltered = writeFiltered;
 	}
@@ -79,7 +83,7 @@ public class MatchGoal extends FileListGoal<GSProject> {
 			c.dump();
 
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-			new ResultReporter(wrapper.getTaxids()).printMatchResult(res, out, null /* TODO */);
+			new ResultReporter(taxTreeGoal.get()).printMatchResult(res, out, wrapper);
 			out.close();
 		} catch (IOException | ClassNotFoundException e) {
 			throw new RuntimeException(e);
