@@ -129,13 +129,21 @@ public abstract class FileDownloadGoal<P extends DownloadProject> extends FileGo
 	}
 
 	protected String buildHttpURL(File file) {
-		return getProject().getHttpBaseURL() + getFTPDir(file) + "/" + file.getName();
+		return getHttpBaseURL() + getFTPDir(file) + "/" + file.getName();
 	}
 
 	protected String buildFTPURL(File file) {
-		return getProject().getBaseFTPURL() + getFTPDir(file) + "/" + file.getName();
+		return getFTPBaseURL() + getFTPDir(file) + "/" + file.getName();
+	}
+	
+	protected String getHttpBaseURL() {
+		return getProject().getHttpBaseURL();
 	}
 
+	protected String getFTPBaseURL() {
+		return getProject().getBaseFTPURL();
+	}
+	
 	@Override
 	protected void startMake() {
 		if (!getProject().isUseHttp()) {

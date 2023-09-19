@@ -1,26 +1,21 @@
 package org.metagene.genestrip.match;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.commons.math3.distribution.NormalDistribution;
 import org.metagene.genestrip.match.FastqKMerMatcher.StatsPerTaxid;
 import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerSortedArray.KMerSortedArrayVisitor;
 import org.metagene.genestrip.store.KMerStoreWrapper;
-import org.metagene.genestrip.store.KMerStoreWrapper.StoreStatsPerTaxid;
+
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 public class UniqueKMerEstimator {
 	private long totalKMers;
 	private final KMerStoreWrapper storeWrapper;
-	private final Map<String, StoreStatsPerTaxid> taxidToStoreStats;
+	private final Object2LongMap<String> storeStats;
 
 	public UniqueKMerEstimator(KMerStoreWrapper storeWrapper) {
 		this.storeWrapper = storeWrapper;
-		taxidToStoreStats = new HashMap<String, StoreStatsPerTaxid>();
-		for (StoreStatsPerTaxid stats : storeWrapper.getStoreStats()) {
-			taxidToStoreStats.put(stats.getTaxid(), stats);
-		}
+		storeStats = storeWrapper.getStats();
 	}
 
 	public void setTotalKMers(long totalKMers) {
@@ -32,9 +27,9 @@ public class UniqueKMerEstimator {
 	}
 
 	public double getNormalizedKMers(StatsPerTaxid stats) {
-		long totalStoredWithCounts = taxidToStoreStats.get(null).getAssignedKMersWithCounts();
+		long totalStoredWithCounts = storeStats.getLong(null);
 		return ((double) stats.getKMers()) * totalStoredWithCounts / totalKMers
-				/ taxidToStoreStats.get(stats.getTaxid()).assignedKMers;
+				/ storeStats.getLong(stats.getTaxid());
 	}
 
 	public double getExpectedUniqueKMersWithCounts(StatsPerTaxid stats) {
@@ -65,21 +60,21 @@ public class UniqueKMerEstimator {
 	 * From https://arxiv.org/pdf/1602.05822.pdf (5)
 	 */
 	public double getExpectedUniqueKMers(StatsPerTaxid stats) {
-		return taxidToStoreStats.get(stats.getTaxid()).assignedKMers * getAtLeastOnceUniqueKMerProb(stats);
+		return storeStats.getLong(stats.getTaxid()) * getAtLeastOnceUniqueKMerProb(stats);
 	}
 
 	/*
 	 * From https://arxiv.org/pdf/1602.05822.pdf (5)
 	 */
 	public double getUniqueKMersVariance(StatsPerTaxid stats) {
-		double N = taxidToStoreStats.get(stats.getTaxid()).assignedKMers;
+		double N = storeStats.getLong(stats.getTaxid());
 		double A = stats.getKMers();
 
 		return N * (N - 1) * Math.pow(1 - 2 / N, A) + N * Math.pow(1 - 1 / N, A) - N * N * Math.pow(1 - 1 / N, 2 * A);
 	}
 
 	public double getAtLeastOnceUniqueKMerProb(StatsPerTaxid stats) {
-		double N = taxidToStoreStats.get(stats.getTaxid()).assignedKMers;
+		double N = storeStats.getLong(stats.getTaxid());
 		double A = stats.getKMers();
 		return 1 - Math.pow(1 - 1d / N, A);
 	}
@@ -109,7 +104,7 @@ public class UniqueKMerEstimator {
 	 * From https://arxiv.org/pdf/1602.05822.pdf (9)
 	 */
 	public boolean isProbEstimateInRange(StatsPerTaxid stats) {
-		double N = taxidToStoreStats.get(stats.getTaxid()).assignedKMers;
+		double N = storeStats.getLong(stats.getTaxid());
 		double A = stats.getKMers();
 
 		if (N <= 5 || A <= 5) {

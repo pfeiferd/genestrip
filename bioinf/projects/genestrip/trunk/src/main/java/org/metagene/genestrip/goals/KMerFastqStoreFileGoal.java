@@ -101,7 +101,7 @@ public class KMerFastqStoreFileGoal extends FileListGoal<GSProject> {
 				getLogger().info("Saving file " + storeFile);
 			}
 			store.optimize();			
-			KMerStoreWrapper wrapper = new KMerStoreWrapper(store, taxNodesGoal.get(), null);			
+			KMerStoreWrapper wrapper = new KMerStoreWrapper(store);			
 			wrapper.save(storeFile);
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Saved file " + storeFile);

@@ -32,18 +32,22 @@ import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.match.ResultReporter;
 import org.metagene.genestrip.store.KMerStoreWrapper;
+import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class StoreInfoGoal extends FileListGoal<GSProject> {
+	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 	private final KMerStoreFileGoal storeGoal;
 
 	@SafeVarargs
-	public StoreInfoGoal(GSProject project, String name, KMerStoreFileGoal storeGoal, Goal<GSProject>... deps) {
+	public StoreInfoGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal, KMerStoreFileGoal storeGoal, Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, storeGoal.getFile(), FileType.CSV, false),
-				ArraysUtil.append(deps, storeGoal));
+				ArraysUtil.append(deps, taxTreeGoal, storeGoal));
+		this.taxTreeGoal = taxTreeGoal;
 		this.storeGoal = storeGoal;
 	}
 
@@ -52,7 +56,7 @@ public class StoreInfoGoal extends FileListGoal<GSProject> {
 		try {
 			KMerStoreWrapper wrapper = KMerStoreWrapper.load(storeGoal.getFile());
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-			new ResultReporter(wrapper.getTaxids()).printStoreInfo(wrapper.getStoreStats(), out);
+			new ResultReporter(taxTreeGoal.get()).printStoreInfo(wrapper.getStats(), out);
 			out.close();
 		} catch (IOException | ClassNotFoundException e) {
 			throw new RuntimeException(e);

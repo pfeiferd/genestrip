@@ -3,7 +3,6 @@ package org.metagene.genestrip.goals.refseq;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
@@ -22,7 +21,6 @@ import org.metagene.genestrip.util.CGATRingBuffer;
 
 public class UpdateStoreGoal extends FileListGoal<GSProject> {
 	private final Collection<RefSeqCategory> categories;
-	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
 	private final ObjectGoal<AccessionMap, GSProject> accessionTrieGoal;
 	private final FillStoreGoal includeStoreGoal;
@@ -30,14 +28,12 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 
 	@SafeVarargs
 	public UpdateStoreGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
-			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-			ObjectGoal<AccessionMap, GSProject> accessionTrieGoal, FillStoreGoal includeStoreGoal,
-			Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, FileType.SER), ArraysUtil.append(deps, taxTreeGoal,
-				taxNodesGoal, fnaFilesGoal, accessionTrieGoal, includeStoreGoal));
+			RefSeqFnaFilesDownloadGoal fnaFilesGoal, ObjectGoal<AccessionMap, GSProject> accessionTrieGoal,
+			FillStoreGoal includeStoreGoal, Goal<GSProject>... deps) {
+		super(project, name, project.getOutputFile(name, FileType.SER),
+				ArraysUtil.append(deps, taxTreeGoal, fnaFilesGoal, accessionTrieGoal, includeStoreGoal));
 		this.categories = fnaFilesGoal.getCategories();
 		this.taxTreeGoal = taxTreeGoal;
-		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
 		this.accessionTrieGoal = accessionTrieGoal;
 		this.includeStoreGoal = includeStoreGoal;
@@ -59,8 +55,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 				}
 			}
 
-			// TODO: How to best create the store stats?
-			KMerStoreWrapper wrapper2 = new KMerStoreWrapper((KMerSortedArray<String>) store, taxNodesGoal.get(), null);
+			KMerStoreWrapper wrapper2 = new KMerStoreWrapper((KMerSortedArray<String>) store);
 			wrapper2.save(storeFile);
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("File saved " + storeFile);

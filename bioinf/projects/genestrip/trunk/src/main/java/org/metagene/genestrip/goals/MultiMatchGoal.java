@@ -43,20 +43,23 @@ import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.match.FastqKMerMatcher;
 import org.metagene.genestrip.match.FastqKMerMatcher.Result;
 import org.metagene.genestrip.match.ResultReporter;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.store.KMerUniqueCounter;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
+import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
 public class MultiMatchGoal extends FileListGoal<GSProject> {
 	public static final String NAME = "multimatch";
-	
+
 	private final Map<File, List<File>> fileToFastqs;
 	private final File csvFile;
+	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 	private final FileGoal<GSProject> storeGoal;
 	private final boolean writedFiltered;
 
@@ -66,10 +69,11 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 	private KMerUniqueCounter uniqueCounter;
 
 	@SafeVarargs
-	public MultiMatchGoal(GSProject project, String name, File csvFile, FileGoal<GSProject> storeGoal,
-			boolean writeFiltered, Goal<GSProject>... deps) {
-		super(project, name, (List<File>) null, ArraysUtil.append(deps, storeGoal));
+	public MultiMatchGoal(GSProject project, String name, File csvFile, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
+			FileGoal<GSProject> storeGoal, boolean writeFiltered, Goal<GSProject>... deps) {
+		super(project, name, (List<File>) null, ArraysUtil.append(deps, taxTreeGoal, storeGoal));
 		this.csvFile = csvFile;
+		this.taxTreeGoal = taxTreeGoal;
 		this.storeGoal = storeGoal;
 		this.writedFiltered = writeFiltered;
 		fileToFastqs = new HashMap<File, List<File>>();
@@ -103,7 +107,7 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	@Override
 	protected void makeFile(File file) {
 		try {
@@ -121,8 +125,9 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 				wrapper = KMerStoreWrapper.load(storeGoal.getFile());
 				matcher = new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(),
 						config.getThreadQueueSize(), config.getThreads());
-				reporter = new ResultReporter(wrapper.getTaxids());
-				uniqueCounter = config.isCountUniqueKmers() ? new KMerUniqueCounterBits(wrapper.getKmerStore(), true) : null;
+				reporter = new ResultReporter(taxTreeGoal.get());
+				uniqueCounter = config.isCountUniqueKmers() ? new KMerUniqueCounterBits(wrapper.getKmerStore(), true)
+						: null;
 			}
 			if (uniqueCounter != null) {
 				uniqueCounter.clear();
@@ -135,12 +140,12 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	public static CSVParser readCSVFile(File csvFile) throws IOException {
 		Reader in = new InputStreamReader(StreamProvider.getInputStreamForFile(csvFile));
 		CSVFormat format = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#').setDelimiter(' ')
 				.setRecordSeparator('\n').build();
-		return format.parse(in);		
+		return format.parse(in);
 	}
 
 	@Override

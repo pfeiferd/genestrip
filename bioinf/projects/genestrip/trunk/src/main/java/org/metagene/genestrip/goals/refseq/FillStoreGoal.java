@@ -60,7 +60,7 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 
 			store.optimize();
 
-			KMerStoreWrapper wrapper = new KMerStoreWrapper((KMerSortedArray<String>) store, taxNodesGoal.get(), null);
+			KMerStoreWrapper wrapper = new KMerStoreWrapper((KMerSortedArray<String>) store);
 			wrapper.save(storeFile);
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("File saved " + storeFile);

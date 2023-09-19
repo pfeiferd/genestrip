@@ -91,6 +91,29 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		}
 		this.filter = filter;
 	}
+	
+	public long[] getStatsAsIndexArray() {		
+		long[] counts = new long[nextValueIndex];
+		visit(new KMerSortedArrayVisitor<V>() {
+			@Override
+			public void nextValue(KMerSortedArray<V> trie, long kmer, short index, long i) {
+				counts[index]++;
+			}
+		});
+		return counts;
+	}
+	
+	public Object2LongMap<V> getStats() {		
+		long[] counts = getStatsAsIndexArray();
+		
+		Object2LongMap<V> res = new Object2LongOpenHashMap<V>(counts.length);
+		for (short i = 0; i < counts.length; i++) {
+			res.put(indexMap.get(i), counts[i]);
+		}
+		res.put(null, entries);
+		
+		return res;
+	}
 
 	public KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge, boolean withCounts) {
 		this(k, fpp, initialValues, enforceLarge, withCounts, new MurmurCGATBloomFilter(k, fpp));
