@@ -6,14 +6,15 @@ import java.util.Collection;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.bloom.AbstractKMerBloomIndex;
-import org.metagene.genestrip.bloom.FastaIndexer;
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
+import org.metagene.genestrip.fasta.AbstractFastaReader;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.ByteArrayUtil;
+import org.metagene.genestrip.util.CGAT;
+import org.metagene.genestrip.util.CGATRingBuffer;
 
 public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSProject> {
 	private final Collection<RefSeqCategory> includedCategories;
@@ -37,11 +38,11 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 	@Override
 	public void makeThis() {
 		try {
-			AbstractKMerBloomIndex bloomIndex = new AbstractKMerBloomIndex("temp",
-					getProject().getConfig().getKMerSize(), 0.000000001, null);
-			bloomIndex.getFilter().ensureExpectedSize(sizeGoal.get(), false);
+			MurmurCGATBloomFilter filter = new MurmurCGATBloomFilter(getProject().getConfig().getKMerSize(),
+					0.000000001);
+			filter.ensureExpectedSize(sizeGoal.get(), false);
 
-			MyFastaReader fastaReader = new MyFastaReader(bloomIndex, getProject().getConfig().getMaxReadSizeBytes());
+			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getMaxReadSizeBytes(), filter);
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
@@ -50,45 +51,55 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 				}
 			}
 
-			set(bloomIndex.getFilter());
+			set(filter);
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("Bloom filter entries: " + filter.getEntries());
+			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	protected class MyFastaReader extends FastaIndexer {
-		private boolean inCountRegion;
-		private AccessionMap accessionTrie;
-		private Set<TaxIdNode> taxNodes;
+	protected class MyFastaReader extends AbstractFastaReader {
+		private boolean inStoreRegion;
+		private TaxIdNode node;
+		private final AccessionMap accessionTrie;
+		private final Set<TaxIdNode> taxNodes;
+		private final MurmurCGATBloomFilter filter;
+		private final CGATRingBuffer byteRingBuffer;
 
-		public MyFastaReader(AbstractKMerBloomIndex bloomIndex, int bufferSize) {
-			super(bloomIndex, bufferSize);
-			inCountRegion = false;
+		public MyFastaReader(int bufferSize, MurmurCGATBloomFilter filter) {
+			super(bufferSize);
+			inStoreRegion = false;
 			accessionTrie = accessionTrieGoal.get();
 			taxNodes = taxNodesGoal.get();
+			byteRingBuffer = new CGATRingBuffer(filter.getK());
+			this.filter = filter;
 		}
 
 		@Override
 		protected void infoLine() throws IOException {
-			super.infoLine();
-			if (taxNodes.isEmpty()) {
-				inCountRegion = true;
-			} else {
-				inCountRegion = false;
-				int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
-				if (pos >= 0) {
-					TaxIdNode node = accessionTrie.get(target, 1, pos);
-					if (node != null) {
-						inCountRegion = taxNodes.contains(node);
-					}
+			inStoreRegion = false;
+			int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
+			if (pos >= 0) {
+				node = accessionTrie.get(target, 1, pos);
+				if (node != null) {
+					inStoreRegion = taxNodes.isEmpty() || taxNodes.contains(node);
 				}
 			}
 		}
 
 		@Override
 		protected void dataLine() {
-			if (inCountRegion) {
-				super.dataLine();
+			if (inStoreRegion) {
+				for (int i = 0; i < size - 1; i++) {
+					byteRingBuffer.put(CGAT.cgatToUpperCase(target[i]));
+					if (byteRingBuffer.isFilled() && byteRingBuffer.isCGAT()) {
+						if (!filter.contains(byteRingBuffer, false)) {
+							filter.put(byteRingBuffer);
+						}
+					}
+				}
 			}
 		}
 	}

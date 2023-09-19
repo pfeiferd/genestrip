@@ -1,27 +1,17 @@
 package org.metagene.genestrip.goals.refseq;
 
 public enum RefSeqCategory {
-	archaea("archaea"),
-	bacteria("bacteria"),
-	complete("complete"),
-	fungi("fungi"),
-	invertebrate("invertebrate"),
-	mitochondrion("mitochondrion"),
-	other("other"),
-	plant("plant"),
-	plasmid("plasmid"),
-	plastid("plastid"),
-	protozoa("protozoa"),
-	vertebrate_mammalian("vertebrate_mammalian"),
-	vertebrate_other("vertebrate_other"),
-	viral("viral"); 
+	ARCHAEA("archaea"), BACTERIA("bacteria"), COMPLETE("complete"), FUNGI("fungi"), INVERTEBRATE("invertebrate"),
+	MITOCHONDRION("mitochondrion"), OTHER("other"), PLANT("plant"), PLASMID("plasmid"), PLASTID("plastid"),
+	PROTOZOA("protozoa"), VERTEBRATE_MAMMALIAN("vertebrate_mammalian"), VERTEBRATE_OTHER("vertebrate_other"),
+	VIRAL("viral");
 
 	private String directory;
-	
+
 	RefSeqCategory(String directory) {
 		this.directory = directory;
 	}
-	
+
 	public String getDirectory() {
 		return directory;
 	}

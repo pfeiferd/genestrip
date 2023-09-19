@@ -12,9 +12,9 @@ import org.metagene.genestrip.util.ArraysUtil;
 
 public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
+	private final RefSeqCatalogDownloadGoal catalogGoal;
 	private final ObjectGoal<Integer, GSProject> accessionMapSizeGoal;
 	private final Collection<RefSeqCategory> categories;
-	private final File catalogFile;
 
 	@SafeVarargs
 	public AccessionMapGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
@@ -22,9 +22,9 @@ public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
 			ObjectGoal<Integer, GSProject> accessionMapSizeGoal, Goal<GSProject>... deps) {
 		super(project, name, ArraysUtil.append(deps, catalogGoal, downloadGoal, accessionMapSizeGoal));
 		this.taxTreeGoal = taxTreeGoal;
+		this.catalogGoal = catalogGoal;
 		this.accessionMapSizeGoal = accessionMapSizeGoal;
 		this.categories = downloadGoal.getCategories();
-		catalogFile = catalogGoal.getCatalogFile();
 	}
 
 	@Override
@@ -48,6 +48,6 @@ public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
 				}
 			}
 		};
-		processor.processCatalog(catalogFile);
+		processor.processCatalog(catalogGoal.getCatalogFile());
 	}
 }

@@ -44,6 +44,7 @@ public class MurmurCGATBloomFilter implements Serializable {
 	protected LargeBitVector bitVector;
 	protected int hashes;
 	protected long[] hashFactors;
+	protected long entries;
 
 	public MurmurCGATBloomFilter(int k, double fpp) {
 		if (k <= 0) {
@@ -58,6 +59,7 @@ public class MurmurCGATBloomFilter implements Serializable {
 		random = new Random(42);
 
 		bitVector = new LargeBitVector(0);
+		entries = 0;
 	}
 
 	public void clear() {
@@ -103,6 +105,10 @@ public class MurmurCGATBloomFilter implements Serializable {
 	public boolean isLarge() {
 		return bitVector.isLarge();
 	}
+	
+	public long getEntries() {
+		return entries;
+	}
 
 	protected int optimalNumOfHashFunctions(long n, long m) {
 		return Math.max(1, (int) Math.round((double) m / n * Math.log(2)));
@@ -125,6 +131,7 @@ public class MurmurCGATBloomFilter implements Serializable {
 	}
 
 	protected void putViaHash(long data) {
+		entries++;
 		for (int i = 0; i < hashes; i++) {
 			bitVector.set(hash(data, i));
 		}
