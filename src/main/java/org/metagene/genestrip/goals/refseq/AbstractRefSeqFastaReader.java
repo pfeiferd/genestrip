@@ -8,9 +8,9 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
 public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
-	private final Set<TaxIdNode> taxNodes;
-	private final AccessionMap accessionMap;
-	
+	protected final Set<TaxIdNode> taxNodes;
+	protected final AccessionMap accessionMap;
+
 	protected boolean includeRegion;
 	protected TaxIdNode node;
 
@@ -23,13 +23,14 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 
 	@Override
 	protected void infoLine() throws IOException {
-		includeRegion = false;
+		updateNodeFromInfoLine();
+		includeRegion = taxNodes.isEmpty() || (node != null && taxNodes.contains(node));
+	}
+
+	protected void updateNodeFromInfoLine() {
 		int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
 		if (pos >= 0) {
 			node = accessionMap.get(target, 1, pos);
-			if (node != null) {
-				includeRegion = taxNodes.isEmpty() || taxNodes.contains(node);
-			}
 		}
 	}
 }

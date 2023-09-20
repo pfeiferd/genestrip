@@ -51,6 +51,8 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 					fastaReader.readFasta(fnaFile);
 				}
 			}
+			
+			System.out.println("** Hit rate: " + (taxTreeGoal.get().hits / (double) taxTreeGoal.get().total));
 
 			KMerStoreWrapper wrapper2 = new KMerStoreWrapper((KMerSortedArray<String>) store);
 			wrapper2.save(storeFile);
@@ -90,6 +92,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 		@Override
 		protected void infoLine() throws IOException {
 			byteRingBuffer.reset();
+			updateNodeFromInfoLine();
 		}
 				
 		@Override

@@ -111,11 +111,15 @@ public class TaxTree implements Serializable {
 	private TaxIdNode lastLCANode1;
 	private TaxIdNode lastLCANode2;
 	private TaxIdNode lastLCARes;
+	public long hits = 0;
+	public long total = 0;
 	
 	// Works only single threaded with cache included...
 	public TaxIdNode getLeastCommonAncestor(final TaxIdNode node1, final TaxIdNode node2) {
+		total++;
 		// Minimal result cache to improve speed.
 		if (node1 == lastLCANode1 && node2 == lastLCANode2) {
+			hits++;
 			return lastLCARes;
 		}
 		for (TaxIdNode res = node1; res != null; res = res.getParent()) {
