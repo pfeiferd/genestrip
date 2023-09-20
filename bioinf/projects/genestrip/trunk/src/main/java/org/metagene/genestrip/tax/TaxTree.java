@@ -107,12 +107,24 @@ public class TaxTree implements Serializable {
 
 		return false;
 	}
-
-	public TaxIdNode getLeastCommonAncestor(TaxIdNode node1, TaxIdNode node2) {
-		for (; node1 != null; node1 = node1.getParent()) {
+	
+	private TaxIdNode lastLCANode1;
+	private TaxIdNode lastLCANode2;
+	private TaxIdNode lastLCARes;
+	
+	// Works only single threaded with cache included...
+	public TaxIdNode getLeastCommonAncestor(final TaxIdNode node1, final TaxIdNode node2) {
+		// Minimal result cache to improve speed.
+		if (node1 == lastLCANode1 && node2 == lastLCANode2) {
+			return lastLCARes;
+		}
+		for (TaxIdNode res = node1; res != null; res = res.getParent()) {
 			for (TaxIdNode ancestor2 = node2; ancestor2 != null; ancestor2 = ancestor2.getParent()) {
-				if (node1 == ancestor2) {
-					return node1;
+				if (res == ancestor2) {
+					lastLCANode1 = node1;
+					lastLCANode2 = node2;
+					lastLCARes = res;
+					return res;
 				}
 			}
 		}
