@@ -49,7 +49,7 @@ public class TaxTree implements Serializable {
 		SUPERCLASS("superclass"), CLASS("class"), SUBCLASS("subclass"), SUPERORDER("superorder"), ORDER("order"),
 		SUBORDER("suborder"), SUPERFAMILY("superfamily"), FAMILY("family"), SUBFAMILY("subfamily"), CLADE("clade"),
 		GENUS("genus"), SUBGENUS("subgenus"), SPECIES_GROUP("species group"), SPECIES("species"), VARIETAS("varietas"),
-		SUBSPECIES("subspecies"), STRAIN("strain"), SEROTYPE("serotype"), FORMA("forma"),
+		SUBSPECIES("subspecies"), STRAIN("strain"), SEROTYPE("serotype"), GENOTYPE("genotype"), FORMA("forma"),
 		FORMA_SPECIALIS("forma specialis"), ISOLATE("isolate"), NO_RANK("no rank");
 
 		private String name;
