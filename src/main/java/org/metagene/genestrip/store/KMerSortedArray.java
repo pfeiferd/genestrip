@@ -91,8 +91,8 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		}
 		this.filter = filter;
 	}
-	
-	public long[] getStatsAsIndexArray() {		
+
+	public long[] getStatsAsIndexArray() {
 		long[] counts = new long[nextValueIndex];
 		visit(new KMerSortedArrayVisitor<V>() {
 			@Override
@@ -102,16 +102,16 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		});
 		return counts;
 	}
-	
-	public Object2LongMap<V> getStats() {		
+
+	public Object2LongMap<V> getStats() {
 		long[] counts = getStatsAsIndexArray();
-		
+
 		Object2LongMap<V> res = new Object2LongOpenHashMap<V>(counts.length);
 		for (short i = 0; i < counts.length; i++) {
 			res.put(indexMap.get(i), counts[i]);
 		}
 		res.put(null, entries);
-		
+
 		return res;
 	}
 
@@ -234,7 +234,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				: CGAT.kMerToLongStraight(nseq, start, k, null);
 		return putLong(kmer, value);
 	}
-	
+
 	public boolean isFull() {
 		return entries == size;
 	}
@@ -354,13 +354,17 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			throw new NullPointerException("null is not allowed as a value.");
 		}
 		if (newValue != oldValue && !newValue.equals(oldValue)) {
-			if (largeKmers != null) {
-				BigArrays.set(largeValueIndexes, pos, index);
-			} else {
-				valueIndexes[(int) pos] = index;
+			index = getIndexForValue(newValue);
+			if (index != -1) {
+				if (largeKmers != null) {
+					BigArrays.set(largeValueIndexes, pos, index);
+				} else {
+					valueIndexes[(int) pos] = index;
+				}
+				return true;
 			}
 		}
-		return true;
+		return false;
 	}
 
 	public V getLong(long kmer, long[] posStore) {
