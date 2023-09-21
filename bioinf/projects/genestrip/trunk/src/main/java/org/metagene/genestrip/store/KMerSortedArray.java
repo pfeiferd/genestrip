@@ -354,15 +354,13 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			throw new NullPointerException("null is not allowed as a value.");
 		}
 		if (newValue != oldValue && !newValue.equals(oldValue)) {
-			index = getIndexForValue(newValue);
-			if (index != -1) {
-				if (largeKmers != null) {
-					BigArrays.set(largeValueIndexes, pos, index);
-				} else {
-					valueIndexes[(int) pos] = index;
-				}
-				return true;
+			index = getAddValueIndex(newValue);
+			if (largeKmers != null) {
+				BigArrays.set(largeValueIndexes, pos, index);
+			} else {
+				valueIndexes[(int) pos] = index;
 			}
+			return true;
 		}
 		return false;
 	}
