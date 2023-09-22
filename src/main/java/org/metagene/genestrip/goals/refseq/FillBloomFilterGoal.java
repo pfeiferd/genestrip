@@ -2,7 +2,6 @@ package org.metagene.genestrip.goals.refseq;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
@@ -13,18 +12,19 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
 
 public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSProject> {
-	private final Collection<RefSeqCategory> includedCategories;
+	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 	private final ObjectGoal<Long, GSProject> sizeGoal;
 
 	@SafeVarargs
-	public FillBloomFilterGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			RefSeqFnaFilesDownloadGoal fnaFilesGoal, ObjectGoal<AccessionMap, GSProject> accessionMapGoal,
-			FillSizeGoal sizeGoal, Goal<GSProject>... deps) {
+	public FillBloomFilterGoal(GSProject project, String name,
+			ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
+			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, FillSizeGoal sizeGoal, Goal<GSProject>... deps) {
 		super(project, name, ArraysUtil.append(deps, taxNodesGoal, fnaFilesGoal, accessionMapGoal, sizeGoal));
-		this.includedCategories = sizeGoal.getIncludedCategories();
+		this.categoriesGoal = categoriesGoal;
 		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
 		this.accessionMapGoal = accessionMapGoal;
@@ -43,7 +43,7 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
-				if (includedCategories.contains(cat)) {
+				if (categoriesGoal.get()[0].contains(cat)) {
 					fastaReader.readFasta(fnaFile);
 				}
 			}
@@ -65,7 +65,7 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 			super(bufferSize, taxNodes, accessionMap, filter.getK());
 			this.filter = filter;
 		}
-		
+
 		@Override
 		protected void handleStore() {
 			if (!filter.contains(byteRingBuffer, false)) {

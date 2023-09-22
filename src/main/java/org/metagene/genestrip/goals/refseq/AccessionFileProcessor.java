@@ -14,18 +14,22 @@ import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
 public abstract class AccessionFileProcessor {
 	private static int MAX_LINE_SIZE = 2048;
-	protected static final String[] GENOMIC_ACCESSION_PREFIXES = { "AC_", "NC_", "NG_", "NT_", "NW_", "NZ_" };
-	
+
+	protected static final String[] ALL_GENOMIC_ACCESSION_PREFIXES = { "AC_", "NC_", "NG_", "NT_", "NW_", "NZ_" };
+
+	protected static final String[] COMPLETE_GENOMIC_ACCESSION_PREFIXES = { "AC_", "NC_", "NZ_" };
 
 	protected final Log logger = LogFactory.getLog("accreader");
 
 	private final long recordLogCycle = 1000 * 1000 * 10;
+	private final boolean completeOnly;
 	private final Collection<RefSeqCategory> categories;
-	
-	public AccessionFileProcessor(Collection<RefSeqCategory> categories) {
+
+	public AccessionFileProcessor(Collection<RefSeqCategory> categories, boolean completeOnly) {
+		this.completeOnly = completeOnly;
 		this.categories = categories;
 	}
-	
+
 	public void processCatalog(File catalogFile) {
 		try {
 			ByteCountingInputStreamAccess byteCountAccess = StreamProvider
@@ -33,7 +37,6 @@ public abstract class AccessionFileProcessor {
 
 			long totalCatSize = Files.size(catalogFile.toPath());
 			byte[] target = new byte[MAX_LINE_SIZE];
-
 
 			// The file is huge, apache csv reader would be too slow and burn too many
 			// string.
@@ -75,7 +78,7 @@ public abstract class AccessionFileProcessor {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	protected abstract void handleEntry(byte[] target, int taxIdEnd, int accessionStart, int accessionEnd);
 
 	protected boolean containsCategory(byte[] outerArray, int start, int end, Collection<RefSeqCategory> categories) {
@@ -87,9 +90,8 @@ public abstract class AccessionFileProcessor {
 		return false;
 	}
 
-
 	protected boolean isGenomicAccession(byte[] outerArray, int start) {
-		for (String prefix : GENOMIC_ACCESSION_PREFIXES) {
+		for (String prefix : completeOnly ? COMPLETE_GENOMIC_ACCESSION_PREFIXES : ALL_GENOMIC_ACCESSION_PREFIXES) {
 			if (ByteArrayUtil.startsWith(outerArray, start, prefix)) {
 				return true;
 			}

@@ -80,7 +80,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 
 	@Override
 	protected ReadEntry createReadEntry(int maxReadSizeBytes) {
-		return new MyReadEntry(maxReadSizeBytes);
+		return new MyReadEntry(maxReadSizeBytes, out != null);
 	}
 
 	public Result runClassifier(File fastq, File filteredFile, File krakenOutStyleFile, KMerUniqueCounter uniqueCounter)
@@ -347,10 +347,11 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		public String readTaxId;
 		public long[] indexPos;
 
-		public MyReadEntry(int maxReadSizeBytes) {
+		public MyReadEntry(int maxReadSizeBytes, boolean enablePrint) {
 			super(maxReadSizeBytes);
 
-			buffer = new byte[maxReadSizeBytes * 4]; // It has to be rather long in some cases...
+			
+			buffer = enablePrint ? new byte[maxReadSizeBytes * 4] : null; // It has to be rather long in some cases...
 			indexPos = new long[1];
 		}
 

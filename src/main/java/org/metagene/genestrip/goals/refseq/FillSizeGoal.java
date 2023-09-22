@@ -2,8 +2,6 @@ package org.metagene.genestrip.goals.refseq;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
@@ -13,24 +11,20 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
 
 public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
-	private final Collection<RefSeqCategory> includedCategories;
+	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 
 	@SafeVarargs
-	public FillSizeGoal(GSProject project, String name, Collection<RefSeqCategory> includeCategories,
+	public FillSizeGoal(GSProject project, String name, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, Goal<GSProject>... deps) {
-		super(project, name, ArraysUtil.append(deps, taxNodesGoal, fnaFilesGoal, accessionMapGoal));
-		this.includedCategories = Collections.unmodifiableCollection(includeCategories);
+		super(project, name, ArraysUtil.append(deps, categoriesGoal, taxNodesGoal, fnaFilesGoal, accessionMapGoal));
+		this.categoriesGoal = categoriesGoal;
 		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
 		this.accessionMapGoal = accessionMapGoal;
-	}
-
-	public Collection<RefSeqCategory> getIncludedCategories() {
-		return includedCategories;
 	}
 
 	@Override
@@ -41,7 +35,7 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
-				if (includedCategories.contains(cat)) {
+				if (categoriesGoal.get()[0].contains(cat)) {
 					fastaReader.readFasta(fnaFile);
 				}
 			}

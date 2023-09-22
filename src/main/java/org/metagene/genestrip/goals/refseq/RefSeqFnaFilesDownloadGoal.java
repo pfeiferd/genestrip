@@ -10,11 +10,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.StreamProvider;
 
@@ -22,22 +24,19 @@ public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setDelimiter('\t').setRecordSeparator('\n')
 			.build();
 
+	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
 	private final RefSeqCatalogDownloadGoal catalogDLGoal;
-	private final Collection<RefSeqCategory> categories;
 	private List<File> files;
 	private Map<File, RefSeqCategory> file2Cat;
 
 	@SafeVarargs
-	public RefSeqFnaFilesDownloadGoal(GSProject project, String name, Collection<RefSeqCategory> categories,
-			RefSeqCatalogDownloadGoal catalogDLGoal, Goal<GSProject>... deps) {
-		super(project, name, ArraysUtil.append(deps, catalogDLGoal));
+	public RefSeqFnaFilesDownloadGoal(GSProject project, String name,
+			ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal, RefSeqCatalogDownloadGoal catalogDLGoal,
+			Goal<GSProject>... deps) {
+		super(project, name, ArraysUtil.append(deps, categoriesGoal, catalogDLGoal));
 
-		this.categories = Collections.unmodifiableCollection(categories);
+		this.categoriesGoal = categoriesGoal;
 		this.catalogDLGoal = catalogDLGoal;
-	}
-
-	public Collection<RefSeqCategory> getCategories() {
-		return categories;
 	}
 
 	public RefSeqCategory getCategoryForFile(File file) {
@@ -49,7 +48,7 @@ public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
 	}
 
 	protected RefSeqCategory getCategoryForFileName(String filename) {
-		for (RefSeqCategory cat : categories) {
+		for (RefSeqCategory cat : categoriesGoal.get()[1]) {
 			if (filename.startsWith(cat.getDirectory() + ".")) {
 				return cat;
 			}
@@ -65,9 +64,10 @@ public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
 	@Override
 	public List<File> getFiles() {
 		if (files == null) {
-			// There is no other way: The catalog file must be there early, in order to get the file list....
+			// There is no other way: The catalog file must be there early, in order to get
+			// the file list....
 			catalogDLGoal.make();
-			
+
 			files = new ArrayList<File>();
 			file2Cat = new HashMap<File, RefSeqCategory>();
 

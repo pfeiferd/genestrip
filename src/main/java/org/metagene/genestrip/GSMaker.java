@@ -28,7 +28,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -57,6 +56,7 @@ import org.metagene.genestrip.goals.TrieFromKrakenResGoal.TaxidWithCount;
 import org.metagene.genestrip.goals.refseq.AccessionMap;
 import org.metagene.genestrip.goals.refseq.AccessionMapGoal;
 import org.metagene.genestrip.goals.refseq.AccessionMapSizeGoal;
+import org.metagene.genestrip.goals.refseq.CategoriesGoal;
 import org.metagene.genestrip.goals.refseq.FillBloomFilterGoal;
 import org.metagene.genestrip.goals.refseq.FillSizeGoal;
 import org.metagene.genestrip.goals.refseq.FillStoreGoal;
@@ -198,8 +198,8 @@ public class GSMaker extends Maker<GSProject> {
 				krakenOutGoal);
 		registerGoal(bloomFilterSizeGoal);
 
-		KMerStoreFileGoal storeGoal = new KMerStoreFileGoal(project, "store", taxTreeGoal, taxNodesGoal, krakenOutGoal,
-				kmerFastqGoal, bloomFilterSizeGoal, projectSetupGoal, taxTreeGoal);
+		KMerStoreFileGoal storeGoal = new KMerStoreFileGoal(project, "oldstore", taxTreeGoal, taxNodesGoal,
+				krakenOutGoal, kmerFastqGoal, bloomFilterSizeGoal, projectSetupGoal, taxTreeGoal);
 		registerGoal(storeGoal);
 
 		KrakenFastqFileGoal krakenFastqGoal = new KrakenFastqFileGoal(project, "krakenfastq", taxNodesGoal,
@@ -251,11 +251,11 @@ public class GSMaker extends Maker<GSProject> {
 					project.getConfig().isWriteDumpedFastq(), bloomFilterFileGoal, projectSetupGoal);
 			registerGoal(filterGoal);
 
-			Goal<GSProject> classifyGoal = new MatchGoal(project, "match", fastqOrCSV, taxTreeGoal, storeGoal,
+			Goal<GSProject> classifyGoal = new MatchGoal(project, "oldmatch", fastqOrCSV, taxTreeGoal, storeGoal,
 					project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
 			registerGoal(classifyGoal);
 
-			Goal<GSProject> multiMatchGoal = new MultiMatchGoal(project, MultiMatchGoal.NAME, fastqOrCSV, taxTreeGoal,
+			Goal<GSProject> multiMatchGoal = new MultiMatchGoal(project, "old" + MultiMatchGoal.NAME, fastqOrCSV, taxTreeGoal,
 					storeGoal, project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
 			registerGoal(multiMatchGoal);
 
@@ -294,13 +294,9 @@ public class GSMaker extends Maker<GSProject> {
 			registerGoal(krakenResErrorGoal);
 		}
 
-		Collection<RefSeqCategory> coveredCategories = Arrays.asList(RefSeqCategory.VIRAL /*, RefSeqCategory.bacteria */);
-		Collection<RefSeqCategory> includedCategories = Arrays.asList(RefSeqCategory.VIRAL);
+		ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal = new CategoriesGoal(project, "refseqcats",
+				projectSetupGoal);
 
-		if (!coveredCategories.containsAll(includedCategories)) {
-			throw new IllegalStateException("Covered categories must contain included categories.");
-		}
-		
 		FileGoal<GSProject> releaseNumberGoal = new RefSeqRNumDownloadGoal(project, "refseqrelease", commonSetupGoal);
 		registerGoal(releaseNumberGoal);
 
@@ -309,39 +305,39 @@ public class GSMaker extends Maker<GSProject> {
 		registerGoal(refSeqCatalogGoal);
 
 		RefSeqFnaFilesDownloadGoal refSeqFnaFilesGoal = new RefSeqFnaFilesDownloadGoal(project, "refseqfna",
-				coveredCategories, refSeqCatalogGoal);
+				categoriesGoal, refSeqCatalogGoal);
 		registerGoal(refSeqFnaFilesGoal);
 
 		ObjectGoal<Integer, GSProject> accessMapSizeGoal = new AccessionMapSizeGoal(project, "accmapsize",
-				refSeqCatalogGoal, refSeqFnaFilesGoal);
+				categoriesGoal, refSeqCatalogGoal, refSeqFnaFilesGoal);
 		registerGoal(accessMapSizeGoal);
 
-		ObjectGoal<AccessionMap, GSProject> accessCollGoal = new AccessionMapGoal(project, "accmap", taxTreeGoal,
-				refSeqCatalogGoal, refSeqFnaFilesGoal, accessMapSizeGoal);
+		ObjectGoal<AccessionMap, GSProject> accessCollGoal = new AccessionMapGoal(project, "accmap", categoriesGoal,
+				taxTreeGoal, refSeqCatalogGoal, refSeqFnaFilesGoal, accessMapSizeGoal);
 		registerGoal(accessCollGoal);
 
-		FillSizeGoal fillSizeGoal = new FillSizeGoal(project, "fillsize", includedCategories, taxNodesGoal,
+		FillSizeGoal fillSizeGoal = new FillSizeGoal(project, "fillsize", categoriesGoal, taxNodesGoal,
 				refSeqFnaFilesGoal, accessCollGoal);
 		registerGoal(fillSizeGoal);
 
 		ObjectGoal<MurmurCGATBloomFilter, GSProject> fillBloomGoal = new FillBloomFilterGoal(project, "fillbloom",
-				taxNodesGoal, refSeqFnaFilesGoal, accessCollGoal, fillSizeGoal);
+				categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal, accessCollGoal, fillSizeGoal);
 		registerGoal(fillBloomGoal);
 
-		FillStoreGoal fillStoreGoal = new FillStoreGoal(project, "fillstore", taxNodesGoal, refSeqFnaFilesGoal,
-				accessCollGoal, fillSizeGoal, fillBloomGoal, projectSetupGoal);
+		FillStoreGoal fillStoreGoal = new FillStoreGoal(project, "tempstore", categoriesGoal, taxNodesGoal,
+				refSeqFnaFilesGoal, accessCollGoal, fillSizeGoal, fillBloomGoal, projectSetupGoal);
 		registerGoal(fillStoreGoal);
 
-		FileGoal<GSProject> updateStoreGoal = new UpdateStoreGoal(project, "updatestore", taxTreeGoal, refSeqFnaFilesGoal,
-				accessCollGoal, fillStoreGoal, projectSetupGoal);
+		FileGoal<GSProject> updateStoreGoal = new UpdateStoreGoal(project, "store", categoriesGoal, taxTreeGoal,
+				refSeqFnaFilesGoal, accessCollGoal, fillStoreGoal, projectSetupGoal);
 		registerGoal(updateStoreGoal);
 
-		Goal<GSProject> newMatchGoal = new MatchGoal(project, "newmatch", fastqOrCSV, taxTreeGoal, updateStoreGoal,
+		Goal<GSProject> newMatchGoal = new MatchGoal(project, "match", fastqOrCSV, taxTreeGoal, updateStoreGoal,
 				project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
 		registerGoal(newMatchGoal);
 
-		Goal<GSProject> newMultiMatchGoal = new MultiMatchGoal(project, "new" + MultiMatchGoal.NAME, fastqOrCSV,
-				taxTreeGoal, updateStoreGoal, project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
+		Goal<GSProject> newMultiMatchGoal = new MultiMatchGoal(project, MultiMatchGoal.NAME, fastqOrCSV, taxTreeGoal,
+				updateStoreGoal, project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
 		registerGoal(newMultiMatchGoal);
 
 		Goal<GSProject> storeInfoGoal = new StoreInfoGoal(project, "storeinfo", taxTreeGoal, updateStoreGoal,
