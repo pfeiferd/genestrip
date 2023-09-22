@@ -24,7 +24,6 @@
  */
 package org.metagene.genestrip.goals;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
@@ -62,31 +61,6 @@ public class TaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Number of completed tax ids: " + taxIdNodes.size());
 			}
-
-			File filterFile = getProject().getTaxIdsFilterFile();
-			if (filterFile.exists()) {
-				Set<TaxIdNode> filterNodes = taxIdCollector.readFromFile(filterFile);
-				taxIdNodes = taxIdCollector.restrictToAncestors(filterNodes, taxIdNodes);
-				if (getLogger().isInfoEnabled()) {
-					getLogger().info("Number of completed and filtered tax ids: " + taxIdNodes.size());
-				}
-			}
-			
-			File filterFile2 = getProject().getTaxIdsFilterFile2();
-			if (filterFile2.exists()) {
-				Set<TaxIdNode> filterNodes = taxIdCollector.readFromFile(filterFile2);
-				taxIdNodes.retainAll(filterNodes);
-				if (getLogger().isInfoEnabled()) {
-					getLogger().info("Number of retained, completed and filtered tax ids: " + taxIdNodes.size());
-				}
-			}
-			
-//			Rank rank = getProject().getConfig().getMaxRankForFilters();
-//			taxIdNodes = taxIdCollector.restrictToMaxRank(rank, taxIdNodes);
-//			if (getLogger().isInfoEnabled()) {
-//				getLogger().info("Number of tax ids restricted to rank " + rank  + "or below: " + taxIdNodes.size());
-//				getLogger().info("Final taxid nodes: " + taxIdNodes);
-//			}
 			
 			set(taxIdNodes);
 		} catch (IOException e) {

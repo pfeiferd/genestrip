@@ -39,7 +39,7 @@ import org.metagene.genestrip.util.StreamProvider;
 public abstract class AbstractFastqReader {
 	private static final byte[] LINE_3 = new byte[] { '+', '\n' };
 
-	protected final Log logger = LogFactory.getLog(getClass());
+	protected final Log logger = LogFactory.getLog("fastqreader");
 
 	protected long reads;
 	protected long kMers;

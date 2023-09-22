@@ -23,12 +23,12 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal;
 
 	@SafeVarargs
-	public FillStoreGoal(GSProject project, String name, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			RefSeqFnaFilesDownloadGoal fnaFilesGoal, ObjectGoal<AccessionMap, GSProject> accessionMapGoal,
-			FillSizeGoal fillSizeGoal, ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal,
-			Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, FileType.SER),
-				ArraysUtil.append(deps, categoriesGoal, taxNodesGoal, fnaFilesGoal, accessionMapGoal, fillSizeGoal, bloomFilterGoal));
+	public FillStoreGoal(GSProject project, String name, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
+			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, FillSizeGoal fillSizeGoal,
+			ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal, Goal<GSProject>... deps) {
+		super(project, name, project.getOutputFile(name, FileType.SER), ArraysUtil.append(deps, categoriesGoal,
+				taxNodesGoal, fnaFilesGoal, accessionMapGoal, fillSizeGoal, bloomFilterGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
@@ -38,8 +38,8 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 
 	@Override
 	public void makeFile(File storeFile) {
-		KMerSortedArray<String> store = new KMerSortedArray<String>(getProject().getConfig().getKMerSize(), 0.000000001,
-				null, false, false);
+		KMerSortedArray<String> store = new KMerSortedArray<String>(getProject().getConfig().getKMerSize(),
+				getProject().getConfig().getKMerFastBloomFpp(), null, false, false);
 		store.initSize(bloomFilterGoal.get().getEntries());
 
 		try {
