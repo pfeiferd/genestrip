@@ -25,16 +25,10 @@
 package org.metagene.genestrip;
 
 import java.io.File;
-import java.io.Serializable;
-import java.util.List;
 
 import org.metagene.genestrip.make.FileDownloadGoal.DownloadProject;
-import org.metagene.genestrip.store.KMerSortedArray;
-import org.metagene.genestrip.store.KMerStore;
-import org.metagene.genestrip.store.KMerStoreFactory;
-import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
 
-public class GSProject implements DownloadProject,  KMerStoreFactory {
+public class GSProject implements DownloadProject {
 	public enum FileType {
 		FASTQ_RES(".fastq"), FASTQ(".fastq"), FASTA(".fasta"), CSV(".csv"), KRAKEN_OUT(".out"), KRAKEN_OUT_RES(".out"), SER(".ser");
 
@@ -124,11 +118,6 @@ public class GSProject implements DownloadProject,  KMerStoreFactory {
 	}
 
 	@Override
-	public boolean isIgnoreMissingFiles() {
-		return getConfig().isIgnoreMissingFastas();
-	}
-
-	@Override
 	public String getBaseFTPURL() {
 		return getConfig().getFtpBaseURL();
 	}
@@ -157,10 +146,6 @@ public class GSProject implements DownloadProject,  KMerStoreFactory {
 
 	public int getKMserSize() {
 		return kMserSize <= 0 ? config.getKMerSize() : kMserSize;
-	}
-
-	public List<FTPEntryQuality> getFastaQuality() {
-		return config.getFastaQualities();
 	}
 
 	public String getName() {
@@ -194,14 +179,6 @@ public class GSProject implements DownloadProject,  KMerStoreFactory {
 	public File getTaxIdsFile() {
 		return new File(getProjectsDir(), name + "/taxids.txt");
 	}
-
-	public File getTaxIdsFilterFile() {
-		return new File(getProjectsDir(), name + "/taxidFilter.txt");
-	}
-
-	public File getTaxIdsFilterFile2() {
-		return new File(getProjectsDir(), name + "/taxidFilter2.txt");
-	}
 	
 	public File getCategoriesFile() {
 		return new File(getProjectsDir(), name + "/categories.txt");
@@ -215,17 +192,8 @@ public class GSProject implements DownloadProject,  KMerStoreFactory {
 		return true;
 	}
 	
-	public KMerStoreFactory getKMerStoreFactory() {
-		return this;
-	}
-	
 	@Override
-	public <V extends Serializable> KMerStore<V> createKMerStore(Class<V> clazz, Object... params) {
-//		if (config.isUseTrie()) {
-//			return new KMerTrie<V>(2, getKMserSize(), false);
-//		}
-//		else {
-			return new KMerSortedArray<V>(getKMserSize(), 0.000000001, null, false, true);
-//		}
+	public boolean isIgnoreMissingFiles() {
+		return getConfig().isIgnoreMissingFastas();
 	}
 }

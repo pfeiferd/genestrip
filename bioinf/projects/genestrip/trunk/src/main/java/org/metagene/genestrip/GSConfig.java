@@ -27,14 +27,7 @@ package org.metagene.genestrip;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
-import java.util.StringTokenizer;
-
-import org.metagene.genestrip.tax.AssemblySummaryReader.FTPEntryQuality;
-import org.metagene.genestrip.tax.TaxTree;
-import org.metagene.genestrip.tax.TaxTree.Rank;
 
 public class GSConfig {
 	public static final String CONFIG_PROPERTIES = "Config.properties";
@@ -79,18 +72,6 @@ public class GSConfig {
 		return Boolean.valueOf(properties.getProperty("countUniqueKmers", "true"));
 	}
 
-	public boolean isIgnoreMissingFastas() {
-		return Boolean.valueOf(properties.getProperty("ignoreMissingFastas", "false"));
-	}
-
-	public boolean isUseGenBank() {
-		return Boolean.valueOf(properties.getProperty("useGenBank", "false"));
-	}
-
-//	public boolean isUseTrie() {
-//		return Boolean.valueOf(properties.getProperty("useTrie", "false"));		
-//	}
-
 	public boolean isWriteDumpedFastq() {
 		return Boolean.valueOf(properties.getProperty("writeDumpedFastq", "false"));
 	}
@@ -127,34 +108,10 @@ public class GSConfig {
 		return properties.getProperty("krakenExecExpr", "{0} -db {1} {2}");
 	}
 
-	public String getSortBin() {
-		return properties.getProperty("sortBin", "sort");
+	public boolean isIgnoreMissingFastas() {
+		return Boolean.valueOf(properties.getProperty("ignoreMissingFastas", "false"));
 	}
-
-	public String getSortExecExpr() {
-		return properties.getProperty("sortExecExpr", "{0} -n -t ':' -k 3 {1}");
-	}
-
-	public boolean isUseKraken1() {
-		return Boolean.valueOf(properties.getProperty("useKraken1", "false"));
-	}
-
-	public List<FTPEntryQuality> getFastaQualities() {
-		String qs = properties.getProperty("fastaQualities");
-		List<FTPEntryQuality> res = new ArrayList<FTPEntryQuality>();
-		if (qs != null) {
-			StringTokenizer tokenizer = new StringTokenizer(qs, ",;");
-			while (tokenizer.hasMoreTokens()) {
-				res.add(FTPEntryQuality.valueOf(tokenizer.nextToken()));
-			}
-		}
-		if (res.isEmpty()) {
-			res.add(FTPEntryQuality.COMPLETE_LATEST);
-			res.add(FTPEntryQuality.CHROMOSOME_LATEST);
-		}
-		return res;
-	}
-
+	
 	public String getFtpBaseURL() {
 		return properties.getProperty("ftpBaseURL", NCBI_FTP_URL);
 	}
@@ -177,14 +134,6 @@ public class GSConfig {
 
 	public boolean isUseHttp() {
 		return Boolean.valueOf(properties.getProperty("useHttp", "true"));
-	}
-
-	public Rank getMaxRankForFilters() {
-		return TaxTree.Rank.byName(properties.getProperty("maxRankForFilters", TaxTree.Rank.GENUS.getName()));
-	}
-
-	public int getMaxBloomFilterSize() {
-		return Integer.valueOf(properties.getProperty("maxBloomFilterSize", Integer.toString(Integer.MAX_VALUE)));
 	}
 	
 	public File getRefSeqDir() {

@@ -35,7 +35,7 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 	public void makeThis() {
 		try {
 			MurmurCGATBloomFilter filter = new MurmurCGATBloomFilter(getProject().getConfig().getKMerSize(),
-					0.000000001);
+					getProject().getConfig().getKMerFastBloomFpp());
 			filter.ensureExpectedSize(sizeGoal.get(), false);
 
 			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getMaxReadSizeBytes(),
