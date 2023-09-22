@@ -153,7 +153,7 @@ public class ResultReporter {
 		out.print("name;rank;taxid;reads;kmers;unique kmers;contigs;average contig length;max contig length;");
 		if (estimator != null) {
 			out.print(
-					"normalized kmers; exp. unique kmers; unique kmers / exp.; est. p(unique kmers | kmers); estimate valid;");
+					"normalized kmers; exp. unique kmers; unique kmers / exp.; quality prediction;");
 		}
 		if (res.isWithMaxKMerCounts()) {
 			out.print("max kmer counts;");
@@ -208,15 +208,16 @@ public class ResultReporter {
 					out.print(stats.getMaxContigLen());
 					out.print(';');
 					if (estimator != null) {
-						out.print(estimator.getNormalizedKMers(stats));
+						double normalizedKMers = estimator.getNormalizedKMers(stats);
+						out.print(normalizedKMers);
 						out.print(';');
-						out.print(estimator.getExpectedUniqueKMers(stats));
+						double expUnique = estimator.getExpectedUniqueKMers(stats);
+						out.print(expUnique);
 						out.print(';');
-						out.print(stats.getUniqueKMers() / estimator.getExpectedUniqueKMers(stats));
+						double uniqueExpRatio = stats.getUniqueKMers() / expUnique;
+						out.print(uniqueExpRatio);
 						out.print(';');
-						out.print(estimator.getUniqueKMerCountMatchScore(stats));
-						out.print(';');
-						out.print(estimator.isProbEstimateInRange(stats));
+						out.print(normalizedKMers * uniqueExpRatio);
 						out.print(';');
 					}
 					if (res.isWithMaxKMerCounts()) {
