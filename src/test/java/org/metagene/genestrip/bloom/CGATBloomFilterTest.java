@@ -26,28 +26,14 @@ package org.metagene.genestrip.bloom;
 
 import static org.junit.Assert.assertTrue;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 
-import org.junit.Ignore;
 import org.junit.Test;
-import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.Main;
-import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
-import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
-import org.metagene.genestrip.make.FileGoal;
-import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.KMerTrie;
 import org.metagene.genestrip.store.KMerTrie.KMerTrieVisitor;
-import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.CGAT;
-import org.metagene.genestrip.util.StreamProvider;
-import org.metagene.genestrip.util.StringLongDigitTrie;
 
 public class CGATBloomFilterTest {
 	protected Random random = new Random(42);
@@ -149,80 +135,6 @@ public class CGATBloomFilterTest {
 		assertTrue(testedFp <= fpp * 1.1);
 	}
 
-	@Ignore
-	@Test
-	public void testBloomFilterViaProject() throws IOException {
-		Main main = new Main();
-		main.parseAndRun(new String[] { "bart_h", "clear", "genall" });
-
-		GSProject project = main.getProject();
-
-		File bartHReads = ((FileGoal<GSProject>) main.getMaker().getGoal("kmerfastq")).getFile();
-		String outGoal = project.getConfig().isUseKraken1() ? "sort" : "kmerkrakenout";
-		File fromKraken = ((FileGoal<GSProject>) main.getMaker().getGoal(outGoal)).getFile();
-
-		MurmurCGATBloomFilter cgatBloomFilter = createFilter(project.getKMserSize(), size, fpp);
-
-		@SuppressWarnings("unchecked")
-		ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal = (ObjectGoal<Set<TaxIdNode>, GSProject>) main.getMaker()
-				.getGoal("taxids");
-		Set<TaxIdNode> nodes = taxNodesGoal.get();
-
-		KrakenResultFastqMergeListener filter = KrakenResultFastqMergeListener.createFilterByTaxIdNodes(nodes,
-				new KrakenResultFastqMergeListener() {
-					@Override
-					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output, StringLongDigitTrie root) {
-						cgatBloomFilter.put(read, 0);
-					}
-				});
-
-		KrakenResultFastqMerger krakenFilter = new KrakenResultFastqMerger(project.getConfig().getMaxReadSizeBytes());
-
-		InputStream stream1 = StreamProvider.getInputStreamForFile(fromKraken);
-		InputStream stream2 = StreamProvider.getInputStreamForFile(bartHReads);
-		krakenFilter.process(stream1, stream2, filter);
-		stream1.close();
-		stream2.close();
-
-		checkFilter(fromKraken, bartHReads, krakenFilter, cgatBloomFilter, nodes);
-	}
-
-	private void checkFilter(File fromKraken, File reads, KrakenResultFastqMerger krakenFilter,
-			MurmurCGATBloomFilter filterUnderTest, Set<TaxIdNode> nodes) throws IOException {
-		// Positive Test:
-		InputStream stream1 = StreamProvider.getInputStreamForFile(fromKraken);
-		InputStream stream2 = StreamProvider.getInputStreamForFile(reads);
-		krakenFilter.process(stream1, stream2,
-				KrakenResultFastqMergeListener.createFilterByTaxIdNodes(nodes, new KrakenResultFastqMergeListener() {
-					@Override
-					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output, StringLongDigitTrie root) {
-						assertTrue(filterUnderTest.contains(read, 0, null, false));
-					}
-				}));
-		stream1.close();
-		stream2.close();
-
-		// Negative Test:
-		byte[] read = new byte[filterUnderTest.getK()];
-		Random random = new Random(42);
-
-		int err = 0;
-		for (int i = 1; i < filterUnderTest.getExpectedInsertions(); i++) {
-			for (int j = 0; j < read.length; j++) {
-				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
-			}
-			if (filterUnderTest.contains(read, 0, null, false)) {
-				err++;
-			}
-		}
-		System.out.println("bart_h Errors: " + err);
-		double testedFp = ((double) err) / (2 * filterUnderTest.getExpectedInsertions());
-		System.out.println("bart_h Tested FP: " + testedFp);
-
-		assertTrue(testedFp <= filterUnderTest.getFpp());
-	}
 
 	protected MurmurCGATBloomFilter createFilter(int k, long size, double fpp) {
 		MurmurCGATBloomFilter res = new MurmurCGATBloomFilter(k, fpp);

@@ -31,7 +31,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -39,23 +38,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 
-import org.junit.Ignore;
 import org.junit.Test;
-import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.Main;
-import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
-import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
-import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
-import org.metagene.genestrip.make.FileGoal;
-import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.KMerStore.KMerStoreVisitor;
-import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATRingBuffer;
-import org.metagene.genestrip.util.StreamProvider;
-import org.metagene.genestrip.util.StringLongDigitTrie;
 
 public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
 	protected final Random random = new Random(42);
@@ -63,87 +50,6 @@ public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
 	protected int k = 31;
 	protected int testSize = 1 * 1000 * 1000;
 	protected int negativeTestSize = testSize;
-
-	@Ignore
-	@Test
-	public void testChain() throws IOException {
-		Main main = new Main();
-		main.parseAndRun(new String[] { "bart_h", "clear", "genall" });
-
-		GSProject project = main.getProject();
-
-		File bartHReads = ((FileGoal<GSProject>) main.getMaker().getGoal("kmerfastq")).getFile();
-
-		String outGoal = project.getConfig().isUseKraken1() ? "sort" : "kmerkrakenout";
-		File fromKraken = ((FileGoal<GSProject>) main.getMaker().getGoal(outGoal)).getFile();
-
-		final KMerStore<String> store = createKMerStore(String.class, project.getKMserSize());
-
-		MurmurCGATBloomFilter bloomFilter = new MurmurCGATBloomFilter(store.getK(), 0.00001);
-		bloomFilter.clear();
-		bloomFilter.ensureExpectedSize(5 * 1000 * 1000, false);
-
-		@SuppressWarnings("unchecked")
-		ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal = (ObjectGoal<Set<TaxIdNode>, GSProject>) main.getMaker()
-				.getGoal("taxids");
-		Set<TaxIdNode> nodes = taxNodesGoal.get();
-
-		KrakenResultFastqMergeListener filter = KrakenResultFastqMergeListener.createFilterByTaxIdNodes(nodes,
-				new KrakenResultFastqMergeListener() {
-					@Override
-					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output, StringLongDigitTrie root) {
-						store.put(read, 0, kmerTaxid, false);
-						bloomFilter.put(read, 0);
-					}
-				});
-
-		KrakenResultFastqMerger krakenFilter = new KrakenResultFastqMerger(project.getConfig().getMaxReadSizeBytes());
-
-		InputStream stream1 = StreamProvider.getInputStreamForFile(fromKraken);
-		InputStream stream2 = StreamProvider.getInputStreamForFile(bartHReads);
-		krakenFilter.process(stream1, stream2, filter);
-		stream1.close();
-		stream2.close();
-
-		// Test uncompressed:
-		if (store instanceof KMerTrie) {
-			checkTrie(fromKraken, bartHReads, krakenFilter, store, bloomFilter, nodes);
-		}
-
-		store.optimize();
-
-		// Test compressed;
-		checkTrie(fromKraken, bartHReads, krakenFilter, store, bloomFilter, nodes);
-	}
-
-	private void checkTrie(File fromKraken, File reads, KrakenResultFastqMerger krakenFilter, KMerStore<String> trie,
-			MurmurCGATBloomFilter bloomFilter, Set<TaxIdNode> nodes) throws IOException {
-		// Positive Test:
-		InputStream stream1 = StreamProvider.getInputStreamForFile(fromKraken);
-		InputStream stream2 = StreamProvider.getInputStreamForFile(reads);
-		krakenFilter.process(stream1, stream2,
-				KrakenResultFastqMergeListener.createFilterByTaxIdNodes(nodes, new KrakenResultFastqMergeListener() {
-					@Override
-					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output, StringLongDigitTrie root) {
-						assertEquals(kmerTaxid, trie.get(read, 0, false));
-					}
-				}));
-		stream1.close();
-		stream2.close();
-
-		// Negative Test:
-		byte[] read = new byte[trie.getK()];
-		for (int i = 1; i <= negativeTestSize; i++) {
-			for (int j = 0; j < read.length; j++) {
-				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
-			}
-			if (!bloomFilter.contains(read, 0, null, false)) {
-				assertNull(trie.get(read, 0, false));
-			}
-		}
-	}
 
 	@Test
 	public void testSaveLoad() {
