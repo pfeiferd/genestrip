@@ -203,8 +203,16 @@ public class GSProject implements DownloadProject,  KMerStoreFactory {
 		return new File(getProjectsDir(), name + "/taxidFilter2.txt");
 	}
 	
+	public File getCategoriesFile() {
+		return new File(getProjectsDir(), name + "/categories.txt");
+	}
+	
 	public File getResultsDir() {
 		return csvDir;
+	}
+	
+	public boolean isUseCompletGenomesOnly() {
+		return true;
 	}
 	
 	public KMerStoreFactory getKMerStoreFactory() {

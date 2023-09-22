@@ -2,7 +2,6 @@ package org.metagene.genestrip.goals.refseq;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
@@ -17,20 +16,20 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
 
 public class FillStoreGoal extends FileListGoal<GSProject> {
-	private final Collection<RefSeqCategory> includeCategories;
+	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 	private final ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal;
 
 	@SafeVarargs
-	public FillStoreGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
+	public FillStoreGoal(GSProject project, String name, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
 			RefSeqFnaFilesDownloadGoal fnaFilesGoal, ObjectGoal<AccessionMap, GSProject> accessionMapGoal,
 			FillSizeGoal fillSizeGoal, ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal,
 			Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, FileType.SER),
-				ArraysUtil.append(deps, taxNodesGoal, fnaFilesGoal, accessionMapGoal, fillSizeGoal, bloomFilterGoal));
-		this.includeCategories = fillSizeGoal.getIncludedCategories();
+				ArraysUtil.append(deps, categoriesGoal, taxNodesGoal, fnaFilesGoal, accessionMapGoal, fillSizeGoal, bloomFilterGoal));
+		this.categoriesGoal = categoriesGoal;
 		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
 		this.accessionMapGoal = accessionMapGoal;
@@ -49,7 +48,7 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
-				if (includeCategories.contains(cat)) {
+				if (categoriesGoal.get()[0].contains(cat)) {
 					fastaReader.readFasta(fnaFile);
 				}
 			}

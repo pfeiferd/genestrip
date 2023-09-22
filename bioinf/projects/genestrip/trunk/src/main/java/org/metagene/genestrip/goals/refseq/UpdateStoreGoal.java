@@ -3,6 +3,7 @@ package org.metagene.genestrip.goals.refseq;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
@@ -17,19 +18,20 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
 
 public class UpdateStoreGoal extends FileListGoal<GSProject> {
-	private final Collection<RefSeqCategory> categories;
+	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
 	private final ObjectGoal<AccessionMap, GSProject> accessionTrieGoal;
 	private final FillStoreGoal includeStoreGoal;
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 
 	@SafeVarargs
-	public UpdateStoreGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
-			RefSeqFnaFilesDownloadGoal fnaFilesGoal, ObjectGoal<AccessionMap, GSProject> accessionTrieGoal,
-			FillStoreGoal includeStoreGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, FileType.SER),
-				ArraysUtil.append(deps, taxTreeGoal, fnaFilesGoal, accessionTrieGoal, includeStoreGoal));
-		this.categories = fnaFilesGoal.getCategories();
+	public UpdateStoreGoal(GSProject project, String name, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
+			ObjectGoal<TaxTree, GSProject> taxTreeGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+			ObjectGoal<AccessionMap, GSProject> accessionTrieGoal, FillStoreGoal includeStoreGoal,
+			Goal<GSProject>... deps) {
+		super(project, name, project.getOutputFile(name, FileType.SER), ArraysUtil.append(deps, categoriesGoal,
+				taxTreeGoal, fnaFilesGoal, accessionTrieGoal, includeStoreGoal));
+		this.categoriesGoal = categoriesGoal;
 		this.taxTreeGoal = taxTreeGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
 		this.accessionTrieGoal = accessionTrieGoal;
@@ -47,11 +49,11 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
-				if (categories.contains(cat)) {
+				if (categoriesGoal.get()[0].contains(cat)) {
 					fastaReader.readFasta(fnaFile);
 				}
 			}
-			
+
 			System.out.println("** Hit rate: " + (taxTreeGoal.get().hits / (double) taxTreeGoal.get().total));
 
 			KMerStoreWrapper wrapper2 = new KMerStoreWrapper((KMerSortedArray<String>) store);
@@ -94,7 +96,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 			byteRingBuffer.reset();
 			updateNodeFromInfoLine();
 		}
-				
+
 		@Override
 		protected void handleStore() {
 			store.update(byteRingBuffer, provider, false);
