@@ -22,7 +22,7 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.goals;
+package org.metagene.genestrip.goals.kraken;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -43,6 +43,7 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
+import org.metagene.genestrip.goals.MultiMatchGoal;
 import org.metagene.genestrip.kraken.KrakenExecutor;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
 import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
