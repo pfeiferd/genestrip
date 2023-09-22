@@ -1,8 +1,9 @@
-package org.metagene.genestrip.util;
+package org.metagene.genestrip.kraken;
 
 import java.io.Serializable;
 
-import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
+import org.metagene.genestrip.kraken.StringLongDigitTrie.StringLong;
+import org.metagene.genestrip.util.DigitTrie;
 
 public class StringLongDigitTrie extends DigitTrie<StringLong> {
 	public String inc(byte[] seq, int start, int end) {

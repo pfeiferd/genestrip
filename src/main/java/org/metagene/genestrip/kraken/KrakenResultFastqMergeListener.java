@@ -30,7 +30,6 @@ import java.util.Set;
 
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
-import org.metagene.genestrip.util.StringLongDigitTrie;
 
 public interface KrakenResultFastqMergeListener {
 	public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,

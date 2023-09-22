@@ -47,6 +47,7 @@ import org.metagene.genestrip.goals.MultiMatchGoal;
 import org.metagene.genestrip.kraken.KrakenExecutor;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
 import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
+import org.metagene.genestrip.kraken.StringLongDigitTrie;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -54,7 +55,6 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.DigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
-import org.metagene.genestrip.util.StringLongDigitTrie;
 
 public class KrakenResCountGoal extends FileListGoal<GSProject> {
 	private final Map<File, List<File>> fileToFastqs;
@@ -118,7 +118,6 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 
 	@Override
 	protected void makeFile(File file) throws IOException {
-		@SuppressWarnings("serial")
 		DigitTrie<KrakenResStats> countingTrie = new DigitTrie<KrakenResStats>() {
 			protected KrakenResStats createInGet(String taxid) {
 				KrakenResStats stats = new KrakenResStats();

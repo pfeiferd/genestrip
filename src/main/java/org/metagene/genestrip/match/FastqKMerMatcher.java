@@ -402,8 +402,6 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	}
 
 	protected static class TaxidStatsTrie extends DigitTrie<StatsPerTaxid> {
-		private static final long serialVersionUID = 1L;
-
 		@Override
 		protected StatsPerTaxid createInGet(String digits) {
 			return new StatsPerTaxid(digits);

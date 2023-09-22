@@ -77,8 +77,6 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 				}
 			}
 
-			System.out.println("** Hit rate: " + (taxTreeGoal.get().hits / (double) taxTreeGoal.get().total));
-
 			KMerStoreWrapper wrapper2 = new KMerStoreWrapper((KMerSortedArray<String>) store);
 			wrapper2.save(storeFile);
 			if (getLogger().isInfoEnabled()) {

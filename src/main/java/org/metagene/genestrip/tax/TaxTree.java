@@ -39,11 +39,9 @@ import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.DigitTrie;
 import org.metagene.genestrip.util.StreamProvider;
 
-public class TaxTree implements Serializable {
+public class TaxTree {
 	private static int MAX_LINE_SIZE = 4096;
 	
-	private static final long serialVersionUID = 1L;
-
 	public enum Rank {
 		SUPERKINGDOM("superkingdom"), KINGDOM("kingdom"), PHYLUM("phylum"), SUBPHYLUM("subphylum"),
 		SUPERCLASS("superclass"), CLASS("class"), SUBCLASS("subclass"), SUPERORDER("superorder"), ORDER("order"),
@@ -108,18 +106,15 @@ public class TaxTree implements Serializable {
 		return false;
 	}
 	
+	// Caches for last results of getLeastCommonAncestor()
 	private TaxIdNode lastLCANode1;
 	private TaxIdNode lastLCANode2;
 	private TaxIdNode lastLCARes;
-	public long hits = 0;
-	public long total = 0;
 	
 	// Works only single threaded with cache included...
 	public TaxIdNode getLeastCommonAncestor(final TaxIdNode node1, final TaxIdNode node2) {
-		total++;
 		// Minimal result cache to improve speed.
 		if (node1 == lastLCANode1 && node2 == lastLCANode2) {
-			hits++;
 			return lastLCARes;
 		}
 		for (TaxIdNode res = node1; res != null; res = res.getParent()) {
@@ -358,8 +353,6 @@ public class TaxTree implements Serializable {
 	}
 
 	public static class TaxIdNodeTrie extends DigitTrie<TaxIdNode> {
-		private static final long serialVersionUID = 1L;
-
 		@Override
 		protected TaxIdNode createInGet(byte[] seq, int start, int end) {
 			return new TaxIdNode(new String(seq, start, end - start));

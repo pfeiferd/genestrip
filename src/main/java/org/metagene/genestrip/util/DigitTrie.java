@@ -24,12 +24,9 @@
  */
 package org.metagene.genestrip.util;
 
-import java.io.Serializable;
 import java.util.Collection;
 
-public class DigitTrie<V extends Serializable> implements Serializable {
-	private static final long serialVersionUID = 1L;
-	
+public class DigitTrie<V> {
 	private DigitTrie<V>[] children;
 	private V value;
 
