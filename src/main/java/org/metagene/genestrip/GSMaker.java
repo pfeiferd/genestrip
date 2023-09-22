@@ -33,12 +33,12 @@ import java.util.Set;
 
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
 import org.metagene.genestrip.goals.FilterGoal;
-import org.metagene.genestrip.goals.KrakenResCountGoal;
 import org.metagene.genestrip.goals.MatchGoal;
 import org.metagene.genestrip.goals.MultiMatchGoal;
 import org.metagene.genestrip.goals.StoreInfoGoal;
 import org.metagene.genestrip.goals.TaxIdFileDownloadGoal;
 import org.metagene.genestrip.goals.TaxNodesGoal;
+import org.metagene.genestrip.goals.kraken.KrakenResCountGoal;
 import org.metagene.genestrip.goals.refseq.AccessionMap;
 import org.metagene.genestrip.goals.refseq.AccessionMapGoal;
 import org.metagene.genestrip.goals.refseq.AccessionMapSizeGoal;
