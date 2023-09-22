@@ -1,19 +1,15 @@
 package org.metagene.genestrip.match;
 
 import org.metagene.genestrip.match.FastqKMerMatcher.StatsPerTaxid;
-import org.metagene.genestrip.store.KMerSortedArray;
-import org.metagene.genestrip.store.KMerSortedArray.KMerSortedArrayVisitor;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 public class UniqueKMerEstimator {
 	private long totalKMers;
-	private final KMerStoreWrapper storeWrapper;
 	private final Object2LongMap<String> storeStats;
 
 	public UniqueKMerEstimator(KMerStoreWrapper storeWrapper) {
-		this.storeWrapper = storeWrapper;
 		storeStats = storeWrapper.getStats();
 	}
 
@@ -29,30 +25,6 @@ public class UniqueKMerEstimator {
 		long totalStoredWithCounts = storeStats.getLong(null);
 		return ((double) stats.getKMers()) * totalStoredWithCounts / totalKMers
 				/ storeStats.getLong(stats.getTaxid());
-	}
-
-	public double getExpectedUniqueKMersWithCounts(StatsPerTaxid stats) {
-		if (!storeWrapper.getKmerStore().isWithCounts()) {
-			throw new IllegalStateException();
-		}
-
-		String statsTax = stats.getTaxid();
-		double A = stats.getKMers();
-
-		double[] res = new double[0];
-		storeWrapper.getKmerStore().visit(new KMerSortedArrayVisitor<String>() {
-			@Override
-			public void nextValue(KMerSortedArray<String> store, long kmer, short index, long i) {
-				String taxId = store.getValueForIndex(index);
-				if (taxId.equals(statsTax)) {
-					byte count = store.getCount(i);
-					if (count > 0) {
-						res[0] += count * (1 - Math.pow(1 - 1 / count, A));
-					}
-				}
-			}
-		});
-		return res[0];
 	}
 
 	public double getExpectedUniqueKMers(StatsPerTaxid stats) {

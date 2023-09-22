@@ -37,7 +37,6 @@ import org.apache.commons.csv.CSVRecord;
 import org.metagene.genestrip.match.FastqKMerMatcher.Result;
 import org.metagene.genestrip.match.FastqKMerMatcher.StatsPerTaxid;
 import org.metagene.genestrip.store.KMerStoreWrapper;
-import org.metagene.genestrip.store.KMerStoreWrapper.StoreStatsPerTaxid;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
@@ -82,36 +81,6 @@ public class ResultReporter {
 				}
 			}
 		}
-	}
-
-	// TODO: Outdated..
-	public static List<StoreStatsPerTaxid> readStoreInfoCSV(InputStream in) throws IOException {
-		Iterable<CSVRecord> records = FORMAT.parse(new InputStreamReader(in));
-
-		List<StoreStatsPerTaxid> res = new ArrayList<StoreStatsPerTaxid>();
-		boolean first = true;
-		for (CSVRecord record : records) {
-			if (first) {
-				first = false;
-				continue;
-			}
-			String taxid = record.get(2);
-			String storedKMers = record.get(3);
-			String totalKMers = record.get(4);
-			String assignedKMers = record.get(6);
-			String contigs = record.get(7);
-			String maxContigLen = record.get(9);
-
-			StoreStatsPerTaxid stats = new StoreStatsPerTaxid(taxid);
-			stats.storedKMers = Long.parseLong(storedKMers);
-			stats.totalKMers = Long.parseLong(totalKMers);
-			stats.assignedKMers = Long.parseLong(assignedKMers);
-			stats.contigs = Long.parseLong(contigs);
-			stats.maxContigLen = Long.parseLong(maxContigLen);
-			res.add(stats);
-		}
-
-		return res;
 	}
 
 	public static List<StatsPerTaxid> readResultCSV(InputStream in) throws IOException {
