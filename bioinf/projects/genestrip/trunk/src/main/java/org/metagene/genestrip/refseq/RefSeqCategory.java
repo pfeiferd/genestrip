@@ -22,40 +22,30 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.goals.refseq;
+package org.metagene.genestrip.refseq;
 
-import java.io.IOException;
-import java.util.Set;
+public enum RefSeqCategory {
+	ARCHAEA("archaea"), BACTERIA("bacteria"), COMPLETE("complete"), FUNGI("fungi"), INVERTEBRATE("invertebrate"),
+	MITOCHONDRION("mitochondrion"), OTHER("other"), PLANT("plant"), PLASMID("plasmid"), PLASTID("plastid"),
+	PROTOZOA("protozoa"), VERTEBRATE_MAMMALIAN("vertebrate_mammalian"), VERTEBRATE_OTHER("vertebrate_other"),
+	VIRAL("viral");
 
-import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.util.CGAT;
-import org.metagene.genestrip.util.CGATRingBuffer;
+	private String directory;
 
-public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader {
-	protected final CGATRingBuffer byteRingBuffer;
-	
-	public AbstractStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k) {
-		super(bufferSize, taxNodes, accessionMap);
-		byteRingBuffer = new CGATRingBuffer(k);
+	RefSeqCategory(String directory) {
+		this.directory = directory;
+	}
+
+	public String getDirectory() {
+		return directory;
 	}
 	
-	@Override
-	protected void infoLine() throws IOException {
-		super.infoLine();
-		byteRingBuffer.reset();
-	}
-	
-	@Override
-	protected void dataLine() throws IOException {
-		if (includeRegion) {
-			for (int i = 0; i < size - 1; i++) {
-				byteRingBuffer.put(CGAT.cgatToUpperCase(target[i]));
-				if (byteRingBuffer.isFilled() && byteRingBuffer.isCGAT()) {
-					handleStore(); 
-				}
+	public static RefSeqCategory fromDiregoryString(String category) {
+		for (RefSeqCategory cat : RefSeqCategory.values()) {
+			if (cat.getDirectory().equals(category)) {
+				return cat;
 			}
 		}
-	}
-	
-	protected abstract void handleStore();
+		return null;
+	}	
 }

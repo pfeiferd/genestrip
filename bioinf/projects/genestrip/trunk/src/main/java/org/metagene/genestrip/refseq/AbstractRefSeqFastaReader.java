@@ -22,7 +22,7 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.goals.refseq;
+package org.metagene.genestrip.refseq;
 
 import java.io.IOException;
 import java.util.Set;
