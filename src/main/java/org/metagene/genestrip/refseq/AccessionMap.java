@@ -22,30 +22,12 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.goals.refseq;
+package org.metagene.genestrip.refseq;
 
-public enum RefSeqCategory {
-	ARCHAEA("archaea"), BACTERIA("bacteria"), COMPLETE("complete"), FUNGI("fungi"), INVERTEBRATE("invertebrate"),
-	MITOCHONDRION("mitochondrion"), OTHER("other"), PLANT("plant"), PLASMID("plasmid"), PLASTID("plastid"),
-	PROTOZOA("protozoa"), VERTEBRATE_MAMMALIAN("vertebrate_mammalian"), VERTEBRATE_OTHER("vertebrate_other"),
-	VIRAL("viral");
+import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-	private String directory;
-
-	RefSeqCategory(String directory) {
-		this.directory = directory;
-	}
-
-	public String getDirectory() {
-		return directory;
-	}
-	
-	public static RefSeqCategory fromDiregoryString(String category) {
-		for (RefSeqCategory cat : RefSeqCategory.values()) {
-			if (cat.getDirectory().equals(category)) {
-				return cat;
-			}
-		}
-		return null;
-	}	
+public interface AccessionMap {
+	public void put(byte[] array, int start, int end, TaxIdNode node);
+	public TaxIdNode get(byte[] array, int start, int end);
+	public void optimize();
 }

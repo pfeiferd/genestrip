@@ -30,6 +30,8 @@ import java.util.Set;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.refseq.AccessionFileProcessor;
+import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.util.ArraysUtil;
 
 public class AccessionMapSizeGoal extends ObjectGoal<Integer, GSProject> {
