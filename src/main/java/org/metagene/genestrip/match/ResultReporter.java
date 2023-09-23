@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +47,7 @@ import it.unimi.dsi.fastutil.objects.Object2LongMap;
 public class ResultReporter {
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setDelimiter(';')
 			.setRecordSeparator('\n').build();
+	private static final DecimalFormat DF = new DecimalFormat("#.0000");
 
 	private final TaxTree taxTree;
 
@@ -172,7 +174,7 @@ public class ResultReporter {
 					out.print(';');
 					out.print(stats.getContigs());
 					out.print(';');
-					out.print(((double) stats.getKMers()) / stats.getContigs());
+					out.print(DF.format(((double) stats.getKMers()) / stats.getContigs()));
 					out.print(';');
 					out.print(stats.getMaxContigLen());
 					out.print(';');
@@ -181,10 +183,10 @@ public class ResultReporter {
 						out.print(normalizedKMers);
 						out.print(';');
 						double expUnique = estimator.getExpectedUniqueKMers(stats);
-						out.print(expUnique);
+						out.print(DF.format(expUnique));
 						out.print(';');
 						double uniqueExpRatio = stats.getUniqueKMers() / expUnique;
-						out.print(uniqueExpRatio);
+						out.print(DF.format(uniqueExpRatio));
 						out.print(';');
 						out.print(normalizedKMers * uniqueExpRatio);
 						out.print(';');
