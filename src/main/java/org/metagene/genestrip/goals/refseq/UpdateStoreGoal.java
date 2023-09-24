@@ -47,7 +47,9 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
 	private final ObjectGoal<AccessionMap, GSProject> accessionTrieGoal;
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
-	private ObjectGoal<KMerStoreWrapper, GSProject> filledStoreGoal;
+	private final ObjectGoal<KMerStoreWrapper, GSProject> filledStoreGoal;
+	
+	private UpdatedStoreGoal updatedStoreGoal;
 
 	@SafeVarargs
 	public UpdateStoreGoal(GSProject project, String name, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
@@ -63,8 +65,8 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 		this.filledStoreGoal = filledStoreGoal;
 	}
 
-	public void setUpdatedStoreGoal(UpdatedStoreGoal filledStoreGoal) {
-		this.filledStoreGoal = filledStoreGoal;
+	public void setUpdatedStoreGoal(UpdatedStoreGoal updatedStoreGoal) {
+		this.updatedStoreGoal = updatedStoreGoal;
 	}
 	
 	@Override
@@ -88,6 +90,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("File saved " + storeFile);
 			}
+			updatedStoreGoal.setStoreWrapper(wrapper2);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

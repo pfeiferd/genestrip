@@ -75,7 +75,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		this(k, fpp, initialValues, enforceLarge, new MurmurCGATBloomFilter(k, fpp));
 	}
 	
-	public KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge,
+	protected KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge,
 			MurmurCGATBloomFilter filter) {
 		this.k = k;
 		int s = initialValues == null ? 0 : initialValues.size();
@@ -90,7 +90,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		}
 		this.filter = filter;
 	}
-
+	
 	public long[] getStatsAsIndexArray() {
 		long[] counts = new long[nextValueIndex];
 		visit(new KMerSortedArrayVisitor<V>() {
