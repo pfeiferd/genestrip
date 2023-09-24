@@ -41,33 +41,36 @@ import org.metagene.genestrip.store.KMerSortedArray.UpdateValueProvider;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.util.ArraysUtil;
 
 public class UpdateStoreGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
 	private final ObjectGoal<AccessionMap, GSProject> accessionTrieGoal;
-	private final FillStoreGoal includeStoreGoal;
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
+	private ObjectGoal<KMerStoreWrapper, GSProject> filledStoreGoal;
 
 	@SafeVarargs
 	public UpdateStoreGoal(GSProject project, String name, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
 			ObjectGoal<TaxTree, GSProject> taxTreeGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-			ObjectGoal<AccessionMap, GSProject> accessionTrieGoal, FillStoreGoal includeStoreGoal,
-			Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, FileType.SER), ArraysUtil.append(deps, categoriesGoal,
-				taxTreeGoal, fnaFilesGoal, accessionTrieGoal, includeStoreGoal));
+			ObjectGoal<AccessionMap, GSProject> accessionTrieGoal,
+			ObjectGoal<KMerStoreWrapper, GSProject> filledStoreGoal, Goal<GSProject>... deps) {
+		super(project, name, project.getOutputFile(name, FileType.SER), Goal.append(deps, categoriesGoal,
+				taxTreeGoal, fnaFilesGoal, accessionTrieGoal, filledStoreGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxTreeGoal = taxTreeGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
 		this.accessionTrieGoal = accessionTrieGoal;
-		this.includeStoreGoal = includeStoreGoal;
+		this.filledStoreGoal = filledStoreGoal;
 	}
 
+	public void setUpdatedStoreGoal(UpdatedStoreGoal filledStoreGoal) {
+		this.filledStoreGoal = filledStoreGoal;
+	}
+	
 	@Override
 	public void makeFile(File storeFile) {
 		try {
-			KMerStoreWrapper wrapper = KMerStoreWrapper.load(includeStoreGoal.getFile());
+			KMerStoreWrapper wrapper = filledStoreGoal.get();
 			KMerSortedArray<String> store = wrapper.getKmerStore();
 
 			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getMaxReadSizeBytes(),
@@ -86,8 +89,6 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 				getLogger().info("File saved " + storeFile);
 			}
 		} catch (IOException e) {
-			throw new RuntimeException(e);
-		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);
 		}
 	}

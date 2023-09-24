@@ -33,8 +33,8 @@ import java.util.concurrent.BlockingQueue;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.metagene.genestrip.util.BufferedLineReader;
-import org.metagene.genestrip.util.StreamProvider;
+import org.metagene.genestrip.io.BufferedLineReader;
+import org.metagene.genestrip.io.StreamProvider;
 
 public abstract class AbstractFastqReader {
 	private static final byte[] LINE_3 = new byte[] { '+', '\n' };

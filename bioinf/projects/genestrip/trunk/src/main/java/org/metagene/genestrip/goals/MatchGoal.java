@@ -31,7 +31,7 @@ import java.io.PrintStream;
 import org.metagene.genestrip.GSConfig;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
-import org.metagene.genestrip.make.FileGoal;
+import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -41,20 +41,18 @@ import org.metagene.genestrip.match.ResultReporter;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
 import org.metagene.genestrip.tax.TaxTree;
-import org.metagene.genestrip.util.ArraysUtil;
-import org.metagene.genestrip.util.StreamProvider;
 
 public class MatchGoal extends FileListGoal<GSProject> {
 	private final File fastq;
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
-	private final FileGoal<GSProject> storeGoal;
+	private final ObjectGoal<KMerStoreWrapper, GSProject> storeGoal;
 	private final boolean writedFiltered;
 
 	@SafeVarargs
-	public MatchGoal(GSProject project, String name, File fastq, ObjectGoal<TaxTree, GSProject> taxTreeGoal, FileGoal<GSProject> storeGoal, boolean writeFiltered,
-			Goal<GSProject>... deps) {
+	public MatchGoal(GSProject project, String name, File fastq, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
+			ObjectGoal<KMerStoreWrapper, GSProject> storeGoal, boolean writeFiltered, Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, fastq, FileType.CSV, false),
-				ArraysUtil.append(deps, taxTreeGoal, storeGoal));
+				Goal.append(deps, taxTreeGoal, storeGoal));
 		this.fastq = fastq;
 		this.taxTreeGoal = taxTreeGoal;
 		this.storeGoal = storeGoal;
@@ -72,7 +70,7 @@ public class MatchGoal extends FileListGoal<GSProject> {
 				krakenOutStyleFile = getProject().getOutputFile(getName(), fastq, FileType.KRAKEN_OUT_RES, false);
 			}
 
-			KMerStoreWrapper wrapper = KMerStoreWrapper.load(storeGoal.getFile());
+			KMerStoreWrapper wrapper = storeGoal.get();
 
 			GSConfig config = getProject().getConfig();
 
@@ -85,7 +83,7 @@ public class MatchGoal extends FileListGoal<GSProject> {
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
 			new ResultReporter(taxTreeGoal.get()).printMatchResult(res, out, wrapper);
 			out.close();
-		} catch (IOException | ClassNotFoundException e) {
+		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {
 			if (c != null) {

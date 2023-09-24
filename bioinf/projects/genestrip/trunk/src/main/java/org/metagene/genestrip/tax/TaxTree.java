@@ -34,10 +34,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import org.metagene.genestrip.util.BufferedLineReader;
+import org.metagene.genestrip.io.BufferedLineReader;
+import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.DigitTrie;
-import org.metagene.genestrip.util.StreamProvider;
 
 public class TaxTree {
 	private static int MAX_LINE_SIZE = 4096;

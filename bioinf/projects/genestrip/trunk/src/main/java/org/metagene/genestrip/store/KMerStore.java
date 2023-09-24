@@ -30,8 +30,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
+import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.util.CGATRingBuffer;
-import org.metagene.genestrip.util.StreamProvider;
 
 public interface KMerStore<V extends Serializable> extends Serializable {
 	public void initSize(long size);

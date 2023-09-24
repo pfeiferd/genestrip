@@ -34,10 +34,10 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.FileDownloadGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.tax.TaxTree;
-import org.metagene.genestrip.util.StreamProvider;
 
 public class TaxIdFileDownloadGoal extends FileDownloadGoal<GSProject> {
 	public static final String TAX_DMP_ZIP = "taxdmp.zip";

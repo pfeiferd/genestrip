@@ -34,7 +34,6 @@ import java.util.List;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.Goal;
-import org.metagene.genestrip.util.ArraysUtil;
 
 public class RefSeqCatalogDownloadGoal extends RefSeqDownloadGoal {
 	public static final String CATALOG_FOLDER = RELEASE_FOLDER + "/release-catalog";
@@ -47,7 +46,7 @@ public class RefSeqCatalogDownloadGoal extends RefSeqDownloadGoal {
 	@SafeVarargs
 	public RefSeqCatalogDownloadGoal(GSProject project, String name, FileGoal<GSProject> releaseNumberGoal,
 			Goal<GSProject>... deps) {
-		super(project, name, ArraysUtil.append(deps, releaseNumberGoal));
+		super(project, name, Goal.append(deps, releaseNumberGoal));
 		this.releaseNumberGoal = releaseNumberGoal;
 	}
 

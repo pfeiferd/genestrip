@@ -38,11 +38,10 @@ import java.util.Set;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.RefSeqCategory;
-import org.metagene.genestrip.util.ArraysUtil;
-import org.metagene.genestrip.util.StreamProvider;
 
 public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setDelimiter('\t').setRecordSeparator('\n')
@@ -57,7 +56,7 @@ public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
 	public RefSeqFnaFilesDownloadGoal(GSProject project, String name,
 			ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal, RefSeqCatalogDownloadGoal catalogDLGoal,
 			Goal<GSProject>... deps) {
-		super(project, name, ArraysUtil.append(deps, categoriesGoal, catalogDLGoal));
+		super(project, name, Goal.append(deps, categoriesGoal, catalogDLGoal));
 
 		this.categoriesGoal = categoriesGoal;
 		this.catalogDLGoal = catalogDLGoal;

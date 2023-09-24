@@ -30,8 +30,8 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 
 import org.metagene.genestrip.fastq.AbstractFastqReader;
-import org.metagene.genestrip.util.StreamProvider;
-import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
+import org.metagene.genestrip.io.StreamProvider;
+import org.metagene.genestrip.io.StreamProvider.ByteCountingInputStreamAccess;
 
 public class FastqBloomFilter extends AbstractFastqReader {
 	private final double positiveRatio;

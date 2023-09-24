@@ -31,10 +31,10 @@ import java.util.Collection;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.metagene.genestrip.util.BufferedLineReader;
+import org.metagene.genestrip.io.BufferedLineReader;
+import org.metagene.genestrip.io.StreamProvider;
+import org.metagene.genestrip.io.StreamProvider.ByteCountingInputStreamAccess;
 import org.metagene.genestrip.util.ByteArrayUtil;
-import org.metagene.genestrip.util.StreamProvider;
-import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
 public abstract class AccessionFileProcessor {
 	private static int MAX_LINE_SIZE = 2048;

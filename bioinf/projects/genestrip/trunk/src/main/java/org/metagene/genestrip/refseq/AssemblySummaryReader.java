@@ -39,9 +39,9 @@ import java.util.Set;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.util.StreamProvider;
 
 public class AssemblySummaryReader {
 	public static final String ASSEMLY_SUM_REFSEQ = "assembly_summary_refseq.txt";

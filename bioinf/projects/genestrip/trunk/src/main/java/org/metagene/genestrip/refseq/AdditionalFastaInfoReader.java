@@ -36,11 +36,11 @@ import java.util.Set;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
+import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.refseq.AssemblySummaryReader.FTPEntryQuality;
 import org.metagene.genestrip.refseq.AssemblySummaryReader.FTPEntryWithQuality;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.util.StreamProvider;
 
 public class AdditionalFastaInfoReader {
 	public static final String ADDITIONAL_INFO_FILE = "additional.txt";

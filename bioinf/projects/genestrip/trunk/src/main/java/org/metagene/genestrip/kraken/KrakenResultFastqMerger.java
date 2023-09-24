@@ -31,8 +31,8 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.metagene.genestrip.io.BufferedLineReader;
 import org.metagene.genestrip.kraken.StringLongDigitTrie.StringLong;
-import org.metagene.genestrip.util.BufferedLineReader;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
 public class KrakenResultFastqMerger {

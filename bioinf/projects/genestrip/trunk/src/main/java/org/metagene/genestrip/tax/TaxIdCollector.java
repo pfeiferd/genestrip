@@ -35,8 +35,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.util.StreamProvider;
 
 public class TaxIdCollector {
 	private final TaxTree taxTree;

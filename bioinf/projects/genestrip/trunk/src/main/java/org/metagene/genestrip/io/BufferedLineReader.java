@@ -22,7 +22,7 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.util;
+package org.metagene.genestrip.io;
 
 import java.io.IOException;
 import java.io.InputStream;

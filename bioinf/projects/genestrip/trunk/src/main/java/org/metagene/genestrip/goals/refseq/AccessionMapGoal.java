@@ -36,7 +36,6 @@ import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.util.ArraysUtil;
 
 public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
@@ -49,7 +48,7 @@ public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
 			ObjectGoal<TaxTree, GSProject> taxTreeGoal, RefSeqCatalogDownloadGoal catalogGoal,
 			RefSeqFnaFilesDownloadGoal downloadGoal, ObjectGoal<Integer, GSProject> accessionMapSizeGoal,
 			Goal<GSProject>... deps) {
-		super(project, name, ArraysUtil.append(deps, categoriesGoal, catalogGoal, downloadGoal, accessionMapSizeGoal));
+		super(project, name, Goal.append(deps, categoriesGoal, catalogGoal, downloadGoal, accessionMapSizeGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxTreeGoal = taxTreeGoal;
 		this.catalogGoal = catalogGoal;
