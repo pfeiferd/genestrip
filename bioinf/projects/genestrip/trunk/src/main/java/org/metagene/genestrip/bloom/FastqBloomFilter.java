@@ -45,10 +45,10 @@ public class FastqBloomFilter extends AbstractFastqReader {
 	private long startTime;
 	private long indexedC;
 
-	public FastqBloomFilter(AbstractKMerBloomIndex index, int minPosCount, double positiveRatio, int maxReadSize,
+	public FastqBloomFilter(MurmurCGATBloomFilter filter, int minPosCount, double positiveRatio, int maxReadSize,
 			int maxQueueSize, int consumerNumber) {
-		super(index.getK(), maxReadSize, maxQueueSize, consumerNumber);
-		this.filter = index.getFilter();
+		super(filter.getK(), maxReadSize, maxQueueSize, consumerNumber);
+		this.filter = filter;
 		this.minPosCount = minPosCount;
 		this.positiveRatio = positiveRatio;
 	}

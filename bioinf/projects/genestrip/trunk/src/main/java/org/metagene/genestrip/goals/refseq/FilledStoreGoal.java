@@ -20,17 +20,16 @@ public class FilledStoreGoal extends ObjectGoal<KMerStoreWrapper, GSProject> {
 
 	@Override
 	public void makeThis() {
-		KMerStoreWrapper wrapper;
 		try {
-			wrapper = KMerStoreWrapper.load(fillStoreGoal.getFile());
+			KMerStoreWrapper wrapper = KMerStoreWrapper.load(fillStoreGoal.getFile());
 			set(wrapper);
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
-		}		
+		}
 	}
-	
+
 	void setStoreWrapper(KMerStoreWrapper object) {
 		set(object);
 	}

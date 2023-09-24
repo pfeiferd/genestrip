@@ -24,9 +24,14 @@
  */
 package org.metagene.genestrip.bloom;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Random;
 
+import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.LargeBitVector;
@@ -207,5 +212,18 @@ public class MurmurCGATBloomFilter implements Serializable {
 		hash *= 0xc4ceb9fe1a85ec53L;
 		hash ^= (hash >>> 33);
 		return hash;
+	}
+	
+	public void save(File filterFile) throws IOException {
+		ObjectOutputStream oOut = new ObjectOutputStream(StreamProvider.getOutputStreamForFile(filterFile));
+		oOut.writeObject(this);
+		oOut.close();
+	}
+
+	public static MurmurCGATBloomFilter load(File filterFile) throws IOException, ClassNotFoundException {
+		ObjectInputStream oOut = new ObjectInputStream(StreamProvider.getInputStreamForFile(filterFile));
+		MurmurCGATBloomFilter res = (MurmurCGATBloomFilter) oOut.readObject();
+		oOut.close();
+		return res;
 	}
 }
