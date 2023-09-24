@@ -57,6 +57,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 	private boolean dump;
 	private final Thread[] consumers;
 	private boolean[] working;
+	private Object[] syncs = new Object[256];
 
 	@SafeVarargs
 	public UpdateStoreGoal(GSProject project, String name, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
@@ -84,6 +85,10 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 			KMerStoreWrapper wrapper = filledStoreGoal.get();
 			KMerSortedArray<String> store = wrapper.getKmerStore();
 			AbstractFastaReader fastaReader = null;
+			
+			for (int i = 0; i < syncs.length; i++) {
+				syncs[i] = new Object();
+			}
 
 			BlockingQueue<File> blockingQueue = new ArrayBlockingQueue<File>(consumers.length);
 			for (int i = 0; i < consumers.length; i++) {
@@ -185,7 +190,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 		}
 	}
 
-	protected static class MyFastaReader extends AbstractStoreFastaReader {
+	protected  class MyFastaReader extends AbstractStoreFastaReader {
 		private final KMerSortedArray<String> store;
 		private final UpdateValueProvider<String> provider;
 
@@ -214,6 +219,11 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 					lastLCA = lcaNode != null ? lcaNode.getTaxId() : oldValue;
 
 					return lastLCA;
+				}
+				
+				@Override
+				public Object getSynchronizationObject(long position) {
+					return syncs[(int)(position % syncs.length)];
 				}
 			};
 			includeRegion = true;
