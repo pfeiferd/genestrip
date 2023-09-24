@@ -46,9 +46,8 @@ import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.goals.MultiMatchGoal;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.kraken.KrakenExecutor;
-import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
-import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
-import org.metagene.genestrip.kraken.StringLongDigitTrie;
+import org.metagene.genestrip.kraken.KrakenResultListener;
+import org.metagene.genestrip.kraken.KrakenResultProcessor;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -140,16 +139,15 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 				getProject().getConfig().getKrakenExecExpr()) {
 			@Override
 			protected void handleOutputStream(InputStream stream, OutputStream out) throws IOException {
-				KrakenResultFastqMerger parser = new KrakenResultFastqMerger(
+				KrakenResultProcessor parser = new KrakenResultProcessor(
 						getProject().getConfig().getMaxReadSizeBytes());
 
-				parser.process(new BufferedInputStream(stream), null, new KrakenResultFastqMergeListener() {
+				parser.process(new BufferedInputStream(stream), new KrakenResultListener() {
 					private long lastLine = -1;
 
 					@Override
-					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, byte[] read, byte[] readProbs,
-							String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output,
-							StringLongDigitTrie root) {
+					public void newTaxIdForRead(long lineCount, byte[] readDescriptor, String krakenTaxid, int bps,
+							int pos, String kmerTaxid, int hitLength, byte[] output) {
 						if (taxIds == null || taxIds.contains(kmerTaxid)) {
 							KrakenResStats stats = countingTrie.get(kmerTaxid, true);
 							stats.kmers += hitLength;
