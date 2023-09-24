@@ -106,14 +106,27 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 			super(bufferSize, null, accessionMap, store.getK());
 			this.store = store;
 			provider = new UpdateValueProvider<String>() {
+				// Caches for last results of getLeastCommonAncestor()
+				private String lastOldValue;
+				private TaxIdNode lastNode;
+				private String lastLCA;
+				
+				
 				@Override
 				public String getUpdateValue(String oldValue) {
-					TaxIdNode oldNode = taxTree.getNodeByTaxId(oldValue);
-					TaxIdNode newNode = taxTree.getLeastCommonAncestor(oldNode, node);
-					if (newNode == null || newNode == oldNode) {
-						return oldValue;
+					// Minimal result cache to improve speed - works 95% of the time.
+					if (oldValue == lastOldValue && node == lastNode) {
+						return lastLCA;
 					}
-					return newNode.getTaxId();
+					
+					TaxIdNode oldNode = taxTree.getNodeByTaxId(oldValue);				
+					TaxIdNode lcaNode = taxTree.getLeastCommonAncestor(oldNode, node);
+					
+					lastOldValue = oldValue;
+					lastNode = node;
+					lastLCA = lcaNode != null ? lcaNode.getTaxId() : oldValue;
+					
+					return lastLCA;
 				}
 			};
 			includeRegion = true;

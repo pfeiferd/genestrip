@@ -29,8 +29,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.commons.csv.CSVFormat;
@@ -47,7 +49,8 @@ import it.unimi.dsi.fastutil.objects.Object2LongMap;
 public class ResultReporter {
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setDelimiter(';')
 			.setRecordSeparator('\n').build();
-	private static final DecimalFormat DF = new DecimalFormat("#.0000");
+
+	private static final DecimalFormat DF = new DecimalFormat("#.0000", new DecimalFormatSymbols(Locale.US));
 
 	private final TaxTree taxTree;
 
@@ -67,7 +70,7 @@ public class ResultReporter {
 
 		List<String> sortedTaxIds = new ArrayList<String>(stats.keySet());
 		taxTree.sortTaxidsViaTree(sortedTaxIds);
-		
+
 		for (String taxId : sortedTaxIds) {
 			if (taxId != null) {
 				TaxIdNode taxNode = taxTree.getNodeByTaxId(taxId);
@@ -123,8 +126,7 @@ public class ResultReporter {
 
 		out.print("name;rank;taxid;reads;kmers;unique kmers;contigs;average contig length;max contig length;");
 		if (estimator != null) {
-			out.print(
-					"normalized kmers; exp. unique kmers; unique kmers / exp.; quality prediction;");
+			out.print("normalized kmers; exp. unique kmers; unique kmers / exp.; quality prediction;");
 		}
 		if (res.isWithMaxKMerCounts()) {
 			out.print("max kmer counts;");
