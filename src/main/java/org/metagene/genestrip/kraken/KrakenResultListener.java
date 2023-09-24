@@ -22,39 +22,9 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.goals.refseq;
+package org.metagene.genestrip.kraken;
 
-import java.io.IOException;
-
-import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.make.FileGoal;
-import org.metagene.genestrip.make.Goal;
-import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.store.KMerStoreWrapper;
-
-public class FilledStoreGoal extends ObjectGoal<KMerStoreWrapper, GSProject> {
-	private final FileGoal<GSProject> fillStoreGoal;
-
-	@SafeVarargs
-	public FilledStoreGoal(GSProject project, String name, FileGoal<GSProject> fillStoreGoal,
-			Goal<GSProject>... dependencies) {
-		super(project, name, Goal.append(dependencies, fillStoreGoal));
-		this.fillStoreGoal = fillStoreGoal;
-	}
-
-	@Override
-	public void makeThis() {
-		try {
-			KMerStoreWrapper wrapper = KMerStoreWrapper.load(fillStoreGoal.getFile());
-			set(wrapper);
-		} catch (ClassNotFoundException e) {
-			throw new RuntimeException(e);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	void setStoreWrapper(KMerStoreWrapper object) {
-		set(object);
-	}
+public interface KrakenResultListener {
+	public void newTaxIdForRead(long lineCount, byte[] readDescriptor, 
+			String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output);
 }
