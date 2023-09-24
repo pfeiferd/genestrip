@@ -74,7 +74,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	public KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge) {
 		this(k, fpp, initialValues, enforceLarge, new MurmurCGATBloomFilter(k, fpp));
 	}
-	
+
 	protected KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge,
 			MurmurCGATBloomFilter filter) {
 		this.k = k;
@@ -90,7 +90,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		}
 		this.filter = filter;
 	}
-	
+
 	public long[] getStatsAsIndexArray() {
 		long[] counts = new long[nextValueIndex];
 		visit(new KMerSortedArrayVisitor<V>() {
@@ -113,7 +113,6 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 		return res;
 	}
-
 
 	public int getNValues() {
 		return nextValueIndex;
@@ -279,35 +278,47 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		long kmer = reverse ? CGAT.kMerToLongReverse(buffer) : CGAT.kMerToLongStraight(buffer);
 
 		long pos;
-		short index;
 		if (largeKmers != null) {
 			pos = LongBigArrays.binarySearch(largeKmers, 0, entries, kmer);
 			if (pos < 0) {
 				return false;
 			}
-			index = BigArrays.get(largeValueIndexes, pos);
 		} else {
 			pos = Arrays.binarySearch(kmers, 0, (int) entries, kmer);
 			if (pos < 0) {
 				return false;
 			}
-			index = valueIndexes[(int) pos];
 		}
-		V oldValue = indexMap.get(index);
-		V newValue = provider.getUpdateValue(oldValue);
-		if (newValue == null) {
-			throw new NullPointerException("null is not allowed as a value.");
-		}
-		if (newValue != oldValue && !newValue.equals(oldValue)) {
-			index = getAddValueIndex(newValue);
+		// We only must synchronize, if two threads access the same kmer in the same
+		// position. But we cannot synchronize on 'pos' because it is primitive.
+		// The helper method getSynchronizationObject() likely returns different objects
+		// for different pos values, but always the same object for the same pos value
+		// in a multi-threading scenario. This trick greatly decreases synchronization
+		// bottlenecks.
+		synchronized (provider.getSynchronizationObject(pos)) {
+			short index;
 			if (largeKmers != null) {
-				BigArrays.set(largeValueIndexes, pos, index);
+				index = BigArrays.get(largeValueIndexes, pos);
 			} else {
-				valueIndexes[(int) pos] = index;
+				index = valueIndexes[(int) pos];
 			}
-			return true;
+
+			V oldValue = indexMap.get(index);
+			V newValue = provider.getUpdateValue(oldValue);
+			if (newValue == null) {
+				throw new NullPointerException("null is not allowed as a value.");
+			}
+			if (newValue != oldValue && !newValue.equals(oldValue)) {
+				index = getAddValueIndex(newValue);
+				if (largeKmers != null) {
+					BigArrays.set(largeValueIndexes, pos, index);
+				} else {
+					valueIndexes[(int) pos] = index;
+				}
+				return true;
+			}
+			return false;
 		}
-		return false;
 	}
 
 	public V getLong(long kmer, long[] posStore) {
@@ -458,5 +469,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 	public interface UpdateValueProvider<V extends Serializable> {
 		public V getUpdateValue(V oldValue);
+
+		public Object getSynchronizationObject(long position);
 	}
 }
