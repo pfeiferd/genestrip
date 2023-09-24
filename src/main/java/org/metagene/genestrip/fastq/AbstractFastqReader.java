@@ -90,6 +90,7 @@ public abstract class AbstractFastqReader {
 	
 	protected Thread createAndStartThread(Runnable runnable, int i) {
 		Thread t =  new Thread(runnable);
+		t.setName("Fastq reader thread #" + i);
 		t.start();
 		
 		return t;
