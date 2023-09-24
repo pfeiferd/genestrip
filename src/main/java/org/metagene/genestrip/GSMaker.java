@@ -45,10 +45,12 @@ import org.metagene.genestrip.goals.refseq.CategoriesGoal;
 import org.metagene.genestrip.goals.refseq.FillBloomFilterGoal;
 import org.metagene.genestrip.goals.refseq.FillSizeGoal;
 import org.metagene.genestrip.goals.refseq.FillStoreGoal;
+import org.metagene.genestrip.goals.refseq.FilledStoreGoal;
 import org.metagene.genestrip.goals.refseq.RefSeqCatalogDownloadGoal;
 import org.metagene.genestrip.goals.refseq.RefSeqFnaFilesDownloadGoal;
 import org.metagene.genestrip.goals.refseq.RefSeqRNumDownloadGoal;
 import org.metagene.genestrip.goals.refseq.UpdateStoreGoal;
+import org.metagene.genestrip.goals.refseq.UpdatedStoreGoal;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
@@ -187,17 +189,25 @@ public class GSMaker extends Maker<GSProject> {
 		ObjectGoal<MurmurCGATBloomFilter, GSProject> fillBloomGoal = new FillBloomFilterGoal(project, "fillbloom",
 				categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal, accessCollGoal, fillSizeGoal);
 		registerGoal(fillBloomGoal);
+		
 
 		FillStoreGoal fillStoreGoal = new FillStoreGoal(project, "tempstore", categoriesGoal, taxNodesGoal,
 				refSeqFnaFilesGoal, accessCollGoal, fillSizeGoal, fillBloomGoal, projectSetupGoal);
 		registerGoal(fillStoreGoal);
 
-		FileGoal<GSProject> updateStoreGoal = new UpdateStoreGoal(project, "store", categoriesGoal, taxTreeGoal,
-				refSeqFnaFilesGoal, accessCollGoal, fillStoreGoal, projectSetupGoal);
+		FilledStoreGoal filledStoreGoal = new FilledStoreGoal(project, "filledstore", fillStoreGoal);
+		registerGoal(filledStoreGoal);
+		fillStoreGoal.setFilledStoreGoal(filledStoreGoal);
+				
+		UpdateStoreGoal updateStoreGoal = new UpdateStoreGoal(project, "store", categoriesGoal, taxTreeGoal,
+				refSeqFnaFilesGoal, accessCollGoal, filledStoreGoal, projectSetupGoal);
 		registerGoal(updateStoreGoal);
-
 		
-		Goal<GSProject> storeInfoGoal = new StoreInfoGoal(project, "storeinfo", taxTreeGoal, updateStoreGoal,
+		UpdatedStoreGoal updatedStoreGoal = new UpdatedStoreGoal(project, "updatedstore", fillStoreGoal);
+		registerDefaultGoal(updatedStoreGoal);
+		updateStoreGoal.setUpdatedStoreGoal(updatedStoreGoal);
+		
+		Goal<GSProject> storeInfoGoal = new StoreInfoGoal(project, "storeinfo", taxTreeGoal, updatedStoreGoal,
 				projectSetupGoal);
 		registerGoal(storeInfoGoal);
 		

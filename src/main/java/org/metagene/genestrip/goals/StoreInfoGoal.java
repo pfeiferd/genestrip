@@ -30,24 +30,22 @@ import java.io.PrintStream;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
-import org.metagene.genestrip.make.FileGoal;
+import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.match.ResultReporter;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree;
-import org.metagene.genestrip.util.ArraysUtil;
-import org.metagene.genestrip.util.StreamProvider;
 
 public class StoreInfoGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
-	private final FileGoal<GSProject> storeGoal;
+	private final ObjectGoal<KMerStoreWrapper, GSProject> storeGoal;
 
 	@SafeVarargs
-	public StoreInfoGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal, FileGoal<GSProject> storeGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, storeGoal.getFile(), FileType.CSV, false),
-				ArraysUtil.append(deps, taxTreeGoal, storeGoal));
+	public StoreInfoGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal, ObjectGoal<KMerStoreWrapper, GSProject> storeGoal, Goal<GSProject>... deps) {
+		super(project, name, project.getOutputFile(name, FileType.CSV, false),
+				Goal.append(deps, taxTreeGoal, storeGoal));
 		this.taxTreeGoal = taxTreeGoal;
 		this.storeGoal = storeGoal;
 	}
@@ -55,11 +53,11 @@ public class StoreInfoGoal extends FileListGoal<GSProject> {
 	@Override
 	protected void makeFile(File file) {
 		try {
-			KMerStoreWrapper wrapper = KMerStoreWrapper.load(storeGoal.getFile());
+			KMerStoreWrapper wrapper = storeGoal.get();
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
 			new ResultReporter(taxTreeGoal.get()).printStoreInfo(wrapper.getStats(), out);
 			out.close();
-		} catch (IOException | ClassNotFoundException e) {
+		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}

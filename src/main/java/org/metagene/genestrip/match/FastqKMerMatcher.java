@@ -37,14 +37,14 @@ import java.util.List;
 import java.util.Map;
 
 import org.metagene.genestrip.fastq.AbstractFastqReader;
+import org.metagene.genestrip.io.StreamProvider;
+import org.metagene.genestrip.io.StreamProvider.ByteCountingInputStreamAccess;
 import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerUniqueCounter;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.DigitTrie;
-import org.metagene.genestrip.util.StreamProvider;
-import org.metagene.genestrip.util.StreamProvider.ByteCountingInputStreamAccess;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 

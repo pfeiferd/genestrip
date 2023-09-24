@@ -40,7 +40,7 @@ import org.apache.commons.csv.CSVRecord;
 import org.metagene.genestrip.GSConfig;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
-import org.metagene.genestrip.make.FileGoal;
+import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -51,8 +51,6 @@ import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.store.KMerUniqueCounter;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
 import org.metagene.genestrip.tax.TaxTree;
-import org.metagene.genestrip.util.ArraysUtil;
-import org.metagene.genestrip.util.StreamProvider;
 
 public class MultiMatchGoal extends FileListGoal<GSProject> {
 	public static final String NAME = "multimatch";
@@ -60,7 +58,7 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 	private final Map<File, List<File>> fileToFastqs;
 	private final File csvFile;
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
-	private final FileGoal<GSProject> storeGoal;
+	private final ObjectGoal<KMerStoreWrapper, GSProject> storeGoal;
 	private final boolean writedFiltered;
 
 	private FastqKMerMatcher matcher;
@@ -70,8 +68,8 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 
 	@SafeVarargs
 	public MultiMatchGoal(GSProject project, String name, File csvFile, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
-			FileGoal<GSProject> storeGoal, boolean writeFiltered, Goal<GSProject>... deps) {
-		super(project, name, (List<File>) null, ArraysUtil.append(deps, taxTreeGoal, storeGoal));
+			ObjectGoal<KMerStoreWrapper, GSProject> storeGoal, boolean writeFiltered, Goal<GSProject>... deps) {
+		super(project, name, (List<File>) null, Goal.append(deps, taxTreeGoal, storeGoal));
 		this.csvFile = csvFile;
 		this.taxTreeGoal = taxTreeGoal;
 		this.storeGoal = storeGoal;
@@ -122,7 +120,7 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 
 			GSConfig config = getProject().getConfig();
 			if (matcher == null) {
-				wrapper = KMerStoreWrapper.load(storeGoal.getFile());
+				wrapper = storeGoal.get();
 				matcher = new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(),
 						config.getThreadQueueSize(), config.getThreads());
 				reporter = new ResultReporter(taxTreeGoal.get());
@@ -136,7 +134,7 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
 			reporter.printMatchResult(res, out, wrapper);
 			out.close();
-		} catch (IOException | ClassNotFoundException e) {
+		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}

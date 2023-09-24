@@ -24,33 +24,31 @@
  */
 package org.metagene.genestrip.make;
 
-public abstract class ObjectGoal<T,P> extends Goal<P> {
+public abstract class ObjectGoal<T, P> extends Goal<P> {
 	private T object;
-	
+
 	@SafeVarargs
 	public ObjectGoal(P project, String name, Goal<P>... dependencies) {
 		super(project, name, dependencies);
 	}
-	
+
 	public T get() {
-		if (!isMade()) {
-			make();
-		}
+		make();
 		return object;
 	}
-	
+
 	protected void set(T object) {
 		if (getLogger().isDebugEnabled()) {
 			getLogger().debug("Setting " + this + " to " + object);
 		}
 		this.object = object;
 	}
-	
+
 	@Override
 	public void cleanThis() {
 		object = null;
 	}
-	
+
 	@Override
 	protected boolean isThisCleaned() {
 		return object == null;
@@ -60,9 +58,9 @@ public abstract class ObjectGoal<T,P> extends Goal<P> {
 	public boolean isMade() {
 		return object != null;
 	}
-	
+
 	@Override
 	public String toString() {
-		return "object goal: "+ getName();
+		return "object goal: " + getName();
 	}
 }

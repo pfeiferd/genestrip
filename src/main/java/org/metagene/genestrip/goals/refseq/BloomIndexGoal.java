@@ -30,7 +30,7 @@ import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
-import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
+import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -38,44 +38,36 @@ import org.metagene.genestrip.refseq.AbstractStoreFastaReader;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.store.KMerSortedArray;
+import org.metagene.genestrip.store.KMerSortedArray.UpdateValueProvider;
 import org.metagene.genestrip.store.KMerStoreWrapper;
+import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.ArraysUtil;
 
-public class FillStoreGoal extends FileListGoal<GSProject> {
-	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
-	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
-	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
-	private final ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal;
-	private FilledStoreGoal filledStoreGoal;
+public class BloomIndexGoal extends FileListGoal<GSProject> {
+	private final ObjectGoal<KMerStoreWrapper, GSProject> filledStoreGoal;
+	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 
 	@SafeVarargs
-	public FillStoreGoal(GSProject project, String name, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
-			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, FillSizeGoal fillSizeGoal,
-			ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, FileType.SER), Goal.append(deps, categoriesGoal,
-				taxNodesGoal, fnaFilesGoal, accessionMapGoal, fillSizeGoal, bloomFilterGoal));
+	public BloomIndexGoal(GSProject project, String name,
+			ObjectGoal<KMerStoreWrapper, GSProject> filledStoreGoal, Goal<GSProject>... deps) {
+		super(project, name, project.getOutputFile(name, FileType.SER), ArraysUtil.append(deps, categoriesGoal,
+				taxTreeGoal, fnaFilesGoal, accessionTrieGoal, filledStoreGoal));
 		this.categoriesGoal = categoriesGoal;
-		this.taxNodesGoal = taxNodesGoal;
+		this.taxTreeGoal = taxTreeGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
-		this.accessionMapGoal = accessionMapGoal;
-		this.bloomFilterGoal = bloomFilterGoal;
-	}
-
-	public void setFilledStoreGoal(FilledStoreGoal filledStoreGoal) {
+		this.accessionTrieGoal = accessionTrieGoal;
 		this.filledStoreGoal = filledStoreGoal;
 	}
 
 	@Override
 	public void makeFile(File storeFile) {
-		KMerSortedArray<String> store = new KMerSortedArray<String>(getProject().getConfig().getKMerSize(),
-				getProject().getConfig().getKMerFastBloomFpp(), null, false);
-		store.initSize(bloomFilterGoal.get().getEntries());
-
 		try {
+			KMerStoreWrapper wrapper = filledStoreGoal.get();
+			KMerSortedArray<String> store = wrapper.getKmerStore();
+
 			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getMaxReadSizeBytes(),
-					taxNodesGoal.get(), accessionMapGoal.get(), store);
+					taxTreeGoal.get(), accessionTrieGoal.get(), store);
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
@@ -83,40 +75,49 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 					fastaReader.readFasta(fnaFile);
 				}
 			}
-			if (getLogger().isWarnEnabled()) {
-				getLogger().warn("Not stored kmers: " + fastaReader.tooManyCounter);
-			}
 
-			store.optimize();
-
-			KMerStoreWrapper wrapper = new KMerStoreWrapper((KMerSortedArray<String>) store);
-			wrapper.save(storeFile);
+			KMerStoreWrapper wrapper2 = new KMerStoreWrapper((KMerSortedArray<String>) store);
+			wrapper2.save(storeFile);
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("File saved " + storeFile);
 			}
-			filledStoreGoal.setStoreWrapper(wrapper);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	protected static class MyFastaReader extends AbstractStoreFastaReader {
+	protected class MyFastaReader extends AbstractStoreFastaReader {
 		private final KMerSortedArray<String> store;
-		private long tooManyCounter;
 
-		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
+		private final UpdateValueProvider<String> provider;
+
+		public MyFastaReader(int bufferSize, TaxTree taxTree, AccessionMap accessionMap,
 				KMerSortedArray<String> store) {
-			super(bufferSize, taxNodes, accessionMap, store.getK());
+			super(bufferSize, null, accessionMap, store.getK());
 			this.store = store;
+			provider = new UpdateValueProvider<String>() {
+				@Override
+				public String getUpdateValue(String oldValue) {
+					TaxIdNode oldNode = taxTree.getNodeByTaxId(oldValue);
+					TaxIdNode newNode = taxTree.getLeastCommonAncestor(oldNode, node);
+					if (newNode == null || newNode == oldNode) {
+						return oldValue;
+					}
+					return newNode.getTaxId();
+				}
+			};
+			includeRegion = true;
+		}
+
+		@Override
+		protected void infoLine() throws IOException {
+			byteRingBuffer.reset();
+			updateNodeFromInfoLine();
 		}
 
 		@Override
 		protected void handleStore() {
-			if (store.isFull()) {
-				tooManyCounter++;
-			} else {
-				store.put(byteRingBuffer, node.getTaxId(), false);
-			}
+			store.update(byteRingBuffer, provider, false);
 		}
 	}
 }

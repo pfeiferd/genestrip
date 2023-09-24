@@ -30,9 +30,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
+import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATRingBuffer;
-import org.metagene.genestrip.util.StreamProvider;
 
 public class KMerTrie<V extends Serializable> implements Serializable, KMerStore<V> {
 	private static final InternalNullMarker NULL = new InternalNullMarker();

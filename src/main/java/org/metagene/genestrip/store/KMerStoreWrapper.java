@@ -30,7 +30,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
-import org.metagene.genestrip.util.StreamProvider;
+import org.metagene.genestrip.io.StreamProvider;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 

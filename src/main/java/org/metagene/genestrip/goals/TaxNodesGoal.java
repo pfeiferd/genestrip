@@ -33,7 +33,6 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxIdCollector;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.util.ArraysUtil;
 
 public class TaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
@@ -41,7 +40,7 @@ public class TaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
 	@SafeVarargs
 	public TaxNodesGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
 			Goal<GSProject>... deps) {
-		super(project, name, ArraysUtil.append(deps, taxTreeGoal));
+		super(project, name, Goal.append(deps, taxTreeGoal));
 		this.taxTreeGoal = taxTreeGoal;
 	}
 	

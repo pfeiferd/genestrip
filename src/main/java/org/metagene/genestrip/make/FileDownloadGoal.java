@@ -37,8 +37,8 @@ import java.util.List;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
+import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.FileDownloadGoal.DownloadProject;
-import org.metagene.genestrip.util.StreamProvider;
 
 public abstract class FileDownloadGoal<P extends DownloadProject> extends FileGoal<P> {
 	private FTPClient ftpClient;

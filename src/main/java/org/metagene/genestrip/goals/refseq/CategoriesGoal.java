@@ -35,10 +35,10 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.RefSeqCategory;
-import org.metagene.genestrip.util.StreamProvider;
 
 public class CategoriesGoal extends ObjectGoal<Set<RefSeqCategory>[], GSProject> {
 	@SafeVarargs

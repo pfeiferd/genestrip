@@ -31,8 +31,8 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Date;
 
+import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.util.CGATRingBuffer;
-import org.metagene.genestrip.util.StreamProvider;
 
 public class AbstractKMerBloomIndex implements Serializable {
 	private static final long serialVersionUID = 1L;

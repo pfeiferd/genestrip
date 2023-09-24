@@ -87,8 +87,13 @@ public class GSProject implements DownloadProject {
 	}
 
 	public File getOutputFile(String goal, FileType type) {
-		return getOutputFile(goal, null, type, true);
+		return getOutputFile(goal, type, true);
 	}
+	
+	public File getOutputFile(String goal, FileType type, boolean gzip) {
+		return getOutputFile(goal, null, type, false);
+	}
+	
 	public File getOutputFile(String goal, File baseFile, FileType type) {
 		return getOutputFile(goal, baseFile, type, true);
 	}

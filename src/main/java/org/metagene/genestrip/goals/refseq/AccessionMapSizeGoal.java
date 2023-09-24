@@ -32,7 +32,6 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.AccessionFileProcessor;
 import org.metagene.genestrip.refseq.RefSeqCategory;
-import org.metagene.genestrip.util.ArraysUtil;
 
 public class AccessionMapSizeGoal extends ObjectGoal<Integer, GSProject> {
 	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
@@ -42,7 +41,7 @@ public class AccessionMapSizeGoal extends ObjectGoal<Integer, GSProject> {
 	public AccessionMapSizeGoal(GSProject project, String name,
 			ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal, RefSeqCatalogDownloadGoal catalogGoal,
 			RefSeqFnaFilesDownloadGoal downloadGoal, Goal<GSProject>... deps) {
-		super(project, name, ArraysUtil.append(deps, categoriesGoal, catalogGoal, downloadGoal));
+		super(project, name, Goal.append(deps, categoriesGoal, catalogGoal, downloadGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.catalogGoal = catalogGoal;
 	}

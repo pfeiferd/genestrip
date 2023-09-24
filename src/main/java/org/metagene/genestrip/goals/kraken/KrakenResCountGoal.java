@@ -44,6 +44,7 @@ import org.apache.commons.csv.CSVRecord;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.goals.MultiMatchGoal;
+import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.kraken.KrakenExecutor;
 import org.metagene.genestrip.kraken.KrakenResultFastqMergeListener;
 import org.metagene.genestrip.kraken.KrakenResultFastqMerger;
@@ -52,9 +53,7 @@ import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.util.ArraysUtil;
 import org.metagene.genestrip.util.DigitTrie;
-import org.metagene.genestrip.util.StreamProvider;
 
 public class KrakenResCountGoal extends FileListGoal<GSProject> {
 	private final Map<File, List<File>> fileToFastqs;
@@ -67,7 +66,7 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 	public KrakenResCountGoal(GSProject project, String name, File fastqFile,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, fastqFile, FileType.CSV, false),
-				ArraysUtil.append(deps, taxNodesGoal));
+				Goal.append(deps, taxNodesGoal));
 		this.taxNodesGoal = taxNodesGoal;
 		this.fastq = fastqFile;
 		fileToFastqs = null;
@@ -77,7 +76,7 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 	@SafeVarargs
 	public KrakenResCountGoal(GSProject project, String name, File csvFile, boolean csv,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, Goal<GSProject>... deps) {
-		super(project, name, (List<File>) null, ArraysUtil.append(deps, taxNodesGoal));
+		super(project, name, (List<File>) null, Goal.append(deps, taxNodesGoal));
 		this.taxNodesGoal = taxNodesGoal;
 		this.csvFile = csvFile;
 		fastq = null;
