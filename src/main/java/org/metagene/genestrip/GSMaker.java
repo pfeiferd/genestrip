@@ -192,8 +192,8 @@ public class GSMaker extends Maker<GSProject> {
 				refSeqFnaFilesGoal, accessCollGoal, filledStoreGoal, projectSetupGoal);
 		registerGoal(updateStoreGoal);
 
-		UpdatedStoreGoal updatedStoreGoal = new UpdatedStoreGoal(project, "updatedstore", fillStoreGoal);
-		registerDefaultGoal(updatedStoreGoal);
+		UpdatedStoreGoal updatedStoreGoal = new UpdatedStoreGoal(project, "updatedstore", updateStoreGoal);
+		registerGoal(updatedStoreGoal);
 		updateStoreGoal.setUpdatedStoreGoal(updatedStoreGoal);
 		
 
@@ -201,7 +201,7 @@ public class GSMaker extends Maker<GSProject> {
 				updatedStoreGoal, projectSetupGoal);
 		registerGoal(bloomIndexGoal);
 
-		BloomIndexedGoal bloomIndexedGoal = new BloomIndexedGoal(project, "bloomed", bloomIndexGoal, projectSetupGoal);
+		BloomIndexedGoal bloomIndexedGoal = new BloomIndexedGoal(project, "indexed", bloomIndexGoal, projectSetupGoal);
 		registerGoal(bloomIndexedGoal);
 		bloomIndexGoal.setBloomIndexedGoal(bloomIndexedGoal);
 		
