@@ -50,7 +50,7 @@ public class AccessionMapSizeGoal extends ObjectGoal<Integer, GSProject> {
 	public void makeThis() {
 		File catalogFile = catalogGoal.getCatalogFile();
 		AccessionFileProcessor processor = new AccessionFileProcessor(categoriesGoal.get()[1],
-				getProject().isUseCompletGenomesOnly()) {
+				getProject().isUseCompleteGenomesOnly()) {
 			private int counter = 0;
 
 			@Override

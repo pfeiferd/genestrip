@@ -115,6 +115,10 @@ public class GSConfig {
 		return Boolean.valueOf(properties.getProperty("ignoreMissingFastas", "false"));
 	}
 	
+	public boolean isUseCompleteGenomesOnly() {
+		return Boolean.valueOf(properties.getProperty("completeGenomesOnly", "false"));
+	}
+	
 	public String getFtpBaseURL() {
 		return properties.getProperty("ftpBaseURL", NCBI_FTP_URL);
 	}

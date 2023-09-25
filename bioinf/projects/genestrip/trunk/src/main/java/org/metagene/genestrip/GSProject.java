@@ -193,8 +193,8 @@ public class GSProject implements DownloadProject {
 		return csvDir;
 	}
 	
-	public boolean isUseCompletGenomesOnly() {
-		return true;
+	public boolean isUseCompleteGenomesOnly() {
+		return getConfig().isUseCompleteGenomesOnly();
 	}
 	
 	@Override
