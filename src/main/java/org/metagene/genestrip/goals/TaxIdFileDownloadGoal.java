@@ -119,4 +119,14 @@ public class TaxIdFileDownloadGoal extends FileDownloadGoal<GSProject> {
 		zis.closeEntry();
 		zis.close();
 	}
+
+	@Override
+	protected String getHttpBaseURL() {
+		return getProject().getConfig().getTaxHttpBaseURL();
+	}
+	
+	@Override
+	protected String getFTPBaseURL() {
+		return getProject().getConfig().getTaxFTPBaseURL();
+	}
 }
