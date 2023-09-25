@@ -56,7 +56,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 
 	private boolean dump;
 	private final Thread[] consumers;
-	private boolean[] working;
+	private int doneCounter;
 	private Object[] syncs = new Object[256];
 
 	@SafeVarargs
@@ -72,7 +72,6 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 		this.accessionTrieGoal = accessionTrieGoal;
 		this.filledStoreGoal = filledStoreGoal;
 		consumers = new Thread[project.getConfig().getThreads()];
-		working = new boolean[consumers.length];
 	}
 
 	public void setUpdatedStoreGoal(UpdatedStoreGoal updatedStoreGoal) {
@@ -85,7 +84,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 			KMerStoreWrapper wrapper = filledStoreGoal.get();
 			KMerSortedArray<String> store = wrapper.getKmerStore();
 			AbstractFastaReader fastaReader = null;
-			
+
 			for (int i = 0; i < syncs.length; i++) {
 				syncs[i] = new Object();
 			}
@@ -97,12 +96,13 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 			if (consumers.length == 0) {
 				fastaReader = createFastaReader(store);
 			}
-
+			doneCounter = 0;
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
 				if (categoriesGoal.get()[0].contains(cat)) {
 					if (fastaReader == null) {
 						try {
+							doneCounter++;
 							blockingQueue.put(fnaFile);
 						} catch (InterruptedException e) {
 							throw new RuntimeException(e);
@@ -113,22 +113,12 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 				}
 			}
 
-			if (fastaReader == null) {
-				// Gentle polling and waiting until all consumers are done.
-				boolean stillWorking = true;
-				while (stillWorking) {
-					stillWorking = false;
-					for (int i = 0; i < working.length; i++) {
-						if (working[i]) {
-							stillWorking = true;
-							break;
-						}
-					}
-					try {
-						Thread.sleep(100);
-					} catch (InterruptedException e) {
-						// Ignore.
-					}
+			// Gentle polling and waiting until all consumers are done.
+			while (doneCounter > 0) {
+				try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+					// Ignore.
 				}
 			}
 
@@ -163,9 +153,8 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 				while (!dump) {
 					try {
 						File fnaFile = blockingQueue.take();
-						working[i] = true;
 						fastaReader.readFasta(fnaFile);
-						working[i] = false;
+						doneCounter--;
 					} catch (IOException e) {
 						throw new RuntimeException(e);
 					} catch (InterruptedException e) {
@@ -190,7 +179,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 		}
 	}
 
-	protected  class MyFastaReader extends AbstractStoreFastaReader {
+	protected class MyFastaReader extends AbstractStoreFastaReader {
 		private final KMerSortedArray<String> store;
 		private final UpdateValueProvider<String> provider;
 
@@ -220,10 +209,10 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 
 					return lastLCA;
 				}
-				
+
 				@Override
 				public Object getSynchronizationObject(long position) {
-					return syncs[(int)(position % syncs.length)];
+					return syncs[(int) (position % syncs.length)];
 				}
 			};
 			includeRegion = true;
