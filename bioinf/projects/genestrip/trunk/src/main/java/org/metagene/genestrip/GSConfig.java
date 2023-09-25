@@ -33,9 +33,12 @@ public class GSConfig {
 	public static final String CONFIG_PROPERTIES = "Config.properties";
 	public static final String NCBI_FTP_URL = "ftp.ncbi.nih.gov";
 	public static final String NCBI_HTTP_BASE_URL = "https://ftp.ncbi.nlm.nih.gov";
+	
 	public static final String REF_SEQ_HTTP_BASE_URL = NCBI_HTTP_BASE_URL + "/refseq";
 	public static final String REF_SEQ_FTP_URL = NCBI_FTP_URL;
 	
+	public static final String TAX_HTTP_BASE_URL = NCBI_HTTP_BASE_URL;
+	public static final String TAX_SEQ_FTP_URL = NCBI_FTP_URL;
 
 	private final File baseDir;
 	private final Properties properties;
@@ -146,5 +149,13 @@ public class GSConfig {
 
 	public String getRefSeqFTPBaseURL() {
 		return properties.getProperty("refseqHttpBaseURL", REF_SEQ_FTP_URL);
+	}
+	
+	public String getTaxHttpBaseURL() {
+		return properties.getProperty("taxHttpBaseURL", TAX_HTTP_BASE_URL);
+	}
+
+	public String getTaxFTPBaseURL() {
+		return properties.getProperty("taxHttpBaseURL", TAX_SEQ_FTP_URL);
 	}	
 }
