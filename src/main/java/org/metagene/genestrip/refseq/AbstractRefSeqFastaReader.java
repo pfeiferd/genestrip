@@ -38,6 +38,8 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected boolean includeRegion;
 	protected TaxIdNode node;
 
+	protected boolean ignoreMap;
+
 	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap) {
 		super(bufferSize);
 		this.taxNodes = taxNodes;
@@ -45,10 +47,18 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		includeRegion = false;
 	}
 
+	public void ignoreAccessionMap(TaxIdNode node) {
+		this.ignoreMap = true;
+		this.includeRegion = true;
+		this.node = node;
+	}
+
 	@Override
 	protected void infoLine() throws IOException {
-		updateNodeFromInfoLine();
-		includeRegion = taxNodes.isEmpty() || (node != null && taxNodes.contains(node));
+		if (!ignoreMap) {
+			updateNodeFromInfoLine();
+			includeRegion = taxNodes.isEmpty() || (node != null && taxNodes.contains(node));
+		}
 	}
 
 	protected void updateNodeFromInfoLine() {

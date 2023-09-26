@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
+import org.metagene.genestrip.goals.AdditionalFastasGoal;
 import org.metagene.genestrip.goals.FilterGoal;
 import org.metagene.genestrip.goals.MatchGoal;
 import org.metagene.genestrip.goals.MultiMatchGoal;
@@ -164,6 +165,9 @@ public class GSMaker extends Maker<GSProject> {
 				categoriesGoal, refSeqCatalogGoal);
 		registerGoal(refSeqFnaFilesGoal);
 
+		AdditionalFastasGoal additionalFastasGoal = new AdditionalFastasGoal(project, "addfastas", commonSetupGoal);
+		registerGoal(additionalFastasGoal);
+
 		ObjectGoal<Integer, GSProject> accessMapSizeGoal = new AccessionMapSizeGoal(project, "accmapsize",
 				categoriesGoal, refSeqCatalogGoal, refSeqFnaFilesGoal);
 		registerGoal(accessMapSizeGoal);
@@ -173,15 +177,16 @@ public class GSMaker extends Maker<GSProject> {
 		registerGoal(accessCollGoal);
 
 		FillSizeGoal fillSizeGoal = new FillSizeGoal(project, "fillsize", categoriesGoal, taxNodesGoal,
-				refSeqFnaFilesGoal, accessCollGoal);
+				refSeqFnaFilesGoal, additionalFastasGoal, accessCollGoal);
 		registerGoal(fillSizeGoal);
 
 		ObjectGoal<MurmurCGATBloomFilter, GSProject> fillBloomGoal = new FillBloomFilterGoal(project, "fillbloom",
-				categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal, accessCollGoal, fillSizeGoal);
+				categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal, additionalFastasGoal, accessCollGoal, fillSizeGoal);
 		registerGoal(fillBloomGoal);
 
 		FillStoreGoal fillStoreGoal = new FillStoreGoal(project, "tempstore", categoriesGoal, taxNodesGoal,
-				refSeqFnaFilesGoal, accessCollGoal, fillSizeGoal, fillBloomGoal, projectSetupGoal);
+				refSeqFnaFilesGoal, additionalFastasGoal, accessCollGoal, fillSizeGoal, fillBloomGoal,
+				projectSetupGoal);
 		registerGoal(fillStoreGoal);
 
 		FilledStoreGoal filledStoreGoal = new FilledStoreGoal(project, "filledstore", fillStoreGoal);
@@ -189,13 +194,13 @@ public class GSMaker extends Maker<GSProject> {
 		fillStoreGoal.setFilledStoreGoal(filledStoreGoal);
 
 		UpdateStoreGoal updateStoreGoal = new UpdateStoreGoal(project, "store", categoriesGoal, taxTreeGoal,
-				refSeqFnaFilesGoal, accessCollGoal, filledStoreGoal, projectSetupGoal);
+				taxNodesGoal, refSeqFnaFilesGoal, additionalFastasGoal, accessCollGoal, filledStoreGoal,
+				projectSetupGoal);
 		registerGoal(updateStoreGoal);
 
 		UpdatedStoreGoal updatedStoreGoal = new UpdatedStoreGoal(project, "updatedstore", updateStoreGoal);
 		registerGoal(updatedStoreGoal);
 		updateStoreGoal.setUpdatedStoreGoal(updatedStoreGoal);
-		
 
 		BloomIndexGoal bloomIndexGoal = new BloomIndexGoal(project, "bloom", taxTreeGoal, taxNodesGoal,
 				updatedStoreGoal, projectSetupGoal);
@@ -204,11 +209,11 @@ public class GSMaker extends Maker<GSProject> {
 		BloomIndexedGoal bloomIndexedGoal = new BloomIndexedGoal(project, "indexed", bloomIndexGoal, projectSetupGoal);
 		registerGoal(bloomIndexedGoal);
 		bloomIndexGoal.setBloomIndexedGoal(bloomIndexedGoal);
-		
+
 		Goal<GSProject> storeInfoGoal = new StoreInfoGoal(project, "storeinfo", taxTreeGoal, updatedStoreGoal,
 				projectSetupGoal);
 		registerGoal(storeInfoGoal);
-		
+
 		Goal<GSProject> all = new Goal<GSProject>(project, "genall", storeInfoGoal, bloomIndexGoal) {
 			@Override
 			public boolean isMade() {
@@ -223,7 +228,8 @@ public class GSMaker extends Maker<GSProject> {
 
 		File fastqOrCSV = project.getFastqOrCSVFile();
 		if (fastqOrCSV != null) {
-			Goal<GSProject> filterGoal = new FilterGoal(project, "filter", fastqOrCSV, bloomIndexedGoal, projectSetupGoal);
+			Goal<GSProject> filterGoal = new FilterGoal(project, "filter", fastqOrCSV, bloomIndexedGoal,
+					projectSetupGoal);
 			registerGoal(filterGoal);
 
 			Goal<GSProject> krakenResCountGoal = new KrakenResCountGoal(project, "krakenres", fastqOrCSV, taxNodesGoal,
