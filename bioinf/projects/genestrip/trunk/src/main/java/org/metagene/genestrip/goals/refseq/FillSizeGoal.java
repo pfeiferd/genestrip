@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.goals.AdditionalFastasGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
@@ -40,29 +41,40 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
+	private final AdditionalFastasGoal additionalGoal;
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 
 	@SafeVarargs
 	public FillSizeGoal(GSProject project, String name, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, Goal<GSProject>... deps) {
+			AdditionalFastasGoal additionalGoal, ObjectGoal<AccessionMap, GSProject> accessionMapGoal,
+			Goal<GSProject>... deps) {
 		super(project, name, Goal.append(deps, categoriesGoal, taxNodesGoal, fnaFilesGoal, accessionMapGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
+		this.additionalGoal = additionalGoal;
 		this.accessionMapGoal = accessionMapGoal;
 	}
 
 	@Override
 	public void makeThis() {
 		try {
+			Set<TaxIdNode> taxNodes = taxNodesGoal.get();
 			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getMaxReadSizeBytes(),
-					taxNodesGoal.get(), accessionMapGoal.get(), getProject().getConfig().getKMerSize());
+					taxNodes, accessionMapGoal.get(), getProject().getConfig().getKMerSize());
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
 				if (categoriesGoal.get()[0].contains(cat)) {
 					fastaReader.readFasta(fnaFile);
+				}
+			}
+			for (File additionalFasta : additionalGoal.getFiles()) {
+				TaxIdNode additionalNode = additionalGoal.getTaxNodeForFile(additionalFasta);
+				if (taxNodes.contains(additionalNode)) {
+					fastaReader.ignoreAccessionMap(additionalNode);
+					fastaReader.readFasta(additionalFasta);
 				}
 			}
 			if (getLogger().isInfoEnabled()) {

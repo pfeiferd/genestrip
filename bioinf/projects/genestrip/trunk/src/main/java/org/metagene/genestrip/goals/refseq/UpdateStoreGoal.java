@@ -33,9 +33,11 @@ import java.util.concurrent.BlockingQueue;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.fasta.AbstractFastaReader;
+import org.metagene.genestrip.goals.AdditionalFastasGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
 import org.metagene.genestrip.refseq.AbstractStoreFastaReader;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
@@ -47,7 +49,9 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 public class UpdateStoreGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
+	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
+	private final AdditionalFastasGoal additionalGoal;
 	private final ObjectGoal<AccessionMap, GSProject> accessionTrieGoal;
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 	private final ObjectGoal<KMerStoreWrapper, GSProject> filledStoreGoal;
@@ -61,14 +65,19 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 
 	@SafeVarargs
 	public UpdateStoreGoal(GSProject project, String name, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
-			ObjectGoal<TaxTree, GSProject> taxTreeGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+			ObjectGoal<TaxTree, GSProject> taxTreeGoal, 
+			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
+			RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+			AdditionalFastasGoal additionalGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionTrieGoal,
 			ObjectGoal<KMerStoreWrapper, GSProject> filledStoreGoal, Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, FileType.SER),
 				Goal.append(deps, categoriesGoal, taxTreeGoal, fnaFilesGoal, accessionTrieGoal, filledStoreGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxTreeGoal = taxTreeGoal;
+		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
+		this.additionalGoal = additionalGoal;
 		this.accessionTrieGoal = accessionTrieGoal;
 		this.filledStoreGoal = filledStoreGoal;
 		consumers = new Thread[project.getConfig().getThreads()];
@@ -83,7 +92,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 		try {
 			KMerStoreWrapper wrapper = filledStoreGoal.get();
 			KMerSortedArray<String> store = wrapper.getKmerStore();
-			AbstractFastaReader fastaReader = null;
+			AbstractRefSeqFastaReader fastaReader = createFastaReader(store);
 
 			for (int i = 0; i < syncs.length; i++) {
 				syncs[i] = new Object();
@@ -93,23 +102,30 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 			for (int i = 0; i < consumers.length; i++) {
 				consumers[i] = createAndStartThread(createFastaReaderRunnable(i, store, blockingQueue), i);
 			}
-			if (consumers.length == 0) {
-				fastaReader = createFastaReader(store);
-			}
+			
 			doneCounter = 0;
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
 				if (categoriesGoal.get()[0].contains(cat)) {
-					if (fastaReader == null) {
+					if (consumers.length == 0) {
+						fastaReader.readFasta(fnaFile);
+					} else {
 						try {
 							doneCounter++;
 							blockingQueue.put(fnaFile);
 						} catch (InterruptedException e) {
 							throw new RuntimeException(e);
 						}
-					} else {
-						fastaReader.readFasta(fnaFile);
 					}
+				}
+			}
+			// Simply do this on main thread - should not be so much work...
+			Set<TaxIdNode> taxNodes = taxNodesGoal.get();
+			for (File additionalFasta : additionalGoal.getFiles()) {
+				TaxIdNode additionalNode = additionalGoal.getTaxNodeForFile(additionalFasta);
+				if (taxNodes.contains(additionalNode)) {
+					fastaReader.ignoreAccessionMap(additionalNode);
+					fastaReader.readFasta(additionalFasta);
 				}
 			}
 
@@ -167,7 +183,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 		};
 	}
 
-	protected AbstractFastaReader createFastaReader(KMerSortedArray<String> store) {
+	protected AbstractRefSeqFastaReader createFastaReader(KMerSortedArray<String> store) {
 		return new MyFastaReader(getProject().getConfig().getMaxReadSizeBytes(), taxTreeGoal.get(),
 				accessionTrieGoal.get(), store);
 	}
@@ -221,12 +237,13 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 		@Override
 		protected void infoLine() throws IOException {
 			byteRingBuffer.reset();
-			updateNodeFromInfoLine();
+			if (!ignoreMap) {
+				updateNodeFromInfoLine();
+			}
 		}
 
 		@Override
 		protected void handleStore() {
-			// TODO: Synchronize me efficiently...
 			store.update(byteRingBuffer, provider, false);
 		}
 	}
