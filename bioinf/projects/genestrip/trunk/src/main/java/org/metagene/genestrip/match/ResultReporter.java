@@ -50,7 +50,7 @@ public class ResultReporter {
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setDelimiter(';')
 			.setRecordSeparator('\n').build();
 
-	private static final DecimalFormat DF = new DecimalFormat("#.0000", new DecimalFormatSymbols(Locale.US));
+	private static final DecimalFormat DF = new DecimalFormat("0.0000", new DecimalFormatSymbols(Locale.US));
 
 	private final TaxTree taxTree;
 
