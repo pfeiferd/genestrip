@@ -26,12 +26,12 @@ package org.metagene.genestrip.goals.refseq;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
-import org.metagene.genestrip.goals.AdditionalFastasGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -46,7 +46,7 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-	private final AdditionalFastasGoal additionalGoal;
+	private final ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal;
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 	private final ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal;
 	private FilledStoreGoal filledStoreGoal;
@@ -54,7 +54,7 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 	@SafeVarargs
 	public FillStoreGoal(GSProject project, String name, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-			AdditionalFastasGoal additionalGoal,
+			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, FillSizeGoal fillSizeGoal,
 			ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal, Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, FileType.SER), Goal.append(deps, categoriesGoal,
@@ -78,7 +78,6 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 		store.initSize(bloomFilterGoal.get().getEntries());
 
 		try {
-			Set<TaxIdNode> taxNodes = taxNodesGoal.get();
 			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getMaxReadSizeBytes(),
 					taxNodesGoal.get(), accessionMapGoal.get(), store);
 
@@ -88,12 +87,10 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 					fastaReader.readFasta(fnaFile);
 				}
 			}
-			for (File additionalFasta : additionalGoal.getFiles()) {
-				TaxIdNode additionalNode = additionalGoal.getTaxNodeForFile(additionalFasta);
-				if (taxNodes.contains(additionalNode)) {
-					fastaReader.ignoreAccessionMap(additionalNode);
-					fastaReader.readFasta(additionalFasta);
-				}
+			Map<File, TaxIdNode> additionalMap = additionalGoal.get();
+			for (File additionalFasta : additionalMap.keySet()) {
+				fastaReader.ignoreAccessionMap(additionalMap.get(additionalFasta));
+				fastaReader.readFasta(additionalFasta);
 			}
 			if (getLogger().isWarnEnabled()) {
 				getLogger().warn("Not stored kmers: " + fastaReader.tooManyCounter);

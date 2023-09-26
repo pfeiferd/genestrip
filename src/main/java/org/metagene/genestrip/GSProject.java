@@ -185,6 +185,10 @@ public class GSProject implements DownloadProject {
 		return new File(getProjectsDir(), name + "/taxids.txt");
 	}
 	
+	public File getAddtionalFile() {
+		return new File(getProjectsDir(), name + "/additional.txt");
+	}
+	
 	public File getCategoriesFile() {
 		return new File(getProjectsDir(), name + "/categories.txt");
 	}
