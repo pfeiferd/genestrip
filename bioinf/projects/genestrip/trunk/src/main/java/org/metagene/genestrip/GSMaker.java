@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
@@ -165,7 +166,7 @@ public class GSMaker extends Maker<GSProject> {
 				categoriesGoal, refSeqCatalogGoal);
 		registerGoal(refSeqFnaFilesGoal);
 
-		AdditionalFastasGoal additionalFastasGoal = new AdditionalFastasGoal(project, "addfastas", commonSetupGoal);
+		ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalFastasGoal = new AdditionalFastasGoal(project, "addfastas", taxTreeGoal, commonSetupGoal);
 		registerGoal(additionalFastasGoal);
 
 		ObjectGoal<Integer, GSProject> accessMapSizeGoal = new AccessionMapSizeGoal(project, "accmapsize",
@@ -194,7 +195,7 @@ public class GSMaker extends Maker<GSProject> {
 		fillStoreGoal.setFilledStoreGoal(filledStoreGoal);
 
 		UpdateStoreGoal updateStoreGoal = new UpdateStoreGoal(project, "store", categoriesGoal, taxTreeGoal,
-				taxNodesGoal, refSeqFnaFilesGoal, additionalFastasGoal, accessCollGoal, filledStoreGoal,
+				refSeqFnaFilesGoal, additionalFastasGoal, accessCollGoal, filledStoreGoal,
 				projectSetupGoal);
 		registerGoal(updateStoreGoal);
 

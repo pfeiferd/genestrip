@@ -26,6 +26,7 @@ package org.metagene.genestrip.goals.refseq;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -33,7 +34,6 @@ import java.util.concurrent.BlockingQueue;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.fasta.AbstractFastaReader;
-import org.metagene.genestrip.goals.AdditionalFastasGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -49,9 +49,8 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 public class UpdateStoreGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
-	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-	private final AdditionalFastasGoal additionalGoal;
+	private final ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal;
 	private final ObjectGoal<AccessionMap, GSProject> accessionTrieGoal;
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 	private final ObjectGoal<KMerStoreWrapper, GSProject> filledStoreGoal;
@@ -66,16 +65,14 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 	@SafeVarargs
 	public UpdateStoreGoal(GSProject project, String name, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
 			ObjectGoal<TaxTree, GSProject> taxTreeGoal, 
-			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
 			RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-			AdditionalFastasGoal additionalGoal,
+			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionTrieGoal,
 			ObjectGoal<KMerStoreWrapper, GSProject> filledStoreGoal, Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, FileType.SER),
 				Goal.append(deps, categoriesGoal, taxTreeGoal, fnaFilesGoal, accessionTrieGoal, filledStoreGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxTreeGoal = taxTreeGoal;
-		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
 		this.additionalGoal = additionalGoal;
 		this.accessionTrieGoal = accessionTrieGoal;
@@ -120,13 +117,10 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 				}
 			}
 			// Simply do this on main thread - should not be so much work...
-			Set<TaxIdNode> taxNodes = taxNodesGoal.get();
-			for (File additionalFasta : additionalGoal.getFiles()) {
-				TaxIdNode additionalNode = additionalGoal.getTaxNodeForFile(additionalFasta);
-				if (taxNodes.contains(additionalNode)) {
-					fastaReader.ignoreAccessionMap(additionalNode);
-					fastaReader.readFasta(additionalFasta);
-				}
+			Map<File, TaxIdNode> additionalMap = additionalGoal.get();
+			for (File additionalFasta : additionalMap.keySet()) {
+				fastaReader.ignoreAccessionMap(additionalMap.get(additionalFasta));
+				fastaReader.readFasta(additionalFasta);
 			}
 
 			// Gentle polling and waiting until all consumers are done.
