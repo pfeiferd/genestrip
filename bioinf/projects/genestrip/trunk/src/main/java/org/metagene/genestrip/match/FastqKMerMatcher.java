@@ -66,6 +66,8 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	private long indexedC;
 
 	private OutputStream indexed;
+	
+	private final Integer maxReadSize;
 
 	private long logUpdateCycle = DEFAULT_LOG_UPDATE_CYCLE;
 
@@ -76,6 +78,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	public FastqKMerMatcher(KMerSortedArray<String> kmerStore, int maxReadSize, int maxQueueSize, int consumerNumber) {
 		super(kmerStore.getK(), maxReadSize, maxQueueSize, consumerNumber);
 		this.kmerStore = kmerStore;
+		this.maxReadSize = maxReadSize;
 	}
 
 	@Override
@@ -157,7 +160,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 			}
 		}
 
-		return new Result(taxid2Stats, reads, kMers, countMap.get(null));
+		return new Result(kmerStore.getK(), taxid2Stats, reads, kMers, countMap.get(null));
 	}
 
 	protected void initRoot() {
@@ -270,6 +273,10 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 						stats.contigs++;
 						if (contigLen > stats.maxContigLen) {
 							stats.maxContigLen = contigLen;
+							for (int j = 0; j < entry.readSize; j++) {
+								stats.maxContigDescriptor[j] = entry.readDescriptor[j];
+							}
+							stats.maxContigDescriptor[entry.readSize] = 0;
 						}
 					}
 				}
@@ -281,7 +288,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 				stats = root.get(taxid);
 				if (stats == null) {
 					synchronized (root) {
-						stats = root.get(taxid, true);
+						stats = root.get(taxid, maxReadSize);
 					}
 				}
 				synchronized (stats) {
@@ -316,6 +323,10 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 						stats.contigs++;
 						if (contigLen > stats.maxContigLen) {
 							stats.maxContigLen = contigLen;
+							for (int j = 0; j < entry.readSize; j++) {
+								stats.maxContigDescriptor[j] = entry.readDescriptor[j];
+							}
+							stats.maxContigDescriptor[entry.readSize] = 0;
 						}
 					}
 				}
@@ -403,22 +414,28 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 
 	protected static class TaxidStatsTrie extends DigitTrie<StatsPerTaxid> {
 		@Override
-		protected StatsPerTaxid createInGet(String digits) {
-			return new StatsPerTaxid(digits);
+		protected StatsPerTaxid createInGet(String digits, Object createContext) {
+			return new StatsPerTaxid(digits, (int) createContext);
 		}
 	}
 
 	public static class Result {
+		private final int k;
 		private final Map<String, StatsPerTaxid> taxid2Stats;
 		private final long totalReads;
 		private final long totalKMers;
 		private final short[] totalMaxCounts;
 		
-		public Result(Map<String, StatsPerTaxid> taxid2Stats, long totalReads, long totalKMers, short[] totalMaxCounts) {
+		public Result(int k, Map<String, StatsPerTaxid> taxid2Stats, long totalReads, long totalKMers, short[] totalMaxCounts) {
+			this.k = k;
 			this.taxid2Stats = taxid2Stats;
 			this.totalReads = totalReads;
 			this.totalKMers = totalKMers;
 			this.totalMaxCounts = totalMaxCounts;
+		}
+		
+		public int getK() {
+			return k;
 		}
 
 		public Map<String, StatsPerTaxid> getTaxid2Stats() {
@@ -452,9 +469,11 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		protected int maxContigLen;
 		protected int contigs;
 		protected short[] maxKMerCounts;
+		protected byte[] maxContigDescriptor;
 
-		public StatsPerTaxid(String taxid) {
+		public StatsPerTaxid(String taxid, int maxReadSizeBytes) {
 			this.taxid = taxid;
+			maxContigDescriptor = new byte[maxReadSizeBytes];
 		}
 
 		public String getTaxid() {
@@ -471,6 +490,10 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 
 		public int getMaxContigLen() {
 			return maxContigLen;
+		}
+		
+		public byte[] getMaxContigDescriptor() {
+			return maxContigDescriptor;
 		}
 
 		public long getReads() {

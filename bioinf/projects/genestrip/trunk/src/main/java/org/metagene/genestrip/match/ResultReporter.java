@@ -43,6 +43,7 @@ import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.ByteArrayUtil;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
@@ -88,7 +89,7 @@ public class ResultReporter {
 		}
 	}
 
-	public static List<StatsPerTaxid> readResultCSV(InputStream in) throws IOException {
+	public static List<StatsPerTaxid> readResultCSV(InputStream in, int k) throws IOException {
 		Iterable<CSVRecord> records = FORMAT.parse(new InputStreamReader(in));
 
 		List<StatsPerTaxid> res = new ArrayList<StatsPerTaxid>();
@@ -105,12 +106,12 @@ public class ResultReporter {
 			String contigs = record.get(6);
 			String maxContigLen = record.get(8);
 
-			StatsPerTaxid stats = new StatsPerTaxid(taxid);
+			StatsPerTaxid stats = new StatsPerTaxid(taxid, 0);
 			stats.reads = Long.parseLong(reads);
 			stats.kmers = Long.parseLong(kmers);
 			stats.uniqueKmers = Long.parseLong(uniqueKmers);
 			stats.contigs = Integer.parseInt(contigs);
-			stats.maxContigLen = Integer.parseInt(maxContigLen);
+			stats.maxContigLen = Integer.parseInt(maxContigLen) - k + 1;
 			res.add(stats);
 		}
 
@@ -124,7 +125,7 @@ public class ResultReporter {
 			estimator.setTotalKMers(res.getTotalKMers());
 		}
 
-		out.print("name;rank;taxid;reads;kmers;unique kmers;contigs;average contig length;max contig length;");
+		out.print("name;rank;taxid;reads;kmers;unique kmers;contigs;average contig length;max contig length; max contic desc.;");
 		if (estimator != null) {
 			out.print("normalized kmers; exp. unique kmers; unique kmers / exp.; quality prediction;");
 		}
@@ -178,7 +179,9 @@ public class ResultReporter {
 					out.print(';');
 					out.print(DF.format(((double) stats.getKMers()) / stats.getContigs()));
 					out.print(';');
-					out.print(stats.getMaxContigLen());
+					out.print(stats.getMaxContigLen() + res.getK() - 1);
+					out.print(';');
+					ByteArrayUtil.print(stats.maxContigDescriptor, out);
 					out.print(';');
 					if (estimator != null) {
 						double normalizedKMers = estimator.getNormalizedKMers(stats);

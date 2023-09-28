@@ -117,7 +117,8 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 	@Override
 	protected void makeFile(File file) throws IOException {
 		DigitTrie<KrakenResStats> countingTrie = new DigitTrie<KrakenResStats>() {
-			protected KrakenResStats createInGet(String taxid) {
+			@Override
+			protected KrakenResStats createInGet(String taxid, Object createContext) {
 				KrakenResStats stats = new KrakenResStats();
 				stats.taxid = taxid;
 				return stats;

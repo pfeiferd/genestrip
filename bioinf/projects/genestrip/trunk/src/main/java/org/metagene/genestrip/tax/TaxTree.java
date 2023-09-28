@@ -41,7 +41,7 @@ import org.metagene.genestrip.util.DigitTrie;
 
 public class TaxTree {
 	private static int MAX_LINE_SIZE = 4096;
-	
+
 	public enum Rank {
 		SUPERKINGDOM("superkingdom"), KINGDOM("kingdom"), PHYLUM("phylum"), SUBPHYLUM("subphylum"),
 		SUPERCLASS("superclass"), CLASS("class"), SUBCLASS("subclass"), SUPERORDER("superorder"), ORDER("order"),
@@ -105,7 +105,7 @@ public class TaxTree {
 
 		return false;
 	}
-	
+
 	public TaxIdNode getLeastCommonAncestor(final TaxIdNode node1, final TaxIdNode node2) {
 		for (TaxIdNode res = node1; res != null; res = res.getParent()) {
 			for (TaxIdNode ancestor2 = node2; ancestor2 != null; ancestor2 = ancestor2.getParent()) {
@@ -179,14 +179,14 @@ public class TaxTree {
 	}
 
 	protected Rank getRank(byte[] outerArray, int start, int end) {
-		for (Rank rank  : Rank.values()) {
+		for (Rank rank : Rank.values()) {
 			if (ByteArrayUtil.indexOf(outerArray, start, end, rank.getName()) != -1) {
 				return rank;
 			}
 		}
 		return null;
 	}
-	
+
 	protected int initPositions(int counter, TaxIdNode taxIdNode) {
 		taxIdNode.position = counter;
 		for (TaxIdNode subNode : taxIdNode.subNodes) {
@@ -243,7 +243,7 @@ public class TaxTree {
 	public TaxIdNode getNodeByTaxId(String taxId) {
 		return taxIdNodeTrie.get(taxId);
 	}
-	
+
 	public TaxIdNode getNodeByTaxId(byte[] seq, int start, int end) {
 		return taxIdNodeTrie.get(seq, start, end);
 	}
@@ -341,8 +341,8 @@ public class TaxTree {
 
 	public static class TaxIdNodeTrie extends DigitTrie<TaxIdNode> {
 		@Override
-		protected TaxIdNode createInGet(byte[] seq, int start, int end) {
-			return new TaxIdNode(new String(seq, start, end - start));
+		protected TaxIdNode createInGet(byte[] seq, int start, int end, Object createContext) {
+			return new TaxIdNode(new String(seq, start, end - start), null);
 		}
 	}
 }

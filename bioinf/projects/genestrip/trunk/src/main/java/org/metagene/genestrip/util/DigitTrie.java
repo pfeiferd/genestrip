@@ -50,19 +50,19 @@ public class DigitTrie<V> {
 	}
 
 	public V get(byte[] seq, int start, int end) {
-		return get(seq, start, end, false);
+		return get(seq, start, end, null);
 	}
 
-	public V get(byte[] seq, int start, int end, boolean create) {
-		DigitTrie<V> node = getNode(seq, start, end, create);
+	public V get(byte[] seq, int start, int end, Object createContext) {
+		DigitTrie<V> node = getNode(seq, start, end, createContext != null);
 		if (node == null) {
-			if (create) {
+			if (createContext != null) {
 				throw new IllegalStateException("Cant get node via sequence " + new String(seq, start, end - start));				
 			}
 			return null;
 		}
-		if (node.value == null && create) {
-			node.value = createInGet(seq, start, end);
+		if (node.value == null && createContext != null) {
+			node.value = createInGet(seq, start, end, createContext);
 		}
 
 		return node.value;
@@ -106,24 +106,24 @@ public class DigitTrie<V> {
 		return 10;
 	}
 
-	protected V createInGet(byte[] seq, int start, int end) {
+	protected V createInGet(byte[] seq, int start, int end, Object createContext) {
 		return null;
 	}
 
 	public V get(String digits) {
-		return get(digits, false);
+		return get(digits, null);
 	}
 
-	public V get(String digits, boolean create) {
+	public V get(String digits, Object createContext) {
 		if (digits == null) {
 			return null;
 		}
-		DigitTrie<V> node = getNode(digits, create);
+		DigitTrie<V> node = getNode(digits, createContext != null);
 		if (node == null) {
 			return null;
 		}
-		if (node.value == null && create) {
-			node.value = createInGet(digits);
+		if (node.value == null && createContext != null) {
+			node.value = createInGet(digits, createContext);
 		}
 
 		return node.value;
@@ -159,7 +159,7 @@ public class DigitTrie<V> {
 		return node;
 	}
 
-	protected V createInGet(String digits) {
+	protected V createInGet(String digits, Object createContext) {
 		return null;
 	}
 
