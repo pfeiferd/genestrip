@@ -119,6 +119,14 @@ public class GSConfig {
 		return Boolean.valueOf(properties.getProperty("completeGenomesOnly", "false"));
 	}
 	
+	public boolean isMatchWithKmerCounts() {
+		return Boolean.valueOf(properties.getProperty("matchWithKmerCounts", "false"));
+	}
+	
+	public int getMaxKmerResCounts() {
+		return Integer.valueOf(properties.getProperty("maxKmerResCounts", "200"));
+	}	
+	
 	public String getFtpBaseURL() {
 		return properties.getProperty("ftpBaseURL", NCBI_FTP_URL);
 	}

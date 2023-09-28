@@ -52,6 +52,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	public static final long DEFAULT_LOG_UPDATE_CYCLE = 1000000;
 
 	private final KMerSortedArray<String> kmerStore;
+	private final int maxKmerResCounts;
 
 	protected KMerUniqueCounter uniqueCounter;
 	protected TaxidStatsTrie root;
@@ -75,10 +76,12 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	// multi threading when using it.
 	protected PrintStream out;
 
-	public FastqKMerMatcher(KMerSortedArray<String> kmerStore, int maxReadSize, int maxQueueSize, int consumerNumber) {
+	public FastqKMerMatcher(KMerSortedArray<String> kmerStore, int maxReadSize, int maxQueueSize, int consumerNumber,
+			int maxKmerResCounts) {
 		super(kmerStore.getK(), maxReadSize, maxQueueSize, consumerNumber);
 		this.kmerStore = kmerStore;
 		this.maxReadSize = maxReadSize;
+		this.maxKmerResCounts = maxKmerResCounts;
 	}
 
 	@Override
@@ -147,7 +150,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 			}
 			if (uniqueCounter instanceof KMerUniqueCounterBits) {
 				if (((KMerUniqueCounterBits) uniqueCounter).isWithCounts()) {
-					countMap = ((KMerUniqueCounterBits) uniqueCounter).getMaxCountsCounts(200);
+					countMap = ((KMerUniqueCounterBits) uniqueCounter).getMaxCountsCounts(maxKmerResCounts);
 					for (StatsPerTaxid stats : allStats) {
 						stats.maxKMerCounts = countMap.get(stats.getTaxid());
 					}
