@@ -66,7 +66,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	private long indexedC;
 
 	private OutputStream indexed;
-	
+
 	private final Integer maxReadSize;
 
 	private long logUpdateCycle = DEFAULT_LOG_UPDATE_CYCLE;
@@ -136,7 +136,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		root = null;
 		Map<String, StatsPerTaxid> taxid2Stats = new HashMap<String, FastqKMerMatcher.StatsPerTaxid>();
 		for (StatsPerTaxid stats : allStats) {
-			taxid2Stats.put(stats.getTaxid(), stats);			
+			taxid2Stats.put(stats.getTaxid(), stats);
 		}
 
 		Map<String, short[]> countMap = null;
@@ -276,7 +276,6 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 							for (int j = 0; j < entry.readSize; j++) {
 								stats.maxContigDescriptor[j] = entry.readDescriptor[j];
 							}
-							stats.maxContigDescriptor[entry.readSize] = 0;
 						}
 					}
 				}
@@ -361,7 +360,6 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		public MyReadEntry(int maxReadSizeBytes, boolean enablePrint) {
 			super(maxReadSizeBytes);
 
-			
 			buffer = enablePrint ? new byte[maxReadSizeBytes * 4] : null; // It has to be rather long in some cases...
 			indexPos = new long[1];
 		}
@@ -425,15 +423,16 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		private final long totalReads;
 		private final long totalKMers;
 		private final short[] totalMaxCounts;
-		
-		public Result(int k, Map<String, StatsPerTaxid> taxid2Stats, long totalReads, long totalKMers, short[] totalMaxCounts) {
+
+		public Result(int k, Map<String, StatsPerTaxid> taxid2Stats, long totalReads, long totalKMers,
+				short[] totalMaxCounts) {
 			this.k = k;
 			this.taxid2Stats = taxid2Stats;
 			this.totalReads = totalReads;
 			this.totalKMers = totalKMers;
 			this.totalMaxCounts = totalMaxCounts;
 		}
-		
+
 		public int getK() {
 			return k;
 		}
@@ -449,7 +448,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		public long getTotalReads() {
 			return totalReads;
 		}
-		
+
 		public short[] getTotalMaxCounts() {
 			return totalMaxCounts;
 		}
@@ -461,7 +460,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 
 	public static class StatsPerTaxid implements Serializable {
 		private static final long serialVersionUID = 1L;
-		
+
 		protected String taxid;
 		protected long reads;
 		protected long uniqueKmers;
@@ -491,7 +490,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		public int getMaxContigLen() {
 			return maxContigLen;
 		}
-		
+
 		public byte[] getMaxContigDescriptor() {
 			return maxContigDescriptor;
 		}
