@@ -66,7 +66,7 @@ public class FastqKMerMatcherTest {
 		read[0] = 'A';
 		store.put(read, 0, TAXIDS[2], false);
 
-		MyFastqMatcher matcher = new MyFastqMatcher(store, readLength, 1, 0);
+		MyFastqMatcher matcher = new MyFastqMatcher(store, readLength * 10, 1, 0);
 		KMerUniqueCounter uniqueCounter = bitMap ? new KMerUniqueCounterMap() : new KMerUniqueCounterBits(store, true);
 
 		MyReadEntry entry = new MyReadEntry(2000, true);
