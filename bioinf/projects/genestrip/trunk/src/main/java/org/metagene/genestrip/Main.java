@@ -48,38 +48,34 @@ public class Main {
 		options = createOptions();
 	}
 
-	public void parse(String[] args) throws ParseException {
-		try {
-			CommandLine line = new DefaultParser().parse(options, args);
+	public void parse(String[] args) throws ParseException, IOException {
+		CommandLine line = new DefaultParser().parse(options, args);
 
-			String baseDir = line.getOptionValue("d", "./data");
-			config = new GSConfig(new File(baseDir));
+		String baseDir = line.getOptionValue("d", "./data");
+		config = new GSConfig(new File(baseDir));
 
-			target = line.getOptionValue("t", "make");
+		target = line.getOptionValue("t", "make");
 
-			String fastqName = line.getOptionValue("f");
-			File fastqFile = null;
-			if (fastqName != null && !fastqName.trim().isEmpty()) {
-				fastqFile = new File(fastqName.trim());
-			}
-
-			File resFolder = null;
-			String resStr = line.getOptionValue("r");
-			if (resStr != null) {
-				resFolder = new File(resStr);
-			}
-
-			restArgs = line.getArgs();
-			if (restArgs.length == 0) {
-				throw new ParseException("Missing project name.");
-			}
-			String projectName = restArgs[0];
-
-			project = new GSProject(config, projectName, 0, null, fastqFile, resFolder, resFolder);
-			maker = new GSMaker(project);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
+		String fastqName = line.getOptionValue("f");
+		File fastqFile = null;
+		if (fastqName != null && !fastqName.trim().isEmpty()) {
+			fastqFile = new File(fastqName.trim());
 		}
+
+		File resFolder = null;
+		String resStr = line.getOptionValue("r");
+		if (resStr != null) {
+			resFolder = new File(resStr);
+		}
+
+		restArgs = line.getArgs();
+		if (restArgs.length == 0) {
+			throw new ParseException("Missing project name.");
+		}
+		String projectName = restArgs[0];
+
+		project = new GSProject(config, projectName, 0, null, fastqFile, resFolder, resFolder);
+		maker = new GSMaker(project);
 	}
 
 	public String getTarget() {
@@ -127,12 +123,12 @@ public class Main {
 
 		return options;
 	}
-	
+
 	public void parseAndRun(String[] args) {
 		try {
 			parse(args);
 			run(System.err);
-		} catch (ParseException e) {
+		} catch (IOException | ParseException e) {
 			HelpFormatter formatter = new HelpFormatter();
 			formatter.printHelp("genestrip [options] <project> [<goal1> <goal2>...]", getOptions());
 			System.out.flush();
