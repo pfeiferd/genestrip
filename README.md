@@ -23,7 +23,28 @@ Genestrip offers an efficient and sophisticated database generation process that
 
 # Building and installing
 
+Genestrip is structured as a standard [Maven 2 or 3](https://maven.apache.org/) project and is compatible with [JDK](https://jdk.java.net/) 1.8 or higher.
+
+Given a Maven and JDK installation,
+`mvn install` will compile, test and install the genestrip program library.
+Afterwards a self-contained and executable `genestrip.jar` file will stored under `./lib`. 
+
 # Building a sample database
+
+Genestrip comes with a folder structure which includes the project `human_virus`.
+After building genestrip, you may call
+`./bin/genestip.sh -d ./data human_virus storeinfo`
+in order to build the `human_virus` database `human_virus.ser.gz` under `./data/project/human_virus/filters`
+
+Genestrip follows a goal oriented approach in order to create any result files much like [make](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/make.html). So to build the human virus database, genestrip will
+1. Download the [taxonomy] and unzip it to `./data/common.`
+1. Download the [refseq release catalog[ to `./data/refseq`
+1. Download [all virus related RefSeq fna files] to `./data/commmon/refseq`
+1. Perform several follow up goals until the `human_virus` database is finally made. 
+1. Create a CSV file `storeinfo.csv` under `./data/human_virus/csv` which contains basic information about the database, i.e. the number of $k$-mers stored per taxid.
+
+The database comprises $k$-mers for all viruses according to the tax id file `./data/project/human_virus/taxids.txt`.
+
 
 # Matching *k*-mers from fastq-files
 
