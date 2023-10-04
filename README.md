@@ -36,7 +36,7 @@ Afterwards a self-contained and executable `genestrip.jar` file will be stored u
 
 The Genestrip installation holds additional folders that include the sample project `human_virus`.
 After building genestrip, you may call
-`./bin/genestrip.sh -d ./data human_virus storeinfo`
+`./bin/genestrip.sh human_virus storeinfo`
 in order to build the `human_virus` database.
 
 Genestrip follows a goal oriented approach in order to create any result files (in the spirit of  [make](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/make.html)). So to build the `human_virus` database, Genestrip will:
@@ -63,9 +63,13 @@ It is important to understand that:
 
 Building your own database is straight-forward:
 1. Create a folder `<db_name>` under `./data/projects/`. The folder is the places for all subsequent files to specify and generate the database. It is also the core name of the database.
-1. Create a text file `./data/projects/<db_name>/taxids.txt` as mentioned Section 
-1. Create a text file `./data/projects/<db_name>/categories.txt` as mentioned in Section. Remember to chose a suitable set of categories to balance completeness and efficiency of the database generation process.
-1.  
+1. Create a text file `./data/projects/<db_name>/taxids.txt` as mentioned in [Building a sample database](# Building a sample database) 
+1. Create a text file `./data/projects/<db_name>/categories.txt` as mentioned in [Building a sample database](# Building a sample database). Remember to chose a suitable set of categories to balance the completeness of considered genomes and efficiency of the database generation process.
+1. Build the database along with the CSV file `<db_name>_storeinfo.csv` via the command `./bin/genestrip.sh <db_name> storeinfo`.
+
+Genestrip will organized the project folder `./data/projects/<db_name>` via the following sub-folders:
+* `csv` is where analysis results of fastq files will be stored (by default)
+* 
 
 # Matching *k*-mers from fastq-files
 
