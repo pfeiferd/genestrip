@@ -103,7 +103,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 			doneCounter = 0;
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
-				if (categoriesGoal.get()[0].contains(cat)) {
+				if (categoriesGoal.get()[1].contains(cat)) {
 					if (consumers.length == 0) {
 						fastaReader.readFasta(fnaFile);
 					} else {
