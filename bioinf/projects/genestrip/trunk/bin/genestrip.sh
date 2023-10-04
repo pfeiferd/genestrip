@@ -1,4 +1,4 @@
 #!/bin/bash
 scriptdir=$(dirname "$0")
 
-java -Xmx16g -jar $(scriptdir)/../lib/genestrip.jar -d $(scriptdir)/../data "$@" 
+java -Xmx16g -jar $scriptdir/../lib/genestrip.jar -d $scriptdir/../data "$@" 
