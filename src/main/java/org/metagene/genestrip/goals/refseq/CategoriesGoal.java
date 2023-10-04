@@ -80,7 +80,7 @@ public class CategoriesGoal extends ObjectGoal<Set<RefSeqCategory>[], GSProject>
 					if (additional) {
 						category = category.substring(1);
 					}
-					RefSeqCategory cat = RefSeqCategory.fromDiregoryString(category);
+					RefSeqCategory cat = RefSeqCategory.fromDirectoryString(category);
 					res[additional ? 1 : 0].add(cat);
 				}
 			}
