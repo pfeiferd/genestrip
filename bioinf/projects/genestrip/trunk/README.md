@@ -132,6 +132,13 @@ TODO
 # Manually adding fasta-files
 
 TODO
+
+# Logging
+
+TODO
+
+# Touble Shooting
+
 # API-based use
 
 TODO
