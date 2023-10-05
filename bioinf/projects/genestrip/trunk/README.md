@@ -68,7 +68,7 @@ In general, Genestrip organizes a project folder `./data/projects/<project_name>
 
 # Matching *k*-mers of reads from fastq-files
 
-Genestrip can analyze reads from fastq-file and count the contained *k*-mers according their tax ids via a generated database. Genestrip comes with a small sample fastq-file `demo.fastq.gz` in `./data/projects/human_virus/fastq`. To start the matching process for it, run
+Genestrips main purpose is to analyze reads from fastq files and count the contained *k*-mers per tax id according to a generated database. Genestrip comes with a small sample fastq-file `demo.fastq.gz` in `./data/projects/human_virus/fastq`. To start the matching process for it, run
 ```
 ./bin/genestrip.sh -f ./data/projects/human_virus/fastq/demo.fastq.gz human_virus match
 ```
@@ -104,7 +104,7 @@ Most user-related goals are project-oriented. This means, a database project mus
 
 Genestrip supports mass processing of fastq files. For this purpose you may create a mutli-match CSV file with one line per fastq file. Each line should have the following form:
 ```
-<name>	<full_path_to_fastq_file>
+<name> <full_path_to_fastq_file>
 ```
 If several fastq files in the multi-match CSV file are associated with the same `<name>`, then the matching results of these files will be aggregated. A resulting CSV file will be named `<project_name>_<name>_multimatch.csv` and will be placed under `./data/projects/<project_name>/csv`unless specified otherwise via the `-r` option.
 
@@ -123,22 +123,29 @@ Here is list of user-related goals:
 - `multimatch`: Run the matching process for several fastq files as specified in multi-match CSV file given via the `-f` option.
 - `filter`:  Run the filtering for a fastq file as given via the `-f` option. The resulting filtered fastq file will be stored in `./data/projects/<project_name>/fastqs` unless specified otherwise via the `-r` option.
 
+Many goals depend on each other, e.g. the `storeinfo` goal requires the correpsonding database to exist and so it will trigger the execution of ``store`` goal in case the database is missing and so on.
+
 # Targets
-TODO
+
+Genestrip supports three targets for each goal, namely `make`, `clean` and `cleanall`.
+
+- `make` is the default target. It executes a given goal as explained before and creates the files associated with the goal in a lazy manner. If the corresponding files already exist, then `make` does nothing.
+- `clean` *deletes* all files associated with the given goal but it does not delete any files of goals that the given goal depends on.
+- `cleanall` does same as `clean`, but it *also recusively deletes* any files of goals that the given goal depends on.
 
 # Configuration properties
 TODO
 
 # Manually adding fasta-files
 
-TODO
+In some cases you want to add *k*-mers of genomes to your database, where the genomes are not part of the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/). Genestrip supports this via an optional text file `additional.txt` in `./data/projects/<project_name>`.
+The file should contain one line for each additional genome file in fasta format. (It may be g-zipped or not.)
+The line format is
+```
+<tax id> <path_to_fasta_file>
+```
+where `<tax id>` is the (unique) tax id associated with the genome in the file. `<path_to_fasta_file>` may be absolute path or simply a file name. In the latter case the fasta file is assumed to be located in `./data/projects/fastas`.
 
-# Logging
-
-TODO
-
-# Touble Shooting
-
-# API-based use
+# API-based usage
 
 TODO
