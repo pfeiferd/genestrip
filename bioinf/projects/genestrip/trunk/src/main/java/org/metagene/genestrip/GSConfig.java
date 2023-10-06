@@ -95,8 +95,8 @@ public class GSConfig {
 		return Double.valueOf(properties.getProperty("posRatioFilter", "0.2"));
 	}
 
-	public double getKMerFastBloomFpp() {
-		return Double.valueOf(properties.getProperty("kMerFastBloomFpp", " 0.00000000001"));
+	public double getBloomFilterFpp() {
+		return Double.valueOf(properties.getProperty("bloomFilterFpp", " 0.00000000001"));
 	}
 
 	public String getKrakenBin() {
@@ -141,10 +141,6 @@ public class GSConfig {
 
 	public File getCommonDir() {
 		return new File(baseDir, "common");
-	}
-
-	public File getAdditionalDir() {
-		return new File(baseDir, "additional");
 	}
 
 	public boolean isUseHttp() {

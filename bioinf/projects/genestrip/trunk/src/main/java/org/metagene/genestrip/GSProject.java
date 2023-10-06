@@ -69,18 +69,18 @@ public class GSProject implements DownloadProject {
 	public File getDirForType(FileType type) {
 		switch (type) {
 		case FASTQ_RES:
-			return getFastqsResDir();
+			return getFastqResDir();
 		case FASTQ:
-			return getFastqsDir();
+			return getFastqDir();
 		case FASTA:
-			return getFastasDir();
+			return getFastaDir();
 		case CSV:
 			return getResultsDir();
 		case KRAKEN_OUT:
 		case KRAKEN_OUT_RES:
 			return getKrakenOutDir();
 		case SER:
-			return getFiltersDir();
+			return getDBDir();
 		default:
 			throw new IllegalArgumentException("Illegal FileType: " + type);
 		}
@@ -161,20 +161,20 @@ public class GSProject implements DownloadProject {
 		return new File(config.getBaseDir(), "/projects");
 	}
 
-	public File getFastasDir() {
-		return new File(getProjectsDir(), name + "/fastas");
+	public File getFastaDir() {
+		return new File(getProjectsDir(), name + "/fasta");
 	}
 
-	public File getFastqsDir() {
-		return new File(getProjectsDir(), name + "/fastqs");
+	public File getFastqDir() {
+		return new File(getProjectsDir(), name + "/fastq");
 	}
 	
-	public File getFastqsResDir() {
-		return fastqResDir == null ? getFastqsDir() : fastqResDir;
+	public File getFastqResDir() {
+		return fastqResDir == null ? getFastqDir() : fastqResDir;
 	}
 
-	public File getFiltersDir() {
-		return new File(getProjectsDir(), name + "/filters");
+	public File getDBDir() {
+		return new File(getProjectsDir(), name + "/db");
 	}
 
 	public File getKrakenOutDir() {

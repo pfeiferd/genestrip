@@ -103,7 +103,7 @@ public class Main {
 //		options.addOption(new Option("v", "verbose", true, "Verbose information."));
 
 		Option baseDir = Option.builder("d").hasArg().argName("path")
-				.desc("Base directrory for all data files. The default is './data'.").build();
+				.desc("Base directory for all data files. The default is './data'.").build();
 		options.addOption(baseDir);
 
 		Option target = Option.builder("t").hasArg().argName("target")

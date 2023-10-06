@@ -40,7 +40,7 @@ public enum RefSeqCategory {
 		return directory;
 	}
 	
-	public static RefSeqCategory fromDiregoryString(String category) {
+	public static RefSeqCategory fromDirectoryString(String category) {
 		for (RefSeqCategory cat : RefSeqCategory.values()) {
 			if (cat.getDirectory().equals(category)) {
 				return cat;

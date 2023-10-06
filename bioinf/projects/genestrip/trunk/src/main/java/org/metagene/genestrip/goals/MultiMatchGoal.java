@@ -53,6 +53,9 @@ import org.metagene.genestrip.store.KMerUniqueCounterBits;
 import org.metagene.genestrip.tax.TaxTree;
 
 public class MultiMatchGoal extends FileListGoal<GSProject> {
+	public static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#')
+			.setDelimiter(' ').setRecordSeparator('\n').build();
+
 	public static final String NAME = "multimatch";
 
 	private final Map<File, List<File>> fileToFastqs;
@@ -86,6 +89,9 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 				String prefix = record.get(0);
 				String fastqFilePath = record.get(1);
 				File fastq = new File(fastqFilePath);
+				if (!fastq.exists()) {
+					fastq = new File(getProject().getFastqDir(), fastqFilePath);
+				}
 				if (fastq.exists()) {
 					File matchFile = getProject().getOutputFile(prefix + "_" + getName(), null, FileType.CSV, false);
 					List<File> fastqs = fileToFastqs.get(matchFile);
@@ -96,7 +102,9 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 					}
 					fastqs.add(fastq);
 				} else {
-					getLogger().warn("Ignoring missing fastq file " + fastq + ".");
+					if (getLogger().isWarnEnabled()) {
+						getLogger().warn("Ignoring missing fastq file " + fastq + ".");
+					}
 				}
 			}
 
@@ -141,9 +149,7 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 
 	public static CSVParser readCSVFile(File csvFile) throws IOException {
 		Reader in = new InputStreamReader(StreamProvider.getInputStreamForFile(csvFile));
-		CSVFormat format = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#').setDelimiter(' ')
-				.setRecordSeparator('\n').build();
-		return format.parse(in);
+		return FORMAT.parse(in);
 	}
 
 	@Override
