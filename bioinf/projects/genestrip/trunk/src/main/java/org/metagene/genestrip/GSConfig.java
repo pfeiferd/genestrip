@@ -48,6 +48,10 @@ public class GSConfig {
 		this.properties = new Properties();
 		properties.load(new FileInputStream(new File(baseDir, CONFIG_PROPERTIES)));
 	}
+	
+	public String getLogLevel() {
+		return properties.getProperty("logLevel", "info");
+	}
 
 	public File getBaseDir() {
 		return baseDir;

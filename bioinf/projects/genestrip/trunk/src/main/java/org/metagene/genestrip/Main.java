@@ -72,8 +72,10 @@ public class Main {
 		if (restArgs.length == 0) {
 			throw new ParseException("Missing project name.");
 		}
-		String projectName = restArgs[0];
+		String projectName = restArgs[0];		
 
+		System.setProperty("org.apache.commons.logging.simplelog.defaultlog", config.getLogLevel());
+		
 		project = new GSProject(config, projectName, 0, null, fastqFile, resFolder, resFolder);
 		maker = new GSMaker(project);
 	}
@@ -145,7 +147,7 @@ public class Main {
 		Set<String> goalNames = maker.getGoalNames();
 		for (int i = 1; i < restArgs.length; i++) {
 			if (goalNames.contains(restArgs[i])) {
-				out.println("Executing target " + getTarget() + " for goal " + restArgs[i]);
+				out.println("Executing target " + getTarget() + " for goal " + restArgs[i] + "...");
 				switch (getTarget()) {
 				case "cleantotal":
 					maker.cleanTotal(restArgs[i]);
@@ -173,6 +175,8 @@ public class Main {
 	}
 
 	public static void main(String[] args) {
+		System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.SimpleLog");
+		System.setProperty("org.apache.commons.logging.simplelog.showdatetime", "false");
 		new Main().parseAndRun(args);
 	}
 }
