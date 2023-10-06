@@ -89,7 +89,7 @@ public class BloomIndexGoal extends FileListGoal<GSProject> {
 			}
 
 			MurmurCGATBloomFilter filter = new MurmurCGATBloomFilter(getProject().getConfig().getKMerSize(),
-					getProject().getConfig().getKMerFastBloomFpp());
+					getProject().getConfig().getBloomFilterFpp());
 			filter.ensureExpectedSize(counter[0], false);
 
 			

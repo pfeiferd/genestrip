@@ -163,7 +163,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 			}
 		}
 
-		return new Result(kmerStore.getK(), taxid2Stats, reads, kMers, countMap.get(null));
+		return new Result(kmerStore.getK(), taxid2Stats, reads, kMers, countMap == null ? null : countMap.get(null));
 	}
 
 	protected void initRoot() {
@@ -223,11 +223,11 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 				double totalTime = diff / ratio;
 				double totalHours = totalTime / 1000 / 60 / 60;
 
-				logger.info("Elapsed hours:" + diff / 1000 / 60 / 60);
-				logger.info("Estimated total hours:" + totalHours);
+				logger.info("Elapsed hours: " + diff / 1000 / 60 / 60);
+				logger.info("Estimated total hours: " + totalHours);
 				logger.info("Reads processed: " + reads);
 				logger.info("Indexed: " + indexedC);
-				logger.info("Indexed ratio:" + ((double) indexedC) / reads);
+				logger.info("Indexed ratio: " + ((double) indexedC) / reads);
 			}
 		}
 	}
@@ -246,7 +246,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 			logger.info("Total indexed: " + indexedC);
 			long stopTime = System.currentTimeMillis();
 			double diff = (stopTime - startTime);
-			logger.info("Elapsed total ms:" + diff);
+			logger.info("Elapsed total ms: " + diff);
 			logger.info("Read file time ms: " + getMillis());
 		}
 	}

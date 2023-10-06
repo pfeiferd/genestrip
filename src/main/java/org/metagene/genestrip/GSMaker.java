@@ -71,7 +71,7 @@ public class GSMaker extends Maker<GSProject> {
 	}
 
 	protected void createGoals(GSProject project) {
-		List<File> projectDirs = Arrays.asList(project.getFastasDir(), project.getFastqsDir(), project.getFiltersDir(),
+		List<File> projectDirs = Arrays.asList(project.getFastaDir(), project.getFastqDir(), project.getDBDir(),
 				project.getKrakenOutDir(), project.getResultsDir());
 
 		Goal<GSProject> commonSetupGoal = new FileListGoal<GSProject>(project, "commonsetup",
@@ -101,8 +101,8 @@ public class GSMaker extends Maker<GSProject> {
 		};
 		registerGoal(projectSetupGoal);
 
-		Goal<GSProject> clearGoal = new FileListGoal<GSProject>(project, "clear", Arrays.asList(project.getFastqsDir(),
-				project.getFiltersDir(), project.getKrakenOutDir(), project.getResultsDir())) {
+		Goal<GSProject> clearGoal = new FileListGoal<GSProject>(project, "clear", Arrays.asList(project.getFastqDir(),
+				project.getDBDir(), project.getKrakenOutDir(), project.getResultsDir())) {
 			@Override
 			public boolean isMade() {
 				return false;
@@ -181,29 +181,29 @@ public class GSMaker extends Maker<GSProject> {
 				refSeqFnaFilesGoal, additionalFastasGoal, accessCollGoal);
 		registerGoal(fillSizeGoal);
 
-		ObjectGoal<MurmurCGATBloomFilter, GSProject> fillBloomGoal = new FillBloomFilterGoal(project, "fillbloom",
+		ObjectGoal<MurmurCGATBloomFilter, GSProject> fillBloomGoal = new FillBloomFilterGoal(project, "fillindex",
 				categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal, additionalFastasGoal, accessCollGoal, fillSizeGoal);
 		registerGoal(fillBloomGoal);
 
-		FillStoreGoal fillStoreGoal = new FillStoreGoal(project, "tempstore", categoriesGoal, taxNodesGoal,
+		FillStoreGoal fillStoreGoal = new FillStoreGoal(project, "tempdb", categoriesGoal, taxNodesGoal,
 				refSeqFnaFilesGoal, additionalFastasGoal, accessCollGoal, fillSizeGoal, fillBloomGoal,
 				projectSetupGoal);
 		registerGoal(fillStoreGoal);
 
-		FilledStoreGoal filledStoreGoal = new FilledStoreGoal(project, "filledstore", fillStoreGoal);
+		FilledStoreGoal filledStoreGoal = new FilledStoreGoal(project, "filleddb", fillStoreGoal);
 		registerGoal(filledStoreGoal);
 		fillStoreGoal.setFilledStoreGoal(filledStoreGoal);
 
-		UpdateStoreGoal updateStoreGoal = new UpdateStoreGoal(project, "store", categoriesGoal, taxTreeGoal,
+		UpdateStoreGoal updateStoreGoal = new UpdateStoreGoal(project, "db", categoriesGoal, taxTreeGoal,
 				refSeqFnaFilesGoal, additionalFastasGoal, accessCollGoal, filledStoreGoal,
 				projectSetupGoal);
 		registerGoal(updateStoreGoal);
 
-		UpdatedStoreGoal updatedStoreGoal = new UpdatedStoreGoal(project, "updatedstore", updateStoreGoal);
+		UpdatedStoreGoal updatedStoreGoal = new UpdatedStoreGoal(project, "updateddb", updateStoreGoal);
 		registerGoal(updatedStoreGoal);
 		updateStoreGoal.setUpdatedStoreGoal(updatedStoreGoal);
 
-		BloomIndexGoal bloomIndexGoal = new BloomIndexGoal(project, "bloom", taxTreeGoal, taxNodesGoal,
+		BloomIndexGoal bloomIndexGoal = new BloomIndexGoal(project, "index", taxTreeGoal, taxNodesGoal,
 				updatedStoreGoal, projectSetupGoal);
 		registerGoal(bloomIndexGoal);
 
@@ -211,7 +211,7 @@ public class GSMaker extends Maker<GSProject> {
 		registerGoal(bloomIndexedGoal);
 		bloomIndexGoal.setBloomIndexedGoal(bloomIndexedGoal);
 
-		Goal<GSProject> storeInfoGoal = new StoreInfoGoal(project, "storeinfo", taxTreeGoal, updatedStoreGoal,
+		Goal<GSProject> storeInfoGoal = new StoreInfoGoal(project, "dbinfo", taxTreeGoal, updatedStoreGoal,
 				projectSetupGoal);
 		registerGoal(storeInfoGoal);
 

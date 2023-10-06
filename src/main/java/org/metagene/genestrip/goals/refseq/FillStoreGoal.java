@@ -74,7 +74,7 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 	@Override
 	public void makeFile(File storeFile) {
 		KMerSortedArray<String> store = new KMerSortedArray<String>(getProject().getConfig().getKMerSize(),
-				getProject().getConfig().getKMerFastBloomFpp(), null, false);
+				getProject().getConfig().getBloomFilterFpp(), null, false);
 		store.initSize(bloomFilterGoal.get().getEntries());
 
 		try {
