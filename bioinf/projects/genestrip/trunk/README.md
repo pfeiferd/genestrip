@@ -99,32 +99,32 @@ usage: genestrip [options] <project> [<goal1> <goal2>...]
                default is 'make'.
 ```
 
-Genestrip follows a goal oriented approach in order to create any result files (in similarity to  [make](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/make.html)). Goals are executed in a lazy manner, i.e. a file is only (re-)generated, if it is missing at its designated place in the `./data` folder or any of its subfolders.
+Genestrip follows a goal oriented approach in order to create any result file (in similarity to  [make](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/make.html)). Goals are executed in a lazy manner, i.e. a file is only (re-)generated, if it is missing at its designated place in the `./data` folder or any of its subfolders.
 
-Most user-related goals are project-oriented. This means, a database project must exist so that the goal can be executed in the first place. Some goals refer to fastq files. This means, they can only be executed if a fastq file or a multi-match CSV file is given via the `-f` option. 
+Most user-related goals are project-oriented. This means that a database project must exist for the goal can be executable. Some goals refer to fastq files. This means that they can only be executed if a fastq file or a multi-match CSV file is given via the `-f` option. 
 
-Genestrip supports mass processing of fastq files. For this purpose you may create a mutli-match CSV file with one line per fastq file. Each line should have the following form:
+Genestrip supports mass processing of fastq files: For this purpose you may create a mutli-match CSV file with one line per fastq file. Each line should have the following form:
 ```
 <name> <path_to_fastq_file>
 ```
-If several fastq files in the multi-match CSV file are associated with the same `<name>`, then the matching results of these files will be aggregated. A resulting CSV file will be named `<project_name>_<name>_multimatch.csv` and will be placed under `./data/projects/<project_name>/csv`unless specified otherwise via the `-r` option.
+If several fastq files in the multi-match CSV file are associated with the same `<name>`, then the matching results of these files will be aggregated. A resulting CSV file will be named `<project_name>_<name>_multimatch.csv` and will be placed under `./data/projects/<project_name>/csv` unless specified otherwise via the `-r` option. If `<path_to_fastq_file>` is a file name without a path prefix, the file is assumed to be located in `./data/projects/<project_name>/fastq`.
 
 Fastq files and fasta file may be g-zipped or not. Genestrip will recognize g-zipped via the suffixes `.gz` and `.gzip`.
 
-Some named goals are for internal purposes. They could be run by end-users but rather serve the generation process of databases.
+Some named *goals* are for internal purposes. They can be run by end-users but rather serve the generation process of databases.
 
-Here is list of user-related goals:
+Here is the list of user-related goals:
 - `show`: Show all goals. Note that some goals will only be shown when using the `-f` option.
 - `db`: Generate the database with respect to the given project.
-- `dbinfo`: Generate information about a project's database as a CSV file. 
-- `index`: Generate the filtering database with respect to a given project.
+- `dbinfo`: Write information about a project's database content to a CSV file. 
+- `index`: Generate a filtering database with respect to a given project.
 - `genall`: Generate the database with respect to the given project and also generate the filtering database.
-- `clear`: Clear all folders of a project. This will delete all files in all subfolders of a project!
-- `match`: Run the matching process for a fastq file as given via the `-f` option. The resulting CSV file will be stored in `./data/projects/<project_name>/csv` unless specified otherwise via the `-r` option.
-- `multimatch`: Run the matching process for several fastq files as specified in multi-match CSV file given via the `-f` option.
-- `filter`:  Run the filtering for a fastq file as given via the `-f` option. The resulting filtered fastq file will be stored in `./data/projects/<project_name>/fastqs` unless specified otherwise via the `-r` option.
+- `clear`: Clear all folders of a project. This will delete all files in all subfolders of a project! TODO...
+- `match`: Analyze a fastq file as given by the `-f` option. The resulting CSV file will be stored in `./data/projects/<project_name>/csv` unless specified otherwise via the `-r` option.
+- `multimatch`: Analyze several fastq files as specified via multi-match CSV file given by the `-f` option.
+- `filter`:  Filter a fastq file as given by the `-f` option. The resulting filtered fastq file will be stored in `./data/projects/<project_name>/fastq` unless specified otherwise via the `-r` option.
 
-Many goals depend on each other, e.g. the `dbinfo` goal requires the correpsonding database to exist and so it will trigger the execution of ``db`` goal in case the database is missing and so on.
+Many goals depend on other goals. E.g., the `dbinfo` goal requires the corresponding database to exist and so, it will trigger the execution of the ``db`` goal in case the corresponding database is missing and so on.
 
 # Targets
 
@@ -139,13 +139,13 @@ TODO
 
 # Manually adding fasta-files
 
-In some cases you want to add *k*-mers of genomes to your database, where the genomes are not part of the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/). Genestrip supports this via an optional text file `additional.txt` in `./data/projects/<project_name>`.
-The file should contain one line for each additional genome file in fasta format. (It may be g-zipped or not.)
+In some cases you want to add *k*-mers of genomes to your database, where the genomes are not part of the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/). Genestrip supports this via an optional text file `additional.txt` under `./data/projects/<project_name>`.
+The file should contain one line for each additional genome file. (The file must be in fasta format and may be g-zipped or not.)
 The line format is
 ```
 <tax id> <path_to_fasta_file>
 ```
-where `<tax id>` is the (unique) tax id associated with the genome in the file. `<path_to_fasta_file>` may be absolute path or simply a file name. In the latter case the fasta file is assumed to be located in `./data/projects/fastas`.
+where `<tax id>` is the (unique) tax id associated with the file's genomic data. If `<path_to_fastq_file>` is a file name without a path prefix, then the file is assumed to be located in `./data/projects/<project_name>/fasta`.
 
 # API-based usage
 
