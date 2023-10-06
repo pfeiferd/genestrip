@@ -33,15 +33,15 @@ Genestrip is structured as a standard [Maven 2 or 3](https://maven.apache.org/) 
 # Generating the sample database
 
 The Genestrip installation holds additional folders that include the sample project `human_virus`. After building Genestrip, you may call
-`./bin/genestrip.sh human_virus storeinfo`
+`./bin/genestrip.sh human_virus dbinfo`
 in order to make the `human_virus` database and create CSV file with basic information about the database content.
 
 Genestrip follows a goal oriented approach in order to create any result files (in similarity to [make](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/make.html)). So, when generating the `human_virus` database, Genestrip will:
 1. download the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip) and unzip it to `./data/common`,
 1. download the [refseq release catalog](https://ftp.ncbi.nlm.nih.gov/refseq/release/release-catalog/) to `./data/common/refseq`,
 1. download [all virus related RefSeq fna files](https://ftp.ncbi.nlm.nih.gov/refseq/release/viral/) to `./data/commmon/refseq` (which is currently just a single file),
-1. perform several follow-up goals until the database file `human_virus_store.ser.gz` is finally made under `./data/projects/human_virus/filters`, 
-1. create a CSV file `human_virus_storeinfo.csv` under `./data/projects/human_virus/csv` which contains basic information about the database, i.e. the number of *k*-mers stored per tax id.
+1. perform several follow-up goals until the database file `human_virus_db.ser.gz` is finally made under `./data/projects/human_virus/filters`, 
+1. create a CSV file `human_virus_dbinfo.csv` under `./data/projects/human_virus/csv` which contains basic information about the database, i.e. the number of *k*-mers stored per tax id.
 
 The generated database comprises *k*-mers for all viruses according to the tax id file `./data/project/human_virus/taxids.txt`.
 
@@ -57,13 +57,13 @@ Generating your own database is straight-forward:
 The *entire* set of genomes that belong a category referenced in `categories.txt` will be used to determine the least common ancestors tax ids of the *k*-mers stored in the finalized database. The more categories you reference in `categories.txt`, the more genomes files will have to be downloaded from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) and the longer the database generation process will take. E.g., if only `viral` is included, it will take only a few minutes, but with `bacteria` included, it may typically take about a day or more.
 So you should chose a suitable set of categories to balance the completeness of considered genomes and efficiency of the database generation process.
 
-1. Start the database generation process via the command `./bin/genestrip.sh <project_name> storeinfo`. This will also create a CSV file `./data/projects/<project_name>/csv/<project_name>_storeinfo.csv` with basic information about the database, i.e. the number of *k*-mers stored per tax id. The path of the database will be `./data/projects/<project_name>/filters/<project_name>_store.ser.gz`
+1. Start the database generation process via the command `./bin/genestrip.sh <project_name> dbinfo`. This will also create a CSV file `./data/projects/<project_name>/csv/<project_name>_dbinfo.csv` with basic information about the database, i.e. the number of *k*-mers stored per tax id. The path of the database will be `./data/projects/<project_name>/filters/<project_name>_db.ser.gz`
 
 In general, Genestrip organizes a project folder `./data/projects/<project_name>` by means of the following sub-folders:
 * `csv` is where analysis results of fastq files will be stored (by default).
 * `fastqs` is where Genestrip will store filtered fastq files. You may also place the fastq files to be analyzed there (but they can be read from any other path too).
 * `fastas` can be used to store *additional* genome files (not part of in the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/)) that should be considered for database generation process (see [...]()).
-* `filters` is where Genestrip places the generated database. If your focus is on filtering fastq files, Genestrip can create specialized, much smaller filtering databases that will be placed there too. Moreover, an intermediate database `<project_name>_tempstore.ser.gz` will be put there as part of the database generation process. It is not required for *k*-mer matching or fastq filtering and so, it may be deleted afterwards.
+* `filters` is where Genestrip places the generated database. If your focus is on filtering fastq files, Genestrip can create specialized, much smaller filtering databases that will be placed there too. Moreover, an intermediate database `<project_name>_tempdb.ser.gz` will be put there as part of the database generation process. It is not required for *k*-mer matching or fastq filtering and so, it may be deleted afterwards.
 * `krakenout` is for output files in the style of [Kraken](https://ccb.jhu.edu/software/kraken/MANUAL.html#output-format). They may optionally be generated when analyzing fastq files.
 
 # Matching *k*-mers of reads from fastq-files
@@ -104,7 +104,7 @@ Most user-related goals are project-oriented. This means, a database project mus
 
 Genestrip supports mass processing of fastq files. For this purpose you may create a mutli-match CSV file with one line per fastq file. Each line should have the following form:
 ```
-<name> <full_path_to_fastq_file>
+<name> <path_to_fastq_file>
 ```
 If several fastq files in the multi-match CSV file are associated with the same `<name>`, then the matching results of these files will be aggregated. A resulting CSV file will be named `<project_name>_<name>_multimatch.csv` and will be placed under `./data/projects/<project_name>/csv`unless specified otherwise via the `-r` option.
 
@@ -114,16 +114,16 @@ Some named goals are for internal purposes. They could be run by end-users but r
 
 Here is list of user-related goals:
 - `show`: Show all goals. Note that some goals will only be shown when using the `-f` option.
-- `store`: Generate the database with respect to the given project.
-- `storeinfo`: Generate information about a project's database as a CSV file. 
-- `bloom`: Generate the filtering database with respect to a given project.
+- `db`: Generate the database with respect to the given project.
+- `dbinfo`: Generate information about a project's database as a CSV file. 
+- `index`: Generate the filtering database with respect to a given project.
 - `genall`: Generate the database with respect to the given project and also generate the filtering database.
 - `clear`: Clear all folders of a project. This will delete all files in all subfolders of a project!
 - `match`: Run the matching process for a fastq file as given via the `-f` option. The resulting CSV file will be stored in `./data/projects/<project_name>/csv` unless specified otherwise via the `-r` option.
 - `multimatch`: Run the matching process for several fastq files as specified in multi-match CSV file given via the `-f` option.
 - `filter`:  Run the filtering for a fastq file as given via the `-f` option. The resulting filtered fastq file will be stored in `./data/projects/<project_name>/fastqs` unless specified otherwise via the `-r` option.
 
-Many goals depend on each other, e.g. the `storeinfo` goal requires the correpsonding database to exist and so it will trigger the execution of ``store`` goal in case the database is missing and so on.
+Many goals depend on each other, e.g. the `dbinfo` goal requires the correpsonding database to exist and so it will trigger the execution of ``db`` goal in case the database is missing and so on.
 
 # Targets
 
@@ -131,7 +131,7 @@ Genestrip supports three targets for each goal, namely `make`, `clean` and `clea
 
 - `make` is the default target. It executes a given goal as explained before and creates the files associated with the goal in a lazy manner. If the corresponding files already exist, then `make` does nothing.
 - `clean` *deletes* all files associated with the given goal but it does not delete any files of goals that the given goal depends on.
-- `cleanall` does same as `clean`, but it *also recusively deletes* any files of goals that the given goal depends on.
+- `cleanall` does same as `clean`, but it *also recursively deletes* any files of goals that the given goal depends on.
 
 # Configuration properties
 TODO
