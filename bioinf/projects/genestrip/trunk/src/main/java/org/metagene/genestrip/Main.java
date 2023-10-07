@@ -104,22 +104,22 @@ public class Main {
 		Options options = new Options();
 //		options.addOption(new Option("v", "verbose", true, "Verbose information."));
 
-		Option baseDir = Option.builder("d").hasArg().argName("path")
+		Option baseDir = Option.builder("d").hasArg().argName("base dir")
 				.desc("Base directory for all data files. The default is './data'.").build();
 		options.addOption(baseDir);
 
 		Option target = Option.builder("t").hasArg().argName("target")
-				.desc("Generation target ('make', 'clean', 'cleanall'). The default is 'make'.").build();
+				.desc("Generation target ('make', 'clean' or 'cleanall'). The default is 'make'.").build();
 		options.addOption(target);
 
 		Option fastq = Option.builder("f").hasArg().argName("fqfile").desc(
 				"Input fastq file in case of filtering or k-mer matching (regarding goals 'filter' and 'match') or "
-						+ "csv file with a list of fastq files to be processed via 'multimatch'. Each line should have the format '<prefix> <path to fastq file>'.")
+						+ "CSV file with a list of fastq files to be processed via 'multimatch'. Each line of a CSV file should have the format '<prefix> <path to fastq file>'.")
 				.build();
 		options.addOption(fastq);
 
 		Option resFolder = Option.builder("r").hasArg().argName("path").desc(
-				"Common store folder for filtered fastq files and csv files created via the goals 'filter' and 'match'. The default is '<base directory>/projects/<project name>/fastq' and '<base directory>/projects/<project name>/csv' respectively.")
+				"Common store folder for filtered fastq files and resulting CSV files created via the goals 'filter' and 'match'. The defaulta are '<base dir>/projects/<project name>/fastq' and '<base dir>/projects/<project name>/csv' respectively.")
 				.build();
 		options.addOption(resFolder);
 
