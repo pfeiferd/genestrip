@@ -101,8 +101,8 @@ public class GSMaker extends Maker<GSProject> {
 		};
 		registerGoal(projectSetupGoal);
 
-		Goal<GSProject> clearGoal = new FileListGoal<GSProject>(project, "clear", Arrays.asList(project.getFastqDir(),
-				project.getDBDir(), project.getKrakenOutDir(), project.getResultsDir())) {
+		Goal<GSProject> clearGoal = new FileListGoal<GSProject>(project, "clear",
+				Arrays.asList(project.getDBDir(), project.getKrakenOutDir(), project.getResultsDir())) {
 			@Override
 			public boolean isMade() {
 				return false;
@@ -166,7 +166,8 @@ public class GSMaker extends Maker<GSProject> {
 				categoriesGoal, refSeqCatalogGoal);
 		registerGoal(refSeqFnaFilesGoal);
 
-		ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalFastasGoal = new AdditionalFastasGoal(project, "addfastas", taxTreeGoal, commonSetupGoal);
+		ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalFastasGoal = new AdditionalFastasGoal(project,
+				"addfastas", taxTreeGoal, commonSetupGoal);
 		registerGoal(additionalFastasGoal);
 
 		ObjectGoal<Integer, GSProject> accessMapSizeGoal = new AccessionMapSizeGoal(project, "accmapsize",
@@ -195,8 +196,7 @@ public class GSMaker extends Maker<GSProject> {
 		fillStoreGoal.setFilledStoreGoal(filledStoreGoal);
 
 		UpdateStoreGoal updateStoreGoal = new UpdateStoreGoal(project, "db", categoriesGoal, taxTreeGoal,
-				refSeqFnaFilesGoal, additionalFastasGoal, accessCollGoal, filledStoreGoal,
-				projectSetupGoal);
+				refSeqFnaFilesGoal, additionalFastasGoal, accessCollGoal, filledStoreGoal, projectSetupGoal);
 		registerGoal(updateStoreGoal);
 
 		UpdatedStoreGoal updatedStoreGoal = new UpdatedStoreGoal(project, "updateddb", updateStoreGoal);
