@@ -33,14 +33,14 @@ To build it, `cd` to the installation directory `genestrip`. Given a matching Ma
 # Generating the sample database
 
 The Genestrip installation holds additional folders that include the sample project `human_virus`. After building Genestrip, you may call
-`./bin/genestrip.sh human_virus dbinfo`
+`sh ./bin/genestrip.sh human_virus dbinfo`
 in order to generate the `human_virus` database and create a CSV file with basic information about the database content.
 
 Genestrip follows a goal-oriented approach in order to create any result files (in similarity to [make](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/make.html)). So, when generating the `human_virus` database, Genestrip will
 1. download the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip) and unzip it to `./data/common`,
 1. download the [refseq release catalog](https://ftp.ncbi.nlm.nih.gov/refseq/release/release-catalog/) to `./data/common/refseq`,
 1. download [all virus related RefSeq fna files](https://ftp.ncbi.nlm.nih.gov/refseq/release/viral/) to `./data/commmon/refseq` (which is currently just a single file),
-1. perform several follow-up goals until the database file `human_virus_db.ser.gz` is finally made under `./data/projects/human_virus/db`, 
+1. perform several follow-up goals, until the database file `human_virus_db.ser.gz` is finally made under `./data/projects/human_virus/db`, 
 1. create a CSV file `human_virus_dbinfo.csv` under `./data/projects/human_virus/csv`, which contains basic information about the database, i.e. the number of *k*-mers stored per tax id.
 
 The generated database comprises *k*-mers for all viruses according to the tax id file `./data/project/human_virus/taxids.txt`.
@@ -57,7 +57,7 @@ Generating your own database is straight-forward:
 The *entire* set of genomes that belong a category referenced in `categories.txt` will be used to determine the least common ancestors tax ids of the *k*-mers stored in the finalized database. The more categories you reference in `categories.txt`, the more genomes files will have to be downloaded from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) and the longer the database generation process will take. E.g., if only the category `viral` is included, it should just take a few minutes, but with `bacteria` included, it may typically take about a day or more.
 So you should chose a suitable set of categories to balance the completeness of considered genomes and efficiency of the database generation process.
 
-1. Start the database generation process via the command `./bin/genestrip.sh <project_name> dbinfo`. This will also create a CSV file `./data/projects/<project_name>/csv/<project_name>_dbinfo.csv` with basic information about the database, i.e. the number of *k*-mers stored per tax id. The path of the database will be `./data/projects/<project_name>/db/<project_name>_db.ser.gz`
+1. Start the database generation process via the command `sh ./bin/genestrip.sh <project_name> dbinfo`. This will also create a CSV file `./data/projects/<project_name>/csv/<project_name>_dbinfo.csv` with basic information about the database, i.e. the number of *k*-mers stored per tax id. The path of the database will be `./data/projects/<project_name>/db/<project_name>_db.ser.gz`
 
 In general, Genestrip organizes a project folder `./data/projects/<project_name>` by means of the following sub-folders:
 * `csv` is where analysis results of fastq files will be stored (by default).
@@ -70,11 +70,14 @@ In general, Genestrip organizes a project folder `./data/projects/<project_name>
 
 Genestrip's main purpose is to analyze reads from fastq files and count the contained *k*-mers per tax id according to a previously generated database. As an example, Genestrip comes with a small fastq-file `sample.fastq.gz` in `./data/projects/human_virus/fastq`. To start the matching process for it, run
 ```
-./bin/genestrip.sh -f ./data/projects/human_virus/fastq/demo.fastq.gz human_virus match
+sh ./bin/genestrip.sh -f ./data/projects/human_virus/fastq/sample.fastq.gz human_virus match
 ```
-The resulting CSV file will be named `human_virus.demo.fastq.gz_match.csv` and will be stored in `./data/projects/human_virus/csv`.
+The resulting CSV file will be named `human_virus_match_sample.csv` under `./data/projects/human_virus/csv`.
+
 Here is an example line of it contents along with the header line:
 ```
+name;rank;taxid;reads;kmers;unique kmers;contigs;average contig length;max contig length; max contic desc.;normalized kmers; exp. unique kmers; unique kmers / exp.; quality prediction;
+Human gammaherpesvirus 4;NO_RANK;10376;5;158;155;8;19.7500;94;@NS500362:54:HT523BGX2:4:13611:9451:14208 2:N:0:2;0.009677746780291664;157.9111;0.9816;0.00949933507052909;
 ```
 The same principles apply to your own projects under `./data/projects`.
 
