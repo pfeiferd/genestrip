@@ -125,7 +125,7 @@ If several fastq files in the multi-match CSV file are associated with the same 
 
 Fastq files and fasta file may be g-zipped or not. Genestrip will automatically recognize g-zipped files via the suffixes `.gz` and `.gzip`.
 
-Some named goals are for internal purposes only. In principle they could be run directly by users but rather serve the generation process of databases.
+Some named goals are for internal purposes only. In principle they could be run directly by users but rather serve the generation process of databases or they exist for experimental reasons.
 
 Here is the list of user-related goals:
 - `show`: Show all goals. Note that some goals will only be shown when using the `-f` option.
