@@ -74,10 +74,16 @@ public class Main {
 		}
 		String projectName = restArgs[0];		
 
-		System.setProperty("org.apache.commons.logging.simplelog.defaultlog", config.getLogLevel());
+		configureLogger(config);
 		
 		project = new GSProject(config, projectName, 0, null, fastqFile, resFolder, resFolder);
 		maker = new GSMaker(project);
+	}
+	
+	protected void configureLogger(GSConfig config) {
+		System.setProperty("org.apache.commons.logging.simplelog.defaultlog", config.getLogLevel());
+		System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.SimpleLog");
+		System.setProperty("org.apache.commons.logging.simplelog.showdatetime", "false");		
 	}
 
 	public String getTarget() {
@@ -175,8 +181,6 @@ public class Main {
 	}
 
 	public static void main(String[] args) {
-		System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.SimpleLog");
-		System.setProperty("org.apache.commons.logging.simplelog.showdatetime", "false");
 		new Main().parseAndRun(args);
 	}
 }
