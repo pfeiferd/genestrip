@@ -1,5 +1,0 @@
-Liebe Mitglieder der Selbsthilfegruppe,
-vor knapp 2 Wochen habe ich über mein Vorhaben gesprochen, eine Studie zu einem neuen Software-Werkzeug für die metagenomische Analyse von fastq-Dateien durchzuführen. Das Werkzeug soll helfen, in Zukunft schneller und einfacher ähnlichen Analysen durchzuführen, wie die, die Jochen und Lennart bisher für Euch gemacht haben. 
-Damit ich bzw. wir genug Daten dafür zusammenkriegen, bräuchte ich Eure Unterstützung. Ich bzw. wir können Eure fastq-Dateien für die Studie nur nutzen, wenn Ihr eine entspr. Einwilligung ausfüllt (siehe oben), unterschreibt, scannt und mir per Mail zuschickt an daniel.pfeifer@hs-heilbronn.de
-Wenn Ihr Fragen habt, beantworte ich diese gerne - auch im direkten Gespräch per Skype.
-Damit der Aufruf nicht "untergeht", werde ich ihn in den nächsten Tagen hier mehrmals posten (ich bitte um Vergebung bei den nicht Interessierten). Wenn Ihr nicht mitmachen mögt, ist das natürlich keine Problem. Trotzdem freue ich mich über viele unterschriebene Einwilligungen... :)
