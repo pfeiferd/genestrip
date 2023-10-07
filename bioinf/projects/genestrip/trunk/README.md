@@ -119,7 +119,7 @@ Genestrip follows a goal-oriented approach in order to create any result file (i
 
 Most user-related goals are project-oriented. This means that a database project must exist for the goal to be executable. Some goals refer to fastq files. This means that they can only be executed if a fastq file or a multi-match CSV file is given via the `-f` option. 
 
-Genestrip supports matching of *k*-mers from multiple fastq files in a batch: For this purpose you may create a mutli-match CSV file with one line per fastq file to be processed. Each line should have the following form:
+Genestrip supports matching of *k*-mers from multiple fastq files in batches: For this purpose you may create a mutli-match CSV file with one line per fastq file to be processed. Each line should have the following form:
 ```
 <name> <path_to_fastq_file>
 ```
