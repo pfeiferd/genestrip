@@ -66,7 +66,7 @@ In general, Genestrip organizes a project folder `./data/projects/<project_name>
 * `db` is where Genestrip places the generated database. If your focus is on filtering fastq files, Genestrip can create specialized, much smaller filtering databases that will be placed there too. Moreover, an intermediate database `<project_name>_tempdb.ser.gz` will be put there as part of the database generation process. The intermediate database is not required for *k*-mer matching or fastq filtering and so, it may be deleted afterwards.
 * `krakenout` is for output files in the style of [Kraken](https://ccb.jhu.edu/software/kraken/MANUAL.html#output-format). They may optionally be generated when analyzing fastq files.
 
-# Analyzing fastq-files by matching *k*-mers of reads
+# Analyzing fastq files by matching *k*-mers of reads
 
 Genestrip's main purpose is to analyze reads from fastq files and count the contained *k*-mers per tax id according to a previously generated database. As an example, Genestrip comes with a small fastq-file `sample.fastq.gz` in `./data/projects/human_virus/fastq`. To start the matching process for it, run
 ```
@@ -81,6 +81,17 @@ Human gammaherpesvirus 4;NO_RANK;10376;5;158;155;8;19.7500;94;@NS500362:54:HT523
 ```
 The same principles apply to your own projects under `./data/projects`.
 
+# Filtering fastq files
+
+Genestrip can be used to *filter* fastq files via *k*-mers present in a previously generated database. As an example, we again use the fastq file `sample.fastq.gz` from `./data/projects/human_virus/fastq`. To start the filtering process, run
+````
+sh ./bin/genestrip.sh -f ./data/projects/human_virus/fastq/sample.fastq.gz human_virus filter
+````
+First, the command creates a filtering database file `human_virus_index.ser.gz`, if not yet present under `./data/projects/<project_name>/db`. 
+
+A filtering database is in general much smaller than a database required for *k*-matching but the former can only be used for filtering. So, if you are tight on resources and your focus is on filtering you may prefer using a filtering database. Also, the filtering process is even faster than the *k*-mer matching process.
+
+The resulting filtered fastq file will be named `human_virus_filtered_sample.fastq.gz` under `./data/projects/human_virus/fastq`. It holds just the reads which contain at least one *k*-mer from the `human_virus` database. However, in case of the sample fastq file, the filtered fastq file is about the same as the original file because the sample had *originally been created to just contain human virus-related reads*.
 
 # Usage and Goals
 
