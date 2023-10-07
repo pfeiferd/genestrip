@@ -83,15 +83,15 @@ The same principles apply to your own projects under `./data/projects`.
 
 # Filtering fastq files
 
-Genestrip can be used to *filter* fastq files via *k*-mers present in a previously generated database. As an example, we again use the fastq file `sample.fastq.gz` from `./data/projects/human_virus/fastq`. To start the filtering process, run
+Genestrip can be used to *filter* fastq files via *k*-mers present in a previously generated database. As an example, one may also use the fastq file `sample.fastq.gz` from `./data/projects/human_virus/fastq`. To start the filtering process, run
 ````
 sh ./bin/genestrip.sh -f ./data/projects/human_virus/fastq/sample.fastq.gz human_virus filter
 ````
-First, the command creates a filtering database file `human_virus_index.ser.gz`, if not yet present under `./data/projects/<project_name>/db`. 
+First, the command creates a filtering database file `human_virus_index.ser.gz`, if not yet present, under `./data/projects/<project_name>/db`. 
 
-A filtering database is in general much smaller than a database required for *k*-matching but the former can only be used for filtering. So, if you are tight on resources and your focus is on filtering you may prefer using a filtering database. Also, the filtering process is even faster than the *k*-mer matching process.
+The resulting filtered fastq file named `human_virus_filtered_sample.fastq.gz` will be put under `./data/projects/human_virus/fastq`. It holds just the reads which contain at least one *k*-mer from the `human_virus` database. Note that, in case of the specific sample fastq file, the filtered fastq file has about the same size as the original file because the sample had *originally been created to just contain human virus-related reads*.
 
-The resulting filtered fastq file will be named `human_virus_filtered_sample.fastq.gz` under `./data/projects/human_virus/fastq`. It holds just the reads which contain at least one *k*-mer from the `human_virus` database. However, in case of the sample fastq file, the filtered fastq file is about the same as the original file because the sample had *originally been created to just contain human virus-related reads*.
+A filtering database is typically even smaller than a database required for *k*-matching but the former can only be used for filtering. So, if you are tight on resources and your focus is on filtering, you may prefer using a filtering database. Also, the filtering process is even faster than the *k*-mer matching process.
 
 # Usage and Goals
 
@@ -153,7 +153,7 @@ TODO
 
 # Manually adding fasta-files
 
-In some cases you want to add *k*-mers of genomes to your database, where the genomes are not part of the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/). Genestrip supports this via an optional text file `additional.txt` under `<base dir>/projects/<project_name>`.
+In some cases you may want to add *k*-mers of genomes to your database, where the genomes are not part of the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/). Genestrip supports this via an optional text file `additional.txt` under `<base dir>/projects/<project_name>`.
 The file should contain one line for each additional genome file. (The file must be in fasta format and may be g-zipped or not.)
 The line format is
 ```
