@@ -49,7 +49,7 @@ The generated database comprises *k*-mers for all viruses according to the tax i
 # Generating your own database
 
 Generating your own database is straight-forward:
-1. Create a folder `<project_name>` under `./data/projects/`. The folder is the place for all subsequent files that specify the content of the database to be generated. It is also the core name of the database.
+1. Create a folder `<project_name>` under `./data/projects/`. This is the place for all subsequent files that specify the content of a database to be generated. It is also the core name of a related database.
 1. Create a text file `./data/projects/<project_name>/taxids.txt` with one tax id per line. The database will *only* contain *k*-mers from genomes that belong to tax ids referenced in the file `taxids.txt`. If `taxids.txt` contains a tax id from a non-leaf node of the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip), then all subordinate tax ids and *k*-mers from respective [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) genomes will be included in the database as well.
 1. Create a text file `./data/projects/<project_name>/categories.txt`. This file tells Genestrip, which categories of organisms should be *considered* when generating the database and when determining a least common ancestor tax id for *k*-mer in the finalized database. You also have to ensure that the categories from `categories.txt` comprise all of the tax ids from `taxids.txt`: Only genomes of comprised tax ids will be used to generate the database.
 1. The following categories are allowed, and originate from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/):
@@ -61,9 +61,9 @@ So you should chose a suitable set of categories to balance the completeness of 
 
 In general, Genestrip organizes a project folder `./data/projects/<project_name>` by means of the following sub-folders:
 * `csv` is where analysis results of fastq files will be stored (by default).
-* `fastq` is where Genestrip will store filtered fastq files. You may also place the fastq files to be analyzed there (but they can be read from any other path too).
+* `fastq` is where Genestrip will store filtered fastq files. You may also put the fastq files to be analyzed there (but they can be read from any other path too).
 * `fasta` may be used to store *additional* genome files (not part of in the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/)) that should be considered for the database generation process (see [...]()).
-* `db` is where Genestrip places the generated database. If your focus is on filtering fastq files, Genestrip can create specialized, much smaller filtering databases that will be placed there too. Moreover, an intermediate database `<project_name>_tempdb.ser.gz` will be put there as part of the database generation process. The intermediate database is not required for *k*-mer matching or fastq filtering and so, it may be deleted afterwards.
+* `db` is where Genestrip puts the generated database. If your focus is on filtering fastq files, Genestrip can create specialized, much smaller filtering databases that will be put there too. Moreover, an intermediate database `<project_name>_tempdb.ser.gz` will be put there as part of the database generation process. The intermediate database is not required for *k*-mer matching or fastq filtering and so, it may be deleted afterwards.
 * `krakenout` is for output files in the style of [Kraken](https://ccb.jhu.edu/software/kraken/MANUAL.html#output-format). They may optionally be generated when analyzing fastq files.
 
 # Analyzing fastq files by matching *k*-mers of reads
@@ -123,7 +123,7 @@ Genestrip supports matching of *k*-mers from multiple fastq files in batches: Fo
 ```
 <name> <path_to_fastq_file>
 ```
-If several fastq files in the multi-match CSV file are associated with the same `<name>`, then the matching results of these files will be aggregated. A resulting CSV file will be named `<project_name>_multimatch_<name>.csv` and will be placed under `<base dir>/projects/<project_name>/csv` unless specified otherwise via the `-r` option. If `<path_to_fastq_file>` is a file name without a path prefix, the file is assumed to be located in `<base dir>/projects/<project_name>/fastq`.
+If several fastq files in the multi-match CSV file are associated with the same `<name>`, then the matching results of these files will be aggregated. A resulting CSV file named `<project_name>_multimatch_<name>.csv` will be put under `<base dir>/projects/<project_name>/csv` unless specified otherwise via the `-r` option. If `<path_to_fastq_file>` is a file name without a path prefix, the file is assumed to be located in `<base dir>/projects/<project_name>/fastq`.
 
 Fastq files and fasta file may be g-zipped or not. Genestrip will automatically recognize g-zipped files via the suffixes `.gz` and `.gzip`.
 
