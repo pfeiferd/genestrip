@@ -86,14 +86,14 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 			CSVParser parser = readCSVFile(csvFile);
 
 			for (CSVRecord record : parser) {
-				String prefix = record.get(0);
+				String name = record.get(0);
 				String fastqFilePath = record.get(1);
 				File fastq = new File(fastqFilePath);
 				if (!fastq.exists()) {
 					fastq = new File(getProject().getFastqDir(), fastqFilePath);
 				}
 				if (fastq.exists()) {
-					File matchFile = getProject().getOutputFile(prefix + "_" + getName(), null, FileType.CSV, false);
+					File matchFile = getProject().getOutputFile(getName() + "_" + name, null, FileType.CSV, false);
 					List<File> fastqs = fileToFastqs.get(matchFile);
 					if (fastqs == null) {
 						fastqs = new ArrayList<File>();
