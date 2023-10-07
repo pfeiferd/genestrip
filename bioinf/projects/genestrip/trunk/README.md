@@ -79,6 +79,8 @@ Here is an example line of it contents along with the header line:
 name;rank;taxid;reads;kmers;unique kmers;contigs;average contig length;max contig length; max contic desc.;normalized kmers; exp. unique kmers; unique kmers / exp.; quality prediction;
 Human gammaherpesvirus 4;NO_RANK;10376;5;158;155;8;19.7500;94;@NS500362:54:HT523BGX2:4:13611:9451:14208 2:N:0:2;0.009677746780291664;157.9111;0.9816;0.00949933507052909;
 ```
+TODO: **Explain meaning of entries here...*
+
 The same principles apply to your own projects under `./data/projects`.
 
 # Filtering fastq files
