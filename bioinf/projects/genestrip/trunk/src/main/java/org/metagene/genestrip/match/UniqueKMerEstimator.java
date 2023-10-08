@@ -1,6 +1,5 @@
 package org.metagene.genestrip.match;
 
-import org.metagene.genestrip.match.FastqKMerMatcher.StatsPerTaxid;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
@@ -21,17 +20,17 @@ public class UniqueKMerEstimator {
 		return totalKMers;
 	}
 
-	public double getNormalizedKMers(StatsPerTaxid stats) {
+	public double getNormalizedKMers(CountsPerTaxid stats) {
 		long totalStoredWithCounts = storeStats.getLong(null);
 		return ((double) stats.getKMers()) * totalStoredWithCounts / totalKMers
 				/ storeStats.getLong(stats.getTaxid());
 	}
 
-	public double getExpectedUniqueKMers(StatsPerTaxid stats) {
+	public double getExpectedUniqueKMers(CountsPerTaxid stats) {
 		return storeStats.getLong(stats.getTaxid()) * getAtLeastOnceUniqueKMerProb(stats);
 	}
 
-	public double getAtLeastOnceUniqueKMerProb(StatsPerTaxid stats) {
+	public double getAtLeastOnceUniqueKMerProb(CountsPerTaxid stats) {
 		double N = storeStats.getLong(stats.getTaxid());
 		double A = stats.getKMers();
 		return 1 - Math.pow(1 - 1d / N, A);
