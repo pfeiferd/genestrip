@@ -28,7 +28,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.io.Serializable;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -89,12 +88,12 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		return new MyReadEntry(maxReadSizeBytes, out != null);
 	}
 
-	public Result runClassifier(File fastq, File filteredFile, File krakenOutStyleFile, KMerUniqueCounter uniqueCounter)
+	public MatchingResult runClassifier(File fastq, File filteredFile, File krakenOutStyleFile, KMerUniqueCounter uniqueCounter)
 			throws IOException {
 		return runClassifier(Collections.singletonList(fastq), filteredFile, krakenOutStyleFile, uniqueCounter);
 	}
 
-	public Result runClassifier(List<File> fastqs, File filteredFile, File krakenOutStyleFile,
+	public MatchingResult runClassifier(List<File> fastqs, File filteredFile, File krakenOutStyleFile,
 			KMerUniqueCounter uniqueCounter) throws IOException {
 
 		if (filteredFile != null) {
@@ -134,36 +133,36 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 			out.close();
 		}
 
-		List<StatsPerTaxid> allStats = new ArrayList<StatsPerTaxid>();
+		List<CountsPerTaxid> allStats = new ArrayList<CountsPerTaxid>();
 		root.collect(allStats);
 		root = null;
-		Map<String, StatsPerTaxid> taxid2Stats = new HashMap<String, FastqKMerMatcher.StatsPerTaxid>();
-		for (StatsPerTaxid stats : allStats) {
+		Map<String, CountsPerTaxid> taxid2Stats = new HashMap<String, CountsPerTaxid>();
+		for (CountsPerTaxid stats : allStats) {
 			taxid2Stats.put(stats.getTaxid(), stats);
 		}
 
 		Map<String, short[]> countMap = null;
 		if (uniqueCounter != null) {
 			Object2LongMap<String> counts = uniqueCounter.getUniqueKmerCounts();
-			for (StatsPerTaxid stats : allStats) {
+			for (CountsPerTaxid stats : allStats) {
 				stats.uniqueKmers = counts.getLong(stats.getTaxid());
 			}
 			if (uniqueCounter instanceof KMerUniqueCounterBits) {
 				if (((KMerUniqueCounterBits) uniqueCounter).isWithCounts()) {
 					countMap = ((KMerUniqueCounterBits) uniqueCounter).getMaxCountsCounts(maxKmerResCounts);
-					for (StatsPerTaxid stats : allStats) {
+					for (CountsPerTaxid stats : allStats) {
 						stats.maxKMerCounts = countMap.get(stats.getTaxid());
 					}
 				}
 			}
 			this.uniqueCounter = null;
 		} else {
-			for (StatsPerTaxid stats : allStats) {
+			for (CountsPerTaxid stats : allStats) {
 				stats.uniqueKmers = -1;
 			}
 		}
 
-		return new Result(kmerStore.getK(), taxid2Stats, reads, kMers, countMap == null ? null : countMap.get(null));
+		return new MatchingResult(kmerStore.getK(), taxid2Stats, reads, kMers, countMap == null ? null : countMap.get(null));
 	}
 
 	protected void initRoot() {
@@ -260,7 +259,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		int max = entry.readSize - k;
 		String lastTaxid = null;
 		int contigLen = 0;
-		StatsPerTaxid stats = null;
+		CountsPerTaxid stats = null;
 
 		for (int i = 0; i <= max; i++) {
 			long kmer = reverse ? CGAT.kMerToLongReverse(entry.read, i, k, null)
@@ -413,101 +412,10 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		}
 	}
 
-	protected static class TaxidStatsTrie extends DigitTrie<StatsPerTaxid> {
+	protected static class TaxidStatsTrie extends DigitTrie<CountsPerTaxid> {
 		@Override
-		protected StatsPerTaxid createInGet(String digits, Object createContext) {
-			return new StatsPerTaxid(digits, (int) createContext);
-		}
-	}
-
-	public static class Result {
-		private final int k;
-		private final Map<String, StatsPerTaxid> taxid2Stats;
-		private final long totalReads;
-		private final long totalKMers;
-		private final short[] totalMaxCounts;
-
-		public Result(int k, Map<String, StatsPerTaxid> taxid2Stats, long totalReads, long totalKMers,
-				short[] totalMaxCounts) {
-			this.k = k;
-			this.taxid2Stats = taxid2Stats;
-			this.totalReads = totalReads;
-			this.totalKMers = totalKMers;
-			this.totalMaxCounts = totalMaxCounts;
-		}
-
-		public int getK() {
-			return k;
-		}
-
-		public Map<String, StatsPerTaxid> getTaxid2Stats() {
-			return Collections.unmodifiableMap(taxid2Stats);
-		}
-
-		public long getTotalKMers() {
-			return totalKMers;
-		}
-
-		public long getTotalReads() {
-			return totalReads;
-		}
-
-		public short[] getTotalMaxCounts() {
-			return totalMaxCounts;
-		}
-
-		public boolean isWithMaxKMerCounts() {
-			return totalMaxCounts != null;
-		}
-	}
-
-	public static class StatsPerTaxid implements Serializable {
-		private static final long serialVersionUID = 1L;
-
-		protected String taxid;
-		protected long reads;
-		protected long uniqueKmers;
-		protected long kmers;
-		protected int maxContigLen;
-		protected int contigs;
-		protected short[] maxKMerCounts;
-		protected byte[] maxContigDescriptor;
-
-		public StatsPerTaxid(String taxid, int maxReadSizeBytes) {
-			this.taxid = taxid;
-			maxContigDescriptor = new byte[maxReadSizeBytes];
-		}
-
-		public String getTaxid() {
-			return taxid;
-		}
-
-		public int getContigs() {
-			return contigs;
-		}
-
-		public long getKMers() {
-			return kmers;
-		}
-
-		public int getMaxContigLen() {
-			return maxContigLen;
-		}
-
-		public byte[] getMaxContigDescriptor() {
-			return maxContigDescriptor;
-		}
-
-		public long getReads() {
-			return reads;
-		}
-
-		public long getUniqueKMers() {
-			return uniqueKmers;
-		}
-
-		public short[] getMaxKMerCounts() {
-			return maxKMerCounts;
+		protected CountsPerTaxid createInGet(String digits, Object createContext) {
+			return new CountsPerTaxid(digits, (int) createContext);
 		}
 	}
 }

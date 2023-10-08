@@ -36,7 +36,7 @@ import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.match.FastqKMerMatcher;
-import org.metagene.genestrip.match.FastqKMerMatcher.Result;
+import org.metagene.genestrip.match.MatchingResult;
 import org.metagene.genestrip.match.ResultReporter;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
@@ -76,7 +76,7 @@ public class MatchGoal extends FileListGoal<GSProject> {
 
 			c = new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
 					config.getThreads(), config.getMaxKmerResCounts());
-			Result res = c.runClassifier(fastq, filteredFile, krakenOutStyleFile,
+			MatchingResult res = c.runClassifier(fastq, filteredFile, krakenOutStyleFile,
 					config.isCountUniqueKmers()
 							? new KMerUniqueCounterBits(wrapper.getKmerStore(), config.isMatchWithKmerCounts())
 							: null);

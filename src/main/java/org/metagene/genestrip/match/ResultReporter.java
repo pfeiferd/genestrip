@@ -37,8 +37,6 @@ import java.util.Map;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
-import org.metagene.genestrip.match.FastqKMerMatcher.Result;
-import org.metagene.genestrip.match.FastqKMerMatcher.StatsPerTaxid;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.Rank;
@@ -89,10 +87,10 @@ public class ResultReporter {
 		}
 	}
 
-	public static List<StatsPerTaxid> readResultCSV(InputStream in, int k) throws IOException {
+	public static List<CountsPerTaxid> readResultCSV(InputStream in, int k) throws IOException {
 		Iterable<CSVRecord> records = FORMAT.parse(new InputStreamReader(in));
 
-		List<StatsPerTaxid> res = new ArrayList<StatsPerTaxid>();
+		List<CountsPerTaxid> res = new ArrayList<CountsPerTaxid>();
 		boolean first = true;
 		for (CSVRecord record : records) {
 			if (first) {
@@ -106,7 +104,7 @@ public class ResultReporter {
 			String contigs = record.get(6);
 			String maxContigLen = record.get(8);
 
-			StatsPerTaxid stats = new StatsPerTaxid(taxid, 0);
+			CountsPerTaxid stats = new CountsPerTaxid(taxid, 0);
 			stats.reads = Long.parseLong(reads);
 			stats.kmers = Long.parseLong(kmers);
 			stats.uniqueKmers = Long.parseLong(uniqueKmers);
@@ -118,8 +116,8 @@ public class ResultReporter {
 		return res;
 	}
 
-	public void printMatchResult(Result res, PrintStream out, KMerStoreWrapper wrapper) {
-		Map<String, StatsPerTaxid> taxid2Stats = res.getTaxid2Stats();
+	public void printMatchResult(MatchingResult res, PrintStream out, KMerStoreWrapper wrapper) {
+		Map<String, CountsPerTaxid> taxid2Stats = res.getTaxid2Stats();
 		UniqueKMerEstimator estimator = wrapper == null ? null : new UniqueKMerEstimator(wrapper);
 		if (estimator != null) {
 			estimator.setTotalKMers(res.getTotalKMers());
@@ -159,7 +157,7 @@ public class ResultReporter {
 		List<String> sortedTaxIds = new ArrayList<String>(taxid2Stats.keySet());
 		taxTree.sortTaxidsViaTree(sortedTaxIds);
 		for (String taxId : sortedTaxIds) {
-			StatsPerTaxid stats = taxid2Stats.get(taxId);
+			CountsPerTaxid stats = taxid2Stats.get(taxId);
 			if (stats != null) {
 				TaxIdNode taxNode = taxTree.getNodeByTaxId(taxId);
 				if (taxNode != null) {
@@ -177,7 +175,7 @@ public class ResultReporter {
 					out.print(';');
 					out.print(stats.getContigs());
 					out.print(';');
-					out.print(DF.format(((double) stats.getKMers()) / stats.getContigs()));
+					out.print(DF.format(((double) stats.getKMers()  + res.getK() - 1) / stats.getContigs()));
 					out.print(';');
 					out.print(stats.getMaxContigLen() + res.getK() - 1);
 					out.print(';');

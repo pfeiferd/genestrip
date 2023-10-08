@@ -45,7 +45,7 @@ import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.match.FastqKMerMatcher;
-import org.metagene.genestrip.match.FastqKMerMatcher.Result;
+import org.metagene.genestrip.match.MatchingResult;
 import org.metagene.genestrip.match.ResultReporter;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.store.KMerUniqueCounter;
@@ -138,7 +138,7 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 			if (uniqueCounter != null) {
 				uniqueCounter.clear();
 			}
-			Result res = matcher.runClassifier(fastqs, filteredFile, krakenOutStyleFile, uniqueCounter);
+			MatchingResult res = matcher.runClassifier(fastqs, filteredFile, krakenOutStyleFile, uniqueCounter);
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
 			reporter.printMatchResult(res, out, wrapper);
 			out.close();
