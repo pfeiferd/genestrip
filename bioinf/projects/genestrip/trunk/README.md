@@ -150,9 +150,6 @@ Genestrip supports three targets for each goal, namely `make`, `clean` and `clea
 - `clean` *deletes* all files associated with the given goal but it does not delete any files of goals that the given goal depends on.
 - `cleanall` does same as `clean`, but it *also recursively deletes* any files of goals that the given goal depends on.
 
-# Configuration properties
-TODO
-
 # Manually adding fasta-files
 
 In some cases you may want to add *k*-mers of genomes to your database, where the genomes are not part of the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/). Genestrip supports this via an optional text file `additional.txt` under `<base dir>/projects/<project_name>`.
@@ -162,6 +159,20 @@ The line format is
 <tax id> <path_to_fasta_file>
 ```
 where `<tax id>` is the (unique) tax id associated with the file's genomic data. If `<path_to_fastq_file>` is a file name without a path prefix, then the file is assumed to be located in `<base dir>/projects/<project_name>/fasta`.
+
+# Configuration properties
+
+An optional configuration properties file `Config.properties` may be put under `<base dir>`.
+Entries per line should have the form
+```
+<key>=<value>
+```
+The following entries are possible:
+
+| Key         | Default Value     | Description |
+| ----------- | ----------- | ----------- |
+| Header      | Title       | Text        |
+| Paragraph   | Text        | Text        |
 
 # API-based usage
 
