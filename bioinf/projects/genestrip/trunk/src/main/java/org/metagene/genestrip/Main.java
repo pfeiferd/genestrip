@@ -138,7 +138,7 @@ public class Main {
 			run(System.err);
 		} catch (IOException | ParseException e) {
 			HelpFormatter formatter = new HelpFormatter();
-			formatter.printHelp("genestrip [options] <project> [<goal1> <goal2>...]", getOptions());
+			formatter.printHelp("genestrip.sh [options] <project> [<goal1> <goal2>...]", getOptions());
 			System.out.flush();
 			System.out.println();
 			e.printStackTrace();
