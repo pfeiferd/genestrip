@@ -29,14 +29,16 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
 
+import org.apache.commons.logging.LogFactory;
+
 public class GSConfig {
 	public static final String CONFIG_PROPERTIES = "Config.properties";
 	public static final String NCBI_FTP_URL = "ftp.ncbi.nih.gov";
 	public static final String NCBI_HTTP_BASE_URL = "https://ftp.ncbi.nlm.nih.gov";
-	
+
 	public static final String REF_SEQ_HTTP_BASE_URL = NCBI_HTTP_BASE_URL + "/refseq";
 	public static final String REF_SEQ_FTP_URL = NCBI_FTP_URL;
-	
+
 	public static final String TAX_HTTP_BASE_URL = NCBI_HTTP_BASE_URL;
 	public static final String TAX_SEQ_FTP_URL = NCBI_FTP_URL;
 
@@ -46,9 +48,14 @@ public class GSConfig {
 	public GSConfig(File baseDir) throws IOException {
 		this.baseDir = baseDir;
 		this.properties = new Properties();
-		properties.load(new FileInputStream(new File(baseDir, CONFIG_PROPERTIES)));
+		File configFile = new File(baseDir, CONFIG_PROPERTIES);
+		try {
+			properties.load(new FileInputStream(configFile));
+		} catch (IOException e) {
+			LogFactory.getLog("conifg").warn("Could not read configuation file '" + configFile + "'. Using defaults.");
+		}
 	}
-	
+
 	public String getLogLevel() {
 		return properties.getProperty("logLevel", "info");
 	}
@@ -90,7 +97,7 @@ public class GSConfig {
 	public int getMaxReadSizeBytes() {
 		return Integer.valueOf(properties.getProperty("maxReadSizeBytes", "8192"));
 	}
-	
+
 	public int getMinPosCountFilter() {
 		return Integer.valueOf(properties.getProperty("minPosCountFilter", "1"));
 	}
@@ -118,19 +125,19 @@ public class GSConfig {
 	public boolean isIgnoreMissingFastas() {
 		return Boolean.valueOf(properties.getProperty("ignoreMissingFastas", "false"));
 	}
-	
+
 	public boolean isUseCompleteGenomesOnly() {
 		return Boolean.valueOf(properties.getProperty("completeGenomesOnly", "false"));
 	}
-	
+
 	public boolean isMatchWithKmerCounts() {
 		return Boolean.valueOf(properties.getProperty("matchWithKmerCounts", "false"));
 	}
-	
+
 	public int getMaxKmerResCounts() {
 		return Integer.valueOf(properties.getProperty("maxKmerResCounts", "200"));
-	}	
-	
+	}
+
 	public String getFtpBaseURL() {
 		return properties.getProperty("ftpBaseURL", NCBI_FTP_URL);
 	}
@@ -150,11 +157,11 @@ public class GSConfig {
 	public boolean isUseHttp() {
 		return Boolean.valueOf(properties.getProperty("useHttp", "true"));
 	}
-	
+
 	public File getRefSeqDir() {
 		return new File(getCommonDir(), "refseq");
 	}
-	
+
 	public String getRefSeqHttpBaseURL() {
 		return properties.getProperty("refseqHttpBaseURL", REF_SEQ_HTTP_BASE_URL);
 	}
@@ -162,12 +169,12 @@ public class GSConfig {
 	public String getRefSeqFTPBaseURL() {
 		return properties.getProperty("refseqHttpBaseURL", REF_SEQ_FTP_URL);
 	}
-	
+
 	public String getTaxHttpBaseURL() {
 		return properties.getProperty("taxHttpBaseURL", TAX_HTTP_BASE_URL);
 	}
 
 	public String getTaxFTPBaseURL() {
 		return properties.getProperty("taxHttpBaseURL", TAX_SEQ_FTP_URL);
-	}	
+	}
 }
