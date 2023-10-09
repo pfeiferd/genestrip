@@ -171,8 +171,20 @@ The following entries are possible:
 
 | Key         | Default Value     | Description |
 | ----------- | ----------- | ----------- |
-| Header      | Title       | Text        |
-| Paragraph   | Text        | Text        |
+| countUniqueKMers      | true       | ...        |
+| writeDumpedFastq   | false        | ...        |
+| writeFilteredFastq   | false        | ...        |
+| ignoreMissingFastas   | true        | ...        |
+| completeGenomesOnly   | false        | ...        |
+| matchWithKMerCounts   | false        | ...        |
+| maxKMerResCounts   | false        | ...        |
+| writeDumpedFastq   | false        | ...        |
+| kMerSize   | 31        | ...        |
+| refseqHttpBaseURL   | https://ftp.ncbi.nlm.nih.gov/refseq | ...        |
+| refseqFTPBaseURL   | ftp.ncbi.nih.gov       | ...        |
+| taxHttpBaseURL   | https://ftp.ncbi.nlm.nih.gov        | ...        |
+| taxFTPBaseURL   | ftp.ncbi.nih.gov        | ...        |
+
 
 # API-based usage
 
