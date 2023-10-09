@@ -82,8 +82,8 @@ public class GSConfig {
 		return 1000;
 	}
 
-	public boolean isCountUniqueKmers() {
-		return Boolean.valueOf(properties.getProperty("countUniqueKmers", "true"));
+	public boolean isCountUniqueKMers() {
+		return Boolean.valueOf(properties.getProperty("countUniqueKMers", "true"));
 	}
 
 	public boolean isWriteDumpedFastq() {
@@ -130,12 +130,12 @@ public class GSConfig {
 		return Boolean.valueOf(properties.getProperty("completeGenomesOnly", "false"));
 	}
 
-	public boolean isMatchWithKmerCounts() {
-		return Boolean.valueOf(properties.getProperty("matchWithKmerCounts", "false"));
+	public boolean isMatchWithKMerCounts() {
+		return Boolean.valueOf(properties.getProperty("matchWithKMerCounts", "false"));
 	}
 
-	public int getMaxKmerResCounts() {
-		return Integer.valueOf(properties.getProperty("maxKmerResCounts", "200"));
+	public int getMaxKMerResCounts() {
+		return Integer.valueOf(properties.getProperty("maxKMerResCounts", "200"));
 	}
 
 	public String getFtpBaseURL() {
@@ -167,7 +167,7 @@ public class GSConfig {
 	}
 
 	public String getRefSeqFTPBaseURL() {
-		return properties.getProperty("refseqHttpBaseURL", REF_SEQ_FTP_URL);
+		return properties.getProperty("refseqFTPBaseURL", REF_SEQ_FTP_URL);
 	}
 
 	public String getTaxHttpBaseURL() {
@@ -175,6 +175,6 @@ public class GSConfig {
 	}
 
 	public String getTaxFTPBaseURL() {
-		return properties.getProperty("taxHttpBaseURL", TAX_SEQ_FTP_URL);
+		return properties.getProperty("taxFTPBaseURL", TAX_SEQ_FTP_URL);
 	}
 }
