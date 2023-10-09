@@ -138,7 +138,7 @@ Here is the list of user-related goals:
 - `clear`: Clear the folders `csv`, `db` and `krakenout`  of a project. This will delete all files the respective folders!
 - `match`: Analyze a fastq file as given by the `-f` option. The resulting CSV file will be stored in `<base dir>/projects/<project_name>/csv` unless specified otherwise via the `-r` option.
 - `multimatch`: Analyze several fastq files as specified via multi-match CSV file given by the `-f` option.
-- `filter`:  Filter a fastq file as given by the `-f` option. The resulting filtered fastq file will be stored in `<base dir>/projects/<project_name>/fastq` unless specified otherwise via the `-r` option.
+- `filter`:  Filter a fastq file as given by the `-f` option. The resulting filtered fastq file `filtered_<fqfile>` will be stored under `<base dir>/projects/<project_name>/fastq/` unless specified otherwise via the `-r` option.
 
 Many goals depend on other goals. E.g., the `dbinfo` goal requires the corresponding database to exist and so, it will trigger the execution of the ``db`` goal in case the corresponding database is missing and so on.
 
@@ -171,19 +171,19 @@ The following entries are possible:
 
 | Key         | Default Value     | Description |
 | ----------- | ----------- | ----------- |
-| countUniqueKMers      | true       | ...        |
-| writeDumpedFastq   | false        | ...        |
-| writeFilteredFastq   | false        | ...        |
-| ignoreMissingFastas   | true        | ...        |
-| completeGenomesOnly   | false        | ...        |
-| matchWithKMerCounts   | false        | ...        |
-| maxKMerResCounts   | false        | ...        |
-| writeDumpedFastq   | false        | ...        |
-| kMerSize   | 31        | ...        |
-| refseqHttpBaseURL   | https://ftp.ncbi.nlm.nih.gov/refseq | ...        |
-| refseqFTPBaseURL   | ftp.ncbi.nih.gov       | ...        |
-| taxHttpBaseURL   | https://ftp.ncbi.nlm.nih.gov        | ...        |
-| taxFTPBaseURL   | ftp.ncbi.nih.gov        | ...        |
+| countUniqueKMers      | true       | If `true`, unique kmers will be counted. This requires less than 5% of additional main memory.        |
+| writeDumpedFastq   | false        | If `true`, then ``filter`` will also generate a fastq file `dumped_<fqfile>` with all reads not written to the corresponding filtered fastq file. |
+| writeFilteredFastq   | false        | If `true`, then the goal `match` writes a filtered fastq file in the same way that the goal `filter` does. Moreover, Genestrip will write an output file `<fqfile>.out` in the [Kraken output format](https://ccb.jhu.edu/software/kraken/MANUAL.html#output-format) under `<base dir>/projects/<project_name>/krakenout` covering all filtered reads. |
+| ignoreMissingFastas   | true        | If `true`, then a download of files from NCBI will not stop in case a file is missing on the server.        |
+| completeGenomesOnly   | false        | If `true`, then only genomic accessions with the prefixes `AC`, `NC_`, `NZ_` will be considered when generating a database. Otherwise, all genomic accessions will be considered. See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.       |
+| matchWithKMerCounts   | false        | Experimental: Counts how many times each unique *k*-mer has been detected.        |
+| maxKMerResCounts   | 200        | The number of the most frequent *k*-mers that will be reported, if `matchWithKMerCounts=true`.       |
+| kMerSize   | 31        | The number of base pairs *k* for a *k*-mers. Changes to this values do *not* affect the memory usage of database. A value > 32 will cause collisions, i.e. leads to false positives for the `match` goal. |
+| useHttp | true | Use http(s) to download data from NCBI. If ``false``, then Genestrip will try anonymous FTP instead (with login and password set to `anonymous`). 
+| refseqHttpBaseURL   | https://ftp.ncbi.nlm.nih.gov/refseq | This [mirror](https://www.funet.fi/pub/mirrors/ftp.ncbi.nlm.nih.gov/refseq/) might be considered as an alternative. (No other mirror sites are known.) |
+| refseqFTPBaseURL   | ftp.ncbi.nih.gov       |         |
+| taxHttpBaseURL   | https://ftp.ncbi.nlm.nih.gov        | This base URL will be extended by the path `/pub/taxonomy/` in order to download the taxonomy file `taxdmp.zip`.        |
+| taxFTPBaseURL   | ftp.ncbi.nih.gov        |         |
 
 
 # API-based usage
