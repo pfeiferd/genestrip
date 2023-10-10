@@ -32,7 +32,6 @@ import java.util.Random;
 
 import org.junit.Test;
 import org.metagene.genestrip.match.FastqKMerMatcher.MyReadEntry;
-import org.metagene.genestrip.match.FastqKMerMatcher.StatsPerTaxid;
 import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerUniqueCounter;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
@@ -126,7 +125,7 @@ public class FastqKMerMatcherTest {
 
 			Object2LongMap<String> map = uniqueCounter.getUniqueKmerCounts();
 			for (int j = 0; j < TAXIDS.length; j++) {
-				StatsPerTaxid stats = matcher.getStats(TAXIDS[j]);
+				CountsPerTaxid stats = matcher.getStats(TAXIDS[j]);
 				if (!used[j]) {
 					assertNull(stats);
 				} else {
@@ -157,7 +156,7 @@ public class FastqKMerMatcherTest {
 			super.initUniqueCounter(uniqueCounter);
 		}
 
-		public StatsPerTaxid getStats(String taxid) {
+		public CountsPerTaxid getStats(String taxid) {
 			return root.get(taxid);
 		}
 
