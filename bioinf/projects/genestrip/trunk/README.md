@@ -171,6 +171,8 @@ The following entries are possible:
 
 | Key         | Default Value     | Description |
 | ----------- | ----------- | ----------- |
+| logLevel      | info       | The levels `error` and `warn` are also possible and result in (much) less verbose logging.       |
+| threads      | -1       | The number of consumer threads *n* when processing data with respect to goals ``match``, ``filter`` and ``multimatch`` and also so during the update phase of the ``db`` goal. There is always one additional thread that reads and uncompresses a corresponding fastq or fasta file (so it is *n + 1* threads in total). When negative, the number of available processors is used as *n*. When 0, then the corresponding goals run in single-threaded mode. |
 | countUniqueKMers      | true       | If `true`, unique kmers will be counted. This requires less than 5% of additional main memory.        |
 | writeDumpedFastq   | false        | If `true`, then ``filter`` will also generate a fastq file `dumped_<fqfile>` with all reads not written to the corresponding filtered fastq file. |
 | writeFilteredFastq   | false        | If `true`, then the goal `match` writes a filtered fastq file in the same way that the goal `filter` does. Moreover, Genestrip will write an output file `<fqfile>.out` in the [Kraken output format](https://ccb.jhu.edu/software/kraken/MANUAL.html#output-format) under `<base dir>/projects/<project_name>/krakenout` covering all filtered reads. |
