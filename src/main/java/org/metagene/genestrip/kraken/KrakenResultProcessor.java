@@ -108,16 +108,16 @@ public class KrakenResultProcessor {
 				} else if (fr && krakenChars[i] == ' ') {
 					int frN = ByteArrayUtil.byteArrayToInt(krakenChars, frStartPos, i);
 					try {
-					String taxidStr = root.add(krakenChars, startPos, frStartPos - 1, frN);
+						String taxidStr = root.add(krakenChars, startPos, frStartPos - 1, frN);
 
-					if (taxidStr != null && listener != null) {
-						listener.newTaxIdForRead(readCount, readDescriptor, classTaxid, bps, readPos, taxidStr, frN,
-								krakenChars);
-					}
+						if (taxidStr != null && listener != null) {
+							listener.newTaxIdForRead(readCount, readDescriptor, classTaxid, bps, readPos, taxidStr, frN,
+									krakenChars);
+						}
 					} catch (IllegalStateException e) {
-						ByteArrayUtil.print(krakenChars, System.out);
-						System.out.println();
-						System.out.println(e);
+						if (logger.isWarnEnabled()) {
+							logger.warn("Inconsistent kraken output line '" + ByteArrayUtil.toString(krakenChars) + "'", e);
+						}
 					}
 					readPos += frN;
 
