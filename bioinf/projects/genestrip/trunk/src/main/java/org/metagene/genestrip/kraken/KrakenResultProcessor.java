@@ -107,6 +107,30 @@ public class KrakenResultProcessor {
 					frStartPos = i + 1;
 				} else if (fr && krakenChars[i] == ' ') {
 					int frN = ByteArrayUtil.byteArrayToInt(krakenChars, frStartPos, i);
+					if (krakenChars[startPos] != 'A') {  // 'A' is possible indicating "ambiguous" - not of interest to us.
+						try {
+							String taxidStr = root.add(krakenChars, startPos, frStartPos - 1, frN);
+
+							if (taxidStr != null && listener != null) {
+								listener.newTaxIdForRead(readCount, readDescriptor, classTaxid, bps, readPos, taxidStr,
+										frN, krakenChars);
+							}
+						} catch (IllegalStateException e) {
+							if (logger.isWarnEnabled()) {
+								logger.warn(
+										"Inconsistent kraken output line '" + ByteArrayUtil.toString(krakenChars) + "'",
+										e);
+							}
+						}
+					}
+					readPos += frN;
+
+					startPos = i + 1;
+				}
+			}
+			if (startPos < krakenPos && fr) {
+				int frN = ByteArrayUtil.byteArrayToInt(krakenChars, frStartPos, krakenPos);
+				if (krakenChars[startPos] != 'A') { // 'A' is possible indicating "ambiguous" - not of interest to us.
 					try {
 						String taxidStr = root.add(krakenChars, startPos, frStartPos - 1, frN);
 
@@ -119,24 +143,6 @@ public class KrakenResultProcessor {
 							logger.warn("Inconsistent kraken output line '" + ByteArrayUtil.toString(krakenChars) + "'",
 									e);
 						}
-					}
-					readPos += frN;
-
-					startPos = i + 1;
-				}
-			}
-			if (startPos < krakenPos && fr) {
-				int frN = ByteArrayUtil.byteArrayToInt(krakenChars, frStartPos, krakenPos);
-				try {
-					String taxidStr = root.add(krakenChars, startPos, frStartPos - 1, frN);
-
-					if (taxidStr != null && listener != null) {
-						listener.newTaxIdForRead(readCount, readDescriptor, classTaxid, bps, readPos, taxidStr, frN,
-								krakenChars);
-					}
-				} catch (IllegalStateException e) {
-					if (logger.isWarnEnabled()) {
-						logger.warn("Inconsistent kraken output line '" + ByteArrayUtil.toString(krakenChars) + "'", e);
 					}
 				}
 			}
