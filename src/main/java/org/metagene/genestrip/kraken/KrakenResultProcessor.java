@@ -116,7 +116,8 @@ public class KrakenResultProcessor {
 						}
 					} catch (IllegalStateException e) {
 						if (logger.isWarnEnabled()) {
-							logger.warn("Inconsistent kraken output line '" + ByteArrayUtil.toString(krakenChars) + "'", e);
+							logger.warn("Inconsistent kraken output line '" + ByteArrayUtil.toString(krakenChars) + "'",
+									e);
 						}
 					}
 					readPos += frN;
@@ -126,11 +127,17 @@ public class KrakenResultProcessor {
 			}
 			if (startPos < krakenPos && fr) {
 				int frN = ByteArrayUtil.byteArrayToInt(krakenChars, frStartPos, krakenPos);
-				String taxidStr = root.add(krakenChars, startPos, frStartPos - 1, frN);
+				try {
+					String taxidStr = root.add(krakenChars, startPos, frStartPos - 1, frN);
 
-				if (taxidStr != null && listener != null) {
-					listener.newTaxIdForRead(readCount, readDescriptor, classTaxid, bps, readPos, taxidStr, frN,
-							krakenChars);
+					if (taxidStr != null && listener != null) {
+						listener.newTaxIdForRead(readCount, readDescriptor, classTaxid, bps, readPos, taxidStr, frN,
+								krakenChars);
+					}
+				} catch (IllegalStateException e) {
+					if (logger.isWarnEnabled()) {
+						logger.warn("Inconsistent kraken output line '" + ByteArrayUtil.toString(krakenChars) + "'", e);
+					}
 				}
 			}
 		}
