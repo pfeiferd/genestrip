@@ -177,7 +177,7 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 				throw new IOException("This goal does not work with an outfile as a parameter (like in krakenuniq)");
 			}
 
-			krakenExecutor.execute2(getProject().getKrakenDB(), fastqs, file, null, System.err);
+			krakenExecutor.execute(getProject().getKrakenDB(), fastqs, file, null, System.err);
 
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
 
@@ -186,7 +186,7 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 			print(list, out);
 
 			out.close();
-		} catch (IOException e) {
+		} catch (InterruptedException | IOException e) {
 			throw new RuntimeException(e);
 		}
 		if (getLogger().isInfoEnabled()) {
