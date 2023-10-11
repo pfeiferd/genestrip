@@ -107,11 +107,17 @@ public class KrakenResultProcessor {
 					frStartPos = i + 1;
 				} else if (fr && krakenChars[i] == ' ') {
 					int frN = ByteArrayUtil.byteArrayToInt(krakenChars, frStartPos, i);
+					try {
 					String taxidStr = root.add(krakenChars, startPos, frStartPos - 1, frN);
 
 					if (taxidStr != null && listener != null) {
 						listener.newTaxIdForRead(readCount, readDescriptor, classTaxid, bps, readPos, taxidStr, frN,
 								krakenChars);
+					}
+					} catch (IllegalStateException e) {
+						ByteArrayUtil.print(krakenChars, System.out);
+						System.out.println();
+						System.out.println(e);
 					}
 					readPos += frN;
 
