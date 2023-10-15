@@ -125,7 +125,7 @@ public class Main {
 		options.addOption(fastq);
 
 		Option resFolder = Option.builder("r").hasArg().argName("path").desc(
-				"Common store folder for filtered fastq files and resulting CSV files created via the goals 'filter' and 'match'. The defaulta are '<base dir>/projects/<project name>/fastq' and '<base dir>/projects/<project name>/csv' respectively.")
+				"Common store folder for filtered fastq files and resulting CSV files created via the goals 'filter' and 'match'. The defaults are '<base dir>/projects/<project name>/fastq' and '<base dir>/projects/<project name>/csv', respectively.")
 				.build();
 		options.addOption(resFolder);
 
