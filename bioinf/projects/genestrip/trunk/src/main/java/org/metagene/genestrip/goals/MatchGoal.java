@@ -76,7 +76,7 @@ public class MatchGoal extends FileListGoal<GSProject> {
 
 			c = new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
 					config.getThreads(), config.getMaxKMerResCounts());
-			MatchingResult res = c.runClassifier(fastq, filteredFile, krakenOutStyleFile,
+			MatchingResult res = c.runMatcher(fastq, filteredFile, krakenOutStyleFile,
 					config.isCountUniqueKMers()
 							? new KMerUniqueCounterBits(wrapper.getKmerStore(), config.isMatchWithKMerCounts())
 							: null);

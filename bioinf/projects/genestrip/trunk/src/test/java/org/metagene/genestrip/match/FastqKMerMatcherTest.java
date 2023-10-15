@@ -116,7 +116,7 @@ public class FastqKMerMatcherTest {
 					maxContigLen[previousPos] = contigLen;
 				}
 			}
-			matcher.classifyRead(entry, false);
+			matcher.matchRead(entry, false);
 
 			ByteArrayUtil.print(entry.read, System.out);
 			System.out.println();
@@ -161,8 +161,8 @@ public class FastqKMerMatcherTest {
 		}
 
 		@Override
-		public boolean classifyRead(MyReadEntry entry, boolean reverse) {
-			return super.classifyRead(entry, reverse);
+		public boolean matchRead(MyReadEntry entry, boolean reverse) {
+			return super.matchRead(entry, reverse);
 		}
 	}
 }
