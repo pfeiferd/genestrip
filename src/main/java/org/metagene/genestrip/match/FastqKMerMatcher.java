@@ -72,7 +72,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	private long logUpdateCycle = DEFAULT_LOG_UPDATE_CYCLE;
 
 	// A PrintStream is implicitly synchronized. So we don't need to worry about
-	// multi threading when using it.
+	// multi-threading when using it.
 	protected PrintStream out;
 
 	public FastqKMerMatcher(KMerSortedArray<String> kmerStore, int maxReadSize, int maxQueueSize, int consumerNumber,
@@ -88,12 +88,12 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		return new MyReadEntry(maxReadSizeBytes, out != null);
 	}
 
-	public MatchingResult runClassifier(File fastq, File filteredFile, File krakenOutStyleFile, KMerUniqueCounter uniqueCounter)
+	public MatchingResult runMatcher(File fastq, File filteredFile, File krakenOutStyleFile, KMerUniqueCounter uniqueCounter)
 			throws IOException {
-		return runClassifier(Collections.singletonList(fastq), filteredFile, krakenOutStyleFile, uniqueCounter);
+		return runMatcher(Collections.singletonList(fastq), filteredFile, krakenOutStyleFile, uniqueCounter);
 	}
 
-	public MatchingResult runClassifier(List<File> fastqs, File filteredFile, File krakenOutStyleFile,
+	public MatchingResult runMatcher(List<File> fastqs, File filteredFile, File krakenOutStyleFile,
 			KMerUniqueCounter uniqueCounter) throws IOException {
 
 		if (filteredFile != null) {
@@ -182,9 +182,9 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		myEntry.bufferPos = 0;
 		myEntry.readTaxId = null;
 
-		boolean found = classifyRead(myEntry, false);
+		boolean found = matchRead(myEntry, false);
 		if (!found) {
-			found = classifyRead(myEntry, true);
+			found = matchRead(myEntry, true);
 		}
 		if (found) {
 			if (indexed != null) {
@@ -250,7 +250,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		}
 	}
 
-	protected boolean classifyRead(MyReadEntry entry, boolean reverse) {
+	protected boolean matchRead(MyReadEntry entry, boolean reverse) {
 		boolean found = false;
 		int prints = 0;
 		int taxIdCounter = 0;
