@@ -57,8 +57,8 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, FillSizeGoal fillSizeGoal,
 			ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, FileType.SER), Goal.append(deps, categoriesGoal,
-				taxNodesGoal, fnaFilesGoal, accessionMapGoal, fillSizeGoal, bloomFilterGoal));
+		super(project, name, project.getOutputFile(name, FileType.SER), Goal.append(deps, categoriesGoal, taxNodesGoal,
+				fnaFilesGoal, accessionMapGoal, fillSizeGoal, bloomFilterGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
@@ -89,8 +89,11 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 			}
 			Map<File, TaxIdNode> additionalMap = additionalGoal.get();
 			for (File additionalFasta : additionalMap.keySet()) {
-				fastaReader.ignoreAccessionMap(additionalMap.get(additionalFasta));
-				fastaReader.readFasta(additionalFasta);
+				TaxIdNode node = additionalMap.get(additionalFasta);
+				if (taxNodesGoal.get().contains(node)) {
+					fastaReader.ignoreAccessionMap(node);
+					fastaReader.readFasta(additionalFasta);
+				}
 			}
 			if (getLogger().isWarnEnabled()) {
 				getLogger().warn("Not stored kmers: " + fastaReader.tooManyCounter);

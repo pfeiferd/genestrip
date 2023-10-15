@@ -79,8 +79,11 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 			}
 			Map<File, TaxIdNode> additionalMap = additionalGoal.get();
 			for (File additionalFasta : additionalMap.keySet()) {
-				fastaReader.ignoreAccessionMap(additionalMap.get(additionalFasta));
-				fastaReader.readFasta(additionalFasta);
+				TaxIdNode node = additionalMap.get(additionalFasta);
+				if (taxNodesGoal.get().contains(node)) {
+					fastaReader.ignoreAccessionMap(node);
+					fastaReader.readFasta(additionalFasta);
+				}
 			}
 
 			set(filter);
