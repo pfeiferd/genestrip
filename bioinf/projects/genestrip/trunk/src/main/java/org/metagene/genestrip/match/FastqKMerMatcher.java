@@ -41,6 +41,8 @@ import org.metagene.genestrip.io.StreamProvider.ByteCountingInputStreamAccess;
 import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerUniqueCounter;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
+import org.metagene.genestrip.tax.TaxTree;
+import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.DigitTrie;
@@ -75,12 +77,15 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	// multi-threading when using it.
 	protected PrintStream out;
 
+	private final TaxTree taxTree;
+
 	public FastqKMerMatcher(KMerSortedArray<String> kmerStore, int maxReadSize, int maxQueueSize, int consumerNumber,
-			int maxKmerResCounts) {
+			int maxKmerResCounts, TaxTree taxTree) {
 		super(kmerStore.getK(), maxReadSize, maxQueueSize, consumerNumber);
 		this.kmerStore = kmerStore;
 		this.maxReadSize = maxReadSize;
 		this.maxKmerResCounts = maxKmerResCounts;
+		this.taxTree = taxTree;
 	}
 
 	@Override
@@ -88,8 +93,8 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		return new MyReadEntry(maxReadSizeBytes, out != null);
 	}
 
-	public MatchingResult runMatcher(File fastq, File filteredFile, File krakenOutStyleFile, KMerUniqueCounter uniqueCounter)
-			throws IOException {
+	public MatchingResult runMatcher(File fastq, File filteredFile, File krakenOutStyleFile,
+			KMerUniqueCounter uniqueCounter) throws IOException {
 		return runMatcher(Collections.singletonList(fastq), filteredFile, krakenOutStyleFile, uniqueCounter);
 	}
 
@@ -162,7 +167,8 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 			}
 		}
 
-		return new MatchingResult(kmerStore.getK(), taxid2Stats, reads, kMers, countMap == null ? null : countMap.get(null));
+		return new MatchingResult(kmerStore.getK(), taxid2Stats, reads, kMers,
+				countMap == null ? null : countMap.get(null));
 	}
 
 	protected void initRoot() {
@@ -181,6 +187,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		MyReadEntry myEntry = (MyReadEntry) entry;
 		myEntry.bufferPos = 0;
 		myEntry.readTaxId = null;
+		myEntry.readTaxIdNode = null;
 
 		boolean found = matchRead(myEntry, false);
 		if (!found) {
@@ -253,7 +260,6 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	protected boolean matchRead(MyReadEntry entry, boolean reverse) {
 		boolean found = false;
 		int prints = 0;
-		int taxIdCounter = 0;
 
 		String taxid = null;
 		int max = entry.readSize - k;
@@ -266,22 +272,26 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 					: CGAT.kMerToLongStraight(entry.read, i, k, null);
 
 			taxid = kmerStore.getLong(kmer, entry.indexPos);
-			if (contigLen > 0 && taxid != lastTaxid) {
-				if (out != null) {
-					printKrakenStyleOut(entry, lastTaxid, contigLen, prints++, reverse);
-				}
-				if (stats != null) {
-					synchronized (stats) {
-						stats.contigs++;
-						if (contigLen > stats.maxContigLen) {
-							stats.maxContigLen = contigLen;
-							for (int j = 0; j < entry.readSize; j++) {
-								stats.maxContigDescriptor[j] = entry.readDescriptor[j];
+			if (taxid != lastTaxid) {
+				updateReadTaxid(taxid, entry);
+
+				if (contigLen > 0) {
+					if (out != null) {
+						printKrakenStyleOut(entry, lastTaxid, contigLen, prints++, reverse);
+					}
+					if (stats != null) {
+						synchronized (stats) {
+							stats.contigs++;
+							if (contigLen > stats.maxContigLen) {
+								stats.maxContigLen = contigLen;
+								for (int j = 0; j < entry.readSize; j++) {
+									stats.maxContigDescriptor[j] = entry.readDescriptor[j];
+								}
 							}
 						}
 					}
+					contigLen = 0;
 				}
-				contigLen = 0;
 			}
 			contigLen++;
 			lastTaxid = taxid;
@@ -294,17 +304,6 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 				}
 				synchronized (stats) {
 					stats.kmers++;
-					// TODO: This is wrong if there are two taxids (or more) in the same read. The
-					// read counter is only increased for the first one.
-					if (!found) {
-						stats.reads++;
-					}
-					if (entry.readTaxId != taxid) {
-						taxIdCounter++;
-					}
-					if (taxIdCounter == 1) {
-						entry.readTaxId = taxid;
-					}
 					found = true;
 				}
 				if (uniqueCounter != null) {
@@ -332,12 +331,41 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 					}
 				}
 			}
-			if (taxIdCounter > 1) {
-				entry.readTaxId = null;
+			if (entry.readTaxId != null) {
+				stats = root.get(entry.readTaxId);
+				if (stats == null) {
+					synchronized (root) {
+						stats = root.get(taxid, maxReadSize);
+					}
+				}
+				stats.reads++;
 			}
 		}
 
 		return found;
+	}
+
+	protected void updateReadTaxid(String taxid, MyReadEntry entry) {
+		if (taxTree == null) {
+			return;
+		}
+		if (taxid == null || taxid == entry.readTaxId) {
+			return;
+		}
+		TaxIdNode node = taxTree.getNodeByTaxId(taxid);
+		if (node != null) {
+			if (entry.readTaxIdNode == null) {
+				entry.readTaxId = taxid;
+				entry.readTaxIdNode = node;
+			} else {
+				if (taxTree.isAncestorOf(node, entry.readTaxIdNode)) {
+					entry.readTaxId = taxid;
+					entry.readTaxIdNode = node;
+				} else if (!taxTree.isAncestorOf(entry.readTaxIdNode, node)) {
+					entry.readTaxId = null;
+				}
+			}
+		}
 	}
 
 	protected void printKrakenStyleOut(MyReadEntry entry, String taxid, int contigLen, int state, boolean reverse) {
@@ -357,6 +385,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		public final byte[] buffer;
 		public int bufferPos;
 		public String readTaxId;
+		public TaxIdNode readTaxIdNode;
 		public long[] indexPos;
 
 		public MyReadEntry(int maxReadSizeBytes, boolean enablePrint) {
@@ -392,17 +421,17 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		}
 
 		public void flush(PrintStream out) {
-			if (readTaxId != null) {
+			if (readTaxId == null) {
 				out.print("U\t");
 			} else {
 				out.print("C\t");
 			}
 			ByteArrayUtil.print(readDescriptor, out);
 			out.print('\t');
-			if (readTaxId != null) {
-				out.print(readTaxId);
-			} else {
+			if (readTaxId == null) {
 				out.print('0');
+			} else {
+				out.print(readTaxId);
 			}
 			out.print('\t');
 			out.print(readSize);

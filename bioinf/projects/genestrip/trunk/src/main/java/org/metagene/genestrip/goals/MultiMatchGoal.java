@@ -130,7 +130,7 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 			if (matcher == null) {
 				wrapper = storeGoal.get();
 				matcher = new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(),
-						config.getThreadQueueSize(), config.getThreads(), config.getMaxKMerResCounts());
+						config.getThreadQueueSize(), config.getThreads(), config.getMaxKMerResCounts(), taxTreeGoal.get());
 				reporter = new ResultReporter(taxTreeGoal.get());
 				uniqueCounter = config.isCountUniqueKMers() ? new KMerUniqueCounterBits(wrapper.getKmerStore(), true)
 						: null;
