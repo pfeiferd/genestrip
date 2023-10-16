@@ -142,7 +142,7 @@ public class FastqKMerMatcherTest {
 	protected static class MyFastqMatcher extends FastqKMerMatcher {
 		public MyFastqMatcher(KMerSortedArray<String> kmerStore, int maxReadSize, int maxQueueSize,
 				int consumerNumber) {
-			super(kmerStore, maxReadSize, maxQueueSize, consumerNumber, 100, null);
+			super(kmerStore, maxReadSize, maxQueueSize, consumerNumber, 100, null, 0);
 			out = System.out;
 		}
 

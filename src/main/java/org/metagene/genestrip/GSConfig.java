@@ -137,7 +137,11 @@ public class GSConfig {
 	public int getMaxKMerResCounts() {
 		return Integer.valueOf(properties.getProperty("maxKMerResCounts", "200"));
 	}
-
+	
+	public int getMaxReadTaxErrorCount() {
+		return Integer.valueOf(properties.getProperty("maxReadTaxErrorCount", "3"));
+	}
+	
 	public String getFtpBaseURL() {
 		return properties.getProperty("ftpBaseURL", NCBI_FTP_URL);
 	}
