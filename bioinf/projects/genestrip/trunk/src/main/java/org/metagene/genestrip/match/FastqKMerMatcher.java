@@ -52,6 +52,8 @@ import it.unimi.dsi.fastutil.objects.Object2LongMap;
 public class FastqKMerMatcher extends AbstractFastqReader {
 	public static final long DEFAULT_LOG_UPDATE_CYCLE = 1000000;
 
+	private static final String INVALID_TAX = "invalidTax";
+
 	private final KMerSortedArray<String> kmerStore;
 	private final int maxKmerResCounts;
 
@@ -66,6 +68,8 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	private long coveredFilesSize;
 	private long startTime;
 	private long indexedC;
+	private final TaxTree taxTree;
+	private final int maxReadTaxErrorCount;
 
 	private OutputStream indexed;
 
@@ -77,15 +81,14 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	// multi-threading when using it.
 	protected PrintStream out;
 
-	private final TaxTree taxTree;
-
 	public FastqKMerMatcher(KMerSortedArray<String> kmerStore, int maxReadSize, int maxQueueSize, int consumerNumber,
-			int maxKmerResCounts, TaxTree taxTree) {
+			int maxKmerResCounts, TaxTree taxTree, int maxReadTaxErrorCount) {
 		super(kmerStore.getK(), maxReadSize, maxQueueSize, consumerNumber);
 		this.kmerStore = kmerStore;
 		this.maxReadSize = maxReadSize;
 		this.maxKmerResCounts = maxKmerResCounts;
 		this.taxTree = taxTree;
+		this.maxReadTaxErrorCount = maxReadTaxErrorCount;
 	}
 
 	@Override
@@ -188,6 +191,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		myEntry.bufferPos = 0;
 		myEntry.readTaxId = null;
 		myEntry.readTaxIdNode = null;
+		myEntry.readTaxErrorCount = 0;
 
 		boolean found = matchRead(myEntry, false);
 		if (!found) {
@@ -331,7 +335,8 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 					}
 				}
 			}
-			if (entry.readTaxId != null) {
+			if (entry.readTaxId != null && entry.readTaxId != INVALID_TAX
+					&& entry.readTaxErrorCount <= maxReadTaxErrorCount) {
 				stats = root.get(entry.readTaxId);
 				if (stats == null) {
 					synchronized (root) {
@@ -349,21 +354,23 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		if (taxTree == null) {
 			return;
 		}
-		if (taxid == null || taxid == entry.readTaxId) {
+		if (entry.readTaxId == INVALID_TAX) {
+			return;
+		}
+		if (taxid == null) {
+			entry.readTaxErrorCount++;
+			return;
+		}
+		if (taxid == entry.readTaxId) {
 			return;
 		}
 		TaxIdNode node = taxTree.getNodeByTaxId(taxid);
 		if (node != null) {
-			if (entry.readTaxIdNode == null) {
+			if (entry.readTaxId == null || taxTree.isAncestorOf(node, entry.readTaxIdNode)) {
 				entry.readTaxId = taxid;
 				entry.readTaxIdNode = node;
-			} else {
-				if (taxTree.isAncestorOf(node, entry.readTaxIdNode)) {
-					entry.readTaxId = taxid;
-					entry.readTaxIdNode = node;
-				} else if (!taxTree.isAncestorOf(entry.readTaxIdNode, node)) {
-					entry.readTaxId = null;
-				}
+			} else if (!taxTree.isAncestorOf(entry.readTaxIdNode, node)) {
+				entry.readTaxId = INVALID_TAX;
 			}
 		}
 	}
@@ -385,6 +392,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		public final byte[] buffer;
 		public int bufferPos;
 		public String readTaxId;
+		public int readTaxErrorCount;
 		public TaxIdNode readTaxIdNode;
 		public long[] indexPos;
 

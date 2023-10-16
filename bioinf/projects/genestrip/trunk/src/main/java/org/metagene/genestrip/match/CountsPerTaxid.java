@@ -6,7 +6,7 @@ public class CountsPerTaxid implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	protected String taxid;
-	protected long reads; // Only classified reads are counted - kraken style classification approach...
+	protected long reads; // Only classified if a read is ENTIRELY consistent with the kmers of a taxon (and/or its ancestors) in the DB
 	protected long uniqueKmers; // All unique kmers counted - even from unclassified reads.
 	protected long kmers; // All kmers counted - even from unclassified reads.
 	protected int maxContigLen;
