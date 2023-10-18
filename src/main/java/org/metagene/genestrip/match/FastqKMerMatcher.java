@@ -52,7 +52,7 @@ import it.unimi.dsi.fastutil.objects.Object2LongMap;
 public class FastqKMerMatcher extends AbstractFastqReader {
 	public static final long DEFAULT_LOG_UPDATE_CYCLE = 1000000;
 
-	private static final String INVALID_TAX = "invalidTax";
+	protected static final String INVALID_TAX = "invalidTax";
 
 	private final KMerSortedArray<String> kmerStore;
 	private final int maxKmerResCounts;

@@ -59,7 +59,7 @@ public class GSProject implements DownloadProject {
 		this.krakenDB = krakenDB;
 		this.fastqOrCSVFile = fastqOrCSVFile;
 		this.fastqResDir = fastqResDir;
-		this.csvDir = csvDir != null ? csvDir : new File(getProjectsDir(), name + "/csv");
+		this.csvDir = csvDir != null ? csvDir : new File(getProjectDir(), "csv");
 	}
 
 	public File getFastqOrCSVFile() {
@@ -158,15 +158,19 @@ public class GSProject implements DownloadProject {
 	}
 
 	public File getProjectsDir() {
-		return new File(config.getBaseDir(), "/projects");
+		return new File(config.getBaseDir(), "projects");
 	}
 
+	public File getProjectDir() {
+		return new File(getProjectsDir(), name);
+	}
+	
 	public File getFastaDir() {
-		return new File(getProjectsDir(), name + "/fasta");
+		return new File(getProjectDir(), "fasta");
 	}
 
 	public File getFastqDir() {
-		return new File(getProjectsDir(), name + "/fastq");
+		return new File(getProjectDir(), "fastq");
 	}
 	
 	public File getFastqResDir() {
@@ -174,23 +178,23 @@ public class GSProject implements DownloadProject {
 	}
 
 	public File getDBDir() {
-		return new File(getProjectsDir(), name + "/db");
+		return new File(getProjectDir(), "db");
 	}
 
 	public File getKrakenOutDir() {
-		return new File(getProjectsDir(), name + "/krakenout");
+		return new File(getProjectDir(), "krakenout");
 	}
 
 	public File getTaxIdsFile() {
-		return new File(getProjectsDir(), name + "/taxids.txt");
+		return new File(getProjectDir(), "taxids.txt");
 	}
 	
 	public File getAddtionalFile() {
-		return new File(getProjectsDir(), name + "/additional.txt");
+		return new File(getProjectDir(), "additional.txt");
 	}
 	
 	public File getCategoriesFile() {
-		return new File(getProjectsDir(), name + "/categories.txt");
+		return new File(getProjectDir(), "categories.txt");
 	}
 	
 	public File getResultsDir() {

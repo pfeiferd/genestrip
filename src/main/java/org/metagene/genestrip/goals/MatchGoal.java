@@ -61,7 +61,7 @@ public class MatchGoal extends FileListGoal<GSProject> {
 
 	@Override
 	protected void makeFile(File file) {
-		FastqKMerMatcher c = null;
+		FastqKMerMatcher matcher = null;
 		try {
 			File filteredFile = null;
 			File krakenOutStyleFile = null;
@@ -74,23 +74,31 @@ public class MatchGoal extends FileListGoal<GSProject> {
 
 			GSConfig config = getProject().getConfig();
 
-			c = new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
-					config.getThreads(), config.getMaxKMerResCounts(), taxTreeGoal.get(), config.getMaxReadTaxErrorCount());
-			MatchingResult res = c.runMatcher(fastq, filteredFile, krakenOutStyleFile,
+			matcher = createMatcher(wrapper, config, taxTreeGoal.get());
+			MatchingResult res = matcher.runMatcher(fastq, filteredFile, krakenOutStyleFile,
 					config.isCountUniqueKMers()
 							? new KMerUniqueCounterBits(wrapper.getKmerStore(), config.isMatchWithKMerCounts())
 							: null);
-			c.dump();
+			matcher.dump();
 
-			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-			new ResultReporter(taxTreeGoal.get()).printMatchResult(res, out, wrapper);
-			out.close();
+			writeOutputFile(krakenOutStyleFile, res, wrapper);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {
-			if (c != null) {
-				c.dump();
+			if (matcher != null) {
+				matcher.dump();
 			}
 		}
+	}
+
+	protected void writeOutputFile(File file, MatchingResult result, KMerStoreWrapper wrapper) throws IOException {
+		PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
+		new ResultReporter(taxTreeGoal.get()).printMatchResult(result, out, wrapper);
+		out.close();
+	}
+
+	protected FastqKMerMatcher createMatcher(KMerStoreWrapper wrapper, GSConfig config, TaxTree taxTree) {
+		return new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
+				config.getThreads(), config.getMaxKMerResCounts(), taxTree, config.getMaxReadTaxErrorCount());
 	}
 }
