@@ -21,6 +21,7 @@ import org.metagene.genestrip.util.ByteArrayUtil;
 
 public class FastaTransformGoal extends FileListGoal<GSProject> {
 	public static final String ACCESSION_MAP_FILE = "nucl_gb.accession2taxid.gz";
+	public static final String OLD_ACCESSION_MAP_FILE = "dead_nucl.accession2taxid.gz";
 
 	private static final String[] NAMES = { "A_hydrophila_HiSeq", "B_cereus_HiSeq", "B_fragilis_HiSeq",
 			"M_abscessus_HiSeq", "P_fermentans_HiSeq", "R_sphaeroides_HiSeq", "S_aureus_HiSeq", "S_pneumoniae_HiSeq",
@@ -70,7 +71,8 @@ public class FastaTransformGoal extends FileListGoal<GSProject> {
 				}
 			};
 			fastaReader1.readFasta(fastaFile);
-			fillAccessionNumbersToTaxIdsMap(accesion2TaxidMap, accNumbers);
+			fillAccessionNumbersToTaxIdsMap(ACCESSION_MAP_FILE, accesion2TaxidMap, accNumbers);
+			fillAccessionNumbersToTaxIdsMap(OLD_ACCESSION_MAP_FILE, accesion2TaxidMap, accNumbers);
 		}
 
 		AbstractFastaReader fastaReader = new AbstractFastaReader(getProject().getConfig().getMaxReadSizeBytes()) {
@@ -172,11 +174,11 @@ public class FastaTransformGoal extends FileListGoal<GSProject> {
 		return null;
 	}
 
-	protected void fillAccessionNumbersToTaxIdsMap(Map<String, String> accesion2TaxidMap, Set<String> accNumbers)
+	protected void fillAccessionNumbersToTaxIdsMap(String fileName, Map<String, String> accesion2TaxidMap, Set<String> accNumbers)
 			throws IOException {
 
 		InputStream in = StreamProvider
-				.getInputStreamForFile(new File(getProject().getConfig().getCommonDir(), ACCESSION_MAP_FILE));
+				.getInputStreamForFile(new File(getProject().getConfig().getCommonDir(), fileName));
 
 		BufferedLineReader br = new BufferedLineReader(in);
 		int size;
