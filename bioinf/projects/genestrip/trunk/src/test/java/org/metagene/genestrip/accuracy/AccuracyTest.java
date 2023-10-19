@@ -2,7 +2,7 @@ package org.metagene.genestrip.accuracy;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Test;
@@ -11,7 +11,6 @@ import org.metagene.genestrip.GSMaker;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.FileDownloadGoal;
 import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.refseq.AssemblySummaryReader;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree;
 
@@ -32,8 +31,8 @@ public class AccuracyTest {
 		FileDownloadGoal<GSProject> acc2taxidDownloadGoal = new FileDownloadGoal<GSProject>(project, "assdownload", maker.getGoal("commonsetup")) {
 			@Override
 			public List<File> getFiles() {
-				return Collections
-						.singletonList(new File(project.getConfig().getCommonDir(), FastaTransformGoal.ACCESSION_MAP_FILE));
+				return Arrays.asList(new File(project.getConfig().getCommonDir(), FastaTransformGoal.ACCESSION_MAP_FILE),
+						new File(project.getConfig().getCommonDir(), FastaTransformGoal.OLD_ACCESSION_MAP_FILE));
 			}
 
 			@Override
@@ -52,7 +51,7 @@ public class AccuracyTest {
 			}
 		};
 		
-		FastaTransformGoal fastaTransformGoal = new FastaTransformGoal(project, "fasttransform", accDownloadGoal, acc2taxidDownloadGoal);
+		FastaTransformGoal fastaTransformGoal = new FastaTransformGoal(project, "fastatransform", accDownloadGoal, acc2taxidDownloadGoal);
 		
 		fastaTransformGoal.make();
 
