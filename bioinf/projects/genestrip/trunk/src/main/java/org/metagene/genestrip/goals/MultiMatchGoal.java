@@ -129,9 +129,7 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 			GSConfig config = getProject().getConfig();
 			if (matcher == null) {
 				wrapper = storeGoal.get();
-				matcher = new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(),
-						config.getThreadQueueSize(), config.getThreads(), config.getMaxKMerResCounts(),
-						taxTreeGoal.get(), config.getMaxReadTaxErrorCount());
+				matcher = createMatcher(wrapper, config, taxTreeGoal.get());
 				reporter = new ResultReporter(taxTreeGoal.get());
 				uniqueCounter = config.isCountUniqueKMers() ? new KMerUniqueCounterBits(wrapper.getKmerStore(), true)
 						: null;
@@ -140,9 +138,7 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 				uniqueCounter.clear();
 			}
 			MatchingResult res = matcher.runMatcher(fastqs, filteredFile, krakenOutStyleFile, uniqueCounter);
-			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-			reporter.printMatchResult(res, out, wrapper);
-			out.close();
+			writeOutputFile(krakenOutStyleFile, res, wrapper);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -151,6 +147,17 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 	public static CSVParser readCSVFile(File csvFile) throws IOException {
 		Reader in = new InputStreamReader(StreamProvider.getInputStreamForFile(csvFile));
 		return FORMAT.parse(in);
+	}
+
+	protected void writeOutputFile(File file, MatchingResult result, KMerStoreWrapper wrapper) throws IOException {
+		PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
+		reporter.printMatchResult(result, out, wrapper);
+		out.close();
+	}
+
+	protected FastqKMerMatcher createMatcher(KMerStoreWrapper wrapper, GSConfig config, TaxTree taxTree) {
+		return new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
+				config.getThreads(), config.getMaxKMerResCounts(), taxTreeGoal.get(), config.getMaxReadTaxErrorCount());
 	}
 
 	@Override
