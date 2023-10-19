@@ -49,7 +49,7 @@ public class AssemblySummaryReader {
 
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#')
 			.setDelimiter('\t').setRecordSeparator('\n').build();
-	
+
 	private final File baseDir;
 	private final TaxTree taxTree;
 	private final String assFileName;
@@ -63,6 +63,21 @@ public class AssemblySummaryReader {
 		this.taxTree = taxTree;
 		this.assFileName = assFileName;
 	}
+
+	/*
+	public Map<String, String> getAccessionNumbersToTaxIdsMap() throws IOException {
+		Map<String, String> res = new HashMap<String, String>();
+		Iterable<CSVRecord> records = getCSV();
+
+		for (CSVRecord record : records) {
+			String giNumber = record.get(0);
+			String taxid = record.get(5);
+			res.put(giNumber, taxid);
+		}
+
+		return res;
+	}
+	*/
 
 	public Map<TaxIdNode, List<FTPEntryWithQuality>> getRelevantEntries(Set<TaxIdNode> filter,
 			List<FTPEntryQuality> minQualities, int[] totalEntries) throws IOException {
