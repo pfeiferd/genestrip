@@ -20,7 +20,7 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
 public class FastaTransformGoal extends FileListGoal<GSProject> {
-	public static final String ACCESSION_MAP_FILE = "nucl_wgs.accession2taxid.gz";
+	public static final String ACCESSION_MAP_FILE = "nucl_gb.accession2taxid.gz";
 
 	private static final String[] NAMES = { "A_hydrophila_HiSeq", "B_cereus_HiSeq", "B_fragilis_HiSeq",
 			"M_abscessus_HiSeq", "P_fermentans_HiSeq", "R_sphaeroides_HiSeq", "S_aureus_HiSeq", "S_pneumoniae_HiSeq",
@@ -181,13 +181,14 @@ public class FastaTransformGoal extends FileListGoal<GSProject> {
 		BufferedLineReader br = new BufferedLineReader(in);
 		int size;
 		byte[] target = new byte[2048];
+		br.nextLine(target);
 		while ((size = br.nextLine(target)) > 0) {
 			int tab1 = ByteArrayUtil.indexOf(target, 0, size, '\t');
-			int tab2 = ByteArrayUtil.indexOf(target, tab1, size, '\t');
-			String acc = new String(target, tab1, tab2 - tab1);
+			int tab2 = ByteArrayUtil.indexOf(target, tab1 + 1, size, '\t');
+			String acc = new String(target, tab1 + 1, tab2 - tab1 - 1);
 			if (accNumbers.contains(acc)) {
-				int tab3 = ByteArrayUtil.indexOf(target, tab2, size, '\t');
-				String tax = new String(target, tab2, tab3 - tab2);
+				int tab3 = ByteArrayUtil.indexOf(target, tab2 + 1, size, '\t');
+				String tax = new String(target, tab2 + 1, tab3 - tab2 - 1);
 				accesion2TaxidMap.put(acc, tax);
 			}
 		}
