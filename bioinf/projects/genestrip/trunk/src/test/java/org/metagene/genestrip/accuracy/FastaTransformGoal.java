@@ -16,15 +16,21 @@ public class FastaTransformGoal extends FileListGoal<GSProject> {
 
 	private static final String[] NAMES = { "A_hydrophila_HiSeq", "B_cereus_HiSeq", "B_fragilis_HiSeq",
 			"M_abscessus_HiSeq", "P_fermentans_HiSeq", "R_sphaeroides_HiSeq", "S_aureus_HiSeq", "S_pneumoniae_HiSeq",
-			"V_cholerae_HiSeq", "X_axonopodis_HiSeq" };
+			"V_cholerae_HiSeq", "X_axonopodis_HiSeq",
+			//
+			"B_cereus_MiSeq", "M_abscessus_MiSeq", "R_sphaeroides_MiSeq", "V_cholerae_MiSeq", "C_freundii_MiSeq",
+			"E_cloacae_MiSeq", "K_pneumoniae_MiSeq", "P_vulgaris_MiSeq", "S_aureus_MiSeq", "S_enterica_MiSeq" };
 	private static final String[] TAXIDS = { "1073377", "1053231", "1073387", "1001740", "1149860", "272943", "1213734",
-			"170187", "991923", "1185664" };
+			"170187", "991923", "1185664",
+			//
+			"1053231", "1001740", "272943", "991923", "1173724", "550", "1173763", "1173773", "1210042", "1173880"
+	};
 
 	@SafeVarargs
 	public FastaTransformGoal(GSProject project, String name, Goal<GSProject>... dependencies) {
 		super(project, name, (List<File>) null, dependencies);
 		addFile(new File(project.getFastqDir(), "HiSeq_accuracy.fastq"));
-//		addFile(new File(project.getFastqDir(), "MiSeq_accuracy.fastq"));
+		addFile(new File(project.getFastqDir(), "MiSeq_accuracy.fastq"));
 	}
 
 	@Override
