@@ -21,12 +21,24 @@ import org.metagene.genestrip.util.ByteArrayUtil;
 public class AccuracyMatchGoal extends MultiMatchGoal {
 	private int taxIdCorrectCount;
 	private int genusCorrectCount;
+	private int genusIncorrectCount;
+	private int noTaxIdCount;
 	private int totalCount;
 
 	@SafeVarargs
 	public AccuracyMatchGoal(GSProject project, String name, File csvFile, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
 			ObjectGoal<KMerStoreWrapper, GSProject> storeGoal, Goal<GSProject>... deps) {
 		super(project, name, csvFile, taxTreeGoal, storeGoal, false, deps);
+	}
+	
+	@Override
+	protected void makeFile(File file) {
+		taxIdCorrectCount = 0;
+		genusCorrectCount = 0;
+		genusIncorrectCount = 0;
+		noTaxIdCount = 0;
+		totalCount = 0;
+		super.makeFile(file);
 	}
 
 	@Override
@@ -49,7 +61,13 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 						if (correctGenusTaxNode == getGenusTaxNode(entry.readTaxId)) {
 							genusCorrectCount++;
 						}
+						else {
+							genusIncorrectCount++;
+						}
 					}
+				}
+				else {
+					noTaxIdCount++;
 				}
 				return res;
 			}
@@ -73,12 +91,16 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 	@Override
 	protected void writeOutputFile(File file, MatchingResult result, KMerStoreWrapper wrapper) throws IOException {
 		PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-		out.println("total; taxid correct; genus correct");
+		out.println("total; taxid correct; genus correct; genus inccorrect; no taxid;");
 		out.print(totalCount);
 		out.print(';');
-		out.print(genusCorrectCount);
-		out.print(';');
 		out.print(taxIdCorrectCount);
+		out.print(';');
+		out.print(genusCorrectCount);
+		out.println(';');
+		out.print(genusIncorrectCount);
+		out.println(';');
+		out.print(noTaxIdCount);
 		out.println(';');
 		out.close();
 	}
