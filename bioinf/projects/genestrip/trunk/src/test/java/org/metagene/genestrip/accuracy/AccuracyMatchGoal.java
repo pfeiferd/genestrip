@@ -6,7 +6,7 @@ import java.io.PrintStream;
 
 import org.metagene.genestrip.GSConfig;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.goals.MatchGoal;
+import org.metagene.genestrip.goals.MultiMatchGoal;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -18,15 +18,15 @@ import org.metagene.genestrip.tax.TaxTree.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
-public class AccuracyMatchGoal extends MatchGoal {
+public class AccuracyMatchGoal extends MultiMatchGoal {
 	private int taxIdCorrectCount;
 	private int genusCorrectCount;
 	private int totalCount;
 
 	@SafeVarargs
-	public AccuracyMatchGoal(GSProject project, String name, File fastq, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
+	public AccuracyMatchGoal(GSProject project, String name, File csvFile, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
 			ObjectGoal<KMerStoreWrapper, GSProject> storeGoal, Goal<GSProject>... deps) {
-		super(project, name, fastq, taxTreeGoal, storeGoal, false, deps);
+		super(project, name, csvFile, taxTreeGoal, storeGoal, false, deps);
 	}
 
 	@Override
