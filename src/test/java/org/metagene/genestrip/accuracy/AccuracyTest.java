@@ -15,6 +15,7 @@ import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree;
 
 public class AccuracyTest {
+	@SuppressWarnings("unchecked")
 	@Test
 	public void testAccuracy() throws IOException {
 		File testBaseDir = getTargetDir();
@@ -23,15 +24,18 @@ public class AccuracyTest {
 
 		GSMaker maker = new GSMaker(project);
 
-		new AccuracyProjectGoal(project, "accproject").make();
+		new TaxIdsTxtGoal(project, "taxidtxt", (ObjectGoal<TaxTree, GSProject>) maker.getGoal("taxtree"),
+				new AccuracyProjectGoal(project, "accproject")).make();
 
 		AccuracyDataDownloadGoal accDownloadGoal = new AccuracyDataDownloadGoal(project, "accdatadownload",
 				maker.getGoal("setup"));
-		
-		FileDownloadGoal<GSProject> acc2taxidDownloadGoal = new FileDownloadGoal<GSProject>(project, "assdownload", maker.getGoal("commonsetup")) {
+
+		FileDownloadGoal<GSProject> acc2taxidDownloadGoal = new FileDownloadGoal<GSProject>(project, "assdownload",
+				maker.getGoal("commonsetup")) {
 			@Override
 			public List<File> getFiles() {
-				return Arrays.asList(new File(project.getConfig().getCommonDir(), FastaTransformGoal.ACCESSION_MAP_FILE),
+				return Arrays.asList(
+						new File(project.getConfig().getCommonDir(), FastaTransformGoal.ACCESSION_MAP_FILE),
 						new File(project.getConfig().getCommonDir(), FastaTransformGoal.OLD_ACCESSION_MAP_FILE));
 			}
 
@@ -39,23 +43,22 @@ public class AccuracyTest {
 			protected boolean isUseHttp() {
 				return true;
 			}
-			
+
 			protected String getHttpBaseURL() {
 				return "https://ftp.ncbi.nih.gov";
 			}
-			
-			
+
 			@Override
 			protected String getFTPDir(File file) {
 				return "/pub/taxonomy/accession2taxid";
 			}
 		};
-		
-		FastaTransformGoal fastaTransformGoal = new FastaTransformGoal(project, "fastatransform", accDownloadGoal, acc2taxidDownloadGoal);
-		
-		//fastaTransformGoal.make();
 
-		@SuppressWarnings("unchecked")
+		FastaTransformGoal fastaTransformGoal = new FastaTransformGoal(project, "fastatransform", accDownloadGoal,
+				acc2taxidDownloadGoal);
+
+		// fastaTransformGoal.make();
+
 		AccuracyMatchGoal matchGoal = new AccuracyMatchGoal(project, "accmatch",
 				new File(project.getProjectDir(), "multimatch.txt"),
 				(ObjectGoal<TaxTree, GSProject>) maker.getGoal("taxtree"),

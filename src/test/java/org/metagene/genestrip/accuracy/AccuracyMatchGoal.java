@@ -12,7 +12,6 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.match.FastqKMerMatcher;
 import org.metagene.genestrip.match.MatchingResult;
-import org.metagene.genestrip.match.FastqKMerMatcher.MyReadEntry;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.Rank;
@@ -48,6 +47,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 				config.getThreads(), config.getMaxKMerResCounts(), taxTree, config.getMaxReadTaxErrorCount()) {
 			@Override
 			protected void afterMatch(MyReadEntry entry, boolean found) throws IOException {
+//				ByteArrayUtil.print(entry.readDescriptor, System.out);
 				super.afterMatch(entry, found);
 				totalCount++;
 				int colonIndex = ByteArrayUtil.indexOf(entry.readDescriptor, 1, entry.readDescriptorSize, ':');
@@ -57,9 +57,9 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 					genusCorrectCount++;
 				}
 				else if (entry.readTaxId != null && entry.readTaxId != INVALID_TAX) {
-					TaxIdNode correctGenusTaxNode = getGenusTaxNode(correctTaxId);
+					TaxIdNode correctGenusTaxNode = getGenusTaxNode(taxTree, correctTaxId);
 					if (correctGenusTaxNode != null) {
-						if (correctGenusTaxNode == getGenusTaxNode(entry.readTaxId)) {
+						if (correctGenusTaxNode == getGenusTaxNode(taxTree, entry.readTaxId)) {
 							genusCorrectCount++;
 						}
 						else {
@@ -71,21 +71,21 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 					noTaxIdCount++;
 				}
 			}
-			
-			protected TaxIdNode getGenusTaxNode(String taxid) {
-				TaxIdNode node = taxTree.getNodeByTaxId(taxid);
-				while (node != null) {
-					if (node.getRank() == Rank.GENUS) {
-						return node;
-					}
-					if (!node.getRank().isBelow(Rank.GENUS)) {
-						return null;
-					}
-					node = node.getParent();
-				}
+		};
+	}
+	
+	public static TaxIdNode getGenusTaxNode(TaxTree taxTree, String taxid) {
+		TaxIdNode node = taxTree.getNodeByTaxId(taxid);
+		while (node != null) {
+			if (node.getRank() == Rank.GENUS) {
+				return node;
+			}
+			if (!node.getRank().isBelow(Rank.GENUS)) {
 				return null;
 			}
-		};
+			node = node.getParent();
+		}
+		return null;
 	}
 	
 	@Override
