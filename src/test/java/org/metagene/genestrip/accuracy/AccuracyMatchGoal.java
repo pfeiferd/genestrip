@@ -12,6 +12,7 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.match.FastqKMerMatcher;
 import org.metagene.genestrip.match.MatchingResult;
+import org.metagene.genestrip.match.FastqKMerMatcher.MyReadEntry;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.Rank;
@@ -46,11 +47,11 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 		return new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
 				config.getThreads(), config.getMaxKMerResCounts(), taxTree, config.getMaxReadTaxErrorCount()) {
 			@Override
-			protected boolean matchRead(MyReadEntry entry, boolean reverse) {
+			protected void afterMatch(MyReadEntry entry, boolean found) throws IOException {
+				super.afterMatch(entry, found);
 				totalCount++;
-				boolean res = super.matchRead(entry, reverse);
 				int colonIndex = ByteArrayUtil.indexOf(entry.readDescriptor, 1, entry.readDescriptorSize, ':');
-				String correctTaxId = new String(entry.readDescriptor, 1, colonIndex);
+				String correctTaxId = new String(entry.readDescriptor, 1, colonIndex - 1);
 				if (correctTaxId.equals(entry.readTaxId)) {
 					taxIdCorrectCount++;
 					genusCorrectCount++;
@@ -69,7 +70,6 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 				else {
 					noTaxIdCount++;
 				}
-				return res;
 			}
 			
 			protected TaxIdNode getGenusTaxNode(String taxid) {
@@ -97,9 +97,9 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 		out.print(taxIdCorrectCount);
 		out.print(';');
 		out.print(genusCorrectCount);
-		out.println(';');
+		out.print(';');
 		out.print(genusIncorrectCount);
-		out.println(';');
+		out.print(';');
 		out.print(noTaxIdCount);
 		out.println(';');
 		out.close();
