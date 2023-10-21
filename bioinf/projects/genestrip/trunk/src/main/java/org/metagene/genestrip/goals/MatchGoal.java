@@ -81,7 +81,7 @@ public class MatchGoal extends FileListGoal<GSProject> {
 							: null);
 			matcher.dump();
 
-			writeOutputFile(krakenOutStyleFile, res, wrapper);
+			writeOutputFile(file, res, wrapper);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {

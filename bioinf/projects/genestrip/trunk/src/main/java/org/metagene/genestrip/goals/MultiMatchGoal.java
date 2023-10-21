@@ -138,7 +138,7 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 				uniqueCounter.clear();
 			}
 			MatchingResult res = matcher.runMatcher(fastqs, filteredFile, krakenOutStyleFile, uniqueCounter);
-			writeOutputFile(krakenOutStyleFile, res, wrapper);
+			writeOutputFile(file, res, wrapper);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
