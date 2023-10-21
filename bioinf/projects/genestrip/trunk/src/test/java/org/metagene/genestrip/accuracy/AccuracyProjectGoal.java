@@ -13,7 +13,8 @@ public class AccuracyProjectGoal extends FileListGoal<GSProject> {
 	@SafeVarargs
 	public AccuracyProjectGoal(GSProject project, String name, Goal<GSProject>... dependencies) {
 		super(project, name, (List<File>) null, dependencies);
-		addFile(new File(project.getProjectDir(), "taxids.txt"));
+// We generate the taxids.txt file instead because we need the taxid on the genus level.		
+//		addFile(new File(project.getProjectDir(), "taxids.txt"));
 		addFile(new File(project.getProjectDir(), "categories.txt"));
 		addFile(new File(project.getProjectDir(), "multimatch.txt"));
 	}

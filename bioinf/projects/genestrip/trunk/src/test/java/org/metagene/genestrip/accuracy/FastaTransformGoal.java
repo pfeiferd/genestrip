@@ -29,7 +29,7 @@ public class FastaTransformGoal extends FileListGoal<GSProject> {
 			//
 			"B_cereus_MiSeq", "M_abscessus_MiSeq", "R_sphaeroides_MiSeq", "V_cholerae_MiSeq", "C_freundii_MiSeq",
 			"E_cloacae_MiSeq", "K_pneumoniae_MiSeq", "P_vulgaris_MiSeq", "S_aureus_MiSeq", "S_enterica_MiSeq" };
-	private static final String[] TAXIDS = { "1073377", "1053231", "1073387", "1001740", "1149860", "272943", "1213734",
+	public static final String[] TAXIDS = { "1073377", "1053231", "1073387", "1001740", "1149860", "272943", "1213734",
 			"170187", "991923", "1185664",
 			//
 			"1053231", "1001740", "272943", "991923", "1173724", "550", "1173763", "1173773", "1210042", "1173880" };
