@@ -53,7 +53,7 @@ public class AccuracyTest {
 		
 		FastaTransformGoal fastaTransformGoal = new FastaTransformGoal(project, "fastatransform", accDownloadGoal, acc2taxidDownloadGoal);
 		
-		fastaTransformGoal.make();
+		//fastaTransformGoal.make();
 
 		@SuppressWarnings("unchecked")
 		AccuracyMatchGoal matchGoal = new AccuracyMatchGoal(project, "accmatch",
@@ -61,7 +61,7 @@ public class AccuracyTest {
 				(ObjectGoal<TaxTree, GSProject>) maker.getGoal("taxtree"),
 				(ObjectGoal<KMerStoreWrapper, GSProject>) maker.getGoal("updateddb"), fastaTransformGoal);
 
-		//matchGoal.make();
+		matchGoal.make();
 	}
 
 	protected File getTargetDir() {
