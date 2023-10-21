@@ -1,1 +1,2 @@
 HiSeq HiSeq_accuracy.fastq
+MiSeq MiSeq_accuracy.fastq
