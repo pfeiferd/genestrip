@@ -10,6 +10,7 @@ import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree;
+import org.metagene.genestrip.tax.TaxTree.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 public class TaxIdsTxtGoal extends FileListGoal<GSProject> {
@@ -30,7 +31,7 @@ public class TaxIdsTxtGoal extends FileListGoal<GSProject> {
 		for (String taxid : FastaTransformGoal.TAXIDS) {
 			TaxIdNode node = taxTree.getNodeByTaxId(taxid);
 			if (node != null) {
-				TaxIdNode genusNode = AccuracyMatchGoal.getGenusTaxNode(taxTree, taxid);
+				TaxIdNode genusNode = AccuracyMatchGoal.getRankTaxNode(taxTree, taxid, Rank.SPECIES);
 				if (genusNode != null) {
 					out.println(genusNode.getTaxId());
 				}
