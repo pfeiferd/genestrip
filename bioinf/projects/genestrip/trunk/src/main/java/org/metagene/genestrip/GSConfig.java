@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.util.Properties;
 
 import org.apache.commons.logging.LogFactory;
+import org.metagene.genestrip.tax.TaxTree.Rank;
 
 public class GSConfig {
 	public static final String CONFIG_PROPERTIES = "Config.properties";
@@ -41,6 +42,10 @@ public class GSConfig {
 
 	public static final String TAX_HTTP_BASE_URL = NCBI_HTTP_BASE_URL;
 	public static final String TAX_SEQ_FTP_URL = NCBI_FTP_URL;
+	
+	public static final String COMPLETE_GENOMES_ONLY = "completeGenomesOnly";
+	public static final String IGNORE_MISSING_FASTAS = "ignoreMissingFastas";
+	public static final String RANK_COMPLETION_DEPTH = "rankCompletionDepth";
 
 	private final File baseDir;
 	private final Properties properties;
@@ -52,7 +57,7 @@ public class GSConfig {
 		try {
 			properties.load(new FileInputStream(configFile));
 		} catch (IOException e) {
-			LogFactory.getLog("conifg").warn("Could not read configuation file '" + configFile + "'. Using defaults.");
+			LogFactory.getLog("config").warn("Could not read general configuation file '" + configFile + "'. Using defaults.");
 		}
 	}
 
@@ -123,11 +128,11 @@ public class GSConfig {
 	}
 
 	public boolean isIgnoreMissingFastas() {
-		return Boolean.valueOf(properties.getProperty("ignoreMissingFastas", "false"));
+		return Boolean.valueOf(properties.getProperty(IGNORE_MISSING_FASTAS, "false"));
 	}
 
 	public boolean isUseCompleteGenomesOnly() {
-		return Boolean.valueOf(properties.getProperty("completeGenomesOnly", "false"));
+		return Boolean.valueOf(properties.getProperty(COMPLETE_GENOMES_ONLY, "false"));
 	}
 
 	public boolean isMatchWithKMerCounts() {
@@ -181,4 +186,10 @@ public class GSConfig {
 	public String getTaxFTPBaseURL() {
 		return properties.getProperty("taxFTPBaseURL", TAX_SEQ_FTP_URL);
 	}
+	
+	public Rank getRankCompletionDepth() {
+		String s = properties.getProperty("rankCompletionDepth", null);
+		return s == null ? null : Rank.byName(s);
+	}
+
 }
