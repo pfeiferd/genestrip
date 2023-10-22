@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.metagene.genestrip.io.StreamProvider;
+import org.metagene.genestrip.tax.TaxTree.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 public class TaxIdCollector {
@@ -81,11 +82,11 @@ public class TaxIdCollector {
 		return res;
 	}
 
-	public Set<TaxIdNode> withDescendants(Set<TaxIdNode> taxIds) {
+	public Set<TaxIdNode> withDescendants(Set<TaxIdNode> taxIds, Rank depth) {
 		Set<TaxIdNode> res = new HashSet<TaxTree.TaxIdNode>();
 
 		for (TaxIdNode node : taxIds) {
-			completeFilterlist(res, node);
+			completeFilterlist(res, node, depth);
 		}
 		return res;
 	}
@@ -140,13 +141,15 @@ public class TaxIdCollector {
 		return res;		
 	}
 
-	private void completeFilterlist(Set<TaxIdNode> filter, TaxIdNode node) {
+	private void completeFilterlist(Set<TaxIdNode> filter, TaxIdNode node, Rank depth) {
 		if (node != null) {
 			filter.add(node);
 			List<TaxIdNode> subNodes = node.getSubNodes();
 			if (subNodes != null) {
 				for (TaxIdNode subNode : subNodes) {
-					completeFilterlist(filter, subNode);
+					if (depth == null || !subNode.getRank().isBelow(depth)) {
+						completeFilterlist(filter, subNode, depth);
+					}
 				}
 			}
 		}
