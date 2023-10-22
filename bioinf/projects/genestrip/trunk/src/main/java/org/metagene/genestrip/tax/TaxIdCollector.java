@@ -128,17 +128,17 @@ public class TaxIdCollector {
 		}
 		return res;
 	}
-	
+
 	public static List<TaxIdNode> sortNodes(Set<TaxIdNode> nodes) {
 		return TaxTree.sortNodes(new ArrayList<TaxIdNode>(nodes));
 	}
-	
-	public static List<TaxIdNode> nodesAsShallowCopies(List<TaxIdNode> list) {		
-		List<TaxIdNode> res = new ArrayList<TaxIdNode>();		
+
+	public static List<TaxIdNode> nodesAsShallowCopies(List<TaxIdNode> list) {
+		List<TaxIdNode> res = new ArrayList<TaxIdNode>();
 		for (TaxIdNode node : list) {
 			res.add(node.shallowCopy());
 		}
-		return res;		
+		return res;
 	}
 
 	private void completeFilterlist(Set<TaxIdNode> filter, TaxIdNode node, Rank depth) {
@@ -147,7 +147,8 @@ public class TaxIdCollector {
 			List<TaxIdNode> subNodes = node.getSubNodes();
 			if (subNodes != null) {
 				for (TaxIdNode subNode : subNodes) {
-					if (depth == null || !subNode.getRank().isBelow(depth)) {
+					if (depth == null
+							|| (subNode != null && subNode.getRank() != null && !subNode.getRank().isBelow(depth))) {
 						completeFilterlist(filter, subNode, depth);
 					}
 				}
