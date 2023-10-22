@@ -25,10 +25,17 @@
 package org.metagene.genestrip;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Properties;
 
+import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.make.FileDownloadGoal.DownloadProject;
+import org.metagene.genestrip.tax.TaxTree.Rank;
 
 public class GSProject implements DownloadProject {
+	public static final String PROJECT_PROPERTIES = "Config.properties";
+	
 	public enum FileType {
 		FASTQ_RES(".fastq"), FASTQ(".fastq"), FASTA(".fasta"), CSV(".csv"), KRAKEN_OUT(".out"), KRAKEN_OUT_RES(".out"), SER(".ser");
 
@@ -50,6 +57,7 @@ public class GSProject implements DownloadProject {
 	private final File fastqOrCSVFile;
 	private final File csvDir;
 	private final File fastqResDir;
+	private final Properties properties;
 
 	public GSProject(GSConfig config, String name, int kMerSize, String krakenDB,
 			File fastqOrCSVFile, File csvDir, File fastqResDir) {
@@ -60,6 +68,15 @@ public class GSProject implements DownloadProject {
 		this.fastqOrCSVFile = fastqOrCSVFile;
 		this.fastqResDir = fastqResDir;
 		this.csvDir = csvDir != null ? csvDir : new File(getProjectDir(), "csv");
+
+		this.properties = new Properties();
+		File configFile = new File(getProjectDir(), PROJECT_PROPERTIES);
+		try {
+			properties.load(new FileInputStream(configFile));
+		} catch (IOException e) {
+			LogFactory.getLog("project").warn("Could not read project configuation file '" + configFile + "'. Using defaults.");
+		}
+
 	}
 
 	public File getFastqOrCSVFile() {
@@ -202,11 +219,29 @@ public class GSProject implements DownloadProject {
 	}
 	
 	public boolean isUseCompleteGenomesOnly() {
+		String v = properties.getProperty(GSConfig.COMPLETE_GENOMES_ONLY);
+		if (v != null) {
+			return Boolean.valueOf(v);
+
+		}		
 		return getConfig().isUseCompleteGenomesOnly();
 	}
 	
 	@Override
 	public boolean isIgnoreMissingFiles() {
+		String v = properties.getProperty(GSConfig.IGNORE_MISSING_FASTAS);
+		if (v != null) {
+			return Boolean.valueOf(v);
+
+		}		
 		return getConfig().isIgnoreMissingFastas();
+	}
+	
+	public Rank getRankCompletionDepth() {
+		String v = properties.getProperty(GSConfig.RANK_COMPLETION_DEPTH);
+		if (v != null) {
+			return Rank.byName(v);
+		}		
+		return getConfig().getRankCompletionDepth();
 	}
 }
