@@ -121,6 +121,7 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 			if (includeRegion) {
 				counter -= k - 1;
 			}
+			super.done();
 		}
 	}
 }
