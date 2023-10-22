@@ -248,6 +248,20 @@ public class TaxTree {
 		return taxIdNodeTrie.get(seq, start, end);
 	}
 
+	public TaxIdNode getRankedNode(String taxid, Rank rank) {
+		TaxIdNode node = getNodeByTaxId(taxid);
+		while (node != null) {
+			if (node.getRank() == rank) {
+				return node;
+			}
+			if (!node.getRank().isBelow(rank)) {
+				return null;
+			}
+			node = node.getParent();
+		}
+		return null;
+	}
+
 	public static class TaxIdNode implements Comparable<TaxIdNode>, Serializable {
 		private static final long serialVersionUID = 1L;
 
