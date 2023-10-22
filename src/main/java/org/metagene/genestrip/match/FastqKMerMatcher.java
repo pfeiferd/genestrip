@@ -197,16 +197,20 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		if (!found) {
 			found = matchRead(myEntry, true);
 		}
+		afterMatch(myEntry, found);
+	}
+	
+	protected void afterMatch(MyReadEntry myEntry, boolean found) throws IOException {
 		if (found) {
 			if (indexed != null) {
-				rewriteInput(entry, indexed);
+				rewriteInput(myEntry, indexed);
 			}
 			if (out != null) {
 				synchronized (out) {
 					myEntry.flush(out);
 				}
 			}
-		}
+		}		
 	}
 
 	@Override
