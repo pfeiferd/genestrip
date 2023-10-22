@@ -78,7 +78,7 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 				}
 			}
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Store size determined: " + fastaReader.getCounter());
+				getLogger().info("Store size determined in kmers: " + fastaReader.getCounter());
 			}
 
 			set(fastaReader.getCounter());
