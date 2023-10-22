@@ -188,7 +188,7 @@ public class GSConfig {
 	}
 	
 	public Rank getRankCompletionDepth() {
-		String s = properties.getProperty("rankCompletionDepth", null);
+		String s = properties.getProperty(RANK_COMPLETION_DEPTH, null);
 		return s == null ? null : Rank.byName(s);
 	}
 
