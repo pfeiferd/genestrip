@@ -31,7 +31,7 @@ public class TaxIdsTxtGoal extends FileListGoal<GSProject> {
 		for (String taxid : FastaTransformGoal.TAXIDS) {
 			TaxIdNode node = taxTree.getNodeByTaxId(taxid);
 			if (node != null) {
-				TaxIdNode genusNode = AccuracyMatchGoal.getRankTaxNode(taxTree, taxid, Rank.SPECIES);
+				TaxIdNode genusNode = taxTree.getRankedNode(taxid, Rank.SPECIES);
 				if (genusNode != null) {
 					out.println(genusNode.getTaxId());
 				}
