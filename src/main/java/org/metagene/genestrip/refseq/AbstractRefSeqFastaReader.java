@@ -39,12 +39,15 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected TaxIdNode node;
 
 	protected boolean ignoreMap;
+	protected long includedCounter;
 
 	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap) {
 		super(bufferSize);
 		this.taxNodes = taxNodes;
 		this.accessionMap = accessionMap;
 		includeRegion = false;
+		ignoreMap = false;
+		includedCounter = 0;
 	}
 
 	public void ignoreAccessionMap(TaxIdNode node) {
@@ -58,12 +61,29 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 			updateNodeFromInfoLine();
 		}
 		includeRegion = taxNodes.isEmpty() || (node != null && taxNodes.contains(node));
+		if (includeRegion) {
+			includedCounter++;
+		}
 	}
 
 	protected void updateNodeFromInfoLine() {
 		int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
 		if (pos >= 0) {
 			node = accessionMap.get(target, 1, pos);
+		}
+		else {
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("Inconsistent info line: " + new String(target, 0, size - 1));
+			}
+			node = null;
+		}
+	}
+	
+	@Override
+	protected void done() throws IOException {
+		super.done();
+		if (getLogger().isInfoEnabled()) {
+			getLogger().info("Number of included regions: " + includedCounter);
 		}
 	}
 }
