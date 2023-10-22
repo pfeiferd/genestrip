@@ -57,9 +57,9 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 					genusCorrectCount++;
 				}
 				else if (entry.readTaxId != null && entry.readTaxId != INVALID_TAX) {
-					TaxIdNode correctGenusTaxNode = getGenusTaxNode(taxTree, correctTaxId);
+					TaxIdNode correctGenusTaxNode = getRankTaxNode(taxTree, correctTaxId, Rank.GENUS);
 					if (correctGenusTaxNode != null) {
-						if (correctGenusTaxNode == getGenusTaxNode(taxTree, entry.readTaxId)) {
+						if (correctGenusTaxNode == getRankTaxNode(taxTree, entry.readTaxId, Rank.GENUS)) {
 							genusCorrectCount++;
 						}
 						else {
@@ -74,13 +74,13 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 		};
 	}
 	
-	public static TaxIdNode getGenusTaxNode(TaxTree taxTree, String taxid) {
+	public static TaxIdNode getRankTaxNode(TaxTree taxTree, String taxid, Rank rank) {
 		TaxIdNode node = taxTree.getNodeByTaxId(taxid);
 		while (node != null) {
-			if (node.getRank() == Rank.GENUS) {
+			if (node.getRank() == rank) {
 				return node;
 			}
-			if (!node.getRank().isBelow(Rank.GENUS)) {
+			if (!node.getRank().isBelow(rank)) {
 				return null;
 			}
 			node = node.getParent();
