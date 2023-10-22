@@ -57,9 +57,9 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 					genusCorrectCount++;
 				}
 				else if (entry.readTaxId != null && entry.readTaxId != INVALID_TAX) {
-					TaxIdNode correctGenusTaxNode = getRankTaxNode(taxTree, correctTaxId, Rank.GENUS);
+					TaxIdNode correctGenusTaxNode = taxTree.getRankedNode(correctTaxId, Rank.GENUS);
 					if (correctGenusTaxNode != null) {
-						if (correctGenusTaxNode == getRankTaxNode(taxTree, entry.readTaxId, Rank.GENUS)) {
+						if (correctGenusTaxNode == taxTree.getRankedNode(entry.readTaxId, Rank.GENUS)) {
 							genusCorrectCount++;
 						}
 						else {
@@ -74,19 +74,6 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 		};
 	}
 	
-	public static TaxIdNode getRankTaxNode(TaxTree taxTree, String taxid, Rank rank) {
-		TaxIdNode node = taxTree.getNodeByTaxId(taxid);
-		while (node != null) {
-			if (node.getRank() == rank) {
-				return node;
-			}
-			if (!node.getRank().isBelow(rank)) {
-				return null;
-			}
-			node = node.getParent();
-		}
-		return null;
-	}
 	
 	@Override
 	protected void writeOutputFile(File file, MatchingResult result, KMerStoreWrapper wrapper) throws IOException {
