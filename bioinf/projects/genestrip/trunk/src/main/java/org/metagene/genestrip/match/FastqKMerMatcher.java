@@ -103,7 +103,6 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 
 	public MatchingResult runMatcher(List<File> fastqs, File filteredFile, File krakenOutStyleFile,
 			KMerUniqueCounter uniqueCounter) throws IOException {
-
 		if (filteredFile != null) {
 			indexed = StreamProvider.getOutputStreamForFile(filteredFile);
 		} else {
