@@ -359,6 +359,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		return found;
 	}
 
+	// This very simple approach follows just one possibility for a potentially correct taxid. Maybe at least follow one more possibility?
 	protected void updateReadTaxid(String taxid, MyReadEntry entry) {
 		if (taxTree == null) {
 			return;
