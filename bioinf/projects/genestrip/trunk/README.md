@@ -1,4 +1,4 @@
-Genestrip - Hyper-efficient unique *k*-mer counting and sequence filtering for selected groups of species
+Genestrip - Hyper-efficient read classification, *k*-mer counting and sequence filtering for selected groups of species
 ===============================================
 
 # Introduction
@@ -49,7 +49,7 @@ The generated database comprises *k*-mers for all viruses according to the tax i
 # Generating your own database
 
 Generating your own database is straight-forward:
-1. Create a folder `<project_name>` under `./data/projects/`. This is the place for all subsequent files that specify the content of a database to be generated. It is also the core name of a related database.
+1. Create a project folder `<project_name>` under `./data/projects/`. This is the place for all subsequent files that specify the content of a database to be generated. It is also the core name of a related database.
 1. Create a text file `./data/projects/<project_name>/taxids.txt` with one tax id per line. The database will *only* contain *k*-mers from genomes that belong to tax ids referenced in the file `taxids.txt`. If `taxids.txt` contains a tax id from a non-leaf node of the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip), then all subordinate tax ids and *k*-mers from respective [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) genomes will be included in the database as well.
 1. Create a text file `./data/projects/<project_name>/categories.txt`. This file tells Genestrip, which categories of organisms should be *considered* when generating the database and when determining a least common ancestor tax id for *k*-mer in the finalized database. You also have to ensure that the categories from `categories.txt` comprise all of the tax ids from `taxids.txt`: Only genomes of comprised tax ids will be used to generate the database.
 1. The following categories are allowed, and originate from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/):
@@ -162,7 +162,7 @@ where `<tax id>` is the (unique) tax id associated with the file's genomic data.
 
 # Configuration properties
 
-An optional configuration properties file `Config.properties` may be put under `<base dir>`.
+An optional configuration properties file `config.properties` or `Config.properties` may be put under `<base dir>`.
 Entries per line should have the form
 ```
 <key>=<value>
@@ -176,8 +176,6 @@ The following entries are possible:
 | countUniqueKMers      | true       | If `true`, unique kmers will be counted. This requires less than 5% of additional main memory.        |
 | writeDumpedFastq   | false        | If `true`, then ``filter`` will also generate a fastq file `dumped_<fqfile>` with all reads not written to the corresponding filtered fastq file. |
 | writeFilteredFastq   | false        | If `true`, then the goal `match` writes a filtered fastq file in the same way that the goal `filter` does. Moreover, Genestrip will write an output file `<fqfile>.out` in the [Kraken output format](https://ccb.jhu.edu/software/kraken/MANUAL.html#output-format) under `<base dir>/projects/<project_name>/krakenout` covering all filtered reads. |
-| ignoreMissingFastas   | true        | If `true`, then a download of files from NCBI will not stop in case a file is missing on the server.        |
-| completeGenomesOnly   | false        | If `true`, then only genomic accessions with the prefixes `AC`, `NC_`, `NZ_` will be considered when generating a database. Otherwise, all genomic accessions will be considered. See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.       |
 | matchWithKMerCounts   | false        | Experimental: Counts how many times each unique *k*-mer has been detected.        |
 | maxKMerResCounts   | 200        | The number of the most frequent *k*-mers that will be reported, if `matchWithKMerCounts=true`.       |
 | kMerSize   | 31        | The number of base pairs *k* for a *k*-mers. Changes to this values do *not* affect the memory usage of database. A value > 32 will cause collisions, i.e. leads to false positives for the `match` goal. |
@@ -186,7 +184,22 @@ The following entries are possible:
 | refseqFTPBaseURL   | ftp.ncbi.nih.gov       |         |
 | taxHttpBaseURL   | https://ftp.ncbi.nlm.nih.gov        | This base URL will be extended by the path `/pub/taxonomy/` in order to download the taxonomy file `taxdmp.zip`.        |
 | taxFTPBaseURL   | ftp.ncbi.nih.gov        |         |
+| ignoreMissingFastas   | true        | If `true`, then a download of files from NCBI will not stop in case a file is missing on the [NCBI server](https://ftp.ncbi.nlm.nih.gov/).        |
+| completeGenomesOnly   | false        | If `true`, then only genomic accessions with the prefixes `AC`, `NC_`, `NZ_` will be considered when generating a database. Otherwise, all genomic accessions will be considered. See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.       |
+| rankCompletionDepth | *empty* | The rank up to which tax ids from `taxids.txt` will be completed by descendants of the taxonomy tree (the set rank included). If not set, the completion will traverse down to the lowest possible levels of the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip). Typical values could be `genus`, `species` or `strain`, but  all values used for assigning ranks in the taxonomy are possible. |
+| maxGenomesPerTaxid | *unlimited* | The maximum number of genomes per tax id from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) to be included in the database. If negative, zero or not set, there is not limit. Note, that this is an important parameter to control database size, because in some cases, there are millions of genomic entries for a tax id such as for `573` (which does not even account for entries of its descendants). 
 
+# Project properties
+
+An optional configuration properties file `project.properties` or `Project.properties` may be put under the project folder `<base dir>/projects/<project_name>`.
+
+The following entries are possible:
+* `ignoreMissingFastas`,
+* `completeGenomesOnly`,
+* `rankCompletionDepth`,
+* `maxGenomesPerTaxid`.
+
+The use of the entries is the same as in the `config.properties` file. If given, an entry in `project.properties` overrides a corresponding entry from `config.properties` under this project.
 
 # API-based usage
 
