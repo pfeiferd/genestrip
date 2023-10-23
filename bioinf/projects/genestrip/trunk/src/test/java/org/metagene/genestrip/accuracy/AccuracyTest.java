@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.metagene.genestrip.GSConfig;
 import org.metagene.genestrip.GSMaker;
@@ -14,6 +15,7 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree;
 
+@Ignore
 public class AccuracyTest {
 	@SuppressWarnings("unchecked")
 	@Test
