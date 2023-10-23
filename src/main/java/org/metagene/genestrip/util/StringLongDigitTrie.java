@@ -1,22 +1,32 @@
-package org.metagene.genestrip.kraken;
+package org.metagene.genestrip.util;
 
 import java.io.Serializable;
 
-import org.metagene.genestrip.kraken.StringLongDigitTrie.StringLong;
-import org.metagene.genestrip.util.DigitTrie;
+import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
 
 public class StringLongDigitTrie extends DigitTrie<StringLong> {
 	public String inc(byte[] seq, int start, int end) {
 		return add(seq, start, end, 1);
 	}
 
+	public String inc(String key) {
+		return add(key, 1);
+	}
+	
 	public String add(byte[] seq, int start, int end, long add) {
-		StringLong stringLong = get(seq, start, end, true);
+		StringLong stringLong = get(seq, start, end, this);
 		stringLong.longValue += add;
 
 		return stringLong.stringValue;
 	}
 
+	public String add(String key, long add) {
+		StringLong stringLong = get(key, this);
+		stringLong.longValue += add;
+
+		return stringLong.stringValue;
+	}
+	
 	@Override
 	protected StringLong createInGet(byte[] seq, int start, int end, Object createContext) {
 		StringLong stringLong = new StringLong();
@@ -33,7 +43,7 @@ public class StringLongDigitTrie extends DigitTrie<StringLong> {
 		return stringLong;
 	}
 
-	public static class StringLong implements Serializable {
+	public static class StringLong implements Serializable, Comparable<StringLong> {
 		private static final long serialVersionUID = 1L;
 		private String stringValue;
 		private long longValue;
@@ -44,6 +54,22 @@ public class StringLongDigitTrie extends DigitTrie<StringLong> {
 
 		public String getStringValue() {
 			return stringValue;
+		}
+		
+		@Override
+		public int compareTo(StringLong o) {
+			if (stringValue == null) {
+				return -1;
+			}
+			if (o.stringValue == null) {
+				return 1;
+			}
+			return stringValue.compareTo(o.stringValue);
+		}
+		
+		@Override
+		public String toString() {
+			return "SL:(" + stringValue + ", " + longValue + ")";
 		}
 	}
 }

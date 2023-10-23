@@ -26,6 +26,8 @@ package org.metagene.genestrip.goals.refseq;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -36,6 +38,8 @@ import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.StringLongDigitTrie;
+import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
 
 public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
@@ -90,17 +94,22 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 	protected static class MyFastaReader extends AbstractRefSeqFastaReader {
 		private long counter;
 		private final int k;
+		private StringLongDigitTrie regionsPerTaxid;
 
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k) {
 			super(bufferSize, taxNodes, accessionMap);
 			this.k = k;
 			counter = 0;
+			regionsPerTaxid = getLogger().isInfoEnabled() ? new StringLongDigitTrie() : null;
 		}
 
 		@Override
 		protected void infoLine() throws IOException {
 			if (includeRegion) {
 				counter -= k - 1;
+				if (regionsPerTaxid != null && node != null) {
+					regionsPerTaxid.inc(node.getTaxId());
+				}
 			}
 			super.infoLine();
 		}
@@ -122,6 +131,11 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 				counter -= k - 1;
 			}
 			super.done();
+			if (getLogger().isInfoEnabled()) {
+				List<StringLong> values = new ArrayList<StringLong>();
+				regionsPerTaxid.collect(values);
+				getLogger().info("Matching regions per taxid " + values);
+			}
 		}
 	}
 }
