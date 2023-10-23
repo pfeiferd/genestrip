@@ -78,7 +78,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 	@Override
 	protected void writeOutputFile(File file, MatchingResult result, KMerStoreWrapper wrapper) throws IOException {
 		PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-		out.println("total; taxid correct; genus correct; genus inccorrect; no taxid;");
+		out.println("total; taxid correct; genus correct; genus incorrect; no taxid;");
 		out.print(totalCount);
 		out.print(';');
 		out.print(taxIdCorrectCount);

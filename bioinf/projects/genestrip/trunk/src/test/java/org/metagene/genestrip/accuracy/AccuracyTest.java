@@ -62,7 +62,7 @@ public class AccuracyTest {
 		FastaTransformGoal fastaTransformGoal = new FastaTransformGoal(project, "fastatransform",
 				accessionNumber2TaxidGoal, accDownloadGoal);
 
-		// fastaTransformGoal.make();
+		//fastaTransformGoal.make();
 
 		AccuracyMatchGoal matchGoal = new AccuracyMatchGoal(project, "accmatch",
 				new File(project.getProjectDir(), "multimatch.txt"),
