@@ -199,7 +199,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		}
 		afterMatch(myEntry, found);
 	}
-	
+
 	protected void afterMatch(MyReadEntry myEntry, boolean found) throws IOException {
 		if (found) {
 			if (indexed != null) {
@@ -210,7 +210,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 					myEntry.flush(out);
 				}
 			}
-		}		
+		}
 	}
 
 	@Override
@@ -279,9 +279,14 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 			long kmer = reverse ? CGAT.kMerToLongReverse(entry.read, i, k, null)
 					: CGAT.kMerToLongStraight(entry.read, i, k, null);
 
-			taxid = kmerStore.getLong(kmer, entry.indexPos);
+			taxid = kmer == -1 ? null : kmerStore.getLong(kmer, entry.indexPos);
+			if (taxid == null) {
+				entry.readTaxErrorCount++;
+			}
 			if (taxid != lastTaxid) {
-				updateReadTaxid(taxid, entry);
+				if (taxid != null) {
+					updateReadTaxid(taxid, entry);
+				}
 
 				if (contigLen > 0) {
 					if (out != null) {
@@ -359,10 +364,6 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 			return;
 		}
 		if (entry.readTaxId == INVALID_TAX) {
-			return;
-		}
-		if (taxid == null) {
-			entry.readTaxErrorCount++;
 			return;
 		}
 		if (taxid == entry.readTaxId) {
