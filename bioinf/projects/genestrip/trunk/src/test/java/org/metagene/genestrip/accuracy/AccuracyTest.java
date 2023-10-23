@@ -23,6 +23,8 @@ public class AccuracyTest {
 		GSProject project = new GSProject(config, "accuracy", 31, null, null, null, null);
 
 		GSMaker maker = new GSMaker(project);
+		
+		maker.getGoal("taxids").make();
 
 		new TaxIdsTxtGoal(project, "taxidtxt", (ObjectGoal<TaxTree, GSProject>) maker.getGoal("taxtree"),
 				new AccuracyProjectGoal(project, "accproject")).make();

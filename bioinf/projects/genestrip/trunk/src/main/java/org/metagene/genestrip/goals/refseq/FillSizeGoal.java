@@ -38,7 +38,6 @@ import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.util.StringLongDigitTrie;
 import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
 
 public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
@@ -65,7 +64,8 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 	public void makeThis() {
 		try {
 			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getMaxReadSizeBytes(),
-					taxNodesGoal.get(), accessionMapGoal.get(), getProject().getConfig().getKMerSize());
+					taxNodesGoal.get(), accessionMapGoal.get(), getProject().getConfig().getKMerSize(),
+					getProject().getMaxGenomesPerTaxid());
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
@@ -94,22 +94,18 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 	protected static class MyFastaReader extends AbstractRefSeqFastaReader {
 		private long counter;
 		private final int k;
-		private StringLongDigitTrie regionsPerTaxid;
 
-		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k) {
-			super(bufferSize, taxNodes, accessionMap);
+		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
+				int maxGenomesPerTaxId) {
+			super(bufferSize, taxNodes, accessionMap, maxGenomesPerTaxId);
 			this.k = k;
 			counter = 0;
-			regionsPerTaxid = getLogger().isInfoEnabled() ? new StringLongDigitTrie() : null;
 		}
 
 		@Override
 		protected void infoLine() throws IOException {
 			if (includeRegion) {
 				counter -= k - 1;
-				if (regionsPerTaxid != null && node != null) {
-					regionsPerTaxid.inc(node.getTaxId());
-				}
 			}
 			super.infoLine();
 		}
@@ -134,7 +130,7 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 			if (getLogger().isInfoEnabled()) {
 				List<StringLong> values = new ArrayList<StringLong>();
 				regionsPerTaxid.collect(values);
-				getLogger().info("Matching regions per taxid " + values);
+				getLogger().info("Matching regions per taxid: " + values);
 			}
 		}
 	}

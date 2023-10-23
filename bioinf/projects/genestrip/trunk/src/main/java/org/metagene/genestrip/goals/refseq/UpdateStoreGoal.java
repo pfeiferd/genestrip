@@ -64,8 +64,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 
 	@SafeVarargs
 	public UpdateStoreGoal(GSProject project, String name, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
-			ObjectGoal<TaxTree, GSProject> taxTreeGoal, 
-			RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+			ObjectGoal<TaxTree, GSProject> taxTreeGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
 			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionTrieGoal,
 			ObjectGoal<KMerStoreWrapper, GSProject> filledStoreGoal, Goal<GSProject>... deps) {
@@ -99,7 +98,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 			for (int i = 0; i < consumers.length; i++) {
 				consumers[i] = createAndStartThread(createFastaReaderRunnable(i, store, blockingQueue), i);
 			}
-			
+
 			doneCounter = 0;
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
@@ -179,7 +178,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 
 	protected AbstractRefSeqFastaReader createFastaReader(KMerSortedArray<String> store) {
 		return new MyFastaReader(getProject().getConfig().getMaxReadSizeBytes(), taxTreeGoal.get(),
-				accessionTrieGoal.get(), store);
+				accessionTrieGoal.get(), store, getProject().getMaxGenomesPerTaxid());
 	}
 
 	public void dump() {
@@ -193,9 +192,9 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 		private final KMerSortedArray<String> store;
 		private final UpdateValueProvider<String> provider;
 
-		public MyFastaReader(int bufferSize, TaxTree taxTree, AccessionMap accessionMap,
-				KMerSortedArray<String> store) {
-			super(bufferSize, null, accessionMap, store.getK());
+		public MyFastaReader(int bufferSize, TaxTree taxTree, AccessionMap accessionMap, KMerSortedArray<String> store,
+				int maxGenomesPerTaxId) {
+			super(bufferSize, null, accessionMap, store.getK(), maxGenomesPerTaxId);
 			this.store = store;
 			provider = new UpdateValueProvider<String>() {
 				// Caches for last results of getLeastCommonAncestor()

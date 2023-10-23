@@ -244,4 +244,13 @@ public class GSProject implements DownloadProject {
 		}		
 		return getConfig().getRankCompletionDepth();
 	}
+	
+	public int getMaxGenomesPerTaxid() {
+		String v = properties.getProperty(GSConfig.MAX_GENOMES_PER_TAXID);
+		if (v != null) {
+			int i = Integer.valueOf(v);
+			return i <= 0 ? Integer.MAX_VALUE : i;
+		}		
+		return getConfig().getMaxGenomesPerTaxid();
+	}
 }

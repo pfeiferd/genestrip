@@ -69,7 +69,7 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 			filter.ensureExpectedSize(sizeGoal.get(), false);
 
 			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getMaxReadSizeBytes(),
-					taxNodesGoal.get(), accessionMapGoal.get(), filter);
+					taxNodesGoal.get(), accessionMapGoal.get(), filter, getProject().getMaxGenomesPerTaxid());
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
@@ -99,8 +99,8 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 		private final MurmurCGATBloomFilter filter;
 
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
-				MurmurCGATBloomFilter filter) {
-			super(bufferSize, taxNodes, accessionMap, filter.getK());
+				MurmurCGATBloomFilter filter, int maxGenomesPerTaxId) {
+			super(bufferSize, taxNodes, accessionMap, filter.getK(), maxGenomesPerTaxId);
 			this.filter = filter;
 		}
 
