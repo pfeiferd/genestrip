@@ -42,13 +42,30 @@ import org.metagene.genestrip.util.DigitTrie;
 public class TaxTree {
 	private static int MAX_LINE_SIZE = 4096;
 
+	public static final Comparator<TaxIdNode> NODE_COMPARATOR = new Comparator<TaxIdNode>() {
+		@Override
+		public int compare(TaxIdNode a, TaxIdNode b) {
+			if (a == null && b == null) {
+				return 0;
+			}
+			if (a == null) {
+				return -1;
+			}
+			if (b == null) {
+				return 1;
+			}
+			return a.compareTo(b);
+		}
+	};
+
 	public enum Rank {
 		SUPERKINGDOM("superkingdom"), KINGDOM("kingdom"), PHYLUM("phylum"), SUBPHYLUM("subphylum"),
 		SUPERCLASS("superclass"), CLASS("class"), SUBCLASS("subclass"), SUPERORDER("superorder"), ORDER("order"),
 		SUBORDER("suborder"), SUPERFAMILY("superfamily"), FAMILY("family"), SUBFAMILY("subfamily"), CLADE("clade"),
 		GENUS("genus"), SUBGENUS("subgenus"), SPECIES_GROUP("species group"), SPECIES("species"), VARIETAS("varietas"),
-		SUBSPECIES("subspecies"), STRAIN("strain"), SEROTYPE("serotype"), GENOTYPE("genotype"), FORMA("forma"),
-		FORMA_SPECIALIS("forma specialis"), ISOLATE("isolate"), NO_RANK("no rank");
+		SUBSPECIES("subspecies"), SEROGROUP("serogroup"), BIOTYPE("biotype"), STRAIN("strain"), SEROTYPE("serotype"),
+		GENOTYPE("genotype"), FORMA("forma"), FORMA_SPECIALIS("forma specialis"), ISOLATE("isolate"),
+		NO_RANK("no rank");
 
 		private String name;
 
@@ -80,6 +97,25 @@ public class TaxTree {
 
 	public static final String NODES_DMP = "nodes.dmp";
 	public static final String NAMES_DMP = "names.dmp";
+
+	private final Comparator<String> taxIdComparator = new Comparator<String>() {
+		@Override
+		public int compare(String o1, String o2) {
+			TaxIdNode a = getNodeByTaxId(o1);
+			TaxIdNode b = getNodeByTaxId(o2);
+
+			if (a == null && b == null) {
+				return o1.compareTo(o2);
+			}
+			if (a == null) {
+				return -1;
+			}
+			if (b == null) {
+				return 1;
+			}
+			return a.compareTo(b);
+		}
+	};
 
 	private final TaxIdNode root;
 	private final TaxIdNodeTrie taxIdNodeTrie;
@@ -196,43 +232,12 @@ public class TaxTree {
 	}
 
 	public List<String> sortTaxidsViaTree(List<String> taxids) {
-		Collections.sort(taxids, new Comparator<String>() {
-			@Override
-			public int compare(String o1, String o2) {
-				TaxIdNode a = getNodeByTaxId(o1);
-				TaxIdNode b = getNodeByTaxId(o2);
-
-				if (a == null && b == null) {
-					return o1.compareTo(o2);
-				}
-				if (a == null) {
-					return -1;
-				}
-				if (b == null) {
-					return 1;
-				}
-				return a.compareTo(b);
-			}
-		});
+		Collections.sort(taxids, taxIdComparator);
 		return taxids;
 	}
 
 	public static List<TaxIdNode> sortNodes(List<TaxIdNode> taxids) {
-		Collections.sort(taxids, new Comparator<TaxIdNode>() {
-			@Override
-			public int compare(TaxIdNode a, TaxIdNode b) {
-				if (a == null && b == null) {
-					return 0;
-				}
-				if (a == null) {
-					return -1;
-				}
-				if (b == null) {
-					return 1;
-				}
-				return a.compareTo(b);
-			}
-		});
+		Collections.sort(taxids, NODE_COMPARATOR);
 		return taxids;
 	}
 
@@ -254,7 +259,10 @@ public class TaxTree {
 			if (node.getRank() == rank) {
 				return node;
 			}
-			if (!node.getRank().isBelow(rank)) {
+			if (node.getRank() == null) {
+				System.out.println("Node without rank: " + node);
+			}
+			if (node.getRank() == null || !node.getRank().isBelow(rank)) {
 				return null;
 			}
 			node = node.getParent();

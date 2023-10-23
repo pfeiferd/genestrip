@@ -4,8 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.metagene.genestrip.GSConfig;
 import org.metagene.genestrip.GSMaker;
@@ -15,7 +15,7 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree;
 
-@Ignore
+// @Ignore
 public class AccuracyTest {
 	@SuppressWarnings("unchecked")
 	@Test
@@ -25,22 +25,17 @@ public class AccuracyTest {
 		GSProject project = new GSProject(config, "accuracy", 31, null, null, null, null);
 
 		GSMaker maker = new GSMaker(project);
-		
-		maker.getGoal("taxids").make();
-
-		new TaxIdsTxtGoal(project, "taxidtxt", (ObjectGoal<TaxTree, GSProject>) maker.getGoal("taxtree"),
-				new AccuracyProjectGoal(project, "accproject")).make();
 
 		AccuracyDataDownloadGoal accDownloadGoal = new AccuracyDataDownloadGoal(project, "accdatadownload",
 				maker.getGoal("setup"));
 
-		FileDownloadGoal<GSProject> acc2taxidDownloadGoal = new FileDownloadGoal<GSProject>(project, "assdownload",
+		FileDownloadGoal<GSProject> acc2taxidDownloadGoal = new FileDownloadGoal<GSProject>(project, "accdownload",
 				maker.getGoal("commonsetup")) {
 			@Override
 			public List<File> getFiles() {
 				return Arrays.asList(
-						new File(project.getConfig().getCommonDir(), FastaTransformGoal.ACCESSION_MAP_FILE),
-						new File(project.getConfig().getCommonDir(), FastaTransformGoal.OLD_ACCESSION_MAP_FILE));
+						new File(project.getConfig().getCommonDir(), AccessionNumber2TaxidGoal.ACCESSION_MAP_FILE),
+						new File(project.getConfig().getCommonDir(), AccessionNumber2TaxidGoal.OLD_ACCESSION_MAP_FILE));
 			}
 
 			@Override
@@ -58,8 +53,14 @@ public class AccuracyTest {
 			}
 		};
 
-		FastaTransformGoal fastaTransformGoal = new FastaTransformGoal(project, "fastatransform", accDownloadGoal,
-				acc2taxidDownloadGoal);
+		ObjectGoal<Map<String, String>, GSProject> accessionNumber2TaxidGoal = new AccessionNumber2TaxidGoal(project,
+				"acc2taxid", new File(project.getFastaDir(), "accuracy/simBA5_accuracy.fa"), acc2taxidDownloadGoal);
+
+		new TaxIdsTxtGoal(project, "taxidtxt", (ObjectGoal<TaxTree, GSProject>) maker.getGoal("taxtree"),
+				accessionNumber2TaxidGoal, new AccuracyProjectGoal(project, "accproject")).make();
+
+		FastaTransformGoal fastaTransformGoal = new FastaTransformGoal(project, "fastatransform",
+				accessionNumber2TaxidGoal, accDownloadGoal);
 
 		// fastaTransformGoal.make();
 
