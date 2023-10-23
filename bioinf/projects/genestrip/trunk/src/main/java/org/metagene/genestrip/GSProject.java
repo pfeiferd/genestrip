@@ -34,7 +34,8 @@ import org.metagene.genestrip.make.FileDownloadGoal.DownloadProject;
 import org.metagene.genestrip.tax.TaxTree.Rank;
 
 public class GSProject implements DownloadProject {
-	public static final String PROJECT_PROPERTIES = "Project.properties";
+	public static final String PROJECT_PROPERTIES = "project.properties";
+	public static final String PROJECT_PROPERTIES_2 = "Project.properties";
 	
 	public enum FileType {
 		FASTQ_RES(".fastq"), FASTQ(".fastq"), FASTA(".fasta"), CSV(".csv"), KRAKEN_OUT(".out"), KRAKEN_OUT_RES(".out"), SER(".ser");
@@ -71,6 +72,9 @@ public class GSProject implements DownloadProject {
 
 		this.properties = new Properties();
 		File configFile = new File(getProjectDir(), PROJECT_PROPERTIES);
+		if (!configFile.exists()) {
+			configFile = new File(getProjectDir(), PROJECT_PROPERTIES_2);			
+		}
 		try {
 			properties.load(new FileInputStream(configFile));
 		} catch (IOException e) {
