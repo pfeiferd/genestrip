@@ -95,7 +95,7 @@ public class KrakenResultProcessor {
 						startPos = i + 1;
 					} else if (classId) {
 						classId = false;
-						classTaxid = root.add(krakenChars, startPos, i, 0);
+						classTaxid = root.add(krakenChars, startPos, i, 0).getStringValue();
 						readSize = true;
 						startPos = i + 1;
 					} else if (readSize) {
@@ -110,7 +110,7 @@ public class KrakenResultProcessor {
 					int frN = ByteArrayUtil.byteArrayToInt(krakenChars, frStartPos, i);
 					if (krakenChars[startPos] != 'A') {  // 'A' is possible indicating "ambiguous" - not of interest to us.
 						try {
-							String taxidStr = root.add(krakenChars, startPos, frStartPos - 1, frN);
+							String taxidStr = root.add(krakenChars, startPos, frStartPos - 1, frN).getStringValue();
 
 							if (taxidStr != null && listener != null) {
 								listener.newTaxIdForRead(readCount, readDescriptor, classTaxid, bps, readPos, taxidStr,
@@ -133,7 +133,7 @@ public class KrakenResultProcessor {
 				int frN = ByteArrayUtil.byteArrayToInt(krakenChars, frStartPos, krakenPos);
 				if (krakenChars[startPos] != 'A') { // 'A' is possible indicating "ambiguous" - not of interest to us.
 					try {
-						String taxidStr = root.add(krakenChars, startPos, frStartPos - 1, frN);
+						String taxidStr = root.add(krakenChars, startPos, frStartPos - 1, frN).getStringValue();
 
 						if (taxidStr != null && listener != null) {
 							listener.newTaxIdForRead(readCount, readDescriptor, classTaxid, bps, readPos, taxidStr, frN,

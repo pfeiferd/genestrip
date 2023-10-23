@@ -30,10 +30,14 @@ import java.util.Set;
 import org.metagene.genestrip.fasta.AbstractFastaReader;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
+import org.metagene.genestrip.util.StringLongDigitTrie;
+import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
 
 public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected final Set<TaxIdNode> taxNodes;
 	protected final AccessionMap accessionMap;
+	protected final int maxGenomesPerTaxId;
+	protected final StringLongDigitTrie regionsPerTaxid;
 
 	protected boolean includeRegion;
 	protected TaxIdNode node;
@@ -41,13 +45,15 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected boolean ignoreMap;
 	protected long includedCounter;
 
-	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap) {
+	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int maxGenomesPerTaxId) {
 		super(bufferSize);
 		this.taxNodes = taxNodes;
 		this.accessionMap = accessionMap;
 		includeRegion = false;
 		ignoreMap = false;
 		includedCounter = 0;
+		regionsPerTaxid = new StringLongDigitTrie();
+		this.maxGenomesPerTaxId = maxGenomesPerTaxId;
 	}
 
 	public void ignoreAccessionMap(TaxIdNode node) {
@@ -60,7 +66,13 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		if (!ignoreMap) {
 			updateNodeFromInfoLine();
 		}
-		includeRegion = taxNodes.isEmpty() || (node != null && taxNodes.contains(node));
+		if (node != null) {
+			StringLong sl = regionsPerTaxid.inc(node.getTaxId());
+			includeRegion = (taxNodes.isEmpty() || taxNodes.contains(node)) && sl.getLongValue() < maxGenomesPerTaxId;
+		}
+		else {
+			includeRegion = false;
+		}
 		if (includeRegion) {
 			includedCounter++;
 		}

@@ -114,6 +114,8 @@ public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
+			// It is very important to get the files in a well determined order for the later steps.
+			// (Any order would be fine.)
 			Collections.sort(files);
 		}
 		return files;

@@ -46,6 +46,7 @@ public class GSConfig {
 	public static final String COMPLETE_GENOMES_ONLY = "completeGenomesOnly";
 	public static final String IGNORE_MISSING_FASTAS = "ignoreMissingFastas";
 	public static final String RANK_COMPLETION_DEPTH = "rankCompletionDepth";
+	public static final String MAX_GENOMES_PER_TAXID = "maxGenomesPerTaxid";
 
 	private final File baseDir;
 	private final Properties properties;
@@ -192,4 +193,8 @@ public class GSConfig {
 		return s == null ? null : Rank.byName(s);
 	}
 
+	public int getMaxGenomesPerTaxid() {
+		int i = Integer.valueOf(properties.getProperty(MAX_GENOMES_PER_TAXID, "-1"));
+		return i <= 0 ? Integer.MAX_VALUE : i;
+	}
 }

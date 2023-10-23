@@ -34,8 +34,8 @@ import org.metagene.genestrip.util.CGATRingBuffer;
 public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader {
 	protected final CGATRingBuffer byteRingBuffer;
 	
-	public AbstractStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k) {
-		super(bufferSize, taxNodes, accessionMap);
+	public AbstractStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId) {
+		super(bufferSize, taxNodes, accessionMap, maxGenomesPerTaxId);
 		byteRingBuffer = new CGATRingBuffer(k);
 	}
 	

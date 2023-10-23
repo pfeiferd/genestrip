@@ -79,7 +79,7 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 
 		try {
 			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getMaxReadSizeBytes(),
-					taxNodesGoal.get(), accessionMapGoal.get(), store);
+					taxNodesGoal.get(), accessionMapGoal.get(), store, getProject().getMaxGenomesPerTaxid());
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
@@ -117,8 +117,8 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 		private long tooManyCounter;
 
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
-				KMerSortedArray<String> store) {
-			super(bufferSize, taxNodes, accessionMap, store.getK());
+				KMerSortedArray<String> store, int maxGenomesPerTaxId) {
+			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId);
 			this.store = store;
 		}
 
