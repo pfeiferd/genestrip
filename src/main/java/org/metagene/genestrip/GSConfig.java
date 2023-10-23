@@ -33,7 +33,8 @@ import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.tax.TaxTree.Rank;
 
 public class GSConfig {
-	public static final String CONFIG_PROPERTIES = "Config.properties";
+	public static final String CONFIG_PROPERTIES = "config.properties";
+	public static final String CONFIG_PROPERTIES_2 = "Config.properties";
 	public static final String NCBI_FTP_URL = "ftp.ncbi.nih.gov";
 	public static final String NCBI_HTTP_BASE_URL = "https://ftp.ncbi.nlm.nih.gov";
 
@@ -55,6 +56,9 @@ public class GSConfig {
 		this.baseDir = baseDir;
 		this.properties = new Properties();
 		File configFile = new File(baseDir, CONFIG_PROPERTIES);
+		if (!configFile.exists()) {
+			configFile = new File(baseDir, CONFIG_PROPERTIES);			
+		}
 		try {
 			properties.load(new FileInputStream(configFile));
 		} catch (IOException e) {
