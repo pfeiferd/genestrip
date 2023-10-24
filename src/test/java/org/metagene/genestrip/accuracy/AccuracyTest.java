@@ -21,7 +21,13 @@ public class AccuracyTest {
 	@Test
 	public void testAccuracy() throws IOException {
 		File testBaseDir = getTargetDir();
-		GSConfig config = new GSConfig(testBaseDir);
+		GSConfig config = new GSConfig(testBaseDir) {
+			// Override for fair speed test.
+			@Override
+			public int getThreads() {
+				return 0;
+			}
+		};
 		GSProject project = new GSProject(config, "accuracy", 31, null, null, null, null);
 
 		GSMaker maker = new GSMaker(project);
@@ -56,13 +62,14 @@ public class AccuracyTest {
 		ObjectGoal<Map<String, String>, GSProject> accessionNumber2TaxidGoal = new AccessionNumber2TaxidGoal(project,
 				"acc2taxid", new File(project.getFastaDir(), "accuracy/simBA5_accuracy.fa"), acc2taxidDownloadGoal);
 
+		new AccuracyProjectGoal(project, "accproject").make();
 		new TaxIdsTxtGoal(project, "taxidtxt", (ObjectGoal<TaxTree, GSProject>) maker.getGoal("taxtree"),
-				accessionNumber2TaxidGoal, new AccuracyProjectGoal(project, "accproject")).make();
+				accessionNumber2TaxidGoal).make();
 
 		FastaTransformGoal fastaTransformGoal = new FastaTransformGoal(project, "fastatransform",
 				accessionNumber2TaxidGoal, accDownloadGoal);
 
-		//fastaTransformGoal.make();
+		// fastaTransformGoal.make();
 
 		AccuracyMatchGoal matchGoal = new AccuracyMatchGoal(project, "accmatch",
 				new File(project.getProjectDir(), "multimatch.txt"),

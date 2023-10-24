@@ -18,6 +18,7 @@ import org.metagene.genestrip.make.Goal;
 
 public class AccuracyDataDownloadGoal extends FileDownloadGoal<GSProject> {
 	public static final String ACCURACY_FILE = "accuracy.tgz";
+	public static final String TIMING_FILE = "timing.tgz";
 	public static final String FTP_DIR = "/software/kraken/dl";
 
 	private final List<File> files;
@@ -27,6 +28,7 @@ public class AccuracyDataDownloadGoal extends FileDownloadGoal<GSProject> {
 		super(project, name, deps);
 		files = new ArrayList<File>();
 		files.add(new File(getProject().getFastaDir(), ACCURACY_FILE));
+		files.add(new File(getProject().getFastaDir(), TIMING_FILE));
 	}
 
 	@Override
@@ -45,17 +47,8 @@ public class AccuracyDataDownloadGoal extends FileDownloadGoal<GSProject> {
 	}
 
 	@Override
-	public void cleanThis() {
-		super.cleanThis();
-		File zipFile = new File(getProject().getFastaDir(), ACCURACY_FILE);
-		if (zipFile.exists()) {
-			zipFile.delete();
-		}
-	}
-
-	@Override
 	protected void makeFile(File file) throws IOException {
-		File gzipTarFile = new File(getProject().getFastaDir(), ACCURACY_FILE);
+		File gzipTarFile = file;
 
 		if (gzipTarFile.exists() && gzipTarFile.length() == 0) {
 			if (getLogger().isInfoEnabled()) {
