@@ -36,13 +36,17 @@ public class FastaTransformGoal extends FileListGoal<GSProject> {
 		addFile(new File(project.getFastqDir(), "HiSeq_accuracy.fastq"));
 		addFile(new File(project.getFastqDir(), "MiSeq_accuracy.fastq"));
 		addFile(new File(project.getFastqDir(), "simBA5_accuracy.fastq"));
+		addFile(new File(project.getFastqDir(), "HiSeq_timing.fastq"));
+		addFile(new File(project.getFastqDir(), "MiSeq_timing.fastq"));
+		addFile(new File(project.getFastqDir(), "simBA5_timing.fastq"));
 	}
 
 	@Override
 	protected void makeFile(File file) throws IOException {
 		int dotIndex = file.getName().indexOf('.');
 		String prefix = file.getName().substring(0, dotIndex);
-		File fastaFile = new File(getProject().getFastaDir(), "accuracy/" + prefix + ".fa");
+		File fastaFile = new File(getProject().getFastaDir(),
+				(prefix.contains("accuracy") ? "accuracy/" : "") + prefix + ".fa");
 
 		PrintStream out = new PrintStream(new FileOutputStream(file));
 

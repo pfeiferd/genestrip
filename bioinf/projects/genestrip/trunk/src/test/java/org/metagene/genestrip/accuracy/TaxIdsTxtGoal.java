@@ -39,9 +39,9 @@ public class TaxIdsTxtGoal extends FileListGoal<GSProject> {
 			addNodesForTaxid(taxid, nodes);
 		}
 
-		for (String taxid : accessionNumber2TaxidGoal.get().values()) {
-			addNodesForTaxid(taxid, nodes);
-		}
+//		for (String taxid : accessionNumber2TaxidGoal.get().values()) {
+//			addNodesForTaxid(taxid, nodes);
+//		}
 
 		PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
 		TaxTree.sortNodes(nodes);
