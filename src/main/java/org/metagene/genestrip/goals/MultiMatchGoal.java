@@ -129,6 +129,7 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 			GSConfig config = getProject().getConfig();
 			if (matcher == null) {
 				wrapper = storeGoal.get();
+				wrapper.getKmerStore().setUseFilter(getProject().isUseBloomFilterForMatch());
 				matcher = createMatcher(wrapper, config, taxTreeGoal.get());
 				reporter = new ResultReporter(taxTreeGoal.get());
 				uniqueCounter = config.isCountUniqueKMers() ? new KMerUniqueCounterBits(wrapper.getKmerStore(), true)
