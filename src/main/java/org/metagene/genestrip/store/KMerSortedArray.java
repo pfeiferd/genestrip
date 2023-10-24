@@ -70,6 +70,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	private boolean initSize;
 	private short nextValueIndex;
 	private MurmurCGATBloomFilter filter;
+	private boolean useFilter;
 
 	public KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge) {
 		this(k, fpp, initialValues, enforceLarge, new MurmurCGATBloomFilter(k, fpp));
@@ -89,6 +90,15 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			}
 		}
 		this.filter = filter;
+		this.useFilter = filter != null;
+	}
+	
+	public void setUseFilter(boolean useFilter) {
+		this.useFilter = useFilter;
+	}
+	
+	public boolean isUseFilter() {
+		return useFilter;
 	}
 
 	public long[] getStatsAsIndexArray() {
@@ -322,7 +332,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	}
 
 	public V getLong(long kmer, long[] posStore) {
-		if (filter != null && !filter.containsLong(kmer)) {
+		if (filter != null && useFilter && !filter.containsLong(kmer)) {
 			return null;
 		}
 		short index;
