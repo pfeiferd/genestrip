@@ -25,7 +25,7 @@ public class AccuracyTest {
 			// Override for fair speed test.
 			@Override
 			public int getThreads() {
-				return 0;
+				return 8;
 			}
 		};
 		GSProject project = new GSProject(config, "accuracy", 31, null, null, null, null);
@@ -68,8 +68,7 @@ public class AccuracyTest {
 
 		FastaTransformGoal fastaTransformGoal = new FastaTransformGoal(project, "fastatransform",
 				accessionNumber2TaxidGoal, accDownloadGoal);
-
-		// fastaTransformGoal.make();
+		fastaTransformGoal.make();
 
 		AccuracyMatchGoal matchGoal = new AccuracyMatchGoal(project, "accmatch",
 				new File(project.getProjectDir(), "multimatch.txt"),
