@@ -1,7 +1,6 @@
 package org.metagene.genestrip.accuracy;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
@@ -9,6 +8,7 @@ import java.util.Map;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.fasta.AbstractFastaReader;
+import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -36,9 +36,9 @@ public class FastaTransformGoal extends FileListGoal<GSProject> {
 		addFile(new File(project.getFastqDir(), "HiSeq_accuracy.fastq"));
 		addFile(new File(project.getFastqDir(), "MiSeq_accuracy.fastq"));
 		addFile(new File(project.getFastqDir(), "simBA5_accuracy.fastq"));
-		addFile(new File(project.getFastqDir(), "HiSeq_timing.fastq"));
-		addFile(new File(project.getFastqDir(), "MiSeq_timing.fastq"));
-		addFile(new File(project.getFastqDir(), "simBA5_timing.fastq"));
+		addFile(new File(project.getFastqDir(), "HiSeq_timing.fastq.gz"));
+		addFile(new File(project.getFastqDir(), "MiSeq_timing.fastq.gz"));
+		addFile(new File(project.getFastqDir(), "simBA5_timing.fastq.gz"));
 	}
 
 	@Override
@@ -48,7 +48,7 @@ public class FastaTransformGoal extends FileListGoal<GSProject> {
 		File fastaFile = new File(getProject().getFastaDir(),
 				(prefix.contains("accuracy") ? "accuracy/" : "") + prefix + ".fa");
 
-		PrintStream out = new PrintStream(new FileOutputStream(file));
+		PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
 
 		boolean accNumberWay = prefix.startsWith("simBA5");
 
@@ -82,7 +82,6 @@ public class FastaTransformGoal extends FileListGoal<GSProject> {
 							getLogger().warn("Inconsistent info line: " + new String(target, 0, size));
 						}
 					}
-
 				} else {
 					int index = getNameIndexFromInfoLine();
 					if (index != -1) {
