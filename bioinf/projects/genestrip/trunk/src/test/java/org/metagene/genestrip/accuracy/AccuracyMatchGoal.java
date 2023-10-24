@@ -26,7 +26,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 	private int genusCorrectCount;
 	private int genusIncorrectCount;
 	private int noTaxIdCount;
-	private int totalCount;
+	private long totalCount;
 	private long startMillis;
 	private boolean timing;
 
