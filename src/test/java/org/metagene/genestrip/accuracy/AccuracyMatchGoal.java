@@ -28,7 +28,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 	private int noTaxIdCount;
 	private int totalCount;
 	private long startMillis;
-	private boolean accuracy;
+	private boolean timing;
 
 	@SafeVarargs
 	public AccuracyMatchGoal(GSProject project, String name, File csvFile, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
@@ -45,7 +45,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 		totalCount = 0;
 		noTaxIdErrorPerTaxid = new HashMap<String, Integer>();
 		startMillis = System.currentTimeMillis();
-		accuracy = file.getName().contains("accuracy");
+		timing = file.getName().contains("timing");
 		super.makeFile(file);
 	}
 
@@ -58,7 +58,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 //				ByteArrayUtil.print(entry.readDescriptor, System.out);
 				super.afterMatch(entry, found);
 				totalCount++;
-				if (accuracy) {
+				if (!timing) {
 					int colonIndex = ByteArrayUtil.indexOf(entry.readDescriptor, 1, entry.readDescriptorSize, ':');
 					String correctTaxId = new String(entry.readDescriptor, 1, colonIndex - 1);
 					if (correctTaxId.equals(entry.readTaxId)) {
@@ -89,7 +89,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 	@Override
 	protected void writeOutputFile(File file, MatchingResult result, KMerStoreWrapper wrapper) throws IOException {
 		PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-		if (accuracy) {
+		if (!timing) {
 			out.println("total; taxid correct; genus correct; genus incorrect; no taxid;");
 			out.print(totalCount);
 			out.print(';');

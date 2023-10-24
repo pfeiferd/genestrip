@@ -36,9 +36,9 @@ public class FastaTransformGoal extends FileListGoal<GSProject> {
 		addFile(new File(project.getFastqDir(), "HiSeq_accuracy.fastq"));
 		addFile(new File(project.getFastqDir(), "MiSeq_accuracy.fastq"));
 		addFile(new File(project.getFastqDir(), "simBA5_accuracy.fastq"));
-		addFile(new File(project.getFastqDir(), "HiSeq_timing.fastq.gz"));
-		addFile(new File(project.getFastqDir(), "MiSeq_timing.fastq.gz"));
-		addFile(new File(project.getFastqDir(), "simBA5_timing.fastq.gz"));
+		addFile(new File(project.getFastqDir(), "HiSeq_timing.fastq"));
+		addFile(new File(project.getFastqDir(), "MiSeq_timing.fastq"));
+//		addFile(new File(project.getFastqDir(), "simBA5_timing.fastq.gz"));
 	}
 
 	@Override
