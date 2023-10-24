@@ -71,6 +71,7 @@ public class MatchGoal extends FileListGoal<GSProject> {
 			}
 
 			KMerStoreWrapper wrapper = storeGoal.get();
+			wrapper.getKmerStore().setUseFilter(getProject().isUseBloomFilterForMatch());
 
 			GSConfig config = getProject().getConfig();
 
