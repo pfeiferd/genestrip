@@ -171,23 +171,25 @@ The following entries are possible:
 
 | Key         | Default Value     | Description |
 | ----------- | ----------- | ----------- |
-| logLevel      | info       | The levels `error` and `warn` are also possible and result in (much) less verbose logging.       |
-| threads      | -1       | The number of consumer threads *n* when processing data with respect to goals ``match``, ``filter`` and ``multimatch`` and also so during the update phase of the ``db`` goal. There is always one additional thread that reads and uncompresses a corresponding fastq or fasta file (so it is *n + 1* threads in total). When negative, the number of available processors *- 1* is used as *n*. When 0, then the corresponding goals run in single-threaded mode. |
-| countUniqueKMers      | true       | If `true`, unique kmers will be counted. This requires less than 5% of additional main memory.        |
-| writeDumpedFastq   | false        | If `true`, then ``filter`` will also generate a fastq file `dumped_<fqfile>` with all reads not written to the corresponding filtered fastq file. |
-| writeFilteredFastq   | false        | If `true`, then the goal `match` writes a filtered fastq file in the same way that the goal `filter` does. Moreover, Genestrip will write an output file `<fqfile>.out` in the [Kraken output format](https://ccb.jhu.edu/software/kraken/MANUAL.html#output-format) under `<base dir>/projects/<project_name>/krakenout` covering all filtered reads. |
-| matchWithKMerCounts   | false        | Experimental: Counts how many times each unique *k*-mer has been detected.        |
-| maxKMerResCounts   | 200        | The number of the most frequent *k*-mers that will be reported, if `matchWithKMerCounts=true`.       |
-| kMerSize   | 31        | The number of base pairs *k* for a *k*-mers. Changes to this values do *not* affect the memory usage of database. A value > 32 will cause collisions, i.e. leads to false positives for the `match` goal. |
-| useHttp | true | Use http(s) to download data from NCBI. If ``false``, then Genestrip will try anonymous FTP instead (with login and password set to `anonymous`). 
-| refseqHttpBaseURL   | https://ftp.ncbi.nlm.nih.gov/refseq | This [mirror](https://www.funet.fi/pub/mirrors/ftp.ncbi.nlm.nih.gov/refseq/) might be considered as an alternative. (No other mirror sites are known.) |
-| refseqFTPBaseURL   | ftp.ncbi.nih.gov       |         |
-| taxHttpBaseURL   | https://ftp.ncbi.nlm.nih.gov        | This base URL will be extended by the path `/pub/taxonomy/` in order to download the taxonomy file `taxdmp.zip`.        |
-| taxFTPBaseURL   | ftp.ncbi.nih.gov        |         |
-| ignoreMissingFastas   | true        | If `true`, then a download of files from NCBI will not stop in case a file is missing on the [NCBI server](https://ftp.ncbi.nlm.nih.gov/).        |
-| completeGenomesOnly   | false        | If `true`, then only genomic accessions with the prefixes `AC`, `NC_`, `NZ_` will be considered when generating a database. Otherwise, all genomic accessions will be considered. See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.       |
-| rankCompletionDepth | *empty* | The rank up to which tax ids from `taxids.txt` will be completed by descendants of the taxonomy tree (the set rank included). If not set, the completion will traverse down to the lowest possible levels of the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip). Typical values could be `genus`, `species` or `strain`, but  all values used for assigning ranks in the taxonomy are possible. |
-| maxGenomesPerTaxid | *unlimited* | The maximum number of genomes per tax id from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) to be included in the database. If negative, zero or not set, there is not limit. Note, that this is an important parameter to control database size, because in some cases, there are millions of genomic entries for a tax id such as for `573` (which does not even account for entries of its descendants). 
+| `logLevel`      | `info`       | The levels `error` and `warn` are also possible and result in (much) less verbose logging.       |
+| `threads`      | `-1`       | The number of consumer threads *n* when processing data with respect to goals ``match``, ``filter`` and ``multimatch`` and also so during the update phase of the ``db`` goal. There is always one additional thread that reads and uncompresses a corresponding fastq or fasta file (so it is *n + 1* threads in total). When negative, the number of available processors *- 1* is used as *n*. When 0, then the corresponding goals run in single-threaded mode. |
+| `countUniqueKMers`      | `true`       | If `true`, unique kmers will be counted. This requires less than 5% of additional main memory.        |
+| `writeDumpedFastq`   | `false`        | If `true`, then ``filter`` will also generate a fastq file `dumped_<fqfile>` with all reads not written to the corresponding filtered fastq file. |
+| `writeFilteredFastq`   | `false`        | If `true`, then the goal `match` writes a filtered fastq file in the same way that the goal `filter` does. Moreover, Genestrip will write an output file `<fqfile>.out` in the [Kraken output format](https://ccb.jhu.edu/software/kraken/MANUAL.html#output-format) under `<base dir>/projects/<project_name>/krakenout` covering all filtered reads. |
+| `matchWithKMerCounts`   | `false`        | Experimental: Counts how many times each unique *k*-mer has been detected.        |
+| `maxKMerResCounts`   | `200`        | The number of the most frequent *k*-mers that will be reported, if `matchWithKMerCounts=true`.       |
+| `kMerSize`   | `31`        | The number of base pairs *k* for a *k*-mers. Changes to this values do *not* affect the memory usage of database. A value > 32 will cause collisions, i.e. leads to false positives for the `match` goal. |
+| `useHttp` | `true` | Use http(s) to download data from NCBI. If ``false``, then Genestrip will try anonymous FTP instead (with login and password set to `anonymous`). 
+| `refseqHttpBaseURL`   | `https://ftp.ncbi.nlm.nih.gov/refseq` | This [mirror](https://www.funet.fi/pub/mirrors/ftp.ncbi.nlm.nih.gov/refseq/) might be considered as an alternative. (No other mirror sites are known.) |
+| `refseqFTPBaseURL`   | `ftp.ncbi.nih.gov`       |         |
+| `taxHttpBaseURL`   | `https://ftp.ncbi.nlm.nih.gov`        | This base URL will be extended by the path `/pub/taxonomy/` in order to download the taxonomy file `taxdmp.zip`.        |
+| `taxFTPBaseURL`   | `ftp.ncbi.nih.gov`        |         |
+| `ignoreMissingFastas`   | `true`        | If `true`, then a download of files from NCBI will not stop in case a file is missing on the [NCBI server](https://ftp.ncbi.nlm.nih.gov/).        |
+| `completeGenomesOnly`   | `false`        | If `true`, then only genomic accessions with the prefixes `AC`, `NC_`, `NZ_` will be considered when generating a database. Otherwise, all genomic accessions will be considered. See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.       |
+| `rankCompletionDepth` | *empty* | The rank up to which tax ids from `taxids.txt` will be completed by descendants of the taxonomy tree (the set rank included). If not set, the completion will traverse down to the lowest possible levels of the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip). Typical values could be `genus`, `species` or `strain`, but  all values used for assigning ranks in the taxonomy are possible. |
+| `maxGenomesPerTaxid` | *unlimited* | The maximum number of genomes per tax id from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) to be included in the database. If negative, zero or not set, there is not limit. Note, that this is an important parameter to control database size, because in some cases, there are millions of genomic entries for a tax id such as for `573` (which does not even account for entries of its descendants). |
+| `useBloomFilterForMatch`   | `true`        | If `true` and if a bloom filter has been stored as part of the database, it will be used during fastq file analysis (i.e. matching). Using the bloom filter tends to shorten matching time, if the most part of the reads cannot be classified because they contain *no* *k*-mers from the database. Otherwise, using the bloom filter might increase matching time by up to 30%.  |
+
 
 # Project properties
 
@@ -197,7 +199,8 @@ The following entries are possible:
 * `ignoreMissingFastas`,
 * `completeGenomesOnly`,
 * `rankCompletionDepth`,
-* `maxGenomesPerTaxid`.
+* `maxGenomesPerTaxid` and
+* `useBloomFilterForMatch`.
 
 The use of the entries is the same as in the `config.properties` file. If given, an entry in `project.properties` overrides a corresponding entry from `config.properties` under this project.
 
