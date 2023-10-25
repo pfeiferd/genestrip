@@ -25,7 +25,7 @@ public class AccuracyTest {
 			// Override for fair speed test.
 			@Override
 			public int getThreads() {
-				return 8;
+				return 0;
 			}
 		};
 		GSProject project = new GSProject(config, "accuracy", 31, null, null, null, null);
@@ -70,11 +70,16 @@ public class AccuracyTest {
 				accessionNumber2TaxidGoal, accDownloadGoal);
 		fastaTransformGoal.make();
 
+		AccuracyMatchGoal tempdbMatchGoal = new AccuracyMatchGoal(project, "acctempdbmatch",
+				new File(project.getProjectDir(), "multimatch.txt"),
+				(ObjectGoal<TaxTree, GSProject>) maker.getGoal("taxtree"),
+				(ObjectGoal<KMerStoreWrapper, GSProject>) maker.getGoal("filleddb"), fastaTransformGoal);
+		tempdbMatchGoal.make();
+		
 		AccuracyMatchGoal matchGoal = new AccuracyMatchGoal(project, "accmatch",
 				new File(project.getProjectDir(), "multimatch.txt"),
 				(ObjectGoal<TaxTree, GSProject>) maker.getGoal("taxtree"),
 				(ObjectGoal<KMerStoreWrapper, GSProject>) maker.getGoal("updateddb"), fastaTransformGoal);
-
 		matchGoal.make();
 	}
 
