@@ -17,6 +17,7 @@ public class AccuracyProjectGoal extends FileListGoal<GSProject> {
 //		addFile(new File(project.getProjectDir(), "taxids.txt"));
 		addFile(new File(project.getProjectDir(), "categories.txt"));
 		addFile(new File(project.getProjectDir(), "multimatch.txt"));
+		addFile(new File(project.getProjectDir(), "project.properties"));
 	}
 
 	@Override
