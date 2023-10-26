@@ -69,7 +69,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	private long startTime;
 	private long indexedC;
 	private final TaxTree taxTree;
-	private final int maxReadTaxErrorCount;
+	protected final int maxReadTaxErrorCount;
 
 	private OutputStream indexed;
 
