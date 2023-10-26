@@ -270,7 +270,7 @@ public class GSProject implements DownloadProject {
 	public double getMaxReadTaxErrorCount() {
 		String v = properties.getProperty(GSConfig.MAX_READ_TAX_ERROR_COUNT);
 		if (v != null) {
-			Double.valueOf(v);
+			return Double.valueOf(v);
 		}		
 		return getConfig().getMaxReadTaxErrorCount();
 	}

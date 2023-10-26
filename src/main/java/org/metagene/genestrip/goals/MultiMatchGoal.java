@@ -159,7 +159,7 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 	protected FastqKMerMatcher createMatcher(KMerStoreWrapper wrapper, TaxTree taxTree) {
 		GSConfig config = getProject().getConfig();
 		return new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
-				config.getThreads(), config.getMaxKMerResCounts(), taxTreeGoal.get(), config.getMaxReadTaxErrorCount());
+				config.getThreads(), config.getMaxKMerResCounts(), taxTreeGoal.get(), getProject().getMaxReadTaxErrorCount());
 	}
 
 	@Override
