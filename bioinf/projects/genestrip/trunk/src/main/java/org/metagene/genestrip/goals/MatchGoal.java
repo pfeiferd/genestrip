@@ -75,7 +75,7 @@ public class MatchGoal extends FileListGoal<GSProject> {
 
 			GSConfig config = getProject().getConfig();
 
-			matcher = createMatcher(wrapper, config, taxTreeGoal.get());
+			matcher = createMatcher(wrapper, taxTreeGoal.get());
 			MatchingResult res = matcher.runMatcher(fastq, filteredFile, krakenOutStyleFile,
 					config.isCountUniqueKMers()
 							? new KMerUniqueCounterBits(wrapper.getKmerStore(), config.isMatchWithKMerCounts())
@@ -98,8 +98,10 @@ public class MatchGoal extends FileListGoal<GSProject> {
 		out.close();
 	}
 
-	protected FastqKMerMatcher createMatcher(KMerStoreWrapper wrapper, GSConfig config, TaxTree taxTree) {
+	protected FastqKMerMatcher createMatcher(KMerStoreWrapper wrapper, TaxTree taxTree) {
+		GSConfig config = getProject().getConfig();
+		
 		return new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
-				config.getThreads(), config.getMaxKMerResCounts(), taxTree, config.getMaxReadTaxErrorCount());
+				config.getThreads(), config.getMaxKMerResCounts(), taxTree, getProject().getMaxReadTaxErrorCount());
 	}
 }

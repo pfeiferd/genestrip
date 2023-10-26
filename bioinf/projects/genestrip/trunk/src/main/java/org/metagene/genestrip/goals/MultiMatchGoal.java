@@ -130,7 +130,7 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 			if (matcher == null) {
 				wrapper = storeGoal.get();
 				wrapper.getKmerStore().setUseFilter(getProject().isUseBloomFilterForMatch());
-				matcher = createMatcher(wrapper, config, taxTreeGoal.get());
+				matcher = createMatcher(wrapper, taxTreeGoal.get());
 				reporter = new ResultReporter(taxTreeGoal.get());
 				uniqueCounter = config.isCountUniqueKMers() ? new KMerUniqueCounterBits(wrapper.getKmerStore(), true)
 						: null;
@@ -156,7 +156,8 @@ public class MultiMatchGoal extends FileListGoal<GSProject> {
 		out.close();
 	}
 
-	protected FastqKMerMatcher createMatcher(KMerStoreWrapper wrapper, GSConfig config, TaxTree taxTree) {
+	protected FastqKMerMatcher createMatcher(KMerStoreWrapper wrapper, TaxTree taxTree) {
+		GSConfig config = getProject().getConfig();
 		return new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
 				config.getThreads(), config.getMaxKMerResCounts(), taxTreeGoal.get(), config.getMaxReadTaxErrorCount());
 	}

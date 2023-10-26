@@ -69,7 +69,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	private long startTime;
 	private long indexedC;
 	private final TaxTree taxTree;
-	protected final int maxReadTaxErrorCount;
+	protected final double maxReadTaxErrorCount;
 
 	private OutputStream indexed;
 
@@ -82,7 +82,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	protected PrintStream out;
 
 	public FastqKMerMatcher(KMerSortedArray<String> kmerStore, int maxReadSize, int maxQueueSize, int consumerNumber,
-			int maxKmerResCounts, TaxTree taxTree, int maxReadTaxErrorCount) {
+			int maxKmerResCounts, TaxTree taxTree, double maxReadTaxErrorCount) {
 		super(kmerStore.getK(), maxReadSize, maxQueueSize, consumerNumber);
 		this.kmerStore = kmerStore;
 		this.maxReadSize = maxReadSize;
@@ -344,7 +344,8 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 				}
 			}
 			if (entry.readTaxId != null && entry.readTaxId != INVALID_TAX
-					&& entry.readTaxErrorCount <= maxReadTaxErrorCount) {
+					&& ((maxReadTaxErrorCount >= 1 && entry.readTaxErrorCount <= maxReadTaxErrorCount)
+					|| (entry.readTaxErrorCount <= maxReadTaxErrorCount * max))) {
 				stats = root.get(entry.readTaxId);
 				if (stats == null) {
 					synchronized (root) {
@@ -358,7 +359,8 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		return found;
 	}
 
-	// This very simple approach follows just one possibility for a potentially correct taxid. Maybe at least follow one more possibility?
+	// This very simple approach follows just one possibility for a potentially
+	// correct taxid. Maybe at least follow one more possibility?
 	protected void updateReadTaxid(String taxid, MyReadEntry entry) {
 		if (taxTree == null) {
 			return;
