@@ -189,6 +189,8 @@ The following entries are possible:
 | `rankCompletionDepth` | *empty* | The rank up to which tax ids from `taxids.txt` will be completed by descendants of the taxonomy tree (the set rank included). If not set, the completion will traverse down to the lowest possible levels of the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip). Typical values could be `genus`, `species` or `strain`, but  all values used for assigning ranks in the taxonomy are possible. |
 | `maxGenomesPerTaxid` | *unlimited* | The maximum number of genomes per tax id from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) to be included in the database. If negative, zero or not set, there is not limit. Note, that this is an important parameter to control database size, because in some cases, there are millions of genomic entries for a tax id such as for `573` (which does not even account for entries of its descendants). |
 | `useBloomFilterForMatch`   | `true`        | If `true` and if a bloom filter has been stored as part of the database, it will be used during fastq file analysis (i.e. matching). Using the bloom filter tends to shorten matching time, if the most part of the reads cannot be classified because they contain *no* *k*-mers from the database. Otherwise, using the bloom filter might increase matching time by up to 30%.  |
+| `useBloomFilterForMatch`   | `true`        | If `true` and if a bloom filter has been stored as part of the database, it will be used during fastq file analysis (i.e. matching). Using the bloom filter tends to shorten matching time, if the most part of the reads cannot be classified because they contain *no* *k*-mers from the database. Otherwise, using the bloom filter might increase matching time by up to 30%.  |
+| `maxReadTaxErrorCount`   | `0.1`        | The absolute or relative maximum number of *k*-mers that do not have to be in the database for a read to be classified. If the number corresponding is above `maxReadTaxErrorCount`, then the read will not be classified. Otherwise the read will be classified if the remaining *k*-mers' tax ids all lie on the same path in the taxonomy. If so, the assigned tax id will be lowest from that path.  If  `maxReadTaxErrorCount` is a real number >= 0 and < 1, then it is interpreted as the ratio between the *k*-mers not in the database and all *k*-mers of the read. Otherwise it is interpreted as an absolute number of *k*-mers. |
 
 
 # Project properties
@@ -199,8 +201,9 @@ The following entries are possible:
 * `ignoreMissingFastas`,
 * `completeGenomesOnly`,
 * `rankCompletionDepth`,
-* `maxGenomesPerTaxid` and
-* `useBloomFilterForMatch`.
+* `maxGenomesPerTaxid`,
+* `useBloomFilterForMatch` and
+* `maxReadTaxErrorCount`.
 
 The use of the entries is the same as in the `config.properties` file. If given, an entry in `project.properties` overrides a corresponding entry from `config.properties` under this project.
 
