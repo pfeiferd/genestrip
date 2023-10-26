@@ -54,7 +54,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 		GSConfig config = getProject().getConfig();
 		
 		return new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
-				config.getThreads(), config.getMaxKMerResCounts(), taxTree, config.getMaxReadTaxErrorCount()) {
+				config.getThreads(), config.getMaxKMerResCounts(), taxTree, getProject().getMaxReadTaxErrorCount()) {
 			@Override
 			protected void afterMatch(MyReadEntry entry, boolean found) throws IOException {
 				super.afterMatch(entry, found);
