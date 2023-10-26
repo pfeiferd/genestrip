@@ -52,7 +52,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 	@Override
 	protected FastqKMerMatcher createMatcher(KMerStoreWrapper wrapper, TaxTree taxTree) {
 		GSConfig config = getProject().getConfig();
-		
+
 		return new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
 				config.getThreads(), config.getMaxKMerResCounts(), taxTree, getProject().getMaxReadTaxErrorCount()) {
 			@Override
@@ -62,18 +62,19 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 				if (!timing) {
 					int colonIndex = ByteArrayUtil.indexOf(entry.readDescriptor, 1, entry.readDescriptorSize, ':');
 					String correctTaxId = new String(entry.readDescriptor, 1, colonIndex - 1);
-					if (entry.readTaxErrorCount <= maxReadTaxErrorCount && correctTaxId.equals(entry.readTaxId)) {
-						taxIdCorrectCount++;
-						genusCorrectCount++;
-					} else if (entry.readTaxErrorCount <= maxReadTaxErrorCount && entry.readTaxId != null
-							&& entry.readTaxId != INVALID_TAX) {
-						TaxIdNode correctGenusTaxNode = taxTree.getRankedNode(correctTaxId, Rank.GENUS);
-						if (correctGenusTaxNode != null) {
-							if (correctGenusTaxNode == taxTree.getRankedNode(entry.readTaxId, Rank.GENUS)) {
-								genusCorrectCount++;
-							} else {
-								genusIncorrectCount++;
-								ByteArrayUtil.println(entry.readDescriptor, System.out);
+					if (entry.readTaxId != null && entry.readTaxId != INVALID_TAX) {
+						if (correctTaxId.equals(entry.readTaxId)) {
+							taxIdCorrectCount++;
+							genusCorrectCount++;
+						} else {
+							TaxIdNode correctGenusTaxNode = taxTree.getRankedNode(correctTaxId, Rank.GENUS);
+							if (correctGenusTaxNode != null) {
+								if (correctGenusTaxNode == taxTree.getRankedNode(entry.readTaxId, Rank.GENUS)) {
+									genusCorrectCount++;
+								} else {
+									genusIncorrectCount++;
+									ByteArrayUtil.println(entry.readDescriptor, System.out);
+								}
 							}
 						}
 					} else {
@@ -87,6 +88,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 				}
 			}
 		};
+
 	}
 
 	@Override
@@ -116,6 +118,5 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 			out.println(';');
 		}
 		out.close();
-
 	}
 }

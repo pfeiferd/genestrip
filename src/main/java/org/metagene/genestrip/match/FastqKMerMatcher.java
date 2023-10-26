@@ -343,22 +343,26 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 					}
 				}
 			}
-			if (entry.readTaxId != null && entry.readTaxId != INVALID_TAX
-					&& ((maxReadTaxErrorCount >= 1 && entry.readTaxErrorCount <= maxReadTaxErrorCount)
-					|| (entry.readTaxErrorCount <= maxReadTaxErrorCount * max))) {
-				stats = root.get(entry.readTaxId);
-				if (stats == null) {
-					synchronized (root) {
-						stats = root.get(taxid, maxReadSize);
+			if (entry.readTaxId != null && entry.readTaxId != INVALID_TAX) {
+				if ((maxReadTaxErrorCount >= 1 && entry.readTaxErrorCount <= maxReadTaxErrorCount)
+						|| (entry.readTaxErrorCount <= maxReadTaxErrorCount * max)) {
+					stats = root.get(entry.readTaxId);
+					if (stats == null) {
+						synchronized (root) {
+							stats = root.get(entry.readTaxId, maxReadSize);
+						}
 					}
+					stats.reads++;
 				}
-				stats.reads++;
+				else {
+					entry.readTaxId = null;
+				}
 			}
 		}
 
 		return found;
 	}
-
+	
 	// This very simple approach follows just one possibility for a potentially
 	// correct taxid. Maybe at least follow one more possibility?
 	protected void updateReadTaxid(String taxid, MyReadEntry entry) {
