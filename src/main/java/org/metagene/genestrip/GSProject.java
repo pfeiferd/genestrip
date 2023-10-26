@@ -222,6 +222,15 @@ public class GSProject implements DownloadProject {
 		return csvDir;
 	}
 	
+	public boolean isUseBloomFilterForMatch() {
+		String v = properties.getProperty(GSConfig.USE_BLOOM_FILTER_FOR_MATCH);
+		if (v != null) {
+			return Boolean.valueOf(v);
+
+		}		
+		return getConfig().isUseBloomFilterForMatch();
+	}
+	
 	public boolean isUseCompleteGenomesOnly() {
 		String v = properties.getProperty(GSConfig.COMPLETE_GENOMES_ONLY);
 		if (v != null) {
