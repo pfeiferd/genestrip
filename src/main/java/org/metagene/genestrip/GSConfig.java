@@ -49,6 +49,7 @@ public class GSConfig {
 	public static final String RANK_COMPLETION_DEPTH = "rankCompletionDepth";
 	public static final String MAX_GENOMES_PER_TAXID = "maxGenomesPerTaxid";
 	public static final String USE_BLOOM_FILTER_FOR_MATCH = "useBloomFilterForMatch";
+	public static final String MAX_READ_TAX_ERROR_COUNT = "maxReadTaxErrorCount";
 
 	private final File baseDir;
 	private final Properties properties;
@@ -149,8 +150,8 @@ public class GSConfig {
 		return Integer.valueOf(properties.getProperty("maxKMerResCounts", "200"));
 	}
 	
-	public int getMaxReadTaxErrorCount() {
-		return Integer.valueOf(properties.getProperty("maxReadTaxErrorCount", "3"));
+	public double getMaxReadTaxErrorCount() {
+		return Double.valueOf(properties.getProperty(MAX_READ_TAX_ERROR_COUNT, "0.1"));
 	}
 	
 	public String getFtpBaseURL() {
