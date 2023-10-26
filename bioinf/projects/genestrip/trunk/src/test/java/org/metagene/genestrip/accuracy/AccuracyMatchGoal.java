@@ -55,22 +55,23 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 				config.getThreads(), config.getMaxKMerResCounts(), taxTree, config.getMaxReadTaxErrorCount()) {
 			@Override
 			protected void afterMatch(MyReadEntry entry, boolean found) throws IOException {
-//				ByteArrayUtil.print(entry.readDescriptor, System.out);
 				super.afterMatch(entry, found);
 				totalCount++;
 				if (!timing) {
 					int colonIndex = ByteArrayUtil.indexOf(entry.readDescriptor, 1, entry.readDescriptorSize, ':');
 					String correctTaxId = new String(entry.readDescriptor, 1, colonIndex - 1);
-					if (correctTaxId.equals(entry.readTaxId)) {
+					if (entry.readTaxErrorCount <= maxReadTaxErrorCount && correctTaxId.equals(entry.readTaxId)) {
 						taxIdCorrectCount++;
 						genusCorrectCount++;
-					} else if (entry.readTaxId != null && entry.readTaxId != INVALID_TAX) {
+					} else if (entry.readTaxErrorCount <= maxReadTaxErrorCount && entry.readTaxId != null
+							&& entry.readTaxId != INVALID_TAX) {
 						TaxIdNode correctGenusTaxNode = taxTree.getRankedNode(correctTaxId, Rank.GENUS);
 						if (correctGenusTaxNode != null) {
 							if (correctGenusTaxNode == taxTree.getRankedNode(entry.readTaxId, Rank.GENUS)) {
 								genusCorrectCount++;
 							} else {
 								genusIncorrectCount++;
+								ByteArrayUtil.println(entry.readDescriptor, System.out);
 							}
 						}
 					} else {
