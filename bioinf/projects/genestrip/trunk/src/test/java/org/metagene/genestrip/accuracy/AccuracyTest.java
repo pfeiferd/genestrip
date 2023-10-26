@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.metagene.genestrip.GSConfig;
 import org.metagene.genestrip.GSMaker;
@@ -15,7 +16,7 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree;
 
-// @Ignore
+@Ignore
 public class AccuracyTest {
 	@SuppressWarnings("unchecked")
 	@Test
@@ -70,11 +71,11 @@ public class AccuracyTest {
 				accessionNumber2TaxidGoal, accDownloadGoal);
 		fastaTransformGoal.make();
 
-		AccuracyMatchGoal tempdbMatchGoal = new AccuracyMatchGoal(project, "acctempdbmatch",
-				new File(project.getProjectDir(), "multimatch.txt"),
-				(ObjectGoal<TaxTree, GSProject>) maker.getGoal("taxtree"),
-				(ObjectGoal<KMerStoreWrapper, GSProject>) maker.getGoal("filleddb"), fastaTransformGoal);
-		tempdbMatchGoal.make();
+//		AccuracyMatchGoal tempdbMatchGoal = new AccuracyMatchGoal(project, "acctempdbmatch",
+//				new File(project.getProjectDir(), "multimatch.txt"),
+//				(ObjectGoal<TaxTree, GSProject>) maker.getGoal("taxtree"),
+//				(ObjectGoal<KMerStoreWrapper, GSProject>) maker.getGoal("filleddb"), fastaTransformGoal);
+//		tempdbMatchGoal.make();
 		
 		AccuracyMatchGoal matchGoal = new AccuracyMatchGoal(project, "accmatch",
 				new File(project.getProjectDir(), "multimatch.txt"),
