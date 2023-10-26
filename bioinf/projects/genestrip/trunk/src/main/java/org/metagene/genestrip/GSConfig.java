@@ -48,6 +48,7 @@ public class GSConfig {
 	public static final String IGNORE_MISSING_FASTAS = "ignoreMissingFastas";
 	public static final String RANK_COMPLETION_DEPTH = "rankCompletionDepth";
 	public static final String MAX_GENOMES_PER_TAXID = "maxGenomesPerTaxid";
+	public static final String USE_BLOOM_FILTER_FOR_MATCH = "useBloomFilterForMatch";
 
 	private final File baseDir;
 	private final Properties properties;
@@ -172,6 +173,10 @@ public class GSConfig {
 		return Boolean.valueOf(properties.getProperty("useHttp", "true"));
 	}
 
+	public boolean isUseBloomFilterForMatch() {
+		return Boolean.valueOf(properties.getProperty(USE_BLOOM_FILTER_FOR_MATCH, "true"));
+	}
+	
 	public File getRefSeqDir() {
 		return new File(getCommonDir(), "refseq");
 	}
