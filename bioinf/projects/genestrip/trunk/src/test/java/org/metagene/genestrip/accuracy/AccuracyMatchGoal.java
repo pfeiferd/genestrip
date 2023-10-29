@@ -29,6 +29,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 	private long totalCount;
 	private long startMillis;
 	private boolean timing;
+	private Map<Rank, Integer> correctRankOnPath;
 
 	@SafeVarargs
 	public AccuracyMatchGoal(GSProject project, String name, File csvFile, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
@@ -44,6 +45,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 		noTaxIdCount = 0;
 		totalCount = 0;
 		noTaxIdErrorPerTaxid = new HashMap<String, Integer>();
+		correctRankOnPath = new HashMap<Rank, Integer>();
 		startMillis = System.currentTimeMillis();
 		timing = file.getName().contains("timing");
 		super.makeFile(file);
@@ -62,7 +64,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 				if (!timing) {
 					int colonIndex = ByteArrayUtil.indexOf(entry.readDescriptor, 1, entry.readDescriptorSize, ':');
 					String correctTaxId = new String(entry.readDescriptor, 1, colonIndex - 1);
-					if (entry.readTaxId != null && entry.readTaxId != INVALID_TAX) {
+					if (entry.readTaxId != null) {
 						if (correctTaxId.equals(entry.readTaxId)) {
 							taxIdCorrectCount++;
 							genusCorrectCount++;
@@ -73,7 +75,19 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 									genusCorrectCount++;
 								} else {
 									genusIncorrectCount++;
-									ByteArrayUtil.println(entry.readDescriptor, System.out);
+								}
+							}
+						}
+
+						for (Rank rank : Rank.values()) {
+							TaxIdNode correctRankTaxNode = taxTree.getRankedNode(correctTaxId, rank);
+							if (correctRankTaxNode != null) {
+								if (correctRankTaxNode.equals(entry.readTaxIdNode)) {
+									Integer c = correctRankOnPath.get(rank);
+									if (c == null) {
+										c = 0;
+									}
+									correctRankOnPath.put(rank, c + 1);
 								}
 							}
 						}
@@ -95,7 +109,13 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 	protected void writeOutputFile(File file, MatchingResult result, KMerStoreWrapper wrapper) throws IOException {
 		PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
 		if (!timing) {
-			out.println("total; taxid correct; genus correct; genus incorrect; no taxid;");
+			out.print("total; taxid correct; genus correct; genus incorrect; no taxid;");
+			for (Rank rank : Rank.values()) {
+				if (correctRankOnPath.get(rank) != null) {
+					out.print(rank.getName() + " correct on path;");
+				}
+			}
+			out.println();
 			out.print(totalCount);
 			out.print(';');
 			out.print(taxIdCorrectCount);
@@ -105,8 +125,15 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 			out.print(genusIncorrectCount);
 			out.print(';');
 			out.print(noTaxIdCount);
-			out.println(';');
-			System.out.println(noTaxIdErrorPerTaxid);
+			out.print(';');
+			for (Rank rank : Rank.values()) {
+				Integer c = correctRankOnPath.get(rank);
+				if (c != null) {
+					out.print(c);
+					out.print(';');
+				}
+			}
+			out.println();
 		} else {
 			long millis = System.currentTimeMillis() - startMillis;
 			out.println("total; elapsed millis; reads per min.;");
