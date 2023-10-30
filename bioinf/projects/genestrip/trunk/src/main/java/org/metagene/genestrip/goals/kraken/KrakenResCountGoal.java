@@ -111,6 +111,7 @@ public class KrakenResCountGoal extends MultiFileGoal {
 								if (kmerTaxid != null && kmerTaxid.equals(krakenTaxid)) {
 									stats.kmersInMatchingReads += hitLength;
 								}
+								afterReadMatch(krakenTaxid, readDescriptor);
 							}
 						}
 					}
@@ -138,6 +139,9 @@ public class KrakenResCountGoal extends MultiFileGoal {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	protected void afterReadMatch(String krakenTaxid, byte[] readDescriptor) {		
 	}
 
 	protected void print(List<KrakenResStats> list, PrintStream out) {
