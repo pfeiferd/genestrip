@@ -21,32 +21,23 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
 public class AccuracyMatchGoal extends MultiMatchGoal {
-	private Map<String, Integer> noTaxIdErrorPerTaxid;
-	private int taxIdCorrectCount;
-	private int genusCorrectCount;
-	private int genusIncorrectCount;
-	private int noTaxIdCount;
-	private long totalCount;
+	private final AccuracyCounts accuracyCounts;
 	private long startMillis;
 	private boolean timing;
-	private Map<Rank, Integer> correctRankOnPath;
+	private int totalCount;
 
 	@SafeVarargs
 	public AccuracyMatchGoal(GSProject project, String name, File csvFile, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
 			ObjectGoal<KMerStoreWrapper, GSProject> storeGoal, Goal<GSProject>... deps) {
-		super(project, name, csvFile, taxTreeGoal, storeGoal, false, deps);
+		super(project, name, true, csvFile, taxTreeGoal, storeGoal, false, deps);
+		accuracyCounts = new AccuracyCounts();
 	}
 
 	@Override
 	protected void makeFile(File file) {
-		taxIdCorrectCount = 0;
-		genusCorrectCount = 0;
-		genusIncorrectCount = 0;
-		noTaxIdCount = 0;
-		totalCount = 0;
-		noTaxIdErrorPerTaxid = new HashMap<String, Integer>();
-		correctRankOnPath = new HashMap<Rank, Integer>();
+		accuracyCounts.clear();
 		startMillis = System.currentTimeMillis();
+		totalCount = 0;
 		timing = file.getName().contains("timing");
 		super.makeFile(file);
 	}
@@ -62,43 +53,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 				super.afterMatch(entry, found);
 				totalCount++;
 				if (!timing) {
-					int colonIndex = ByteArrayUtil.indexOf(entry.readDescriptor, 1, entry.readDescriptorSize, ':');
-					String correctTaxId = new String(entry.readDescriptor, 1, colonIndex - 1);
-					if (entry.readTaxId != null) {
-						if (correctTaxId.equals(entry.readTaxId)) {
-							taxIdCorrectCount++;
-							genusCorrectCount++;
-						} else {
-							TaxIdNode correctGenusTaxNode = taxTree.getRankedNode(correctTaxId, Rank.GENUS);
-							if (correctGenusTaxNode != null) {
-								if (correctGenusTaxNode == taxTree.getRankedNode(entry.readTaxId, Rank.GENUS)) {
-									genusCorrectCount++;
-								} else {
-									genusIncorrectCount++;
-								}
-							}
-						}
-
-						for (Rank rank : Rank.values()) {
-							TaxIdNode correctRankTaxNode = taxTree.getRankedNode(correctTaxId, rank);
-							if (correctRankTaxNode != null) {
-								if (correctRankTaxNode.equals(entry.readTaxIdNode)) {
-									Integer c = correctRankOnPath.get(rank);
-									if (c == null) {
-										c = 0;
-									}
-									correctRankOnPath.put(rank, c + 1);
-								}
-							}
-						}
-					} else {
-						Integer e = noTaxIdErrorPerTaxid.get(correctTaxId);
-						if (e == null) {
-							e = 0;
-						}
-						noTaxIdErrorPerTaxid.put(correctTaxId, e + 1);
-						noTaxIdCount++;
-					}
+					accuracyCounts.updateCounts(entry.readTaxId, entry.readDescriptor, taxTree);
 				}
 			}
 		};
@@ -109,6 +64,89 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 	protected void writeOutputFile(File file, MatchingResult result, KMerStoreWrapper wrapper) throws IOException {
 		PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
 		if (!timing) {
+			accuracyCounts.printCounts(out);
+		} else {
+			long millis = System.currentTimeMillis() - startMillis;
+			out.println("total; elapsed millis; reads per min.;");
+			out.print(totalCount);
+			out.print(';');
+			out.print(millis);
+			out.print(';');
+			out.print(totalCount * 1000 * 60 / millis);
+			out.println(';');
+		}
+		out.close();
+	}
+	
+	public static class AccuracyCounts {
+		public final Map<String, Integer> noTaxIdErrorPerTaxid;
+		public final Map<Rank, Integer> correctRankOnPath;
+		
+		public int taxIdCorrectCount;
+		public int genusCorrectCount;
+		public int genusIncorrectCount;
+		public int noTaxIdCount;
+		public long totalCount;
+		
+		public AccuracyCounts() {
+			noTaxIdErrorPerTaxid = new HashMap<String, Integer>();
+			correctRankOnPath = new HashMap<Rank, Integer>();			
+		}
+		
+		public void clear() {
+			taxIdCorrectCount = 0;
+			genusCorrectCount = 0;
+			genusIncorrectCount = 0;
+			noTaxIdCount = 0;
+			totalCount = 0;
+			
+			noTaxIdErrorPerTaxid.clear();
+			correctRankOnPath.clear();
+		}
+		
+		public void updateCounts(String readTaxId, byte[] readDescriptor, TaxTree taxTree) {
+			totalCount++;
+			int colonIndex = ByteArrayUtil.indexOf(readDescriptor, 1, readDescriptor.length, ':');
+			String correctTaxId = new String(readDescriptor, 1, colonIndex - 1);
+			if (readTaxId != null) {
+				if (correctTaxId.equals(readTaxId)) {
+					taxIdCorrectCount++;
+					genusCorrectCount++;
+				} else {
+					TaxIdNode correctGenusTaxNode = taxTree.getRankedNode(correctTaxId, Rank.GENUS);
+					if (correctGenusTaxNode != null) {
+						if (correctGenusTaxNode == taxTree.getRankedNode(readTaxId, Rank.GENUS)) {
+							genusCorrectCount++;
+						} else {
+							genusIncorrectCount++;
+						}
+					}
+				}
+
+				for (Rank rank : Rank.values()) {
+					TaxIdNode correctRankTaxNode = taxTree.getRankedNode(correctTaxId, rank);
+					if (correctRankTaxNode != null) {
+						TaxIdNode node = taxTree.getNodeByTaxId(readTaxId);
+						if (correctRankTaxNode.equals(node)) {
+							Integer c = correctRankOnPath.get(rank);
+							if (c == null) {
+								c = 0;
+							}
+							correctRankOnPath.put(rank, c + 1);
+						}
+					}
+				}
+			} else {
+				Integer e = noTaxIdErrorPerTaxid.get(correctTaxId);
+				if (e == null) {
+					e = 0;
+				}
+				noTaxIdErrorPerTaxid.put(correctTaxId, e + 1);
+				noTaxIdCount++;
+			}			
+		}
+		
+		public void printCounts(PrintStream out) {
 			out.print("total; taxid correct; genus correct; genus incorrect; no taxid;");
 			for (Rank rank : Rank.values()) {
 				if (correctRankOnPath.get(rank) != null) {
@@ -134,16 +172,6 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 				}
 			}
 			out.println();
-		} else {
-			long millis = System.currentTimeMillis() - startMillis;
-			out.println("total; elapsed millis; reads per min.;");
-			out.print(totalCount);
-			out.print(';');
-			out.print(millis);
-			out.print(';');
-			out.print(totalCount * 1000 * 60 / millis);
-			out.println(';');
 		}
-		out.close();
 	}
 }
