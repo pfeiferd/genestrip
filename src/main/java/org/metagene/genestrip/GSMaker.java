@@ -35,7 +35,6 @@ import java.util.Set;
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
 import org.metagene.genestrip.goals.AdditionalFastasGoal;
 import org.metagene.genestrip.goals.FilterGoal;
-import org.metagene.genestrip.goals.MatchGoal;
 import org.metagene.genestrip.goals.MultiMatchGoal;
 import org.metagene.genestrip.goals.StoreInfoGoal;
 import org.metagene.genestrip.goals.TaxIdFileDownloadGoal;
@@ -233,27 +232,27 @@ public class GSMaker extends Maker<GSProject> {
 					projectSetupGoal);
 			registerGoal(filterGoal);
 
-			Goal<GSProject> krakenResCountGoal = new KrakenResCountGoal(project, "krakenres", fastqOrCSV, taxNodesGoal,
+			KrakenResCountGoal krakenResCountGoal = new KrakenResCountGoal(project, "krakenres", false, fastqOrCSV, taxNodesGoal,
 					projectSetupGoal);
 			registerGoal(krakenResCountGoal);
 
-			Goal<GSProject> multiKrakenResCountGoal = new KrakenResCountGoal(project, "multikrakenres", fastqOrCSV,
-					true, taxNodesGoal, projectSetupGoal);
+			KrakenResCountGoal multiKrakenResCountGoal = new KrakenResCountGoal(project, "multikrakenres", true, fastqOrCSV,
+					taxNodesGoal, projectSetupGoal);
 			registerGoal(multiKrakenResCountGoal);
 
-			Goal<GSProject> krakenResCountAllGoal = new KrakenResCountGoal(project, "krakenresall", fastqOrCSV, null,
+			Goal<GSProject> krakenResCountAllGoal = new KrakenResCountGoal(project, "krakenresall", false, fastqOrCSV, null,
 					projectSetupGoal);
 			registerGoal(krakenResCountAllGoal);
 
 			Goal<GSProject> multiKrakenResCountAllGoal = new KrakenResCountGoal(project, "multikrakenresall",
-					fastqOrCSV, true, null, projectSetupGoal);
+					true, fastqOrCSV, null, projectSetupGoal);
 			registerGoal(multiKrakenResCountAllGoal);
 
-			Goal<GSProject> matchGoal = new MatchGoal(project, "match", fastqOrCSV, taxTreeGoal, updatedStoreGoal,
+			Goal<GSProject> matchGoal = new MultiMatchGoal(project, "match", false, fastqOrCSV, taxTreeGoal, updatedStoreGoal,
 					project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
 			registerGoal(matchGoal);
 
-			Goal<GSProject> multiMatchGoal = new MultiMatchGoal(project, MultiMatchGoal.NAME, fastqOrCSV, taxTreeGoal,
+			Goal<GSProject> multiMatchGoal = new MultiMatchGoal(project, MultiMatchGoal.NAME, true, fastqOrCSV, taxTreeGoal,
 					updatedStoreGoal, project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
 			registerGoal(multiMatchGoal);
 		}

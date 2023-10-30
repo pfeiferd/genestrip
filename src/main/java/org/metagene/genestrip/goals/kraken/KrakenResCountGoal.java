@@ -32,90 +32,40 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.csv.CSVParser;
-import org.apache.commons.csv.CSVRecord;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.GSProject.FileType;
-import org.metagene.genestrip.goals.MultiMatchGoal;
+import org.metagene.genestrip.goals.MultiFileGoal;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.kraken.KrakenExecutor;
 import org.metagene.genestrip.kraken.KrakenResultListener;
 import org.metagene.genestrip.kraken.KrakenResultProcessor;
-import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.DigitTrie;
 
-public class KrakenResCountGoal extends FileListGoal<GSProject> {
-	private final Map<File, List<File>> fileToFastqs;
-	private final File csvFile;
-
-	private final File fastq;
-	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
+public class KrakenResCountGoal extends MultiFileGoal {
+	protected final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 
 	@SafeVarargs
-	public KrakenResCountGoal(GSProject project, String name, File fastqFile,
+	public KrakenResCountGoal(GSProject project, String name, boolean csv, File csvOrFastqFile,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, fastqFile, FileType.CSV, false),
-				Goal.append(deps, taxNodesGoal));
+		super(project, name, csv, csvOrFastqFile, Goal.append(deps, taxNodesGoal));
 		this.taxNodesGoal = taxNodesGoal;
-		this.fastq = fastqFile;
-		fileToFastqs = null;
-		csvFile = null;
-	}
-
-	@SafeVarargs
-	public KrakenResCountGoal(GSProject project, String name, File csvFile, boolean csv,
-			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, Goal<GSProject>... deps) {
-		super(project, name, (List<File>) null, Goal.append(deps, taxNodesGoal));
-		this.taxNodesGoal = taxNodesGoal;
-		this.csvFile = csvFile;
-		fastq = null;
-		fileToFastqs = new HashMap<File, List<File>>();
-	}
-
-	@Override
-	protected void provideFiles() {
-		if (fastq == null) {
-			try {
-				CSVParser parser = MultiMatchGoal.readCSVFile(csvFile);
-
-				for (CSVRecord record : parser) {
-					String name = record.get(0);
-					String fastqFilePath = record.get(1);
-					File fastq = new File(fastqFilePath);
-					if (fastq.exists()) {
-						File matchFile = getProject().getOutputFile(getName() + "_" + name, null, FileType.CSV,
-								false);
-						List<File> fastqs = fileToFastqs.get(matchFile);
-						if (fastqs == null) {
-							fastqs = new ArrayList<File>();
-							fileToFastqs.put(matchFile, fastqs);
-							addFile(matchFile);
-						}
-						fastqs.add(fastq);
-					} else {
-						getLogger().warn("Ignoring missing fastq file " + fastq + ".");
-					}
-				}
-
-				parser.close();
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		}
 	}
 
 	@Override
 	protected void makeFile(File file) throws IOException {
+		PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
+		List<KrakenResStats> list = computeStats(fileToFastqs.get(file));
+		print(list, out);
+		out.close();
+	}
+	
+	protected List<KrakenResStats> computeStats(List<File> fastqs) throws IOException {
 		DigitTrie<KrakenResStats> countingTrie = new DigitTrie<KrakenResStats>() {
 			@Override
 			protected KrakenResStats createInGet(String taxid, Object createContext) {
@@ -167,9 +117,8 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 				});
 			}
 		};
-		List<File> fastqs = fastq != null ? Collections.singletonList(fastq) : fileToFastqs.get(file);
 		if (getLogger().isInfoEnabled()) {
-			String execLine = krakenExecutor.genExecLine(getProject().getKrakenDB(), fastqs, file);
+			String execLine = krakenExecutor.genExecLine(getProject().getKrakenDB(), fastqs, null);
 			getLogger().info("Run kraken with " + execLine);
 		}
 		try {
@@ -177,20 +126,17 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 				throw new IOException("This goal does not work with an outfile as a parameter (like in krakenuniq)");
 			}
 
-			krakenExecutor.execute2(getProject().getKrakenDB(), fastqs, file, null, System.err);
+			krakenExecutor.execute2(getProject().getKrakenDB(), fastqs, null, null, System.err);
 
-			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("Finished kraken");
+			}
+			
 			List<KrakenResStats> list = new ArrayList<KrakenResStats>();
 			countingTrie.collect(list);
-			print(list, out);
-
-			out.close();
+			return list;
 		} catch (IOException e) {
 			throw new RuntimeException(e);
-		}
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Finished kraken");
 		}
 	}
 
@@ -208,7 +154,7 @@ public class KrakenResCountGoal extends FileListGoal<GSProject> {
 		}
 	}
 
-	protected static class KrakenResStats implements Comparable<KrakenResStats>, Serializable {
+	public static class KrakenResStats implements Comparable<KrakenResStats>, Serializable {
 		private static final long serialVersionUID = 1L;
 
 		protected String taxid;

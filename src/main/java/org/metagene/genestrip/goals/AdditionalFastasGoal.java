@@ -25,11 +25,10 @@
 package org.metagene.genestrip.goals;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.csv.CSVRecord;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -48,41 +47,25 @@ public class AdditionalFastasGoal extends ObjectGoal<Map<File, TaxIdNode>, GSPro
 
 	@Override
 	public void makeThis() {
-		try {
-			Map<File, TaxIdNode> res = new HashMap<File, TaxTree.TaxIdNode>();
-
-			File additonalEntryFile = getProject().getAddtionalFile();
-			if (additonalEntryFile.exists()) {
-				TaxTree taxTree = taxTreeGoal.get();
-
-				Iterable<CSVRecord> records = MultiMatchGoal.readCSVFile(additonalEntryFile);
-				for (CSVRecord record : records) {
-					String taxid = record.get(0);
-					String fileName = record.get(1);
-
-					TaxIdNode node = taxTree.getNodeByTaxId(taxid);
-					if (node != null) {
-						File file = new File(fileName);
-						if (!file.exists()) {
-							file = new File(getProject().getFastaDir(), fileName);
-						}
-						if (file.exists()) {
-							if (getLogger().isInfoEnabled()) {
-								getLogger()
-										.info("Adding additional fasta file " + file + " for taxid " + node.getTaxId());
-							}
-							res.put(file, node);
-						} else {
-							if (getLogger().isWarnEnabled()) {
-								getLogger().warn("Ignoring missing additional fasta file " + file);
-							}
-						}
+		Map<File, TaxIdNode> res = new HashMap<File, TaxTree.TaxIdNode>();
+		File additonalEntryFile = getProject().getAddtionalFile();
+		if (additonalEntryFile.exists()) {
+			Map<String, List<File>> map;
+			map = MultiMatchGoal.readMultiCSV(getProject().getFastaDir(), additonalEntryFile, getLogger());
+			TaxTree taxTree = taxTreeGoal.get();
+			for (String key : map.keySet()) {
+				TaxIdNode node = taxTree.getNodeByTaxId(key);
+				if (node != null) {
+					for (File file : map.get(key)) {
+						res.put(file, node);
+					}
+				} else {
+					if (getLogger().isWarnEnabled()) {
+						getLogger().warn("Unknown taxid in additional file (omitting fasta files for it): " + key);
 					}
 				}
 			}
-			set(res);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
 		}
+		set(res);
 	}
 }

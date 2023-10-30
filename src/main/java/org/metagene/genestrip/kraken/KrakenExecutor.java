@@ -58,7 +58,7 @@ public class KrakenExecutor {
 			first = false;
 		}
 		return MessageFormat.format(execCommand, bin, StringUtils.quoteArgument(database), fastqsStr.toString(),
-				StringUtils.quoteArgument(classOut.getCanonicalPath()));
+				classOut == null ? "" : StringUtils.quoteArgument(classOut.getCanonicalPath()));
 	}
 
 	public boolean isWithFileForOutput() {
@@ -104,8 +104,8 @@ public class KrakenExecutor {
 		}
 	}
 
-	public void execute(String database, List<File> fastqs, File classOut, OutputStream outputStream, OutputStream errorStream)
-			throws InterruptedException, IOException {
+	public void execute(String database, List<File> fastqs, File classOut, OutputStream outputStream,
+			OutputStream errorStream) throws InterruptedException, IOException {
 		Process process = Runtime.getRuntime().exec(genExecLine(database, fastqs, classOut));
 		handleOutputStream(process.getInputStream(), outputStream);
 		handleErrorStream(process.getErrorStream(), System.err);
