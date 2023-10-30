@@ -52,7 +52,7 @@ import it.unimi.dsi.fastutil.objects.Object2LongMap;
 public class FastqKMerMatcher extends AbstractFastqReader {
 	public static final long DEFAULT_LOG_UPDATE_CYCLE = 1000000;
 
-	protected static final String INVALID_TAX = "invalidTax";
+	private static final String INVALID_TAX = "invalidTax";
 
 	private final KMerSortedArray<String> kmerStore;
 	private final int maxKmerResCounts;
@@ -356,6 +356,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 				}
 				else {
 					entry.readTaxId = null;
+					entry.readTaxIdNode = null;
 				}
 			}
 		}
@@ -382,6 +383,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 				entry.readTaxIdNode = node;
 			} else if (!taxTree.isAncestorOf(entry.readTaxIdNode, node)) {
 				entry.readTaxId = INVALID_TAX;
+				entry.readTaxIdNode = null;
 			}
 		}
 	}
