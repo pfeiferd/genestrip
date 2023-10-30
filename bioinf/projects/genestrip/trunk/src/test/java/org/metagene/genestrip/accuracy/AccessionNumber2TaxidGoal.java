@@ -24,7 +24,7 @@ public class AccessionNumber2TaxidGoal extends ObjectGoal<Map<String, String>, G
 
 	private final File fastaFile;
 
-	@SuppressWarnings("unchecked")
+	@SafeVarargs
 	public AccessionNumber2TaxidGoal(GSProject project, String name, File fastaFile, Goal<GSProject>... dependencies) {
 		super(project, name, dependencies);
 		this.fastaFile = fastaFile;
