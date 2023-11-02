@@ -31,6 +31,7 @@ import java.util.Properties;
 
 import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.make.FileDownloadGoal.DownloadProject;
+import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.tax.TaxTree.Rank;
 
 public class GSProject implements DownloadProject {
@@ -38,7 +39,7 @@ public class GSProject implements DownloadProject {
 	public static final String PROJECT_PROPERTIES_2 = "Project.properties";
 	
 	public enum FileType {
-		FASTQ_RES(".fastq"), FASTQ(".fastq"), FASTA(".fasta"), CSV(".csv"), KRAKEN_OUT(".out"), KRAKEN_OUT_RES(".out"), SER(".ser");
+		FASTQ_RES(".fastq"), FASTQ(".fastq"), FASTA(".fasta"), CSV(".csv"), KRAKEN_OUT(".out"), KRAKEN_OUT_RES(".out"), SER(".ser"), DB(".kmers.ser"), FILTER(".bloom.ser");
 
 		private final String suffix;
 
@@ -101,6 +102,8 @@ public class GSProject implements DownloadProject {
 		case KRAKEN_OUT_RES:
 			return getKrakenOutDir();
 		case SER:
+		case DB:
+		case FILTER:
 			return getDBDir();
 		default:
 			throw new IllegalArgumentException("Illegal FileType: " + type);
@@ -275,4 +278,7 @@ public class GSProject implements DownloadProject {
 		return getConfig().getMaxReadTaxErrorCount();
 	}
 	
+	public File getFilterFile(Goal<GSProject> goal) {
+		return getOutputFile(goal.getName(), FileType.FILTER);
+	}	
 }

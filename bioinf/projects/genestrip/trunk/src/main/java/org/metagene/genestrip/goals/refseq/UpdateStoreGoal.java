@@ -68,7 +68,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionTrieGoal,
 			ObjectGoal<KMerStoreWrapper, GSProject> filledStoreGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, FileType.SER),
+		super(project, name, project.getOutputFile(name, FileType.DB),
 				Goal.append(deps, categoriesGoal, taxTreeGoal, fnaFilesGoal, accessionTrieGoal, filledStoreGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxTreeGoal = taxTreeGoal;
@@ -132,9 +132,10 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 			}
 
 			KMerStoreWrapper wrapper2 = new KMerStoreWrapper((KMerSortedArray<String>) store);
-			wrapper2.save(storeFile);
+			File filterFile = getProject().getFilterFile(this);
+			wrapper2.save(storeFile, filterFile);
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("File saved " + storeFile);
+				getLogger().info("File saved " + storeFile + " along with index " + filterFile);
 			}
 			updatedStoreGoal.setStoreWrapper(wrapper2);
 		} catch (IOException e) {

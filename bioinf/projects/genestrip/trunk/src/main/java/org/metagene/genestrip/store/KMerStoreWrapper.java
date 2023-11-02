@@ -30,6 +30,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
+import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
 import org.metagene.genestrip.io.StreamProvider;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
@@ -51,16 +52,24 @@ public class KMerStoreWrapper implements Serializable {
 		return kmerStore.getStats();
 	}
 
-	public void save(File file) throws IOException {
+	public void save(File file, File filterFile) throws IOException {
 		ObjectOutputStream oOut = new ObjectOutputStream(StreamProvider.getOutputStreamForFile(file));
 		oOut.writeObject(this);
 		oOut.close();
+		if (filterFile != null) {
+			kmerStore.getFilter().save(filterFile);
+		}
 	}
 
-	public static KMerStoreWrapper load(File file) throws IOException, ClassNotFoundException {
+	public static KMerStoreWrapper load(File file, File filterFile) throws IOException, ClassNotFoundException {
 		ObjectInputStream oOut = new ObjectInputStream(StreamProvider.getInputStreamForFile(file));
 		KMerStoreWrapper res = (KMerStoreWrapper) oOut.readObject();
 		oOut.close();
+		if (filterFile != null) {
+			MurmurCGATBloomFilter filter = MurmurCGATBloomFilter.load(filterFile);
+			res.getKmerStore().setFilter(filter);
+		}
+		
 		return res;
 	}
 }

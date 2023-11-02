@@ -48,18 +48,15 @@ public abstract class MultiFileGoal extends FileListGoal<GSProject> {
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#')
 			.setDelimiter(' ').setRecordSeparator('\n').build();
 
-	private final Map<String, List<File>> keyToFastqs;
+	private final boolean csv;
+	private final File csvOrFastqFile;
 	protected final Map<File, List<File>> fileToFastqs;
 
 	@SafeVarargs
 	public MultiFileGoal(GSProject project, String name, boolean csv, File csvOrFastqFile, Goal<GSProject>... deps) {
 		super(project, name, (List<File>) null, deps);
-		if (csv) {
-			keyToFastqs = readMultiCSV(getSourceDir(), csvOrFastqFile, getLogger());
-		} else {
-			keyToFastqs = new HashMap<String, List<File>>();
-			keyToFastqs.put(null, Collections.singletonList(csvOrFastqFile));
-		}
+		this.csv = csv;
+		this.csvOrFastqFile = csvOrFastqFile;
 		fileToFastqs = new HashMap<File, List<File>>();
 	}
 
@@ -69,6 +66,13 @@ public abstract class MultiFileGoal extends FileListGoal<GSProject> {
 
 	@Override
 	protected void provideFiles() {
+		Map<String, List<File>> keyToFastqs;
+		if (csv) {
+			keyToFastqs = readMultiCSV(getSourceDir(), csvOrFastqFile, getLogger());
+		} else {
+			keyToFastqs = new HashMap<String, List<File>>();
+			keyToFastqs.put(null, Collections.singletonList(csvOrFastqFile));
+		}
 		for (String key : keyToFastqs.keySet()) {
 			File matchFile;
 			if (key != null) {
