@@ -127,7 +127,7 @@ public class KrakenResCountGoal extends MultiFileGoal {
 				throw new IOException("This goal does not work with an outfile as a parameter (like in krakenuniq)");
 			}
 
-			krakenExecutor.execute2(getProject().getKrakenDB(), fastqs, null, null, System.err);
+			krakenExecutor.execute(getProject().getKrakenDB(), fastqs, null, null, System.err);
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Finished kraken");
@@ -136,7 +136,7 @@ public class KrakenResCountGoal extends MultiFileGoal {
 			List<KrakenResStats> list = new ArrayList<KrakenResStats>();
 			countingTrie.collect(list);
 			return list;
-		} catch (IOException e) {
+		} catch (IOException | InterruptedException e) {
 			throw new RuntimeException(e);
 		}
 	}

@@ -123,7 +123,7 @@ public class ResultReporter {
 			estimator.setTotalKMers(res.getTotalKMers());
 		}
 
-		out.print("name;rank;taxid;reads;kmers;unique kmers;contigs;average contig length;max contig length;max contig desc.;");
+		out.print("name;rank;taxid;reads;kmers from reads;kmers;unique kmers;contigs;average contig length;max contig length;max contig desc.;");
 		if (estimator != null) {
 			out.print("normalized kmers;exp. unique kmers;unique kmers / exp.;quality prediction;");
 		}
@@ -168,6 +168,8 @@ public class ResultReporter {
 					out.print(taxNode.getTaxId());
 					out.print(';');
 					out.print(stats.getReads());
+					out.print(';');
+					out.print(stats.getReadKMers());
 					out.print(';');
 					out.print(stats.getKMers());
 					out.print(';');

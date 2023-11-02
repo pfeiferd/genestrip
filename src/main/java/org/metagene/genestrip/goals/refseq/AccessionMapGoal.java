@@ -30,7 +30,7 @@ import java.util.Set;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.refseq.AccesionMapImpl;
+import org.metagene.genestrip.refseq.AccessionMapImpl;
 import org.metagene.genestrip.refseq.AccessionFileProcessor;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
@@ -59,7 +59,7 @@ public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
 	public void makeThis() {
 		AccessionFileProcessor processor = new AccessionFileProcessor(categoriesGoal.get()[1],
 				getProject().isUseCompleteGenomesOnly()) {
-			private AccessionMap map = new AccesionMapImpl(accessionMapSizeGoal.get());
+			private AccessionMap map = new AccessionMapImpl(accessionMapSizeGoal.get());
 			private TaxTree taxTree = taxTreeGoal.get();
 
 			@Override
