@@ -123,7 +123,7 @@ public class GSConfig {
 	}
 
 	public String getKrakenBin() {
-		return properties.getProperty("krakenBin");
+		return properties.getProperty("krakenBin", "krakenuniq");
 	}
 
 	public String getKrakenDB() {
