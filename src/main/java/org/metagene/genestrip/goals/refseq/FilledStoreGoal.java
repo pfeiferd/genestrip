@@ -49,6 +49,12 @@ public class FilledStoreGoal extends ObjectGoal<KMerStoreWrapper, GSProject> {
 			File filterFile = null;
 			if (getProject().isUseBloomFilterForMatch()) {
 				filterFile = getProject().getFilterFile(fillStoreGoal);
+				if (!filterFile.exists()) {
+					if (getLogger().isWarnEnabled()) {
+						getLogger().warn("Missting filter file " + filterFile + ". The database will be used without it.");
+					}
+					filterFile = null;
+				}
 			}
 			KMerStoreWrapper wrapper = KMerStoreWrapper.load(fillStoreGoal.getFile(), filterFile);
 			set(wrapper);
