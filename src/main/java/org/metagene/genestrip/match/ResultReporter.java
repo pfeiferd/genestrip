@@ -133,12 +133,11 @@ public class ResultReporter {
 		out.println();
 		out.print("TOTAL;");
 		out.print(Rank.SUPERKINGDOM);
-		out.print(';');
-		out.print("1;");
+		out.print(";1;");
 		out.print(res.getTotalReads());
-		out.print(';');
+		out.print(";0;");
 		out.print(res.getTotalKMers());
-		out.print(";0;0;0;0;");
+		out.print(";0;0;0;0;0;");
 		if (estimator != null) {
 			out.print("0;0;0;0;");
 		}
