@@ -79,7 +79,7 @@ public abstract class MultiFileGoal extends FileListGoal<GSProject> {
 				matchFile = getProject().getOutputFile(getName() + "_" + key, null, FileType.CSV, false);
 			} else {
 				File file = keyToFastqs.get(null).get(0);
-				matchFile = getProject().getOutputFile(getName(), file, FileType.CSV);
+				matchFile = getProject().getOutputFile(getName(), file, FileType.CSV, false);
 			}
 			addFile(matchFile);
 			fileToFastqs.put(matchFile, keyToFastqs.get(key));
