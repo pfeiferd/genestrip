@@ -272,6 +272,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		int max = entry.readSize - k;
 		String lastTaxid = null;
 		int contigLen = 0;
+		int readKmerCount = 0;
 		CountsPerTaxid stats = null;
 
 		for (int i = 0; i <= max; i++) {
@@ -281,6 +282,8 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 			taxid = kmer == -1 ? null : kmerStore.getLong(kmer, entry.indexPos);
 			if (taxid == null) {
 				entry.readTaxErrorCount++;
+			} else {
+				readKmerCount++;
 			}
 			if (taxid != lastTaxid) {
 				if (taxid != null) {
@@ -352,9 +355,11 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 							stats = root.get(entry.readTaxId, maxReadSize);
 						}
 					}
-					stats.reads++;
-				}
-				else {
+					synchronized (stats) {
+						stats.reads++;
+						stats.readKmers += readKmerCount;
+					}
+				} else {
 					entry.readTaxId = null;
 					entry.readTaxIdNode = null;
 				}
@@ -363,7 +368,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 
 		return found;
 	}
-	
+
 	// This very simple approach follows just one possibility for a potentially
 	// correct taxid. Maybe at least follow one more possibility?
 	protected void updateReadTaxid(String taxid, MyReadEntry entry) {

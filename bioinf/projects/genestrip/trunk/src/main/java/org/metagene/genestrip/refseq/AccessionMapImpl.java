@@ -32,14 +32,14 @@ import it.unimi.dsi.fastutil.BigArrays;
 import it.unimi.dsi.fastutil.BigSwapper;
 import it.unimi.dsi.fastutil.longs.LongComparator;
 
-public class AccesionMapImpl implements AccessionMap {
+public class AccessionMapImpl implements AccessionMap {
 	private final byte[][] keys;
 	private final TaxIdNode[] values;
 
 	private int entries;
 	private boolean sorted;
 
-	public AccesionMapImpl(int size) {
+	public AccessionMapImpl(int size) {
 		entries = 0;
 		keys = new byte[size][];
 		values = new TaxIdNode[size];
