@@ -24,6 +24,7 @@
  */
 package org.metagene.genestrip.goals.refseq;
 
+import java.io.File;
 import java.io.IOException;
 
 import org.metagene.genestrip.GSProject;
@@ -45,7 +46,11 @@ public class FilledStoreGoal extends ObjectGoal<KMerStoreWrapper, GSProject> {
 	@Override
 	public void makeThis() {
 		try {
-			KMerStoreWrapper wrapper = KMerStoreWrapper.load(fillStoreGoal.getFile());
+			File filterFile = null;
+			if (getProject().isUseBloomFilterForMatch()) {
+				filterFile = getProject().getFilterFile(fillStoreGoal);
+			}
+			KMerStoreWrapper wrapper = KMerStoreWrapper.load(fillStoreGoal.getFile(), filterFile);
 			set(wrapper);
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);

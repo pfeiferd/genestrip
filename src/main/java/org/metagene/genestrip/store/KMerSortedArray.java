@@ -69,7 +69,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	private boolean sorted;
 	private boolean initSize;
 	private short nextValueIndex;
-	private MurmurCGATBloomFilter filter;
+	private transient MurmurCGATBloomFilter filter;
 	private boolean useFilter;
 
 	public KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge) {
@@ -91,6 +91,14 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		}
 		this.filter = filter;
 		this.useFilter = filter != null;
+	}
+	
+	public MurmurCGATBloomFilter getFilter() {
+		return filter;
+	}
+	
+	public void setFilter(MurmurCGATBloomFilter filter) {
+		this.filter = filter;
 	}
 	
 	public void setUseFilter(boolean useFilter) {

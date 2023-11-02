@@ -57,7 +57,7 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, FillSizeGoal fillSizeGoal,
 			ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, FileType.SER), Goal.append(deps, categoriesGoal, taxNodesGoal,
+		super(project, name, project.getOutputFile(name, FileType.DB), Goal.append(deps, categoriesGoal, taxNodesGoal,
 				fnaFilesGoal, accessionMapGoal, fillSizeGoal, bloomFilterGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxNodesGoal = taxNodesGoal;
@@ -102,16 +102,17 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 			store.optimize();
 
 			KMerStoreWrapper wrapper = new KMerStoreWrapper((KMerSortedArray<String>) store);
-			wrapper.save(storeFile);
+			File filterFile = getProject().getFilterFile(this);
+			wrapper.save(storeFile, filterFile);
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("File saved " + storeFile);
+				getLogger().info("File saved " + storeFile + " along with index " + filterFile);
 			}
 			filledStoreGoal.setStoreWrapper(wrapper);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	protected static class MyFastaReader extends AbstractStoreFastaReader {
 		private final KMerSortedArray<String> store;
 		private long tooManyCounter;

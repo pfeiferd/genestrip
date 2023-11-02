@@ -50,7 +50,7 @@ public class BloomIndexGoal extends FileListGoal<GSProject> {
 	public BloomIndexGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, ObjectGoal<KMerStoreWrapper, GSProject> filledStoreGoal,
 			Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, FileType.SER),
+		super(project, name, project.getOutputFile(name, FileType.FILTER),
 				append(deps, taxTreeGoal, taxNodesGoal, filledStoreGoal));
 		this.taxTreeGoal = taxTreeGoal;
 		this.taxNodesGoal = taxNodesGoal;
