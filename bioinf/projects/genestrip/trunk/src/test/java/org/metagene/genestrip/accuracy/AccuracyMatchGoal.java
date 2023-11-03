@@ -101,75 +101,79 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 		}
 		out.close();
 	}
-	
+
 	public static class AccuracyCounts {
 		public final Map<String, Integer> noTaxIdErrorPerTaxid;
 		public final Map<Rank, Integer> correctRankOnPath;
-		
+
 		public int taxIdCorrectCount;
 		public int genusCorrectCount;
 		public int genusIncorrectCount;
 		public int noTaxIdCount;
 		public long totalCount;
-		
+
 		public AccuracyCounts() {
 			noTaxIdErrorPerTaxid = new HashMap<String, Integer>();
-			correctRankOnPath = new HashMap<Rank, Integer>();			
+			correctRankOnPath = new HashMap<Rank, Integer>();
 		}
-		
+
 		public void clear() {
 			taxIdCorrectCount = 0;
 			genusCorrectCount = 0;
 			genusIncorrectCount = 0;
 			noTaxIdCount = 0;
 			totalCount = 0;
-			
+
 			noTaxIdErrorPerTaxid.clear();
 			correctRankOnPath.clear();
 		}
-		
+
 		public void updateCounts(String readTaxId, byte[] readDescriptor, TaxTree taxTree) {
 			totalCount++;
 			int colonIndex = ByteArrayUtil.indexOf(readDescriptor, 1, readDescriptor.length, ':');
-			String correctTaxId = new String(readDescriptor, 1, colonIndex - 1);
-			if (readTaxId != null) {
-				if (correctTaxId.equals(readTaxId)) {
-					taxIdCorrectCount++;
-					genusCorrectCount++;
-				} else {
-					TaxIdNode correctGenusTaxNode = taxTree.getRankedNode(correctTaxId, Rank.GENUS);
-					if (correctGenusTaxNode != null) {
-						if (correctGenusTaxNode == taxTree.getRankedNode(readTaxId, Rank.GENUS)) {
-							genusCorrectCount++;
-						} else {
-							genusIncorrectCount++;
-						}
-					}
-				}
-
-				for (Rank rank : Rank.values()) {
-					TaxIdNode correctRankTaxNode = taxTree.getRankedNode(correctTaxId, rank);
-					if (correctRankTaxNode != null) {
-						TaxIdNode node = taxTree.getNodeByTaxId(readTaxId);
-						if (correctRankTaxNode.equals(node)) {
-							Integer c = correctRankOnPath.get(rank);
-							if (c == null) {
-								c = 0;
-							}
-							correctRankOnPath.put(rank, c + 1);
-						}
-					}
-				}
+			if (colonIndex == -1) {
+				ByteArrayUtil.print(readDescriptor, System.out);
 			} else {
-				Integer e = noTaxIdErrorPerTaxid.get(correctTaxId);
-				if (e == null) {
-					e = 0;
+				String correctTaxId = new String(readDescriptor, 1, colonIndex - 1);
+				if (readTaxId != null) {
+					if (correctTaxId.equals(readTaxId)) {
+						taxIdCorrectCount++;
+						genusCorrectCount++;
+					} else {
+						TaxIdNode correctGenusTaxNode = taxTree.getRankedNode(correctTaxId, Rank.GENUS);
+						if (correctGenusTaxNode != null) {
+							if (correctGenusTaxNode == taxTree.getRankedNode(readTaxId, Rank.GENUS)) {
+								genusCorrectCount++;
+							} else {
+								genusIncorrectCount++;
+							}
+						}
+					}
+
+					for (Rank rank : Rank.values()) {
+						TaxIdNode correctRankTaxNode = taxTree.getRankedNode(correctTaxId, rank);
+						if (correctRankTaxNode != null) {
+							TaxIdNode node = taxTree.getNodeByTaxId(readTaxId);
+							if (correctRankTaxNode.equals(node)) {
+								Integer c = correctRankOnPath.get(rank);
+								if (c == null) {
+									c = 0;
+								}
+								correctRankOnPath.put(rank, c + 1);
+							}
+						}
+					}
+				} else {
+					Integer e = noTaxIdErrorPerTaxid.get(correctTaxId);
+					if (e == null) {
+						e = 0;
+					}
+					noTaxIdErrorPerTaxid.put(correctTaxId, e + 1);
+					noTaxIdCount++;
 				}
-				noTaxIdErrorPerTaxid.put(correctTaxId, e + 1);
-				noTaxIdCount++;
-			}			
+			}
 		}
-		
+
 		public void printCounts(PrintStream out) {
 			out.print("total; taxid correct; genus correct; genus incorrect; no taxid;");
 			for (Rank rank : Rank.values()) {
