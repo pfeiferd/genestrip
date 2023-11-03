@@ -60,7 +60,7 @@ public class GSConfig {
 		this.properties = new Properties();
 		File configFile = new File(baseDir, CONFIG_PROPERTIES);
 		if (!configFile.exists()) {
-			configFile = new File(baseDir, CONFIG_PROPERTIES);
+			configFile = new File(baseDir, CONFIG_PROPERTIES_2);
 		}
 		Log log = LogFactory.getLog("config");
 		try {
