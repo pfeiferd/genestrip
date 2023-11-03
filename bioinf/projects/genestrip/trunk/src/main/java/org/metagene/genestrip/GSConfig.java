@@ -29,6 +29,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
 
+import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.tax.TaxTree.Rank;
 
@@ -43,7 +44,7 @@ public class GSConfig {
 
 	public static final String TAX_HTTP_BASE_URL = NCBI_HTTP_BASE_URL;
 	public static final String TAX_SEQ_FTP_URL = NCBI_FTP_URL;
-	
+
 	public static final String COMPLETE_GENOMES_ONLY = "completeGenomesOnly";
 	public static final String IGNORE_MISSING_FASTAS = "ignoreMissingFastas";
 	public static final String RANK_COMPLETION_DEPTH = "rankCompletionDepth";
@@ -59,12 +60,18 @@ public class GSConfig {
 		this.properties = new Properties();
 		File configFile = new File(baseDir, CONFIG_PROPERTIES);
 		if (!configFile.exists()) {
-			configFile = new File(baseDir, CONFIG_PROPERTIES);			
+			configFile = new File(baseDir, CONFIG_PROPERTIES);
 		}
+		Log log = LogFactory.getLog("config");
 		try {
+			if (log.isInfoEnabled()) {
+				log.info("Loading config file " + configFile);
+			}
 			properties.load(new FileInputStream(configFile));
 		} catch (IOException e) {
-			LogFactory.getLog("config").warn("Could not read general configuation file '" + configFile + "'. Using defaults.");
+			if (log.isWarnEnabled()) {
+				log.warn("Could not read general configuation file '" + configFile + "'. Using defaults.");
+			}
 		}
 	}
 
@@ -149,11 +156,11 @@ public class GSConfig {
 	public int getMaxKMerResCounts() {
 		return Integer.valueOf(properties.getProperty("maxKMerResCounts", "200"));
 	}
-	
+
 	public double getMaxReadTaxErrorCount() {
 		return Double.valueOf(properties.getProperty(MAX_READ_TAX_ERROR_COUNT, "0.1"));
 	}
-	
+
 	public String getFtpBaseURL() {
 		return properties.getProperty("ftpBaseURL", NCBI_FTP_URL);
 	}
@@ -177,7 +184,7 @@ public class GSConfig {
 	public boolean isUseBloomFilterForMatch() {
 		return Boolean.valueOf(properties.getProperty(USE_BLOOM_FILTER_FOR_MATCH, "true"));
 	}
-	
+
 	public File getRefSeqDir() {
 		return new File(getCommonDir(), "refseq");
 	}
@@ -197,7 +204,7 @@ public class GSConfig {
 	public String getTaxFTPBaseURL() {
 		return properties.getProperty("taxFTPBaseURL", TAX_SEQ_FTP_URL);
 	}
-	
+
 	public Rank getRankCompletionDepth() {
 		String s = properties.getProperty(RANK_COMPLETION_DEPTH, null);
 		return s == null ? null : Rank.byName(s);
