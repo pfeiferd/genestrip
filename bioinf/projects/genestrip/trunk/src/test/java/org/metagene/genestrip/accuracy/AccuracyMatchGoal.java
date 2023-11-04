@@ -141,14 +141,12 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 						taxIdCorrectCount++;
 						genusCorrectCount++;
 					} else {
-						System.out.println("2");
+						System.out.println(correctTaxId);
 						TaxIdNode correctGenusTaxNode = taxTree.getRankedNode(correctTaxId, Rank.GENUS);
 						if (correctGenusTaxNode != null) {
-							System.out.println("3");
 							if (correctGenusTaxNode == taxTree.getRankedNode(readTaxId, Rank.GENUS)) {
 								genusCorrectCount++;
 							} else {
-								System.out.println("4");
 								genusIncorrectCount++;
 							}
 						}
