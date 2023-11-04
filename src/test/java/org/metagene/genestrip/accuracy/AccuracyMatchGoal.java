@@ -129,15 +129,12 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 		}
 
 		public void updateCounts(String readTaxId, byte[] readDescriptor, TaxTree taxTree) {
-			System.out.println(readTaxId);
 			totalCount++;
 			int colonIndex = ByteArrayUtil.indexOf(readDescriptor, 1, readDescriptor.length, ':');
 			if (colonIndex == -1) {
-				System.out.println("missing...");
 				ByteArrayUtil.print(readDescriptor, System.out);
 			} else {
 				String correctTaxId = new String(readDescriptor, 1, colonIndex - 1);
-				System.out.println(readTaxId + " correct: " + correctTaxId);
 				if (readTaxId != null) {
 					if (correctTaxId.equals(readTaxId)) {
 						taxIdCorrectCount++;
