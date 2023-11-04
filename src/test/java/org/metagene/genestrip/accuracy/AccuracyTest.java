@@ -117,7 +117,6 @@ public class AccuracyTest {
 		return new File(relPath).getParentFile();
 	}
 
-	@Ignore
 	@Test
 	@SuppressWarnings("unchecked")
 	public void testGenestripAccuracy() throws IOException {
@@ -137,6 +136,7 @@ public class AccuracyTest {
 	}
 
 	@Test
+	@Ignore
 	@SuppressWarnings("unchecked")
 	public void testKrakenAccuracy() throws IOException {
 		accuracyProjectGoal.make();
