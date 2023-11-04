@@ -133,6 +133,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 			totalCount++;
 			int colonIndex = ByteArrayUtil.indexOf(readDescriptor, 1, readDescriptor.length, ':');
 			if (colonIndex == -1) {
+				System.out.println("missing...");
 				ByteArrayUtil.print(readDescriptor, System.out);
 			} else {
 				String correctTaxId = new String(readDescriptor, 1, colonIndex - 1);
