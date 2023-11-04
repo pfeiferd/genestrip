@@ -92,8 +92,8 @@ public class KrakenResultProcessor {
 					} else if (descriptor) {
 						descriptor = false;
 						classId = true;
-						for (int j = startPos; j < i; j++) {
-							readDescriptor[j - startPos] = krakenChars[j];
+						for (int j = startPos + 1; j < i; j++) {
+							readDescriptor[j - startPos - 1] = krakenChars[j];
 						}
 						readDescriptor[i] = 0;
 						startPos = i + 1;
