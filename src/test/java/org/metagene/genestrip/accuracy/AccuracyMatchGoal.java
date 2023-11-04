@@ -129,6 +129,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 		}
 
 		public void updateCounts(String readTaxId, byte[] readDescriptor, TaxTree taxTree) {
+			System.out.println(readTaxId);
 			totalCount++;
 			int colonIndex = ByteArrayUtil.indexOf(readDescriptor, 1, readDescriptor.length, ':');
 			if (colonIndex == -1) {
