@@ -63,13 +63,30 @@ public abstract class AbstractFastqReader {
 		blockingQueue = consumerNumber == 0 ? null
 				: new ArrayBlockingQueue<AbstractFastqReader.ReadEntry>(maxQueueSize);
 
-		Runnable runnable = new Runnable() {
+		consumers = new Thread[consumerNumber];
+		for (int i = 0; i < consumers.length; i++) {
+			consumers[i] = createAndStartThread(i);
+		}
+	}
+	
+	protected Thread createAndStartThread(int i) {
+		Thread t =  new Thread(createRunnable(i));
+		t.setName("Fastq reader thread #" + i);
+		t.start();
+		
+		return t;
+	}
+	
+	protected Runnable createRunnable(int rindex) {
+		return new Runnable() {
+			private int index = rindex;
+			
 			@Override
 			public void run() {
 				while (!dump) {
 					try {
 						ReadEntry readStruct = blockingQueue.take();
-						nextEntry(readStruct);
+						nextEntry(readStruct, index);
 						readStruct.pooled = true;
 					} catch (IOException e) {
 						throw new RuntimeException(e);
@@ -81,19 +98,6 @@ public abstract class AbstractFastqReader {
 				}
 			}
 		};
-
-		consumers = new Thread[consumerNumber];
-		for (int i = 0; i < consumers.length; i++) {
-			consumers[i] = createAndStartThread(runnable, i);
-		}
-	}
-	
-	protected Thread createAndStartThread(Runnable runnable, int i) {
-		Thread t =  new Thread(runnable);
-		t.setName("Fastq reader thread #" + i);
-		t.start();
-		
-		return t;
 	}
 	
 	protected ReadEntry createReadEntry(int maxReadSizeBytes) {
@@ -147,7 +151,7 @@ public abstract class AbstractFastqReader {
 			reads++;
 			kMers += readStruct.readSize - k + 1;
 			if (blockingQueue == null) {
-				nextEntry(readStruct);
+				nextEntry(readStruct, 0);
 			} else {
 				try {
 					blockingQueue.put(readStruct);
@@ -220,7 +224,7 @@ public abstract class AbstractFastqReader {
 	}
 
 	// Must be thread safe. Can freely operate on readStruct.
-	protected abstract void nextEntry(ReadEntry readStruct) throws IOException;
+	protected abstract void nextEntry(ReadEntry readStruct, int threadIndex) throws IOException;
 
 	protected void done() throws IOException {
 	};
