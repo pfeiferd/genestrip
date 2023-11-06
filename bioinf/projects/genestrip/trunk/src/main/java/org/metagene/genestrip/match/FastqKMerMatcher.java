@@ -185,7 +185,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	}
 
 	@Override
-	protected void nextEntry(ReadEntry entry) throws IOException {
+	protected void nextEntry(ReadEntry entry, int index) throws IOException {
 		MyReadEntry myEntry = (MyReadEntry) entry;
 		myEntry.bufferPos = 0;
 		myEntry.readTaxId = null;
