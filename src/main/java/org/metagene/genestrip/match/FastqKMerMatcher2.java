@@ -52,7 +52,7 @@ import it.unimi.dsi.fastutil.objects.Object2LongMap;
 public class FastqKMerMatcher2 extends AbstractFastqReader {
 	public static final long DEFAULT_LOG_UPDATE_CYCLE = 1000000;
 
-	private final KMerSortedArray<String> kmerStore;
+	private final KMerSortedArray<TaxIdNode> kmerStore;
 	private final int maxKmerResCounts;
 
 	protected KMerUniqueCounter uniqueCounter;
@@ -80,8 +80,8 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 	// multi-threading when using it.
 	protected PrintStream out;
 
-	public FastqKMerMatcher2(KMerSortedArray<String> kmerStore, int maxReadSize, int maxQueueSize, int consumerNumber,
-			int maxKmerResCounts, TaxTree taxTree, double maxReadTaxErrorCount) {
+	public FastqKMerMatcher2(KMerSortedArray<TaxIdNode> kmerStore, int maxReadSize, int maxQueueSize,
+			int consumerNumber, int maxKmerResCounts, TaxTree taxTree, double maxReadTaxErrorCount) {
 		super(kmerStore.getK(), maxReadSize, maxQueueSize, consumerNumber);
 		this.kmerStore = kmerStore;
 		this.maxReadSize = maxReadSize;
@@ -192,7 +192,7 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 		myEntry.readTaxErrorCount = 0;
 
 		myEntry.usedPaths = 0;
-		myEntry.readTaxId = null;
+		myEntry.classNode = null;
 		for (int i = 0; i < paths; i++) {
 			myEntry.readTaxIdNode[i] = null;
 			myEntry.counts[i] = 0;
@@ -274,9 +274,9 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 		boolean found = false;
 		int prints = 0;
 
-		String taxid = null;
+		TaxIdNode taxid = null;
 		int max = entry.readSize - k;
-		String lastTaxid = null;
+		TaxIdNode lastTaxid = null;
 		int contigLen = 0;
 		CountsPerTaxid stats = null;
 
@@ -287,6 +287,10 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 			taxid = kmer == -1 ? null : kmerStore.getLong(kmer, entry.indexPos);
 			if (taxid == null) {
 				entry.readTaxErrorCount++;
+				if ((maxReadTaxErrorCount >= 1 && entry.readTaxErrorCount <= maxReadTaxErrorCount)
+						|| (entry.readTaxErrorCount <= maxReadTaxErrorCount * max)) {
+					
+				}
 			} else {
 				updateReadTaxid(taxid, entry, index);
 			}
@@ -312,10 +316,10 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 			contigLen++;
 			lastTaxid = taxid;
 			if (taxid != null) {
-				stats = root.get(taxid);
+				stats = root.get(taxid.getTaxId());
 				if (stats == null) {
 					synchronized (root) {
-						stats = root.get(taxid, maxReadSize);
+						stats = root.get(taxid.getTaxId(), maxReadSize);
 					}
 				}
 				synchronized (stats) {
@@ -323,7 +327,7 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 					found = true;
 				}
 				if (uniqueCounter != null) {
-					uniqueCounter.put(kmer, taxid, entry.indexPos[0]);
+					uniqueCounter.put(kmer, taxid.getTaxId(), entry.indexPos[0]);
 				}
 			} else {
 				stats = null;
@@ -349,13 +353,12 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 			}
 			int ties = 0;
 			for (int i = 0; i < entry.usedPaths; i++) {
-				short sum  = taxTree.sumCounts(entry.readTaxIdNode[i], index, entry);
+				short sum = taxTree.sumCounts(entry.readTaxIdNode[i], index, entry);
 				if (sum >= entry.counts[0]) {
 					entry.counts[0] = sum;
 					entry.readTaxIdNode[0] = entry.readTaxIdNode[i];
 					ties = 0;
-				}
-				else if (sum == entry.counts[0]) {
+				} else if (sum == entry.counts[0]) {
 					ties++;
 					entry.counts[ties] = sum;
 					entry.readTaxIdNode[ties] = entry.readTaxIdNode[i];
@@ -365,16 +368,13 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 			for (int i = 1; i <= ties; i++) {
 				node = taxTree.getLeastCommonAncestor(node, entry.readTaxIdNode[i]);
 			}
+			entry.classNode = node;
 		}
 
 		return found;
 	}
 
-	protected void updateReadTaxid(String taxid, MyReadEntry entry, int index) {
-		if (taxTree == null) {
-			return;
-		}
-		TaxIdNode node = taxTree.getNodeByTaxId(taxid);
+	protected void updateReadTaxid(TaxIdNode node, MyReadEntry entry, int index) {
 		if (node != null) {
 			taxTree.incCount(node, index, entry);
 		}
@@ -397,14 +397,14 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 		}
 	}
 
-	protected void printKrakenStyleOut(MyReadEntry entry, String taxid, int contigLen, int state, boolean reverse) {
+	protected void printKrakenStyleOut(MyReadEntry entry, TaxIdNode taxid, int contigLen, int state, boolean reverse) {
 		if (state != 0) {
 			entry.printChar(' ');
 		}
 		if (taxid == null) {
 			entry.printChar('0');
 		} else {
-			entry.printString(taxid);
+			entry.printString(taxid.getTaxId());
 		}
 		entry.printChar(':');
 		entry.printInt(contigLen);
@@ -420,6 +420,7 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 		public short counts[];
 		public int readTaxErrorCount;
 		public long[] indexPos;
+		public TaxIdNode classNode;
 
 		public MyReadEntry(int maxReadSizeBytes, boolean enablePrint, int paths) {
 			super(maxReadSizeBytes);
@@ -456,17 +457,17 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 		}
 
 		public void flush(PrintStream out) {
-			if (readTaxId == null) {
+			if (classNode == null) {
 				out.print("U\t");
 			} else {
 				out.print("C\t");
 			}
 			ByteArrayUtil.print(readDescriptor, out);
 			out.print('\t');
-			if (readTaxId == null) {
+			if (classNode == null) {
 				out.print('0');
 			} else {
-				out.print(readTaxId);
+				out.print(classNode.getTaxId());
 			}
 			out.print('\t');
 			out.print(readSize);
