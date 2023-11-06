@@ -35,12 +35,15 @@ import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.match.FastqKMerMatcher;
+import org.metagene.genestrip.match.FastqKMerMatcher2;
 import org.metagene.genestrip.match.MatchingResult;
 import org.metagene.genestrip.match.ResultReporter;
+import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
+import org.metagene.genestrip.store.KMerSortedArray.ValueConverter;
 import org.metagene.genestrip.tax.TaxTree;
+import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 public class MatchGoal extends FileListGoal<GSProject> {
 	private final File fastq;
@@ -61,7 +64,7 @@ public class MatchGoal extends FileListGoal<GSProject> {
 
 	@Override
 	protected void makeFile(File file) {
-		FastqKMerMatcher matcher = null;
+		FastqKMerMatcher2 matcher = null;
 		try {
 			File filteredFile = null;
 			File krakenOutStyleFile = null;
@@ -98,10 +101,19 @@ public class MatchGoal extends FileListGoal<GSProject> {
 		out.close();
 	}
 
-	protected FastqKMerMatcher createMatcher(KMerStoreWrapper wrapper, TaxTree taxTree) {
+	protected FastqKMerMatcher2 createMatcher(KMerStoreWrapper wrapper, TaxTree taxTree) {
 		GSConfig config = getProject().getConfig();
-		
-		return new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
-				config.getThreads(), config.getMaxKMerResCounts(), taxTree, getProject().getMaxReadTaxErrorCount());
+
+		KMerSortedArray<TaxIdNode> store = new KMerSortedArray<TaxIdNode>(wrapper.getKmerStore(),
+				new ValueConverter<String, TaxIdNode>() {
+					@Override
+					public TaxIdNode convertValue(String value) {
+						return taxTree.getNodeByTaxId(value);
+					}
+				});
+
+		return new FastqKMerMatcher2(store, config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
+				config.getThreads(), config.getMaxKMerResCounts(), taxTree, getProject().isClassifyReads(),
+				config.getMaxClassificationPaths(), getProject().getMaxReadTaxErrorCount());
 	}
 }

@@ -51,6 +51,7 @@ public class GSConfig {
 	public static final String MAX_GENOMES_PER_TAXID = "maxGenomesPerTaxid";
 	public static final String USE_BLOOM_FILTER_FOR_MATCH = "useBloomFilterForMatch";
 	public static final String MAX_READ_TAX_ERROR_COUNT = "maxReadTaxErrorCount";
+	public static final String CLASSIFY_READS = "classifyReads";
 
 	private final File baseDir;
 	private final Properties properties;
@@ -117,6 +118,10 @@ public class GSConfig {
 		return Integer.valueOf(properties.getProperty("maxReadSizeBytes", "8192"));
 	}
 
+	public int getMaxClassificationPaths() {
+		return Integer.valueOf(properties.getProperty("maxClassificationPaths", "10"));
+	}
+	
 	public int getMinPosCountFilter() {
 		return Integer.valueOf(properties.getProperty("minPosCountFilter", "1"));
 	}
@@ -144,6 +149,10 @@ public class GSConfig {
 	public boolean isIgnoreMissingFastas() {
 		return Boolean.valueOf(properties.getProperty(IGNORE_MISSING_FASTAS, "false"));
 	}
+	
+	public boolean isClassifyReads() {
+		return Boolean.valueOf(properties.getProperty(CLASSIFY_READS, "true"));		
+	}
 
 	public boolean isUseCompleteGenomesOnly() {
 		return Boolean.valueOf(properties.getProperty(COMPLETE_GENOMES_ONLY, "false"));
@@ -158,7 +167,7 @@ public class GSConfig {
 	}
 
 	public double getMaxReadTaxErrorCount() {
-		return Double.valueOf(properties.getProperty(MAX_READ_TAX_ERROR_COUNT, "0.1"));
+		return Double.valueOf(properties.getProperty(MAX_READ_TAX_ERROR_COUNT, "-1"));
 	}
 
 	public String getFtpBaseURL() {
