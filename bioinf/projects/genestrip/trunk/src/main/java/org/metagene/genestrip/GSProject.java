@@ -259,6 +259,16 @@ public class GSProject implements DownloadProject {
 		}
 		return getConfig().isIgnoreMissingFastas();
 	}
+	
+	public boolean isClassifyReads() {
+		String v = properties.getProperty(GSConfig.CLASSIFY_READS);
+		if (v != null) {
+			return Boolean.valueOf(v);
+
+		}
+		return getConfig().isClassifyReads();
+	}
+	
 
 	public Rank getRankCompletionDepth() {
 		String v = properties.getProperty(GSConfig.RANK_COMPLETION_DEPTH);
