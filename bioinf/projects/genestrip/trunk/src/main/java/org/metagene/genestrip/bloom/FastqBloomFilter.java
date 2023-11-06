@@ -54,7 +54,7 @@ public class FastqBloomFilter extends AbstractFastqReader {
 	}
 
 	@Override
-	protected void nextEntry(ReadEntry readStruct) throws IOException {
+	protected void nextEntry(ReadEntry readStruct, int index) throws IOException {
 		boolean res = false;
 		if (minPosCount > 0) {
 			res = isAcceptReadByAbs(readStruct, true) || isAcceptReadByAbs(readStruct, false);
