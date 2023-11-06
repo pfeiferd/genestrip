@@ -93,6 +93,36 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		this.useFilter = filter != null;
 	}
 	
+	public <W extends Serializable> KMerSortedArray(KMerSortedArray<W> org, ResultConverter<W, V> converter) {
+		kmers = org.kmers;
+		valueIndexes = org.valueIndexes;
+
+		largeKmers = org.largeKmers;
+		largeValueIndexes = org.largeValueIndexes;
+
+		k = org.k;
+		enforceLarge = org.enforceLarge;
+
+		size = org.size;
+
+		entries = org.entries;
+		sorted = org.sorted;
+		initSize = org.initSize;
+		nextValueIndex = org.nextValueIndex;
+		filter = org.filter;
+		useFilter = org.useFilter;
+		
+		indexMap = new Short2ObjectOpenHashMap<V>(org.indexMap.size());
+		valueMap = new Object2ShortOpenHashMap<V>(org.valueMap.size());
+		
+		for (short s : org.indexMap.keySet()) {
+			W orgValue = org.indexMap.get(s);
+			V value = converter.convertValue(orgValue);
+			indexMap.put(s, value);
+			valueMap.put(value, s);
+		}
+	}
+	
 	public MurmurCGATBloomFilter getFilter() {
 		return filter;
 	}
@@ -480,7 +510,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			visitor.nextValue(this, kmer, sindex, i);
 		}
 	}
-
+	
 	public interface KMerSortedArrayVisitor<V extends Serializable> {
 		public void nextValue(KMerSortedArray<V> trie, long kmer, short index, long i);
 	}
@@ -489,5 +519,9 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		public V getUpdateValue(V oldValue);
 
 		public Object getSynchronizationObject(long position);
+	}
+	
+	public interface ResultConverter<V, W extends Serializable> {
+		public W convertValue(V value);
 	}
 }
