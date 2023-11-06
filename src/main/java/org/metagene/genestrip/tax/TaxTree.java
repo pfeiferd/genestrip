@@ -119,6 +119,7 @@ public class TaxTree {
 
 	private final TaxIdNode root;
 	private final TaxIdNodeTrie taxIdNodeTrie;
+	private int countSize;
 
 	public TaxTree(File path) {
 		try {
@@ -129,6 +130,35 @@ public class TaxTree {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	public void initCountSize(int countSize) {
+		if (countSize <= 0) {
+			throw new IllegalArgumentException("Initialization size must by >= 0.");
+		}
+		if (countSize > 0) {
+			throw new IllegalStateException("Count count size can only be initialized once.");
+		}
+		this.countSize = countSize;
+	}
+	
+	public void incCount(TaxIdNode node, int index, Object initKey) {
+		node.incCount(node, index, initKey, countSize);
+	}
+	
+	public short sumCounts(TaxIdNode node, int index, Object initKey) {
+		short res = 0;
+		while (node != null) {
+			if (node.counts != null && node.countsInitKeys[index] == initKey) {
+				res += node.counts[index];
+			}
+			node = node.getParent();
+		}
+		return res;
+	}
+	
+	public int getCountSize() {
+		return countSize;
 	}
 
 	public boolean isAncestorOf(TaxIdNode node, TaxIdNode ancestor) {
@@ -279,6 +309,8 @@ public class TaxTree {
 		private TaxIdNode parent;
 		private int position;
 		private Rank rank;
+		private short[] counts;
+		private Object[] countsInitKeys;
 
 		public TaxIdNode(String taxId) {
 			this.taxId = taxId;
@@ -290,7 +322,23 @@ public class TaxTree {
 			this.rank = rank;
 			subNodes = new ArrayList<TaxIdNode>();
 		}
-
+		
+		private void incCount(TaxIdNode node, int index, Object initKey, int size) {
+			if (counts == null) {
+				synchronized (this) {
+					counts = new short[size];
+					countsInitKeys = new Object[size];
+				}
+			}
+			if (countsInitKeys[index] == initKey) {
+				counts[index]++;
+			}
+			else {
+				countsInitKeys[index] = initKey;
+				counts[index] = 1;
+			}
+		}
+		
 		public Rank getRank() {
 			return rank;
 		}
