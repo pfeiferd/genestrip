@@ -93,7 +93,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		this.useFilter = filter != null;
 	}
 	
-	public <W extends Serializable> KMerSortedArray(KMerSortedArray<W> org, ResultConverter<W, V> converter) {
+	public <W extends Serializable> KMerSortedArray(KMerSortedArray<W> org, ValueConverter<W, V> converter) {
 		kmers = org.kmers;
 		valueIndexes = org.valueIndexes;
 
@@ -521,7 +521,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		public Object getSynchronizationObject(long position);
 	}
 	
-	public interface ResultConverter<V, W extends Serializable> {
+	public interface ValueConverter<V, W extends Serializable> {
 		public W convertValue(V value);
 	}
 }
