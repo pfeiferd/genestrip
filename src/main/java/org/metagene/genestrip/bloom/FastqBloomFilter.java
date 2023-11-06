@@ -73,7 +73,7 @@ public class FastqBloomFilter extends AbstractFastqReader {
 	}
 
 	@Override
-	protected ReadEntry createReadEntry(int maxReadSizeBytes) {
+	protected ReadEntry createReadEntry(int maxReadSizeBytes, Object... config) {
 		return new MyReadEntry(maxReadSizeBytes);
 	}
 

@@ -35,13 +35,16 @@ import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.match.FastqKMerMatcher;
+import org.metagene.genestrip.match.FastqKMerMatcher2;
 import org.metagene.genestrip.match.MatchingResult;
 import org.metagene.genestrip.match.ResultReporter;
+import org.metagene.genestrip.store.KMerSortedArray;
+import org.metagene.genestrip.store.KMerSortedArray.ValueConverter;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.store.KMerUniqueCounter;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
 import org.metagene.genestrip.tax.TaxTree;
+import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 public class MultiMatchGoal extends MultiFileGoal {
 	public static final String NAME = "multimatch";
@@ -50,7 +53,7 @@ public class MultiMatchGoal extends MultiFileGoal {
 	private final ObjectGoal<KMerStoreWrapper, GSProject> storeGoal;
 	private final boolean writedFiltered;
 
-	private FastqKMerMatcher matcher;
+	private FastqKMerMatcher2 matcher;
 	private KMerStoreWrapper wrapper;
 	private ResultReporter reporter;
 	private KMerUniqueCounter uniqueCounter;
@@ -101,11 +104,20 @@ public class MultiMatchGoal extends MultiFileGoal {
 		out.close();
 	}
 
-	protected FastqKMerMatcher createMatcher(KMerStoreWrapper wrapper, TaxTree taxTree) {
+	protected FastqKMerMatcher2 createMatcher(KMerStoreWrapper wrapper, TaxTree taxTree) {
 		GSConfig config = getProject().getConfig();
-		return new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
-				config.getThreads(), config.getMaxKMerResCounts(), taxTreeGoal.get(),
-				getProject().getMaxReadTaxErrorCount());
+
+		KMerSortedArray<TaxIdNode> store = new KMerSortedArray<TaxIdNode>(wrapper.getKmerStore(),
+				new ValueConverter<String, TaxIdNode>() {
+					@Override
+					public TaxIdNode convertValue(String value) {
+						return taxTree.getNodeByTaxId(value);
+					}
+				});
+
+		return new FastqKMerMatcher2(store, config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
+				config.getThreads(), config.getMaxKMerResCounts(), getProject().isClassifyReads() ? taxTree : null,
+				config.getMaxClassificationPaths(), getProject().getMaxReadTaxErrorCount());
 	}
 
 	@Override
