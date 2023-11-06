@@ -136,17 +136,17 @@ public class TaxTree {
 		if (countSize <= 0) {
 			throw new IllegalArgumentException("Initialization size must by >= 0.");
 		}
-		if (countSize > 0) {
+		if (this.countSize > 0 && countSize != this.countSize) {
 			throw new IllegalStateException("Count count size can only be initialized once.");
 		}
 		this.countSize = countSize;
 	}
 	
-	public void incCount(TaxIdNode node, int index, Object initKey) {
+	public void incCount(TaxIdNode node, int index, long initKey) {
 		node.incCount(node, index, initKey, countSize);
 	}
 	
-	public short sumCounts(TaxIdNode node, int index, Object initKey) {
+	public short sumCounts(TaxIdNode node, int index, long initKey) {
 		short res = 0;
 		while (node != null) {
 			if (node.counts != null && node.countsInitKeys[index] == initKey) {
@@ -310,7 +310,7 @@ public class TaxTree {
 		private int position;
 		private Rank rank;
 		private short[] counts;
-		private Object[] countsInitKeys;
+		private long[] countsInitKeys;
 
 		public TaxIdNode(String taxId) {
 			this.taxId = taxId;
@@ -323,11 +323,11 @@ public class TaxTree {
 			subNodes = new ArrayList<TaxIdNode>();
 		}
 		
-		private void incCount(TaxIdNode node, int index, Object initKey, int size) {
+		private void incCount(TaxIdNode node, int index, long initKey, int size) {
 			if (counts == null) {
 				synchronized (this) {
 					counts = new short[size];
-					countsInitKeys = new Object[size];
+					countsInitKeys = new long[size];
 				}
 			}
 			if (countsInitKeys[index] == initKey) {
