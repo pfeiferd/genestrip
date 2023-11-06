@@ -52,32 +52,32 @@ public abstract class AbstractFastqReader {
 
 	private boolean dump;
 
-	public AbstractFastqReader(int k, int maxReadSizeBytes, int maxQueueSize, int consumerNumber) {
+	public AbstractFastqReader(int k, int maxReadSizeBytes, int maxQueueSize, int consumerNumber, Object... config) {
 		this.k = k;
 		bufferedLineReaderFastQ = new BufferedLineReader();
 
 		readStructPool = new ReadEntry[consumerNumber == 0 ? 1 : (maxQueueSize + consumerNumber + 1)];
 		for (int i = 0; i < readStructPool.length; i++) {
-			readStructPool[i] = createReadEntry(maxReadSizeBytes);
+			readStructPool[i] = createReadEntry(maxReadSizeBytes, config);
 		}
 		blockingQueue = consumerNumber == 0 ? null
 				: new ArrayBlockingQueue<AbstractFastqReader.ReadEntry>(maxQueueSize);
 
 		consumers = new Thread[consumerNumber];
 		for (int i = 0; i < consumers.length; i++) {
-			consumers[i] = createAndStartThread(i);
+			consumers[i] = createAndStartThread(i, config);
 		}
 	}
 	
-	protected Thread createAndStartThread(int i) {
-		Thread t =  new Thread(createRunnable(i));
+	protected Thread createAndStartThread(int i, Object... config) {
+		Thread t =  new Thread(createRunnable(i, config));
 		t.setName("Fastq reader thread #" + i);
 		t.start();
 		
 		return t;
 	}
 	
-	protected Runnable createRunnable(int rindex) {
+	protected Runnable createRunnable(int rindex, Object... config) {
 		return new Runnable() {
 			private int index = rindex;
 			
@@ -100,7 +100,7 @@ public abstract class AbstractFastqReader {
 		};
 	}
 	
-	protected ReadEntry createReadEntry(int maxReadSizeBytes) {
+	protected ReadEntry createReadEntry(int maxReadSizeBytes, Object... config) {
 		return new ReadEntry(maxReadSizeBytes);
 	}
 
@@ -147,6 +147,7 @@ public abstract class AbstractFastqReader {
 			bufferedLineReaderFastQ.skipLine(); // Ignoring line 3.
 			readStruct.readProbsSize = bufferedLineReaderFastQ.nextLine(readStruct.readProbs) - 1;
 			readStruct.readProbs[readStruct.readProbsSize] = 0;
+			readStruct.readNo = reads;
 
 			reads++;
 			kMers += readStruct.readSize - k + 1;
@@ -233,6 +234,7 @@ public abstract class AbstractFastqReader {
 	};
 
 	protected static class ReadEntry {
+		public long readNo;
 		public boolean pooled;
 
 		public final byte[] readDescriptor;
