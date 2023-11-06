@@ -59,7 +59,7 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 	protected TaxidStatsTrie root;
 
 	private ByteCountingInputStreamAccess byteCountAccess;
-	private final int paths;
+	private final int maxPaths;
 	private int coveredCounter;
 	private int totalCount;
 	private File currentFastq;
@@ -81,20 +81,20 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 	protected PrintStream out;
 
 	public FastqKMerMatcher2(KMerSortedArray<TaxIdNode> kmerStore, int maxReadSize, int maxQueueSize,
-			int consumerNumber, int maxKmerResCounts, TaxTree taxTree, double maxReadTaxErrorCount) {
-		super(kmerStore.getK(), maxReadSize, maxQueueSize, consumerNumber);
+			int consumerNumber, int maxKmerResCounts, TaxTree taxTree, int maxPaths, double maxReadTaxErrorCount) {
+		super(kmerStore.getK(), maxReadSize, maxQueueSize, consumerNumber, maxPaths);
 		this.kmerStore = kmerStore;
 		this.maxReadSize = maxReadSize;
 		this.maxKmerResCounts = maxKmerResCounts;
 		this.taxTree = taxTree;
 		this.maxReadTaxErrorCount = maxReadTaxErrorCount;
-		paths = 10; // TODO: Make configurable
+		this.maxPaths = maxPaths;
 		taxTree.initCountSize(consumerNumber == 0 ? 1 : consumerNumber);
 	}
 
 	@Override
-	protected ReadEntry createReadEntry(int maxReadSizeBytes) {
-		return new MyReadEntry(maxReadSizeBytes, out != null, paths);
+	protected ReadEntry createReadEntry(int maxReadSizeBytes, Object... config) {
+		return new MyReadEntry(maxReadSizeBytes, out != null, (int) config[0]);
 	}
 
 	public MatchingResult runMatcher(File fastq, File filteredFile, File krakenOutStyleFile,
@@ -189,11 +189,10 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 	protected void nextEntry(ReadEntry entry, int index) throws IOException {
 		MyReadEntry myEntry = (MyReadEntry) entry;
 		myEntry.bufferPos = 0;
-		myEntry.readTaxErrorCount = 0;
 
 		myEntry.usedPaths = 0;
 		myEntry.classNode = null;
-		for (int i = 0; i < paths; i++) {
+		for (int i = 0; i < maxPaths; i++) {
 			myEntry.readTaxIdNode[i] = null;
 			myEntry.counts[i] = 0;
 		}
@@ -273,6 +272,7 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 	protected boolean matchRead(MyReadEntry entry, int index, boolean reverse) {
 		boolean found = false;
 		int prints = 0;
+		int readTaxErrorCount = taxTree == null ? -1 : 0;
 
 		TaxIdNode taxid = null;
 		int max = entry.readSize - k;
@@ -285,14 +285,18 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 					: CGAT.kMerToLongStraight(entry.read, i, k, null);
 
 			taxid = kmer == -1 ? null : kmerStore.getLong(kmer, entry.indexPos);
-			if (taxid == null) {
-				entry.readTaxErrorCount++;
-				if ((maxReadTaxErrorCount >= 1 && entry.readTaxErrorCount <= maxReadTaxErrorCount)
-						|| (entry.readTaxErrorCount <= maxReadTaxErrorCount * max)) {
-					
+			if (readTaxErrorCount != -1) {
+				if (taxid == null) {
+					readTaxErrorCount++;
+					if (maxReadTaxErrorCount >= 0) {
+						if ((maxReadTaxErrorCount >= 1 && readTaxErrorCount > maxReadTaxErrorCount)
+								|| (readTaxErrorCount > maxReadTaxErrorCount * max)) {
+							readTaxErrorCount = -1;
+						}
+					}
+				} else {
+					updateReadTaxid(taxid, entry, index);
 				}
-			} else {
-				updateReadTaxid(taxid, entry, index);
 			}
 			if (taxid != lastTaxid) {
 				if (contigLen > 0) {
@@ -351,46 +355,57 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 					}
 				}
 			}
-			int ties = 0;
-			for (int i = 0; i < entry.usedPaths; i++) {
-				short sum = taxTree.sumCounts(entry.readTaxIdNode[i], index, entry);
-				if (sum >= entry.counts[0]) {
-					entry.counts[0] = sum;
-					entry.readTaxIdNode[0] = entry.readTaxIdNode[i];
-					ties = 0;
-				} else if (sum == entry.counts[0]) {
-					ties++;
-					entry.counts[ties] = sum;
-					entry.readTaxIdNode[ties] = entry.readTaxIdNode[i];
+			if (readTaxErrorCount != -1) {
+				int ties = 0;
+				for (int i = 0; i < entry.usedPaths; i++) {
+					short sum = taxTree.sumCounts(entry.readTaxIdNode[i], index, entry.readNo);
+					if (sum >= entry.counts[0]) {
+						entry.counts[0] = sum;
+						entry.readTaxIdNode[0] = entry.readTaxIdNode[i];
+						ties = 0;
+					} else if (sum == entry.counts[0]) {
+						ties++;
+						entry.counts[ties] = sum;
+						entry.readTaxIdNode[ties] = entry.readTaxIdNode[i];
+					}
+				}
+				TaxIdNode node = entry.readTaxIdNode[0];
+				for (int i = 1; i <= ties; i++) {
+					node = taxTree.getLeastCommonAncestor(node, entry.readTaxIdNode[i]);
+				}
+				entry.classNode = node;
+				stats = root.get(node.getTaxId());
+				if (stats == null) {
+					synchronized (root) {
+						stats = root.get(node.getTaxId(), maxReadSize);
+					}
+				}
+				synchronized (stats) {
+					stats.reads++;
+					stats.readKmers += ties > 0 ? taxTree.sumCounts(node, index, entry.readNo) : entry.counts[0];
 				}
 			}
-			TaxIdNode node = entry.readTaxIdNode[0];
-			for (int i = 1; i <= ties; i++) {
-				node = taxTree.getLeastCommonAncestor(node, entry.readTaxIdNode[i]);
-			}
-			entry.classNode = node;
 		}
 
 		return found;
 	}
 
 	protected void updateReadTaxid(TaxIdNode node, MyReadEntry entry, int index) {
-		if (node != null) {
-			taxTree.incCount(node, index, entry);
-		}
+		taxTree.incCount(node, index, entry.readNo);
+
 		boolean found = false;
 		for (int i = 0; i < entry.usedPaths; i++) {
 			if (taxTree.isAncestorOf(node, entry.readTaxIdNode[i])) {
 				entry.readTaxIdNode[i] = node;
 				found = true;
 				break;
-			} else if (taxTree.isAncestorOf(node, entry.readTaxIdNode[i])) {
+			} else if (taxTree.isAncestorOf(entry.readTaxIdNode[i], node)) {
 				found = true;
 				break;
 			}
 		}
 		if (!found) {
-			if (entry.usedPaths < paths) {
+			if (entry.usedPaths < maxPaths) {
 				entry.readTaxIdNode[entry.usedPaths] = node;
 				entry.usedPaths++;
 			}
@@ -415,10 +430,8 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 		public int bufferPos;
 
 		public int usedPaths;
-//		public String readTaxId;
 		public TaxIdNode[] readTaxIdNode;
 		public short counts[];
-		public int readTaxErrorCount;
 		public long[] indexPos;
 		public TaxIdNode classNode;
 
