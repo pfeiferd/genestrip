@@ -83,7 +83,16 @@ public class MultiMatchGoal extends MultiFileGoal {
 			if (matcher == null) {
 				wrapper = storeGoal.get();
 				wrapper.getKmerStore().setUseFilter(getProject().isUseBloomFilterForMatch());
-				matcher = createMatcher(wrapper, taxTreeGoal.get());
+				
+				KMerSortedArray<TaxIdNode> store = new KMerSortedArray<TaxIdNode>(wrapper.getKmerStore(),
+						new ValueConverter<String, TaxIdNode>() {
+							@Override
+							public TaxIdNode convertValue(String value) {
+								return taxTreeGoal.get().getNodeByTaxId(value);
+							}
+						});
+
+				matcher = createMatcher(store, taxTreeGoal.get());
 				reporter = new ResultReporter(taxTreeGoal.get());
 				uniqueCounter = config.isCountUniqueKMers() ? new KMerUniqueCounterBits(wrapper.getKmerStore(), true)
 						: null;
@@ -104,16 +113,8 @@ public class MultiMatchGoal extends MultiFileGoal {
 		out.close();
 	}
 
-	protected FastqKMerMatcher2 createMatcher(KMerStoreWrapper wrapper, TaxTree taxTree) {
+	protected FastqKMerMatcher2 createMatcher(KMerSortedArray<TaxIdNode> store, TaxTree taxTree) {
 		GSConfig config = getProject().getConfig();
-
-		KMerSortedArray<TaxIdNode> store = new KMerSortedArray<TaxIdNode>(wrapper.getKmerStore(),
-				new ValueConverter<String, TaxIdNode>() {
-					@Override
-					public TaxIdNode convertValue(String value) {
-						return taxTree.getNodeByTaxId(value);
-					}
-				});
 
 		return new FastqKMerMatcher2(store, config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
 				config.getThreads(), config.getMaxKMerResCounts(), getProject().isClassifyReads() ? taxTree : null,
