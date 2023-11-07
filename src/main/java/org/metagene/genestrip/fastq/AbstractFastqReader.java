@@ -51,6 +51,8 @@ public abstract class AbstractFastqReader {
 	protected final int k;
 
 	private boolean dump;
+	private Thread mainThread;
+	private boolean readsDone;
 
 	public AbstractFastqReader(int k, int maxReadSizeBytes, int maxQueueSize, int consumerNumber, Object... config) {
 		this.k = k;
@@ -68,26 +70,36 @@ public abstract class AbstractFastqReader {
 			consumers[i] = createAndStartThread(i, config);
 		}
 	}
-	
+
 	protected Thread createAndStartThread(int i, Object... config) {
-		Thread t =  new Thread(createRunnable(i, config));
+		Thread t = new Thread(createRunnable(i, config));
 		t.setName("Fastq reader thread #" + i);
 		t.start();
-		
+
 		return t;
 	}
-	
+
 	protected Runnable createRunnable(int rindex, Object... config) {
 		return new Runnable() {
 			private int index = rindex;
-			
+
 			@Override
 			public void run() {
 				while (!dump) {
 					try {
 						ReadEntry readStruct = blockingQueue.take();
-						nextEntry(readStruct, index);
-						readStruct.pooled = true;
+						try {
+							nextEntry(readStruct, index);
+						} finally {
+							if (readsDone) {
+								synchronized (mainThread) {
+									readStruct.pooled = true;
+									mainThread.notify();
+								}
+							} else {
+								readStruct.pooled = true;
+							}
+						}
 					} catch (IOException e) {
 						throw new RuntimeException(e);
 					} catch (InterruptedException e) {
@@ -99,7 +111,7 @@ public abstract class AbstractFastqReader {
 			}
 		};
 	}
-	
+
 	protected ReadEntry createReadEntry(int maxReadSizeBytes, Object... config) {
 		return new ReadEntry(maxReadSizeBytes);
 	}
@@ -131,6 +143,8 @@ public abstract class AbstractFastqReader {
 		reads = 0;
 		kMers = 0;
 		bufferedLineReaderFastQ.setInputStream(inputStream);
+		readsDone = false;
+		mainThread = Thread.currentThread();
 
 		start();
 
@@ -163,32 +177,34 @@ public abstract class AbstractFastqReader {
 			readStruct = nextFreeReadStruct();
 			log();
 		}
+		readsDone = true;
 		if (blockingQueue != null) {
 			readStruct.pooled = true;
-			// Gentle polling and waiting until all consumers are done. 
 			boolean stillWorking = true;
 			while (stillWorking) {
 				stillWorking = false;
 				for (int i = 0; i < readStructPool.length; i++) {
-					if (!readStructPool[i].pooled) {
-						stillWorking = true;
-						try {
-							Thread.sleep(100);
-						} catch (InterruptedException e) {
-							// Ignore.
+					synchronized (mainThread) {
+						if (!readStructPool[i].pooled) {
+							stillWorking = true;
+							try {
+								mainThread.wait();
+							} catch (InterruptedException e) {
+								// Ignore.
+							}
+							break;
 						}
-						break;
 					}
 				}
-			}				
+			}
 		}
 		if (logger.isInfoEnabled()) {
 			logger.info("Total number of reads: " + reads);
 		}
 		done();
 	}
-	
-	protected void log() {		
+
+	protected void log() {
 	}
 
 	private ReadEntry nextFreeReadStruct() {
@@ -220,8 +236,8 @@ public abstract class AbstractFastqReader {
 			updateWriteStats();
 		}
 	}
-	
-	protected void updateWriteStats() {		
+
+	protected void updateWriteStats() {
 	}
 
 	// Must be thread safe. Can freely operate on readStruct.
@@ -245,7 +261,7 @@ public abstract class AbstractFastqReader {
 
 		public final byte[] readProbs;
 		public int readProbsSize;
-		
+
 		protected ReadEntry(int maxReadSizeBytes) {
 			readDescriptor = new byte[maxReadSizeBytes];
 			read = new byte[maxReadSizeBytes];
