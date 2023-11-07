@@ -162,9 +162,12 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 
 				while (!dump) {
 					try {
-						File fnaFile = blockingQueue.take();
-						fastaReader.readFasta(fnaFile);
-						doneCounter--;
+						try {
+							File fnaFile = blockingQueue.take();
+							fastaReader.readFasta(fnaFile);
+						} finally {
+							doneCounter--;
+						}
 					} catch (IOException e) {
 						throw new RuntimeException(e);
 					} catch (InterruptedException e) {

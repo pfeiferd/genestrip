@@ -142,6 +142,10 @@ public class TaxTree {
 		this.countSize = countSize;
 	}
 	
+	public void resetCounts() {
+		root.resetCounts();
+	}
+	
 	public void incCount(TaxIdNode node, int index, long initKey) {
 		node.incCount(node, index, initKey, countSize);
 	}
@@ -386,6 +390,17 @@ public class TaxTree {
 			copy.name = name;
 			copy.position = position;
 			return copy;
+		}
+		
+		private void resetCounts() {
+			if (countsInitKeys != null) {
+				for (int i = 0; i < countsInitKeys.length; i++) {
+					countsInitKeys[i] = -1;
+				}
+			}
+			for (TaxIdNode node : subNodes) {
+				node.resetCounts();
+			}
 		}
 	}
 
