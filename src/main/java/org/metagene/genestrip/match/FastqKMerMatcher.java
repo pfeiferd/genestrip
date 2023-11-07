@@ -92,7 +92,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	}
 
 	@Override
-	protected ReadEntry createReadEntry(int maxReadSizeBytes) {
+	protected ReadEntry createReadEntry(int maxReadSizeBytes, Object...config) {
 		return new MyReadEntry(maxReadSizeBytes, out != null);
 	}
 
@@ -120,6 +120,9 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 
 		initRoot();
 		initUniqueCounter(uniqueCounter);
+		if (taxTree != null) {
+			taxTree.resetCounts();
+		}
 
 		totalCount = fastqs.size();
 		for (File fastq : fastqs) {

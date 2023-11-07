@@ -36,8 +36,10 @@ import org.metagene.genestrip.goals.MultiMatchGoal;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.match.FastqKMerMatcher;
+import org.metagene.genestrip.match.FastqKMerMatcher2;
 import org.metagene.genestrip.match.MatchingResult;
+import org.metagene.genestrip.store.KMerSortedArray;
+import org.metagene.genestrip.store.KMerSortedArray.ValueConverter;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.Rank;
@@ -66,18 +68,35 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 		super.makeFile(file);
 	}
 
-	@Override
-	protected FastqKMerMatcher createMatcher(KMerStoreWrapper wrapper, TaxTree taxTree) {
+	protected FastqKMerMatcher2 createMatcher(KMerStoreWrapper wrapper, TaxTree taxTree) {
 		GSConfig config = getProject().getConfig();
 
-		return new FastqKMerMatcher(wrapper.getKmerStore(), config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
-				config.getThreads(), config.getMaxKMerResCounts(), taxTree, getProject().getMaxReadTaxErrorCount()) {
+		KMerSortedArray<TaxIdNode> store = new KMerSortedArray<TaxIdNode>(wrapper.getKmerStore(),
+				new ValueConverter<String, TaxIdNode>() {
+					@Override
+					public TaxIdNode convertValue(String value) {
+						return taxTree.getNodeByTaxId(value);
+					}
+				});
+
+		return new FastqKMerMatcher2(store, config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
+				config.getThreads(), config.getMaxKMerResCounts(), getProject().isClassifyReads() ? taxTree : null,
+				config.getMaxClassificationPaths(), getProject().getMaxReadTaxErrorCount());
+	}
+	
+	protected FastqKMerMatcher2 createMatcher(KMerSortedArray<TaxIdNode> store, TaxTree taxTree) {
+		GSConfig config = getProject().getConfig();
+
+		return new FastqKMerMatcher2(store, config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
+				config.getThreads(), config.getMaxKMerResCounts(), getProject().isClassifyReads() ? taxTree : null,
+				config.getMaxClassificationPaths(), getProject().getMaxReadTaxErrorCount()) {
 			@Override
 			protected void afterMatch(MyReadEntry entry, boolean found) throws IOException {
 				super.afterMatch(entry, found);
 				totalCount++;
 				if (!timing) {
-					accuracyCounts.updateCounts(entry.readTaxId, entry.readDescriptor, taxTree);
+					String taxid = entry.classNode == null ? null : entry.classNode.getTaxId();
+					accuracyCounts.updateCounts(taxid, entry.readDescriptor, taxTree);
 				}
 			}
 		};
