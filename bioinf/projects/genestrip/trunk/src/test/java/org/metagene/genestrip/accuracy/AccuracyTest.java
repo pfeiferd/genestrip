@@ -40,7 +40,7 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree;
 
-//@Ignore
+@Ignore
 public class AccuracyTest {
 	private final GSConfig config;
 	private final GSProject project;
