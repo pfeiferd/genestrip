@@ -26,17 +26,54 @@ package org.metagene.genestrip.util;
 
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.util.Arrays;
 
 public class CGATRingBuffer implements Serializable {
 	private static final long serialVersionUID = 1L;
 
+	private final int seqMarks[];
+	private final byte[] data;
+
 	private int end;
-	private byte[] data;
 	private boolean filled;
 	private int invalidCPos;
 
+	private final int maxDust;
+	private final int[] fib;
+
+	private byte lastChar;
+	private int sumDust;
+	private int seqCount;
+
 	public CGATRingBuffer(int size) {
+		this(size, -1);
+	}
+
+	public CGATRingBuffer(int size, int maxDust) {
+		if (maxDust > Short.MAX_VALUE) {
+			throw new IllegalArgumentException("Unreasonable size for maxDust :" + maxDust);
+		}
+		this.maxDust = maxDust;
+		int a = 1;
+		int b = 1;
+		int count = 0;
+		for (; b < maxDust; count++) {
+			int h = a + b;
+			a = b;
+			b = h;
+		}
+		fib = new int[count];
+		if (count > 0) {
+			fib[0] = 1;
+		}
+		if (count > 1) {
+			fib[1] = 1;
+		}
+		for (int i = 2; i < fib.length; i++) {
+			fib[i] = fib[i - 1] + fib[i - 2];
+		}
 		data = new byte[size];
+		seqMarks = new int[size];
 		reset();
 	}
 
@@ -44,25 +81,53 @@ public class CGATRingBuffer implements Serializable {
 		data[end] = c;
 		if (!(c == 'C' || c == 'G' || c == 'A' || c == 'T')) { // Inlined CGAT.isCGAT(c) for efficiency reasons.
 			invalidCPos = data.length;
-		} else if (invalidCPos > 0) {
-			invalidCPos--;
+
+			sumDust = 0;
+			Arrays.fill(seqMarks, 0);
+			seqCount = 0;
+		} else {
+			if (invalidCPos > 0) {
+				invalidCPos--;
+			}
+			if (maxDust >= 0) {
+				if (c == lastChar) {
+					sumDust += fib[seqCount];
+					seqCount++;
+					seqMarks[(end - seqCount + data.length) % data.length]++;
+				} else {
+					sumDust = 0;
+					seqCount = 0;
+				}
+				lastChar = c;
+			}
 		}
 		end = (end + 1) % data.length;
+		if (maxDust >= 0) {
+			int oldCount = seqMarks[(end + 1) % data.length];
+			if (oldCount > 0) {
+				sumDust -= fib[oldCount];
+				seqMarks[(end + 2) % data.length] = oldCount - 1;
+			}
+		}
 		if (end == 0) {
 			filled = true;
 		}
 	}
-	
+
 	public void reset() {
 		end = 0;
 		invalidCPos = 0;
 		filled = false;
+
+		seqCount = 0;
+		sumDust = 0;
+		Arrays.fill(seqMarks, 0);
 	}
-	
+
 	public boolean isFilled() {
 		return filled;
 	}
-	
+
 	public int getSize() {
 		return data.length;
 	}
@@ -83,6 +148,10 @@ public class CGATRingBuffer implements Serializable {
 
 	public boolean isCGAT() {
 		return invalidCPos == 0;
+	}
+
+	public boolean isDust() {
+		return sumDust > maxDust;
 	}
 
 	public void toPrintStream(PrintStream stream) {
