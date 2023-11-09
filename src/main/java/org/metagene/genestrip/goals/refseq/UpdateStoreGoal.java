@@ -26,6 +26,10 @@ package org.metagene.genestrip.goals.refseq;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.Thread.UncaughtExceptionHandler;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -62,6 +66,8 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 	private int doneCounter;
 	private Object[] syncs = new Object[256];
 
+	private final List<Throwable> throwablesInThreads;
+
 	@SafeVarargs
 	public UpdateStoreGoal(GSProject project, String name, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
 			ObjectGoal<TaxTree, GSProject> taxTreeGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
@@ -77,6 +83,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 		this.accessionTrieGoal = accessionTrieGoal;
 		this.filledStoreGoal = filledStoreGoal;
 		consumers = new Thread[project.getConfig().getThreads()];
+		throwablesInThreads = Collections.synchronizedList(new ArrayList<Throwable>());
 	}
 
 	public void setUpdatedStoreGoal(UpdatedStoreGoal updatedStoreGoal) {
@@ -93,6 +100,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 			for (int i = 0; i < syncs.length; i++) {
 				syncs[i] = new Object();
 			}
+			throwablesInThreads.clear();
 
 			BlockingQueue<File> blockingQueue = new ArrayBlockingQueue<File>(consumers.length);
 			for (int i = 0; i < consumers.length; i++) {
@@ -114,6 +122,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 						}
 					}
 				}
+				checkAndLogConsumerThreadProblem();
 			}
 			// Simply do this on main thread - should not be so much work...
 			Map<File, TaxIdNode> additionalMap = additionalGoal.get();
@@ -121,9 +130,9 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 				fastaReader.ignoreAccessionMap(additionalMap.get(additionalFasta));
 				fastaReader.readFasta(additionalFasta);
 			}
-
 			// Gentle polling and waiting until all consumers are done.
 			while (doneCounter > 0) {
+				checkAndLogConsumerThreadProblem();
 				try {
 					Thread.sleep(100);
 				} catch (InterruptedException e) {
@@ -145,9 +154,26 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 		}
 	}
 
+	protected void checkAndLogConsumerThreadProblem() {
+		if (!throwablesInThreads.isEmpty()) {
+			for (Throwable t : throwablesInThreads) {
+				if (getLogger().isErrorEnabled()) {
+					getLogger().error("Error in consumer thread: ", t);
+				}
+			}
+			throw new RuntimeException("Error(s) in consumer thread(s).");
+		}
+	}
+
 	protected Thread createAndStartThread(Runnable runnable, int i) {
 		Thread t = new Thread(runnable);
 		t.setName("Store updater thread #" + i);
+		t.setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
+			@Override
+			public void uncaughtException(Thread t, Throwable e) {
+				throwablesInThreads.add(e);
+			}
+		});
 		t.start();
 
 		return t;
