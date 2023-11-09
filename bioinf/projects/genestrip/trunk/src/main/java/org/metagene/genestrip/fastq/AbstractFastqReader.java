@@ -28,6 +28,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.Thread.UncaughtExceptionHandler;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -54,6 +58,8 @@ public abstract class AbstractFastqReader {
 	private Thread mainThread;
 	private boolean readsDone;
 
+	private final List<Throwable> throwablesInThreads;
+	
 	public AbstractFastqReader(int k, int maxReadSizeBytes, int maxQueueSize, int consumerNumber, Object... config) {
 		this.k = k;
 		bufferedLineReaderFastQ = new BufferedLineReader();
@@ -66,6 +72,8 @@ public abstract class AbstractFastqReader {
 				: new ArrayBlockingQueue<AbstractFastqReader.ReadEntry>(maxQueueSize);
 
 		consumers = new Thread[consumerNumber];
+		throwablesInThreads = Collections.synchronizedList(new ArrayList<Throwable>());
+		
 		for (int i = 0; i < consumers.length; i++) {
 			consumers[i] = createAndStartThread(i, config);
 		}
@@ -74,11 +82,29 @@ public abstract class AbstractFastqReader {
 	protected Thread createAndStartThread(int i, Object... config) {
 		Thread t = new Thread(createRunnable(i, config));
 		t.setName("Fastq reader thread #" + i);
+		t.setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
+			@Override
+			public void uncaughtException(Thread t, Throwable e) {
+				throwablesInThreads.add(e);
+			}
+		});
+		t.start();
 		t.start();
 
 		return t;
 	}
 
+	protected void checkAndLogConsumerThreadProblem() {
+		if (!throwablesInThreads.isEmpty()) {
+			for (Throwable t : throwablesInThreads) {
+				if (getLogger().isErrorEnabled()) {
+					getLogger().error("Error in consumer thread: ", t);
+				}
+			}
+			throw new RuntimeException("Error(s) in consumer thread(s).");
+		}
+	}
+	
 	protected Runnable createRunnable(int rindex, Object... config) {
 		return new Runnable() {
 			private int index = rindex;
@@ -174,6 +200,7 @@ public abstract class AbstractFastqReader {
 					throw new RuntimeException(e);
 				}
 			}
+			checkAndLogConsumerThreadProblem();
 			readStruct = nextFreeReadStruct();
 			log();
 		}
@@ -182,6 +209,7 @@ public abstract class AbstractFastqReader {
 			readStruct.pooled = true;
 			boolean stillWorking = true;
 			while (stillWorking) {
+				checkAndLogConsumerThreadProblem();
 				stillWorking = false;
 				for (int i = 0; i < readStructPool.length; i++) {
 					synchronized (mainThread) {
