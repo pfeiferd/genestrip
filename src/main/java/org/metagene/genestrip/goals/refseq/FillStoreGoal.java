@@ -112,7 +112,7 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	protected static class MyFastaReader extends AbstractStoreFastaReader {
 		private final KMerSortedArray<String> store;
 		private long tooManyCounter;
@@ -128,7 +128,14 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 			if (store.isFull()) {
 				tooManyCounter++;
 			} else {
-				store.put(byteRingBuffer, node.getTaxId(), false);
+				if (node.getTaxId() != null) {
+					store.put(byteRingBuffer, node.getTaxId(), false);
+				}
+				else {
+					if (getLogger().isWarnEnabled()) {
+						getLogger().warn("Tax id node without taxid: " + node.getName());
+					}
+				}
 			}
 		}
 	}
