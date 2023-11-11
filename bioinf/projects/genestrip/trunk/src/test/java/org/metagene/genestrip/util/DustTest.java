@@ -20,17 +20,17 @@ public class DustTest {
 		for (int i = 2; i < fib.length; i++) {
 			fib[i] = fib[i - 1] + fib[i - 2];
 		}
-		CGATRingBuffer buffer = new CGATRingBuffer(10, 5);
-		
+		CGATRingBuffer buffer = new CGATRingBuffer(31, 25);
+
 		Random random = new Random(10);
-		
-		for (int j = 0; j < 10000; j++) {
+
+		for (int j = 0; j < 100000; j++) {
 			if (j == 228) {
 				System.out.println("stop");
 			}
 			byte c = CGAT.DECODE_TABLE[random.nextInt(4)];
 			buffer.put(c);
-			
+
 			if (buffer.isFilled()) {
 				int n = 0;
 				int sumDust = 0;
@@ -39,8 +39,7 @@ public class DustTest {
 					byte d = buffer.get(i);
 					if (d == last) {
 						n++;
-					}
-					else if (n > 0) {
+					} else if (n > 0) {
 						sumDust += fib[n];
 						n = 0;
 					}
@@ -49,11 +48,12 @@ public class DustTest {
 				if (n > 0) {
 					sumDust += fib[n];
 				}
-				System.out.println(j + ": " + buffer + " " + sumDust);
-				assertEquals(buffer.getMaxDust() >= 0 ? sumDust : -1,  buffer.getDustValue());
+				assertEquals(buffer.getMaxDust() >= 0 ? sumDust : -1, buffer.getDustValue());
 				assertEquals(sumDust > buffer.getMaxDust() && buffer.getMaxDust() >= 0, buffer.isDust());
+				if (buffer.isDust()) {
+					System.out.println(j + ": " + buffer + " " + sumDust);
+				}
 			}
 		}
-
 	}
 }
