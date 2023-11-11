@@ -25,9 +25,6 @@ public class DustTest {
 		Random random = new Random(10);
 
 		for (int j = 0; j < 100000; j++) {
-			if (j == 228) {
-				System.out.println("stop");
-			}
 			byte c = CGAT.DECODE_TABLE[random.nextInt(4)];
 			buffer.put(c);
 
@@ -48,11 +45,32 @@ public class DustTest {
 				if (n > 0) {
 					sumDust += fib[n];
 				}
+				
 				assertEquals(buffer.getMaxDust() >= 0 ? sumDust : -1, buffer.getDustValue());
 				assertEquals(sumDust > buffer.getMaxDust() && buffer.getMaxDust() >= 0, buffer.isDust());
 				if (buffer.isDust()) {
 					System.out.println(j + ": " + buffer + " " + sumDust);
 				}
+				
+				// This just ensures that the dust measure is (really) symmetrical:
+				int sumDust1 = sumDust;				
+				n = 0;
+				sumDust = 0;
+				last = buffer.get(buffer.getSize() - 1);
+				for (int i = buffer.getSize() - 2; i >= 0; i--) {
+					byte d = buffer.get(i);
+					if (d == last) {
+						n++;
+					} else if (n > 0) {
+						sumDust += fib[n];
+						n = 0;
+					}
+					last = d;
+				}
+				if (n > 0) {
+					sumDust += fib[n];
+				}
+				assertEquals(sumDust1, sumDust);
 			}
 		}
 	}
