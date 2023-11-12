@@ -82,7 +82,10 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		int s = initialValues == null ? 0 : initialValues.size();
 		indexMap = new Short2ObjectOpenHashMap<V>(s);
 		valueMap = new Object2ShortOpenHashMap<V>(s);
-		nextValueIndex = 0;
+		// It is VERY important to start with one here because of a bug in the fastutil library.
+		// It seems to have to do with storing 0 as a key and deserializing Short2ObjectHashMap in this case.
+		// I did not want to dive into this - so this is a simple workaround:
+		nextValueIndex = 1; 
 		this.enforceLarge = enforceLarge;
 		if (initialValues != null) {
 			for (V v : initialValues) {
