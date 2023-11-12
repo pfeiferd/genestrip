@@ -28,7 +28,9 @@ import java.util.Random;
 
 import org.junit.Test;
 
-public class NextKMerTest {
+import junit.framework.TestCase;
+
+public class NextKMerTest extends TestCase {
 	@Test
 	public void testNextKMer() {
 		for (int k = 1; k < 33; k++) {
@@ -44,7 +46,7 @@ public class NextKMerTest {
 				if (buffer.isFilled()) {
 					long kmer = CGAT.kMerToLongStraight(buffer);
 					if (oldKMer != -1) {
-						CGAT.nextKMerStraight(oldKMer, c, k);
+						assertEquals(kmer, CGAT.nextKMerStraight(oldKMer, c, k));
 					}
 					oldKMer = kmer;
 				}
@@ -64,7 +66,7 @@ public class NextKMerTest {
 				if (buffer.isFilled()) {
 					long kmer = CGAT.kMerToLongReverse(buffer);
 					if (oldKMer != -1) {
-						CGAT.nextKMerReverse(oldKMer, c, k);
+						assertEquals(kmer, CGAT.nextKMerReverse(oldKMer, c, k));
 					}
 					oldKMer = kmer;
 				}
