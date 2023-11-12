@@ -69,9 +69,10 @@ public class CGAT {
 		CGAT_REVERSE_JUMP_TABLE['A'] = 3;
 		CGAT_REVERSE_JUMP_TABLE['T'] = 2;
 
-		for (int i = 0; i < SHIFT_FILTERS_STRAIGHT.length; i++) {
-			SHIFT_FILTERS_STRAIGHT[i] = ~(-1 << (i * 2));
+		for (int i = 0; i < SHIFT_FILTERS_STRAIGHT.length - 1; i++) {
+			SHIFT_FILTERS_STRAIGHT[i] = ~(-1L << (i * 2));
 		}
+		SHIFT_FILTERS_STRAIGHT[32] = -1;
 		for (int i = 1; i < SHIFT_FILTERS_REVERSE.length; i++) {
 			SHIFT_FILTERS_REVERSE[i] = (i - 1) * 2;
 		}
@@ -147,28 +148,20 @@ public class CGAT {
 		return res;
 	}
 
-	public static long nextKMerStraight(short kmer, byte bp, int k) {
-		long c = CGAT_JUMP_TABLE[bp];
-		if (c == -1) {
-			return -1L;
-		}
-		return ((kmer << 2) & SHIFT_FILTERS_STRAIGHT[k]) | c;
-	}
-
-	public static long nextKMerReverse(short kmer, byte bp, int k) {
-		int c = CGAT_REVERSE_JUMP_TABLE[bp];
-		if (c == -1) {
-			return -1L;
-		}
-		return (kmer >>> 2) | (c << SHIFT_FILTERS_REVERSE[k]);
-	}
-
-	public static long nextKMerRevers(long kmer, byte bp, int k) {
+	public static long nextKMerStraight(long kmer, byte bp, int k) {
 		int c = CGAT_JUMP_TABLE[bp];
 		if (c == -1) {
 			return -1L;
 		}
-		return (kmer << 2) + c;
+		return ((kmer << 2) & SHIFT_FILTERS_STRAIGHT[k]) | (long) c;
+	}
+
+	public static long nextKMerReverse(long kmer, byte bp, int k) {
+		int c = CGAT_REVERSE_JUMP_TABLE[bp];
+		if (c == -1) {
+			return -1L;
+		}
+		return (kmer >>> 2) | (((long) c) << SHIFT_FILTERS_REVERSE[k]);
 	}
 
 	public static long kMerToLongReverse(byte[] seq, int start, int k, int[] badPos) {
