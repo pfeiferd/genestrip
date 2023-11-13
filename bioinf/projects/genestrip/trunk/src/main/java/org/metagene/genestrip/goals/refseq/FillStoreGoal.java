@@ -79,7 +79,7 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 
 		try {
 			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getMaxReadSizeBytes(),
-					taxNodesGoal.get(), accessionMapGoal.get(), store, getProject().getMaxGenomesPerTaxid());
+					taxNodesGoal.get(), accessionMapGoal.get(), store, getProject().getMaxGenomesPerTaxid(), getProject().getMaxDust());
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
@@ -118,8 +118,8 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 		private long tooManyCounter;
 
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
-				KMerSortedArray<String> store, int maxGenomesPerTaxId) {
-			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId);
+				KMerSortedArray<String> store, int maxGenomesPerTaxId, int maxDust) {
+			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxDust);
 			this.store = store;
 		}
 
@@ -129,7 +129,7 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 				tooManyCounter++;
 			} else {
 				if (node.getTaxId() != null) {
-					store.put(byteRingBuffer, node.getTaxId(), false);
+					store.putLong(byteRingBuffer.getKMer() , node.getTaxId());
 				}
 				else {
 					if (getLogger().isWarnEnabled()) {
