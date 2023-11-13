@@ -296,7 +296,12 @@ public class GSProject implements DownloadProject {
 	}
 	
 	public int getMaxDust() {
-		return -1;
+		String v = properties.getProperty(GSConfig.MAX_DUST);
+		if (v != null) {
+			int i = Integer.valueOf(v);
+			return i <= 0 ? -1 : i;
+		}
+		return getConfig().getMaxDust();
 	}
  
 	public File getFilterFile(Goal<GSProject> goal) {

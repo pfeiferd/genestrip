@@ -52,6 +52,7 @@ public class GSConfig {
 	public static final String USE_BLOOM_FILTER_FOR_MATCH = "useBloomFilterForMatch";
 	public static final String MAX_READ_TAX_ERROR_COUNT = "maxReadTaxErrorCount";
 	public static final String CLASSIFY_READS = "classifyReads";
+	public static final String MAX_DUST = "maxDust";
 
 	private final File baseDir;
 	private final Properties properties;
@@ -222,5 +223,10 @@ public class GSConfig {
 	public int getMaxGenomesPerTaxid() {
 		int i = Integer.valueOf(properties.getProperty(MAX_GENOMES_PER_TAXID, "-1"));
 		return i <= 0 ? Integer.MAX_VALUE : i;
+	}
+	
+	public int getMaxDust() {
+		int i = Integer.valueOf(properties.getProperty(MAX_DUST, "-1"));
+		return i <= 0 ? -1 : i;
 	}
 }
