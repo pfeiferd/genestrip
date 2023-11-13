@@ -24,147 +24,56 @@
  */
 package org.metagene.genestrip.util;
 
-import java.io.PrintStream;
-import java.io.Serializable;
-import java.util.Arrays;
-
-public class CGATRingBuffer implements Serializable {
-	private static final long serialVersionUID = 1L;
-
-	private final int seqMarks[];
+public class CGATRingBuffer extends CGATLongBuffer {
 	private final byte[] data;
 
-	private int end;
-	private boolean filled;
-	private int invalidCPos;
-
-	private final int maxDust;
-	private final int[] fib;
-
-	private byte lastChar;
-	private int sumDust;
-	private int seqCount;
+	public CGATRingBuffer(int size, int maxDust) {
+		super(size, maxDust);
+		data = new byte[size];
+	}
 
 	public CGATRingBuffer(int size) {
 		this(size, -1);
 	}
 
-	public CGATRingBuffer(int size, int maxDust) {
-		if (maxDust > Short.MAX_VALUE) {
-			throw new IllegalArgumentException("Unreasonable size for maxDust :" + maxDust);
-		}
-		this.maxDust = maxDust;
-		if (maxDust >= 0) {
-			fib = new int[size];
-			if (size > 0) {
-				fib[0] = 1;
-			}
-			if (size > 1) {
-				fib[1] = 1;
-			}
-			if (size > 2) {
-				fib[2] = 1;
-			}
-			for (int i = 3; i < fib.length; i++) {
-				fib[i] = fib[i - 1] + fib[i - 2];
-			}
-			seqMarks = new int[size];
-		}
-		else {
-			seqMarks = null;
-			fib = null;
-		}
-		data = new byte[size];
-		reset();
+	protected int maxSize() {
+		return Integer.MAX_VALUE;
 	}
-
-	public void put(byte c) {
-		data[end] = c;
-		if (!(c == 'C' || c == 'G' || c == 'A' || c == 'T')) { // Inlined CGAT.isCGAT(c) for efficiency reasons.
-			invalidCPos = data.length;
-			sumDust = maxDust >= 0 ? 0 : -1;
-		} else {
-			if (invalidCPos > 0) {
-				invalidCPos--;
-			}
-			if (maxDust >= 0) {
-				if (c == lastChar) {
-					seqMarks[(end - seqCount + data.length) % data.length]++;
-					seqCount++;
-					sumDust += fib[seqCount - 1];
-				} else {
-					seqCount = 0;
-				}
-				lastChar = c;
-			}
-		}
-		end = (end + 1) % data.length;
-		if (maxDust >= 0) {
-			int oldCount = seqMarks[end];
-			seqMarks[end % data.length] = 0;
-			if (oldCount > 0) {
-				sumDust -= fib[oldCount - 1];
-				seqMarks[(end + 1) % data.length] = oldCount - 1;
-			}
-		}
-		if (end == 0) {
-			filled = true;
-		}
-	}
-
-	public void reset() {
-		end = 0;
-		invalidCPos = 0;
-		filled = false;
-
-		seqCount = 0;
-		sumDust = maxDust >= 0 ? 0 : -1;
-		if (seqMarks != null) {
-			Arrays.fill(seqMarks, 0);
-		}
-	}
-
-	public boolean isFilled() {
-		return filled;
-	}
-
-	public int getSize() {
-		return data.length;
+	
+	public long put(byte c) {
+		data[bpCounter] = c;
+		return super.put(c);
 	}
 
 	public byte get(int index) {
-		return data[(end + index) % data.length];
+		return data[(bpCounter + index) % data.length];
 	}
+	
+	@Override
+	public long getKMer() {
+		if (!filled) {
+			return -1;
+		}
+		
+		long res = 0;
+		int c;
+		for (int i = 0; i < size; i++) {
+			// Inlined: res = Long.rotateLeft(res, 2);
+			res = (res << 2) | (res >>> -2);
+			c = CGAT.CGAT_JUMP_TABLE[data[(bpCounter + i) % size]];
+			res += c;
+		}
 
+		return res;
+	}
+	
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 
-		for (int i = 0; i < data.length; i++) {
-			builder.append((char) get(i));
+		for (int i = 0; i < size; i++) {
+			builder.append((char)data[(bpCounter + i) % size]);
 		}
 
 		return builder.toString();
-	}
-
-	public boolean isCGAT() {
-		return invalidCPos == 0;
-	}
-
-	public boolean isDust() {
-		return sumDust > maxDust;
-	}
-
-	public int getDustValue() {
-		return sumDust;
-	}
-	
-	public int getMaxDust() {
-		return maxDust;
-	}
-
-	public void toPrintStream(PrintStream stream) {
-		for (int i = 0; i < data.length; i++) {
-			stream.print((char) get(i));
-		}
 	}
 }
