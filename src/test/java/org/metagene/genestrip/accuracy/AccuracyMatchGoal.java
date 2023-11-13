@@ -108,6 +108,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 		PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
 		if (!timing) {
 			accuracyCounts.printCounts(out);
+			accuracyCounts.printNoTaxidErrors(System.out);
 		} else {
 			long millis = System.currentTimeMillis() - startMillis;
 			out.println("total; elapsed millis; reads per min.;");
@@ -190,6 +191,16 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 					noTaxIdErrorPerTaxid.put(correctTaxId, e + 1);
 					noTaxIdCount++;
 				}
+			}
+		}
+		
+		public void printNoTaxidErrors(PrintStream out) {
+			out.println("taxid; error;");
+			for (String tax : noTaxIdErrorPerTaxid.keySet()) {
+				out.print(tax);
+				out.print(";");
+				out.print(noTaxIdErrorPerTaxid.get(tax));
+				out.println(";");
 			}
 		}
 
