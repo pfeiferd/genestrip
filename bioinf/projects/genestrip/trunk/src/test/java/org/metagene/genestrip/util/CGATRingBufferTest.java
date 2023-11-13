@@ -33,7 +33,8 @@ import junit.framework.TestCase;
 public class CGATRingBufferTest extends TestCase {
 	@Test
 	public void testDust() {
-		int count = 10;
+		CGATRingBuffer buffer = new CGATRingBuffer(31, 20);
+		int count = buffer.getSize();
 		int[] fib = new int[count];
 		if (count > 0) {
 			fib[0] = 1;
@@ -44,59 +45,70 @@ public class CGATRingBufferTest extends TestCase {
 		for (int i = 2; i < fib.length; i++) {
 			fib[i] = fib[i - 1] + fib[i - 2];
 		}
-		CGATRingBuffer buffer = new CGATRingBuffer(31, 25);
 
 		Random random = new Random(10);
+		int dustCount = 0;
+		int totalCount = 0;
 
-		for (int j = 0; j < 10000; j++) {
-			byte c = CGAT.DECODE_TABLE[random.nextInt(4)];
-			buffer.put(c);
+		for (int j = 0; j < 1000; j++) {
+			buffer.put((byte) 'N');
+			assertEquals(0, buffer.getDustValue());
+			for (int k = 0; k < 1000; k++) {
+				assertEquals(k >= buffer.getSize(), buffer.isFilled());
+				
+				byte c = CGAT.DECODE_TABLE[random.nextInt(4)];
+				buffer.put(c);
 
-			if (buffer.isFilled()) {
-				int n = 0;
-				int sumDust = 0;
-				int last = buffer.get(0);
-				for (int i = 1; i < buffer.getSize(); i++) {
-					byte d = buffer.get(i);
-					if (d == last) {
-						n++;
-					} else if (n > 0) {
-						sumDust += fib[n];
-						n = 0;
+				if (buffer.isFilled()) {
+					totalCount++;
+					
+					int n = 0;
+					int sumDust = 0;
+					int last = buffer.get(0);
+					for (int i = 1; i < buffer.getSize(); i++) {
+						byte d = buffer.get(i);
+						if (d == last) {
+							n++;
+						} else if (n > 0) {
+							sumDust += fib[n];
+							n = 0;
+						}
+						last = d;
 					}
-					last = d;
-				}
-				if (n > 0) {
-					sumDust += fib[n];
-				}
-
-				assertEquals(buffer.getMaxDust() >= 0 ? sumDust : -1, buffer.getDustValue());
-				assertEquals(sumDust > buffer.getMaxDust() && buffer.getMaxDust() >= 0, buffer.isDust());
-				if (buffer.isDust()) {
-					System.out.println(j + ": " + buffer + " " + sumDust);
-				}
-
-				// This just ensures that the dust measure is (really) symmetrical:
-				int sumDust1 = sumDust;
-				n = 0;
-				sumDust = 0;
-				last = buffer.get(buffer.getSize() - 1);
-				for (int i = buffer.getSize() - 2; i >= 0; i--) {
-					byte d = buffer.get(i);
-					if (d == last) {
-						n++;
-					} else if (n > 0) {
+					if (n > 0) {
 						sumDust += fib[n];
-						n = 0;
 					}
-					last = d;
+
+					assertEquals(buffer.getMaxDust() >= 0 ? sumDust : -1, buffer.getDustValue());
+					assertEquals(sumDust > buffer.getMaxDust() && buffer.getMaxDust() >= 0, buffer.isDust());
+					if (buffer.isDust()) {
+						dustCount++;
+//						System.out.println(j + ": " + buffer + " " + sumDust);
+					}
+
+					// This just ensures that the dust measure is (really) symmetrical:
+					int sumDust1 = sumDust;
+					n = 0;
+					sumDust = 0;
+					last = buffer.get(buffer.getSize() - 1);
+					for (int i = buffer.getSize() - 2; i >= 0; i--) {
+						byte d = buffer.get(i);
+						if (d == last) {
+							n++;
+						} else if (n > 0) {
+							sumDust += fib[n];
+							n = 0;
+						}
+						last = d;
+					}
+					if (n > 0) {
+						sumDust += fib[n];
+					}
+					assertEquals(sumDust1, sumDust);
 				}
-				if (n > 0) {
-					sumDust += fib[n];
-				}
-				assertEquals(sumDust1, sumDust);
 			}
 		}
+		System.out.println("Dust ratio: " + ((double) dustCount) / totalCount);
 	}
 
 	@Test
@@ -113,7 +125,7 @@ public class CGATRingBufferTest extends TestCase {
 				if (j < buffer.getSize()) {
 					assertFalse(buffer.isFilled());
 					assertEquals(-1, buffer.getKMer());
-					
+
 					assertFalse(longBuffer.isFilled());
 					assertEquals(-1, longBuffer.getKMer());
 				}
