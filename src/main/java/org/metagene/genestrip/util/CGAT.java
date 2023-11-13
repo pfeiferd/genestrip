@@ -148,7 +148,7 @@ public class CGAT {
 				if (badPos != null) {
 					badPos[0] = i;
 				}
-				return -1;
+				return -1L;
 			}
 			res += c;
 		}
