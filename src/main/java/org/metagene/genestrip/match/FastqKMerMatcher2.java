@@ -130,7 +130,9 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 		for (File fastq : fastqs) {
 			currentFastq = fastq;
 			byteCountAccess = StreamProvider.getByteCountingInputStreamForFile(fastq, false);
+			taxTree.resetCounts(this);
 			readFastq(byteCountAccess.getInputStream());
+			taxTree.releaseOwner();
 			coveredFilesSize += byteCountAccess.getBytesRead();
 			byteCountAccess.getInputStream().close();
 			coveredCounter++;
