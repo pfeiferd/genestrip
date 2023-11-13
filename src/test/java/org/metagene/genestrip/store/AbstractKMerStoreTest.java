@@ -24,11 +24,6 @@
  */
 package org.metagene.genestrip.store;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -44,7 +39,9 @@ import org.metagene.genestrip.store.KMerStore.KMerStoreVisitor;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATRingBuffer;
 
-public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
+import junit.framework.TestCase;
+
+public abstract class AbstractKMerStoreTest extends TestCase implements KMerStoreFactory {
 	protected final Random random = new Random(42);
 
 	protected int k = 31;
