@@ -120,9 +120,6 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 
 		initRoot();
 		initUniqueCounter(uniqueCounter);
-		if (taxTree != null) {
-			taxTree.resetCounts();
-		}
 
 		totalCount = fastqs.size();
 		for (File fastq : fastqs) {
