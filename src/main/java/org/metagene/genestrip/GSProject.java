@@ -294,7 +294,11 @@ public class GSProject implements DownloadProject {
 		}
 		return getConfig().getMaxReadTaxErrorCount();
 	}
-
+	
+	public int getMaxDust() {
+		return -1;
+	}
+ 
 	public File getFilterFile(Goal<GSProject> goal) {
 		return getOutputFile(goal.getName(), FileType.FILTER);
 	}

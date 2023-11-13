@@ -208,7 +208,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 
 	protected AbstractRefSeqFastaReader createFastaReader(KMerSortedArray<String> store) {
 		return new MyFastaReader(getProject().getConfig().getMaxReadSizeBytes(), taxTreeGoal.get(),
-				accessionTrieGoal.get(), store, getProject().getMaxGenomesPerTaxid());
+				accessionTrieGoal.get(), store, getProject().getMaxGenomesPerTaxid(), getProject().getMaxDust());
 	}
 
 	public void dump() {
@@ -223,8 +223,8 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 		private final UpdateValueProvider<String> provider;
 
 		public MyFastaReader(int bufferSize, TaxTree taxTree, AccessionMap accessionMap, KMerSortedArray<String> store,
-				int maxGenomesPerTaxId) {
-			super(bufferSize, null, accessionMap, store.getK(), maxGenomesPerTaxId);
+				int maxGenomesPerTaxId, int maxDust) {
+			super(bufferSize, null, accessionMap, store.getK(), maxGenomesPerTaxId, maxDust);
 			this.store = store;
 			provider = new UpdateValueProvider<String>() {
 				// Caches for last results of getLeastCommonAncestor()
@@ -267,7 +267,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 
 		@Override
 		protected void handleStore() {
-			store.update(byteRingBuffer, provider, false);
+			store.update(byteRingBuffer.getKMer(), provider);
 		}
 	}
 }

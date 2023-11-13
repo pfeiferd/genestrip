@@ -29,14 +29,15 @@ import java.util.Set;
 
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.CGAT;
+import org.metagene.genestrip.util.CGATLongBuffer;
 import org.metagene.genestrip.util.CGATRingBuffer;
 
 public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader {
-	protected final CGATRingBuffer byteRingBuffer;
+	protected final CGATLongBuffer byteRingBuffer;
 	
-	public AbstractStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId) {
+	public AbstractStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, int maxDust) {
 		super(bufferSize, taxNodes, accessionMap, maxGenomesPerTaxId);
-		byteRingBuffer = new CGATRingBuffer(k);
+		byteRingBuffer = k > 32 ? new CGATRingBuffer(k, maxDust) : new CGATLongBuffer(k, maxDust);
 	}
 	
 	@Override
@@ -50,7 +51,7 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 		if (includeRegion) {
 			for (int i = 0; i < size - 1; i++) {
 				byteRingBuffer.put(CGAT.cgatToUpperCase(target[i]));
-				if (byteRingBuffer.isFilled() && byteRingBuffer.isCGAT()) {
+				if (byteRingBuffer.isFilled() && !byteRingBuffer.isDust()) {
 					handleStore(); 
 				}
 			}
