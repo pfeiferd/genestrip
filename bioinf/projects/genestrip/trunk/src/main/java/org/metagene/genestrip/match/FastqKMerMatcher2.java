@@ -280,61 +280,76 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 		int contigLen = 0;
 		CountsPerTaxid stats = null;
 
+		long kmer = -1;
 		for (int i = 0; i <= max; i++) {
-			long kmer = reverse ? CGAT.kMerToLongReverse(entry.read, i, k, null)
-					: CGAT.kMerToLongStraight(entry.read, i, k, null);
-
-			taxid = kmer == -1 ? null : kmerStore.getLong(kmer, entry.indexPos);
-			if (readTaxErrorCount != -1) {
-				if (taxid == null) {
-					readTaxErrorCount++;
-					if (maxReadTaxErrorCount >= 0) {
-						if ((maxReadTaxErrorCount >= 1 && readTaxErrorCount > maxReadTaxErrorCount)
-								|| (readTaxErrorCount > maxReadTaxErrorCount * max)) {
-							readTaxErrorCount = -1;
-						}
-					}
-				} else {
-					updateReadTaxid(taxid, entry, index);
+			// TODO: Inline all of this...
+			if (kmer == -1) {
+				kmer = reverse ? CGAT.kMerToLongReverse(entry.read, i, k, entry.badPos)
+						: CGAT.kMerToLongStraight(entry.read, i, k, entry.badPos);
+				if (kmer == -1) {
+					i = entry.badPos[0];
+				}
+			} else {
+				kmer = reverse ? CGAT.nextKMerReverse(kmer, entry.read[i], k)
+						: CGAT.nextKMerStraight(kmer, entry.read[i], k);
+				if (kmer == -1) {
+					i += k - 1;
 				}
 			}
-			if (taxid != lastTaxid) {
-				if (contigLen > 0) {
-					if (out != null) {
-						printKrakenStyleOut(entry, lastTaxid, contigLen, prints++, reverse);
+			// TODO: Inline end...
+			if (kmer != -1) {
+				taxid = kmerStore.getLong(kmer, entry.indexPos);
+				if (readTaxErrorCount != -1) {
+					if (taxid == null) {
+						readTaxErrorCount++;
+						if (maxReadTaxErrorCount >= 0) {
+							if ((maxReadTaxErrorCount >= 1 && readTaxErrorCount > maxReadTaxErrorCount)
+									|| (readTaxErrorCount > maxReadTaxErrorCount * max)) {
+								readTaxErrorCount = -1;
+							}
+						}
+					} else {
+						updateReadTaxid(taxid, entry, index);
 					}
-					if (stats != null) {
-						synchronized (stats) {
-							stats.contigs++;
-							if (contigLen > stats.maxContigLen) {
-								stats.maxContigLen = contigLen;
-								for (int j = 0; j < entry.readSize; j++) {
-									stats.maxContigDescriptor[j] = entry.readDescriptor[j];
+				}
+				if (taxid != lastTaxid) {
+					if (contigLen > 0) {
+						if (out != null) {
+							printKrakenStyleOut(entry, lastTaxid, contigLen, prints++, reverse);
+						}
+						if (stats != null) {
+							synchronized (stats) {
+								stats.contigs++;
+								if (contigLen > stats.maxContigLen) {
+									stats.maxContigLen = contigLen;
+									for (int j = 0; j < entry.readSize; j++) {
+										stats.maxContigDescriptor[j] = entry.readDescriptor[j];
+									}
 								}
 							}
 						}
-					}
-					contigLen = 0;
-				}
-			}
-			contigLen++;
-			lastTaxid = taxid;
-			if (taxid != null) {
-				stats = root.get(taxid.getTaxId());
-				if (stats == null) {
-					synchronized (root) {
-						stats = root.get(taxid.getTaxId(), maxReadSize);
+						contigLen = 0;
 					}
 				}
-				synchronized (stats) {
-					stats.kmers++;
-					found = true;
+				contigLen++;
+				lastTaxid = taxid;
+				if (taxid != null) {
+					stats = root.get(taxid.getTaxId());
+					if (stats == null) {
+						synchronized (root) {
+							stats = root.get(taxid.getTaxId(), maxReadSize);
+						}
+					}
+					synchronized (stats) {
+						stats.kmers++;
+						found = true;
+					}
+					if (uniqueCounter != null) {
+						uniqueCounter.put(kmer, taxid.getTaxId(), entry.indexPos[0]);
+					}
+				} else {
+					stats = null;
 				}
-				if (uniqueCounter != null) {
-					uniqueCounter.put(kmer, taxid.getTaxId(), entry.indexPos[0]);
-				}
-			} else {
-				stats = null;
 			}
 		}
 		if (found) {
@@ -428,6 +443,7 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 	public static class MyReadEntry extends ReadEntry {
 		public final byte[] buffer;
 		public int bufferPos;
+		public int[] badPos = new int[1];
 
 		public int usedPaths;
 		public TaxIdNode[] readTaxIdNode;
