@@ -34,6 +34,9 @@ import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATRingBuffer;
 
+/**
+ * @deprecated
+ */
 public class KMerTrie<V extends Serializable> implements Serializable, KMerStore<V> {
 	private static final InternalNullMarker NULL = new InternalNullMarker();
 
