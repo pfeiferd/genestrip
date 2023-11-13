@@ -44,7 +44,7 @@ public class NextKMerTest extends TestCase {
 				buffer.put(c);
 
 				if (buffer.isFilled()) {
-					long kmer = CGAT.kMerToLongStraight(buffer);
+					long kmer = kMerToLongStraight(buffer);
 					if (oldKMer != -1) {
 						assertEquals(kmer, CGAT.nextKMerStraight(oldKMer, c, k));
 					}
@@ -64,7 +64,7 @@ public class NextKMerTest extends TestCase {
 				buffer.put(c);
 
 				if (buffer.isFilled()) {
-					long kmer = CGAT.kMerToLongReverse(buffer);
+					long kmer = kMerToLongReverse(buffer);
 					if (oldKMer != -1) {
 						assertEquals(kmer, CGAT.nextKMerReverse(oldKMer, c, k));
 					}
@@ -73,4 +73,29 @@ public class NextKMerTest extends TestCase {
 			}
 		}
 	}
+	
+	private static long kMerToLongStraight(CGATRingBuffer buffer) {
+		long res = 0;
+		int c;
+		int k = buffer.getSize();
+		for (int i = 0; i < k; i++) {
+			res = Long.rotateLeft(res, 2);
+			c = CGAT.CGAT_JUMP_TABLE[buffer.get(i)];
+			res += c;
+		}
+
+		return res;
+	}
+
+	private static long kMerToLongReverse(CGATRingBuffer buffer) {
+		long res = 0;
+		int c;
+		for (int i = buffer.getSize() - 1; i >= 0; i--) {
+			res = Long.rotateLeft(res, 2);
+			c = CGAT.CGAT_REVERSE_JUMP_TABLE[buffer.get(i)];
+			res += c;
+		}
+
+		return res;
+	}	
 }

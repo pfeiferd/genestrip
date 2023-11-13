@@ -122,14 +122,12 @@ public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
 			}
 
 			assertEquals(v, store.get(read, 0, false));
-			assertEquals(v, store.get(ringBuffer, false));
 
 			CGAT.reverse(read);
 			for (int j = 0; j < read.length; j++) {
 				ringBuffer.put(read[j]);
 			}
 			assertEquals(v, store.get(read, 0, true));
-			assertEquals(v, store.get(ringBuffer, true));
 		}
 
 		List<Byte> readAsList = new ArrayList<Byte>();
@@ -142,7 +140,6 @@ public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
 			}
 			if (!controlMap.containsKey(readAsList)) {
 				assertNull(store.get(read, 0, false));
-				assertNull(store.get(ringBuffer, false));
 			}
 
 			CGAT.reverse(read);
@@ -153,7 +150,6 @@ public abstract class AbstractKMerStoreTest implements KMerStoreFactory {
 			}
 			if (!controlMap.containsKey(readAsList)) {
 				assertNull(store.get(read, 0, true));
-				assertNull(store.get(ringBuffer, true));
 			}
 		}
 	}

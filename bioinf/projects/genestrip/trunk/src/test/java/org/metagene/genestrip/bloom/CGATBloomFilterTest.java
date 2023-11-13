@@ -56,7 +56,7 @@ public class CGATBloomFilterTest {
 			}
 			reads.add(read);
 
-			filter.put(read, 0);
+			filter.putLong(CGAT.kMerToLongStraight(read, 0, k, null));
 			assertTrue(filter.contains(read, 0, null, false));
 			assertTrue(filter.contains(reverseRead, 0, null, true));
 		}
@@ -99,7 +99,7 @@ public class CGATBloomFilterTest {
 			for (int j = 0; j < k; j++) {
 				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
 			}
-			filter.put(read, 0);
+			filter.putLong(CGAT.kMerToLongStraight(read, 0, k, null));
 			trie.put(read, 0, i, false);
 		}
 
