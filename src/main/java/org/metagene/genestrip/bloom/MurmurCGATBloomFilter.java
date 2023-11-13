@@ -33,7 +33,6 @@ import java.util.Random;
 
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.util.CGAT;
-import org.metagene.genestrip.util.CGATRingBuffer;
 import org.metagene.genestrip.util.LargeBitVector;
 
 public class MurmurCGATBloomFilter implements Serializable {
@@ -124,20 +123,6 @@ public class MurmurCGATBloomFilter implements Serializable {
 		return (long) (-n * Math.log(p) / (Math.log(2) * Math.log(2)));
 	}
 
-	/**
-	 * @deprecated
-	 */
-	public void put(CGATRingBuffer buffer) {
-		putViaHash(CGAT.kMerToLongStraight(buffer));
-	}
-
-	/**
-	 * @deprecated
-	 */
-	public void put(byte[] seq, int start) {
-		putViaHash(CGAT.kMerToLongStraight(seq, start, k, null));
-	}
-
 	public void putLong(long data) {
 		putViaHash(data);
 	}
@@ -165,14 +150,6 @@ public class MurmurCGATBloomFilter implements Serializable {
 			}
 		}
 		return true;
-	}
-
-	/**
-	 * @deprecated
-	 */
-	public boolean contains(CGATRingBuffer buffer, boolean reverse) {
-		long data = reverse ? CGAT.kMerToLongReverse(buffer) : CGAT.kMerToLongStraight(buffer);
-		return containsViaHash(data);
 	}
 
 	public boolean containsLong(long data) {

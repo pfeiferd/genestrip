@@ -241,8 +241,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 	@Override
 	public boolean put(CGATRingBuffer buffer, V value, boolean reverse) {
-		long kmer = reverse ? CGAT.kMerToLongReverse(buffer) : CGAT.kMerToLongStraight(buffer);
-		return putLong(kmer, value);
+		throw new UnsupportedOperationException("Deprecated and almost removed.");
 	}
 
 	@Override
@@ -302,10 +301,12 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		return sindex;
 	}
 
+	/**
+	 * @deprecated
+	 */
 	@Override
 	public V get(CGATRingBuffer buffer, boolean reverse) {
-		long kmer = reverse ? CGAT.kMerToLongReverse(buffer) : CGAT.kMerToLongStraight(buffer);
-		return getLong(kmer, null);
+		throw new UnsupportedOperationException("Deprecated and almost removed.");
 	}
 
 	@Override
