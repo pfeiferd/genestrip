@@ -120,6 +120,7 @@ public class TaxTree {
 	private final TaxIdNode root;
 	private final TaxIdNodeTrie taxIdNodeTrie;
 	private int countSize;
+	private Object owner;
 
 	public TaxTree(File path) {
 		try {
@@ -142,8 +143,21 @@ public class TaxTree {
 		this.countSize = countSize;
 	}
 	
-	public void resetCounts() {
+	public void resetCounts(Object owner) {
+		if (owner == null) {
+			throw new NullPointerException("owner must not be null");
+		}
+		if (this.owner == null) {
+			this.owner = owner;
+		}
+		else if (this.owner != owner) {
+			throw new IllegalArgumentException("Tax tree not relaease by previous owner: " + this.owner);
+		}
 		root.resetCounts();
+	}
+	
+	public void releaseOwner() {
+		this.owner = null;
 	}
 	
 	public void incCount(TaxIdNode node, int index, long initKey) {
