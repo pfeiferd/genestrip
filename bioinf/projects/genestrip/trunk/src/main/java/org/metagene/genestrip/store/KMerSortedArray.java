@@ -261,7 +261,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	 * @return true if put succeeded, false if (probably) some value is already
 	 *         stored under that kmer.
 	 */
-	protected boolean putLong(long kmer, V value) {
+	public boolean putLong(long kmer, V value) {
 		if (value == null) {
 			throw new NullPointerException("null is not allowed as a value.");
 		}
@@ -321,12 +321,10 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		return getLong(kmer, indexStore);
 	}
 
-	public boolean update(CGATRingBuffer buffer, UpdateValueProvider<V> provider, boolean reverse) {
+	public boolean update(long kmer, UpdateValueProvider<V> provider) {
 		if (!sorted) {
 			throw new IllegalStateException("Updated only works when optimized.");
 		}
-
-		long kmer = reverse ? CGAT.kMerToLongReverse(buffer) : CGAT.kMerToLongStraight(buffer);
 
 		long pos;
 		if (largeKmers != null) {
