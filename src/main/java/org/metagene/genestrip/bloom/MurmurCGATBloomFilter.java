@@ -124,10 +124,16 @@ public class MurmurCGATBloomFilter implements Serializable {
 		return (long) (-n * Math.log(p) / (Math.log(2) * Math.log(2)));
 	}
 
+	/**
+	 * @deprecated
+	 */
 	public void put(CGATRingBuffer buffer) {
 		putViaHash(CGAT.kMerToLongStraight(buffer));
 	}
 
+	/**
+	 * @deprecated
+	 */
 	public void put(byte[] seq, int start) {
 		putViaHash(CGAT.kMerToLongStraight(seq, start, k, null));
 	}
@@ -161,6 +167,9 @@ public class MurmurCGATBloomFilter implements Serializable {
 		return true;
 	}
 
+	/**
+	 * @deprecated
+	 */
 	public boolean contains(CGATRingBuffer buffer, boolean reverse) {
 		long data = reverse ? CGAT.kMerToLongReverse(buffer) : CGAT.kMerToLongStraight(buffer);
 		return containsViaHash(data);
