@@ -24,20 +24,16 @@
  */
 package org.metagene.genestrip.util;
 
-import java.io.Serializable;
-
-public class CGATLongBuffer implements Serializable {
-	private static final long serialVersionUID = 1L;
-
+public class CGATLongBuffer {
 	private final int seqMarks[];
-	private final int size;
+	protected final int size;
 	
-	private int bpCounter;
+	protected int bpCounter;
 	private long kmer;
-	private boolean filled;
+	protected boolean filled;
 
 	private final int maxDust;
-	private final int[] fib;
+	private final int[] dustFunction;
 
 	private byte lastChar;
 	private int sumDust;
@@ -48,45 +44,59 @@ public class CGATLongBuffer implements Serializable {
 	}
 
 	public CGATLongBuffer(int size, int maxDust) {
+		if (size > maxSize()) {
+			throw new IllegalArgumentException("size must be <= 32");
+		}
 		if (maxDust > Short.MAX_VALUE) {
 			throw new IllegalArgumentException("Unreasonable size for maxDust :" + maxDust);
 		}
 		this.size = size;
 		this.maxDust = maxDust;
 		if (maxDust >= 0) {
-			fib = new int[size];
-			if (size > 0) {
-				fib[0] = 1;
-			}
-			if (size > 1) {
-				fib[1] = 1;
-			}
-			if (size > 2) {
-				fib[2] = 1;
-			}
-			for (int i = 3; i < fib.length; i++) {
-				fib[i] = fib[i - 1] + fib[i - 2];
-			}
+			dustFunction = new int[size];
+			initDustFunction(dustFunction);
 			seqMarks = new int[size];
 		}
 		else {
 			seqMarks = null;
-			fib = null;
+			dustFunction = null;
 		}
 		reset();
 	}
+	
+	protected void initDustFunction(int[] dustFunction) {		
+		if (dustFunction.length > 0) {
+			dustFunction[0] = 1;
+		}
+		if (dustFunction.length > 1) {
+			dustFunction[1] = 1;
+		}
+		if (dustFunction.length > 2) {
+			dustFunction[2] = 1;
+		}
+		for (int i = 3; i < dustFunction.length; i++) {
+			dustFunction[i] = dustFunction[i - 1] + dustFunction[i - 2];
+		}
+	}
+		
+	protected int maxSize() {
+		return 32;
+	}
 
-	public void put(byte c) {
-		kmer = CGAT.nextKMerStraight(kmer, c, size);
-		if (kmer == -1) {
+	public long put(byte c) {
+		// This is inlined: kmer = CGAT.nextKMerStraight(kmer, c, size);
+		int bp = CGAT.CGAT_JUMP_TABLE[c]; // Inlined.
+		if (bp == -1) {  // Inlined.
+			kmer = -1L;  // Inlined.
 			reset();
 		}
 		else {
+			kmer = ((kmer << 2) & CGAT.SHIFT_FILTERS_STRAIGHT[size]) | (long) bp;  // Inlined.
 			if (maxDust >= 0) {
 				if (c == lastChar) {
-					seqMarks[bpCounter - seqCount]++;
-					sumDust += fib[seqCount];
-					if (seqCount < size) {
+					seqMarks[(bpCounter - seqCount + size) % size]++;
+					sumDust += dustFunction[seqCount];
+					if (seqCount < size - 1) {
 						seqCount++;						
 					}
 				} else {
@@ -103,11 +113,12 @@ public class CGATLongBuffer implements Serializable {
 				int oldCount = seqMarks[bpCounter];
 				seqMarks[bpCounter] = 0;
 				if (oldCount > 0) {
-					sumDust -= fib[oldCount - 1];
+					sumDust -= dustFunction[oldCount - 1];
 					seqMarks[(bpCounter + 1) % size] = oldCount - 1;
 				}
 			}
 		}
+		return kmer;
 	}
 	
 	public long getKMer() {
