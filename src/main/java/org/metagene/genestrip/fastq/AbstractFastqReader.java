@@ -89,7 +89,6 @@ public abstract class AbstractFastqReader {
 			}
 		});
 		t.start();
-		t.start();
 
 		return t;
 	}
