@@ -219,7 +219,6 @@ public abstract class AbstractFastqReader {
 			readStruct = nextFreeReadStruct();
 			log();
 		}
-		readStruct.print(System.out);
 		
 		readsDone = true;
 		if (blockingQueue != null) {
