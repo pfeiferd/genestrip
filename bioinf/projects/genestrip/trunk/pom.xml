@@ -105,6 +105,8 @@
 					<systemPropertyVariables>
 						<propertyName>project.build.directory</propertyName>
 						<buildDirectory>${project.build.directory}</buildDirectory>
+						<propertyName>project.directory</propertyName>
+						<buildDirectory>${project.directory}</buildDirectory>
 					</systemPropertyVariables>
 					<skipTests>false</skipTests>
 				</configuration>

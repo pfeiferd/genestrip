@@ -20,7 +20,7 @@
 [comment]: # ()
 [comment]: # (Licensor: Daniel Pfeifer, daniel.pfeifer@progotec.de)
 
-Genestrip - Hyper-efficient read classification, *k*-mer counting and sequence filtering for selected groups of species
+Genestrip - Efficient read classification, *k*-mer counting and sequence filtering for selected groups of species
 ===============================================
 
 # Introduction
@@ -232,4 +232,4 @@ The use of the entries is the same as in the `config.properties` file. If given,
 
 # API-based usage
 
-TODO
+An API-based usage of the `match` goal is straight-forward: Please check out the test class `org.metagene.genestrip.APITest` in the folder `src/test/java` as a simple example.
