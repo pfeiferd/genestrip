@@ -211,8 +211,8 @@ The following entries are possible:
 | `rankCompletionDepth` | *empty* | The rank up to which tax ids from `taxids.txt` will be completed by descendants of the taxonomy tree (the set rank included). If not set, the completion will traverse down to the lowest possible levels of the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip). Typical values could be `genus`, `species` or `strain`, but  all values used for assigning ranks in the taxonomy are possible. |
 | `maxGenomesPerTaxid` | *unlimited* | The maximum number of genomes per tax id from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) to be included in the database. If negative, zero or not set, there is not limit. Note, that this is an important parameter to control database size, because in some cases, there are millions of genomic entries for a tax id such as for `573` (which does not even account for entries of its descendants). |
 | `useBloomFilterForMatch`   | `true`        | If `true` and if a bloom filter file for a database is present, it will be used during fastq file analysis (i.e. matching). Using the bloom filter tends to shorten matching time, if the most part of the reads cannot be classified because they contain *no* *k*-mers from the database. Otherwise, using the bloom filter might increase matching time by up to 30%. It also requires more main memory. |
-| `useBloomFilterForMatch`   | `true`        | If `true` and if a bloom filter has been stored as part of the database, it will be used during fastq file analysis (i.e. matching). Using the bloom filter tends to shorten matching time, if the most part of the reads cannot be classified because they contain *no* *k*-mers from the database. Otherwise, using the bloom filter might increase matching time by up to 30%.  |
-| `maxReadTaxErrorCount`   | `0.1`        | The absolute or relative maximum number of *k*-mers that do not have to be in the database for a read to be classified. If the number corresponding is above `maxReadTaxErrorCount`, then the read will not be classified. Otherwise the read will be classified if the remaining *k*-mers' tax ids all lie on the same path in the taxonomy. If so, the assigned tax id will be lowest from that path.  If  `maxReadTaxErrorCount` is >= 1, then it is interpreted as an absolute number of *k*-mers. Otherwise (and so, if >= 0 and < 1), it is interpreted as the ratio between the *k*-mers not in the database and all *k*-mers of the read. |
+| `maxReadTaxErrorCount`   | `0.1`        | The absolute or relative maximum number of *k*-mers that do not have to be in the database for a read to be classified. If the number is above `maxReadTaxErrorCount`, then the read will not be classified. Otherwise the read will be classified in the same way as [done by Kraken](https://genomebiology.biomedcentral.com/articles/10.1186/gb-2014-15-3-r46/figures/1).  If  `maxReadTaxErrorCount` is >= 1, then it is interpreted as an absolute number of *k*-mers. Otherwise (and so, if >= 0 and < 1), it is interpreted as the ratio between the *k*-mers not in the database and all *k*-mers of the read. |
+| `maxDust`   | `-1`        | When generating a database via the goal `db`, any low-complexity *k*-mer with too many repetitive sequences of base pairs may be omitted for storing. To do so, Genestrip employs a simple [genetic dust-filter](https://pubmed.ncbi.nlm.nih.gov/16796549/) for *k*-mers: It assigns a dust value *d* to each *k*-mer, and if *d* >  `maxDust`, then the *k*-mer will not be stored. Given a *k*-mer with *n* repeating base pairs of repeat length *k(1), ... k(n)* with *k(i) > 1*, then *d = fib(k(1)) + ... + fib(k(n))*, where *fib(k(i))* is the Fibonacci number of *k(i)*.  E.g., for the *8*-mer `TTTCGGTC`, we have *n = 2* with *k(1) = 3*, *k(2) = 2* and *d = fib(3) + fib(2) = 2 + 1 = 3*. For practical concerns `maxDust = 20` may be suitable. In this case, if *k*-mers were uniformly, randomly generated, then about 0.2 % of them would be omitted. |
 
 
 # Project properties
@@ -224,8 +224,9 @@ The following entries are possible:
 * `completeGenomesOnly`,
 * `rankCompletionDepth`,
 * `maxGenomesPerTaxid`,
-* `useBloomFilterForMatch` and
-* `maxReadTaxErrorCount`.
+* `useBloomFilterForMatch`,
+* `maxReadTaxErrorCount` and
+* `maxDust`.
 
 The use of the entries is the same as in the `config.properties` file. If given, an entry in `project.properties` overrides a corresponding entry from `config.properties` under this project.
 
