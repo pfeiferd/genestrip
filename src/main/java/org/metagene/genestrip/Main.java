@@ -49,10 +49,12 @@ public class Main {
 	}
 
 	public void parse(String[] args) throws ParseException, IOException {
+		preconfigureLogger();
 		CommandLine line = new DefaultParser().parse(options, args);
 
 		String baseDir = line.getOptionValue("d", "./data");
 		config = new GSConfig(new File(baseDir));
+		configureLogger(config);
 
 		target = line.getOptionValue("t", "make");
 
@@ -74,15 +76,17 @@ public class Main {
 		}
 		String projectName = restArgs[0];		
 
-		configureLogger(config);
 		
 		project = new GSProject(config, projectName, 0, null, fastqFile, resFolder, resFolder);
 		maker = new GSMaker(project);
 	}
 	
+	protected void preconfigureLogger() {
+		System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.SimpleLog");
+	}
+	
 	protected void configureLogger(GSConfig config) {
 		System.setProperty("org.apache.commons.logging.simplelog.defaultlog", config.getLogLevel());
-		System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.SimpleLog");
 		System.setProperty("org.apache.commons.logging.simplelog.showdatetime", "false");		
 	}
 
