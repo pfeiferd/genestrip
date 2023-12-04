@@ -8,17 +8,28 @@ import org.junit.Test;
 public class APITest {
 	@Test
 	public void testAndDemoAPI() throws IOException {
-		File projectDir = getBaseDir();
-		
-		GSConfig  config = new GSConfig(projectDir);
+		// Get the base directory for Genestrip. (Depends on your setup.)
+		File baseDir = getBaseDir();
+
+		// Load the system configuration.
+		GSConfig config = new GSConfig(baseDir);
+
+		// Get the fastq file to run a match on. (In this case, a small sample file
+		// provied as part of the release.)
 		File fastq = new File(getBaseDir(), "projects/human_virus/fastq/sample.fastq.gz");
-		
+
+		// Create the 'human_virus' project (whose config files are part of the
+		// release).
 		GSProject project = new GSProject(config, "human_virus", 31, null, fastq, null, null);
 		GSMaker maker = new GSMaker(project);
-		
+		// Run the 'match' goal. This may trigger other goals such as the 'db' goal to
+		// first create the 'human_virus' database.
 		maker.getGoal("match").make();
 	}
-	
+
+	// To find the base directory for any project file provided as part of the
+	// release.
+	// (This may have to be done differently for you own projects.)
 	protected File getBaseDir() {
 		String projectDir = System.getProperty("project.directory");
 		if (projectDir != null) {
@@ -26,5 +37,5 @@ public class APITest {
 		}
 		String relPath = getClass().getProtectionDomain().getCodeSource().getLocation().getFile();
 		return new File(new File(relPath).getParentFile().getParentFile(), "data");
-	}	
+	}
 }
