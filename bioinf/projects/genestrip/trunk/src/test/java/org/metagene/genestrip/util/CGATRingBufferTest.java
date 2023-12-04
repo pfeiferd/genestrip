@@ -53,7 +53,7 @@ public class CGATRingBufferTest extends TestCase {
 		for (int j = 0; j < 1000; j++) {
 			buffer.put((byte) 'N');
 			assertEquals(0, buffer.getDustValue());
-			for (int k = 0; k < 1000; k++) {
+			for (int k = 0; k < 100000; k++) {
 				assertEquals(k >= buffer.getSize(), buffer.isFilled());
 				
 				byte c = CGAT.DECODE_TABLE[random.nextInt(4)];
