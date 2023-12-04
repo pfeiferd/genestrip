@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,6 +40,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.io.BufferedLineReader;
 import org.metagene.genestrip.io.StreamProvider;
+import org.metagene.genestrip.util.ByteArrayUtil;
 
 public abstract class AbstractFastqReader {
 	private static final byte[] LINE_3 = new byte[] { '+', '\n' };
@@ -59,7 +61,7 @@ public abstract class AbstractFastqReader {
 	private boolean readsDone;
 
 	private final List<Throwable> throwablesInThreads;
-	
+
 	public AbstractFastqReader(int k, int maxReadSizeBytes, int maxQueueSize, int consumerNumber, Object... config) {
 		this.k = k;
 		bufferedLineReaderFastQ = new BufferedLineReader();
@@ -73,7 +75,7 @@ public abstract class AbstractFastqReader {
 
 		consumers = new Thread[consumerNumber];
 		throwablesInThreads = Collections.synchronizedList(new ArrayList<Throwable>());
-		
+
 		for (int i = 0; i < consumers.length; i++) {
 			consumers[i] = createAndStartThread(i, config);
 		}
@@ -103,7 +105,7 @@ public abstract class AbstractFastqReader {
 			throw new RuntimeException("Error(s) in consumer thread(s).");
 		}
 	}
-	
+
 	protected Runnable createRunnable(int rindex, Object... config) {
 		return new Runnable() {
 			private int index = rindex;
@@ -178,14 +180,28 @@ public abstract class AbstractFastqReader {
 		}
 		ReadEntry readStruct = nextFreeReadStruct();
 		for (readStruct.readDescriptorSize = bufferedLineReaderFastQ.nextLine(readStruct.readDescriptor)
-				- 1; readStruct.readDescriptorSize > 0; readStruct.readDescriptorSize = bufferedLineReaderFastQ
+				- 1; readStruct.readDescriptorSize >= 0; readStruct.readDescriptorSize = bufferedLineReaderFastQ
 						.nextLine(readStruct.readDescriptor) - 1) {
 			readStruct.readDescriptor[readStruct.readDescriptorSize] = 0;
 			readStruct.readSize = bufferedLineReaderFastQ.nextLine(readStruct.read) - 1;
 			readStruct.read[readStruct.readSize] = 0;
+
+
+// In some fastq files there occur two lines with '+' in a row which messes up the whole read process.
+// This loop compensates for this bug in fastq files:
+//			
+//			readStruct.readProbsSize = bufferedLineReaderFastQ.nextLine(readStruct.readProbs) - 1;
+//			readStruct.readProbs[readStruct.readProbsSize] = 0;
+//			while (readStruct.readProbsSize == 1 && readStruct.readProbs[0] == '+') {
+//				readStruct.readProbsSize = bufferedLineReaderFastQ.nextLine(readStruct.readProbs) - 1;
+//				readStruct.readProbs[readStruct.readProbsSize] = 0;
+//			}
+
+			// Original code:			
 			bufferedLineReaderFastQ.skipLine(); // Ignoring line 3.
 			readStruct.readProbsSize = bufferedLineReaderFastQ.nextLine(readStruct.readProbs) - 1;
 			readStruct.readProbs[readStruct.readProbsSize] = 0;
+			
 			readStruct.readNo = reads;
 
 			reads++;
@@ -203,6 +219,8 @@ public abstract class AbstractFastqReader {
 			readStruct = nextFreeReadStruct();
 			log();
 		}
+		readStruct.print(System.out);
+		
 		readsDone = true;
 		if (blockingQueue != null) {
 			readStruct.pooled = true;
@@ -295,6 +313,13 @@ public abstract class AbstractFastqReader {
 			readProbs = new byte[maxReadSizeBytes];
 
 			pooled = true;
+		}
+
+		public void print(PrintStream printStream) {
+			ByteArrayUtil.println(readDescriptor, printStream);
+			ByteArrayUtil.println(read, printStream);
+			printStream.println('+');
+			ByteArrayUtil.println(readProbs, printStream);
 		}
 	}
 }
