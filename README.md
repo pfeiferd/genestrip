@@ -73,19 +73,19 @@ The generated database comprises *k*-mers for all viruses according to the tax i
 Generating your own database is straight-forward:
 1. Create a project folder `<project_name>` under `./data/projects/`. This is the place for all subsequent files that specify the content of a database to be generated. It is also the core name of a related database.
 1. Create a text file `./data/projects/<project_name>/taxids.txt` with one tax id per line. The database will *only* contain *k*-mers from genomes that belong to tax ids referenced in the file `taxids.txt`. If `taxids.txt` contains a tax id from a non-leaf node of the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip), then all subordinate tax ids and *k*-mers from respective [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) genomes will be included in the database as well.
-1. Create a text file `./data/projects/<project_name>/categories.txt`. This file tells Genestrip, which categories of organisms should be *considered* when generating the database and when determining a least common ancestor tax id for *k*-mer in the finalized database. You also have to ensure that the categories from `categories.txt` comprise all of the tax ids from `taxids.txt`: Only genomes of comprised tax ids will be used to generate the database.
+1. Create a text file `./data/projects/<project_name>/categories.txt`. This file tells Genestrip, which categories of organisms should be *considered* when generating the database and when determining a least common ancestor tax id for *k*-mers in the finalized database. You also have to ensure that the categories from `categories.txt` comprise all of the tax ids from `taxids.txt`: Only genomes of comprised tax ids will be used to generate the database.
 1. The following categories are allowed, and originate from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/):
 `archaea`, `bacteria`, `complete`, `fungi`, `invertebrate`, `mitochondrion`, `other`, `plant`, `plasmid`, `plastid`, `protozoa`, `vertebrate_mammalian`, `vertebrate_other` and `viral`. You may enter one category per line.
-The *entire* set of genomes that belong a category referenced in `categories.txt` will be used to determine the least common ancestors tax ids of the *k*-mers stored in the finalized database. The more categories you reference in `categories.txt`, the more genomes files will have to be downloaded from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) and the longer the database generation process will take. E.g., if only the category `viral` is included, it should just take a few minutes, but with `bacteria` included, it may typically take about a day or more.
-So you should chose a suitable set of categories to balance the completeness of considered genomes and efficiency of the database generation process.
+The *entire* set of genomes that belong to a category referenced in `categories.txt` will be used to determine the least common ancestors tax ids of the *k*-mers stored in the finalized database. The more categories you reference in `categories.txt`, the more genomes files will have to be downloaded from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) and the longer the database generation process will take. E.g., if only the category `viral` is included, it should just take a few minutes, but with `bacteria` included, it may typically take about a day or more.
+So you should chose a suitable set of categories to balance completeness of considered genomes with efficiency of the database generation process.
 
 1. Start the database generation process via the command `sh ./bin/genestrip.sh <project_name> dbinfo`. This will also create a CSV file `./data/projects/<project_name>/csv/<project_name>_dbinfo.csv` with basic information about the database, i.e. the number of *k*-mers stored per tax id. The path of the database will be `./data/projects/<project_name>/db/<project_name>_db.kmers.ser.gz`. The file `./data/projects/<project_name>/db/<project_name>_db.bloom.ser.gz` is an optional part of the database and created as well. It is used by default during fastq file analysis to improve performance (in most cases) but increases main memory usage. (Please check the configuration property `useBloomFilterForMatch` for more information on this.)
 
 In general, Genestrip organizes a project folder `./data/projects/<project_name>` by means of the following sub-folders:
 * `csv` is where analysis results of fastq files will be stored (by default).
 * `fastq` is where Genestrip will store filtered fastq files. You may also put the fastq files to be analyzed there (but they can be read from any other path too).
-* `fasta` may be used to store *additional* genome files (not part of in the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/)) that should be considered for the database generation process (see [...]()).
-* `db` is where Genestrip puts the generated database. If your focus is on filtering fastq files, Genestrip can create specialized, much smaller filtering databases that will be put there too. Moreover, an intermediate database `<project_name>_tempdb.ser.gz` will be put there as part of the database generation process. The intermediate database is not required for *k*-mer matching or fastq filtering and so, it may be deleted afterwards.
+* `fasta` may be used to store *additional* genome files (not part of in the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/)) that should be considered for the database generation process (see Section [Manually adding fasta-files](#manually-adding-fasta-files)).
+* `db` is where Genestrip puts the generated database. If your focus is on filtering fastq files, Genestrip can create a specialized, smaller filtering database named `<project_name>_db.bloom.ser.gz` that will be put there too. Moreover, the intermediate databases `<project_name>_tempdb.kmers.ser.gz` and `<project_name>_tempdb.bloom.ser.gz` will be put there as part of the database generation process. The intermediate databases are not required for *k*-mer matching or fastq filtering and so, they may be deleted afterwards.
 * `krakenout` is for output files in the style of [Kraken](https://ccb.jhu.edu/software/kraken/MANUAL.html#output-format). They may optionally be generated when analyzing fastq files.
 
 # Analyzing fastq files by matching *k*-mers of reads
@@ -115,7 +115,7 @@ First, the command creates a filtering database file `human_virus_index.bloom.se
 
 The resulting filtered fastq file named `human_virus_filtered_sample.fastq.gz` will be put under `./data/projects/human_virus/fastq`. It holds just the reads which contain at least one *k*-mer from the `human_virus` database. Note that, in case of the specific sample fastq file, the filtered fastq file has about the same size as the original file because the sample had *originally been created to just contain human virus-related reads*.
 
-A filtering database is typically even smaller than a database required for *k*-matching but the former can only be used for filtering. So, if you are tight on resources and your focus is on filtering, you may prefer using a filtering database. Also, the filtering process is even faster than the *k*-mer matching process.
+A filtering database is typically smaller than a database required for *k*-mer matching but the former can only be used for filtering. So, if you are tight on resources and your focus is on filtering, you may prefer using a filtering database. Also, the filtering process is  faster than the *k*-mer matching process.
 
 # Usage and Goals
 
@@ -149,7 +149,7 @@ If several fastq files in the multi-match CSV file are associated with the same 
 
 Fastq files and fasta file may be g-zipped or not. Genestrip will automatically recognize g-zipped files via the suffixes `.gz` and `.gzip`.
 
-Some named goals are for internal purposes only. In principle they could be run directly by users but rather serve the generation process of databases or they exist for experimental reasons.
+Some named goals are for internal purposes only. In principle, they could be run directly by users but rather serve the generation process of databases or they exist for experimental reasons.
 
 Here is the list of user-related goals:
 - `show`: Show all goals. Note that some goals will only be shown when using the `-f` option.
