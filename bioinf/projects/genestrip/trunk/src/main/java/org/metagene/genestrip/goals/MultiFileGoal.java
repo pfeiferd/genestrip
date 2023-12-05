@@ -31,6 +31,7 @@ import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -86,9 +87,10 @@ public abstract class MultiFileGoal extends FileListGoal<GSProject> {
 		}
 	}
 
-	public static Map<String, List<File>> readMultiCSV(File defaultDir, File csvFile, Log logger) {
+	public static LinkedHashMap<String, List<File>> readMultiCSV(File defaultDir, File csvFile, Log logger) {
 		try {
-			Map<String, List<File>> res = new HashMap<String, List<File>>();
+			// We use a linked hash map because it preserves the order of the keys.
+			LinkedHashMap<String, List<File>> res = new LinkedHashMap<String, List<File>>();
 			CSVParser parser;
 			parser = readCSVFile(csvFile);
 			for (CSVRecord record : parser) {
