@@ -176,7 +176,7 @@ public class ResultReporter {
 					out.print(';');
 					out.print(stats.getContigs());
 					out.print(';');
-					out.print(DF.format(((double) stats.getKMers()  + res.getK() - 1) / stats.getContigs()));
+					out.print(DF.format(((double) stats.getKMers()  * res.getK()) / stats.getContigs()));
 					out.print(';');
 					out.print(stats.getMaxContigLen() + res.getK() - 1);
 					out.print(';');
