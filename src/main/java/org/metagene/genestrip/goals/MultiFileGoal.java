@@ -87,9 +87,9 @@ public abstract class MultiFileGoal extends FileListGoal<GSProject> {
 		}
 	}
 
+	// We use a linked hash map because it preserves the order of the keys from the file.
 	public static LinkedHashMap<String, List<File>> readMultiCSV(File defaultDir, File csvFile, Log logger) {
 		try {
-			// We use a linked hash map because it preserves the order of the keys.
 			LinkedHashMap<String, List<File>> res = new LinkedHashMap<String, List<File>>();
 			CSVParser parser;
 			parser = readCSVFile(csvFile);
