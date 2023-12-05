@@ -100,10 +100,36 @@ The resulting CSV file will be named `human_virus_match_sample.csv` under `./dat
 
 Here is an example line of it contents along with the header line:
 ```
-name;rank;taxid;reads;kmers;unique kmers;contigs;average contig length;max contig length; max contic desc.;normalized kmers; exp. unique kmers; unique kmers / exp.; quality prediction;
-Human gammaherpesvirus 4;NO_RANK;10376;5;158;155;8;19.7500;94;@NS500362:54:HT523BGX2:4:13611:9451:14208 2:N:0:2;0.009677746780291664;157.9111;0.9816;0.00949933507052909;
+name;rank;taxid;reads;kmers from reads;kmers;unique kmers;contigs;average contig length;max contig length;max contig desc.;normalized kmers;exp. unique kmers;unique kmers / exp.;quality prediction;
+TOTAL;SUPERKINGDOM;1;6565;0;461305;0;0;0;0;0;0;0;0;0;
+Viruses;SUPERKINGDOM;10239;1016;15939;27712;72;2653;10.4568;101;@NS500362:54:HT523BGX2:4:12412:20538:2021 2:N:0:2;2960.144020983948;80.0000;0.9000;2664.129618885553;
+Orthornavirae;KINGDOM;2732396;19;159;122;4;119;1.2773;32;@NS500362:54:HT523BGX2:4:11405:19113:11578 2:N:0:2;260.63623741342496;4.0000;1.0000;260.63623741342514;
+Punta Toro virus;NO_RANK;11587;27;50;50;12;30;2.6667;36;@NS500362:54:HT523BGX2:4:11502:8048:10170 2:N:0:2;0.03412447251416636;49.9023;0.2405;0.008205909512196132;
+Ross River virus;SPECIES;11029;121;889;195;7;124;1.8145;35;@NS500362:54:HT523BGX2:4:23501:24909:11663 2:N:0:2;0.08970031917772085;193.9853;0.0361;0.0032368543472774043;
 ```
 TODO: **Explain meaning of entries here...*
+
+| Column      | Description |
+| ----------- | ----------- |
+| `name`      | The name associated with the tax id. |
+| `rank`      | The rank of the tax id. |
+| `taxid`      | The tax id. |
+| `reads`      | Number of reads classified with respect to tax id. |
+| `kmers from reads`      | Number of *k*-mers from classified reads which are consistent with a read's tax id. |
+| `kmers`      | All matched *k*-mers which are specific to the tax id's genome (according to the database)      |
+| `unique kmers` | All unique *k*-mers, which are specific to the tax id's genome (according to the database). Here, multiple occurrences of the same *k*-mer are only counted once. Genestrip always performs exact counting according to [KrakenUniq's exact counting](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1568-0#Sec8). Genestrip implements an efficient storage method for related counts based on a bit vectors. |
+| `contigs`      |  The number of contiguous sequences of *k*-mers that are specific to the tax id's genome.     |
+| `average contig length`      | The average length of contiguous sequences of *k*-mers that are specific to the tax id's genome. |
+| `max contig length`      |  The maximum length of all contiguous sequences of *k*-mers that are specific to the tax id's genome. |
+| `max contig desc.`      |  The descriptor of a read that holds a contiguous sequence of maximum length (according to the previous column).   |
+| `normalized kmers`      |  An value the normalized *k*-mer counts from column `kmers` with respect to total number of *k*-mers per fastq file and the number of specific *k*-mers for a tax id in the database. (The value allows for a less biased comparison of *k*-mer counts accross fastq files and species.) |
+| `exp. unique kmers`      |        |
+| `unique kmers / exp.`      |        |
+| `quality prediction`      |        |
+| `max kmer counts` (experimental)      |        |
+
+
+
 
 The same principles apply to your own projects under `./data/projects`.
 
