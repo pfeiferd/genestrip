@@ -124,7 +124,6 @@ The meaning of the columns is a follows:
 | `exp. unique kmers`      |  The number of expected unique *k*-mers, which is *1 - (1 - 1/t)^*`kmers`, where *t* is the number of specific *k*-mers for a tax id in the database. |
 | `unique kmers / exp.`      |  The ratio `unique kmers` / `exp. unique kmers` for the tax id. This should be close to 1 for a consistent match of *k*-mers. ([This paper](https://arxiv.org/pdf/1602.05822.pdf) discusses the background distribution of `unique kmers` with regard to an associated random process.  |
 | `quality prediction`      | Computed as  `normalized kmers` * `unique kmers / exp.` .  |
-| `max kmer counts` (experimental)      |        |
 
 # Filtering fastq files
 
@@ -216,7 +215,7 @@ The following entries are possible:
 | ----------- | ----------- | ----------- |
 | `logLevel`      | `info`       | The levels `error` and `warn` are also possible and result in (much) less verbose logging.       |
 | `threads`      | `-1`       | The number of consumer threads *n* when processing data with respect to goals ``match``, ``filter`` and ``multimatch`` and also so during the update phase of the ``db`` goal. There is always one additional thread that reads and uncompresses a corresponding fastq or fasta file (so it is *n + 1* threads in total). When negative, the number of available processors *- 1* is used as *n*. When 0, then the corresponding goals run in single-threaded mode. |
-| `countUniqueKMers`      | `true`       | If `true`, unique kmers will be counted. This requires less than 5% of additional main memory.        |
+| `countUniqueKMers`      | `true`       | If `true`, unique *k*-mers will be counted. This requires less than 5% of additional main memory.        |
 | `writeDumpedFastq`   | `false`        | If `true`, then ``filter`` will also generate a fastq file `dumped_<fqfile>` with all reads not written to the corresponding filtered fastq file. |
 | `writeFilteredFastq`   | `false`        | If `true`, then the goal `match` writes a filtered fastq file in the same way that the goal `filter` does. Moreover, Genestrip will write an output file `<fqfile>.out` in the [Kraken output format](https://ccb.jhu.edu/software/kraken/MANUAL.html#output-format) under `<base dir>/projects/<project_name>/krakenout` covering all filtered reads. |
 | `matchWithKMerCounts`   | `false`        | Experimental: Counts how many times each unique *k*-mer has been detected.        |
