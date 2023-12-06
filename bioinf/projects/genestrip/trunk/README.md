@@ -94,7 +94,7 @@ Genestrip's main purpose is to analyze reads from fastq files and count the cont
 ```
 sh ./bin/genestrip.sh -f ./data/projects/human_virus/fastq/sample.fastq.gz human_virus match
 ```
-The resulting CSV file will be named `human_virus_match_sample.csv` under `./data/projects/human_virus/csv`.
+The resulting CSV file will be named `human_virus_match_sample.csv` under `./data/projects/human_virus/csv`. The same principles apply to your own projects under `./data/projects`.
 
 Here is an example line of it contents along with the header line:
 ```
@@ -105,31 +105,26 @@ Orthornavirae;KINGDOM;2732396;19;159;122;4;119;1.2773;32;@NS500362:54:HT523BGX2:
 Punta Toro virus;NO_RANK;11587;27;50;50;12;30;2.6667;36;@NS500362:54:HT523BGX2:4:11502:8048:10170 2:N:0:2;0.03412447251416636;49.9023;0.2405;0.008205909512196132;
 Ross River virus;SPECIES;11029;121;889;195;7;124;1.8145;35;@NS500362:54:HT523BGX2:4:23501:24909:11663 2:N:0:2;0.08970031917772085;193.9853;0.0361;0.0032368543472774043;
 ```
-TODO: **Explain meaning of entries here...*
+The meaning of the columns is a follows:
 
 | Column      | Description |
 | ----------- | ----------- |
 | `name`      | The name associated with the tax id. |
 | `rank`      | The rank of the tax id. |
 | `taxid`      | The tax id. |
-| `reads`      | Number of reads classified with respect to tax id. |
-| `kmers from reads`      | Number of *k*-mers from classified reads which are consistent with a read's tax id. |
-| `kmers`      | All matched *k*-mers which are specific to the tax id's genome (according to the database)      |
-| `unique kmers` | All unique *k*-mers, which are specific to the tax id's genome (according to the database). Here, multiple occurrences of the same *k*-mer are only counted once. Genestrip always performs exact counting according to [KrakenUniq's exact counting](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1568-0#Sec8). Genestrip implements an efficient storage method for related counts based on a bit vectors. |
+| `reads`      | The mumber of reads classified with respect to the tax id. |
+| `kmers from reads`      | The number of *k*-mers from classified reads which are consistent with the read's tax id. |
+| `kmers`      | *All* matched *k*-mers which are specific to the tax id's genome (according to the database). The *k*-mers do not have to be in an accordingly classified read for this. |
+| `unique kmers` | *All* unique *k*-mers, which are specific to the tax id's genome (according to the database). Here, multiple occurrences of the same *k*-mer are only counted once. Genestrip always performs exact counting according to [KrakenUniq's exact counting](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1568-0#Sec8). (Genestrip implements an efficient in-memory storage method for related counts based on a bit vectors.) |
 | `contigs`      |  The number of contiguous sequences of *k*-mers that are specific to the tax id's genome.     |
-| `average contig length`      | The average length of contiguous sequences of *k*-mers that are specific to the tax id's genome. |
-| `max contig length`      |  The maximum length of all contiguous sequences of *k*-mers that are specific to the tax id's genome. |
+| `average contig length`      | The average  base pair length of contiguous sequences of *k*-mers that are specific to the tax id's genome. |
+| `max contig length`      |  The maximum base pair length of all contiguous sequences of *k*-mers that are specific to the tax id's genome. |
 | `max contig desc.`      |  The descriptor of a read that holds a contiguous sequence of maximum length (according to the previous column).   |
-| `normalized kmers`      |  An value the normalized *k*-mer counts from column `kmers` with respect to total number of *k*-mers per fastq file and the number of specific *k*-mers for a tax id in the database. (The value allows for a less biased comparison of *k*-mer counts accross fastq files and species.) |
-| `exp. unique kmers`      |        |
-| `unique kmers / exp.`      |        |
-| `quality prediction`      |        |
+| `normalized kmers`      |   *k*-mer counts from column `kmers` but normalized with respect to the total number of *k*-mers per fastq file and the number of specific *k*-mers for a tax id in the database. (The value allows for a less biased comparison of *k*-mer counts across fastq files and across species.) |
+| `exp. unique kmers`      |  The number of expected unique *k*-mers, which is *1 - (1 - 1/t)^*`kmers`, where *t* is the number of specific *k*-mers for a tax id in the database. |
+| `unique kmers / exp.`      |  The ratio `unique kmers` / `exp. unique kmers` for the tax id. This should be close to 1 for a consistent match of *k*-mers. ([This paper](https://arxiv.org/pdf/1602.05822.pdf) discusses the background distribution of `unique kmers` with regard to an associated random process.  |
+| `quality prediction`      | Computed as  `normalized kmers` * `unique kmers / exp.` .  |
 | `max kmer counts` (experimental)      |        |
-
-
-
-
-The same principles apply to your own projects under `./data/projects`.
 
 # Filtering fastq files
 
