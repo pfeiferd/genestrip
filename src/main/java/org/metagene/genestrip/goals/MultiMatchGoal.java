@@ -59,14 +59,15 @@ public class MultiMatchGoal extends MultiFileGoal {
 	private KMerUniqueCounter uniqueCounter;
 
 	@SafeVarargs
-	public MultiMatchGoal(GSProject project, String name,  boolean csv, File csvOrFastqFile, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
-			ObjectGoal<KMerStoreWrapper, GSProject> storeGoal, boolean writeFiltered, Goal<GSProject>... deps) {
+	public MultiMatchGoal(GSProject project, String name, boolean csv, File csvOrFastqFile,
+			ObjectGoal<TaxTree, GSProject> taxTreeGoal, ObjectGoal<KMerStoreWrapper, GSProject> storeGoal,
+			boolean writeFiltered, Goal<GSProject>... deps) {
 		super(project, name, csv, csvOrFastqFile, Goal.append(deps, taxTreeGoal, storeGoal));
 		this.taxTreeGoal = taxTreeGoal;
 		this.storeGoal = storeGoal;
 		this.writedFiltered = writeFiltered;
 	}
-	
+
 	@Override
 	protected void makeFile(File file) {
 		try {
@@ -94,7 +95,7 @@ public class MultiMatchGoal extends MultiFileGoal {
 
 				matcher = createMatcher(store, taxTreeGoal.get());
 				reporter = new ResultReporter(taxTreeGoal.get());
-				uniqueCounter = config.isCountUniqueKMers() ? new KMerUniqueCounterBits(wrapper.getKmerStore(), true)
+				uniqueCounter = config.isCountUniqueKMers() ? new KMerUniqueCounterBits(wrapper.getKmerStore(), config.isMatchWithKMerCounts())
 						: null;
 			}
 			if (uniqueCounter != null) {
