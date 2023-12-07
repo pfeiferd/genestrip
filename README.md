@@ -20,7 +20,7 @@
 [comment]: # ()
 [comment]: # (Licensor: Daniel Pfeifer, daniel.pfeifer@progotec.de)
 
-Genestrip - Efficient read classification, *k*-mer counting and sequence filtering for selected groups of species 
+Genestrip - Efficient read classification, filtering and *k*-mer counting for selected groups of species 
 ===============================================
 
 # Introduction
@@ -120,10 +120,10 @@ The meaning of the columns is a follows:
 | `average contig length`      | The average  base pair length of contiguous sequences of *k*-mers that are specific to the tax id's genome. |
 | `max contig length`      |  The maximum base pair length of all contiguous sequences of *k*-mers that are specific to the tax id's genome. |
 | `max contig desc.`      |  The descriptor of a read that holds a contiguous sequence of maximum length (according to the previous column).   |
-| `normalized kmers`      |   *k*-mer counts from column `kmers` but normalized with respect to the total number of *k*-mers per fastq file and the number of specific *k*-mers for a tax id in the database. (The value allows for a less biased comparison of *k*-mer counts across fastq files and across species.) |
-| `exp. unique kmers`      |  The number of expected unique *k*-mers, which is *1 - (1 - 1/t)^*`kmers`, where *t* is the number of specific *k*-mers for a tax id in the database. |
-| `unique kmers / exp.`      |  The ratio `unique kmers` / `exp. unique kmers` for the tax id. This should be close to 1 for a consistent match of *k*-mers. ([This paper](https://arxiv.org/pdf/1602.05822.pdf) discusses the background distribution of `unique kmers` with regard to an associated random process.  |
-| `quality prediction`      | Computed as  `normalized kmers` * `unique kmers / exp.` .  |
+| `normalized kmers`      |   *k*-mer counts from column `kmers` but normalized with respect to the total number of *k*-mers per fastq file and the number of specific *k*-mers for a tax id in the database. The value allows for a less biased comparison of *k*-mer counts across fastq files and across species. It is computed as `kmers` */ k<sub>f</sub> * u / u<sub>t</sub>*, where *k<sub>f</sub>* is the total number of *k*-mers in the fastq file, *u* is the total number of *k*-mers in the database and *u<sub>t</sub>* is the number of specific *k*-mers for a tax id in the database.  |
+| `exp. unique kmers`      |  The number of expected unique *k*-mers, which is *1 - (1 - 1/u<sub>t</sub>)*<sup>`kmers`</sup>, where *u<sub>t</sub>* is the number of specific *k*-mers for a tax id in the database. |
+| `unique kmers / exp.`      |  The ratio `unique kmers` / `exp. unique kmers` for the tax id. This should be close to 1 for a consistent match of *k*-mers. ([This paper](https://arxiv.org/pdf/1602.05822.pdf) discusses the corresponding background distribution (of `unique kmers`).  |
+| `quality prediction`      | Computed as  `normalized kmers` * `unique kmers / exp.`. It combines the normalized counts of *k*-mers with the valued consistency between *k*-mers and unique *k*-mers. |
 
 # Filtering fastq files
 
