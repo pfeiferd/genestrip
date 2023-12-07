@@ -96,7 +96,7 @@ sh ./bin/genestrip.sh -f ./data/projects/human_virus/fastq/sample.fastq.gz human
 ```
 The resulting CSV file will be named `human_virus_match_sample.csv` under `./data/projects/human_virus/csv`. The same principles apply to your own projects under `./data/projects`.
 
-Here is an example line of it contents along with the header line:
+These are a few lines of its contents along with the header line:
 ```
 name;rank;taxid;reads;kmers from reads;kmers;unique kmers;contigs;average contig length;max contig length;max contig desc.;normalized kmers;exp. unique kmers;unique kmers / exp.;quality prediction;
 TOTAL;SUPERKINGDOM;1;6565;0;461305;0;0;0;0;0;0;0;0;0;
@@ -121,7 +121,7 @@ The meaning of the columns is a follows:
 | `max contig length`      |  The maximum base pair length of all contiguous sequences of *k*-mers that are specific to the tax id's genome. |
 | `max contig desc.`      |  The descriptor of a read that holds a contiguous sequence of maximum length (according to the previous column).   |
 | `normalized kmers`      |   *k*-mer counts from column `kmers` but normalized with respect to the total number of *k*-mers per fastq file and the number of specific *k*-mers for a tax id in the database. The value allows for a less biased comparison of *k*-mer counts across fastq files and across species. It is computed as `kmers` */ k<sub>f</sub> * u / u<sub>t</sub>*, where *k<sub>f</sub>* is the total number of *k*-mers in the fastq file, *u* is the total number of *k*-mers in the database and *u<sub>t</sub>* is the number of specific *k*-mers for a tax id in the database.  |
-| `exp. unique kmers`      |  The number of expected unique *k*-mers, which is *1 - (1 - 1/u<sub>t</sub>)*<sup>`kmers`</sup>, where *u<sub>t</sub>* is the number of specific *k*-mers for a tax id in the database. |
+| `exp. unique kmers`      |  The number of expected unique *k*-mers, which is *u<sub>t</sub> * (1 - (1 - 1/u<sub>t</sub>)*<sup>`kmers`</sup>), where *u<sub>t</sub>* is the number of specific *k*-mers for a tax id in the database. |
 | `unique kmers / exp.`      |  The ratio `unique kmers` / `exp. unique kmers` for the tax id. This should be close to 1 for a consistent match of *k*-mers. ([This paper](https://arxiv.org/pdf/1602.05822.pdf) discusses the corresponding background distribution (of `unique kmers`).  |
 | `quality prediction`      | Computed as  `normalized kmers` * `unique kmers / exp.`. It combines the normalized counts of *k*-mers with the valued consistency between *k*-mers and unique *k*-mers. |
 
