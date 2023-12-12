@@ -57,8 +57,8 @@ public abstract class AbstractFastqReader {
 	protected final int k;
 
 	private boolean dump;
-	private Thread mainThread;
-	private boolean readsDone;
+//	private Thread mainThread;
+//	private boolean readsDone;
 
 	private final List<Throwable> throwablesInThreads;
 
@@ -115,18 +115,19 @@ public abstract class AbstractFastqReader {
 				while (!dump) {
 					try {
 						ReadEntry readStruct = blockingQueue.take();
-						try {
+//						try {
 							nextEntry(readStruct, index);
-						} finally {
-							if (readsDone) {
-								synchronized (mainThread) {
-									readStruct.pooled = true;
-									mainThread.notify();
-								}
-							} else {
+//						} finally {
+//							if (readsDone) {
+//								synchronized (mainThread) {
+//									readStruct.pooled = true;
+//									mainThread.notify();
+//								}
+//							} else {
 								readStruct.pooled = true;
-							}
-						}
+//							}
+//						}
+//					}
 					} catch (IOException e) {
 						throw new RuntimeException(e);
 					} catch (InterruptedException e) {
@@ -170,8 +171,8 @@ public abstract class AbstractFastqReader {
 		reads = 0;
 		kMers = 0;
 		bufferedLineReaderFastQ.setInputStream(inputStream);
-		readsDone = false;
-		mainThread = Thread.currentThread();
+//		readsDone = false;
+//		mainThread = Thread.currentThread();
 
 		start();
 
@@ -220,28 +221,49 @@ public abstract class AbstractFastqReader {
 			log();
 		}
 		
-		readsDone = true;
+//		readsDone = true;
+//		if (blockingQueue != null) {
+//			readStruct.pooled = true;
+//			boolean stillWorking = true;
+//			while (stillWorking) {
+//				checkAndLogConsumerThreadProblem();
+//				stillWorking = false;
+//				for (int i = 0; i < readStructPool.length; i++) {
+//					synchronized (mainThread) {
+//						if (!readStructPool[i].pooled) {
+//							stillWorking = true;
+//							try {
+//								mainThread.wait();
+//							} catch (InterruptedException e) {
+//								// Ignore.
+//							}
+//							break;
+//						}
+//					}
+//				}
+//			}
+//		}
 		if (blockingQueue != null) {
 			readStruct.pooled = true;
+			// Gentle polling and waiting until all consumers are done. 
 			boolean stillWorking = true;
 			while (stillWorking) {
-				checkAndLogConsumerThreadProblem();
 				stillWorking = false;
 				for (int i = 0; i < readStructPool.length; i++) {
-					synchronized (mainThread) {
-						if (!readStructPool[i].pooled) {
-							stillWorking = true;
-							try {
-								mainThread.wait();
-							} catch (InterruptedException e) {
-								// Ignore.
-							}
-							break;
+					if (!readStructPool[i].pooled) {
+						stillWorking = true;
+						try {
+							Thread.sleep(100);
+						} catch (InterruptedException e) {
+							// Ignore.
 						}
+						break;
 					}
 				}
-			}
+			}				
 		}
+		
+		
 		if (logger.isInfoEnabled()) {
 			logger.info("Total number of reads: " + reads);
 		}
