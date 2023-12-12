@@ -220,7 +220,8 @@ public abstract class AbstractFastqReader {
 			readStruct = nextFreeReadStruct();
 			log();
 		}
-		
+// This newer approach caused the threads to hang at the end of the reading process.
+// I can't be bothered to find out why, so I use the older (ugly) polling approach which works well...		
 //		readsDone = true;
 //		if (blockingQueue != null) {
 //			readStruct.pooled = true;
@@ -248,6 +249,7 @@ public abstract class AbstractFastqReader {
 			// Gentle polling and waiting until all consumers are done. 
 			boolean stillWorking = true;
 			while (stillWorking) {
+				checkAndLogConsumerThreadProblem();
 				stillWorking = false;
 				for (int i = 0; i < readStructPool.length; i++) {
 					if (!readStructPool[i].pooled) {
