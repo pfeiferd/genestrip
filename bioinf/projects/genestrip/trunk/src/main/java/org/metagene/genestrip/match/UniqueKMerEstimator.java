@@ -43,6 +43,10 @@ public class UniqueKMerEstimator {
 	public long getTotalKMers() {
 		return totalKMers;
 	}
+	
+	public double getDBCoverage(CountsPerTaxid stats) {
+		return ((double) stats.getUniqueKMers()) / storeStats.getLong(stats.getTaxid());
+	}
 
 	public double getNormalizedKMers(CountsPerTaxid stats) {
 		long totalStoredWithCounts = storeStats.getLong(null);
