@@ -123,9 +123,10 @@ public class ResultReporter {
 			estimator.setTotalKMers(res.getTotalKMers());
 		}
 
-		out.print("name;rank;taxid;reads;kmers from reads;kmers;unique kmers;contigs;average contig length;max contig length;max contig desc.;");
+		out.print(
+				"name;rank;taxid;reads;kmers from reads;kmers;unique kmers;contigs;average contig length;max contig length;max contig desc.;");
 		if (estimator != null) {
-			out.print("normalized kmers;exp. unique kmers;unique kmers / exp.;quality prediction;");
+			out.print("db coverage;normalized kmers;exp. unique kmers;unique kmers / exp.;quality prediction;");
 		}
 		if (res.isWithMaxKMerCounts()) {
 			out.print("max kmer counts;");
@@ -159,6 +160,7 @@ public class ResultReporter {
 			CountsPerTaxid stats = taxid2Stats.get(taxId);
 			if (stats != null) {
 				TaxIdNode taxNode = taxTree.getNodeByTaxId(taxId);
+				wrapper.getStats();
 				if (taxNode != null) {
 					out.print(taxNode.getName());
 					out.print(';');
@@ -183,15 +185,22 @@ public class ResultReporter {
 					ByteArrayUtil.print(stats.maxContigDescriptor, out);
 					out.print(';');
 					if (estimator != null) {
+						double cov = estimator.getDBCoverage(stats);
+						out.print(DF.format(cov));
+						out.print(';');
+
 						double normalizedKMers = estimator.getNormalizedKMers(stats);
 						out.print(normalizedKMers);
 						out.print(';');
+						
 						double expUnique = estimator.getExpectedUniqueKMers(stats);
 						out.print(DF.format(expUnique));
 						out.print(';');
+						
 						double uniqueExpRatio = stats.getUniqueKMers() / expUnique;
 						out.print(DF.format(uniqueExpRatio));
 						out.print(';');
+						
 						out.print(normalizedKMers * uniqueExpRatio);
 						out.print(';');
 					}
