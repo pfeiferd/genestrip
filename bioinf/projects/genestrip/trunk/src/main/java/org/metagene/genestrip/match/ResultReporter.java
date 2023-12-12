@@ -209,7 +209,7 @@ public class ResultReporter {
 						if (counts != null) {
 							for (int i = 0; i < counts.length; i++) {
 								out.print(counts[i]);
-								out.print('|');
+								out.print(';');
 							}
 						}
 						out.print(';');
