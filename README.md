@@ -192,15 +192,21 @@ Genestrip supports three targets for each goal, namely `make`, `clean` and `clea
 - `clean` *deletes* all files associated with the given goal but it does not delete any files of goals that the given goal depends on.
 - `cleanall` does same as `clean`, but it *also recursively deletes* any files of goals that the given goal depends on.
 
-# Manually adding fasta-files
+# Manually adding fasta files
 
 In some cases you may want to add *k*-mers of genomes to your database, where the genomes are not part of the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/). Genestrip supports this via an optional text file `additional.txt` under `<base dir>/projects/<project_name>`.
-The file should contain one line for each additional genome file. (The file must be in fasta format and may be g-zipped or not.)
+The file should contain one line for each additional genome file. (The genome file must be in fasta format and may be g-zipped or not.)
 The line format is
 ```
 <tax id> <path_to_fasta_file>
 ```
-where `<tax id>` is the (unique) tax id associated with the file's genomic data. If `<path_to_fastq_file>` is a file name without a path prefix, then the file is assumed to be located in `<base dir>/projects/<project_name>/fasta`.
+where `<tax id>` is the (unique) tax id associated with the file's genomic data. (Multiple tax ids per fasta file are not supported in this context.) If `<path_to_fastq_file>` is a file name without a path prefix, then the file is assumed to be located in `<base dir>/projects/<project_name>/fasta`.
+
+This adding of fasta files can also be used to *just* correct the least common ancestor of *k*-mers in the resulting database since the added fasta files will be automatically used during the update phase of the ``db`` goal. E.g., to correct the least common ancestor of *k*-mers occurring in a purely `protozoa`n database *but also* in the human genome, one may simple add
+```
+9606 <path_to_human_genome_fasta_file>
+```
+to `additional.txt` where `<path_to_human_genome_fasta_file>` is the path to the [human genome fasta file](https://www.ncbi.nlm.nih.gov/datasets/taxonomy/9606/). (Note that for this purpose, ``9606`` *must not* occur in `taxids.txt`, since otherwise all *k*-mers from the human genome would be included in a `protozoa`n database.)
 
 # Configuration properties
 
@@ -211,28 +217,28 @@ Entries per line should have the form
 ```
 The following entries are possible:
 
-| Key         | Default Value     | Description |
-| ----------- | ----------- | ----------- |
-| `logLevel`      | `info`       | The levels `error` and `warn` are also possible and result in (much) less verbose logging.       |
-| `threads`      | `-1`       | The number of consumer threads *n* when processing data with respect to goals ``match``, ``filter`` and ``multimatch`` and also so during the update phase of the ``db`` goal. There is always one additional thread that reads and uncompresses a corresponding fastq or fasta file (so it is *n + 1* threads in total). When negative, the number of available processors *- 1* is used as *n*. When 0, then the corresponding goals run in single-threaded mode. |
-| `countUniqueKMers`      | `true`       | If `true`, unique *k*-mers will be counted. This requires less than 5% of additional main memory.        |
-| `writeDumpedFastq`   | `false`        | If `true`, then ``filter`` will also generate a fastq file `dumped_<fqfile>` with all reads not written to the corresponding filtered fastq file. |
-| `writeFilteredFastq`   | `false`        | If `true`, then the goal `match` writes a filtered fastq file in the same way that the goal `filter` does. Moreover, Genestrip will write an output file `<fqfile>.out` in the [Kraken output format](https://ccb.jhu.edu/software/kraken/MANUAL.html#output-format) under `<base dir>/projects/<project_name>/krakenout` covering all filtered reads. |
-| `matchWithKMerCounts`   | `false`        | Experimental: Counts how many times each unique *k*-mer has been detected.        |
-| `maxKMerResCounts`   | `200`        | The number of the most frequent *k*-mers that will be reported, if `matchWithKMerCounts=true`.       |
-| `kMerSize`   | `31`        | The number of base pairs *k* for a *k*-mers. Changes to this values do *not* affect the memory usage of database. A value > 32 will cause collisions, i.e. leads to false positives for the `match` goal. |
-| `useHttp` | `true` | Use http(s) to download data from NCBI. If ``false``, then Genestrip will try anonymous FTP instead (with login and password set to `anonymous`). 
-| `refseqHttpBaseURL`   | `https://ftp.ncbi.nlm.nih.gov/refseq` | This [mirror](https://www.funet.fi/pub/mirrors/ftp.ncbi.nlm.nih.gov/refseq/) might be considered as an alternative. (No other mirror sites are known.) |
-| `refseqFTPBaseURL`   | `ftp.ncbi.nih.gov`       |         |
-| `taxHttpBaseURL`   | `https://ftp.ncbi.nlm.nih.gov`        | This base URL will be extended by the path `/pub/taxonomy/` in order to download the taxonomy file `taxdmp.zip`.        |
-| `taxFTPBaseURL`   | `ftp.ncbi.nih.gov`        |         |
-| `ignoreMissingFastas`   | `true`        | If `true`, then a download of files from NCBI will not stop in case a file is missing on the [NCBI server](https://ftp.ncbi.nlm.nih.gov/).        |
-| `completeGenomesOnly`   | `false`        | If `true`, then only genomic accessions with the prefixes `AC`, `NC_`, `NZ_` will be considered when generating a database. Otherwise, all genomic accessions will be considered. See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.       |
-| `rankCompletionDepth` | *empty* | The rank up to which tax ids from `taxids.txt` will be completed by descendants of the taxonomy tree (the set rank included). If not set, the completion will traverse down to the lowest possible levels of the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip). Typical values could be `genus`, `species` or `strain`, but  all values used for assigning ranks in the taxonomy are possible. |
-| `maxGenomesPerTaxid` | *unlimited* | The maximum number of genomes per tax id from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) to be included in the database. If negative, zero or not set, there is not limit. Note, that this is an important parameter to control database size, because in some cases, there are millions of genomic entries for a tax id such as for `573` (which does not even account for entries of its descendants). |
-| `useBloomFilterForMatch`   | `true`        | If `true` and if a bloom filter file for a database is present, it will be used during fastq file analysis (i.e. matching). Using the bloom filter tends to shorten matching time, if the most part of the reads cannot be classified because they contain *no* *k*-mers from the database. Otherwise, using the bloom filter might increase matching time by up to 30%. It also requires more main memory. |
-| `maxReadTaxErrorCount`   | `0.1`        | The absolute or relative maximum number of *k*-mers that do not have to be in the database for a read to be classified. If the number is above `maxReadTaxErrorCount`, then the read will not be classified. Otherwise the read will be classified in the same way as [done by Kraken](https://genomebiology.biomedcentral.com/articles/10.1186/gb-2014-15-3-r46/figures/1).  If  `maxReadTaxErrorCount` is >= 1, then it is interpreted as an absolute number of *k*-mers. Otherwise (and so, if >= 0 and < 1), it is interpreted as the ratio between the *k*-mers not in the database and all *k*-mers of the read. |
-| `maxDust`   | `-1`        | When generating a database via the goal `db`, any low-complexity *k*-mer with too many repetitive sequences of base pairs may be omitted for storing. To do so, Genestrip employs a simple [genetic dust-filter](https://pubmed.ncbi.nlm.nih.gov/16796549/) for *k*-mers: It assigns a dust value *d* to each *k*-mer, and if *d* >  `maxDust`, then the *k*-mer will not be stored. Given a *k*-mer with *n* repeating base pairs of repeat length *k(1), ... k(n)* with *k(i) > 1*, then *d = fib(k(1)) + ... + fib(k(n))*, where *fib(k(i))* is the Fibonacci number of *k(i)*.  E.g., for the *8*-mer `TTTCGGTC`, we have *n = 2* with *k(1) = 3*, *k(2) = 2* and *d = fib(3) + fib(2) = 2 + 1 = 3*. For practical concerns `maxDust = 20` may be suitable. In this case, if *31*-mers were uniformly, randomly generated, then about 0.2 % of them would be omitted. If `maxDust = -1`, then dust-filtering is inactive.|
+| Key         | Default Value     | Description | Affected Goals |
+| ----------- | ----------- | ----------- | ----------- |
+| `logLevel`      | `info`       | The levels `error` and `warn` are also possible and result in (much) less verbose logging. | all |
+| `threads`      | `-1`       | The number of consumer threads *n* when processing data with respect to goals ``match``, ``filter`` and ``multimatch`` and also so during the update phase of the ``db`` goal. There is always one additional thread that reads and uncompresses a corresponding fastq or fasta file (so it is *n + 1* threads in total). When negative, the number of available processors *- 1* is used as *n*. When 0, then the corresponding goals run in single-threaded mode. | `db`, `match`, `multimatch`, `filter` |
+| `countUniqueKMers`      | `true`       | If `true`, unique *k*-mers will be counted. This requires less than 5% of additional main memory.        |  `match`, `multimatch` |
+| `writeDumpedFastq`   | `false`        | If `true`, then ``filter`` will also generate a fastq file `dumped_<fqfile>` with all reads not written to the corresponding filtered fastq file. |  `filter` |
+| `writeFilteredFastq`   | `false`        | If `true`, then the goal `match` writes a filtered fastq file in the same way that the goal `filter` does. Moreover, Genestrip will write an output file `<fqfile>.out` in the [Kraken output format](https://ccb.jhu.edu/software/kraken/MANUAL.html#output-format) under `<base dir>/projects/<project_name>/krakenout` covering all filtered reads. | `match` |
+| `matchWithKMerCounts`   | `false`        | Experimental: Counts how many times each unique *k*-mer has been detected.        |  `match`, `multimatch` |
+| `maxKMerResCounts`   | `200`        | The number of the most frequent *k*-mers that will be reported, if `matchWithKMerCounts=true`.       |`match`, `multimatch` |
+| `kMerSize`   | `31`        | The number of base pairs *k* for a *k*-mers. Changes to this values do *not* affect the memory usage of database. A value > 32 will cause collisions, i.e. leads to false positives for the `match` goal. | all |
+| `useHttp` | `true` | Use http(s) to download data from NCBI. If ``false``, then Genestrip will try anonymous FTP instead (with login and password set to `anonymous`). | `db` |
+| `refseqHttpBaseURL`   | `https://ftp.ncbi.nlm.nih.gov/refseq` | This [mirror](https://www.funet.fi/pub/mirrors/ftp.ncbi.nlm.nih.gov/refseq/) might be considered as an alternative. (No other mirror sites are known.) | `db` |
+| `refseqFTPBaseURL`   | `ftp.ncbi.nih.gov`       |         | `db` |
+| `taxHttpBaseURL`   | `https://ftp.ncbi.nlm.nih.gov`        | This base URL will be extended by the path `/pub/taxonomy/` in order to download the taxonomy file `taxdmp.zip`.        | all |
+| `taxFTPBaseURL`   | `ftp.ncbi.nih.gov`        |         |  all |
+| `ignoreMissingFastas`   | `true`        | If `true`, then a download of files from NCBI will not stop in case a file is missing on the [NCBI server](https://ftp.ncbi.nlm.nih.gov/).        |  `db` |
+| `completeGenomesOnly`   | `false`        | If `true`, then only genomic accessions with the prefixes `AC`, `NC_`, `NZ_` will be considered when generating a database. Otherwise, all genomic accessions will be considered. See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.       |  `db` |
+| `rankCompletionDepth` | *empty* | The rank up to which tax ids from `taxids.txt` will be completed by descendants of the taxonomy tree (the set rank included). If not set, the completion will traverse down to the lowest possible levels of the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip). Typical values could be `genus`, `species` or `strain`, but  all values used for assigning ranks in the taxonomy are possible. | `db` |
+| `maxGenomesPerTaxid` | *unlimited* | The maximum number of genomes per tax id from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) to be included in the database. If negative, zero or not set, there is not limit. Note, that this is an important parameter to control database size, because in some cases, there are millions of genomic entries for a tax id such as for `573` (which does not even account for entries of its descendants). |  `db` |
+| `useBloomFilterForMatch`   | `true`        | If `true` and if a bloom filter file for a database is present, it will be used during fastq file analysis (i.e. matching). Using the bloom filter tends to shorten matching time, if the most part of the reads cannot be classified because they contain *no* *k*-mers from the database. Otherwise, using the bloom filter might increase matching time by up to 30%. It also requires more main memory. | `match`, `multimatch` |
+| `maxReadTaxErrorCount`   | `0.1`        | The absolute or relative maximum number of *k*-mers that do not have to be in the database for a read to be classified. If the number is above `maxReadTaxErrorCount`, then the read will not be classified. Otherwise the read will be classified in the same way as [done by Kraken](https://genomebiology.biomedcentral.com/articles/10.1186/gb-2014-15-3-r46/figures/1).  If  `maxReadTaxErrorCount` is >= 1, then it is interpreted as an absolute number of *k*-mers. Otherwise (and so, if >= 0 and < 1), it is interpreted as the ratio between the *k*-mers not in the database and all *k*-mers of the read. | `match`, `multimatch` |
+| `maxDust`   | `-1`        | When generating a database via the goal `db`, any low-complexity *k*-mer with too many repetitive sequences of base pairs may be omitted for storing. To do so, Genestrip employs a simple [genetic dust-filter](https://pubmed.ncbi.nlm.nih.gov/16796549/) for *k*-mers: It assigns a dust value *d* to each *k*-mer, and if *d* >  `maxDust`, then the *k*-mer will not be stored. Given a *k*-mer with *n* repeating base pairs of repeat length *k(1), ... k(n)* with *k(i) > 1*, then *d = fib(k(1)) + ... + fib(k(n))*, where *fib(k(i))* is the Fibonacci number of *k(i)*.  E.g., for the *8*-mer `TTTCGGTC`, we have *n = 2* with *k(1) = 3*, *k(2) = 2* and *d = fib(3) + fib(2) = 2 + 1 = 3*. For practical concerns `maxDust = 20` may be suitable. In this case, if *31*-mers were uniformly, randomly generated, then about 0.2 % of them would be omitted. If `maxDust = -1`, then dust-filtering is inactive.| `db` |
 
 
 # Project properties
