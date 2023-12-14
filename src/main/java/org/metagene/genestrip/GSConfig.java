@@ -231,6 +231,6 @@ public class GSConfig {
 	}
 	
 	public long getNormalizedKMersFactor() {
-		return Long.valueOf(properties.getProperty(MAX_GENOMES_PER_TAXID, "1000000000"));
+		return Long.valueOf(properties.getProperty("normalizedKMersFactor", "1000000000"));
 	}	
 }
