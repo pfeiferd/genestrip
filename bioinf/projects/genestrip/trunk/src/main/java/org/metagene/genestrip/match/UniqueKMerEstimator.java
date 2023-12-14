@@ -31,9 +31,11 @@ import it.unimi.dsi.fastutil.objects.Object2LongMap;
 public class UniqueKMerEstimator {
 	private long totalKMers;
 	private final Object2LongMap<String> storeStats;
+	private final long normalizedKMersFactor;
 
-	public UniqueKMerEstimator(KMerStoreWrapper storeWrapper) {
+	public UniqueKMerEstimator(KMerStoreWrapper storeWrapper, long normalizedKMersFactor) {
 		storeStats = storeWrapper.getStats();
+		this.normalizedKMersFactor = normalizedKMersFactor;
 	}
 
 	public void setTotalKMers(long totalKMers) {
@@ -50,7 +52,7 @@ public class UniqueKMerEstimator {
 
 	public double getNormalizedKMers(CountsPerTaxid stats) {
 		long totalStoredWithCounts = storeStats.getLong(null);
-		return ((double) stats.getKMers()) * totalStoredWithCounts / totalKMers
+		return normalizedKMersFactor * ((double) stats.getKMers()) * totalStoredWithCounts / totalKMers
 				/ storeStats.getLong(stats.getTaxid());
 	}
 

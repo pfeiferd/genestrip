@@ -52,9 +52,11 @@ public class ResultReporter {
 	private static final DecimalFormat DF = new DecimalFormat("0.0000", new DecimalFormatSymbols(Locale.US));
 
 	private final TaxTree taxTree;
+	private final long normalizedKMersFactor;
 
-	public ResultReporter(TaxTree taxTree) {
+	public ResultReporter(TaxTree taxTree, long normalizedKMersFactor) {
 		this.taxTree = taxTree;
+		this.normalizedKMersFactor = normalizedKMersFactor;
 	}
 
 	public void printStoreInfo(Object2LongMap<String> stats, PrintStream out) {
@@ -118,7 +120,8 @@ public class ResultReporter {
 
 	public void printMatchResult(MatchingResult res, PrintStream out, KMerStoreWrapper wrapper) {
 		Map<String, CountsPerTaxid> taxid2Stats = res.getTaxid2Stats();
-		UniqueKMerEstimator estimator = wrapper == null ? null : new UniqueKMerEstimator(wrapper);
+		UniqueKMerEstimator estimator = wrapper == null ? null
+				: new UniqueKMerEstimator(wrapper, normalizedKMersFactor);
 		if (estimator != null) {
 			estimator.setTotalKMers(res.getTotalKMers());
 		}
@@ -190,18 +193,18 @@ public class ResultReporter {
 						out.print(';');
 
 						double normalizedKMers = estimator.getNormalizedKMers(stats);
-						out.print(normalizedKMers);
+						out.print(DF.format(normalizedKMers));
 						out.print(';');
-						
+
 						double expUnique = estimator.getExpectedUniqueKMers(stats);
 						out.print(DF.format(expUnique));
 						out.print(';');
-						
+
 						double uniqueExpRatio = stats.getUniqueKMers() / expUnique;
 						out.print(DF.format(uniqueExpRatio));
 						out.print(';');
-						
-						out.print(normalizedKMers * uniqueExpRatio);
+
+						out.print(DF.format(normalizedKMers * uniqueExpRatio));
 						out.print(';');
 					}
 					if (res.isWithMaxKMerCounts()) {

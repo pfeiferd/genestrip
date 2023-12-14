@@ -94,7 +94,7 @@ public class MultiMatchGoal extends MultiFileGoal {
 						});
 
 				matcher = createMatcher(store, taxTreeGoal.get());
-				reporter = new ResultReporter(taxTreeGoal.get());
+				reporter = new ResultReporter(taxTreeGoal.get(), config.getNormalizedKMersFactor());
 				uniqueCounter = config.isCountUniqueKMers() ? new KMerUniqueCounterBits(wrapper.getKmerStore(), config.isMatchWithKMerCounts())
 						: null;
 			}
