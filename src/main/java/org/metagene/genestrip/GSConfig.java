@@ -229,4 +229,8 @@ public class GSConfig {
 		int i = Integer.valueOf(properties.getProperty(MAX_DUST, "-1"));
 		return i <= 0 ? -1 : i;
 	}
+	
+	public long getNormalizedKMersFactor() {
+		return Long.valueOf(properties.getProperty(MAX_GENOMES_PER_TAXID, "1000000000"));
+	}	
 }

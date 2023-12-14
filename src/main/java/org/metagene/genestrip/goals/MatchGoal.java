@@ -85,7 +85,7 @@ public class MatchGoal extends FileListGoal<GSProject> {
 							return taxTreeGoal.get().getNodeByTaxId(value);
 						}
 					});
-			
+
 			matcher = createMatcher(store, taxTreeGoal.get());
 			MatchingResult res = matcher.runMatcher(fastq, filteredFile, krakenOutStyleFile,
 					config.isCountUniqueKMers()
@@ -105,7 +105,8 @@ public class MatchGoal extends FileListGoal<GSProject> {
 
 	protected void writeOutputFile(File file, MatchingResult result, KMerStoreWrapper wrapper) throws IOException {
 		PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-		new ResultReporter(taxTreeGoal.get()).printMatchResult(result, out, wrapper);
+		new ResultReporter(taxTreeGoal.get(), getProject().getConfig().getNormalizedKMersFactor())
+				.printMatchResult(result, out, wrapper);
 		out.close();
 	}
 

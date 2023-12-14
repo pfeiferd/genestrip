@@ -43,7 +43,8 @@ public class StoreInfoGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<KMerStoreWrapper, GSProject> storeGoal;
 
 	@SafeVarargs
-	public StoreInfoGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal, ObjectGoal<KMerStoreWrapper, GSProject> storeGoal, Goal<GSProject>... deps) {
+	public StoreInfoGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
+			ObjectGoal<KMerStoreWrapper, GSProject> storeGoal, Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, FileType.CSV, false),
 				Goal.append(deps, taxTreeGoal, storeGoal));
 		this.taxTreeGoal = taxTreeGoal;
@@ -55,7 +56,8 @@ public class StoreInfoGoal extends FileListGoal<GSProject> {
 		try {
 			KMerStoreWrapper wrapper = storeGoal.get();
 			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-			new ResultReporter(taxTreeGoal.get()).printStoreInfo(wrapper.getStats(), out);
+			new ResultReporter(taxTreeGoal.get(), getProject().getConfig().getNormalizedKMersFactor())
+					.printStoreInfo(wrapper.getStats(), out);
 			out.close();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
