@@ -88,6 +88,9 @@ In general, Genestrip organizes a project folder `./data/projects/<project_name>
 * `db` is where Genestrip puts the generated database. If your focus is on filtering fastq files, Genestrip can create a specialized, smaller filtering database named `<project_name>_db.bloom.ser.gz` that will be put there too. Moreover, the intermediate databases `<project_name>_tempdb.kmers.ser.gz` and `<project_name>_tempdb.bloom.ser.gz` will be put there as part of the database generation process. The intermediate databases are not required for *k*-mer matching or fastq filtering and so, they may be deleted afterwards.
 * `krakenout` is for output files in the style of [Kraken](https://ccb.jhu.edu/software/kraken/MANUAL.html#output-format). They may optionally be generated when analyzing fastq files.
 
+A database covering more species may require more memory - especially when generating the database. This can be addressed by adjusting the script `genestrip.sh` where the argument `-Xmx32g` sets the maximum heap space of the Java Virtual Machine to 32GB. E.g. to double it, simple replace `32g` by `64g`.
+
+
 # Analyzing fastq files by matching *k*-mers of reads
 
 Genestrip's main purpose is to analyze reads from fastq files and count the contained *k*-mers per tax id according to a previously generated database. As an example, Genestrip comes with a small fastq-file `sample.fastq.gz` in `./data/projects/human_virus/fastq`. To start the matching process for it, run
@@ -120,11 +123,35 @@ The meaning of the columns is a follows:
 | `average contig length`      | The average  base pair length of contiguous sequences of *k*-mers that are specific to the tax id's genome. |
 | `max contig length`      |  The maximum base pair length of all contiguous sequences of *k*-mers that are specific to the tax id's genome. |
 | `max contig desc.`      |  The descriptor of a read that holds a contiguous sequence of maximum length (according to the previous column).   |
-| `normalized kmers`      |   *k*-mer counts from column `kmers` but normalized with respect to the total number of *k*-mers per fastq file and the number of specific *k*-mers for a tax id in the database. The value allows for a less biased comparison of *k*-mer counts across fastq files and across species. It is computed as `normalizedKMersFactor` * `kmers` */ k<sub>f</sub> * u / u<sub>t</sub>*, where *k<sub>f</sub>* is the total number of *k*-mers in the fastq file, *u* is the total number of *k*-mers in the database and *u<sub>t</sub>* is the number of specific *k*-mers for a tax id in the database. `normalizedKMersFactor` is a configuration property; its default 1000000000 (see also Section [Configuration properties](#configuration-properties)). |
+| `normalized kmers`      |   *k*-mer counts from column `kmers` but normalized with respect to the total number of *k*-mers per fastq file and the number of specific *k*-mers for a tax id in the database. The value allows for a less biased comparison of *k*-mer counts across fastq files and across species. It is computed as `normalizedKMersFactor` * `kmers` */ k<sub>f</sub> * u / u<sub>t</sub>*, where *k<sub>f</sub>* is the total number of *k*-mers in the fastq file, *u* is the total number of *k*-mers in the database and *u<sub>t</sub>* is the number of specific *k*-mers for a tax id in the database. `normalizedKMersFactor` is a configuration property; its default is 1000000000 (see also Section [Configuration properties](#configuration-properties)). |
 | `exp. unique kmers`      |  The number of expected unique *k*-mers, which is *u<sub>t</sub> * (1 - (1 - 1/u<sub>t</sub>)*<sup>`kmers`</sup>), where *u<sub>t</sub>* is the number of specific *k*-mers for a tax id in the database. |
-| `unique kmers / exp.`      |  The ratio `unique kmers` / `exp. unique kmers` for the tax id. This should be close to 1 for a consistent match of *k*-mers. ([This paper](https://arxiv.org/pdf/1602.05822.pdf) discusses the corresponding background distribution (of `unique kmers`).  |
+| `unique kmers / exp.`      |  The ratio `unique kmers` / `exp. unique kmers` for the tax id. This should be close to 1 for a consistent match of *k*-mers. ([This paper](https://arxiv.org/pdf/1602.05822.pdf) discusses the corresponding background distribution (of `unique kmers`).)  |
 | `quality prediction`      | Computed as  `normalized kmers` * `unique kmers / exp.`. It combines the normalized counts of *k*-mers with the valued consistency between *k*-mers and unique *k*-mers. |
 | `max kmer counts` | The frequencies of the most frequent unique *k*-mers which are specific to the tax id's genome in descending order separated by `;`. This column is experimental and only added when the configuration property `matchWithKMerCounts` is set to `true`. The number of frequencies is determined via `maxKMerResCounts` (see also Section [Configuration properties](#configuration-properties)). |
+
+The frequencies from `max kmer counts` can be used to build frequency graph's for *k*-mers as shown below. The frequency graphs help to further assess the validity of analysis results.
+
+<p align="center">
+  <img src="EBV-Sample-Graph.png" width="800"/>
+</p>
+The depicted graph is based on the following CSV result file entry:
+
+```
+name;rank;taxid;reads;kmers from reads;kmers;unique kmers;contigs;average contig length;max contig length;max contig desc.;db coverage;normalized kmers;exp. unique kmers;unique kmers / exp.;quality prediction;max kmer counts;
+...
+Human gammaherpesvirus 4;SPECIES;10376;113252;4061786;4151610;120419;239293;47.3495;101;@A01245:81:HTH3LDSX2:4:1248:18231:31093 1:N:0:AATATTGCCA+GGTGTCACCG;0.8631;3769564.5570;139514.0000;0.8631;3253631.8534;629;625;590;453;449;445;442;433;413;412;411;411;409;409;408;407;400;399;399;397;396;396;396;395;394;393;393;390;389;387;387;387;385;384;384;384;384;383;383;383;383;381;381;380;379;379;379;378;378;377;377;377;376;376;376;375;374;374;372;372;371;370;370;369;368;368;368;368;368;367;367;367;367;366;366;365;363;363;362;362;361;360;359;359;358;358;357;356;355;355;354;354;354;354;354;353;353;352;352;352;352;351;351;351;351;350;350;349;349;348;348;348;348;348;347;347;347;347;347;347;345;345;345;345;345;344;344;344;344;344;343;343;343;343;343;343;342;342;342;342;342;341;341;341;341;341;341;340;340;340;340;340;339;339;339;338;338;338;337;337;337;335;335;335;335;335;335;335;334;334;334;334;334;334;333;333;332;332;332;332;331;331;331;331;331;330;330;330;330;330;329;329;329;328;328;328;327;327;327;327;327;327;327;327;327;327;326;326;326;326;326;325;325;325;325;325;325;325;324;324;324;324;324;324;323;323;323;323;323;323;323;323;322;322;322;322;321;321;320;320;320;320;319;319;319;319;319;319;319;319;319;318;318;318;318;317;317;317;317;317;317;317;316;316;316;316;316;316;315;315;315;315;314;314;314;314;314;314;313;313;313;313;313;312;312;312;312;312;312;312;311;311;310;310;310;310;310;310;310;309;309;309;309;309;308;308;308;308;308;308;308;307;307;307;307;307;307;307;307;307;307;306;306;306;306;306;306;306;306;306;306;305;305;305;305;305;305;304;304;304;304;304;303;303;303;303;303;303;303;302;302;302;302;302;302;302;302;302;302;301;301;301;301;301;301;301;301;300;300;300;300;300;300;300;300;300;300;299;299;299;299;299;299;299;299;299;298;298;298;298;298;298;297;297;297;297;297;297;297;297;297;297;297;297;296;296;296;296;296;296;296;296;296;295;295;295;295;295;295;295;295;295;295;294;294;294;294;294;294;294;294;294;294;294;293;293;293;293;293;293;292;292;292;292;292;292;292;291;291;291;290;290;290;290;290;290;289;289;289;289;289;289;289;289;289;289;288;288;288;288;288;288;288;288;288;288;287;287;287;287;287;287;287;287;287;287;287;287;287;286;286;286;286;286;286;286;286;286;286;286;
+```
+As this result is rather consistent with the statistical expectation (for the unique *k*-mer frequency distribution), the graph is quite flat and `unique kmers / exp. = 0.8631` is close to 1.
+
+# Reliability of results
+
+We cannot guarantee for any results returned by Genestrip. Use this software at you own risk. **Important: It is by no means meant to be used for any medical purposes** and it is purely experimental in nature.
+
+Despite of the these limitations, we tested the Genestrip in the following ways:
+* Critical code is covered by functional tests (using [JUnit](https://junit.org)).
+* Results have been evaluated based on [Kraken's accuracy datasets](https://ccb.jhu.edu/software/kraken/dl/accuracy.tgz) by including "HiSeq" and "MiSeq". For this purpose we generated Genestrip databases covering the organisms from respective datasets. Genestrip's accuracy results were comparable to those obtained via [Kraken](https://ccb.jhu.edu/software/kraken/).
+* We applied the human virus database from above to real-world fastq files, and Genestrip returned similar results and (unique) *k*-mer counts as [KrakenUniq](https://github.com/fbreitwieser/krakenuniq) for this case.
+* We applied Genestrip to 20 real-world fastq files based on human saliva samples. The findings matched the "general expectations" with regard to Herpes viruses and mouth bacteria such as Steptococcus mutans, Helicobacter pylori and others.
 
 # Filtering fastq files
 
