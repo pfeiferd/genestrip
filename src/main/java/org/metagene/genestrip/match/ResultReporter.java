@@ -211,8 +211,10 @@ public class ResultReporter {
 						short[] counts = stats.getMaxKMerCounts();
 						if (counts != null) {
 							for (int i = 0; i < counts.length; i++) {
+								if (i > 0) {
+									out.print(';');									
+								}
 								out.print(counts[i]);
-								out.print(';');
 							}
 						}
 						out.print(';');

@@ -74,20 +74,20 @@ public class Main {
 		if (restArgs.length == 0) {
 			throw new ParseException("Missing project name.");
 		}
-		String projectName = restArgs[0];		
+		String projectName = restArgs[0];
 
-		
 		project = new GSProject(config, projectName, 0, null, fastqFile, resFolder, resFolder);
 		maker = new GSMaker(project);
 	}
-	
+
 	protected void preconfigureLogger() {
+		// Not required anymore:
 		System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.SimpleLog");
 	}
-	
+
 	protected void configureLogger(GSConfig config) {
 		System.setProperty("org.apache.commons.logging.simplelog.defaultlog", config.getLogLevel());
-		System.setProperty("org.apache.commons.logging.simplelog.showdatetime", "false");		
+		System.setProperty("org.apache.commons.logging.simplelog.showdatetime", "false");
 	}
 
 	public String getTarget() {
@@ -150,33 +150,37 @@ public class Main {
 	}
 
 	public void run(PrintStream out) {
-		String[] restArgs = getRestArgs();
-		if (restArgs.length == 1) {
-			restArgs = new String[] { null, maker.getDefaultGoalName() };
-		}
-		Set<String> goalNames = maker.getGoalNames();
-		for (int i = 1; i < restArgs.length; i++) {
-			if (goalNames.contains(restArgs[i])) {
-				out.println("Executing target " + getTarget() + " for goal " + restArgs[i] + "...");
-				switch (getTarget()) {
-				case "cleantotal":
-					maker.cleanTotal(restArgs[i]);
-					break;
-				case "cleanall":
-					maker.cleanAll(restArgs[i]);
-					break;
-				case "clean":
-					maker.clean(restArgs[i]);
-					break;
-				default:
-				case "make":
-					maker.make(restArgs[i]);
-					break;
-				}
-				out.println("Done with target " + getTarget() + " for goal " + restArgs[i]);
-			} else {
-				out.println("Omitting unknown goal " + restArgs[i]);
+		try {
+			String[] restArgs = getRestArgs();
+			if (restArgs.length == 1) {
+				restArgs = new String[] { null, maker.getDefaultGoalName() };
 			}
+			Set<String> goalNames = maker.getGoalNames();
+			for (int i = 1; i < restArgs.length; i++) {
+				if (goalNames.contains(restArgs[i])) {
+					out.println("Executing target " + getTarget() + " for goal " + restArgs[i] + "...");
+					switch (getTarget()) {
+					case "cleantotal":
+						maker.cleanTotal(restArgs[i]);
+						break;
+					case "cleanall":
+						maker.cleanAll(restArgs[i]);
+						break;
+					case "clean":
+						maker.clean(restArgs[i]);
+						break;
+					default:
+					case "make":
+						maker.make(restArgs[i]);
+						break;
+					}
+					out.println("Done with target " + getTarget() + " for goal " + restArgs[i]);
+				} else {
+					out.println("Omitting unknown goal " + restArgs[i]);
+				}
+			}
+		} finally {
+			maker.dump();
 		}
 	}
 

@@ -26,10 +26,6 @@ package org.metagene.genestrip.goals.refseq;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.Thread.UncaughtExceptionHandler;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -50,6 +46,7 @@ import org.metagene.genestrip.store.KMerSortedArray.UpdateValueProvider;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.ExecutorServiceBundle;
 
 public class UpdateStoreGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
@@ -58,18 +55,17 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<AccessionMap, GSProject> accessionTrieGoal;
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 	private final ObjectGoal<KMerStoreWrapper, GSProject> filledStoreGoal;
+	private final ExecutorServiceBundle bundle;
 
 	private UpdatedStoreGoal updatedStoreGoal;
 
 	private boolean dump;
-	private final Thread[] consumers;
 	private int doneCounter;
 	private Object[] syncs = new Object[256];
 
-	private final List<Throwable> throwablesInThreads;
 
 	@SafeVarargs
-	public UpdateStoreGoal(GSProject project, String name, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
+	public UpdateStoreGoal(GSProject project, String name, ExecutorServiceBundle bundle, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
 			ObjectGoal<TaxTree, GSProject> taxTreeGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
 			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionTrieGoal,
@@ -82,8 +78,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 		this.additionalGoal = additionalGoal;
 		this.accessionTrieGoal = accessionTrieGoal;
 		this.filledStoreGoal = filledStoreGoal;
-		consumers = new Thread[project.getConfig().getThreads()];
-		throwablesInThreads = Collections.synchronizedList(new ArrayList<Throwable>());
+		this.bundle = bundle;
 	}
 
 	public void setUpdatedStoreGoal(UpdatedStoreGoal updatedStoreGoal) {
@@ -100,18 +95,18 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 			for (int i = 0; i < syncs.length; i++) {
 				syncs[i] = new Object();
 			}
-			throwablesInThreads.clear();
+			bundle.clearThrowableList();
 
-			BlockingQueue<File> blockingQueue = new ArrayBlockingQueue<File>(consumers.length);
-			for (int i = 0; i < consumers.length; i++) {
-				consumers[i] = createAndStartThread(createFastaReaderRunnable(i, store, blockingQueue), i);
+			BlockingQueue<File> blockingQueue = new ArrayBlockingQueue<File>(bundle.getThreads());
+			for (int i = 0; i < bundle.getThreads(); i++) {
+				bundle.execute(createFastaReaderRunnable(i, store, blockingQueue));
 			}
 
 			doneCounter = 0;
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
 				if (categoriesGoal.get()[1].contains(cat)) {
-					if (consumers.length == 0) {
+					if (bundle.getThreads() == 0) {
 						fastaReader.readFasta(fnaFile);
 					} else {
 						try {
@@ -155,28 +150,15 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 	}
 
 	protected void checkAndLogConsumerThreadProblem() {
-		if (!throwablesInThreads.isEmpty()) {
-			for (Throwable t : throwablesInThreads) {
+		if (!bundle.getThrowableList().isEmpty()) {
+			for (Throwable t : bundle.getThrowableList()) {
 				if (getLogger().isErrorEnabled()) {
 					getLogger().error("Error in consumer thread: ", t);
 				}
 			}
+			bundle.clearThrowableList();
 			throw new RuntimeException("Error(s) in consumer thread(s).");
 		}
-	}
-
-	protected Thread createAndStartThread(Runnable runnable, int i) {
-		Thread t = new Thread(runnable);
-		t.setName("Store updater thread #" + i);
-		t.setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
-			@Override
-			public void uncaughtException(Thread t, Throwable e) {
-				throwablesInThreads.add(e);
-			}
-		});
-		t.start();
-
-		return t;
 	}
 
 	protected Runnable createFastaReaderRunnable(int i, KMerSortedArray<String> store,
@@ -213,9 +195,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 
 	public void dump() {
 		dump = true;
-		for (int i = 0; i < consumers.length; i++) {
-			consumers[i].interrupt();
-		}
+		bundle.interruptAll();
 	}
 
 	protected class MyFastaReader extends AbstractStoreFastaReader {

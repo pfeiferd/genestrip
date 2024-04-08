@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.io.StreamingFileResource;
+import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree;
@@ -50,14 +52,13 @@ public class AdditionalFastasGoal extends ObjectGoal<Map<File, TaxIdNode>, GSPro
 		Map<File, TaxIdNode> res = new HashMap<File, TaxTree.TaxIdNode>();
 		File additonalEntryFile = getProject().getAddtionalFile();
 		if (additonalEntryFile.exists()) {
-			Map<String, List<File>> map;
-			map = MultiMatchGoal.readMultiCSV(getProject().getFastaDir(), additonalEntryFile, getLogger());
+			Map<String, List<StreamingResource>> map = MultiMatchGoal.readMultiCSV(getProject().getFastaDir(), additonalEntryFile, getLogger());
 			TaxTree taxTree = taxTreeGoal.get();
 			for (String key : map.keySet()) {
 				TaxIdNode node = taxTree.getNodeByTaxId(key);
 				if (node != null) {
-					for (File file : map.get(key)) {
-						res.put(file, node);
+					for (StreamingResource file : map.get(key)) {
+						res.put(((StreamingFileResource) file).getFile(), node);
 					}
 				} else {
 					if (getLogger().isWarnEnabled()) {

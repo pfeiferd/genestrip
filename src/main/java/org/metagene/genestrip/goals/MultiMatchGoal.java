@@ -33,6 +33,7 @@ import org.metagene.genestrip.GSConfig;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.io.StreamProvider;
+import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.match.FastqKMerMatcher2;
@@ -45,6 +46,7 @@ import org.metagene.genestrip.store.KMerUniqueCounter;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.ExecutorServiceBundle;
 
 public class MultiMatchGoal extends MultiFileGoal {
 	public static final String NAME = "multimatch";
@@ -52,6 +54,7 @@ public class MultiMatchGoal extends MultiFileGoal {
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 	private final ObjectGoal<KMerStoreWrapper, GSProject> storeGoal;
 	private final boolean writedFiltered;
+	protected final ExecutorServiceBundle bundle;
 
 	private FastqKMerMatcher2 matcher;
 	private KMerStoreWrapper wrapper;
@@ -59,13 +62,25 @@ public class MultiMatchGoal extends MultiFileGoal {
 	private KMerUniqueCounter uniqueCounter;
 
 	@SafeVarargs
+	public MultiMatchGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
+			ObjectGoal<KMerStoreWrapper, GSProject> storeGoal, boolean writeFiltered, ExecutorServiceBundle bundle,
+			Goal<GSProject>... deps) {
+		super(project, name, Goal.append(deps, taxTreeGoal, storeGoal));
+		this.taxTreeGoal = taxTreeGoal;
+		this.storeGoal = storeGoal;
+		this.writedFiltered = writeFiltered;
+		this.bundle = bundle;
+	}
+
+	@SafeVarargs
 	public MultiMatchGoal(GSProject project, String name, boolean csv, File csvOrFastqFile,
 			ObjectGoal<TaxTree, GSProject> taxTreeGoal, ObjectGoal<KMerStoreWrapper, GSProject> storeGoal,
-			boolean writeFiltered, Goal<GSProject>... deps) {
+			boolean writeFiltered, ExecutorServiceBundle bundle, Goal<GSProject>... deps) {
 		super(project, name, csv, csvOrFastqFile, Goal.append(deps, taxTreeGoal, storeGoal));
 		this.taxTreeGoal = taxTreeGoal;
 		this.storeGoal = storeGoal;
 		this.writedFiltered = writeFiltered;
+		this.bundle = bundle;
 	}
 
 	@Override
@@ -73,18 +88,18 @@ public class MultiMatchGoal extends MultiFileGoal {
 		try {
 			File filteredFile = null;
 			File krakenOutStyleFile = null;
-			List<File> fastqs = fileToFastqs.get(file);
+			List<StreamingResource> fastqs = fileToFastqs.get(file);
 
 			if (writedFiltered) {
-				filteredFile = getProject().getOutputFile(getName(), file, FileType.FASTQ_RES, true);
-				krakenOutStyleFile = getProject().getOutputFile(getName(), file, FileType.KRAKEN_OUT_RES, false);
+				filteredFile = getProject().getOutputFile(getName(), null, file.getName(), FileType.FASTQ_RES, true);
+				krakenOutStyleFile = getProject().getOutputFile(getName(), null, file.getName(), FileType.KRAKEN_OUT_RES, false);
 			}
 
 			GSConfig config = getProject().getConfig();
 			if (matcher == null) {
 				wrapper = storeGoal.get();
 				wrapper.getKmerStore().setUseFilter(getProject().isUseBloomFilterForMatch());
-				
+
 				KMerSortedArray<TaxIdNode> store = new KMerSortedArray<TaxIdNode>(wrapper.getKmerStore(),
 						new ValueConverter<String, TaxIdNode>() {
 							@Override
@@ -93,9 +108,10 @@ public class MultiMatchGoal extends MultiFileGoal {
 							}
 						});
 
-				matcher = createMatcher(store, taxTreeGoal.get());
+				matcher = createMatcher(store, taxTreeGoal.get(), bundle);
 				reporter = new ResultReporter(taxTreeGoal.get(), config.getNormalizedKMersFactor());
-				uniqueCounter = config.isCountUniqueKMers() ? new KMerUniqueCounterBits(wrapper.getKmerStore(), config.isMatchWithKMerCounts())
+				uniqueCounter = config.isCountUniqueKMers()
+						? new KMerUniqueCounterBits(wrapper.getKmerStore(), config.isMatchWithKMerCounts())
 						: null;
 			}
 			if (uniqueCounter != null) {
@@ -108,17 +124,31 @@ public class MultiMatchGoal extends MultiFileGoal {
 		}
 	}
 
+	@Override
+	public void dump() {
+		super.dump();
+		dumpMatcher();
+	}
+
+	protected void dumpMatcher() {
+		if (matcher != null) {
+			matcher.dump();
+			matcher = null;
+		}
+	}
+
 	protected void writeOutputFile(File file, MatchingResult result, KMerStoreWrapper wrapper) throws IOException {
 		PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
 		reporter.printMatchResult(result, out, wrapper);
 		out.close();
 	}
 
-	protected FastqKMerMatcher2 createMatcher(KMerSortedArray<TaxIdNode> store, TaxTree taxTree) {
+	protected FastqKMerMatcher2 createMatcher(KMerSortedArray<TaxIdNode> store, TaxTree taxTree,
+			ExecutorServiceBundle bundle) {
 		GSConfig config = getProject().getConfig();
 
-		return new FastqKMerMatcher2(store, config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
-				config.getThreads(), config.getMaxKMerResCounts(), getProject().isClassifyReads() ? taxTree : null,
+		return new FastqKMerMatcher2(store, config.getMaxReadSizeBytes(), config.getThreadQueueSize(), bundle,
+				config.getMaxKMerResCounts(), getProject().isClassifyReads() ? taxTree : null,
 				config.getMaxClassificationPaths(), getProject().getMaxReadTaxErrorCount());
 	}
 

@@ -27,13 +27,16 @@ package org.metagene.genestrip;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.make.FileDownloadGoal.DownloadProject;
+import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.tax.TaxTree.Rank;
+import org.metagene.genestrip.util.GSLogFactory;
 
 public class GSProject implements DownloadProject {
 	public static final String PROJECT_PROPERTIES = "project.properties";
@@ -41,7 +44,7 @@ public class GSProject implements DownloadProject {
 
 	public enum FileType {
 		FASTQ_RES(".fastq"), FASTQ(".fastq"), FASTA(".fasta"), CSV(".csv"), KRAKEN_OUT(".out"), KRAKEN_OUT_RES(".out"),
-		SER(".ser"), DB(".kmers.ser"), FILTER(".bloom.ser");
+		SER(".ser"), DB(".kmers.ser"), FILTER(".bloom.ser"), LOG(".log");
 
 		private final String suffix;
 
@@ -63,8 +66,17 @@ public class GSProject implements DownloadProject {
 	private final File fastqResDir;
 	private final Properties properties;
 
+	public GSProject(GSConfig config, String name) {
+		this(config, name, 31, null, null, null, null, false);
+	}
+
 	public GSProject(GSConfig config, String name, int kMerSize, String krakenDB, File fastqOrCSVFile, File csvDir,
 			File fastqResDir) {
+		this(config, name, kMerSize, krakenDB, fastqOrCSVFile, csvDir, fastqResDir, true);
+	}
+
+	public GSProject(GSConfig config, String name, int kMerSize, String krakenDB, File fastqOrCSVFile, File csvDir,
+			File fastqResDir, boolean loadProps) {
 		this.config = config;
 		this.name = name;
 		this.kMserSize = kMerSize;
@@ -74,19 +86,21 @@ public class GSProject implements DownloadProject {
 		this.csvDir = csvDir != null ? csvDir : new File(getProjectDir(), "csv");
 
 		this.properties = new Properties();
-		File configFile = new File(getProjectDir(), PROJECT_PROPERTIES);
-		if (!configFile.exists()) {
-			configFile = new File(getProjectDir(), PROJECT_PROPERTIES_2);
-		}
-		Log log = LogFactory.getLog("project");
-		try {
-			if (log.isInfoEnabled()) {
-				log.info("Loading project file " + configFile);
+		if (loadProps) {
+			File configFile = new File(getProjectDir(), PROJECT_PROPERTIES);
+			if (!configFile.exists()) {
+				configFile = new File(getProjectDir(), PROJECT_PROPERTIES_2);
 			}
-			properties.load(new FileInputStream(configFile));
-		} catch (IOException e) {
-			if (log.isWarnEnabled()) {
-				log.warn("Could not read project configuation file '" + configFile + "'. Using defaults.");
+			Log log = GSLogFactory.getLog("project");
+			try {
+				if (log.isInfoEnabled()) {
+					log.info("Loading project file " + configFile);
+				}
+				properties.load(new FileInputStream(configFile));
+			} catch (IOException e) {
+				if (log.isWarnEnabled()) {
+					log.warn("Could not read project configuation file '" + configFile + "'. Using defaults.");
+				}
 			}
 		}
 	}
@@ -112,6 +126,8 @@ public class GSProject implements DownloadProject {
 		case DB:
 		case FILTER:
 			return getDBDir();
+		case LOG:
+			return getLogDir();
 		default:
 			throw new IllegalArgumentException("Illegal FileType: " + type);
 		}
@@ -122,15 +138,15 @@ public class GSProject implements DownloadProject {
 	}
 
 	public File getOutputFile(String goal, FileType type, boolean gzip) {
-		return getOutputFile(goal, null, type, gzip);
+		return getOutputFile(goal, null, null, type, gzip);
 	}
 
-	public File getOutputFile(String goal, File baseFile, FileType type) {
-		return getOutputFile(goal, baseFile, type, true);
+	public File getOutputFile(String goal, String baseFile, FileType type) {
+		return getOutputFile(goal, null, baseFile, type, true);
 	}
 
-	public File getOutputFile(String goal, File baseFile, FileType type, boolean gzip) {
-		String baseName = baseFile == null ? "" : baseFile.getName();
+	public File getOutputFile(String goal, String key, String baseFile, FileType type, boolean gzip) {
+		String baseName = baseFile == null ? "" : baseFile;
 		if (baseName.endsWith(".gz")) {
 			baseName = baseName.substring(0, baseName.length() - 3);
 		} else if (baseName.endsWith(".gzip")) {
@@ -149,8 +165,20 @@ public class GSProject implements DownloadProject {
 			baseName = "_" + baseName;
 		}
 
-		return new File(getDirForType(type),
-				getName() + "_" + goal + baseName + type.getSuffix() + (gzip ? ".gz" : ""));
+		return new File(getDirForType(type), getOutputFilePrefix(goal) + getOutputFileGoalPrefix(goal, key) + baseName
+				+ type.getSuffix() + (gzip ? ".gz" : ""));
+	}
+
+	protected String getOutputFilePrefix(String goal) {
+		return getName() + "_";
+	}
+
+	protected String getOutputFileGoalPrefix(String goal, String key) {
+		if (goal == null) {
+			return key == null ? "" : key;
+		} else {
+			return key == null ? goal : goal + "_" + key;
+		}
 	}
 
 	@Override
@@ -232,6 +260,10 @@ public class GSProject implements DownloadProject {
 		return csvDir;
 	}
 
+	public File getLogDir() {
+		return new File(getProjectDir(), "log");
+	}
+
 	public boolean isUseBloomFilterForMatch() {
 		String v = properties.getProperty(GSConfig.USE_BLOOM_FILTER_FOR_MATCH);
 		if (v != null) {
@@ -259,7 +291,7 @@ public class GSProject implements DownloadProject {
 		}
 		return getConfig().isIgnoreMissingFastas();
 	}
-	
+
 	public boolean isClassifyReads() {
 		String v = properties.getProperty(GSConfig.CLASSIFY_READS);
 		if (v != null) {
@@ -268,7 +300,6 @@ public class GSProject implements DownloadProject {
 		}
 		return getConfig().isClassifyReads();
 	}
-	
 
 	public Rank getRankCompletionDepth() {
 		String v = properties.getProperty(GSConfig.RANK_COMPLETION_DEPTH);
@@ -294,7 +325,7 @@ public class GSProject implements DownloadProject {
 		}
 		return getConfig().getMaxReadTaxErrorCount();
 	}
-	
+
 	public int getMaxDust() {
 		String v = properties.getProperty(GSConfig.MAX_DUST);
 		if (v != null) {
@@ -303,8 +334,12 @@ public class GSProject implements DownloadProject {
 		}
 		return getConfig().getMaxDust();
 	}
- 
+
 	public File getFilterFile(Goal<GSProject> goal) {
 		return getOutputFile(goal.getName(), FileType.FILTER);
+	}
+
+	public Map<String, List<StreamingResource>> getKeyToFastqs() {
+		return null;
 	}
 }

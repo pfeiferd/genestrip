@@ -63,18 +63,43 @@ import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.DefaultExecutorServiceBundle;
+import org.metagene.genestrip.util.ExecutorServiceBundle;
 
 public class GSMaker extends Maker<GSProject> {
+	private ExecutorServiceBundle executorServiceBundle;
+
 	public GSMaker(GSProject project) {
 		super(project);
+	}
+	
+	public void dump() {
+		if (executorServiceBundle != null) {
+			executorServiceBundle.dump();
+		}
+	}
+
+	protected ExecutorServiceBundle createExecutorServiceBundle(GSConfig config) {
+		return new DefaultExecutorServiceBundle(config.getThreads(), config.getMatchLogUpdateCycle()) {
+			protected String getThreadBaseName() {
+				return "Fastq Reader Thread";
+			}
+		};
+	}
+
+	protected ExecutorServiceBundle getExecutorServiceBundle(GSConfig config) {
+		if (executorServiceBundle == null) {
+			executorServiceBundle = createExecutorServiceBundle(config);
+		}
+		return executorServiceBundle;
 	}
 
 	protected void createGoals(GSProject project) {
 		List<File> projectDirs = Arrays.asList(project.getFastaDir(), project.getFastqDir(), project.getDBDir(),
-				project.getKrakenOutDir(), project.getResultsDir());
+				project.getKrakenOutDir(), project.getResultsDir(), project.getLogDir());
 
 		Goal<GSProject> commonSetupGoal = new FileListGoal<GSProject>(project, "commonsetup",
-				Arrays.asList(project.getConfig().getCommonDir(), project.getConfig().getRefSeqDir())) {
+				Arrays.asList(project.getConfig().getCommonDir(), project.getConfig().getRefSeqDir(), project.getConfig().getFastqDir())) {
 			@Override
 			protected void makeFile(File file) throws IOException {
 				file.mkdir();
@@ -194,8 +219,9 @@ public class GSMaker extends Maker<GSProject> {
 		registerGoal(filledStoreGoal);
 		fillStoreGoal.setFilledStoreGoal(filledStoreGoal);
 
-		UpdateStoreGoal updateStoreGoal = new UpdateStoreGoal(project, "db", categoriesGoal, taxTreeGoal,
-				refSeqFnaFilesGoal, additionalFastasGoal, accessCollGoal, filledStoreGoal, projectSetupGoal);
+		UpdateStoreGoal updateStoreGoal = new UpdateStoreGoal(project, "db",
+				getExecutorServiceBundle(project.getConfig()), categoriesGoal, taxTreeGoal, refSeqFnaFilesGoal,
+				additionalFastasGoal, accessCollGoal, filledStoreGoal, projectSetupGoal);
 		registerGoal(updateStoreGoal);
 
 		UpdatedStoreGoal updatedStoreGoal = new UpdatedStoreGoal(project, "updateddb", updateStoreGoal);
@@ -229,31 +255,34 @@ public class GSMaker extends Maker<GSProject> {
 		File fastqOrCSV = project.getFastqOrCSVFile();
 		if (fastqOrCSV != null) {
 			Goal<GSProject> filterGoal = new FilterGoal(project, "filter", fastqOrCSV, bloomIndexedGoal,
-					projectSetupGoal);
+					getExecutorServiceBundle(project.getConfig()), projectSetupGoal);
 			registerGoal(filterGoal);
 
-			KrakenResCountGoal krakenResCountGoal = new KrakenResCountGoal(project, "krakenres", false, fastqOrCSV, taxNodesGoal,
-					projectSetupGoal);
+			KrakenResCountGoal krakenResCountGoal = new KrakenResCountGoal(project, "krakenres", false, fastqOrCSV,
+					taxNodesGoal, projectSetupGoal);
 			registerGoal(krakenResCountGoal);
 
-			KrakenResCountGoal multiKrakenResCountGoal = new KrakenResCountGoal(project, "multikrakenres", true, fastqOrCSV,
-					taxNodesGoal, projectSetupGoal);
+			KrakenResCountGoal multiKrakenResCountGoal = new KrakenResCountGoal(project, "multikrakenres", true,
+					fastqOrCSV, taxNodesGoal, projectSetupGoal);
 			registerGoal(multiKrakenResCountGoal);
 
-			Goal<GSProject> krakenResCountAllGoal = new KrakenResCountGoal(project, "krakenresall", false, fastqOrCSV, null,
-					projectSetupGoal);
+			Goal<GSProject> krakenResCountAllGoal = new KrakenResCountGoal(project, "krakenresall", false, fastqOrCSV,
+					null, projectSetupGoal);
 			registerGoal(krakenResCountAllGoal);
 
-			Goal<GSProject> multiKrakenResCountAllGoal = new KrakenResCountGoal(project, "multikrakenresall",
-					true, fastqOrCSV, null, projectSetupGoal);
+			Goal<GSProject> multiKrakenResCountAllGoal = new KrakenResCountGoal(project, "multikrakenresall", true,
+					fastqOrCSV, null, projectSetupGoal);
 			registerGoal(multiKrakenResCountAllGoal);
 
-			Goal<GSProject> matchGoal = new MultiMatchGoal(project, "match", false, fastqOrCSV, taxTreeGoal, updatedStoreGoal,
-					project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
+			Goal<GSProject> matchGoal = new MultiMatchGoal(project, "match", false, fastqOrCSV, taxTreeGoal,
+					updatedStoreGoal, project.getConfig().isWriteFilteredFastq(),
+					getExecutorServiceBundle(project.getConfig()), projectSetupGoal);
 			registerGoal(matchGoal);
-
-			Goal<GSProject> multiMatchGoal = new MultiMatchGoal(project, MultiMatchGoal.NAME, true, fastqOrCSV, taxTreeGoal,
-					updatedStoreGoal, project.getConfig().isWriteFilteredFastq(), projectSetupGoal);
+		}
+		if (fastqOrCSV != null || project.getKeyToFastqs() != null) {		
+			Goal<GSProject> multiMatchGoal = new MultiMatchGoal(project, MultiMatchGoal.NAME, true, fastqOrCSV,
+					taxTreeGoal, updatedStoreGoal, project.getConfig().isWriteFilteredFastq(),
+					getExecutorServiceBundle(project.getConfig()), projectSetupGoal);
 			registerGoal(multiMatchGoal);
 		}
 	}

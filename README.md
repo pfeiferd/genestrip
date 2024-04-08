@@ -22,7 +22,7 @@
 
 Genestrip - Efficient read classification, filtering and *k*-mer counting for selected groups of species 
 ===============================================
-  
+
 # Introduction
 
 Metagenomic analysis has become an extremely import field in bio informatics. To analyse large sets of reads, researchers use highly efficient software tools based on *k*-mer matching and counting such as [Kraken](https://github.com/DerrickWood/kraken), [Kraken 2](https://github.com/DerrickWood/kraken2) or [KrakenUniq](https://github.com/fbreitwieser/krakenuniq). With regard to pathogen detection [KrakenUniq](https://github.com/fbreitwieser/krakenuniq) is particularly suited because of its
@@ -247,7 +247,8 @@ The following entries are possible:
 
 | Key         | Default Value     | Description | Affected Goals |
 | ----------- | ----------- | ----------- | ----------- |
-| `logLevel`      | `info`       | The levels `error` and `warn` are also possible and result in (much) less verbose logging. | all |
+| `logLevel`      | `trace`       | The log levels `error`, `warn` and `info` are also possible and result in (much) less verbose logging. | all |
+| `matchLogUpdateCycle`      | `1000000`       | Affects the log level `trace`: Defines after how many reads per fastq file, information on the matching progress is logged. If less than 1, then no progress information is logged. | `match`, `multimatch`, `filter` |
 | `threads`      | `-1`       | The number of consumer threads *n* when processing data with respect to goals ``match``, ``filter`` and ``multimatch`` and also so during the update phase of the ``db`` goal. There is always one additional thread that reads and uncompresses a corresponding fastq or fasta file (so it is *n + 1* threads in total). When negative, the number of available processors *- 1* is used as *n*. When 0, then the corresponding goals run in single-threaded mode. | `db`, `match`, `multimatch`, `filter` |
 | `countUniqueKMers`      | `true`       | If `true`, unique *k*-mers will be counted. This requires less than 5% of additional main memory.        |  `match`, `multimatch` |
 | `writeDumpedFastq`   | `false`        | If `true`, then ``filter`` will also generate a fastq file `dumped_<fqfile>` with all reads not written to the corresponding filtered fastq file. |  `filter` |
@@ -268,6 +269,7 @@ The following entries are possible:
 | `maxReadTaxErrorCount`   | `0.1`        | The absolute or relative maximum number of *k*-mers that do not have to be in the database for a read to be classified. If the number is above `maxReadTaxErrorCount`, then the read will not be classified. Otherwise the read will be classified in the same way as [done by Kraken](https://genomebiology.biomedcentral.com/articles/10.1186/gb-2014-15-3-r46/figures/1).  If  `maxReadTaxErrorCount` is >= 1, then it is interpreted as an absolute number of *k*-mers. Otherwise (and so, if >= 0 and < 1), it is interpreted as the ratio between the *k*-mers not in the database and all *k*-mers of the read. | `match`, `multimatch` |
 | `maxDust`   | `-1`        | When generating a database via the goal `db`, any low-complexity *k*-mer with too many repetitive sequences of base pairs may be omitted for storing. To do so, Genestrip employs a simple [genetic dust-filter](https://pubmed.ncbi.nlm.nih.gov/16796549/) for *k*-mers: It assigns a dust value *d* to each *k*-mer, and if *d* >  `maxDust`, then the *k*-mer will not be stored. Given a *k*-mer with *n* repeating base pairs of repeat length *k(1), ... k(n)* with *k(i) > 1*, then *d = fib(k(1)) + ... + fib(k(n))*, where *fib(k(i))* is the Fibonacci number of *k(i)*.  E.g., for the *8*-mer `TTTCGGTC`, we have *n = 2* with *k(1) = 3*, *k(2) = 2* and *d = fib(3) + fib(2) = 2 + 1 = 3*. For practical concerns `maxDust = 20` may be suitable. In this case, if *31*-mers were uniformly, randomly generated, then about 0.2 % of them would be omitted. If `maxDust = -1`, then dust-filtering is inactive.| `db` |
 | `normalizedKMersFactor` | 1000000000 | A factor used to compute `normalized kmers` at read analysis time. | `match`, `multimatch` |
+| `maxReadSizeBytes` | 32768 | The maximum length of reads in number of base pairs plus one. If longer reads occur, then there will be buffer overruns with errors. | `match`, `multimatch`, `filter` |
 
 
 # Project properties

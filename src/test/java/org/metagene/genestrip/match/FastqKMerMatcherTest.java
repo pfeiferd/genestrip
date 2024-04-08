@@ -31,13 +31,17 @@ import java.util.Arrays;
 import java.util.Random;
 
 import org.junit.Test;
-import org.metagene.genestrip.match.FastqKMerMatcher.MyReadEntry;
+import org.metagene.genestrip.match.FastqKMerMatcher2.MyReadEntry;
 import org.metagene.genestrip.store.KMerSortedArray;
+import org.metagene.genestrip.store.KMerSortedArray.ValueConverter;
 import org.metagene.genestrip.store.KMerUniqueCounter;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
 import org.metagene.genestrip.store.KMerUniqueCounterMap;
+import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGAT;
+import org.metagene.genestrip.util.DefaultExecutorServiceBundle;
+import org.metagene.genestrip.util.ExecutorServiceBundle;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
@@ -65,10 +69,12 @@ public class FastqKMerMatcherTest {
 		read[0] = 'A';
 		store.put(read, 0, TAXIDS[2], false);
 
-		MyFastqMatcher matcher = new MyFastqMatcher(store, readLength * 10, 1, 0);
+		ExecutorServiceBundle bundle = new DefaultExecutorServiceBundle(0, 1000);
+
+		MyFastqMatcher matcher = new MyFastqMatcher(store, readLength * 10, 1, bundle);
 		KMerUniqueCounter uniqueCounter = bitMap ? new KMerUniqueCounterMap() : new KMerUniqueCounterBits(store, true);
 
-		MyReadEntry entry = new MyReadEntry(2000, true);
+		MyReadEntry entry = new MyReadEntry(2000, true, 4);
 		entry.readSize = readLength;
 
 		long[] counters = new long[TAXIDS.length];
@@ -116,7 +122,7 @@ public class FastqKMerMatcherTest {
 					maxContigLen[previousPos] = contigLen;
 				}
 			}
-			matcher.matchRead(entry, false);
+			matcher.matchRead(entry, i, false);
 
 			ByteArrayUtil.print(entry.read, System.out);
 			System.out.println();
@@ -139,10 +145,16 @@ public class FastqKMerMatcherTest {
 		}
 	}
 
-	protected static class MyFastqMatcher extends FastqKMerMatcher {
+	protected static class MyFastqMatcher extends FastqKMerMatcher2 {
 		public MyFastqMatcher(KMerSortedArray<String> kmerStore, int maxReadSize, int maxQueueSize,
-				int consumerNumber) {
-			super(kmerStore, maxReadSize, maxQueueSize, consumerNumber, 100, null, 0);
+				ExecutorServiceBundle bundle) {
+			super(new KMerSortedArray<TaxIdNode>(kmerStore,
+					new ValueConverter<String, TaxIdNode>() {
+				@Override
+				public TaxIdNode convertValue(String value) {
+					return new TaxIdNode(value);
+				}
+			}), maxReadSize, maxQueueSize, bundle, maxQueueSize, null, 4, 0);
 			out = System.out;
 		}
 
@@ -159,10 +171,10 @@ public class FastqKMerMatcherTest {
 		public CountsPerTaxid getStats(String taxid) {
 			return root.get(taxid);
 		}
-
+		
 		@Override
-		public boolean matchRead(MyReadEntry entry, boolean reverse) {
-			return super.matchRead(entry, reverse);
+		protected boolean matchRead(MyReadEntry entry, int index, boolean reverse) {
+			return super.matchRead(entry, index, reverse);
 		}
 	}
 }

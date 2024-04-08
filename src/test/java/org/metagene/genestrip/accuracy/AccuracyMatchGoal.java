@@ -45,6 +45,7 @@ import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
+import org.metagene.genestrip.util.ExecutorServiceBundle;
 
 public class AccuracyMatchGoal extends MultiMatchGoal {
 	private final AccuracyCounts accuracyCounts;
@@ -54,8 +55,8 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 
 	@SafeVarargs
 	public AccuracyMatchGoal(GSProject project, String name, File csvFile, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
-			ObjectGoal<KMerStoreWrapper, GSProject> storeGoal, Goal<GSProject>... deps) {
-		super(project, name, true, csvFile, taxTreeGoal, storeGoal, false, deps);
+			ObjectGoal<KMerStoreWrapper, GSProject> storeGoal, ExecutorServiceBundle bundle, Goal<GSProject>... deps) {
+		super(project, name, true, csvFile, taxTreeGoal, storeGoal, false, bundle, deps);
 		accuracyCounts = new AccuracyCounts();
 	}
 
@@ -80,7 +81,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 				});
 
 		return new FastqKMerMatcher2(store, config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
-				config.getThreads(), config.getMaxKMerResCounts(), getProject().isClassifyReads() ? taxTree : null,
+				bundle, config.getMaxKMerResCounts(), getProject().isClassifyReads() ? taxTree : null,
 				config.getMaxClassificationPaths(), getProject().getMaxReadTaxErrorCount());
 	}
 	
@@ -88,7 +89,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 		GSConfig config = getProject().getConfig();
 
 		return new FastqKMerMatcher2(store, config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
-				config.getThreads(), config.getMaxKMerResCounts(), getProject().isClassifyReads() ? taxTree : null,
+				bundle, config.getMaxKMerResCounts(), getProject().isClassifyReads() ? taxTree : null,
 				config.getMaxClassificationPaths(), getProject().getMaxReadTaxErrorCount()) {
 			@Override
 			protected void afterMatch(MyReadEntry entry, boolean found) throws IOException {
@@ -100,7 +101,6 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 				}
 			}
 		};
-
 	}
 
 	@Override

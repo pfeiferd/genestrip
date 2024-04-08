@@ -29,12 +29,12 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.io.BufferedLineReader;
 import org.metagene.genestrip.io.StreamProvider;
+import org.metagene.genestrip.util.GSLogFactory;
 
 public abstract class AbstractFastaReader {
-	private final Log logger = LogFactory.getLog("fastareader");
+	private final Log logger = GSLogFactory.getLog("fastareader");
 	
 	private final BufferedLineReader bufferedLineReader;
 	protected final byte[] target;

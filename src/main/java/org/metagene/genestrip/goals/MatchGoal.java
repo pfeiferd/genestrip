@@ -32,6 +32,7 @@ import org.metagene.genestrip.GSConfig;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.io.StreamProvider;
+import org.metagene.genestrip.io.StreamingFileResource;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -44,33 +45,39 @@ import org.metagene.genestrip.store.KMerUniqueCounterBits;
 import org.metagene.genestrip.store.KMerSortedArray.ValueConverter;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.ExecutorServiceBundle;
 
 public class MatchGoal extends FileListGoal<GSProject> {
 	private final File fastq;
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 	private final ObjectGoal<KMerStoreWrapper, GSProject> storeGoal;
 	private final boolean writedFiltered;
+	private final ExecutorServiceBundle bundle;
+	private FastqKMerMatcher2 matcher;
 
 	@SafeVarargs
 	public MatchGoal(GSProject project, String name, File fastq, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
-			ObjectGoal<KMerStoreWrapper, GSProject> storeGoal, boolean writeFiltered, Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, fastq, FileType.CSV, false),
+			ObjectGoal<KMerStoreWrapper, GSProject> storeGoal, boolean writeFiltered, ExecutorServiceBundle bundle,
+			Goal<GSProject>... deps) {
+		super(project, name, project.getOutputFile(name, null, fastq.getName(), FileType.CSV, false),
 				Goal.append(deps, taxTreeGoal, storeGoal));
 		this.fastq = fastq;
 		this.taxTreeGoal = taxTreeGoal;
 		this.storeGoal = storeGoal;
 		this.writedFiltered = writeFiltered;
+		this.bundle = bundle;
 	}
 
 	@Override
 	protected void makeFile(File file) {
-		FastqKMerMatcher2 matcher = null;
+		matcher = null;
 		try {
 			File filteredFile = null;
 			File krakenOutStyleFile = null;
 			if (writedFiltered) {
-				filteredFile = getProject().getOutputFile(getName(), fastq, FileType.FASTQ_RES, true);
-				krakenOutStyleFile = getProject().getOutputFile(getName(), fastq, FileType.KRAKEN_OUT_RES, false);
+				filteredFile = getProject().getOutputFile(getName(), null, fastq.getName(), FileType.FASTQ_RES, true);
+				krakenOutStyleFile = getProject().getOutputFile(getName(), null, fastq.getName(),
+						FileType.KRAKEN_OUT_RES, false);
 			}
 
 			KMerStoreWrapper wrapper = storeGoal.get();
@@ -86,8 +93,8 @@ public class MatchGoal extends FileListGoal<GSProject> {
 						}
 					});
 
-			matcher = createMatcher(store, taxTreeGoal.get());
-			MatchingResult res = matcher.runMatcher(fastq, filteredFile, krakenOutStyleFile,
+			matcher = createMatcher(store, taxTreeGoal.get(), bundle);
+			MatchingResult res = matcher.runMatcher(new StreamingFileResource(fastq), filteredFile, krakenOutStyleFile,
 					config.isCountUniqueKMers()
 							? new KMerUniqueCounterBits(wrapper.getKmerStore(), config.isMatchWithKMerCounts())
 							: null);
@@ -97,9 +104,20 @@ public class MatchGoal extends FileListGoal<GSProject> {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {
-			if (matcher != null) {
-				matcher.dump();
-			}
+			dumpMatcher();
+		}
+	}
+
+	@Override
+	public void dump() {
+		super.dump();
+		dumpMatcher();
+	}
+
+	protected void dumpMatcher() {
+		if (matcher != null) {
+			matcher.dump();
+			matcher = null;
 		}
 	}
 
@@ -110,11 +128,12 @@ public class MatchGoal extends FileListGoal<GSProject> {
 		out.close();
 	}
 
-	protected FastqKMerMatcher2 createMatcher(KMerSortedArray<TaxIdNode> store, TaxTree taxTree) {
+	protected FastqKMerMatcher2 createMatcher(KMerSortedArray<TaxIdNode> store, TaxTree taxTree,
+			ExecutorServiceBundle bundle) {
 		GSConfig config = getProject().getConfig();
 
-		return new FastqKMerMatcher2(store, config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
-				config.getThreads(), config.getMaxKMerResCounts(), getProject().isClassifyReads() ? taxTree : null,
+		return new FastqKMerMatcher2(store, config.getMaxReadSizeBytes(), config.getThreadQueueSize(), bundle,
+				config.getMaxKMerResCounts(), getProject().isClassifyReads() ? taxTree : null,
 				config.getMaxClassificationPaths(), getProject().getMaxReadTaxErrorCount());
 	}
 }

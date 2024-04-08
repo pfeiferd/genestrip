@@ -28,7 +28,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -37,6 +36,7 @@ import java.util.Map;
 
 import org.metagene.genestrip.fastq.AbstractFastqReader;
 import org.metagene.genestrip.io.StreamProvider;
+import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.io.StreamProvider.ByteCountingInputStreamAccess;
 import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerUniqueCounter;
@@ -46,12 +46,11 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.DigitTrie;
+import org.metagene.genestrip.util.ExecutorServiceBundle;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 public class FastqKMerMatcher2 extends AbstractFastqReader {
-	public static final long DEFAULT_LOG_UPDATE_CYCLE = 1000000;
-
 	private final KMerSortedArray<TaxIdNode> kmerStore;
 	private final int maxKmerResCounts;
 
@@ -62,34 +61,37 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 	private final int maxPaths;
 	private int coveredCounter;
 	private int totalCount;
-	private File currentFastq;
+	private StreamingResource currentFastq;
 	private long fastqsFileSize;
 	private long coveredFilesSize;
 	private long startTime;
 	private long indexedC;
 	private final TaxTree taxTree;
 	protected final double maxReadTaxErrorCount;
+	private final long logUpdateCycle;
 
 	private OutputStream indexed;
 
 	private final Integer maxReadSize;
-
-	private long logUpdateCycle = DEFAULT_LOG_UPDATE_CYCLE;
 
 	// A PrintStream is implicitly synchronized. So we don't need to worry about
 	// multi-threading when using it.
 	protected PrintStream out;
 
 	public FastqKMerMatcher2(KMerSortedArray<TaxIdNode> kmerStore, int maxReadSize, int maxQueueSize,
-			int consumerNumber, int maxKmerResCounts, TaxTree taxTree, int maxPaths, double maxReadTaxErrorCount) {
-		super(kmerStore.getK(), maxReadSize, maxQueueSize, consumerNumber, maxPaths);
+			ExecutorServiceBundle bundle, int maxKmerResCounts, TaxTree taxTree, int maxPaths,
+			double maxReadTaxErrorCount) {
+		super(kmerStore.getK(), maxReadSize, maxQueueSize, bundle, maxPaths);
 		this.kmerStore = kmerStore;
 		this.maxReadSize = maxReadSize;
 		this.maxKmerResCounts = maxKmerResCounts;
 		this.taxTree = taxTree;
 		this.maxReadTaxErrorCount = maxReadTaxErrorCount;
 		this.maxPaths = maxPaths;
-		taxTree.initCountSize(consumerNumber == 0 ? 1 : consumerNumber);
+		this.logUpdateCycle = bundle.getLogUpdateCycle();
+		if (taxTree != null) {
+			taxTree.initCountSize(bundle.getThreads() == 0 ? 1 : bundle.getThreads());
+		}
 	}
 
 	@Override
@@ -97,12 +99,12 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 		return new MyReadEntry(maxReadSizeBytes, out != null, (int) config[0]);
 	}
 
-	public MatchingResult runMatcher(File fastq, File filteredFile, File krakenOutStyleFile,
+	public MatchingResult runMatcher(StreamingResource fastq, File filteredFile, File krakenOutStyleFile,
 			KMerUniqueCounter uniqueCounter) throws IOException {
 		return runMatcher(Collections.singletonList(fastq), filteredFile, krakenOutStyleFile, uniqueCounter);
 	}
 
-	public MatchingResult runMatcher(List<File> fastqs, File filteredFile, File krakenOutStyleFile,
+	public MatchingResult runMatcher(List<StreamingResource> fastqs, File filteredFile, File krakenOutStyleFile,
 			KMerUniqueCounter uniqueCounter) throws IOException {
 		if (filteredFile != null) {
 			indexed = StreamProvider.getOutputStreamForFile(filteredFile);
@@ -123,13 +125,13 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 		initUniqueCounter(uniqueCounter);
 
 		totalCount = fastqs.size();
-		for (File fastq : fastqs) {
-			fastqsFileSize += Files.size(fastq.toPath());
+		for (StreamingResource fastq : fastqs) {
+			fastqsFileSize += fastq.getSize();
 		}
 		coveredCounter = 0;
-		for (File fastq : fastqs) {
+		for (StreamingResource fastq : fastqs) {
 			currentFastq = fastq;
-			byteCountAccess = StreamProvider.getByteCountingInputStreamForFile(fastq, false);
+			byteCountAccess = fastq.getStreamAccess();
 			taxTree.resetCounts(this);
 			readFastq(byteCountAccess.getInputStream());
 			taxTree.releaseOwner();
@@ -234,20 +236,25 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 
 	@Override
 	protected void log() {
-		if (reads % logUpdateCycle == 0) {
-			if (logger.isInfoEnabled()) {
-				double ratio = (coveredFilesSize + byteCountAccess.getBytesRead()) / (double) fastqsFileSize;
+		if (logUpdateCycle > 0 && reads % logUpdateCycle == 0) {
+			if (logger.isTraceEnabled() || bundle.isRequiresProgress()) {
+				long bytesCovered = (coveredFilesSize + byteCountAccess.getBytesRead());
+				double ratio = bytesCovered / (double) fastqsFileSize;
 				long stopTime = System.currentTimeMillis();
-
-				double diff = (stopTime - startTime);
+				long diff = (stopTime - startTime);
 				double totalTime = diff / ratio;
-				double totalHours = totalTime / 1000 / 60 / 60;
+				if (bundle.isRequiresProgress()) {
+					bundle.setProgress(bytesCovered, fastqsFileSize, diff, (long) totalTime, ratio);
+				}
 
-				logger.info("Elapsed hours: " + diff / 1000 / 60 / 60);
-				logger.info("Estimated total hours: " + totalHours);
-				logger.info("Reads processed: " + reads);
-				logger.info("Indexed: " + indexedC);
-				logger.info("Indexed ratio: " + ((double) indexedC) / reads);
+				if (logger.isTraceEnabled()) {
+					double totalHours = totalTime / 1000 / 60 / 60;
+					logger.info("Elapsed hours: " + diff / 1000 / 60 / 60);
+					logger.info("Estimated total hours: " + totalHours);
+					logger.info("Reads processed: " + reads);
+					logger.info("Indexed: " + indexedC);
+					logger.info("Indexed ratio: " + ((double) indexedC) / reads);
+				}
 			}
 		}
 	}
@@ -256,18 +263,18 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 		return logUpdateCycle;
 	}
 
-	public void setLogUpdateCycle(long logUpdateCycle) {
-		this.logUpdateCycle = logUpdateCycle;
-	}
-
 	@Override
 	protected void done() throws IOException {
-		if (logger.isInfoEnabled()) {
-			logger.info("Total indexed: " + indexedC);
+		if (logger.isInfoEnabled() || bundle.isRequiresProgress()) {
+			long bytesCovered = (coveredFilesSize + byteCountAccess.getBytesRead());
 			long stopTime = System.currentTimeMillis();
-			double diff = (stopTime - startTime);
-			logger.info("Elapsed total ms: " + diff);
-			logger.info("Read file time ms: " + getMillis());
+			long totalTime = (stopTime - startTime);
+			bundle.setProgress(bytesCovered, fastqsFileSize, totalTime, totalTime, 1);
+			if (logger.isInfoEnabled()) {
+				logger.info("Total indexed: " + indexedC);
+				logger.info("Elapsed total ms: " + totalTime);
+				logger.info("Read file time ms: " + getMillis());
+			}
 		}
 	}
 

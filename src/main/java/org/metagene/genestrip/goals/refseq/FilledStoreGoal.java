@@ -65,7 +65,7 @@ public class FilledStoreGoal extends ObjectGoal<KMerStoreWrapper, GSProject> {
 		}
 	}
 
-	void setStoreWrapper(KMerStoreWrapper object) {
+	public void setStoreWrapper(KMerStoreWrapper object) {
 		set(object);
 	}
 }

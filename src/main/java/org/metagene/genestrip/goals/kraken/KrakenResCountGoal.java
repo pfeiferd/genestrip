@@ -39,6 +39,8 @@ import java.util.Set;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.goals.MultiFileGoal;
 import org.metagene.genestrip.io.StreamProvider;
+import org.metagene.genestrip.io.StreamingFileResource;
+import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.kraken.KrakenExecutor;
 import org.metagene.genestrip.kraken.KrakenResultListener;
 import org.metagene.genestrip.kraken.KrakenResultProcessor;
@@ -60,7 +62,11 @@ public class KrakenResCountGoal extends MultiFileGoal {
 	@Override
 	protected void makeFile(File file) throws IOException {
 		PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-		List<KrakenResStats> list = computeStats(fileToFastqs.get(file));
+		List<File> files = new ArrayList<File>();
+		for (StreamingResource s : fileToFastqs.get(file)) {
+			files.add(((StreamingFileResource) s).getFile());
+		}
+		List<KrakenResStats> list = computeStats(files);
 		print(list, out);
 		out.close();
 	}

@@ -29,23 +29,20 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.lang.Thread.UncaughtExceptionHandler;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.io.BufferedLineReader;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.util.ByteArrayUtil;
+import org.metagene.genestrip.util.ExecutorServiceBundle;
+import org.metagene.genestrip.util.GSLogFactory;
 
 public abstract class AbstractFastqReader {
 	private static final byte[] LINE_3 = new byte[] { '+', '\n' };
 
-	protected final Log logger = LogFactory.getLog("fastqreader");
+	protected final Log logger = GSLogFactory.getLog("fastqreader");
 
 	protected long reads;
 	protected long kMers;
@@ -53,18 +50,20 @@ public abstract class AbstractFastqReader {
 	private final BufferedLineReader bufferedLineReaderFastQ;
 	private final ReadEntry[] readStructPool;
 	private final BlockingQueue<ReadEntry> blockingQueue;
-	private final Thread[] consumers;
 	protected final int k;
+	private final byte[] plusLine;
 
 	private boolean dump;
-//	private Thread mainThread;
-//	private boolean readsDone;
 
-	private final List<Throwable> throwablesInThreads;
+	protected final ExecutorServiceBundle bundle;
 
-	public AbstractFastqReader(int k, int maxReadSizeBytes, int maxQueueSize, int consumerNumber, Object... config) {
+	public AbstractFastqReader(int k, int maxReadSizeBytes, int maxQueueSize, ExecutorServiceBundle bundle,
+			Object... config) {
 		this.k = k;
+		this.bundle = bundle;
+		this.plusLine = new byte[maxReadSizeBytes];
 		bufferedLineReaderFastQ = new BufferedLineReader();
+		int consumerNumber = bundle.getThreads();
 
 		readStructPool = new ReadEntry[consumerNumber == 0 ? 1 : (maxQueueSize + consumerNumber + 1)];
 		for (int i = 0; i < readStructPool.length; i++) {
@@ -73,35 +72,21 @@ public abstract class AbstractFastqReader {
 		blockingQueue = consumerNumber == 0 ? null
 				: new ArrayBlockingQueue<AbstractFastqReader.ReadEntry>(maxQueueSize);
 
-		consumers = new Thread[consumerNumber];
-		throwablesInThreads = Collections.synchronizedList(new ArrayList<Throwable>());
-
-		for (int i = 0; i < consumers.length; i++) {
-			consumers[i] = createAndStartThread(i, config);
+		if (blockingQueue != null) {
+			for (int i = 0; i < consumerNumber; i++) {
+				bundle.execute(createRunnable(i, config));
+			}
 		}
 	}
 
-	protected Thread createAndStartThread(int i, Object... config) {
-		Thread t = new Thread(createRunnable(i, config));
-		t.setName("Fastq reader thread #" + i);
-		t.setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
-			@Override
-			public void uncaughtException(Thread t, Throwable e) {
-				throwablesInThreads.add(e);
-			}
-		});
-		t.start();
-
-		return t;
-	}
-
 	protected void checkAndLogConsumerThreadProblem() {
-		if (!throwablesInThreads.isEmpty()) {
-			for (Throwable t : throwablesInThreads) {
+		if (!bundle.getThrowableList().isEmpty()) {
+			for (Throwable t : bundle.getThrowableList()) {
 				if (getLogger().isErrorEnabled()) {
 					getLogger().error("Error in consumer thread: ", t);
 				}
 			}
+			bundle.clearThrowableList();
 			throw new RuntimeException("Error(s) in consumer thread(s).");
 		}
 	}
@@ -116,7 +101,7 @@ public abstract class AbstractFastqReader {
 					try {
 						ReadEntry readStruct = blockingQueue.take();
 //						try {
-							nextEntry(readStruct, index);
+						nextEntry(readStruct, index);
 //						} finally {
 //							if (readsDone) {
 //								synchronized (mainThread) {
@@ -124,7 +109,7 @@ public abstract class AbstractFastqReader {
 //									mainThread.notify();
 //								}
 //							} else {
-								readStruct.pooled = true;
+						readStruct.pooled = true;
 //							}
 //						}
 //					}
@@ -146,9 +131,7 @@ public abstract class AbstractFastqReader {
 
 	public void dump() {
 		dump = true;
-		for (int i = 0; i < consumers.length; i++) {
-			consumers[i].interrupt();
-		}
+		bundle.interruptAll();
 	}
 
 	protected Log getLogger() {
@@ -171,13 +154,11 @@ public abstract class AbstractFastqReader {
 		reads = 0;
 		kMers = 0;
 		bufferedLineReaderFastQ.setInputStream(inputStream);
-//		readsDone = false;
-//		mainThread = Thread.currentThread();
 
 		start();
 
 		if (logger.isInfoEnabled()) {
-			logger.info("Number of consumer threads: " + consumers.length);
+			logger.info("Number of consumer threads: " + bundle.getThreads());
 		}
 		ReadEntry readStruct = nextFreeReadStruct();
 		for (readStruct.readDescriptorSize = bufferedLineReaderFastQ.nextLine(readStruct.readDescriptor)
@@ -187,22 +168,18 @@ public abstract class AbstractFastqReader {
 			readStruct.readSize = bufferedLineReaderFastQ.nextLine(readStruct.read) - 1;
 			readStruct.read[readStruct.readSize] = 0;
 
+			// Old code:
+			// bufferedLineReaderFastQ.skipLine(); // Ignoring line 3.
+			// New code does basic consistency check:
+			bufferedLineReaderFastQ.nextLine(plusLine);
+			if (plusLine[0] != '+') {
+				throw new IllegalStateException("Inconsistent read no. " + reads
+						+ ", the line with '+' is missing. Maybe the buffer size for reads is too small. It may be increased via the property 'maxReadSizeBytes' in the configs.");
+			}
 
-// In some fastq files there occur two lines with '+' in a row which messes up the whole read process.
-// This loop compensates for this bug in fastq files:
-//			
-//			readStruct.readProbsSize = bufferedLineReaderFastQ.nextLine(readStruct.readProbs) - 1;
-//			readStruct.readProbs[readStruct.readProbsSize] = 0;
-//			while (readStruct.readProbsSize == 1 && readStruct.readProbs[0] == '+') {
-//				readStruct.readProbsSize = bufferedLineReaderFastQ.nextLine(readStruct.readProbs) - 1;
-//				readStruct.readProbs[readStruct.readProbsSize] = 0;
-//			}
-
-			// Original code:			
-			bufferedLineReaderFastQ.skipLine(); // Ignoring line 3.
 			readStruct.readProbsSize = bufferedLineReaderFastQ.nextLine(readStruct.readProbs) - 1;
 			readStruct.readProbs[readStruct.readProbsSize] = 0;
-			
+
 			readStruct.readNo = reads;
 
 			reads++;
@@ -213,7 +190,7 @@ public abstract class AbstractFastqReader {
 				try {
 					blockingQueue.put(readStruct);
 				} catch (InterruptedException e) {
-					throw new RuntimeException(e);
+					throw new FastqReaderInterruptedException(e);
 				}
 			}
 			checkAndLogConsumerThreadProblem();
@@ -246,7 +223,7 @@ public abstract class AbstractFastqReader {
 //		}
 		if (blockingQueue != null) {
 			readStruct.pooled = true;
-			// Gentle polling and waiting until all consumers are done. 
+			// Gentle polling and waiting until all consumers are done.
 			boolean stillWorking = true;
 			while (stillWorking) {
 				checkAndLogConsumerThreadProblem();
@@ -262,10 +239,9 @@ public abstract class AbstractFastqReader {
 						break;
 					}
 				}
-			}				
+			}
 		}
-		
-		
+
 		if (logger.isInfoEnabled()) {
 			logger.info("Total number of reads: " + reads);
 		}
@@ -312,10 +288,10 @@ public abstract class AbstractFastqReader {
 	protected abstract void nextEntry(ReadEntry readStruct, int threadIndex) throws IOException;
 
 	protected void done() throws IOException {
-	};
+	}
 
 	protected void start() throws IOException {
-	};
+	}
 
 	protected static class ReadEntry {
 		public long readNo;

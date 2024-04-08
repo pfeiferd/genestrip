@@ -30,11 +30,11 @@ import java.nio.file.Files;
 import java.util.Collection;
 
 import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.io.BufferedLineReader;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.io.StreamProvider.ByteCountingInputStreamAccess;
 import org.metagene.genestrip.util.ByteArrayUtil;
+import org.metagene.genestrip.util.GSLogFactory;
 
 public abstract class AccessionFileProcessor {
 	private static int MAX_LINE_SIZE = 2048;
@@ -43,7 +43,7 @@ public abstract class AccessionFileProcessor {
 
 	protected static final String[] COMPLETE_GENOMIC_ACCESSION_PREFIXES = { "AC_", "NC_", "NZ_" };
 
-	protected final Log logger = LogFactory.getLog("accreader");
+	protected final Log logger = GSLogFactory.getLog("accreader");
 
 	private final long recordLogCycle = 1000 * 1000 * 10;
 	private final boolean completeOnly;

@@ -48,11 +48,12 @@ public class StreamProvider {
 	public static int getBufferSize() {
 		return bufferSize;
 	}
-
+	
 	public static ByteCountingInputStreamAccess getByteCountingInputStreamForFile(File file, boolean noGZ)
 			throws IOException {
 		final ByteCountingFileInputStream in = new ByteCountingFileInputStream(file);
 		InputStream[] res = new InputStream[1];
+		res[0] = getInputStreamForFile(file, noGZ);
 		if (!noGZ && isGZIPFile(file)) {
 			res[0] = new GZIPInputStream(in, bufferSize);
 		} else {

@@ -27,11 +27,15 @@ package org.metagene.genestrip.accuracy;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.accuracy.AccuracyMatchGoal.AccuracyCounts;
 import org.metagene.genestrip.goals.kraken.KrakenResCountGoal;
 import org.metagene.genestrip.io.StreamProvider;
+import org.metagene.genestrip.io.StreamingFileResource;
+import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree;
@@ -51,7 +55,11 @@ public class KrakenAccuracyMatchGoal extends KrakenResCountGoal {
 	@Override
 	protected void makeFile(File file) throws IOException {
 		accuracyCounts.clear();
-		computeStats(fileToFastqs.get(file));
+		List<File> files = new ArrayList<File>();
+		for (StreamingResource s : fileToFastqs.get(file)) {
+			files.add(((StreamingFileResource) s).getFile());
+		}
+		computeStats(files);
 		PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
 		accuracyCounts.printCounts(out);
 		out.close();

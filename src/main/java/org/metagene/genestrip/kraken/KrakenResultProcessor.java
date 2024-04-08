@@ -30,14 +30,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.io.BufferedLineReader;
 import org.metagene.genestrip.util.ByteArrayUtil;
+import org.metagene.genestrip.util.GSLogFactory;
 import org.metagene.genestrip.util.StringLongDigitTrie;
 import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
 
 public class KrakenResultProcessor {
-	protected static final Log logger = LogFactory.getLog("krakenresproc");
+	protected static final Log logger = GSLogFactory.getLog("krakenresproc");
 
 	private final byte[] krakenChars;
 	private final byte[] readDescriptor;

@@ -34,15 +34,18 @@ import org.metagene.genestrip.bloom.FastqBloomFilter;
 import org.metagene.genestrip.goals.refseq.BloomIndexedGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.util.ExecutorServiceBundle;
 
 public class FilterGoal extends FileListGoal<GSProject> {
 	private final File fastq;
 	private final BloomIndexedGoal indexedGoal;
+	private final ExecutorServiceBundle executorServiceBundle;
 
 	@SafeVarargs
 	public FilterGoal(GSProject project, String name, File fastq, BloomIndexedGoal indexedGoal,
-			Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile("filtered", fastq, FileType.FASTQ_RES), append(deps, indexedGoal));
+			ExecutorServiceBundle executorServiceBundle, Goal<GSProject>... deps) {
+		super(project, name, project.getOutputFile("filtered", fastq.getName(), FileType.FASTQ_RES), append(deps, indexedGoal));
+		this.executorServiceBundle = executorServiceBundle;
 		this.fastq = fastq;
 		this.indexedGoal = indexedGoal;
 	}
@@ -54,10 +57,10 @@ public class FilterGoal extends FileListGoal<GSProject> {
 			GSProject project = getProject();
 			GSConfig config = project.getConfig();
 
-			File dumpFile = config.isWriteDumpedFastq() ? project.getOutputFile("dumped", fastq, FileType.FASTQ_RES)
+			File dumpFile = config.isWriteDumpedFastq() ? project.getOutputFile("dumped", fastq.getName(), FileType.FASTQ_RES)
 					: null;
 			f = new FastqBloomFilter(indexedGoal.get(), config.getMinPosCountFilter(), config.getPosRatioFilter(),
-					config.getMaxReadSizeBytes(), config.getThreadQueueSize(), config.getThreads());
+					config.getMaxReadSizeBytes(), config.getThreadQueueSize(), executorServiceBundle);
 			f.runFilter(fastq, file, dumpFile);
 		} catch (IOException e) {
 			throw new RuntimeException(e);

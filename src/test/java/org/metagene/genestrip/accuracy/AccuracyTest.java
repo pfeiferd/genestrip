@@ -39,6 +39,8 @@ import org.metagene.genestrip.make.FileDownloadGoal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree;
+import org.metagene.genestrip.util.DefaultExecutorServiceBundle;
+import org.metagene.genestrip.util.ExecutorServiceBundle;
 
 @Ignore
 public class AccuracyTest {
@@ -124,14 +126,16 @@ public class AccuracyTest {
 		taxIdsTxtGoal.make();
 		fastaTransformGoal.make();
 
+		ExecutorServiceBundle bundle = new DefaultExecutorServiceBundle(0, config.getMatchLogUpdateCycle());
+		
 		AccuracyMatchGoal tempdbMatchGoal = new AccuracyMatchGoal(project, "acctempdbmatch", multiMatchCSVFile,
 				(ObjectGoal<TaxTree, GSProject>) maker.getGoal("taxtree"),
-				(ObjectGoal<KMerStoreWrapper, GSProject>) maker.getGoal("filleddb"), fastaTransformGoal);
+				(ObjectGoal<KMerStoreWrapper, GSProject>) maker.getGoal("filleddb"),  bundle, fastaTransformGoal);
 		tempdbMatchGoal.make();
 
 		AccuracyMatchGoal matchGoal = new AccuracyMatchGoal(project, "accmatch", multiMatchCSVFile,
 				(ObjectGoal<TaxTree, GSProject>) maker.getGoal("taxtree"),
-				(ObjectGoal<KMerStoreWrapper, GSProject>) maker.getGoal("updateddb"), fastaTransformGoal);
+				(ObjectGoal<KMerStoreWrapper, GSProject>) maker.getGoal("updateddb"), bundle, fastaTransformGoal);
 		matchGoal.make();
 	}
 

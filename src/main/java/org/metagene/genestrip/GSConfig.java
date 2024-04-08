@@ -30,8 +30,8 @@ import java.io.IOException;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.metagene.genestrip.tax.TaxTree.Rank;
+import org.metagene.genestrip.util.GSLogFactory;
 
 public class GSConfig {
 	public static final String CONFIG_PROPERTIES = "config.properties";
@@ -54,6 +54,7 @@ public class GSConfig {
 	public static final String CLASSIFY_READS = "classifyReads";
 	public static final String MAX_DUST = "maxDust";
 
+
 	private final File baseDir;
 	private final Properties properties;
 
@@ -64,7 +65,7 @@ public class GSConfig {
 		if (!configFile.exists()) {
 			configFile = new File(baseDir, CONFIG_PROPERTIES_2);
 		}
-		Log log = LogFactory.getLog("config");
+		Log log = GSLogFactory.getLog("config");
 		try {
 			if (log.isInfoEnabled()) {
 				log.info("Loading config file " + configFile);
@@ -78,7 +79,7 @@ public class GSConfig {
 	}
 
 	public String getLogLevel() {
-		return properties.getProperty("logLevel", "info");
+		return properties.getProperty("logLevel", "trace");
 	}
 
 	public File getBaseDir() {
@@ -102,6 +103,10 @@ public class GSConfig {
 	public int getThreadQueueSize() {
 		return 1000;
 	}
+	
+	public long getMatchLogUpdateCycle() {
+		return Long.valueOf(properties.getProperty("matchLogUpdateCycle", "1000000"));		
+	}
 
 	public boolean isCountUniqueKMers() {
 		return Boolean.valueOf(properties.getProperty("countUniqueKMers", "true"));
@@ -116,7 +121,7 @@ public class GSConfig {
 	}
 
 	public int getMaxReadSizeBytes() {
-		return Integer.valueOf(properties.getProperty("maxReadSizeBytes", "8192"));
+		return Integer.valueOf(properties.getProperty("maxReadSizeBytes", "32768"));
 	}
 
 	public int getMaxClassificationPaths() {
@@ -185,6 +190,10 @@ public class GSConfig {
 
 	public File getCommonDir() {
 		return new File(baseDir, "common");
+	}
+	
+	public File getFastqDir() {
+		return new File(baseDir, "fastq");
 	}
 
 	public boolean isUseHttp() {

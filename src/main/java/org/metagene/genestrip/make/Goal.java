@@ -27,7 +27,7 @@ package org.metagene.genestrip.make;
 import java.util.Arrays;
 
 import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.metagene.genestrip.util.GSLogFactory;
 
 public abstract class Goal<P> {
 	private final Log logger;
@@ -37,7 +37,7 @@ public abstract class Goal<P> {
 
 	@SafeVarargs
 	public Goal(P project, String name, Goal<P>... dependencies) {
-		logger = LogFactory.getLog(name);
+		logger = GSLogFactory.getLog(name);
 		this.name = name;
 		this.dependencies = dependencies;
 		this.project = project;

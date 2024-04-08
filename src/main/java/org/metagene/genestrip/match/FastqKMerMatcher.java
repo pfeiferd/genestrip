@@ -46,9 +46,11 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.DigitTrie;
+import org.metagene.genestrip.util.ExecutorServiceBundle;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
+@Deprecated
 public class FastqKMerMatcher extends AbstractFastqReader {
 	public static final long DEFAULT_LOG_UPDATE_CYCLE = 1000000;
 
@@ -81,9 +83,9 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	// multi-threading when using it.
 	protected PrintStream out;
 
-	public FastqKMerMatcher(KMerSortedArray<String> kmerStore, int maxReadSize, int maxQueueSize, int consumerNumber,
-			int maxKmerResCounts, TaxTree taxTree, double maxReadTaxErrorCount) {
-		super(kmerStore.getK(), maxReadSize, maxQueueSize, consumerNumber);
+	public FastqKMerMatcher(KMerSortedArray<String> kmerStore, int maxReadSize, int maxQueueSize,
+			ExecutorServiceBundle bundle, int maxKmerResCounts, TaxTree taxTree, double maxReadTaxErrorCount) {
+		super(kmerStore.getK(), maxReadSize, maxQueueSize, bundle);
 		this.kmerStore = kmerStore;
 		this.maxReadSize = maxReadSize;
 		this.maxKmerResCounts = maxKmerResCounts;
@@ -92,7 +94,7 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	}
 
 	@Override
-	protected ReadEntry createReadEntry(int maxReadSizeBytes, Object...config) {
+	protected ReadEntry createReadEntry(int maxReadSizeBytes, Object... config) {
 		return new MyReadEntry(maxReadSizeBytes, out != null);
 	}
 

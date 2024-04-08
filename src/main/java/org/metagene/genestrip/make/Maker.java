@@ -29,10 +29,10 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.metagene.genestrip.util.GSLogFactory;
 
 public abstract class Maker<P> {
-	private final Log logger = LogFactory.getLog(Maker.class);
+	private final Log logger = GSLogFactory.getLog("maker");
 	
 	private final Map<String, Goal<P>> goalsByName;
 	private String defaultGoalName;

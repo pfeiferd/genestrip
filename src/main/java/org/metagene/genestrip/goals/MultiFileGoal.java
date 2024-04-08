@@ -42,6 +42,8 @@ import org.apache.commons.logging.Log;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.io.StreamProvider;
+import org.metagene.genestrip.io.StreamingFileResource;
+import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 
@@ -51,14 +53,22 @@ public abstract class MultiFileGoal extends FileListGoal<GSProject> {
 
 	private final boolean csv;
 	private final File csvOrFastqFile;
-	protected final Map<File, List<File>> fileToFastqs;
+	protected final Map<File, List<StreamingResource>> fileToFastqs;
+
+	@SafeVarargs
+	public MultiFileGoal(GSProject project, String name, Goal<GSProject>... deps) {
+		super(project, name, (List<File>) null, deps);
+		this.csv = true;
+		this.csvOrFastqFile = null;
+		fileToFastqs = new HashMap<File, List<StreamingResource>>();
+	}
 
 	@SafeVarargs
 	public MultiFileGoal(GSProject project, String name, boolean csv, File csvOrFastqFile, Goal<GSProject>... deps) {
 		super(project, name, (List<File>) null, deps);
 		this.csv = csv;
 		this.csvOrFastqFile = csvOrFastqFile;
-		fileToFastqs = new HashMap<File, List<File>>();
+		fileToFastqs = new HashMap<File, List<StreamingResource>>();
 	}
 
 	protected File getSourceDir() {
@@ -67,30 +77,33 @@ public abstract class MultiFileGoal extends FileListGoal<GSProject> {
 
 	@Override
 	protected void provideFiles() {
-		Map<String, List<File>> keyToFastqs;
-		if (csv) {
-			keyToFastqs = readMultiCSV(getSourceDir(), csvOrFastqFile, getLogger());
-		} else {
-			keyToFastqs = new HashMap<String, List<File>>();
-			keyToFastqs.put(null, Collections.singletonList(csvOrFastqFile));
+		Map<String, List<StreamingResource>> keyToFastqs = getProject().getKeyToFastqs();
+		if (keyToFastqs == null) {
+			if (csv) {
+				keyToFastqs = readMultiCSV(getSourceDir(), csvOrFastqFile, getLogger());
+			} else {
+				keyToFastqs = new HashMap<String, List<StreamingResource>>();
+				keyToFastqs.put(null, Collections.singletonList(new StreamingFileResource(csvOrFastqFile)));
+			}
 		}
 		for (String key : keyToFastqs.keySet()) {
 			File matchFile;
 			if (key != null) {
-				matchFile = getProject().getOutputFile(getName() + "_" + key, null, FileType.CSV, false);
+				matchFile = getProject().getOutputFile(getName(), key, null, FileType.CSV, false);
 			} else {
-				File file = keyToFastqs.get(null).get(0);
-				matchFile = getProject().getOutputFile(getName(), file, FileType.CSV, false);
+				StreamingResource file = keyToFastqs.get(null).get(0);
+				matchFile = getProject().getOutputFile(getName(), null, file.getName(), FileType.CSV, false);
 			}
 			addFile(matchFile);
 			fileToFastqs.put(matchFile, keyToFastqs.get(key));
 		}
 	}
 
-	// We use a linked hash map because it preserves the order of the keys from the file.
-	public static LinkedHashMap<String, List<File>> readMultiCSV(File defaultDir, File csvFile, Log logger) {
+	// We use a linked hash map because it preserves the order of the keys from the
+	// file.
+	public static LinkedHashMap<String, List<StreamingResource>> readMultiCSV(File defaultDir, File csvFile, Log logger) {
 		try {
-			LinkedHashMap<String, List<File>> res = new LinkedHashMap<String, List<File>>();
+			LinkedHashMap<String, List<StreamingResource>> res = new LinkedHashMap<String, List<StreamingResource>>();
 			CSVParser parser;
 			parser = readCSVFile(csvFile);
 			for (CSVRecord record : parser) {
@@ -101,12 +114,12 @@ public abstract class MultiFileGoal extends FileListGoal<GSProject> {
 					fastq = new File(defaultDir, fastqFilePath);
 				}
 				if (fastq.exists()) {
-					List<File> fastqs = res.get(name);
+					List<StreamingResource> fastqs = res.get(name);
 					if (fastqs == null) {
-						fastqs = new ArrayList<File>();
+						fastqs = new ArrayList<StreamingResource>();
 						res.put(name, fastqs);
 					}
-					fastqs.add(fastq);
+					fastqs.add(new StreamingFileResource(fastq));
 				} else {
 					if (logger.isWarnEnabled()) {
 						logger.warn("Ignoring missing file " + fastq + ".");

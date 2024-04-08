@@ -24,7 +24,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.metagene</groupId>
 	<artifactId>genestrip</artifactId>
-	<version>0.1</version>
+	<version>0.2</version>
 	<properties>
 		<main.class>org.metagene.genestrip.Main</main.class>
 	</properties>
