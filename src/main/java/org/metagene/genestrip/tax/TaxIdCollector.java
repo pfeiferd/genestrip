@@ -81,6 +81,21 @@ public class TaxIdCollector {
 
 		return res;
 	}
+	
+	public Set<TaxIdNode> asNodesWithDesc(String[] taxids, boolean[] withDescs) {
+		Set<TaxIdNode> res = new HashSet<TaxTree.TaxIdNode>();
+		for (int i = 0; i < taxids.length; i++) {
+			TaxIdNode node = taxTree.getNodeByTaxId(taxids[i]);
+			if (node != null) {
+				res.add(node);
+				if (withDescs[i]) {
+					completeFilterlist(res, node, null);
+				}
+			}			
+		}
+
+		return res;		
+	}
 
 	public Set<TaxIdNode> withDescendants(Set<TaxIdNode> taxIds, Rank depth) {
 		Set<TaxIdNode> res = new HashSet<TaxTree.TaxIdNode>();

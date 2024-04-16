@@ -53,7 +53,20 @@ public class GSConfig {
 	public static final String MAX_READ_TAX_ERROR_COUNT = "maxReadTaxErrorCount";
 	public static final String CLASSIFY_READS = "classifyReads";
 	public static final String MAX_DUST = "maxDust";
+	public static final String SEQ_TYPE = "seqType";
 
+	public static enum SeqType {
+		GENOMIC, RNA, BOTH;
+
+		public static SeqType byName(String name) {
+			for (SeqType r : SeqType.values()) {
+				if (r.name().equalsIgnoreCase(name)) {
+					return r;
+				}
+			}
+			return null;
+		}
+	}
 
 	private final File baseDir;
 	private final Properties properties;
@@ -103,9 +116,9 @@ public class GSConfig {
 	public int getThreadQueueSize() {
 		return 1000;
 	}
-	
+
 	public long getMatchLogUpdateCycle() {
-		return Long.valueOf(properties.getProperty("matchLogUpdateCycle", "1000000"));		
+		return Long.valueOf(properties.getProperty("matchLogUpdateCycle", "1000000"));
 	}
 
 	public boolean isCountUniqueKMers() {
@@ -127,7 +140,7 @@ public class GSConfig {
 	public int getMaxClassificationPaths() {
 		return Integer.valueOf(properties.getProperty("maxClassificationPaths", "10"));
 	}
-	
+
 	public int getMinPosCountFilter() {
 		return Integer.valueOf(properties.getProperty("minPosCountFilter", "1"));
 	}
@@ -155,9 +168,9 @@ public class GSConfig {
 	public boolean isIgnoreMissingFastas() {
 		return Boolean.valueOf(properties.getProperty(IGNORE_MISSING_FASTAS, "false"));
 	}
-	
+
 	public boolean isClassifyReads() {
-		return Boolean.valueOf(properties.getProperty(CLASSIFY_READS, "true"));		
+		return Boolean.valueOf(properties.getProperty(CLASSIFY_READS, "true"));
 	}
 
 	public boolean isUseCompleteGenomesOnly() {
@@ -191,7 +204,7 @@ public class GSConfig {
 	public File getCommonDir() {
 		return new File(baseDir, "common");
 	}
-	
+
 	public File getFastqDir() {
 		return new File(baseDir, "fastq");
 	}
@@ -229,17 +242,26 @@ public class GSConfig {
 		return s == null ? null : Rank.byName(s);
 	}
 
+	public SeqType getSeqType() {
+		String v = properties.getProperty(GSConfig.SEQ_TYPE, SeqType.GENOMIC.name());
+		SeqType dr = SeqType.byName(v);
+		if (dr != null) {
+			return dr;
+		}
+		return SeqType.BOTH;
+	}
+
 	public int getMaxGenomesPerTaxid() {
 		int i = Integer.valueOf(properties.getProperty(MAX_GENOMES_PER_TAXID, "-1"));
 		return i <= 0 ? Integer.MAX_VALUE : i;
 	}
-	
+
 	public int getMaxDust() {
 		int i = Integer.valueOf(properties.getProperty(MAX_DUST, "-1"));
 		return i <= 0 ? -1 : i;
 	}
-	
+
 	public long getNormalizedKMersFactor() {
 		return Long.valueOf(properties.getProperty("normalizedKMersFactor", "1000000000"));
-	}	
+	}
 }

@@ -117,6 +117,14 @@ public class CGAT {
 
 		return res;
 	}
+	
+	public static void longToKMerStraight(long kmer, byte[] res, int start, int k) {
+		assert(k <= 31);
+		for (int i = k - 1; i >= 0; i--) {
+			res[start + i] = DECODE_TABLE[(int) (kmer % 4)]; 
+			kmer = kmer >> 2;
+		}
+	}
 
 	public static long nextKMerStraight(long kmer, byte bp, int k) {
 		int c = CGAT_JUMP_TABLE[bp];

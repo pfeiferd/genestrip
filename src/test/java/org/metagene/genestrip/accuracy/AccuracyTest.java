@@ -62,7 +62,7 @@ public class AccuracyTest {
 					return 0;
 				}
 			};
-			project = new GSProject(config, "accuracy", 31, null, null, null, null);
+			project = new GSProject(config, "accuracy", 31, null, null, null, null, null);
 			maker = new GSMaker(project);
 
 			multiMatchCSVFile = new File(project.getProjectDir(), "multimatch.txt");

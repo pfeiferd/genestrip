@@ -132,7 +132,7 @@ public class TaxTree {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	public void initCountSize(int countSize) {
 		if (countSize <= 0) {
 			throw new IllegalArgumentException("Initialization size must by >= 0.");
@@ -142,39 +142,38 @@ public class TaxTree {
 		}
 		this.countSize = countSize;
 	}
-	
+
 	public void resetCounts(Object owner) {
 		if (owner == null) {
 			throw new NullPointerException("owner must not be null");
 		}
 		if (this.owner == null) {
 			this.owner = owner;
-		}
-		else if (this.owner != owner) {
+		} else if (this.owner != owner) {
 			throw new IllegalArgumentException("Tax tree not relaease by previous owner: " + this.owner);
 		}
 		root.resetCounts();
 	}
-	
+
 	public void releaseOwner() {
 		this.owner = null;
 	}
-	
+
 	public void incCount(TaxIdNode node, int index, long initKey) {
 		node.incCount(node, index, initKey, countSize);
 	}
-	
+
 	public short sumCounts(TaxIdNode node, int index, long initKey) {
 		short res = 0;
 		while (node != null) {
-			if (node.counts != null && node.countsInitKeys[index] == initKey) {
+			if (node.counts != null && node.countsInitKeys != null && node.countsInitKeys[index] == initKey) {
 				res += node.counts[index];
 			}
 			node = node.getParent();
 		}
 		return res;
 	}
-	
+
 	public int getCountSize() {
 		return countSize;
 	}
@@ -340,23 +339,24 @@ public class TaxTree {
 			this.rank = rank;
 			subNodes = new ArrayList<TaxIdNode>();
 		}
-		
+
 		private void incCount(TaxIdNode node, int index, long initKey, int size) {
 			if (counts == null) {
 				synchronized (this) {
-					counts = new short[size];
-					countsInitKeys = new long[size];
+					if (counts == null) {
+						counts = new short[size];
+						countsInitKeys = new long[size];
+					}
 				}
 			}
 			if (countsInitKeys[index] == initKey) {
 				counts[index]++;
-			}
-			else {
+			} else {
 				countsInitKeys[index] = initKey;
 				counts[index] = 1;
 			}
 		}
-		
+
 		public Rank getRank() {
 			return rank;
 		}
@@ -405,7 +405,7 @@ public class TaxTree {
 			copy.position = position;
 			return copy;
 		}
-		
+
 		private void resetCounts() {
 			if (countsInitKeys != null) {
 				for (int i = 0; i < countsInitKeys.length; i++) {

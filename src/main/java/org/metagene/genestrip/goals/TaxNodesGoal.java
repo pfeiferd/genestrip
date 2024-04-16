@@ -66,5 +66,4 @@ public class TaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
 			throw new RuntimeException(e);
 		}
 	}
-
 }

@@ -67,7 +67,17 @@ public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
 	}
 
 	protected boolean isRelevantFileName(String filename) {
-		return filename.endsWith(".genomic.fna.gz") || filename.endsWith(".genomic.fna");
+		// TODO: Code not very elegant - but whatever...
+		switch (getProject().getSeqType()) {
+		case RNA:
+			return filename.endsWith(".rna.fna.gz") || filename.endsWith(".rna.fna");
+		case BOTH:
+			return filename.endsWith(".genomic.fna.gz") || filename.endsWith(".genomic.fna")
+					|| filename.endsWith(".rna.fna.gz") || filename.endsWith(".rna.fna");
+		case GENOMIC:
+		default:
+			return filename.endsWith(".genomic.fna.gz") || filename.endsWith(".genomic.fna");
+		}
 	}
 
 	protected RefSeqCategory getCategoryForFileName(String filename) {
@@ -114,7 +124,8 @@ public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
-			// It is very important to get the files in a well determined order for the later steps.
+			// It is very important to get the files in a well determined order for the
+			// later steps.
 			// (Any order would be fine.)
 			Collections.sort(files);
 		}

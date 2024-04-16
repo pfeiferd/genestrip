@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.junit.Test;
+import org.metagene.genestrip.make.Goal;
 
 public class APITest {
 	@Test
@@ -20,22 +21,24 @@ public class APITest {
 
 		// Create the 'human_virus' project (whose config files are part of the
 		// release).
-		GSProject project = new GSProject(config, "human_virus", 31, null, fastq, null, null);
+		GSProject project = new GSProject(config, "human_virus", 31, null, fastq, null, null, null);
 		GSMaker maker = new GSMaker(project);
 		// Run the 'match' goal. This may trigger other goals such as the 'db' goal to
 		// first create the 'human_virus' database.
-		maker.getGoal("match").make();
+		Goal<GSProject> goal = maker.getGoal("match");
+		goal.cleanThis();
+		goal.make();
 	}
 
 	// To find the base directory for any project file provided as part of the
 	// release.
 	// (This may have to be done differently for you own projects.)
-	protected File getBaseDir() {
+	public static File getBaseDir() {
 		String projectDir = System.getProperty("project.directory");
 		if (projectDir != null) {
 			return new File(projectDir, "data");
 		}
-		String relPath = getClass().getProtectionDomain().getCodeSource().getLocation().getFile();
+		String relPath = APITest.class.getProtectionDomain().getCodeSource().getLocation().getFile();
 		return new File(new File(relPath).getParentFile().getParentFile(), "data");
 	}
 }

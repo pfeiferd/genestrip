@@ -33,6 +33,7 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.metagene.genestrip.make.FileDownloadGoal.DownloadProject;
+import org.metagene.genestrip.GSConfig.SeqType;
 import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.tax.TaxTree.Rank;
@@ -65,18 +66,19 @@ public class GSProject implements DownloadProject {
 	private final File csvDir;
 	private final File fastqResDir;
 	private final Properties properties;
+	private final String taxids;
 
 	public GSProject(GSConfig config, String name) {
-		this(config, name, 31, null, null, null, null, false);
+		this(config, name, 31, null, null, null, null, false, null);
 	}
 
 	public GSProject(GSConfig config, String name, int kMerSize, String krakenDB, File fastqOrCSVFile, File csvDir,
-			File fastqResDir) {
-		this(config, name, kMerSize, krakenDB, fastqOrCSVFile, csvDir, fastqResDir, true);
+			File fastqResDir, String taxids) {
+		this(config, name, kMerSize, krakenDB, fastqOrCSVFile, csvDir, fastqResDir, true, taxids);
 	}
 
 	public GSProject(GSConfig config, String name, int kMerSize, String krakenDB, File fastqOrCSVFile, File csvDir,
-			File fastqResDir, boolean loadProps) {
+			File fastqResDir, boolean loadProps, String taxids) {
 		this.config = config;
 		this.name = name;
 		this.kMserSize = kMerSize;
@@ -84,6 +86,7 @@ public class GSProject implements DownloadProject {
 		this.fastqOrCSVFile = fastqOrCSVFile;
 		this.fastqResDir = fastqResDir;
 		this.csvDir = csvDir != null ? csvDir : new File(getProjectDir(), "csv");
+		this.taxids = taxids;
 
 		this.properties = new Properties();
 		if (loadProps) {
@@ -103,6 +106,10 @@ public class GSProject implements DownloadProject {
 				}
 			}
 		}
+	}
+	
+	public String getTaxids() {
+		return taxids;
 	}
 
 	public File getFastqOrCSVFile() {
@@ -309,6 +316,17 @@ public class GSProject implements DownloadProject {
 		return getConfig().getRankCompletionDepth();
 	}
 
+	public SeqType getSeqType() {
+		String v = properties.getProperty(GSConfig.SEQ_TYPE);
+		if (v != null) {
+			SeqType dr = SeqType.byName(v);
+			if (dr != null) {
+				return dr;
+			}
+		}
+		return getConfig().getSeqType();
+	}
+	
 	public int getMaxGenomesPerTaxid() {
 		String v = properties.getProperty(GSConfig.MAX_GENOMES_PER_TAXID);
 		if (v != null) {

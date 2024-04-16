@@ -70,13 +70,15 @@ public class Main {
 			resFolder = new File(resStr);
 		}
 
+		String taxids = line.getOptionValue("tx");
+
 		restArgs = line.getArgs();
 		if (restArgs.length == 0) {
 			throw new ParseException("Missing project name.");
 		}
 		String projectName = restArgs[0];
 
-		project = new GSProject(config, projectName, 0, null, fastqFile, resFolder, resFolder);
+		project = new GSProject(config, projectName, 0, null, fastqFile, resFolder, resFolder, taxids);
 		maker = new GSMaker(project);
 	}
 
@@ -132,6 +134,11 @@ public class Main {
 				"Common store folder for filtered fastq files and resulting CSV files created via the goals 'filter' and 'match'. The defaults are '<base dir>/projects/<project name>/fastq' and '<base dir>/projects/<project name>/csv', respectively.")
 				.build();
 		options.addOption(resFolder);
+
+		Option tax = Option.builder("tx").hasArg().argName("taxids").desc(
+				"List of tax ids separated by ',' (but no blanks) for the goal 'db2fastq'. A tax id may have the suffix '+', which means that taxonomic descendants from the respective database will be included.")
+				.build();
+		options.addOption(tax);
 
 		return options;
 	}

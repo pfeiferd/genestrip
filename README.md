@@ -60,7 +60,7 @@ in order to generate the `human_virus` database and create a CSV file with basic
 
 Genestrip follows a goal-oriented approach in order to create any result files (in similarity to [make](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/make.html)). So, when generating the `human_virus` database, Genestrip will
 1. download the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip) and unzip it to `./data/common`,
-1. download the [refseq release catalog](https://ftp.ncbi.nlm.nih.gov/refseq/release/release-catalog/) to `./data/common/refseq`,
+1. download the [RefSeq release catalog](https://ftp.ncbi.nlm.nih.gov/refseq/release/release-catalog/) to `./data/common/refseq`,
 1. download [all virus related RefSeq fna files](https://ftp.ncbi.nlm.nih.gov/refseq/release/viral/) to `./data/commmon/refseq` (which is currently just a single file),
 1. perform several follow-up goals, until the database file `human_virus_db.kmers.ser.gz` is finally made under `./data/projects/human_virus/db`, 
 1. create a CSV file `human_virus_dbinfo.csv` under `./data/projects/human_virus/csv`, which contains basic information about the database, i.e. the number of *k*-mers stored per tax id.
@@ -169,20 +169,24 @@ A filtering database is typically smaller than a database required for *k*-mer m
 
 The usage of Genestrip:
 ```
-usage: genestrip [options] <project> [<goal1> <goal2>...]
- -d <base dir> Base directory for all data files. The default is
-               './data'.
- -f <fqfile>   Input fastq file in case of filtering or k-mer matching
-               (regarding goals 'filter' and 'match') or csv file with a
-               list of fastq files to be processed via 'multimatch'. Each
-               line should have the format '<prefix> <path to fastq
-               file>'.
- -r <path>     Common store folder for filtered fastq files and csv files
-               created via the goals 'filter' and 'match'. The default is
-               '<base dir>/projects/<project name>/fastq' and '<base
-               directory>/projects/<project name>/csv' respectively.
- -t <target>   Generation target ('make', 'clean', 'cleanall'). The
-               default is 'make'.
+usage: genestrip.sh [options] <project> [<goal1> <goal2>...]
+ -d <base dir>   Base directory for all data files. The default is
+                 './data'.
+ -f <fqfile>     Input fastq file in case of filtering or k-mer matching
+                 (regarding goals 'filter' and 'match') or CSV file with a
+                 list of fastq files to be processed via 'multimatch'.
+                 Each line of a CSV file should have the format '<prefix>
+                 <path to fastq file>'.
+ -r <path>       Common store folder for filtered fastq files and
+                 resulting CSV files created via the goals 'filter' and
+                 'match'. The defaults are '<base dir>/projects/<project
+                 name>/fastq' and '<base dir>/projects/<project
+                 name>/csv', respectively.
+ -t <target>     Generation target ('make', 'clean' or 'cleanall'). The
+                 default is 'make'.
+ -tx <taxids>    List of tax ids separated by ',' (but no blanks) for the
+                 goal 'db2fastq'. A tax id may have the suffix '+', which
+                 means that taxonomic descendants from a database will be included.
 ```
 
 Genestrip follows a goal-oriented approach in order to create any result file (in similarity to  [make](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/make.html)). Goals are executed in a lazy manner, i.e. a file is only (re-)generated, if it is missing at its designated place in the `<base dir>` folder or any of its subfolders.
@@ -202,7 +206,12 @@ Some named goals are for internal purposes only. In principle, they could be run
 Here is the list of user-related goals:
 - `show`: Show all goals. Note that some goals will only be shown when using the `-f` option.
 - `db`: Generate the database for *k*-mer matching with respect to the given project.
-- `dbinfo`: Write information about a project's database content to a CSV file. 
+- `dbinfo`: Write information about a project's database content to a CSV file.
+- `db2fastq`: Generate fastq files from the database. A respective fastq file will contain all *k*-mers specifically associated with a 
+single tax id from the database where each *k*-mer is represented by a read consisting of *k* bases. Respective fastq files will be stored 
+in `<base dir>/projects/<project_name>/fastq` with the file name format `<project_name>_db2fastq_<taxid>.fastq.gz`. 
+The command line option `tx` serves at selecting the corresponding tax ids for the fastq files to be generated (see Section [Usage and Goals](#usage-and-goals)). 
+If the option is omitted, then fastq files for *all* tax ids from the database will be generated.
 - `index`: Generate a filtering database with respect to a given project.
 - `genall`: Generate the *k*-mer matching database and also the filtering database with respect to the given project.
 - `clear`: Clear the folders `csv`, `db` and `krakenout`  of a project. This will delete all files the respective folders!
@@ -226,9 +235,9 @@ In some cases you may want to add *k*-mers of genomes to your database, where th
 The file should contain one line for each additional genome file. (The genome file must be in fasta format and may be g-zipped or not.)
 The line format is
 ```
-<tax id> <path_to_fasta_file>
+<taxid> <path_to_fasta_file>
 ```
-where `<tax id>` is the (unique) tax id associated with the file's genomic data. (Multiple tax ids per fasta file are not supported in this context.) If `<path_to_fastq_file>` is a file name without a path prefix, then the file is assumed to be located in `<base dir>/projects/<project_name>/fasta`.
+where `<taxid>` is the (unique) tax id associated with the file's genomic data. (Multiple tax ids per fasta file are not supported in this context.) If `<path_to_fastq_file>` is a file name without a path prefix, then the file is assumed to be located in `<base dir>/projects/<project_name>/fasta`.
 
 This adding of fasta files can also be used to *just* correct the least common ancestor of *k*-mers in the resulting database since the added fasta files will be automatically used during the update phase of the ``db`` goal. E.g., to correct the least common ancestor of *k*-mers occurring in a purely `protozoa`n database *but also* in the human genome, one may simple add
 ```
@@ -270,6 +279,7 @@ The following entries are possible:
 | `maxDust`   | `-1`        | When generating a database via the goal `db`, any low-complexity *k*-mer with too many repetitive sequences of base pairs may be omitted for storing. To do so, Genestrip employs a simple [genetic dust-filter](https://pubmed.ncbi.nlm.nih.gov/16796549/) for *k*-mers: It assigns a dust value *d* to each *k*-mer, and if *d* >  `maxDust`, then the *k*-mer will not be stored. Given a *k*-mer with *n* repeating base pairs of repeat length *k(1), ... k(n)* with *k(i) > 1*, then *d = fib(k(1)) + ... + fib(k(n))*, where *fib(k(i))* is the Fibonacci number of *k(i)*.  E.g., for the *8*-mer `TTTCGGTC`, we have *n = 2* with *k(1) = 3*, *k(2) = 2* and *d = fib(3) + fib(2) = 2 + 1 = 3*. For practical concerns `maxDust = 20` may be suitable. In this case, if *31*-mers were uniformly, randomly generated, then about 0.2 % of them would be omitted. If `maxDust = -1`, then dust-filtering is inactive.| `db` |
 | `normalizedKMersFactor` | 1000000000 | A factor used to compute `normalized kmers` at read analysis time. | `match`, `multimatch` |
 | `maxReadSizeBytes` | 32768 | The maximum length of reads in number of base pairs plus one. If longer reads occur, then there will be buffer overruns with errors. | `match`, `multimatch`, `filter` |
+| `seqType` | `genomic` | Which type of sequence files to include from the RefSeq. Possible values are `genomic`, `rna` or `both`. RNA files from the RefSeq end with `rna.fna.gz`, whereas genomes end with `genomic.fna.gz`. | `db`, `index` |
 
 
 # Project properties
@@ -282,8 +292,9 @@ The following entries are possible:
 * `rankCompletionDepth`,
 * `maxGenomesPerTaxid`,
 * `useBloomFilterForMatch`,
-* `maxReadTaxErrorCount` and
-* `maxDust`.
+* `maxReadTaxErrorCount`,
+* `maxDust` and
+* `DNARNA`
 
 The use of the entries is the same as in the `config.properties` file. If given, an entry in `project.properties` overrides a corresponding entry from `config.properties` under this project.
 

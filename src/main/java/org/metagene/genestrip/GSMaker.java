@@ -34,6 +34,8 @@ import java.util.Set;
 
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
 import org.metagene.genestrip.goals.AdditionalFastasGoal;
+import org.metagene.genestrip.goals.DB2FastqGoal;
+import org.metagene.genestrip.goals.DB2FastqTaxNodesGoal;
 import org.metagene.genestrip.goals.FilterGoal;
 import org.metagene.genestrip.goals.MultiMatchGoal;
 import org.metagene.genestrip.goals.StoreInfoGoal;
@@ -72,7 +74,7 @@ public class GSMaker extends Maker<GSProject> {
 	public GSMaker(GSProject project) {
 		super(project);
 	}
-	
+
 	public void dump() {
 		if (executorServiceBundle != null) {
 			executorServiceBundle.dump();
@@ -99,7 +101,8 @@ public class GSMaker extends Maker<GSProject> {
 				project.getKrakenOutDir(), project.getResultsDir(), project.getLogDir());
 
 		Goal<GSProject> commonSetupGoal = new FileListGoal<GSProject>(project, "commonsetup",
-				Arrays.asList(project.getConfig().getCommonDir(), project.getConfig().getRefSeqDir(), project.getConfig().getFastqDir())) {
+				Arrays.asList(project.getConfig().getCommonDir(), project.getConfig().getRefSeqDir(),
+						project.getConfig().getFastqDir())) {
 			@Override
 			protected void makeFile(File file) throws IOException {
 				file.mkdir();
@@ -240,6 +243,14 @@ public class GSMaker extends Maker<GSProject> {
 				projectSetupGoal);
 		registerGoal(storeInfoGoal);
 
+		ObjectGoal<Set<TaxIdNode>, GSProject> db2fastqTaxNodesGoal = new DB2FastqTaxNodesGoal(project, "db2fastqtaxids",
+				taxTreeGoal, updatedStoreGoal, projectSetupGoal);
+		registerGoal(db2fastqTaxNodesGoal);
+
+		Goal<GSProject> db2fastqGoal = new DB2FastqGoal(project, "db2fastq", db2fastqTaxNodesGoal, updatedStoreGoal,
+				projectSetupGoal);
+		registerGoal(db2fastqGoal);
+
 		Goal<GSProject> all = new Goal<GSProject>(project, "genall", storeInfoGoal, bloomIndexGoal) {
 			@Override
 			public boolean isMade() {
@@ -279,7 +290,7 @@ public class GSMaker extends Maker<GSProject> {
 					getExecutorServiceBundle(project.getConfig()), projectSetupGoal);
 			registerGoal(matchGoal);
 		}
-		if (fastqOrCSV != null || project.getKeyToFastqs() != null) {		
+		if (fastqOrCSV != null || project.getKeyToFastqs() != null) {
 			Goal<GSProject> multiMatchGoal = new MultiMatchGoal(project, MultiMatchGoal.NAME, true, fastqOrCSV,
 					taxTreeGoal, updatedStoreGoal, project.getConfig().isWriteFilteredFastq(),
 					getExecutorServiceBundle(project.getConfig()), projectSetupGoal);
