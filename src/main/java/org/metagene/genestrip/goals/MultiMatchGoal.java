@@ -31,6 +31,7 @@ import java.util.List;
 
 import org.metagene.genestrip.GSConfig;
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.GSMaker.UserGoal;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.io.StreamingResource;
@@ -49,8 +50,6 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ExecutorServiceBundle;
 
 public class MultiMatchGoal extends MultiFileGoal {
-	public static final String NAME = "multimatch";
-
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 	private final ObjectGoal<KMerStoreWrapper, GSProject> storeGoal;
 	private final boolean writedFiltered;
@@ -63,7 +62,7 @@ public class MultiMatchGoal extends MultiFileGoal {
 
 	@SafeVarargs
 	public MultiMatchGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
-			ObjectGoal<KMerStoreWrapper, GSProject> storeGoal, boolean writeFiltered, ExecutorServiceBundle bundle,
+			ObjectGoal<KMerStoreWrapper, GSProject> storeGoal, boolean writeFiltered, boolean classifyReads, ExecutorServiceBundle bundle,
 			Goal<GSProject>... deps) {
 		super(project, name, Goal.append(deps, taxTreeGoal, storeGoal));
 		this.taxTreeGoal = taxTreeGoal;
@@ -108,7 +107,11 @@ public class MultiMatchGoal extends MultiFileGoal {
 							}
 						});
 
-				matcher = createMatcher(store, taxTreeGoal.get(), bundle);
+				TaxTree taxTree = getProject().isClassifyReads() && 
+						(!UserGoal.MATCHLR.getName().equals(getProject().getName()) && 
+						 !UserGoal.MULTIMATCHLR.getName().equals(getProject().getName())) ? taxTreeGoal.get() : null;
+
+				matcher = createMatcher(store, taxTree, bundle);
 				reporter = new ResultReporter(taxTreeGoal.get(), config.getNormalizedKMersFactor());
 				uniqueCounter = config.isCountUniqueKMers()
 						? new KMerUniqueCounterBits(wrapper.getKmerStore(), config.isMatchWithKMerCounts())
@@ -146,9 +149,9 @@ public class MultiMatchGoal extends MultiFileGoal {
 	protected FastqKMerMatcher2 createMatcher(KMerSortedArray<TaxIdNode> store, TaxTree taxTree,
 			ExecutorServiceBundle bundle) {
 		GSConfig config = getProject().getConfig();
-
-		return new FastqKMerMatcher2(store, config.getMaxReadSizeBytes(), config.getThreadQueueSize(), bundle,
-				config.getMaxKMerResCounts(), getProject().isClassifyReads() ? taxTree : null,
+		
+		return new FastqKMerMatcher2(store, config.getInitialReadSizeBytes(), config.getThreadQueueSize(), bundle,
+				config.getMaxKMerResCounts(), taxTree,
 				config.getMaxClassificationPaths(), getProject().getMaxReadTaxErrorCount());
 	}
 

@@ -30,10 +30,10 @@ Metagenomic analysis has become an extremely import field in bio informatics. To
 
 To avoid false positive classifications of reads or mismatches of *k*-mers, all of these tools resort to very large databases, containing millions of encoded *k*-mers along with their respective tax ids. A database is usually loaded entirely into main memory and consumes tens of gigabytes of space. This requirement mandates specialized and expensive compute servers with very large main memory.
 
-If only a small group of a few dozen species or strains is to be considered, one could simply *generate a smaller database that contains just the k-mers of the respective genomes*. **However, when done improperly, this may lead to many false positives at read analysis time.** The reason for this is that due to the evolutionary relationship of organisms, *a large fraction of k-mers that belong to the genome of a species are unspecific* in a sense that they can as well be found in the genome other species not considered for analysis.
+If only a small group of a few dozen species or strains is to be considered, one could simply *generate a smaller database that contains just the *k*-mers of the respective genomes*. **However, when done improperly, this may lead to many false positives at read analysis time.** The reason for this is that due to the evolutionary relationship of organisms, *a large fraction of k-mers that belong to the genome of a species are unspecific* in a sense that they can as well be found in the genome other species not considered for analysis.
 
 Genestrip offers an efficient and sophisticated database generation process that accounts for this problem: 
-* Genstrips's databases can be generated in a fully automated way on the basis of the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/). 
+* Genstrips's databases can be generated in a fully automated way on the basis of the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/). On top, genomic files from [Genbank](https://ftp.ncbi.nlm.nih.gov/genomes/genbank/) can be automatically included for the selected group of species or strains. Including such files may refine the database by adding species-related *k*-mers not found in the RefSeq alone.
 * Species or strains, whose *k*-mers should be contained, are specified via a text file containing the corresponding [tax ids](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/). 
 * After the database generation has completed, it can be used for highly efficient *k*-mer matching.
 * As a Genestrip database comprises just the genomes of the specified tax ids, it tends to remain small. Therefore analysis can be performed on edge machines as well as on small sized PCs.
@@ -204,7 +204,8 @@ Fastq files and fasta file may be g-zipped or not. Genestrip will automatically 
 Some named goals are for internal purposes only. In principle, they could be run directly by users but rather serve the generation process of databases or they exist for experimental reasons.
 
 Here is the list of user-related goals:
-- `show`: Show all goals. Note that some goals will only be shown when using the `-f` option.
+- `show`: Show user-related goals. Note that some goals will only be shown when using the `-f` option.
+- `showall`: Show user-related and most internal goals. Note that some goals will only be shown when using the `-f` option.
 - `db`: Generate the database for *k*-mer matching with respect to the given project.
 - `dbinfo`: Write information about a project's database content to a CSV file.
 - `db2fastq`: Generate fastq files from the database. A respective fastq file will contain all *k*-mers specifically associated with a 
@@ -217,6 +218,8 @@ If the option is omitted, then fastq files for *all* tax ids from the database w
 - `clear`: Clear the folders `csv`, `db` and `krakenout`  of a project. This will delete all files the respective folders!
 - `match`: Analyze a fastq file as given by the `-f` option. The resulting CSV file will be stored in `<base dir>/projects/<project_name>/csv` unless specified otherwise via the `-r` option.
 - `multimatch`: Analyze several fastq files as specified via multi-match CSV file given by the `-f` option.
+- `matchlr`: Same as `match` but without doing read classification. This corresponds to the configuration setting `classifyReads=false` from below.
+- `multimatchlr`:  Same as `multimatch` but without doing read classification. This corresponds to the configuration setting `classifyReads=false` from below.
 - `filter`:  Filter a fastq file as given by the `-f` option. The resulting filtered fastq file `filtered_<fqfile>` will be stored under `<base dir>/projects/<project_name>/fastq/` unless specified otherwise via the `-r` option.
 
 Many goals depend on other goals. E.g., the `dbinfo` goal requires the corresponding database to exist and so, it will trigger the execution of the ``db`` goal in case the corresponding database is missing and so on.
@@ -237,7 +240,9 @@ The line format is
 ```
 <taxid> <path_to_fasta_file>
 ```
-where `<taxid>` is the (unique) tax id associated with the file's genomic data. (Multiple tax ids per fasta file are not supported in this context.) If `<path_to_fastq_file>` is a file name without a path prefix, then the file is assumed to be located in `<base dir>/projects/<project_name>/fasta`.
+where `<taxid>` is the (unique) tax id associated with the file's genomic data. (Multiple tax ids per fasta file are not supported in this context.) 
+If `<path_to_fastq_file>` is a file name without a path prefix, then the file is assumed to be located in `<base dir>/projects/<project_name>/fasta`. If not found there,
+the directory `<base dir>/fasta` will be checked as a secondary location.
 
 This adding of fasta files can also be used to *just* correct the least common ancestor of *k*-mers in the resulting database since the added fasta files will be automatically used during the update phase of the ``db`` goal. E.g., to correct the least common ancestor of *k*-mers occurring in a purely `protozoa`n database *but also* in the human genome, one may simple add
 ```
@@ -278,8 +283,12 @@ The following entries are possible:
 | `maxReadTaxErrorCount`   | `0.1`        | The absolute or relative maximum number of *k*-mers that do not have to be in the database for a read to be classified. If the number is above `maxReadTaxErrorCount`, then the read will not be classified. Otherwise the read will be classified in the same way as [done by Kraken](https://genomebiology.biomedcentral.com/articles/10.1186/gb-2014-15-3-r46/figures/1).  If  `maxReadTaxErrorCount` is >= 1, then it is interpreted as an absolute number of *k*-mers. Otherwise (and so, if >= 0 and < 1), it is interpreted as the ratio between the *k*-mers not in the database and all *k*-mers of the read. | `match`, `multimatch` |
 | `maxDust`   | `-1`        | When generating a database via the goal `db`, any low-complexity *k*-mer with too many repetitive sequences of base pairs may be omitted for storing. To do so, Genestrip employs a simple [genetic dust-filter](https://pubmed.ncbi.nlm.nih.gov/16796549/) for *k*-mers: It assigns a dust value *d* to each *k*-mer, and if *d* >  `maxDust`, then the *k*-mer will not be stored. Given a *k*-mer with *n* repeating base pairs of repeat length *k(1), ... k(n)* with *k(i) > 1*, then *d = fib(k(1)) + ... + fib(k(n))*, where *fib(k(i))* is the Fibonacci number of *k(i)*.  E.g., for the *8*-mer `TTTCGGTC`, we have *n = 2* with *k(1) = 3*, *k(2) = 2* and *d = fib(3) + fib(2) = 2 + 1 = 3*. For practical concerns `maxDust = 20` may be suitable. In this case, if *31*-mers were uniformly, randomly generated, then about 0.2 % of them would be omitted. If `maxDust = -1`, then dust-filtering is inactive.| `db` |
 | `normalizedKMersFactor` | 1000000000 | A factor used to compute `normalized kmers` at read analysis time. | `match`, `multimatch` |
-| `maxReadSizeBytes` | 32768 | The maximum length of reads in number of base pairs plus one. If longer reads occur, then there will be buffer overruns with errors. | `match`, `multimatch`, `filter` |
+| `intialReadSizeBytes` | 4096 | The initial internal buffer size for reads in number of base pairs plus one. If longer reads occur, then internal buffer sizes will grow automatically. | `match`, `multimatch`, `filter` |
 | `seqType` | `genomic` | Which type of sequence files to include from the RefSeq. Possible values are `genomic`, `rna` or `both`. RNA files from the RefSeq end with `rna.fna.gz`, whereas genomes end with `genomic.fna.gz`. | `db`, `index` |
+| `classifyReads` | `true` | Whether to do read classification in the style of Kraken and KrakenUniq. Matching is faster without read classification and the columns `kmers`, `unique kmers` and `max contig length` in resulting CSV files are usually more conclusive anyways - in particular with respect to long reads. When read classification is off, the columns `reads` and `kmers from reads` will be 0 in resulting CSV files. | `match`, `multimatch` |
+| `refSeqLimitForGenbankAccess` | `0` | Determines whether Genestrip should try to lookup genomic fasta files from Genbank, if the number of corresponding reference genomes from the RefSeq is below the given limit for a requested tax id. E.g. `refSeqLimitForGenbankAccess=1` would imply that Genbank is consulted if not a single reference genome is found in the RefSeq for a requested tax id. The default `refSeqLimitForGenbankAccess=0` essentially inactivates this feature. In addition, Genbank access is also influenced by the keys `fastaQualities` and `maxFromGenBank` (see below). | `db`, `index` |
+| `fastaQualities` | `COMPLETE_LATEST` `,` `CHROMOSOME_LATEST` | Determines the allowed quality levels of fasta files from Genbank. The values must be comma-separated. The possible values are ordered from best to worst: `COMPLETE_LATEST`, `COMPLETE`, `CHROMOSOME_LATEST`, `CHROMOSOME`, `CONTIG_LATEST`, `CONTIG`, `LATEST`, `NONE`. If a corresponding value is included in the list, then a fasta file for a requested tax id on that quality level will be included, otherwise not (while also respecting the conditiions excerted via the keys `refSeqLimitForGenbankAccess` and `maxFromGenBank`). The quality levels are based on Genbank's [Assembly Summary File](https://ftp.ncbi.nlm.nih.gov/genomes/genbank/assembly_summary_genbank.txt) (columns `version_status` and `assembly_level`). | `db`, `index` |
+| `maxFromGenBank` | `1` | Determines the maximum number of fasta files used from Genbank per requested tax id. If the corresponding number of matching files exceeds `maxFromGenBank`, then then best ones according to `fastaQualities` will be retained to still match this maximum.  | `db`, `index` |
 
 
 # Project properties
@@ -293,8 +302,12 @@ The following entries are possible:
 * `maxGenomesPerTaxid`,
 * `useBloomFilterForMatch`,
 * `maxReadTaxErrorCount`,
-* `maxDust` and
-* `DNARNA`
+* `maxDust`,
+* `seqType` and
+* `classifyReads`,
+* `refSeqLimitForGenbankAccess`,
+* `fastaQualities` and
+* `maxFromGenBank`.
 
 The use of the entries is the same as in the `config.properties` file. If given, an entry in `project.properties` overrides a corresponding entry from `config.properties` under this project.
 

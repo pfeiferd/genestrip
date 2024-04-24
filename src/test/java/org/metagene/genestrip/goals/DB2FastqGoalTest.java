@@ -44,7 +44,7 @@ public class DB2FastqGoalTest {
 			kmers[i] = stats.getLong(taxids[i]);
 		}
 
-		DB2FastqGoal goal = (DB2FastqGoal) maker.getGoal("db2fastq");
+		DB2FastqGoal goal = (DB2FastqGoal) maker.getGoal(GSMaker.UserGoal.DB2FASTQ);
 		goal.cleanThis();
 		goal.make();
 

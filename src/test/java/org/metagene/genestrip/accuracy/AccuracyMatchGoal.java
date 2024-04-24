@@ -80,7 +80,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 					}
 				});
 
-		return new FastqKMerMatcher2(store, config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
+		return new FastqKMerMatcher2(store, config.getInitialReadSizeBytes(), config.getThreadQueueSize(),
 				bundle, config.getMaxKMerResCounts(), getProject().isClassifyReads() ? taxTree : null,
 				config.getMaxClassificationPaths(), getProject().getMaxReadTaxErrorCount());
 	}
@@ -88,7 +88,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 	protected FastqKMerMatcher2 createMatcher(KMerSortedArray<TaxIdNode> store, TaxTree taxTree) {
 		GSConfig config = getProject().getConfig();
 
-		return new FastqKMerMatcher2(store, config.getMaxReadSizeBytes(), config.getThreadQueueSize(),
+		return new FastqKMerMatcher2(store, config.getInitialReadSizeBytes(), config.getThreadQueueSize(),
 				bundle, config.getMaxKMerResCounts(), getProject().isClassifyReads() ? taxTree : null,
 				config.getMaxClassificationPaths(), getProject().getMaxReadTaxErrorCount()) {
 			@Override

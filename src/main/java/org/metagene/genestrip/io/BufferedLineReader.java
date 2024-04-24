@@ -91,7 +91,12 @@ public class BufferedLineReader {
 	}
 	
 	public int nextLine(byte[] target) throws IOException {
-		int size = 0;
+		return nextLine(target, 0);
+	}
+	
+	// Returns target.length + 1 if target is full but end of line not reached.
+	public int nextLine(byte[] target, int startPos) throws IOException {
+		int size = startPos;
 		while (bufferFill != -1) {
 			if (pos < bufferFill) {
 				byte c = -1;
@@ -101,8 +106,11 @@ public class BufferedLineReader {
 						size++;
 					}
 				}
-				if (size == target.length || c == '\n') {
+				if (c == '\n') {
 					return size;
+				}
+				if (size == target.length) {
+					return size + 1; // Indicates that target buffer is full and more stuff in the line.
 				}
 			}
 			long start = System.currentTimeMillis();

@@ -80,7 +80,7 @@ public abstract class MultiFileGoal extends FileListGoal<GSProject> {
 		Map<String, List<StreamingResource>> keyToFastqs = getProject().getKeyToFastqs();
 		if (keyToFastqs == null) {
 			if (csv) {
-				keyToFastqs = readMultiCSV(getSourceDir(), csvOrFastqFile, getLogger());
+				keyToFastqs = readMultiCSV(getSourceDir(), null, csvOrFastqFile, getLogger());
 			} else {
 				keyToFastqs = new HashMap<String, List<StreamingResource>>();
 				keyToFastqs.put(null, Collections.singletonList(new StreamingFileResource(csvOrFastqFile)));
@@ -101,7 +101,7 @@ public abstract class MultiFileGoal extends FileListGoal<GSProject> {
 
 	// We use a linked hash map because it preserves the order of the keys from the
 	// file.
-	public static LinkedHashMap<String, List<StreamingResource>> readMultiCSV(File defaultDir, File csvFile, Log logger) {
+	public static LinkedHashMap<String, List<StreamingResource>> readMultiCSV(File defaultDir, File commonDefaultDir, File csvFile, Log logger) {
 		try {
 			LinkedHashMap<String, List<StreamingResource>> res = new LinkedHashMap<String, List<StreamingResource>>();
 			CSVParser parser;
@@ -112,6 +112,9 @@ public abstract class MultiFileGoal extends FileListGoal<GSProject> {
 				File fastq = new File(fastqFilePath);
 				if (!fastq.exists()) {
 					fastq = new File(defaultDir, fastqFilePath);
+					if (!fastq.exists() && commonDefaultDir != null) {
+						fastq = new File(commonDefaultDir, fastqFilePath);						
+					}
 				}
 				if (fastq.exists()) {
 					List<StreamingResource> fastqs = res.get(name);

@@ -146,7 +146,7 @@ public class FastqKMerMatcherTest {
 	}
 
 	protected static class MyFastqMatcher extends FastqKMerMatcher2 {
-		public MyFastqMatcher(KMerSortedArray<String> kmerStore, int maxReadSize, int maxQueueSize,
+		public MyFastqMatcher(KMerSortedArray<String> kmerStore, int initialReadSize, int maxQueueSize,
 				ExecutorServiceBundle bundle) {
 			super(new KMerSortedArray<TaxIdNode>(kmerStore,
 					new ValueConverter<String, TaxIdNode>() {
@@ -154,7 +154,7 @@ public class FastqKMerMatcherTest {
 				public TaxIdNode convertValue(String value) {
 					return new TaxIdNode(value);
 				}
-			}), maxReadSize, maxQueueSize, bundle, maxQueueSize, null, 4, 0);
+			}), initialReadSize, maxQueueSize, bundle, maxQueueSize, null, 4, 0);
 			out = System.out;
 		}
 

@@ -78,12 +78,12 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 	// multi-threading when using it.
 	protected PrintStream out;
 
-	public FastqKMerMatcher2(KMerSortedArray<TaxIdNode> kmerStore, int maxReadSize, int maxQueueSize,
+	public FastqKMerMatcher2(KMerSortedArray<TaxIdNode> kmerStore, int initialReadSize, int maxQueueSize,
 			ExecutorServiceBundle bundle, int maxKmerResCounts, TaxTree taxTree, int maxPaths,
 			double maxReadTaxErrorCount) {
-		super(kmerStore.getK(), maxReadSize, maxQueueSize, bundle, maxPaths);
+		super(kmerStore.getK(), initialReadSize, maxQueueSize, bundle, maxPaths);
 		this.kmerStore = kmerStore;
-		this.maxReadSize = maxReadSize;
+		this.maxReadSize = initialReadSize;
 		this.maxKmerResCounts = maxKmerResCounts;
 		this.taxTree = taxTree;
 		this.maxReadTaxErrorCount = maxReadTaxErrorCount;
@@ -132,9 +132,13 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 		for (StreamingResource fastq : fastqs) {
 			currentFastq = fastq;
 			byteCountAccess = fastq.getStreamAccess();
-			taxTree.resetCounts(this);
+			if (taxTree != null) {
+				taxTree.resetCounts(this);
+			}
 			readFastq(byteCountAccess.getInputStream());
-			taxTree.releaseOwner();
+			if (taxTree != null) {
+				taxTree.releaseOwner();
+			}
 			coveredFilesSize += byteCountAccess.getBytesRead();
 			byteCountAccess.getInputStream().close();
 			coveredCounter++;
@@ -331,9 +335,11 @@ public class FastqKMerMatcher2 extends AbstractFastqReader {
 								stats.contigs++;
 								if (contigLen > stats.maxContigLen) {
 									stats.maxContigLen = contigLen;
-									for (int j = 0; j < entry.readSize; j++) {
+									int j = 0;
+									for (; j < entry.readDescriptor.length - 1 && entry.readDescriptor[j] != 0; j++) {
 										stats.maxContigDescriptor[j] = entry.readDescriptor[j];
 									}
+									stats.maxContigDescriptor[j] = 0;
 								}
 							}
 						}

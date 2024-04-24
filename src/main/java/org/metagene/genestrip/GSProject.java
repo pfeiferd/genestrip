@@ -27,13 +27,16 @@ package org.metagene.genestrip;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.StringTokenizer;
 
 import org.apache.commons.logging.Log;
 import org.metagene.genestrip.make.FileDownloadGoal.DownloadProject;
 import org.metagene.genestrip.GSConfig.SeqType;
+import org.metagene.genestrip.genbank.AssemblySummaryReader.FTPEntryQuality;
 import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.tax.TaxTree.Rank;
@@ -107,7 +110,7 @@ public class GSProject implements DownloadProject {
 			}
 		}
 	}
-	
+
 	public String getTaxids() {
 		return taxids;
 	}
@@ -326,7 +329,7 @@ public class GSProject implements DownloadProject {
 		}
 		return getConfig().getSeqType();
 	}
-	
+
 	public int getMaxGenomesPerTaxid() {
 		String v = properties.getProperty(GSConfig.MAX_GENOMES_PER_TAXID);
 		if (v != null) {
@@ -359,5 +362,42 @@ public class GSProject implements DownloadProject {
 
 	public Map<String, List<StreamingResource>> getKeyToFastqs() {
 		return null;
+	}
+
+	public int getRefSeqLimitForGenbankAccess() {
+		String v = properties.getProperty(GSConfig.REQ_SEQ_LIMIT_FOR_GENBANK);
+		if (v != null) {
+			return Integer.valueOf(v);
+		}
+		return getConfig().getRefSeqLimitForGenbankAccess();
+
+	}
+
+	public List<FTPEntryQuality> getFastaQualities() {
+		String qs = properties.getProperty(GSConfig.FASTA_QUALITIES);
+		List<FTPEntryQuality> res = new ArrayList<FTPEntryQuality>();
+		if (qs != null) {
+			StringTokenizer tokenizer = new StringTokenizer(qs, ",;");
+			while (tokenizer.hasMoreTokens()) {
+				FTPEntryQuality q = FTPEntryQuality.valueOf(tokenizer.nextToken().trim());
+				if (q != null) {
+					res.add(q);
+				}
+			}
+		}
+		return res.isEmpty() ? getConfig().getFastaQualities() : res;
+	}
+	
+	public int getMaxFromGenbank() {
+		String v = properties.getProperty(GSConfig.MAX_FROM_GENBANK);
+		if (v != null) {
+			return Integer.valueOf(v);
+		}
+		return getConfig().getMaxFromGenbank();
+	}
+
+
+	public File getGenbankDir() {
+		return new File(getProjectDir(), "genbank");
 	}
 }

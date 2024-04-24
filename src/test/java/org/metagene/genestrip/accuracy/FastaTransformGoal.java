@@ -78,7 +78,7 @@ public class FastaTransformGoal extends FileListGoal<GSProject> {
 
 		final Map<String, String> accesion2TaxidMap = accNumberWay ? mapGoal.get() : null;
 
-		AbstractFastaReader fastaReader = new AbstractFastaReader(getProject().getConfig().getMaxReadSizeBytes()) {
+		AbstractFastaReader fastaReader = new AbstractFastaReader(getProject().getConfig().getInitialReadSizeBytes()) {
 			private int counter = 0;
 			private int dataSize;
 			private boolean taxidFound;

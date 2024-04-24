@@ -68,8 +68,9 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 					getProject().getConfig().getBloomFilterFpp());
 			filter.ensureExpectedSize(sizeGoal.get(), false);
 
-			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getMaxReadSizeBytes(),
-					taxNodesGoal.get(), accessionMapGoal.get(), filter, getProject().getMaxGenomesPerTaxid(), getProject().getMaxDust());
+			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getInitialReadSizeBytes(),
+					taxNodesGoal.get(), accessionMapGoal.get(), filter, getProject().getMaxGenomesPerTaxid(),
+					getProject().getMaxDust());
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);

@@ -55,10 +55,19 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		regionsPerTaxid = new StringLongDigitTrie();
 		this.maxGenomesPerTaxId = maxGenomesPerTaxId;
 	}
+	
+	public StringLongDigitTrie getRegionsPerTaxid() {
+		return regionsPerTaxid;
+	}
 
 	public void ignoreAccessionMap(TaxIdNode node) {
-		this.ignoreMap = true;
+		this.ignoreMap = node != null;
 		this.node = node;
+	}
+	
+	@Override
+	protected void start() throws IOException {
+		includeRegion = false;
 	}
 
 	@Override

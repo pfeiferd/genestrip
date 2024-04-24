@@ -60,7 +60,7 @@ public class FilterGoal extends FileListGoal<GSProject> {
 			File dumpFile = config.isWriteDumpedFastq() ? project.getOutputFile("dumped", fastq.getName(), FileType.FASTQ_RES)
 					: null;
 			f = new FastqBloomFilter(indexedGoal.get(), config.getMinPosCountFilter(), config.getPosRatioFilter(),
-					config.getMaxReadSizeBytes(), config.getThreadQueueSize(), executorServiceBundle);
+					config.getInitialReadSizeBytes(), config.getThreadQueueSize(), executorServiceBundle);
 			f.runFilter(fastq, file, dumpFile);
 		} catch (IOException e) {
 			throw new RuntimeException(e);

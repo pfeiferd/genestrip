@@ -22,116 +22,76 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.goals.refseq;
+package org.metagene.genestrip.goals.genbank;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.GSConfig.SeqType;
+import org.metagene.genestrip.goals.refseq.RefSeqFnaFilesDownloadGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.StringLongDigitTrie;
 import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
 
-public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
+public class TaxNodesFromGenbankGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
 	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-	private final ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal;
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 
 	@SafeVarargs
-	public FillSizeGoal(GSProject project, String name, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
+	public TaxNodesFromGenbankGoal(GSProject project, String name,
+			ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, Goal<GSProject>... deps) {
 		super(project, name, Goal.append(deps, categoriesGoal, taxNodesGoal, fnaFilesGoal, accessionMapGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
-		this.additionalGoal = additionalGoal;
 		this.accessionMapGoal = accessionMapGoal;
 	}
 
 	@Override
 	public void makeThis() {
 		try {
-			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getInitialReadSizeBytes(),
-					taxNodesGoal.get(), accessionMapGoal.get(), getProject().getConfig().getKMerSize(),
-					getProject().getMaxGenomesPerTaxid());
+			Set<TaxIdNode> missingTaxIds = new HashSet<TaxIdNode>();
+			// We only get Genomic data from genbank (so far) - so if just RNA is wanted, there is no need to access it.
+			if (!SeqType.RNA.equals(getProject().getSeqType())) {
+				AbstractRefSeqFastaReader fastaReader = new AbstractRefSeqFastaReader(
+						getProject().getConfig().getInitialReadSizeBytes(), taxNodesGoal.get(), accessionMapGoal.get(),
+						getProject().getMaxGenomesPerTaxid()) {
+					@Override
+					protected void dataLine() throws IOException {
+					}
+				};
 
-			for (File fnaFile : fnaFilesGoal.getFiles()) {
-				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
-				if (categoriesGoal.get()[0].contains(cat)) {
-					fastaReader.readFasta(fnaFile);
+				for (File fnaFile : fnaFilesGoal.getFiles()) {
+					RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
+					if (categoriesGoal.get()[0].contains(cat)) {
+						fastaReader.readFasta(fnaFile);
+					}
+				}
+				StringLongDigitTrie trie = fastaReader.getRegionsPerTaxid();
+				for (TaxIdNode node : taxNodesGoal.get()) {
+					StringLong value = trie.get(node.getTaxId());
+					long regions = value == null ? 0 : value.getLongValue();
+					int limit = getProject().getRefSeqLimitForGenbankAccess();
+					if (regions < limit) {
+						missingTaxIds.add(node);
+					}
 				}
 			}
-			Map<File, TaxIdNode> additionalMap = additionalGoal.get();
-			for (File additionalFasta : additionalMap.keySet()) {
-				TaxIdNode node = additionalMap.get(additionalFasta);
-				if (taxNodesGoal.get().contains(node)) {
-					fastaReader.ignoreAccessionMap(node);
-					fastaReader.readFasta(additionalFasta);
-				}
-			}
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Store size determined in kmers: " + fastaReader.getCounter());
-			}
-
-			set(fastaReader.getCounter());
+			set(missingTaxIds);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
-		}
-	}
-
-	protected static class MyFastaReader extends AbstractRefSeqFastaReader {
-		private long counter;
-		private final int k;
-
-		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-				int maxGenomesPerTaxId) {
-			super(bufferSize, taxNodes, accessionMap, maxGenomesPerTaxId);
-			this.k = k;
-			counter = 0;
-		}
-
-		@Override
-		protected void infoLine() throws IOException {
-			if (includeRegion) {
-				counter -= k - 1;
-			}
-			super.infoLine();
-		}
-
-		@Override
-		protected void dataLine() throws IOException {
-			if (includeRegion) {
-				counter += size - 1;
-			}
-		}
-
-		public long getCounter() {
-			return counter;
-		}
-
-		@Override
-		protected void done() throws IOException {
-			if (includeRegion) {
-				counter -= k - 1;
-			}
-			super.done();
-			if (getLogger().isInfoEnabled()) {
-				List<StringLong> values = new ArrayList<StringLong>();
-				regionsPerTaxid.collect(values);
-				getLogger().info("Matching regions per taxid: " + values);
-			}
 		}
 	}
 }

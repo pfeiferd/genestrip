@@ -57,17 +57,17 @@ public abstract class AbstractFastqReader {
 
 	protected final ExecutorServiceBundle bundle;
 
-	public AbstractFastqReader(int k, int maxReadSizeBytes, int maxQueueSize, ExecutorServiceBundle bundle,
+	public AbstractFastqReader(int k, int initialSizeBytes, int maxQueueSize, ExecutorServiceBundle bundle,
 			Object... config) {
 		this.k = k;
 		this.bundle = bundle;
-		this.plusLine = new byte[maxReadSizeBytes];
+		this.plusLine = new byte[initialSizeBytes];
 		bufferedLineReaderFastQ = new BufferedLineReader();
 		int consumerNumber = bundle.getThreads();
 
 		readStructPool = new ReadEntry[consumerNumber == 0 ? 1 : (maxQueueSize + consumerNumber + 1)];
 		for (int i = 0; i < readStructPool.length; i++) {
-			readStructPool[i] = createReadEntry(maxReadSizeBytes, config);
+			readStructPool[i] = createReadEntry(initialSizeBytes, config);
 		}
 		blockingQueue = consumerNumber == 0 ? null
 				: new ArrayBlockingQueue<AbstractFastqReader.ReadEntry>(maxQueueSize);
@@ -125,8 +125,8 @@ public abstract class AbstractFastqReader {
 		};
 	}
 
-	protected ReadEntry createReadEntry(int maxReadSizeBytes, Object... config) {
-		return new ReadEntry(maxReadSizeBytes);
+	protected ReadEntry createReadEntry(int initialReadSizeBytes, Object... config) {
+		return new ReadEntry(initialReadSizeBytes);
 	}
 
 	public void dump() {
@@ -150,6 +150,17 @@ public abstract class AbstractFastqReader {
 		}
 	}
 
+	protected void growReadBuffer(ReadEntry readStruct, BufferedLineReader lineReader) throws IOException {
+		while (readStruct.readSize == readStruct.read.length) {
+			byte[] newBuffer = new byte[readStruct.read.length * 2];
+			System.arraycopy(readStruct.read, 0, newBuffer, 0, readStruct.read.length);
+			readStruct.readSize = lineReader.nextLine(newBuffer, readStruct.read.length) - 1;
+			readStruct.read = newBuffer;
+		}
+		// Probs must grow in the same way.
+		readStruct.readProbs = new byte[readStruct.read.length];
+	}
+
 	protected void readFastq(InputStream inputStream) throws IOException {
 		reads = 0;
 		kMers = 0;
@@ -166,6 +177,9 @@ public abstract class AbstractFastqReader {
 						.nextLine(readStruct.readDescriptor) - 1) {
 			readStruct.readDescriptor[readStruct.readDescriptorSize] = 0;
 			readStruct.readSize = bufferedLineReaderFastQ.nextLine(readStruct.read) - 1;
+			if (readStruct.readSize == readStruct.read.length) {
+				growReadBuffer(readStruct, bufferedLineReaderFastQ);
+			}
 			readStruct.read[readStruct.readSize] = 0;
 
 			// Old code:
@@ -173,8 +187,7 @@ public abstract class AbstractFastqReader {
 			// New code does basic consistency check:
 			bufferedLineReaderFastQ.nextLine(plusLine);
 			if (plusLine[0] != '+') {
-				throw new IllegalStateException("Inconsistent read no. " + reads
-						+ ", the line with '+' is missing. Maybe the buffer size for reads is too small. It may be increased via the property 'maxReadSizeBytes' in the configs.");
+				throw new IllegalStateException("Inconsistent read no. " + reads + ", the line with '+' is missing.");
 			}
 
 			readStruct.readProbsSize = bufferedLineReaderFastQ.nextLine(readStruct.readProbs) - 1;
@@ -300,10 +313,10 @@ public abstract class AbstractFastqReader {
 		public final byte[] readDescriptor;
 		public int readDescriptorSize;
 
-		public final byte[] read;
+		public byte[] read;
 		public int readSize;
 
-		public final byte[] readProbs;
+		public byte[] readProbs;
 		public int readProbsSize;
 
 		protected ReadEntry(int maxReadSizeBytes) {

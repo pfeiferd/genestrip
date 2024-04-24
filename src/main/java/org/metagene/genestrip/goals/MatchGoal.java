@@ -132,7 +132,7 @@ public class MatchGoal extends FileListGoal<GSProject> {
 			ExecutorServiceBundle bundle) {
 		GSConfig config = getProject().getConfig();
 
-		return new FastqKMerMatcher2(store, config.getMaxReadSizeBytes(), config.getThreadQueueSize(), bundle,
+		return new FastqKMerMatcher2(store, config.getInitialReadSizeBytes(), config.getThreadQueueSize(), bundle,
 				config.getMaxKMerResCounts(), getProject().isClassifyReads() ? taxTree : null,
 				config.getMaxClassificationPaths(), getProject().getMaxReadTaxErrorCount());
 	}

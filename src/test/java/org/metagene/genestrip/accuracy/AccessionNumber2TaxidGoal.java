@@ -58,7 +58,7 @@ public class AccessionNumber2TaxidGoal extends ObjectGoal<Map<String, String>, G
 	public void makeThis() {
 		final Map<String, String> accesion2TaxidMap = new HashMap<String, String>();
 		Set<String> accNumbers = new HashSet<String>();
-		AbstractFastaReader fastaReader1 = new AbstractFastaReader(getProject().getConfig().getMaxReadSizeBytes()) {
+		AbstractFastaReader fastaReader1 = new AbstractFastaReader(getProject().getConfig().getInitialReadSizeBytes()) {
 			@Override
 			protected void infoLine() throws IOException {
 				String acc = getAccessionNumberFromInfoLine(target, size);

@@ -97,7 +97,7 @@ public class KrakenResCountGoal extends MultiFileGoal {
 			@Override
 			protected void handleOutputStream(InputStream stream, OutputStream out) throws IOException {
 				KrakenResultProcessor parser = new KrakenResultProcessor(
-						getProject().getConfig().getMaxReadSizeBytes());
+						getProject().getConfig().getInitialReadSizeBytes());
 
 				parser.process(new BufferedInputStream(stream), new KrakenResultListener() {
 					private long lastLine = -1;

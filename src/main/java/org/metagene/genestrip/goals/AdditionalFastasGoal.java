@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.genbank.AssemblySummaryReader.FTPEntryWithQuality;
+import org.metagene.genestrip.goals.genbank.FastaFilesGenbankDownloadGoal;
 import org.metagene.genestrip.io.StreamingFileResource;
 import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.make.Goal;
@@ -39,12 +41,17 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 public class AdditionalFastasGoal extends ObjectGoal<Map<File, TaxIdNode>, GSProject> {
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
+	private final ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fromGenbank;
+	private final FastaFilesGenbankDownloadGoal fastaFilesGenbankDownloadGoal;
 
 	@SafeVarargs
 	public AdditionalFastasGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
-			Goal<GSProject>... dependencies) {
-		super(project, name, append(dependencies, taxTreeGoal));
+			ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fromGenbank,
+			FastaFilesGenbankDownloadGoal fastaFilesGenbankDownloadGoal, Goal<GSProject>... dependencies) {
+		super(project, name, append(dependencies, taxTreeGoal, fromGenbank, fastaFilesGenbankDownloadGoal));
 		this.taxTreeGoal = taxTreeGoal;
+		this.fromGenbank = fromGenbank;
+		this.fastaFilesGenbankDownloadGoal = fastaFilesGenbankDownloadGoal;
 	}
 
 	@Override
@@ -52,7 +59,8 @@ public class AdditionalFastasGoal extends ObjectGoal<Map<File, TaxIdNode>, GSPro
 		Map<File, TaxIdNode> res = new HashMap<File, TaxTree.TaxIdNode>();
 		File additonalEntryFile = getProject().getAddtionalFile();
 		if (additonalEntryFile.exists()) {
-			Map<String, List<StreamingResource>> map = MultiMatchGoal.readMultiCSV(getProject().getFastaDir(), additonalEntryFile, getLogger());
+			Map<String, List<StreamingResource>> map = MultiMatchGoal.readMultiCSV(getProject().getFastaDir(),
+					getProject().getConfig().getFastaDir(), additonalEntryFile, getLogger());
 			TaxTree taxTree = taxTreeGoal.get();
 			for (String key : map.keySet()) {
 				TaxIdNode node = taxTree.getNodeByTaxId(key);
@@ -67,6 +75,13 @@ public class AdditionalFastasGoal extends ObjectGoal<Map<File, TaxIdNode>, GSPro
 				}
 			}
 		}
+		for (TaxIdNode node : fromGenbank.get().keySet()) {
+			for (FTPEntryWithQuality entry : fromGenbank.get().get(node)) {
+				File file = fastaFilesGenbankDownloadGoal.entryToFile(entry);
+				res.put(file, node);
+			}
+		}
+
 		set(res);
 	}
 }

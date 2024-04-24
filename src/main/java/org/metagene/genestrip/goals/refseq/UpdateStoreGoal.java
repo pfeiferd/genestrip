@@ -33,7 +33,6 @@ import java.util.concurrent.BlockingQueue;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
-import org.metagene.genestrip.fasta.AbstractFastaReader;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -63,11 +62,10 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 	private int doneCounter;
 	private Object[] syncs = new Object[256];
 
-
 	@SafeVarargs
-	public UpdateStoreGoal(GSProject project, String name, ExecutorServiceBundle bundle, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
-			ObjectGoal<TaxTree, GSProject> taxTreeGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
+	public UpdateStoreGoal(GSProject project, String name, ExecutorServiceBundle bundle,
+			ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
+			RefSeqFnaFilesDownloadGoal fnaFilesGoal, ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionTrieGoal,
 			ObjectGoal<KMerStoreWrapper, GSProject> filledStoreGoal, Goal<GSProject>... deps) {
 		super(project, name, project.getOutputFile(name, FileType.DB),
@@ -97,7 +95,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 			}
 			bundle.clearThrowableList();
 
-			BlockingQueue<File> blockingQueue = new ArrayBlockingQueue<File>(bundle.getThreads());
+			BlockingQueue<FileAndNode> blockingQueue = new ArrayBlockingQueue<FileAndNode>(bundle.getThreads());
 			for (int i = 0; i < bundle.getThreads(); i++) {
 				bundle.execute(createFastaReaderRunnable(i, store, blockingQueue));
 			}
@@ -111,7 +109,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 					} else {
 						try {
 							doneCounter++;
-							blockingQueue.put(fnaFile);
+							blockingQueue.put(new FileAndNode(fnaFile, null));
 						} catch (InterruptedException e) {
 							throw new RuntimeException(e);
 						}
@@ -119,12 +117,28 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 				}
 				checkAndLogConsumerThreadProblem();
 			}
-			// Simply do this on main thread - should not be so much work...
 			Map<File, TaxIdNode> additionalMap = additionalGoal.get();
 			for (File additionalFasta : additionalMap.keySet()) {
-				fastaReader.ignoreAccessionMap(additionalMap.get(additionalFasta));
-				fastaReader.readFasta(additionalFasta);
+				if (bundle.getThreads() == 0) {
+					fastaReader.ignoreAccessionMap(additionalMap.get(additionalFasta));
+					fastaReader.readFasta(additionalFasta);
+				} else {
+					try {
+						doneCounter++;
+						blockingQueue.put(new FileAndNode(additionalFasta, additionalMap.get(additionalFasta)));
+					} catch (InterruptedException e) {
+						throw new RuntimeException(e);
+					}
+				}
+				checkAndLogConsumerThreadProblem();
 			}
+// Old code replaced by multithreading approach...			
+//			// Simply do this on main thread - should not be so much work...
+//			Map<File, TaxIdNode> additionalMap = additionalGoal.get();
+//			for (File additionalFasta : additionalMap.keySet()) {
+//				fastaReader.ignoreAccessionMap(additionalMap.get(additionalFasta));
+//				fastaReader.readFasta(additionalFasta);
+//			}
 			// Gentle polling and waiting until all consumers are done.
 			while (doneCounter > 0) {
 				checkAndLogConsumerThreadProblem();
@@ -142,7 +156,9 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 				getLogger().info("File saved " + storeFile + " along with index " + filterFile);
 			}
 			updatedStoreGoal.setStoreWrapper(wrapper2);
-		} catch (IOException e) {
+		} catch (
+
+		IOException e) {
 			throw new RuntimeException(e);
 		} finally {
 			dump();
@@ -162,17 +178,18 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 	}
 
 	protected Runnable createFastaReaderRunnable(int i, KMerSortedArray<String> store,
-			BlockingQueue<File> blockingQueue) {
+			BlockingQueue<FileAndNode> blockingQueue) {
 		return new Runnable() {
 			@Override
 			public void run() {
-				AbstractFastaReader fastaReader = createFastaReader(store);
+				AbstractRefSeqFastaReader fastaReader = createFastaReader(store);
 
 				while (!dump) {
 					try {
 						try {
-							File fnaFile = blockingQueue.take();
-							fastaReader.readFasta(fnaFile);
+							FileAndNode fileAndNode = blockingQueue.take();
+							fastaReader.ignoreAccessionMap(fileAndNode.getNode());
+							fastaReader.readFasta(fileAndNode.getFile());
 						} finally {
 							doneCounter--;
 						}
@@ -189,7 +206,7 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 	}
 
 	protected AbstractRefSeqFastaReader createFastaReader(KMerSortedArray<String> store) {
-		return new MyFastaReader(getProject().getConfig().getMaxReadSizeBytes(), taxTreeGoal.get(),
+		return new MyFastaReader(getProject().getConfig().getInitialReadSizeBytes(), taxTreeGoal.get(),
 				accessionTrieGoal.get(), store, getProject().getMaxGenomesPerTaxid(), getProject().getMaxDust());
 	}
 
@@ -234,20 +251,42 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 					return syncs[(int) (position % syncs.length)];
 				}
 			};
+		}
+
+		@Override
+		protected void start() throws IOException {
 			includeRegion = true;
 		}
 
 		@Override
 		protected void infoLine() throws IOException {
-			byteRingBuffer.reset();
 			if (!ignoreMap) {
 				updateNodeFromInfoLine();
 			}
+			byteRingBuffer.reset();
 		}
 
 		@Override
 		protected void handleStore() {
 			store.update(byteRingBuffer.getKMer(), provider);
+		}
+	}
+
+	protected static final class FileAndNode {
+		private final File file;
+		private final TaxIdNode node;
+
+		public FileAndNode(File file, TaxIdNode node) {
+			this.file = file;
+			this.node = node;
+		}
+
+		public File getFile() {
+			return file;
+		}
+
+		public TaxIdNode getNode() {
+			return node;
 		}
 	}
 }

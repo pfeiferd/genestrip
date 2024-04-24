@@ -25,7 +25,7 @@ public class APITest {
 		GSMaker maker = new GSMaker(project);
 		// Run the 'match' goal. This may trigger other goals such as the 'db' goal to
 		// first create the 'human_virus' database.
-		Goal<GSProject> goal = maker.getGoal("match");
+		Goal<GSProject> goal = maker.getGoal(GSMaker.UserGoal.MATCH);
 		goal.cleanThis();
 		goal.make();
 	}

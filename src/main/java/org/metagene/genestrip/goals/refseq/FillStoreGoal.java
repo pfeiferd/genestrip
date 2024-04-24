@@ -78,7 +78,7 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 		store.initSize(bloomFilterGoal.get().getEntries());
 
 		try {
-			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getMaxReadSizeBytes(),
+			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getInitialReadSizeBytes(),
 					taxNodesGoal.get(), accessionMapGoal.get(), store, getProject().getMaxGenomesPerTaxid(), getProject().getMaxDust());
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {

@@ -27,9 +27,13 @@ package org.metagene.genestrip;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
+import java.util.StringTokenizer;
 
 import org.apache.commons.logging.Log;
+import org.metagene.genestrip.genbank.AssemblySummaryReader.FTPEntryQuality;
 import org.metagene.genestrip.tax.TaxTree.Rank;
 import org.metagene.genestrip.util.GSLogFactory;
 
@@ -54,6 +58,9 @@ public class GSConfig {
 	public static final String CLASSIFY_READS = "classifyReads";
 	public static final String MAX_DUST = "maxDust";
 	public static final String SEQ_TYPE = "seqType";
+	public static final String REQ_SEQ_LIMIT_FOR_GENBANK = "refSeqLimitForGenbankAccess";
+	public static final String MAX_FROM_GENBANK = "maxFromGenBank";
+	public static final String FASTA_QUALITIES = "fastaQualities";
 
 	public static enum SeqType {
 		GENOMIC, RNA, BOTH;
@@ -92,7 +99,7 @@ public class GSConfig {
 	}
 
 	public String getLogLevel() {
-		return properties.getProperty("logLevel", "trace");
+		return properties.getProperty("logLevel", "info");
 	}
 
 	public File getBaseDir() {
@@ -133,8 +140,8 @@ public class GSConfig {
 		return Boolean.valueOf(properties.getProperty("writeFilteredFastq", "false"));
 	}
 
-	public int getMaxReadSizeBytes() {
-		return Integer.valueOf(properties.getProperty("maxReadSizeBytes", "32768"));
+	public int getInitialReadSizeBytes() {
+		return Integer.valueOf(properties.getProperty("initialReadSizeBytes", "4096"));
 	}
 
 	public int getMaxClassificationPaths() {
@@ -208,6 +215,11 @@ public class GSConfig {
 	public File getFastqDir() {
 		return new File(baseDir, "fastq");
 	}
+	
+	public File getFastaDir() {
+		return new File(baseDir, "fasta");
+	}
+
 
 	public boolean isUseHttp() {
 		return Boolean.valueOf(properties.getProperty("useHttp", "true"));
@@ -256,6 +268,10 @@ public class GSConfig {
 		return i <= 0 ? Integer.MAX_VALUE : i;
 	}
 
+	public int getRefSeqLimitForGenbankAccess() {
+		return Integer.valueOf(properties.getProperty(REQ_SEQ_LIMIT_FOR_GENBANK, "0"));
+	}
+	
 	public int getMaxDust() {
 		int i = Integer.valueOf(properties.getProperty(MAX_DUST, "-1"));
 		return i <= 0 ? -1 : i;
@@ -264,4 +280,35 @@ public class GSConfig {
 	public long getNormalizedKMersFactor() {
 		return Long.valueOf(properties.getProperty("normalizedKMersFactor", "1000000000"));
 	}
+	
+	public List<FTPEntryQuality> getFastaQualities() {
+		String qs = properties.getProperty(FASTA_QUALITIES);
+		List<FTPEntryQuality> res = new ArrayList<FTPEntryQuality>();
+		if (qs != null) {
+			StringTokenizer tokenizer = new StringTokenizer(qs, ",;");
+			while (tokenizer.hasMoreTokens()) {
+				FTPEntryQuality q = FTPEntryQuality.valueOf(tokenizer.nextToken().trim());
+				if (q != null) {
+					res.add(q);
+				}
+			}
+		}
+		if (res.isEmpty()) {
+			res.add(FTPEntryQuality.COMPLETE_LATEST);
+			res.add(FTPEntryQuality.CHROMOSOME_LATEST);
+		}
+		return res;
+	}
+
+	public File getGenbankDir() {
+		return new File(getCommonDir(), "genbank");		
+	}
+	
+	public int getMaxFromGenbank() {
+		String v = properties.getProperty(GSConfig.MAX_FROM_GENBANK, "1");
+		if (v != null) {
+			return Integer.valueOf(v);
+		}
+		return -1;
+	}	
 }

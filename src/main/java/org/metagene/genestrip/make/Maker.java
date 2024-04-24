@@ -64,7 +64,7 @@ public abstract class Maker<P> {
 	public Set<String> getGoalNames() {
 		return goalsByName.keySet();
 	}
-	
+		
 	public Goal<P> getGoal(String name) {
 		return goalsByName.get(name);
 	}
