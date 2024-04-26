@@ -73,12 +73,12 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 			@Override
 			public void nextValue(KMerSortedArray<String> trie, long kmer, short index, long i) {
 				if (bitVector.get(i)) {
-					valueCounter[index]++;
+					valueCounter[index - KMerSortedArray.MIN_VALUE_INDEX]++;
 				}
 			}
 		});
 		for (short i = 0; i < valueCounter.length; i++) {
-			String taxid = store.getValueForIndex(i);
+			String taxid = store.getValueForIndex((short)(i + KMerSortedArray.MIN_VALUE_INDEX));
 			res.put(taxid, valueCounter[i]);
 		}
 

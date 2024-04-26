@@ -12,7 +12,19 @@ public class GSLogFactory {
 	public static Log getLog(String name) {
 		return getInstance().getLogByName(name);
 	}
+	
+	public static void resetN() {
+		getInstance().resetNesting();
+	}
 
+	public static void incN() {
+		getInstance().incNesting();
+	}
+
+	public static void decN() {
+		getInstance().decNesting();
+	}
+	
 	private static GSLogFactory instance;
 
 	public static GSLogFactory getInstance() {
@@ -25,13 +37,33 @@ public class GSLogFactory {
 	private final Map<String, GSLog> loggersByName;
 	private PrintStream logOut;
 	private final ThreadLocal<PrintStream> threadedLogOut;
+	private int nestingCounter;
 
 	public GSLogFactory() {
 		loggersByName = new HashMap<String, GSLog>();
 		threadedLogOut = new ThreadLocal<PrintStream>();
 		logOut = System.err;
+		nestingCounter = 0;
+	}
+	
+	public void resetNesting() {
+		nestingCounter = 0;
 	}
 
+	public void incNesting() {
+		nestingCounter++;
+	}
+
+	public void decNesting() {
+		nestingCounter--;
+	}
+		
+	protected void writeNesting(PrintStream logOut) {
+		for (int i = 0; i < nestingCounter; i++) {
+			logOut.print('>');
+		}
+	}
+	
 	public void setLogOut(PrintStream logOut) {
 		this.logOut = logOut;
 	}
@@ -56,6 +88,7 @@ public class GSLogFactory {
 	public class GSLog extends SimpleLog {
 		private static final long serialVersionUID = 1L;
 
+
 		public GSLog(String name) {
 			super(name);
 		}
@@ -63,11 +96,11 @@ public class GSLogFactory {
 		@Override
 		protected void write(StringBuffer buffer) {
 			PrintStream tLogOut = threadedLogOut.get();
-			if (tLogOut != null) {
-				tLogOut.println(buffer);
-			} else {
-				logOut.println(buffer);
+			if (tLogOut == null) {
+				tLogOut = logOut;
 			}
+			writeNesting(tLogOut);
+			tLogOut.println(buffer);
 		}
 	}
 }

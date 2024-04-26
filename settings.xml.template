@@ -1,0 +1,21 @@
+<settings>
+  <servers>
+    <server>
+      <id>central</id>
+      <username>secret</username>
+      <password>secret</password>
+    </server>
+  </servers>
+  <profiles>
+    <profile>
+      <id>release</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <properties>
+        <gpg.executable>gpg</gpg.executable>
+        <gpg.passphrase>secret</gpg.passphrase>
+      </properties>
+    </profile>
+  </profiles>
+</settings>

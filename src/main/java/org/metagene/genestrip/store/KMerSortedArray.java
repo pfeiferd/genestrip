@@ -51,6 +51,8 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
 
 	public static byte EXCLUDED_KMER_VIA_COUNT = Byte.MIN_VALUE;
+	
+	public static final short MIN_VALUE_INDEX = 1;
 
 	private long[] kmers;
 	private short[] valueIndexes;
@@ -85,7 +87,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		// It is VERY important to start with one here because of a bug in the fastutil library.
 		// It seems to have to do with storing 0 as a key and deserializing Short2ObjectHashMap in this case.
 		// I did not want to dive into this - so this is a simple workaround:
-		nextValueIndex = 1; 
+		nextValueIndex = MIN_VALUE_INDEX; 
 		this.enforceLarge = enforceLarge;
 		if (initialValues != null) {
 			for (V v : initialValues) {
@@ -142,12 +144,12 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		return useFilter;
 	}
 
-	public long[] getStatsAsIndexArray() {
-		long[] counts = new long[nextValueIndex];
+	protected long[] getStatsAsIndexArray() {
+		long[] counts = new long[getNValues()];
 		visit(new KMerSortedArrayVisitor<V>() {
 			@Override
 			public void nextValue(KMerSortedArray<V> trie, long kmer, short index, long i) {
-				counts[index]++;
+				counts[index - MIN_VALUE_INDEX]++;
 			}
 		});
 		return counts;
@@ -158,7 +160,10 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 		Object2LongMap<V> res = new Object2LongOpenHashMap<V>(counts.length);
 		for (short i = 0; i < counts.length; i++) {
-			res.put(indexMap.get(i), counts[i]);
+			V value = indexMap.get((short) (i + MIN_VALUE_INDEX));
+			if (value != null) {
+				res.put(value, counts[i]);
+			}
 		}
 		res.put(null, entries);
 
@@ -166,7 +171,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	}
 
 	public int getNValues() {
-		return nextValueIndex;
+		return nextValueIndex - MIN_VALUE_INDEX;
 	}
 
 	public V getValueForIndex(short index) {
@@ -200,7 +205,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	}
 
 	public Object2LongMap<V> getNKmersPerTaxid() {
-		long[] countArray = new long[nextValueIndex];
+		long[] countArray = new long[getNValues()];
 		if (largeKmers != null) {
 			for (long i = 0; i < entries; i++) {
 				countArray[BigArrays.get(largeValueIndexes, i)]++;
@@ -212,8 +217,11 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		}
 
 		Object2LongMap<V> map = new Object2LongOpenHashMap<V>();
-		for (short index = 0; index < nextValueIndex; index++) {
-			map.put(indexMap.get(index), countArray[index]);
+		for (int i = 0; i < countArray.length; i++) {
+			V value = indexMap.get((short) (i + MIN_VALUE_INDEX));
+			if (value != null) {
+				map.put(value, countArray[i]);
+			}
 		}
 		map.put(null, entries);
 

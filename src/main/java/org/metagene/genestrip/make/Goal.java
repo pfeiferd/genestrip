@@ -68,11 +68,13 @@ public abstract class Goal<P> {
 				getLogger().info("Dependencies " + Arrays.toString(dependencies));
 			}
 			startMake();
+			GSLogFactory.incN();
 			for (Goal<P> dep : dependencies) {
 				if (dep != null && !dep.isMade()) {
 					dep.make();
 				}
 			}
+			GSLogFactory.decN();
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Making this " + this);
 			}
