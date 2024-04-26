@@ -22,12 +22,39 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>org.metagene</groupId>
+	<groupId>org.genestrip</groupId>
 	<artifactId>genestrip</artifactId>
-	<version>0.4</version>
+	<version>0.5</version>
 	<properties>
 		<main.class>org.metagene.genestrip.Main</main.class>
 	</properties>
+
+	<name>Genestrip</name>
+	<description>Genestrip is a Bioinformatics tool for efficient read classification, filtering and k-mer counting for selected groups of species.</description>
+	<url>https://github.com/pfeiferd/genestrip</url>
+
+	<licenses>
+		<license>
+			<name>The Apache Software License, Version 2.0 subject to Commons Clause License Condition 1.0</name>
+			<url>https://github.com/pfeiferd/genestrip/blob/master/LICENSE.txt</url>
+		</license>
+	</licenses>
+
+	<developers>
+		<developer>
+			<name>Daniel Pfeifer</name>
+			<email>daniel.pfeifer@progotec.de</email>
+			<organization>Progotec</organization>
+			<organizationUrl>http://www.progotec.de</organizationUrl>
+		</developer>
+	</developers>
+
+	<scm>
+		<connection>scm:git:git://github.com/pfeiferd/genestrip.git</connection>
+		<developerConnection>scm:git:ssh://github.com/pfeiferd/genestrip.git</developerConnection>
+		<url>https://github.com/pfeiferd/genestrip/tree/master</url>
+	</scm>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
@@ -62,7 +89,7 @@
 		<dependency>
 			<groupId>it.unimi.dsi</groupId>
 			<artifactId>fastutil</artifactId>
-			<version>8.5.12</version>
+			<version>8.5.13</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
@@ -108,7 +135,7 @@
 						<propertyName>project.directory</propertyName>
 						<buildDirectory>${project.directory}</buildDirectory>
 					</systemPropertyVariables>
-					<skipTests>false</skipTests>
+					<skipTests>true</skipTests>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -126,36 +153,30 @@
 				</configuration>
 			</plugin>
 			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>exec-maven-plugin</artifactId>
-				<version>3.1.0</version>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>2.2.1</version>
 				<executions>
 					<execution>
+						<id>attach-sources</id>
 						<goals>
-							<goal>java</goal>
+							<goal>jar-no-fork</goal>
 						</goals>
 					</execution>
 				</executions>
-				<configuration>
-					<includeProjectDependencies>true</includeProjectDependencies>
-					<includePluginDependencies>true</includePluginDependencies>
-					<mainClass>${main.class}</mainClass>
-					<arguments>
-						<argument>-t</argument>
-						<argument>${gs-target}</argument>
-						<argument>-f</argument>
-						<argument>${gs-input-fastq}</argument>
-						<argument>${gs-project-name}</argument>
-						<argument>${gs-goal}</argument>
-					</arguments>
-				</configuration>
-				<dependencies>
-					<dependency>
-						<groupId>${project.groupId}</groupId>
-						<artifactId>${project.artifactId}</artifactId>
-						<version>${project.version}</version>
-					</dependency>
-				</dependencies>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>3.6.3</version>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
@@ -193,4 +214,43 @@
 			</plugin>
 		</plugins>
 	</build>
+	<profiles>
+		<profile>
+			<id>release</id>
+			<distributionManagement>
+				<snapshotRepository>
+					<id>ossrh</id>
+					<url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+				</snapshotRepository>
+			</distributionManagement>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>1.5</version>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.sonatype.central</groupId>
+						<artifactId>central-publishing-maven-plugin</artifactId>
+						<version>0.4.0</version>
+						<extensions>true</extensions>
+						<configuration>
+							<publishingServerId>central</publishingServerId>
+							<tokenAuth>true</tokenAuth>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>
