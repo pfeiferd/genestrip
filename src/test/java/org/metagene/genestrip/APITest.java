@@ -27,6 +27,7 @@ package org.metagene.genestrip;
 import java.io.File;
 import java.io.IOException;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.metagene.genestrip.make.Goal;
 
