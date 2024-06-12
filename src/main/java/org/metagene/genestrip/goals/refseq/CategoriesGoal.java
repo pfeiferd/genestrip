@@ -27,13 +27,13 @@ package org.metagene.genestrip.goals.refseq;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.Goal;
@@ -42,10 +42,10 @@ import org.metagene.genestrip.refseq.RefSeqCategory;
 
 public class CategoriesGoal extends ObjectGoal<Set<RefSeqCategory>[], GSProject> {
 	@SafeVarargs
-	public CategoriesGoal(GSProject project, String name, Goal<GSProject>... deps) {
-		super(project, name, deps);
+	public CategoriesGoal(GSProject project, Goal<GSProject>... deps) {
+		super(project, GSGoalKey.CATEGORIES, deps);
 	}
-	
+
 	@Override
 	public void makeThis() {
 		try {
@@ -62,9 +62,8 @@ public class CategoriesGoal extends ObjectGoal<Set<RefSeqCategory>[], GSProject>
 		res[0] = new HashSet<RefSeqCategory>();
 		res[1] = new HashSet<RefSeqCategory>();
 
-		InputStream stream = StreamProvider.getInputStreamForFile(file);
-
-		try (BufferedReader br = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+		try (BufferedReader br = new BufferedReader(
+				new InputStreamReader(StreamProvider.getInputStreamForFile(file), StandardCharsets.UTF_8))) {
 			String line = null;
 			while ((line = br.readLine()) != null) {
 				line = line.trim();
@@ -85,12 +84,12 @@ public class CategoriesGoal extends ObjectGoal<Set<RefSeqCategory>[], GSProject>
 				}
 			}
 		}
-		
+
 		res[1].addAll(res[0]);
-		
+
 		res[0] = Collections.unmodifiableSet(res[0]);
 		res[1] = Collections.unmodifiableSet(res[1]);
-		
+
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Categories for store: " + res[0]);
 			getLogger().info("Categories for ancestor update: " + res[1]);

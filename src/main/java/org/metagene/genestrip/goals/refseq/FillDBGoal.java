@@ -29,9 +29,12 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
+import org.metagene.genestrip.GSConfigKey;
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
+import org.metagene.genestrip.goals.FilledDBGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -39,47 +42,53 @@ import org.metagene.genestrip.refseq.AbstractStoreFastaReader;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.store.KMerSortedArray;
-import org.metagene.genestrip.store.KMerStoreWrapper;
+import org.metagene.genestrip.store.Database;
+import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-public class FillStoreGoal extends FileListGoal<GSProject> {
+public class FillDBGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
 	private final ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal;
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 	private final ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal;
-	private FilledStoreGoal filledStoreGoal;
+	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
+	private FilledDBGoal filledStoreGoal;
 
 	@SafeVarargs
-	public FillStoreGoal(GSProject project, String name, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
+	public FillDBGoal(GSProject project, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
 			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, FillSizeGoal fillSizeGoal,
-			ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, FileType.DB), Goal.append(deps, categoriesGoal, taxNodesGoal,
-				fnaFilesGoal, accessionMapGoal, fillSizeGoal, bloomFilterGoal));
+			ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
+			Goal<GSProject>... deps) {
+		super(project, GSGoalKey.TEMPDB, project.getOutputFile(GSGoalKey.TEMPDB.getName(), FileType.DB, false),
+				Goal.append(deps, categoriesGoal, taxNodesGoal, fnaFilesGoal, accessionMapGoal, fillSizeGoal,
+						bloomFilterGoal, taxTreeGoal, additionalGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
 		this.additionalGoal = additionalGoal;
 		this.accessionMapGoal = accessionMapGoal;
 		this.bloomFilterGoal = bloomFilterGoal;
+		this.taxTreeGoal = taxTreeGoal;
 	}
 
-	public void setFilledStoreGoal(FilledStoreGoal filledStoreGoal) {
+	public void setFilledStoreGoal(FilledDBGoal filledStoreGoal) {
 		this.filledStoreGoal = filledStoreGoal;
 	}
 
 	@Override
 	public void makeFile(File storeFile) {
-		KMerSortedArray<String> store = new KMerSortedArray<String>(getProject().getConfig().getKMerSize(),
-				getProject().getConfig().getBloomFilterFpp(), null, false);
+		KMerSortedArray<String> store = new KMerSortedArray<String>(intConfigValue(GSConfigKey.KMER_SIZE),
+				doubleConfigValue(GSConfigKey.BLOOM_FILTER_FPP), null, false);
 		store.initSize(bloomFilterGoal.get().getEntries());
 
 		try {
-			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getInitialReadSizeBytes(),
-					taxNodesGoal.get(), accessionMapGoal.get(), store, getProject().getMaxGenomesPerTaxid(), getProject().getMaxDust());
+			MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
+					taxNodesGoal.get(), accessionMapGoal.get(), store,
+					intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID), intConfigValue(GSConfigKey.MAX_DUST));
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
@@ -98,16 +107,20 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 			if (getLogger().isWarnEnabled()) {
 				getLogger().warn("Not stored kmers: " + fastaReader.tooManyCounter);
 			}
-
 			store.optimize();
-
-			KMerStoreWrapper wrapper = new KMerStoreWrapper((KMerSortedArray<String>) store);
-			File filterFile = getProject().getFilterFile(this);
-			wrapper.save(storeFile, filterFile);
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("File saved " + storeFile + " along with index " + filterFile);
+			TaxTree taxTree = taxTreeGoal.get();
+			for (String tax : store.getValues()) {
+				TaxIdNode node = taxTree.getNodeByTaxId(tax);
+				if (node != null) {
+					node.markRequired();
+				}
 			}
-			filledStoreGoal.setStoreWrapper(wrapper);
+			Database wrapper = new Database((KMerSortedArray<String>) store, taxTreeGoal.get().toSmallTaxTree());
+			wrapper.save(storeFile);
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("File saved " + storeFile + " along with index.");
+			}
+			filledStoreGoal.setDatabase(wrapper);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -129,9 +142,8 @@ public class FillStoreGoal extends FileListGoal<GSProject> {
 				tooManyCounter++;
 			} else {
 				if (node.getTaxId() != null) {
-					store.putLong(byteRingBuffer.getKMer() , node.getTaxId());
-				}
-				else {
+					store.putLong(byteRingBuffer.getKMer(), node.getTaxId());
+				} else {
 					if (getLogger().isWarnEnabled()) {
 						getLogger().warn("Tax id node without taxid: " + node.getName());
 					}

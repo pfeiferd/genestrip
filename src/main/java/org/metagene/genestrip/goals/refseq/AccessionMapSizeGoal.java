@@ -27,7 +27,11 @@ package org.metagene.genestrip.goals.refseq;
 import java.io.File;
 import java.util.Set;
 
+import org.metagene.genestrip.GSConfigKey;
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.io.StreamingFileResource;
+import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.AccessionFileProcessor;
@@ -38,10 +42,10 @@ public class AccessionMapSizeGoal extends ObjectGoal<Integer, GSProject> {
 	private final RefSeqCatalogDownloadGoal catalogGoal;
 
 	@SafeVarargs
-	public AccessionMapSizeGoal(GSProject project, String name,
+	public AccessionMapSizeGoal(GSProject project, 
 			ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal, RefSeqCatalogDownloadGoal catalogGoal,
 			RefSeqFnaFilesDownloadGoal downloadGoal, Goal<GSProject>... deps) {
-		super(project, name, Goal.append(deps, categoriesGoal, catalogGoal, downloadGoal));
+		super(project, GSGoalKey.ACCMAPSIZE, Goal.append(deps, categoriesGoal, catalogGoal, downloadGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.catalogGoal = catalogGoal;
 	}
@@ -50,11 +54,11 @@ public class AccessionMapSizeGoal extends ObjectGoal<Integer, GSProject> {
 	public void makeThis() {
 		File catalogFile = catalogGoal.getCatalogFile();
 		AccessionFileProcessor processor = new AccessionFileProcessor(categoriesGoal.get()[1],
-				getProject().isUseCompleteGenomesOnly()) {
+				booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY)) {
 			private int counter = 0;
 
 			@Override
-			public void processCatalog(File catalogFile) {
+			public void processCatalog(StreamingResource catalogFile) {
 				super.processCatalog(catalogFile);
 				set(counter);
 
@@ -68,6 +72,6 @@ public class AccessionMapSizeGoal extends ObjectGoal<Integer, GSProject> {
 				counter++;
 			}
 		};
-		processor.processCatalog(catalogFile);
+		processor.processCatalog(new StreamingFileResource(catalogFile));
 	}
 }

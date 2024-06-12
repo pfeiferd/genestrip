@@ -28,9 +28,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
+import org.metagene.genestrip.GSConfigKey;
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
+import org.metagene.genestrip.goals.BloomIndexedGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -38,34 +41,33 @@ import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerSortedArray.KMerSortedArrayVisitor;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.store.KMerStoreWrapper;
+import org.metagene.genestrip.store.Database;
 
 public class BloomIndexGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
-	private final ObjectGoal<KMerStoreWrapper, GSProject> filledStoreGoal;
+	private final ObjectGoal<Database, GSProject> filledStoreGoal;
 	private BloomIndexedGoal indexedGoal;
 
 	@SafeVarargs
-	public BloomIndexGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
-			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, ObjectGoal<KMerStoreWrapper, GSProject> filledStoreGoal,
+	public BloomIndexGoal(GSProject project, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
+			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, ObjectGoal<Database, GSProject> filledStoreGoal,
 			Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, FileType.FILTER),
+		super(project, GSGoalKey.INDEX, project.getOutputFile(GSGoalKey.INDEX.getName(), FileType.FILTER),
 				append(deps, taxTreeGoal, taxNodesGoal, filledStoreGoal));
 		this.taxTreeGoal = taxTreeGoal;
 		this.taxNodesGoal = taxNodesGoal;
 		this.filledStoreGoal = filledStoreGoal;
 	}
-	
+
 	public void setBloomIndexedGoal(BloomIndexedGoal indexedGoal) {
 		this.indexedGoal = indexedGoal;
 	}
-	
 
 	@Override
 	public void makeFile(File filterFile) {
 		try {
-			KMerStoreWrapper wrapper = filledStoreGoal.get();
+			Database wrapper = filledStoreGoal.get();
 			KMerSortedArray<String> store = wrapper.getKmerStore();
 			TaxTree taxTree = taxTreeGoal.get();
 			Set<TaxIdNode> nodes = taxNodesGoal.get();
@@ -88,11 +90,10 @@ public class BloomIndexGoal extends FileListGoal<GSProject> {
 				getLogger().info("Bloom filter size " + counter[0]);
 			}
 
-			MurmurCGATBloomFilter filter = new MurmurCGATBloomFilter(getProject().getConfig().getKMerSize(),
-					getProject().getConfig().getBloomFilterFpp());
+			MurmurCGATBloomFilter filter = new MurmurCGATBloomFilter(intConfigValue(GSConfigKey.KMER_SIZE),
+					doubleConfigValue(GSConfigKey.BLOOM_FILTER_FPP));
 			filter.ensureExpectedSize(counter[0], false);
 
-			
 			store.visit(new KMerSortedArrayVisitor<String>() {
 				@Override
 				public void nextValue(KMerSortedArray<String> trie, long kmer, short index, long i) {
@@ -105,12 +106,12 @@ public class BloomIndexGoal extends FileListGoal<GSProject> {
 					}
 				}
 			});
-			
+
 			filter.save(filterFile);
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("File saved " + filterFile);
 			}
-			
+
 			indexedGoal.setFilter(filter);
 		} catch (IOException e) {
 			throw new RuntimeException(e);

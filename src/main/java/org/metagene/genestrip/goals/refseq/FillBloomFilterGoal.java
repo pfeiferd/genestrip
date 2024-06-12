@@ -29,6 +29,8 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
+import org.metagene.genestrip.GSConfigKey;
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
 import org.metagene.genestrip.make.Goal;
@@ -47,12 +49,11 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 	private final ObjectGoal<Long, GSProject> sizeGoal;
 
 	@SafeVarargs
-	public FillBloomFilterGoal(GSProject project, String name,
-			ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
+	public FillBloomFilterGoal(GSProject project, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
 			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, FillSizeGoal sizeGoal, Goal<GSProject>... deps) {
-		super(project, name, Goal.append(deps, taxNodesGoal, fnaFilesGoal, accessionMapGoal, sizeGoal));
+		super(project, GSGoalKey.FILLINDEX, Goal.append(deps, taxNodesGoal, fnaFilesGoal, accessionMapGoal, sizeGoal, additionalGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
@@ -64,13 +65,13 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 	@Override
 	public void makeThis() {
 		try {
-			MurmurCGATBloomFilter filter = new MurmurCGATBloomFilter(getProject().getConfig().getKMerSize(),
-					getProject().getConfig().getBloomFilterFpp());
+			MurmurCGATBloomFilter filter = new MurmurCGATBloomFilter(intConfigValue(GSConfigKey.KMER_SIZE),
+					doubleConfigValue(GSConfigKey.BLOOM_FILTER_FPP));
 			filter.ensureExpectedSize(sizeGoal.get(), false);
 
-			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getInitialReadSizeBytes(),
-					taxNodesGoal.get(), accessionMapGoal.get(), filter, getProject().getMaxGenomesPerTaxid(),
-					getProject().getMaxDust());
+			MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
+					taxNodesGoal.get(), accessionMapGoal.get(), filter,
+					intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID), intConfigValue(GSConfigKey.MAX_DUST));
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);

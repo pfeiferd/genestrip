@@ -22,39 +22,42 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.goals.refseq;
+package org.metagene.genestrip.goals;
 
-import java.io.IOException;
-
+import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
-import org.metagene.genestrip.make.FileGoal;
+import org.metagene.genestrip.make.FileDownloadGoal;
 import org.metagene.genestrip.make.Goal;
-import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.make.GoalKey;
 
-public class BloomIndexedGoal extends ObjectGoal<MurmurCGATBloomFilter, GSProject> {
-	private final FileGoal<GSProject> bloomIndexGoal;
-
+public abstract class GSFileDownloadGoal extends FileDownloadGoal<GSProject> {
 	@SafeVarargs
-	public BloomIndexedGoal(GSProject project, String name, FileGoal<GSProject> bloomIndexGoal,
-			Goal<GSProject>... dependencies) {
-		super(project, name, Goal.append(dependencies, bloomIndexGoal));
-		this.bloomIndexGoal = bloomIndexGoal;
+	public GSFileDownloadGoal(GSProject project, GoalKey key, Goal<GSProject>... deps) {
+		super(project, key, deps);
 	}
 
 	@Override
-	public void makeThis() {
-		try {
-			MurmurCGATBloomFilter filter = MurmurCGATBloomFilter.load(bloomIndexGoal.getFile());
-			set(filter);
-		} catch (ClassNotFoundException e) {
-			throw new RuntimeException(e);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}		
+	protected String getHttpBaseURL() {
+		return stringConfigValue(GSConfigKey.HTTP_BASE_URL);
 	}
-	
-	void setFilter(MurmurCGATBloomFilter object) {
-		set(object);
+
+	@Override
+	protected String getFTPBaseURL() {
+		return stringConfigValue(GSConfigKey.FTP_BASE_URL);
+	}
+
+	@Override
+	protected boolean isUseHttp() {
+		return booleanConfigValue(GSConfigKey.USE_HTTP);
+	}
+
+	@Override
+	protected boolean isIgnoreMissingFiles() {
+		return booleanConfigValue((GSConfigKey.IGNORE_MISSING_FASTAS));
+	}
+
+	@Override
+	protected int getMaxDownloadTries() {
+		return intConfigValue(GSConfigKey.MAX_DOWNLOAD_TRIES);
 	}
 }

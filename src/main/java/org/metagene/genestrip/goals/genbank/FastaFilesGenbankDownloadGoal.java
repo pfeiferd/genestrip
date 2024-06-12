@@ -36,14 +36,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.genbank.AssemblySummaryReader.FTPEntryWithQuality;
-import org.metagene.genestrip.make.FileDownloadGoal;
+import org.metagene.genestrip.goals.GSFileDownloadGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-public class FastaFilesGenbankDownloadGoal extends FileDownloadGoal<GSProject> {
+public class FastaFilesGenbankDownloadGoal extends GSFileDownloadGoal {
 	private final ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> entryGoal;
 	private final int baseURLLen;
 
@@ -51,11 +52,11 @@ public class FastaFilesGenbankDownloadGoal extends FileDownloadGoal<GSProject> {
 	private Map<String, Object> fileToDir;
 
 	@SafeVarargs
-	public FastaFilesGenbankDownloadGoal(GSProject project, String name,
+	public FastaFilesGenbankDownloadGoal(GSProject project,
 			ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> entryGoal, Goal<GSProject>... deps) {
-		super(project, name, append(deps, entryGoal));
+		super(project, GSGoalKey.FASTAGSENBANKDL, append(deps, entryGoal));
 		this.entryGoal = entryGoal;
-		baseURLLen = project.getConfig().getHttpBaseURL().length();
+		baseURLLen = getHttpBaseURL().length();
 	}
 
 	@Override
@@ -85,7 +86,7 @@ public class FastaFilesGenbankDownloadGoal extends FileDownloadGoal<GSProject> {
 								if (!new File(url.getPath()).isAbsolute()) {
 									try {
 										url = new URL("file", null,
-												new File(getProject().getBaseDir(), url.getFile()).getCanonicalPath());
+												new File(getProject().getCommon().getBaseDir(), url.getFile()).getCanonicalPath());
 									} catch (IOException e) {
 										throw new RuntimeException(e);
 									}
@@ -109,7 +110,7 @@ public class FastaFilesGenbankDownloadGoal extends FileDownloadGoal<GSProject> {
 	}
 
 	protected File getFastaDir() {
-		return getProject().getGenbankDir();
+		return getProject().getCommon().getGenbankDir();
 	}
 
 	@Override
@@ -129,6 +130,7 @@ public class FastaFilesGenbankDownloadGoal extends FileDownloadGoal<GSProject> {
 		return (String) fileToDir.get(file.getName());
 	}
 
+	@Override
 	protected boolean isAdditionalFile(File file) {
 		return fileToDir.get(file.getName()) instanceof URL;
 	}
@@ -139,13 +141,11 @@ public class FastaFilesGenbankDownloadGoal extends FileDownloadGoal<GSProject> {
 
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Additional download for " + url.toExternalForm());
-		}
-		ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
-		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Saving file " + file.toString());
 		}
-		FileOutputStream out = new FileOutputStream(file);
-		out.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
-		out.close();
+		try (ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
+				FileOutputStream out = new FileOutputStream(file)) {
+			out.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+		}
 	}
 }

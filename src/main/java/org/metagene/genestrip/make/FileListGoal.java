@@ -29,38 +29,38 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public abstract class FileListGoal<P> extends FileGoal<P> {
+public abstract class FileListGoal<P extends Project> extends FileGoal<P> {
 	private boolean filesProvided;
 	private final List<File> files;
-		
+
 	@SafeVarargs
-	public FileListGoal(P project, String name, File file, Goal<P>... dependencies) {
-		this(project, name, Collections.singletonList(file), false, dependencies);
+	public FileListGoal(P project, GoalKey key, File file, Goal<P>... dependencies) {
+		this(project, key, Collections.singletonList(file), false, dependencies);
 	}
-	
+
 	@SafeVarargs
-	public FileListGoal(P project, String name, List<File> files, Goal<P>... dependencies) {
-		this(project, name, files, false, dependencies);
+	public FileListGoal(P project, GoalKey key, List<File> files, Goal<P>... dependencies) {
+		this(project, key, files, false, dependencies);
 	}
-	
+
 	@SafeVarargs
-	public FileListGoal(P project, String name, List<File> files, boolean allowEmptyFiles, Goal<P>... dependencies) {
-		super(project, name, dependencies);
+	public FileListGoal(P project, GoalKey key, List<File> files, boolean allowEmptyFiles, Goal<P>... dependencies) {
+		super(project, key, dependencies);
 		this.files = files != null ? new ArrayList<File>(files) : new ArrayList<File>();
 	}
-	
+
 	protected void addFile(File file) {
 		files.add(file);
 	}
-	
+
 	protected void provideFiles() {
 	}
-	
+
 	public List<File> getFiles() {
 		if (!filesProvided) {
 			provideFiles();
 			filesProvided = true;
 		}
 		return files;
-	}	
+	}
 }

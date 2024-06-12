@@ -48,29 +48,6 @@ public class StreamProvider {
 	public static int getBufferSize() {
 		return bufferSize;
 	}
-	
-	public static ByteCountingInputStreamAccess getByteCountingInputStreamForFile(File file, boolean noGZ)
-			throws IOException {
-		final ByteCountingFileInputStream in = new ByteCountingFileInputStream(file);
-		InputStream[] res = new InputStream[1];
-		res[0] = getInputStreamForFile(file, noGZ);
-		if (!noGZ && isGZIPFile(file)) {
-			res[0] = new GZIPInputStream(in, bufferSize);
-		} else {
-			res[0] = new BufferedInputStream(in, bufferSize);
-		}
-		return new ByteCountingInputStreamAccess() {
-			@Override
-			public long getBytesRead() {
-				return in.getBytesRead();
-			}
-
-			@Override
-			public InputStream getInputStream() {
-				return res[0];
-			}
-		};
-	}
 
 	public static InputStream getInputStreamForFile(File file) throws IOException {
 		return getInputStreamForFile(file, false);
@@ -141,11 +118,5 @@ public class StreamProvider {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-	public interface ByteCountingInputStreamAccess {
-		public InputStream getInputStream();
-
-		public long getBytesRead();
 	}
 }

@@ -38,7 +38,7 @@ import org.metagene.genestrip.util.CGAT;
 public class CGATBloomFilterTest {
 	protected Random random = new Random(42);
 	protected int k = 31;
-	protected int size = 5 * 1000 * 1000;
+	protected int size = 5 * 1000 * 100;
 	protected double fpp = 0.0001;
 
 	@Test

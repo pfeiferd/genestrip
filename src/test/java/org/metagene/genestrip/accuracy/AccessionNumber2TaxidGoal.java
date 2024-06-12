@@ -32,12 +32,14 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.fasta.AbstractFastaReader;
 import org.metagene.genestrip.io.BufferedLineReader;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.make.GoalKey.DefaultGoalKey;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
 public class AccessionNumber2TaxidGoal extends ObjectGoal<Map<String, String>, GSProject> {
@@ -49,8 +51,8 @@ public class AccessionNumber2TaxidGoal extends ObjectGoal<Map<String, String>, G
 	private final File fastaFile;
 
 	@SafeVarargs
-	public AccessionNumber2TaxidGoal(GSProject project, String name, File fastaFile, Goal<GSProject>... dependencies) {
-		super(project, name, dependencies);
+	public AccessionNumber2TaxidGoal(GSProject project, File fastaFile, Goal<GSProject>... dependencies) {
+		super(project, new DefaultGoalKey("acc2taxid"), dependencies);
 		this.fastaFile = fastaFile;
 	}
 
@@ -58,7 +60,7 @@ public class AccessionNumber2TaxidGoal extends ObjectGoal<Map<String, String>, G
 	public void makeThis() {
 		final Map<String, String> accesion2TaxidMap = new HashMap<String, String>();
 		Set<String> accNumbers = new HashSet<String>();
-		AbstractFastaReader fastaReader1 = new AbstractFastaReader(getProject().getConfig().getInitialReadSizeBytes()) {
+		AbstractFastaReader fastaReader1 = new AbstractFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES)) {
 			@Override
 			protected void infoLine() throws IOException {
 				String acc = getAccessionNumberFromInfoLine(target, size);
@@ -84,22 +86,21 @@ public class AccessionNumber2TaxidGoal extends ObjectGoal<Map<String, String>, G
 
 	protected void fillAccessionNumbersToTaxIdsMap(String fileName, Map<String, String> accesion2TaxidMap,
 			Set<String> accNumbers) throws IOException {
-
-		InputStream in = StreamProvider
-				.getInputStreamForFile(new File(getProject().getConfig().getCommonDir(), fileName));
-
-		BufferedLineReader br = new BufferedLineReader(in);
-		int size;
-		byte[] target = new byte[2048];
-		br.nextLine(target);
-		while ((size = br.nextLine(target)) > 0) {
-			int tab1 = ByteArrayUtil.indexOf(target, 0, size, '\t');
-			int tab2 = ByteArrayUtil.indexOf(target, tab1 + 1, size, '\t');
-			String acc = new String(target, tab1 + 1, tab2 - tab1 - 1);
-			if (accNumbers.contains(acc)) {
-				int tab3 = ByteArrayUtil.indexOf(target, tab2 + 1, size, '\t');
-				String tax = new String(target, tab2 + 1, tab3 - tab2 - 1);
-				accesion2TaxidMap.put(acc, tax);
+		try (InputStream in = StreamProvider
+				.getInputStreamForFile(new File(getProject().getCommon().getCommonDir(), fileName));
+				BufferedLineReader br = new BufferedLineReader(in)) {
+			int size;
+			byte[] target = new byte[2048];
+			br.nextLine(target);
+			while ((size = br.nextLine(target)) > 0) {
+				int tab1 = ByteArrayUtil.indexOf(target, 0, size, '\t');
+				int tab2 = ByteArrayUtil.indexOf(target, tab1 + 1, size, '\t');
+				String acc = new String(target, tab1 + 1, tab2 - tab1 - 1);
+				if (accNumbers.contains(acc)) {
+					int tab3 = ByteArrayUtil.indexOf(target, tab2 + 1, size, '\t');
+					String tax = new String(target, tab2 + 1, tab3 - tab2 - 1);
+					accesion2TaxidMap.put(acc, tax);
+				}
 			}
 		}
 	}

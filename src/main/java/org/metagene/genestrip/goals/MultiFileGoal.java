@@ -25,121 +25,60 @@
 package org.metagene.genestrip.goals;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVParser;
-import org.apache.commons.csv.CSVRecord;
-import org.apache.commons.logging.Log;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
-import org.metagene.genestrip.io.StreamProvider;
-import org.metagene.genestrip.io.StreamingFileResource;
 import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.make.GoalKey;
+import org.metagene.genestrip.make.ObjectGoal;
 
 public abstract class MultiFileGoal extends FileListGoal<GSProject> {
-	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#')
-			.setDelimiter(' ').setRecordSeparator('\n').build();
-
-	private final boolean csv;
-	private final File csvOrFastqFile;
+	protected final ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapGoal;
 	protected final Map<File, List<StreamingResource>> fileToFastqs;
+	protected final Map<File, String> fileToKeyMap;
 
 	@SafeVarargs
-	public MultiFileGoal(GSProject project, String name, Goal<GSProject>... deps) {
-		super(project, name, (List<File>) null, deps);
-		this.csv = true;
-		this.csvOrFastqFile = null;
+	public MultiFileGoal(GSProject project, GoalKey key,
+			ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapGoal, Goal<GSProject>... deps) {
+		super(project, key, (List<File>) null, append(deps, fastqMapGoal));
+		this.fastqMapGoal = fastqMapGoal;
 		fileToFastqs = new HashMap<File, List<StreamingResource>>();
-	}
-
-	@SafeVarargs
-	public MultiFileGoal(GSProject project, String name, boolean csv, File csvOrFastqFile, Goal<GSProject>... deps) {
-		super(project, name, (List<File>) null, deps);
-		this.csv = csv;
-		this.csvOrFastqFile = csvOrFastqFile;
-		fileToFastqs = new HashMap<File, List<StreamingResource>>();
+		fileToKeyMap = new HashMap<File, String>();
 	}
 
 	protected File getSourceDir() {
 		return getProject().getFastqDir();
 	}
+	
+	public Map<File, String> getFileToKeyMap() {
+		return fileToKeyMap;
+	}
 
 	@Override
 	protected void provideFiles() {
-		Map<String, List<StreamingResource>> keyToFastqs = getProject().getKeyToFastqs();
-		if (keyToFastqs == null) {
-			if (csv) {
-				keyToFastqs = readMultiCSV(getSourceDir(), null, csvOrFastqFile, getLogger());
-			} else {
-				keyToFastqs = new HashMap<String, List<StreamingResource>>();
-				keyToFastqs.put(null, Collections.singletonList(new StreamingFileResource(csvOrFastqFile)));
-			}
-		}
+		Map<String, List<StreamingResource>> keyToFastqs = fastqMapGoal.get();
 		for (String key : keyToFastqs.keySet()) {
 			File matchFile;
 			if (key != null) {
-				matchFile = getProject().getOutputFile(getName(), key, null, FileType.CSV, false);
+				matchFile = getProject().getOutputFile(getKey().getName(), key, null, getFileType(), isUseGZip());
 			} else {
 				StreamingResource file = keyToFastqs.get(null).get(0);
-				matchFile = getProject().getOutputFile(getName(), null, file.getName(), FileType.CSV, false);
+				matchFile = getProject().getOutputFile(getKey().getName(), null, file.getName(), getFileType(), isUseGZip());
 			}
 			addFile(matchFile);
 			fileToFastqs.put(matchFile, keyToFastqs.get(key));
+			fileToKeyMap.put(matchFile, key);
 		}
 	}
-
-	// We use a linked hash map because it preserves the order of the keys from the
-	// file.
-	public static LinkedHashMap<String, List<StreamingResource>> readMultiCSV(File defaultDir, File commonDefaultDir, File csvFile, Log logger) {
-		try {
-			LinkedHashMap<String, List<StreamingResource>> res = new LinkedHashMap<String, List<StreamingResource>>();
-			CSVParser parser;
-			parser = readCSVFile(csvFile);
-			for (CSVRecord record : parser) {
-				String name = record.get(0);
-				String fastqFilePath = record.get(1);
-				File fastq = new File(fastqFilePath);
-				if (!fastq.exists()) {
-					fastq = new File(defaultDir, fastqFilePath);
-					if (!fastq.exists() && commonDefaultDir != null) {
-						fastq = new File(commonDefaultDir, fastqFilePath);						
-					}
-				}
-				if (fastq.exists()) {
-					List<StreamingResource> fastqs = res.get(name);
-					if (fastqs == null) {
-						fastqs = new ArrayList<StreamingResource>();
-						res.put(name, fastqs);
-					}
-					fastqs.add(new StreamingFileResource(fastq));
-				} else {
-					if (logger.isWarnEnabled()) {
-						logger.warn("Ignoring missing file " + fastq + ".");
-					}
-				}
-			}
-
-			parser.close();
-
-			return res;
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+	
+	protected boolean isUseGZip() {
+		return false;
 	}
-
-	public static CSVParser readCSVFile(File csvFile) throws IOException {
-		Reader in = new InputStreamReader(StreamProvider.getInputStreamForFile(csvFile));
-		return FORMAT.parse(in);
-	}
+	
+	protected abstract FileType getFileType();
 }

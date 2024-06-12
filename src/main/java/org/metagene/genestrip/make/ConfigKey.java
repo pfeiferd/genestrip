@@ -22,16 +22,14 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.goals.refseq;
+package org.metagene.genestrip.make;
 
-import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.make.FileGoal;
-import org.metagene.genestrip.make.Goal;
+public interface ConfigKey {
+	public String getName();
 
-public class UpdatedStoreGoal extends FilledStoreGoal {
-	@SafeVarargs
-	public UpdatedStoreGoal(GSProject project, String name, FileGoal<GSProject> updateStoreGoal,
-			Goal<GSProject>... dependencies) {
-		super(project, name, updateStoreGoal, Goal.append(dependencies, updateStoreGoal));
+	public ConfigParamInfo<?> getInfo();
+
+	default public boolean isForGoal(GoalKey forGoal) {
+		return true;
 	}
 }

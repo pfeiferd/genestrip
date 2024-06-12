@@ -27,9 +27,12 @@ package org.metagene.genestrip.goals;
 import java.io.IOException;
 import java.util.Set;
 
+import org.metagene.genestrip.GSConfigKey;
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxIdCollector;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
@@ -38,9 +41,9 @@ public class TaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 
 	@SafeVarargs
-	public TaxNodesGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
+	public TaxNodesGoal(GSProject project, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
 			Goal<GSProject>... deps) {
-		super(project, name, Goal.append(deps, taxTreeGoal));
+		super(project, GSGoalKey.TAXNODES, Goal.append(deps, taxTreeGoal));
 		this.taxTreeGoal = taxTreeGoal;
 	}
 	
@@ -56,7 +59,7 @@ public class TaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Requested tax ids: " + taxIdNodes);
 			}
-			taxIdNodes = taxIdCollector.withDescendants(taxIdNodes, getProject().getRankCompletionDepth());
+			taxIdNodes = taxIdCollector.withDescendants(taxIdNodes, (Rank) configValue(GSConfigKey.RANK_COMPLETION_DEPTH));
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Number of completed tax ids: " + taxIdNodes.size());
 			}

@@ -28,30 +28,32 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.file.Files;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.metagene.genestrip.io.StreamProvider;
-import org.metagene.genestrip.make.FileDownloadGoal.DownloadProject;
 
-public abstract class FileDownloadGoal<P extends DownloadProject> extends FileGoal<P> {
+public abstract class FileDownloadGoal<P extends Project> extends FileGoal<P> {
+	private final Map<File, Boolean> checkSumOkMap;
 	private FTPClient ftpClient;
-	private List<File> availableFiles;
 
 	@SafeVarargs
-	public FileDownloadGoal(P project, String name, Goal<P>... deps) {
-		super(project, name, deps);
-		availableFiles = new ArrayList<File>();
-	}
-
-	public List<File> getAvailableFiles() {
-		return availableFiles;
+	public FileDownloadGoal(P project, GoalKey key, Goal<P>... deps) {
+		super(project, key, deps);
+		checkSumOkMap = new HashMap<File, Boolean>();
 	}
 
 	public FTPClient createFTPClient() {
@@ -70,9 +72,9 @@ public abstract class FileDownloadGoal<P extends DownloadProject> extends FileGo
 
 	protected void connectLoginAndConfigure(FTPClient ftpClient) throws IOException {
 		if (getLogger().isInfoEnabled()) {
-			getLogger().info("FTP Connect " + getProject().getBaseFTPURL());
+			getLogger().info("FTP Connect " + getFTPBaseURL());
 		}
-		ftpClient.connect(getProject().getBaseFTPURL());
+		ftpClient.connect(getFTPBaseURL());
 		login(ftpClient);
 		ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
 	}
@@ -96,21 +98,16 @@ public abstract class FileDownloadGoal<P extends DownloadProject> extends FileGo
 		if (!ftpClient.isConnected()) {
 			connectLoginAndConfigure(ftpClient);
 		}
-
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Saving file " + file.toString());
-		}
-		OutputStream out = StreamProvider.getOutputStreamForFile(file, true);
-		ftpClient.changeWorkingDirectory(getFTPDir(file));
-		if (getLogger().isInfoEnabled()) {
 			getLogger().info("FTP download " + buildFTPURL(file));
 		}
-		if (!ftpClient.retrieveFile(file.getName(), out)) {
-			out.close();
-			file.delete();
-			throw new IllegalStateException("Could not fully download " + file.getName());
-		} else {
-			out.close();
+		try (OutputStream out = StreamProvider.getOutputStreamForFile(file, true)) {
+			ftpClient.changeWorkingDirectory(getFTPDir(file));
+			if (!ftpClient.retrieveFile(file.getName(), out)) {
+				file.delete();
+				throw new IllegalStateException("Could not fully download " + file.getName());
+			}
 		}
 	}
 
@@ -118,14 +115,47 @@ public abstract class FileDownloadGoal<P extends DownloadProject> extends FileGo
 		String url = buildHttpURL(file);
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("HTTP download " + url);
-		}
-		ReadableByteChannel readableByteChannel = Channels.newChannel(new URL(url).openStream());
-		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Saving file " + file.toString());
 		}
-		FileOutputStream out = new FileOutputStream(file);
-		out.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
-		out.close();
+		if (getMD5CheckSum(file) != null) {
+			try {
+				MessageDigest messageDigest = MessageDigest.getInstance("MD5");
+				try (ReadableByteChannel readableByteChannel = Channels
+						.newChannel(new DigestInputStream(new URL(url).openStream(), messageDigest));
+						FileOutputStream out = new FileOutputStream(file)) {
+					out.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+				}
+				// Gotta do it here since result will be cached:
+				boolean res = isCheckSumOk(file, Hex.encodeHexString(messageDigest.digest()));
+				if (getLogger().isInfoEnabled()) {
+					getLogger().info((res ? "OK" : "Wrong") + " MD5 check sum for file: " + file);
+				}
+			} catch (NoSuchAlgorithmException e) {
+				throw new RuntimeException(e);
+			}
+		} else {
+			try (ReadableByteChannel readableByteChannel = Channels.newChannel(new URL(url).openStream());
+					FileOutputStream out = new FileOutputStream(file)) {
+				out.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+			}
+		}
+	}
+
+	protected String computeMD5CheckSum(File file) {
+		String res = null;
+		if (getLogger().isInfoEnabled()) {
+			getLogger().info("Computing MD5 check sum for file: " + file);
+		}
+		try (InputStream is = Files.newInputStream(file.toPath())) {
+			res = DigestUtils.md5Hex(is);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		return res;
+	}
+
+	protected String getMD5CheckSum(File file) {
+		return null;
 	}
 
 	protected String buildHttpURL(File file) {
@@ -135,61 +165,91 @@ public abstract class FileDownloadGoal<P extends DownloadProject> extends FileGo
 	protected String buildFTPURL(File file) {
 		return getFTPBaseURL() + getFTPDir(file) + "/" + file.getName();
 	}
-	
-	protected String getHttpBaseURL() {
-		return getProject().getHttpBaseURL();
-	}
 
-	protected String getFTPBaseURL() {
-		return getProject().getBaseFTPURL();
-	}
-	
+	protected abstract String getHttpBaseURL();
+
+	protected abstract String getFTPBaseURL();
+
+	protected abstract boolean isUseHttp();
+
+	protected abstract boolean isIgnoreMissingFiles();
+
+	protected abstract int getMaxDownloadTries();
+
 	@Override
 	protected void startMake() {
-		if (!getProject().isUseHttp()) {
+		if (!isUseHttp()) {
 			ftpClient = createFTPClient();
 		}
-		availableFiles.clear();
 	}
 
 	@Override
 	public boolean isMade(File file) {
-		boolean res = super.isMade(file);
-		if (res && !availableFiles.contains(file)) {
-			availableFiles.add(file);
+		if (!super.isMade(file)) {
+			return false;
 		}
-		return res;
+		return isCheckSumOk(file, null);
+	}
+
+	protected boolean isCheckSumOk(File file, String computedCheckSum) {
+		String originalCheckSum = getMD5CheckSum(file);
+		if (originalCheckSum == null) {
+			return true;
+		}
+		// The map is a cache for efficiency reasons, as check sum (re-)computation can
+		// be expensive.
+		if (computedCheckSum == null) {
+			Boolean check = checkSumOkMap.get(file);
+			if (check != null) {
+				return check;
+			}
+			computedCheckSum = computeMD5CheckSum(file);
+		}
+		boolean check = originalCheckSum.equals(computedCheckSum);
+		checkSumOkMap.put(file, check);
+		return check;
 	}
 
 	@Override
 	protected void makeFile(File file) throws IOException {
+		boolean checkSumWrong = true;
 		try {
-			if (isAdditionalFile(file)) {
-				additionalDownload(file);
-			} else if (isUseHttp()) {
-				httpDownload(file);
-			} else {
-				ftpDownload(ftpClient, file);
+			int max = getMaxDownloadTries();
+			for (int i = 0; i < max && checkSumWrong; i++) {
+				if (file.exists()) {
+					file.delete();
+				}
+				// Invalidate checkSum chache entry before download....
+				checkSumOkMap.remove(file);
+				if (isAdditionalFile(file)) {
+					additionalDownload(file);
+				} else if (isUseHttp()) {
+					httpDownload(file);
+				} else {
+					ftpDownload(ftpClient, file);
+				}
+				checkSumWrong = !isCheckSumOk(file, null);
+				if (checkSumWrong) {
+					getLogger().warn("Trie " + (i + 1) + " of " + max + ": Bad check sum for downloaded file " + file);
+				}
 			}
-			if (!availableFiles.contains(file)) {
-				availableFiles.add(file);
+			if (checkSumWrong) {
+				throw new FileNotFoundException("Bad check sum for downloaded file " + file);
 			}
 		} catch (FileNotFoundException e) {
-			if (!getProject().isIgnoreMissingFiles()) {
+			if (!isIgnoreMissingFiles()) {
 				throw e;
 			}
-			if (isAdditionalFile(file)) {
+			if (checkSumWrong) {
+				getLogger().warn("Bad check sum for downloaded file " + file.getCanonicalPath());
+			} else if (isAdditionalFile(file)) {
 				getLogger().warn("Missing file for download " + file.getCanonicalPath());
-			} else if (getProject().isUseHttp()) {
+			} else if (isUseHttp()) {
 				getLogger().warn("Missing file for download " + buildHttpURL(file));
 			} else {
 				getLogger().warn("Missing file for download " + buildFTPURL(file));
 			}
 		}
-	}
-	
-	protected boolean isUseHttp() {
-		return getProject().isUseHttp();
 	}
 
 	protected boolean isAdditionalFile(File file) {
@@ -215,16 +275,6 @@ public abstract class FileDownloadGoal<P extends DownloadProject> extends FileGo
 
 	@Override
 	public String toString() {
-		return "download file goal: " + getName();
-	}
-
-	public interface DownloadProject {
-		public boolean isUseHttp();
-
-		public String getBaseFTPURL();
-
-		public String getHttpBaseURL();
-
-		public boolean isIgnoreMissingFiles();
+		return "download file goal: " + getKey().getName();
 	}
 }

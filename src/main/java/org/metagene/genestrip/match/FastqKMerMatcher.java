@@ -26,121 +26,92 @@ package org.metagene.genestrip.match;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.metagene.genestrip.fastq.AbstractFastqReader;
+import org.metagene.genestrip.ExecutionContext;
+import org.metagene.genestrip.fastq.AbstractLoggingFastqStreamer;
 import org.metagene.genestrip.io.StreamProvider;
-import org.metagene.genestrip.io.StreamProvider.ByteCountingInputStreamAccess;
+import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerUniqueCounter;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
-import org.metagene.genestrip.tax.TaxTree;
-import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.tax.SmallTaxTree;
+import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.DigitTrie;
-import org.metagene.genestrip.util.ExecutorServiceBundle;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
-@Deprecated
-public class FastqKMerMatcher extends AbstractFastqReader {
-	public static final long DEFAULT_LOG_UPDATE_CYCLE = 1000000;
-
-	private static final String INVALID_TAX = "invalidTax";
-
-	private final KMerSortedArray<String> kmerStore;
+public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
+	private final KMerSortedArray<SmallTaxIdNode> kmerStore;
 	private final int maxKmerResCounts;
 
 	protected KMerUniqueCounter uniqueCounter;
 	protected TaxidStatsTrie root;
 
-	private ByteCountingInputStreamAccess byteCountAccess;
-	private int coveredCounter;
-	private int totalCount;
-	private File currentFastq;
-	private long fastqsFileSize;
-	private long coveredFilesSize;
-	private long startTime;
-	private long indexedC;
-	private final TaxTree taxTree;
+	private final int maxPaths;
+	protected long indexedC;
+	private final SmallTaxTree taxTree;
 	protected final double maxReadTaxErrorCount;
-
 	private OutputStream indexed;
 
-	private final Integer maxReadSize;
-
-	private long logUpdateCycle = DEFAULT_LOG_UPDATE_CYCLE;
+	// This should stay a box type for the line root.get(taxid.getTaxId(), maxReadSize);
+	private final Integer initialReadSize;
 
 	// A PrintStream is implicitly synchronized. So we don't need to worry about
 	// multi-threading when using it.
 	protected PrintStream out;
 
-	public FastqKMerMatcher(KMerSortedArray<String> kmerStore, int maxReadSize, int maxQueueSize,
-			ExecutorServiceBundle bundle, int maxKmerResCounts, TaxTree taxTree, double maxReadTaxErrorCount) {
-		super(kmerStore.getK(), maxReadSize, maxQueueSize, bundle);
+	public FastqKMerMatcher(KMerSortedArray<SmallTaxIdNode> kmerStore, int initialReadSize, int maxQueueSize,
+			ExecutionContext bundle, int maxKmerResCounts, SmallTaxTree taxTree, int maxPaths,
+			double maxReadTaxErrorCount) {
+		super(kmerStore.getK(), initialReadSize, maxQueueSize, bundle, maxPaths);
 		this.kmerStore = kmerStore;
-		this.maxReadSize = maxReadSize;
+		this.initialReadSize = initialReadSize;
 		this.maxKmerResCounts = maxKmerResCounts;
 		this.taxTree = taxTree;
 		this.maxReadTaxErrorCount = maxReadTaxErrorCount;
+		this.maxPaths = maxPaths;
+		if (taxTree != null) {
+			taxTree.initCountSize(bundle.getThreads() <= 0 ? 1 : bundle.getThreads());
+		}
 	}
 
 	@Override
-	protected ReadEntry createReadEntry(int maxReadSizeBytes, Object... config) {
-		return new MyReadEntry(maxReadSizeBytes, out != null);
+	protected ReadEntry createReadEntry(int initialReadSizeBytes, Object... config) {
+		return new MyReadEntry(initialReadSizeBytes, out != null, (int) config[0]);
 	}
 
-	public MatchingResult runMatcher(File fastq, File filteredFile, File krakenOutStyleFile,
+	public MatchingResult runMatcher(StreamingResource fastq, File filteredFile, File krakenOutStyleFile,
 			KMerUniqueCounter uniqueCounter) throws IOException {
 		return runMatcher(Collections.singletonList(fastq), filteredFile, krakenOutStyleFile, uniqueCounter);
 	}
 
-	public MatchingResult runMatcher(List<File> fastqs, File filteredFile, File krakenOutStyleFile,
+	public MatchingResult runMatcher(List<StreamingResource> fastqs, File filteredFile, File krakenOutStyleFile,
 			KMerUniqueCounter uniqueCounter) throws IOException {
-		if (filteredFile != null) {
-			indexed = StreamProvider.getOutputStreamForFile(filteredFile);
-		} else {
-			indexed = null;
-		}
-		if (krakenOutStyleFile != null) {
-			// A PrintStream is implicitly synchronized. So we don't need to worry about
-			// multi threading when using it.
-			out = new PrintStream(StreamProvider.getOutputStreamForFile(krakenOutStyleFile));
-		} else {
-			out = null;
-		}
+		try (OutputStream lindexed = filteredFile != null ? StreamProvider.getOutputStreamForFile(filteredFile) : null;
+				// A PrintStream is implicitly synchronized. So we don't need to worry about
+				// multi threading when using it.
+				PrintStream lout = krakenOutStyleFile != null
+						? new PrintStream(StreamProvider.getOutputStreamForFile(krakenOutStyleFile))
+						: null) {
+			indexed = lindexed;
+			out = lout;
 
-		startTime = System.currentTimeMillis();
-
-		initRoot();
-		initUniqueCounter(uniqueCounter);
-
-		totalCount = fastqs.size();
-		for (File fastq : fastqs) {
-			fastqsFileSize += Files.size(fastq.toPath());
+			initRoot();
+			initUniqueCounter(uniqueCounter);
+			processFastqStreams(fastqs);
 		}
-		coveredCounter = 0;
-		for (File fastq : fastqs) {
-			currentFastq = fastq;
-			byteCountAccess = StreamProvider.getByteCountingInputStreamForFile(fastq, false);
-			readFastq(byteCountAccess.getInputStream());
-			coveredFilesSize += byteCountAccess.getBytesRead();
-			byteCountAccess.getInputStream().close();
-			coveredCounter++;
-		}
-
-		if (indexed != null) {
-			indexed.close();
-			out.close();
-		}
+		out = null;
+		indexed = null;
 
 		List<CountsPerTaxid> allStats = new ArrayList<CountsPerTaxid>();
 		root.collect(allStats);
@@ -175,6 +146,17 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 				countMap == null ? null : countMap.get(null));
 	}
 
+	@Override
+	protected void readFastq(InputStream inputStream) throws IOException {
+		if (taxTree != null) {
+			taxTree.resetCounts(this);
+		}
+		super.readFastq(inputStream);
+		if (taxTree != null) {
+			taxTree.releaseOwner();
+		}
+	}
+
 	protected void initRoot() {
 		root = new TaxidStatsTrie();
 	}
@@ -190,13 +172,17 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	protected void nextEntry(ReadEntry entry, int index) throws IOException {
 		MyReadEntry myEntry = (MyReadEntry) entry;
 		myEntry.bufferPos = 0;
-		myEntry.readTaxId = null;
-		myEntry.readTaxIdNode = null;
-		myEntry.readTaxErrorCount = 0;
 
-		boolean found = matchRead(myEntry, false);
+		myEntry.usedPaths = 0;
+		myEntry.classNode = null;
+		for (int i = 0; i < maxPaths; i++) {
+			myEntry.readTaxIdNode[i] = null;
+			myEntry.counts[i] = 0;
+		}
+
+		boolean found = matchRead(myEntry, index, false);
 		if (!found) {
-			found = matchRead(myEntry, true);
+			found = matchRead(myEntry, index, true);
 		}
 		afterMatch(myEntry, found);
 	}
@@ -214,120 +200,89 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		}
 	}
 
-	@Override
-	protected void start() throws IOException {
-		indexedC = 0;
-		if (logger.isInfoEnabled()) {
-			logger.info("Processing fastq file (" + (coveredCounter + 1) + "/" + totalCount + "): " + currentFastq);
-		}
-	}
-
-	@Override
-	protected void updateWriteStats() {
-		indexedC++;
-	}
-
-	@Override
-	protected void log() {
-		if (reads % logUpdateCycle == 0) {
-			if (logger.isInfoEnabled()) {
-				double ratio = (coveredFilesSize + byteCountAccess.getBytesRead()) / (double) fastqsFileSize;
-				long stopTime = System.currentTimeMillis();
-
-				double diff = (stopTime - startTime);
-				double totalTime = diff / ratio;
-				double totalHours = totalTime / 1000 / 60 / 60;
-
-				logger.info("Elapsed hours: " + diff / 1000 / 60 / 60);
-				logger.info("Estimated total hours: " + totalHours);
-				logger.info("Reads processed: " + reads);
-				logger.info("Indexed: " + indexedC);
-				logger.info("Indexed ratio: " + ((double) indexedC) / reads);
-			}
-		}
-	}
-
-	public long getLogUpdateCycle() {
-		return logUpdateCycle;
-	}
-
-	public void setLogUpdateCycle(long logUpdateCycle) {
-		this.logUpdateCycle = logUpdateCycle;
-	}
-
-	@Override
-	protected void done() throws IOException {
-		if (logger.isInfoEnabled()) {
-			logger.info("Total indexed: " + indexedC);
-			long stopTime = System.currentTimeMillis();
-			double diff = (stopTime - startTime);
-			logger.info("Elapsed total ms: " + diff);
-			logger.info("Read file time ms: " + getMillis());
-		}
-	}
-
-	protected boolean matchRead(MyReadEntry entry, boolean reverse) {
+	protected boolean matchRead(MyReadEntry entry, int index, boolean reverse) {
 		boolean found = false;
 		int prints = 0;
+		int readTaxErrorCount = taxTree == null ? -1 : 0;
 
-		String taxid = null;
+		SmallTaxIdNode taxid = null;
 		int max = entry.readSize - k;
-		String lastTaxid = null;
+		SmallTaxIdNode lastTaxid = null;
 		int contigLen = 0;
-		int readKmerCount = 0;
 		CountsPerTaxid stats = null;
 
+		long kmer = -1;
 		for (int i = 0; i <= max; i++) {
-			long kmer = reverse ? CGAT.kMerToLongReverse(entry.read, i, k, null)
-					: CGAT.kMerToLongStraight(entry.read, i, k, null);
-
-			taxid = kmer == -1 ? null : kmerStore.getLong(kmer, entry.indexPos);
-			if (taxid == null) {
-				entry.readTaxErrorCount++;
-			} else {
-				readKmerCount++;
-			}
-			if (taxid != lastTaxid) {
-				if (taxid != null) {
-					updateReadTaxid(taxid, entry);
+			// TODO: Inline all of this...
+			if (kmer == -1) {
+				kmer = reverse ? CGAT.kMerToLongReverse(entry.read, i, k, entry.badPos)
+						: CGAT.kMerToLongStraight(entry.read, i, k, entry.badPos);
+				if (kmer == -1) {
+					i = entry.badPos[0];
 				}
-
-				if (contigLen > 0) {
-					if (out != null) {
-						printKrakenStyleOut(entry, lastTaxid, contigLen, prints++, reverse);
+			} else {
+				kmer = reverse ? CGAT.nextKMerReverse(kmer, entry.read[i], k)
+						: CGAT.nextKMerStraight(kmer, entry.read[i], k);
+				if (kmer == -1) {
+					i += k - 1;
+				}
+			}
+			// TODO: Inline end...
+			if (kmer != -1) {
+				taxid = kmerStore.getLong(kmer, entry.indexPos);
+				if (readTaxErrorCount != -1) {
+					if (taxid == null) {
+						readTaxErrorCount++;
+						if (maxReadTaxErrorCount >= 0) {
+							if ((maxReadTaxErrorCount >= 1 && readTaxErrorCount > maxReadTaxErrorCount)
+									|| (readTaxErrorCount > maxReadTaxErrorCount * max)) {
+								readTaxErrorCount = -1;
+							}
+						}
+					} else {
+						updateReadTaxid(taxid, entry, index);
 					}
-					if (stats != null) {
-						synchronized (stats) {
-							stats.contigs++;
-							if (contigLen > stats.maxContigLen) {
-								stats.maxContigLen = contigLen;
-								for (int j = 0; j < entry.readSize; j++) {
-									stats.maxContigDescriptor[j] = entry.readDescriptor[j];
+				}
+				if (taxid != lastTaxid) {
+					if (contigLen > 0) {
+						if (out != null) {
+							printKrakenStyleOut(entry, lastTaxid, contigLen, prints++, reverse);
+						}
+						if (stats != null) {
+							synchronized (stats) {
+								stats.contigs++;
+								if (contigLen > stats.maxContigLen) {
+									stats.maxContigLen = contigLen;
+									int j = 0;
+									for (; j < entry.readDescriptor.length - 1 && entry.readDescriptor[j] != 0; j++) {
+										stats.maxContigDescriptor[j] = entry.readDescriptor[j];
+									}
+									stats.maxContigDescriptor[j] = 0;
 								}
 							}
 						}
-					}
-					contigLen = 0;
-				}
-			}
-			contigLen++;
-			lastTaxid = taxid;
-			if (taxid != null) {
-				stats = root.get(taxid);
-				if (stats == null) {
-					synchronized (root) {
-						stats = root.get(taxid, maxReadSize);
+						contigLen = 0;
 					}
 				}
-				synchronized (stats) {
-					stats.kmers++;
-					found = true;
+				contigLen++;
+				lastTaxid = taxid;
+				if (taxid != null) {
+					stats = root.get(taxid.getTaxId());
+					if (stats == null) {
+						synchronized (root) {
+							stats = root.get(taxid.getTaxId(), initialReadSize);
+						}
+					}
+					synchronized (stats) {
+						stats.kmers++;
+						found = true;
+					}
+					if (uniqueCounter != null) {
+						uniqueCounter.put(kmer, taxid.getTaxId(), entry.indexPos[0]);
+					}
+				} else {
+					stats = null;
 				}
-				if (uniqueCounter != null) {
-					uniqueCounter.put(kmer, taxid, entry.indexPos[0]);
-				}
-			} else {
-				stats = null;
 			}
 		}
 		if (found) {
@@ -340,30 +295,42 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 						stats.contigs++;
 						if (contigLen > stats.maxContigLen) {
 							stats.maxContigLen = contigLen;
-							for (int j = 0; j < entry.readSize; j++) {
+							for (int j = 0; j < entry.readDescriptorSize; j++) {
 								stats.maxContigDescriptor[j] = entry.readDescriptor[j];
 							}
-							stats.maxContigDescriptor[entry.readSize] = 0;
+							stats.maxContigDescriptor[entry.readDescriptorSize] = 0;
 						}
 					}
 				}
 			}
-			if (entry.readTaxId != null && entry.readTaxId != INVALID_TAX) {
-				if ((maxReadTaxErrorCount >= 1 && entry.readTaxErrorCount <= maxReadTaxErrorCount)
-						|| (entry.readTaxErrorCount <= maxReadTaxErrorCount * max)) {
-					stats = root.get(entry.readTaxId);
-					if (stats == null) {
-						synchronized (root) {
-							stats = root.get(entry.readTaxId, maxReadSize);
-						}
+			if (readTaxErrorCount != -1) {
+				int ties = 0;
+				for (int i = 0; i < entry.usedPaths; i++) {
+					short sum = taxTree.sumCounts(entry.readTaxIdNode[i], index, entry.readNo);
+					if (sum >= entry.counts[0]) {
+						entry.counts[0] = sum;
+						entry.readTaxIdNode[0] = entry.readTaxIdNode[i];
+						ties = 0;
+					} else if (sum == entry.counts[0]) {
+						ties++;
+						entry.counts[ties] = sum;
+						entry.readTaxIdNode[ties] = entry.readTaxIdNode[i];
 					}
-					synchronized (stats) {
-						stats.reads++;
-						stats.readKmers += readKmerCount;
+				}
+				SmallTaxIdNode node = entry.readTaxIdNode[0];
+				for (int i = 1; i <= ties; i++) {
+					node = taxTree.getLeastCommonAncestor(node, entry.readTaxIdNode[i]);
+				}
+				entry.classNode = node;
+				stats = root.get(node.getTaxId());
+				if (stats == null) {
+					synchronized (root) {
+						stats = root.get(node.getTaxId(), initialReadSize);
 					}
-				} else {
-					entry.readTaxId = null;
-					entry.readTaxIdNode = null;
+				}
+				synchronized (stats) {
+					stats.reads++;
+					stats.readKmers += ties > 0 ? taxTree.sumCounts(node, index, entry.readNo) : entry.counts[0];
 				}
 			}
 		}
@@ -371,38 +338,36 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		return found;
 	}
 
-	// This very simple approach follows just one possibility for a potentially
-	// correct taxid. Maybe at least follow one more possibility?
-	protected void updateReadTaxid(String taxid, MyReadEntry entry) {
-		if (taxTree == null) {
-			return;
+	protected void updateReadTaxid(SmallTaxIdNode node, MyReadEntry entry, int index) {
+		taxTree.incCount(node, index, entry.readNo);
+
+		boolean found = false;
+		for (int i = 0; i < entry.usedPaths; i++) {
+			if (taxTree.isAncestorOf(node, entry.readTaxIdNode[i])) {
+				entry.readTaxIdNode[i] = node;
+				found = true;
+				break;
+			} else if (taxTree.isAncestorOf(entry.readTaxIdNode[i], node)) {
+				found = true;
+				break;
+			}
 		}
-		if (entry.readTaxId == INVALID_TAX) {
-			return;
-		}
-		if (taxid == entry.readTaxId) {
-			return;
-		}
-		TaxIdNode node = taxTree.getNodeByTaxId(taxid);
-		if (node != null) {
-			if (entry.readTaxId == null || taxTree.isAncestorOf(node, entry.readTaxIdNode)) {
-				entry.readTaxId = taxid;
-				entry.readTaxIdNode = node;
-			} else if (!taxTree.isAncestorOf(entry.readTaxIdNode, node)) {
-				entry.readTaxId = INVALID_TAX;
-				entry.readTaxIdNode = null;
+		if (!found) {
+			if (entry.usedPaths < maxPaths) {
+				entry.readTaxIdNode[entry.usedPaths] = node;
+				entry.usedPaths++;
 			}
 		}
 	}
 
-	protected void printKrakenStyleOut(MyReadEntry entry, String taxid, int contigLen, int state, boolean reverse) {
+	protected void printKrakenStyleOut(MyReadEntry entry, SmallTaxIdNode taxid, int contigLen, int state, boolean reverse) {
 		if (state != 0) {
 			entry.printChar(' ');
 		}
 		if (taxid == null) {
 			entry.printChar('0');
 		} else {
-			entry.printString(taxid);
+			entry.printString(taxid.getTaxId());
 		}
 		entry.printChar(':');
 		entry.printInt(contigLen);
@@ -411,15 +376,20 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 	public static class MyReadEntry extends ReadEntry {
 		public final byte[] buffer;
 		public int bufferPos;
-		public String readTaxId;
-		public int readTaxErrorCount;
-		public TaxIdNode readTaxIdNode;
-		public long[] indexPos;
+		public int[] badPos = new int[1];
 
-		public MyReadEntry(int maxReadSizeBytes, boolean enablePrint) {
+		public int usedPaths;
+		public SmallTaxIdNode[] readTaxIdNode;
+		public short counts[];
+		public long[] indexPos;
+		public SmallTaxIdNode classNode;
+
+		public MyReadEntry(int maxReadSizeBytes, boolean enablePrint, int paths) {
 			super(maxReadSizeBytes);
 
 			buffer = enablePrint ? new byte[maxReadSizeBytes * 4] : null; // It has to be rather long in some cases...
+			readTaxIdNode = new SmallTaxIdNode[paths];
+			counts = new short[paths];
 			indexPos = new long[1];
 		}
 
@@ -449,17 +419,17 @@ public class FastqKMerMatcher extends AbstractFastqReader {
 		}
 
 		public void flush(PrintStream out) {
-			if (readTaxId == null) {
+			if (classNode == null) {
 				out.print("U\t");
 			} else {
 				out.print("C\t");
 			}
 			ByteArrayUtil.print(readDescriptor, out);
 			out.print('\t');
-			if (readTaxId == null) {
+			if (classNode == null) {
 				out.print('0');
 			} else {
-				out.print(readTaxId);
+				out.print(classNode.getTaxId());
 			}
 			out.print('\t');
 			out.print(readSize);

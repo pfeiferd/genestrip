@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.metagene.genestrip.GSConfigKey;
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -48,11 +50,12 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 
 	@SafeVarargs
-	public FillSizeGoal(GSProject project, String name, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
+	public FillSizeGoal(GSProject project, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
 			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, Goal<GSProject>... deps) {
-		super(project, name, Goal.append(deps, categoriesGoal, taxNodesGoal, fnaFilesGoal, accessionMapGoal));
+		super(project, GSGoalKey.FILLSIZE,
+				Goal.append(deps, categoriesGoal, taxNodesGoal, fnaFilesGoal, accessionMapGoal, additionalGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
@@ -63,9 +66,9 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 	@Override
 	public void makeThis() {
 		try {
-			MyFastaReader fastaReader = new MyFastaReader(getProject().getConfig().getInitialReadSizeBytes(),
-					taxNodesGoal.get(), accessionMapGoal.get(), getProject().getConfig().getKMerSize(),
-					getProject().getMaxGenomesPerTaxid());
+			MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
+					taxNodesGoal.get(), accessionMapGoal.get(), intConfigValue(GSConfigKey.KMER_SIZE),
+					intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID));
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);

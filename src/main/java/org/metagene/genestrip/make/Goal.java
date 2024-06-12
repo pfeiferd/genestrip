@@ -29,26 +29,31 @@ import java.util.Arrays;
 import org.apache.commons.logging.Log;
 import org.metagene.genestrip.util.GSLogFactory;
 
-public abstract class Goal<P> {
+public abstract class Goal<P extends Project> {
 	private final Log logger;
-	private final String name;
+	private final GoalKey goalKey;
 	private final Goal<P>[] dependencies;
 	private final P project;
 
 	@SafeVarargs
-	public Goal(P project, String name, Goal<P>... dependencies) {
-		logger = GSLogFactory.getLog(name);
-		this.name = name;
+	public Goal(P project, GoalKey goalKey, Goal<P>... dependencies) {
+		this.goalKey = initKey(goalKey);
+		logger = GSLogFactory.getLog(this.goalKey.getName());
 		this.dependencies = dependencies;
 		this.project = project;
+	}
+
+	// Chance to change the key by overriding this method.
+	protected GoalKey initKey(GoalKey keyFromConstructor) {
+		return keyFromConstructor;
 	}
 
 	public P getProject() {
 		return project;
 	}
 
-	public String getName() {
-		return name;
+	public GoalKey getKey() {
+		return goalKey;
 	}
 
 	public Goal<P>[] getDependencies() {
@@ -70,19 +75,26 @@ public abstract class Goal<P> {
 			startMake();
 			GSLogFactory.incN();
 			for (Goal<P> dep : dependencies) {
-				if (dep != null && !dep.isMade()) {
+				if (dep != null) {
 					dep.make();
 				}
 			}
-			GSLogFactory.decN();
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Making this " + this);
+			// It is important to check "isMade()" again here because sometime the goal get automatically
+			// made via a dependent goal as there are "shortcuts".
+			if (!isMade()) {
+				GSLogFactory.decN();
+				if (getLogger().isInfoEnabled()) {
+					getLogger().info("Making this " + this);
+				}
+				makeThis();
 			}
-			makeThis();
 			endMake();
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Made " + this);
 			}
+		}
+		else {
+			alreadyMade();
 		}
 	}
 
@@ -90,6 +102,9 @@ public abstract class Goal<P> {
 	}
 
 	protected void startMake() {
+	}
+	
+	protected void alreadyMade() {		
 	}
 
 	public void makeThis() {
@@ -104,26 +119,26 @@ public abstract class Goal<P> {
 
 	@Override
 	public String toString() {
-		return "goal: " + getName();
+		return "goal: " + goalKey.getName();
 	}
-	
+
 	protected final void transitiveClean() {
 		if (isAllowTransitiveClean()) {
 			clean();
 		}
 	}
-	
+
 	public boolean isAllowTransitiveClean() {
 		return true;
 	}
-	
+
 	public void dump() {
 	}
 
 	public final void clean() {
 		clean(false);
 	}
-	
+
 	public final void clean(boolean enforceTransitive) {
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Cleaning " + this);
@@ -132,8 +147,7 @@ public abstract class Goal<P> {
 		for (Goal<P> dep : dependencies) {
 			if (enforceTransitive) {
 				dep.clean(true);
-			}
-			else {
+			} else {
 				dep.transitiveClean();
 			}
 		}
@@ -150,10 +164,34 @@ public abstract class Goal<P> {
 
 	@SafeVarargs
 	public static <T> T[] append(T[] array, T... values) {
-	     T[] result = Arrays.copyOf(array, array.length + values.length);
-	     for (int i = array.length; i < result.length; i++) {
-	    	 result[i] = values[i - array.length];	    	 
-	     }
-	     return result;
+		T[] result = Arrays.copyOf(array, array.length + values.length);
+		for (int i = array.length; i < result.length; i++) {
+			result[i] = values[i - array.length];
+		}
+		return result;
+	}
+
+	protected Object configValue(ConfigKey key) {
+		return project.configValue(key);
+	}
+
+	protected int intConfigValue(ConfigKey key) {
+		return project.intConfigValue(key);
+	}
+
+	protected long longConfigValue(ConfigKey key) {
+		return project.longConfigValue(key);
+	}
+
+	protected boolean booleanConfigValue(ConfigKey key) {
+		return project.booleanConfigValue(key);
+	}
+
+	protected double doubleConfigValue(ConfigKey key) {
+		return project.doubleConfigValue(key);
+	}
+
+	protected String stringConfigValue(ConfigKey key) {
+		return project.stringConfigValue(key);
 	}
 }

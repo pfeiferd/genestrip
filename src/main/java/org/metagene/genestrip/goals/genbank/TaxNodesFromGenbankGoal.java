@@ -29,8 +29,10 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.metagene.genestrip.GSConfigKey;
+import org.metagene.genestrip.GSConfigKey.SeqType;
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.GSConfig.SeqType;
 import org.metagene.genestrip.goals.refseq.RefSeqFnaFilesDownloadGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -48,11 +50,11 @@ public class TaxNodesFromGenbankGoal extends ObjectGoal<Set<TaxIdNode>, GSProjec
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 
 	@SafeVarargs
-	public TaxNodesFromGenbankGoal(GSProject project, String name,
+	public TaxNodesFromGenbankGoal(GSProject project, 
 			ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, Goal<GSProject>... deps) {
-		super(project, name, Goal.append(deps, categoriesGoal, taxNodesGoal, fnaFilesGoal, accessionMapGoal));
+		super(project, GSGoalKey.TAXFROMGENBANK, Goal.append(deps, categoriesGoal, taxNodesGoal, fnaFilesGoal, accessionMapGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
@@ -64,10 +66,10 @@ public class TaxNodesFromGenbankGoal extends ObjectGoal<Set<TaxIdNode>, GSProjec
 		try {
 			Set<TaxIdNode> missingTaxIds = new HashSet<TaxIdNode>();
 			// We only get Genomic data from genbank (so far) - so if just RNA is wanted, there is no need to access it.
-			if (!SeqType.RNA.equals(getProject().getSeqType())) {
+			if (!SeqType.RNA.equals(configValue(GSConfigKey.SEQ_TYPE))) {
 				AbstractRefSeqFastaReader fastaReader = new AbstractRefSeqFastaReader(
-						getProject().getConfig().getInitialReadSizeBytes(), taxNodesGoal.get(), accessionMapGoal.get(),
-						getProject().getMaxGenomesPerTaxid()) {
+						intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxNodesGoal.get(), accessionMapGoal.get(),
+						intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID)) {
 					@Override
 					protected void dataLine() throws IOException {
 					}
@@ -80,10 +82,10 @@ public class TaxNodesFromGenbankGoal extends ObjectGoal<Set<TaxIdNode>, GSProjec
 					}
 				}
 				StringLongDigitTrie trie = fastaReader.getRegionsPerTaxid();
+				int limit = intConfigValue(GSConfigKey.REQ_SEQ_LIMIT_FOR_GENBANK);
 				for (TaxIdNode node : taxNodesGoal.get()) {
 					StringLong value = trie.get(node.getTaxId());
 					long regions = value == null ? 0 : value.getLongValue();
-					int limit = getProject().getRefSeqLimitForGenbankAccess();
 					if (regions < limit) {
 						missingTaxIds.add(node);
 					}

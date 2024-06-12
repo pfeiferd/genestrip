@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.accuracy.AccuracyMatchGoal.AccuracyCounts;
@@ -45,9 +46,9 @@ public class KrakenAccuracyMatchGoal extends KrakenResCountGoal {
 	private final AccuracyCounts accuracyCounts;
 
 	@SafeVarargs
-	public KrakenAccuracyMatchGoal(GSProject project, String name, File csvFile,
+	public KrakenAccuracyMatchGoal(GSProject project, ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapGoal,
 			ObjectGoal<TaxTree, GSProject> taxTreeGoal, Goal<GSProject>... deps) {
-		super(project, name, true, csvFile, null, append(deps, taxTreeGoal));
+		super(project, fastqMapGoal, null, append(deps, taxTreeGoal));
 		this.taxTreeGoal = taxTreeGoal;
 		accuracyCounts = new AccuracyCounts();
 	}
@@ -60,9 +61,9 @@ public class KrakenAccuracyMatchGoal extends KrakenResCountGoal {
 			files.add(((StreamingFileResource) s).getFile());
 		}
 		computeStats(files);
-		PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-		accuracyCounts.printCounts(out);
-		out.close();
+		try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
+			accuracyCounts.printCounts(out);
+		}
 	}
 
 	@Override

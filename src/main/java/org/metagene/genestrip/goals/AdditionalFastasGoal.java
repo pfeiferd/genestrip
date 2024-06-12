@@ -25,30 +25,38 @@
 package org.metagene.genestrip.goals;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.genbank.AssemblySummaryReader.FTPEntryWithQuality;
 import org.metagene.genestrip.goals.genbank.FastaFilesGenbankDownloadGoal;
-import org.metagene.genestrip.io.StreamingFileResource;
-import org.metagene.genestrip.io.StreamingResource;
+import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 public class AdditionalFastasGoal extends ObjectGoal<Map<File, TaxIdNode>, GSProject> {
+	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#')
+			.setDelimiter(' ').setRecordSeparator('\n').build();
+
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 	private final ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fromGenbank;
 	private final FastaFilesGenbankDownloadGoal fastaFilesGenbankDownloadGoal;
 
 	@SafeVarargs
-	public AdditionalFastasGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
+	public AdditionalFastasGoal(GSProject project, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
 			ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fromGenbank,
 			FastaFilesGenbankDownloadGoal fastaFilesGenbankDownloadGoal, Goal<GSProject>... dependencies) {
-		super(project, name, append(dependencies, taxTreeGoal, fromGenbank, fastaFilesGenbankDownloadGoal));
+		super(project, GSGoalKey.ADD_FASTAS, append(dependencies, taxTreeGoal, fromGenbank, fastaFilesGenbankDownloadGoal));
 		this.taxTreeGoal = taxTreeGoal;
 		this.fromGenbank = fromGenbank;
 		this.fastaFilesGenbankDownloadGoal = fastaFilesGenbankDownloadGoal;
@@ -57,22 +65,31 @@ public class AdditionalFastasGoal extends ObjectGoal<Map<File, TaxIdNode>, GSPro
 	@Override
 	public void makeThis() {
 		Map<File, TaxIdNode> res = new HashMap<File, TaxTree.TaxIdNode>();
-		File additonalEntryFile = getProject().getAddtionalFile();
+		File additonalEntryFile = getProject().getAdditionalFile();
 		if (additonalEntryFile.exists()) {
-			Map<String, List<StreamingResource>> map = MultiMatchGoal.readMultiCSV(getProject().getFastaDir(),
-					getProject().getConfig().getFastaDir(), additonalEntryFile, getLogger());
-			TaxTree taxTree = taxTreeGoal.get();
-			for (String key : map.keySet()) {
-				TaxIdNode node = taxTree.getNodeByTaxId(key);
-				if (node != null) {
-					for (StreamingResource file : map.get(key)) {
-						res.put(((StreamingFileResource) file).getFile(), node);
-					}
-				} else {
-					if (getLogger().isWarnEnabled()) {
-						getLogger().warn("Unknown taxid in additional file (omitting fasta files for it): " + key);
+			try (CSVParser parser = FORMAT
+					.parse(new InputStreamReader(StreamProvider.getInputStreamForFile(additonalEntryFile)))) {
+				TaxTree taxTree = taxTreeGoal.get();
+				for (CSVRecord record : parser) {
+					String taxid = record.get(0);
+					String fastaFilePath = record.get(1);
+					TaxIdNode node = taxTree.getNodeByTaxId(taxid);
+					if (node != null) {
+						File file = getProject().fastaFileFromPath(fastaFilePath);
+						if (file != null) {
+							res.put(file, node);
+						} else if (getLogger().isWarnEnabled()) {
+							getLogger().warn("Ignoring missing file " + fastaFilePath + ".");
+						}
+					} else {
+						if (getLogger().isWarnEnabled()) {
+							getLogger()
+									.warn("Unknown taxid in additional file (omitting fasta files for it): " + taxid);
+						}
 					}
 				}
+			} catch (IOException e) {
+				throw new RuntimeException(e);
 			}
 		}
 		for (TaxIdNode node : fromGenbank.get().keySet()) {

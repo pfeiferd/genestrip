@@ -31,6 +31,7 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.Goal;
@@ -44,20 +45,18 @@ public class RefSeqCatalogDownloadGoal extends RefSeqDownloadGoal {
 	private List<File> files;
 
 	@SafeVarargs
-	public RefSeqCatalogDownloadGoal(GSProject project, String name, FileGoal<GSProject> releaseNumberGoal,
+	public RefSeqCatalogDownloadGoal(GSProject project, FileGoal<GSProject> releaseNumberGoal,
 			Goal<GSProject>... deps) {
-		super(project, name, Goal.append(deps, releaseNumberGoal));
+		super(project, GSGoalKey.REFSEQCAT, Goal.append(deps, releaseNumberGoal));
 		this.releaseNumberGoal = releaseNumberGoal;
 	}
 
 	public File getCatalogFile() {
-		getFiles();
-		return files.get(0);
+		return getFiles().get(0);
 	}
 
 	public File getInstalledFilesFile() {
-		getFiles();
-		return files.get(1);
+		return getFiles().get(1);
 	}
 
 	@Override
@@ -78,15 +77,15 @@ public class RefSeqCatalogDownloadGoal extends RefSeqDownloadGoal {
 
 				files = new ArrayList<File>();
 
-				files.add(new File(getProject().getConfig().getRefSeqDir(), catalog));
-				files.add(new File(getProject().getConfig().getRefSeqDir(), filesInstalled));
+				files.add(new File(getProject().getCommon().getRefSeqDir(), catalog));
+				files.add(new File(getProject().getCommon().getRefSeqDir(), filesInstalled));
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}			
 		}
 		return files;
 	}
-
+	
 	@Override
 	protected String getFTPDir(File file) {
 		return CATALOG_FOLDER;

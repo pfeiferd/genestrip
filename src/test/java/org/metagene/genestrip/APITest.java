@@ -31,13 +31,60 @@ import org.junit.Test;
 import org.metagene.genestrip.make.Goal;
 
 public class APITest {
+	// Ensure database will be regenerated prior to test.
+//	@BeforeClass
+	public static void clearDB() throws IOException {
+		File baseDir = getBaseDir();
+
+		// Load the system configuration.
+		GSCommon config = new GSCommon(baseDir);
+
+		// Create the 'human_virus' project (whose config files are part of the
+		// release).
+		GSProject project = new GSProject(config, "human_virus");
+		GSMaker maker = new GSMaker(project);
+		maker.getGoal(GSGoalKey.CLEAR).make();
+	}
+
 	@Test
-	public void testAndDemoAPI() throws IOException {
+	public void testAndDemoSimpleAPI() throws IOException {
+		File baseDir = getBaseDir();
+
+		// Load the system configuration.
+		GSCommon config = new GSCommon(baseDir);
+
+		// Create the 'human_virus' project (whose config files are part of the
+		// release).
+		GSProject project = new GSProject(config, "human_virus");
+		GSMaker maker = new GSMaker(project);
+
+		// Get the fastq file to run a match on. (In this case, a small sample file
+		// provied as part of the release.)
+		File fastq = new File(getBaseDir(), "projects/human_virus/fastq/sample.fastq.gz");
+		// Delete a potential result that has previously been generated.
+		maker.cleanMatch(null, fastq.toString());
+		// An example on how to set configuration parameters programmatically:
+		project.initConfigParam(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH, false);
+		// Run the 'match' goal for the given file. This may trigger other goals such as
+		// the 'db' goal to first create the 'human_virus' database.
+		maker.match(false, null, fastq.toString());
+
+		// Run the 'filter' goal for the given file. This may trigger other goals such
+		// as the 'index' goal to
+		// first create the 'human_virus' filtering database.
+		maker.filter(null, fastq.toString());
+
+		// Clean up memory and threads.
+		maker.dumpAll();
+	}
+
+	@Test
+	public void testAndDemoBasicAPI() throws IOException {
 		// Get the base directory for Genestrip. (Depends on your setup.)
 		File baseDir = getBaseDir();
 
 		// Load the system configuration.
-		GSConfig config = new GSConfig(baseDir);
+		GSCommon config = new GSCommon(baseDir);
 
 		// Get the fastq file to run a match on. (In this case, a small sample file
 		// provied as part of the release.)
@@ -45,24 +92,42 @@ public class APITest {
 
 		// Create the 'human_virus' project (whose config files are part of the
 		// release).
-		GSProject project = new GSProject(config, "human_virus", 31, null, fastq, null, null, null);
+		GSProject project = new GSProject(config, "human_virus", null, new String[] { fastq.getCanonicalPath() });
 		GSMaker maker = new GSMaker(project);
 		// Run the 'match' goal. This may trigger other goals such as the 'db' goal to
 		// first create the 'human_virus' database.
-		Goal<GSProject> goal = maker.getGoal(GSMaker.UserGoal.MATCH);
+		Goal<GSProject> goal = maker.getGoal(GSGoalKey.MATCH);
+		// First, delete a potential result that has previously been generated.
 		goal.cleanThis();
+		// then do the match.
 		goal.make();
+
+		// Run the 'filter' goal. This may trigger other goals such as the 'index' goal
+		// to
+		// first create the 'human_virus' filtering database.
+		goal = maker.getGoal(GSGoalKey.FILTER);
+		// First, delete a potential result that has previously been generated.
+		goal.cleanThis();
+		// then do the match.
+		goal.make();
+
+		// Clean up memory and threads.
+		maker.dumpAll();
 	}
 
 	// To find the base directory for any project file provided as part of the
 	// release.
 	// (This may have to be done differently for you own projects.)
 	public static File getBaseDir() {
+		return new File(getProjectDir(), "data");
+	}
+
+	public static File getProjectDir() {
 		String projectDir = System.getProperty("project.directory");
 		if (projectDir != null) {
-			return new File(projectDir, "data");
+			return new File(projectDir);
 		}
 		String relPath = APITest.class.getProtectionDomain().getCodeSource().getLocation().getFile();
-		return new File(new File(relPath).getParentFile().getParentFile(), "data");
+		return new File(relPath).getParentFile().getParentFile();
 	}
 }

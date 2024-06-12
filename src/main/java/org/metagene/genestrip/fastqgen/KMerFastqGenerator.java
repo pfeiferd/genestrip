@@ -45,9 +45,9 @@ public class KMerFastqGenerator {
 	}
 
 	public void generateFastq(File file, String taxid, String header) throws IOException {
-		OutputStream out = StreamProvider.getOutputStreamForFile(file);
-		generateFastq(out, taxid, header);
-		out.close();
+		try (OutputStream out = StreamProvider.getOutputStreamForFile(file)) {
+			generateFastq(out, taxid, header);
+		}
 	}
 	
 	public void generateFastq(OutputStream out, String taxid, String header) throws IOException {

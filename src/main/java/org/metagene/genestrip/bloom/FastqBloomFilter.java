@@ -27,33 +27,27 @@ package org.metagene.genestrip.bloom;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.file.Files;
+import java.util.List;
 
-import org.metagene.genestrip.fastq.AbstractFastqReader;
+import org.metagene.genestrip.ExecutionContext;
+import org.metagene.genestrip.fastq.AbstractLoggingFastqStreamer;
 import org.metagene.genestrip.io.StreamProvider;
-import org.metagene.genestrip.io.StreamProvider.ByteCountingInputStreamAccess;
-import org.metagene.genestrip.util.ExecutorServiceBundle;
+import org.metagene.genestrip.io.StreamingResource;
 
-public class FastqBloomFilter extends AbstractFastqReader {
+public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 	private final double positiveRatio;
 	private final int minPosCount;
 	private final MurmurCGATBloomFilter filter;
-	private final long logUpdateCycle;
 
 	private OutputStream indexed;
 	private OutputStream notIndexed;
-	private ByteCountingInputStreamAccess byteCountAccess;
-	private long fastqFileSize;
-	private long startTime;
-	private long indexedC;
 
 	public FastqBloomFilter(MurmurCGATBloomFilter filter, int minPosCount, double positiveRatio, int initialReadSize,
-			int maxQueueSize, ExecutorServiceBundle bundle) {
+			int maxQueueSize, ExecutionContext bundle) {
 		super(filter.getK(), initialReadSize, maxQueueSize, bundle);
 		this.filter = filter;
 		this.minPosCount = minPosCount;
 		this.positiveRatio = positiveRatio;
-		this.logUpdateCycle = bundle.getLogUpdateCycle();
 	}
 
 	@Override
@@ -80,75 +74,15 @@ public class FastqBloomFilter extends AbstractFastqReader {
 		return new MyReadEntry(maxReadSizeBytes);
 	}
 
-	@Override
-	protected void start() throws IOException {
-		indexedC = 0;
-	}
-
-	@Override
-	protected void updateWriteStats() {
-		indexedC++;
-	}
-
-	@Override
-	protected void log() {
-		if (logUpdateCycle > 0 && reads % logUpdateCycle == 0) {
-			if (logger.isTraceEnabled() || bundle.isRequiresProgress()) {
-				long bytesCovered = byteCountAccess.getBytesRead();
-				double ratio = bytesCovered / (double) fastqFileSize;
-				long stopTime = System.currentTimeMillis();
-				long diff = (stopTime - startTime);
-				double totalTime = diff / ratio;
-				if (bundle.isRequiresProgress()) {
-					bundle.setProgress(bytesCovered, fastqFileSize, diff, (long) totalTime, ratio);
-				}
-				if (logger.isTraceEnabled()) {
-					double totalHours = totalTime / 1000 / 60 / 60;
-					logger.info("Elapsed hours:" + diff / 1000 / 60 / 60);
-					logger.info("Estimated total hours:" + totalHours);
-					logger.info("Reads processed: " + reads);
-					logger.info("Indexed: " + indexedC);
-					logger.info("Indexed ratio:" + ((double) indexedC) / reads);
-				}
-			}
+	public void runFilter(List<StreamingResource> fastqs, File filteredFile, File restFile) throws IOException {
+		try (OutputStream lindexed = filteredFile != null ? StreamProvider.getOutputStreamForFile(filteredFile) : null;
+				OutputStream lnotIndexed = restFile != null ? StreamProvider.getOutputStreamForFile(restFile) : null) {
+			indexed = lindexed;
+			notIndexed = lnotIndexed;
+			processFastqStreams(fastqs);
 		}
-	}
-
-	public long getLogUpdateCycle() {
-		return logUpdateCycle;
-	}
-
-	@Override
-	protected void done() throws IOException {
-		if (logger.isInfoEnabled()) {
-			logger.info("Total indexed: " + indexedC);
-			long stopTime = System.currentTimeMillis();
-			double diff = (stopTime - startTime);
-			logger.info("Elapsed total ms:" + diff);
-			logger.info("Read file time ms: " + getMillis());
-		}
-	}
-
-	public void runFilter(File fastq, File filteredFile, File restFile) throws IOException {
-		byteCountAccess = StreamProvider.getByteCountingInputStreamForFile(fastq, false);
-		fastqFileSize = Files.size(fastq.toPath());
-
-		indexed = filteredFile != null ? StreamProvider.getOutputStreamForFile(filteredFile) : null;
-		notIndexed = restFile != null ? StreamProvider.getOutputStreamForFile(restFile) : null;
-
-		startTime = System.currentTimeMillis();
-		indexedC = 0;
-
-		readFastq(byteCountAccess.getInputStream());
-
-		if (indexed != null) {
-			indexed.close();
-		}
-		if (notIndexed != null) {
-			notIndexed.close();
-		}
-
-		byteCountAccess.getInputStream().close();
+		indexed = null;
+		notIndexed = null;
 	}
 
 	protected boolean isAcceptReadByAbs(ReadEntry readStruct, boolean reverse) {

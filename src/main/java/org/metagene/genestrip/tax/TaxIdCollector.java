@@ -30,13 +30,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.metagene.genestrip.io.StreamProvider;
-import org.metagene.genestrip.tax.TaxTree.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 public class TaxIdCollector {
@@ -49,9 +47,8 @@ public class TaxIdCollector {
 	public Set<TaxIdNode> readFromFile(File file) throws IOException {
 		Set<TaxIdNode> res = new HashSet<TaxIdNode>();
 
-		InputStream stream = StreamProvider.getInputStreamForFile(file);
-
-		try (BufferedReader br = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+		try (InputStream stream = StreamProvider.getInputStreamForFile(file);
+				BufferedReader br = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
 			String line = null;
 			while ((line = br.readLine()) != null) {
 				line = line.trim();
@@ -81,21 +78,6 @@ public class TaxIdCollector {
 
 		return res;
 	}
-	
-	public Set<TaxIdNode> asNodesWithDesc(String[] taxids, boolean[] withDescs) {
-		Set<TaxIdNode> res = new HashSet<TaxTree.TaxIdNode>();
-		for (int i = 0; i < taxids.length; i++) {
-			TaxIdNode node = taxTree.getNodeByTaxId(taxids[i]);
-			if (node != null) {
-				res.add(node);
-				if (withDescs[i]) {
-					completeFilterlist(res, node, null);
-				}
-			}			
-		}
-
-		return res;		
-	}
 
 	public Set<TaxIdNode> withDescendants(Set<TaxIdNode> taxIds, Rank depth) {
 		Set<TaxIdNode> res = new HashSet<TaxTree.TaxIdNode>();
@@ -106,7 +88,7 @@ public class TaxIdCollector {
 		return res;
 	}
 
-	public Set<TaxIdNode> restrictToMaxRank(TaxTree.Rank rank, Set<TaxIdNode> taxIds) {
+	public Set<TaxIdNode> restrictToMaxRank(Rank rank, Set<TaxIdNode> taxIds) {
 		if (rank == null) {
 			return taxIds;
 		}
@@ -144,17 +126,9 @@ public class TaxIdCollector {
 		return res;
 	}
 
-	public static List<TaxIdNode> sortNodes(Set<TaxIdNode> nodes) {
-		return TaxTree.sortNodes(new ArrayList<TaxIdNode>(nodes));
-	}
-
-	public static List<TaxIdNode> nodesAsShallowCopies(List<TaxIdNode> list) {
-		List<TaxIdNode> res = new ArrayList<TaxIdNode>();
-		for (TaxIdNode node : list) {
-			res.add(node.shallowCopy());
-		}
-		return res;
-	}
+//	public static List<TaxIdNode> sortNodes(Set<TaxIdNode> nodes) {
+//		return TaxTree.sortNodes(new ArrayList<TaxIdNode>(nodes));
+//	}
 
 	private void completeFilterlist(Set<TaxIdNode> filter, TaxIdNode node, Rank depth) {
 		if (node != null) {

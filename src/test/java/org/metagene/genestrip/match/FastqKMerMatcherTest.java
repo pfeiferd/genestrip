@@ -31,17 +31,17 @@ import java.util.Arrays;
 import java.util.Random;
 
 import org.junit.Test;
-import org.metagene.genestrip.match.FastqKMerMatcher2.MyReadEntry;
+import org.metagene.genestrip.DefaultExecutionContext;
+import org.metagene.genestrip.ExecutionContext;
+import org.metagene.genestrip.match.FastqKMerMatcher.MyReadEntry;
 import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerSortedArray.ValueConverter;
 import org.metagene.genestrip.store.KMerUniqueCounter;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
 import org.metagene.genestrip.store.KMerUniqueCounterMap;
-import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGAT;
-import org.metagene.genestrip.util.DefaultExecutorServiceBundle;
-import org.metagene.genestrip.util.ExecutorServiceBundle;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
@@ -69,7 +69,7 @@ public class FastqKMerMatcherTest {
 		read[0] = 'A';
 		store.put(read, 0, TAXIDS[2], false);
 
-		ExecutorServiceBundle bundle = new DefaultExecutorServiceBundle(0, 1000);
+		ExecutionContext bundle = new DefaultExecutionContext(0, 1000);
 
 		MyFastqMatcher matcher = new MyFastqMatcher(store, readLength * 10, 1, bundle);
 		KMerUniqueCounter uniqueCounter = bitMap ? new KMerUniqueCounterMap() : new KMerUniqueCounterBits(store, true);
@@ -145,14 +145,14 @@ public class FastqKMerMatcherTest {
 		}
 	}
 
-	protected static class MyFastqMatcher extends FastqKMerMatcher2 {
+	protected static class MyFastqMatcher extends FastqKMerMatcher {
 		public MyFastqMatcher(KMerSortedArray<String> kmerStore, int initialReadSize, int maxQueueSize,
-				ExecutorServiceBundle bundle) {
-			super(new KMerSortedArray<TaxIdNode>(kmerStore,
-					new ValueConverter<String, TaxIdNode>() {
+				ExecutionContext bundle) {
+			super(new KMerSortedArray<SmallTaxIdNode>(kmerStore,
+					new ValueConverter<String, SmallTaxIdNode>() {
 				@Override
-				public TaxIdNode convertValue(String value) {
-					return new TaxIdNode(value);
+				public SmallTaxIdNode convertValue(String value) {
+					return new SmallTaxIdNode(value);
 				}
 			}), initialReadSize, maxQueueSize, bundle, maxQueueSize, null, 4, 0);
 			out = System.out;

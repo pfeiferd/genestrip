@@ -51,9 +51,9 @@ public abstract class AbstractFastaReader {
 		if (logger.isInfoEnabled()) {
 			logger.info("Reading fasta file " + file);
 		}
-		InputStream inputStream = StreamProvider.getInputStreamForFile(file);
-		readFasta(inputStream);
-		inputStream.close();
+		try (InputStream inputStream = StreamProvider.getInputStreamForFile(file)) {
+			readFasta(inputStream);
+		}
 		if (logger.isInfoEnabled()) {
 			logger.info("Closed fasta file " + file);
 		}

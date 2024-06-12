@@ -27,7 +27,6 @@ package org.metagene.genestrip.genbank;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.Reader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,7 +48,7 @@ public class AssemblySummaryReader {
 
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#')
 			.setDelimiter('\t').setRecordSeparator('\n').build();
-	
+
 	private final File baseDir;
 	private final TaxTree taxTree;
 	private final String assFileName;
@@ -67,32 +66,33 @@ public class AssemblySummaryReader {
 	public Map<TaxIdNode, List<FTPEntryWithQuality>> getRelevantEntries(Set<TaxIdNode> filter,
 			List<FTPEntryQuality> minQualities, int[] totalEntries) throws IOException {
 		Map<TaxIdNode, List<FTPEntryWithQuality>> result = new HashMap<TaxIdNode, List<FTPEntryWithQuality>>();
-
-		Iterable<CSVRecord> records = getCSV();
-
 		int counter = 0;
-		for (CSVRecord record : records) {
-			// Prevent inconsistent entries (they gotta have at least 20 columns)
-			if (record.size() >= 20) {
-				String taxid = record.get(5);
-				String latest = record.get(10);
-				String complete = record.get(11);
-				String ftp = record.get(19);
 
-				TaxIdNode node = taxTree.getNodeByTaxId(taxid);
-				if (node != null && (filter == null || filter.contains(node))) {
-					FTPEntryQuality quality = FTPEntryQuality.fromString(complete, latest);
-					if (!FTPEntryQuality.NONE.equals(quality)) {
-						List<FTPEntryWithQuality> entry = result.get(node);
-						if (entry == null) {
-							entry = new ArrayList<FTPEntryWithQuality>();
-							result.put(node, entry);
+		try (CSVParser parser = FORMAT
+				.parse(new InputStreamReader(StreamProvider.getInputStreamForFile(new File(baseDir, assFileName))))) {
+			for (CSVRecord record : parser) {
+				// Prevent inconsistent entries (they gotta have at least 20 columns)
+				if (record.size() >= 20) {
+					String taxid = record.get(5);
+					String latest = record.get(10);
+					String complete = record.get(11);
+					String ftp = record.get(19);
+
+					TaxIdNode node = taxTree.getNodeByTaxId(taxid);
+					if (node != null && (filter == null || filter.contains(node))) {
+						FTPEntryQuality quality = FTPEntryQuality.fromString(complete, latest);
+						if (!FTPEntryQuality.NONE.equals(quality)) {
+							List<FTPEntryWithQuality> entry = result.get(node);
+							if (entry == null) {
+								entry = new ArrayList<FTPEntryWithQuality>();
+								result.put(node, entry);
+							}
+							FTPEntryWithQuality ewq = new FTPEntryWithQuality(ftp, quality, null);
+							entry.add(ewq);
 						}
-						FTPEntryWithQuality ewq = new FTPEntryWithQuality(ftp, quality, null);
-						entry.add(ewq);
 					}
+					counter++;
 				}
-				counter++;
 			}
 		}
 
@@ -127,16 +127,10 @@ public class AssemblySummaryReader {
 				}
 			}
 		}
-
 		if (totalEntries != null) {
 			totalEntries[0] = counter;
 		}
 		return result;
-	}
-
-	public CSVParser getCSV() throws IOException {
-		Reader in = new InputStreamReader(StreamProvider.getInputStreamForFile(new File(baseDir, assFileName)));
-		return FORMAT.parse(in);
 	}
 
 	public static class FTPEntryWithQuality {

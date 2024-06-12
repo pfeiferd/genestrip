@@ -24,70 +24,102 @@
  */
 package org.metagene.genestrip.make;
 
-import java.util.HashMap;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.metagene.genestrip.util.GSLogFactory;
 
-public abstract class Maker<P> {
+public abstract class Maker<P extends Project> {
 	private final Log logger = GSLogFactory.getLog("maker");
 	
-	private final Map<String, Goal<P>> goalsByName;
-	private String defaultGoalName;
+	// Linked Map so as to be able to returns the goals in entry order...
+	private final Map<GoalKey, Goal<P>> goalsByKey;
+	private final P project;
+	private GoalKey defaultGoal;
 
 	public Maker(P project) {
-		goalsByName = new HashMap<String, Goal<P>>();
-		createGoals(project);
+		goalsByKey = new LinkedHashMap<GoalKey, Goal<P>>();
+		this.project = project;
+		createGoals();
+	}
+	
+	protected P getProject() {
+		return project;
 	}
 
 	protected Log getLogger() {
 		return logger;
 	}
 	
-	public void registerDefaultGoal(Goal<P> goal) {
+	protected void registerDefaultGoal(Goal<P> goal) {
 		registerGoal(goal);
-		if (defaultGoalName != null) {
+		if (defaultGoal != null) {
 			throw new IllegalStateException("duplicate default goal");			
 		}
-		defaultGoalName = goal.getName();
+		defaultGoal = goal.getKey();
 	}
 	
-	public void registerGoal(Goal<P> goal) {
-		if (goalsByName.get(goal.getName()) != null) {
+	protected void registerGoal(Goal<P> goal) {
+		if (goalsByKey.get(goal.getKey()) != null) {
 			throw new IllegalStateException("duplicate goal name");
 		}
-		goalsByName.put(goal.getName(), goal);
+		goalsByKey.put(goal.getKey(), goal);
 	}
 	
-	public Set<String> getGoalNames() {
-		return goalsByName.keySet();
+	public Set<GoalKey> getGoalKeys() {
+		return goalsByKey.keySet();
+	}
+	
+	// Returns goals in entry order...
+	public Collection<Goal<P>> getGoals() {
+		return goalsByKey.values();
 	}
 		
-	public Goal<P> getGoal(String name) {
-		return goalsByName.get(name);
+	public Goal<P> getGoal(String keyName) {
+		return getGoal(getKeyByName(keyName));
 	}
 	
-	public void make(String goalName) {
-		goalsByName.get(goalName).make();
+	public GoalKey getKeyByName(String keyName) {
+		for (GoalKey key : getGoalKeys()) {
+			if (key.getName().equals(keyName)) {
+				return key;
+			}
+		}
+		return null;
+	}
+	
+	public Goal<P> getGoal(GoalKey key) {
+		return goalsByKey.get(key);
+	}
+	
+	public void make(GoalKey goalKey) {
+		goalsByKey.get(goalKey).make();
 	}
 
-	public void cleanAll(String goalName) {
-		goalsByName.get(goalName).clean();
+	public void cleanAll(GoalKey goalkey) {
+		goalsByKey.get(goalkey).clean();
 	}
 	
-	public void cleanTotal(String goalName) {
-		goalsByName.get(goalName).clean(true);
+	public void cleanTotal(GoalKey goalkey) {
+		goalsByKey.get(goalkey).clean(true);
 	}
 	
-	public void clean(String goalName) {
-		goalsByName.get(goalName).cleanThis();
+	public void clean(GoalKey goalkey) {
+		goalsByKey.get(goalkey).cleanThis();
 	}
 	
-	public String getDefaultGoalName() {
-		return defaultGoalName;
+	public GoalKey getDefaultGoalKey() {
+		return defaultGoal;
 	}
 	
-	protected abstract void createGoals(P project);
+	public void dump() {
+		for (Goal<P> g : goalsByKey.values()) {
+			g.dump();
+		}
+	}
+	
+	protected abstract void createGoals();
 }

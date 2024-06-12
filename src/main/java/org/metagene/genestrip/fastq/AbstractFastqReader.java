@@ -24,7 +24,6 @@
  */
 package org.metagene.genestrip.fastq;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -33,10 +32,9 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 import org.apache.commons.logging.Log;
+import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.io.BufferedLineReader;
-import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.util.ByteArrayUtil;
-import org.metagene.genestrip.util.ExecutorServiceBundle;
 import org.metagene.genestrip.util.GSLogFactory;
 
 public abstract class AbstractFastqReader {
@@ -55,9 +53,9 @@ public abstract class AbstractFastqReader {
 
 	private boolean dump;
 
-	protected final ExecutorServiceBundle bundle;
+	protected final ExecutionContext bundle;
 
-	public AbstractFastqReader(int k, int initialSizeBytes, int maxQueueSize, ExecutorServiceBundle bundle,
+	public AbstractFastqReader(int k, int initialSizeBytes, int maxQueueSize, ExecutionContext bundle,
 			Object... config) {
 		this.k = k;
 		this.bundle = bundle;
@@ -138,18 +136,6 @@ public abstract class AbstractFastqReader {
 		return logger;
 	}
 
-	protected void readFastq(File file) throws IOException {
-		if (logger.isInfoEnabled()) {
-			logger.info("Reading fastq file " + file);
-		}
-		InputStream inputStream = StreamProvider.getInputStreamForFile(file);
-		readFastq(inputStream);
-		inputStream.close();
-		if (logger.isInfoEnabled()) {
-			logger.info("Closed fastq file " + file);
-		}
-	}
-
 	protected void growReadBuffer(ReadEntry readStruct, BufferedLineReader lineReader) throws IOException {
 		while (readStruct.readSize == readStruct.read.length) {
 			byte[] newBuffer = new byte[readStruct.read.length * 2];
@@ -162,15 +148,11 @@ public abstract class AbstractFastqReader {
 	}
 
 	protected void readFastq(InputStream inputStream) throws IOException {
+		start();
 		reads = 0;
 		kMers = 0;
 		bufferedLineReaderFastQ.setInputStream(inputStream);
 
-		start();
-
-		if (logger.isInfoEnabled()) {
-			logger.info("Number of consumer threads: " + bundle.getThreads());
-		}
 		ReadEntry readStruct = nextFreeReadStruct();
 		for (readStruct.readDescriptorSize = bufferedLineReaderFastQ.nextLine(readStruct.readDescriptor)
 				- 1; readStruct.readDescriptorSize >= 0; readStruct.readDescriptorSize = bufferedLineReaderFastQ
@@ -255,9 +237,6 @@ public abstract class AbstractFastqReader {
 			}
 		}
 
-		if (logger.isInfoEnabled()) {
-			logger.info("Total number of reads: " + reads);
-		}
 		done();
 	}
 

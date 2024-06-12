@@ -22,42 +22,31 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.goals.refseq;
+package org.metagene.genestrip.goals;
 
-import java.io.File;
 import java.io.IOException;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.store.KMerStoreWrapper;
+import org.metagene.genestrip.store.Database;
 
-public class FilledStoreGoal extends ObjectGoal<KMerStoreWrapper, GSProject> {
+public class FilledDBGoal extends ObjectGoal<Database, GSProject> {
 	private final FileGoal<GSProject> fillStoreGoal;
 
 	@SafeVarargs
-	public FilledStoreGoal(GSProject project, String name, FileGoal<GSProject> fillStoreGoal,
+	public FilledDBGoal(GSProject project, GoalKey key, FileGoal<GSProject> fillStoreGoal,
 			Goal<GSProject>... dependencies) {
-		super(project, name, Goal.append(dependencies, fillStoreGoal));
+		super(project, key, append(dependencies, fillStoreGoal));
 		this.fillStoreGoal = fillStoreGoal;
 	}
 
 	@Override
 	public void makeThis() {
 		try {
-			File filterFile = null;
-			if (getProject().isUseBloomFilterForMatch()) {
-				filterFile = getProject().getFilterFile(fillStoreGoal);
-				if (!filterFile.exists()) {
-					if (getLogger().isWarnEnabled()) {
-						getLogger().warn("Missing filter file " + filterFile + ". The database will be used without it.");
-					}
-					filterFile = null;
-				}
-			}
-			KMerStoreWrapper wrapper = KMerStoreWrapper.load(fillStoreGoal.getFile(), filterFile);
-			set(wrapper);
+			set(Database.load(fillStoreGoal.getFile(), true));
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);
 		} catch (IOException e) {
@@ -65,7 +54,7 @@ public class FilledStoreGoal extends ObjectGoal<KMerStoreWrapper, GSProject> {
 		}
 	}
 
-	public void setStoreWrapper(KMerStoreWrapper object) {
+	public void setDatabase(Database object) {
 		set(object);
-	}
+	}	
 }

@@ -30,11 +30,13 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 
+import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.fasta.AbstractFastaReader;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.make.GoalKey.DefaultGoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
@@ -53,9 +55,9 @@ public class FastaTransformGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Map<String, String>, GSProject> mapGoal;
 
 	@SafeVarargs
-	public FastaTransformGoal(GSProject project, String name, ObjectGoal<Map<String, String>, GSProject> mapGoal,
+	public FastaTransformGoal(GSProject project, ObjectGoal<Map<String, String>, GSProject> mapGoal,
 			Goal<GSProject>... dependencies) {
-		super(project, name, (List<File>) null, append(dependencies, mapGoal));
+		super(project, new DefaultGoalKey("accfastatransform"), (List<File>) null, append(dependencies, mapGoal));
 		this.mapGoal = mapGoal;
 		addFile(new File(project.getFastqDir(), "HiSeq_accuracy.fastq"));
 		addFile(new File(project.getFastqDir(), "MiSeq_accuracy.fastq"));
@@ -78,7 +80,8 @@ public class FastaTransformGoal extends FileListGoal<GSProject> {
 
 		final Map<String, String> accesion2TaxidMap = accNumberWay ? mapGoal.get() : null;
 
-		AbstractFastaReader fastaReader = new AbstractFastaReader(getProject().getConfig().getInitialReadSizeBytes()) {
+		AbstractFastaReader fastaReader = new AbstractFastaReader(
+				getProject().intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES)) {
 			private int counter = 0;
 			private int dataSize;
 			private boolean taxidFound;

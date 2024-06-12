@@ -22,37 +22,50 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.util;
+package org.metagene.genestrip.tax;
 
-import java.util.List;
+import java.io.Serializable;
 
-public interface ExecutorServiceBundle {
-	public int getThreads();
-
-	public void execute(Runnable runnable);
-
-	public List<Throwable> getThrowableList();
-
-	public void clearThrowableList();
-
-	public void interruptAll();
-
-	public void setProgress(long coveredBytes, long estTotalBytes, long elapsedTimeMS, long estTotalTimeMS,
-			double ratio);
-
-	public boolean isRequiresProgress();
-
-	public long getElapsedTimeMS();
-
-	public long getEstTotalTimeMS();
-
-	public double getProgressRatio();
-
-	public long getCoveredBytes();
-
-	public long getEstTotalBytes();
-
-	public long getLogUpdateCycle();
+public class TaxIdInfo implements Serializable, Comparable<TaxIdInfo> {
+	private static final long serialVersionUID = 1L;
 	
-	public void dump();
+	protected final String taxId;
+	protected String name;
+	protected short rank;
+	protected int position;
+
+	public TaxIdInfo(String taxId, Rank rank) {
+		this(taxId, (short) (rank == null ? -1 : rank.ordinal()));
+	}
+
+	protected TaxIdInfo(String taxId, short rank) {
+		this.taxId = taxId;
+		this.rank = rank;		
+	}
+	
+	public Rank getRank() {
+		return Rank.byOrdinal(rank);
+	}
+
+	public int getPosition() {
+		return position;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public String getTaxId() {
+		return taxId;
+	}
+
+	@Override
+	public int compareTo(TaxIdInfo o) {
+		return position - o.position;
+	}
+
+	@Override
+	public String toString() {
+		return "Node: " + taxId;
+	}
 }

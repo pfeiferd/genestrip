@@ -24,17 +24,24 @@
  */
 package org.metagene.genestrip.io;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
-
-import org.metagene.genestrip.io.StreamProvider.ByteCountingInputStreamAccess;
+import java.util.zip.GZIPInputStream;
 
 public class StreamingFileResource implements StreamingResource {
 	private final File file;
+	private final boolean noGZ;
 
 	public StreamingFileResource(File file) {
+		this(file, false);
+	}
+	
+	public StreamingFileResource(File file, boolean noGZ) {
 		this.file = file;
+		this.noGZ = noGZ;
 	}
 
 	@Override
@@ -42,10 +49,37 @@ public class StreamingFileResource implements StreamingResource {
 		return Files.size(file.toPath());
 	}
 
-	public ByteCountingInputStreamAccess getStreamAccess() throws IOException {
-		return StreamProvider.getByteCountingInputStreamForFile(file, false);
+	public StreamingResource.StreamAccess openStream() throws IOException {
+		return getByteCountingInputStreamForFile(file, noGZ);
 	}
 
+	private static StreamAccess getByteCountingInputStreamForFile(File file, boolean noGZ)
+			throws IOException {
+		final ByteCountingFileInputStream in = new ByteCountingFileInputStream(file);
+		InputStream[] res = new InputStream[1];
+		if (!noGZ && StreamProvider.isGZIPFile(file)) {
+			res[0] = new GZIPInputStream(in, StreamProvider.getBufferSize());
+		} else {
+			res[0] = new BufferedInputStream(in, StreamProvider.getBufferSize());
+		}
+		return new StreamingResource.StreamAccess() {
+			@Override
+			public long getBytesRead() {
+				return in.getBytesRead();
+			}
+
+			@Override
+			public InputStream getInputStream() {
+				return res[0];
+			}
+			
+			@Override
+			public long getSize() throws IOException {
+				return Files.size(file.toPath());
+			}
+		};
+	}
+	
 	@Override
 	public boolean isExists() {
 		return file.exists();
@@ -63,5 +97,5 @@ public class StreamingFileResource implements StreamingResource {
 	@Override
 	public String toString() {
 		return "Streaming File: " + file.toString();
-	}
+	}	
 }

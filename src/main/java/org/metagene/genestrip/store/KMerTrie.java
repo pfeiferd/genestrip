@@ -34,9 +34,7 @@ import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATRingBuffer;
 
-/**
- * @deprecated
- */
+@Deprecated
 public class KMerTrie<V extends Serializable> implements Serializable, KMerStore<V> {
 	private static final InternalNullMarker NULL = new InternalNullMarker();
 
@@ -567,9 +565,9 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 	}
 
 	public void save(File trieFile) throws IOException {
-		ObjectOutputStream oOut = new ObjectOutputStream(StreamProvider.getOutputStreamForFile(trieFile));
-		oOut.writeObject(this);
-		oOut.close();
+		try (ObjectOutputStream oOut = new ObjectOutputStream(StreamProvider.getOutputStreamForFile(trieFile))) {
+			oOut.writeObject(this);			
+		}
 	}
 
 	private static final class InternalNullMarker implements Serializable {

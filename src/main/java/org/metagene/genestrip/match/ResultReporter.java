@@ -37,10 +37,10 @@ import java.util.Map;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
-import org.metagene.genestrip.store.KMerStoreWrapper;
-import org.metagene.genestrip.tax.TaxTree;
-import org.metagene.genestrip.tax.TaxTree.Rank;
-import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.store.Database;
+import org.metagene.genestrip.tax.Rank;
+import org.metagene.genestrip.tax.SmallTaxTree;
+import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
@@ -51,10 +51,10 @@ public class ResultReporter {
 
 	private static final DecimalFormat DF = new DecimalFormat("0.0000", new DecimalFormatSymbols(Locale.US));
 
-	private final TaxTree taxTree;
+	private final SmallTaxTree taxTree;
 	private final long normalizedKMersFactor;
 
-	public ResultReporter(TaxTree taxTree, long normalizedKMersFactor) {
+	public ResultReporter(SmallTaxTree taxTree, long normalizedKMersFactor) {
 		this.taxTree = taxTree;
 		this.normalizedKMersFactor = normalizedKMersFactor;
 	}
@@ -74,7 +74,7 @@ public class ResultReporter {
 
 		for (String taxId : sortedTaxIds) {
 			if (taxId != null) {
-				TaxIdNode taxNode = taxTree.getNodeByTaxId(taxId);
+				SmallTaxIdNode taxNode = taxTree.getNodeByTaxId(taxId);
 				if (taxNode != null) {
 					out.print(taxNode.getName());
 					out.print(';');
@@ -118,7 +118,7 @@ public class ResultReporter {
 		return res;
 	}
 
-	public void printMatchResult(MatchingResult res, PrintStream out, KMerStoreWrapper wrapper) {
+	public void printMatchResult(MatchingResult res, PrintStream out, Database wrapper) {
 		Map<String, CountsPerTaxid> taxid2Stats = res.getTaxid2Stats();
 		UniqueKMerEstimator estimator = wrapper == null ? null
 				: new UniqueKMerEstimator(wrapper, normalizedKMersFactor);
@@ -162,7 +162,7 @@ public class ResultReporter {
 		for (String taxId : sortedTaxIds) {
 			CountsPerTaxid stats = taxid2Stats.get(taxId);
 			if (stats != null) {
-				TaxIdNode taxNode = taxTree.getNodeByTaxId(taxId);
+				SmallTaxIdNode taxNode = taxTree.getNodeByTaxId(taxId);
 				wrapper.getStats();
 				if (taxNode != null) {
 					out.print(taxNode.getName());

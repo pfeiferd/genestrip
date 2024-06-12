@@ -27,8 +27,6 @@ package org.metagene.genestrip.tax;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintWriter;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -58,124 +56,29 @@ public class TaxTree {
 		}
 	};
 
-	public enum Rank {
-		SUPERKINGDOM("superkingdom"), KINGDOM("kingdom"), PHYLUM("phylum"), SUBPHYLUM("subphylum"),
-		SUPERCLASS("superclass"), CLASS("class"), SUBCLASS("subclass"), SUPERORDER("superorder"), ORDER("order"),
-		SUBORDER("suborder"), SUPERFAMILY("superfamily"), FAMILY("family"), SUBFAMILY("subfamily"), CLADE("clade"),
-		GENUS("genus"), SUBGENUS("subgenus"), SPECIES_GROUP("species group"), SPECIES("species"), VARIETAS("varietas"),
-		SUBSPECIES("subspecies"), SEROGROUP("serogroup"), BIOTYPE("biotype"), STRAIN("strain"), SEROTYPE("serotype"),
-		GENOTYPE("genotype"), FORMA("forma"), FORMA_SPECIALIS("forma specialis"), ISOLATE("isolate"),
-		NO_RANK("no rank");
-
-		private String name;
-
-		private Rank(String name) {
-			this.name = name;
-		}
-
-		public String getName() {
-			return name;
-		}
-
-		public static Rank byName(String name) {
-			for (Rank r : Rank.values()) {
-				if (r.name.equals(name)) {
-					return r;
-				}
-			}
-			return null;
-		}
-
-		public boolean isBelowOrEqual(Rank rank) {
-			return this.ordinal() >= rank.ordinal();
-		}
-
-		public boolean isBelow(Rank rank) {
-			return this.ordinal() > rank.ordinal();
-		}
-	}
-
 	public static final String NODES_DMP = "nodes.dmp";
 	public static final String NAMES_DMP = "names.dmp";
 
-	private final Comparator<String> taxIdComparator = new Comparator<String>() {
-		@Override
-		public int compare(String o1, String o2) {
-			TaxIdNode a = getNodeByTaxId(o1);
-			TaxIdNode b = getNodeByTaxId(o2);
-
-			if (a == null && b == null) {
-				return o1.compareTo(o2);
-			}
-			if (a == null) {
-				return -1;
-			}
-			if (b == null) {
-				return 1;
-			}
-			return a.compareTo(b);
-		}
-	};
-
 	private final TaxIdNode root;
 	private final TaxIdNodeTrie taxIdNodeTrie;
-	private int countSize;
-	private Object owner;
 
 	public TaxTree(File path) {
 		try {
 			taxIdNodeTrie = new TaxIdNodeTrie();
-			root = readNodesFromStream(createNodesResource(path));
-			readNamesFromStream(createNamesResource(path));
+			try (InputStream is = createNodesResource(path)) {
+				root = readNodesFromStream(is);
+			}
+			try (InputStream is = createNamesResource(path)) {
+				readNamesFromStream(is);
+			}
 			initPositions(0, root);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
-
-	public void initCountSize(int countSize) {
-		if (countSize <= 0) {
-			throw new IllegalArgumentException("Initialization size must by >= 0.");
-		}
-		if (this.countSize > 0 && countSize != this.countSize) {
-			throw new IllegalStateException("Count count size can only be initialized once.");
-		}
-		this.countSize = countSize;
-	}
-
-	public void resetCounts(Object owner) {
-		if (owner == null) {
-			throw new NullPointerException("owner must not be null");
-		}
-		if (this.owner == null) {
-			this.owner = owner;
-		} else if (this.owner != owner) {
-			throw new IllegalArgumentException("Tax tree not relaease by previous owner: " + this.owner);
-		}
-		root.resetCounts();
-	}
-
-	public void releaseOwner() {
-		this.owner = null;
-	}
-
-	public void incCount(TaxIdNode node, int index, long initKey) {
-		node.incCount(node, index, initKey, countSize);
-	}
-
-	public short sumCounts(TaxIdNode node, int index, long initKey) {
-		short res = 0;
-		while (node != null) {
-			if (node.counts != null && node.countsInitKeys != null && node.countsInitKeys[index] == initKey) {
-				res += node.counts[index];
-			}
-			node = node.getParent();
-		}
-		return res;
-	}
-
-	public int getCountSize() {
-		return countSize;
+	
+	public SmallTaxTree toSmallTaxTree() {
+		return new SmallTaxTree(this);
 	}
 
 	public boolean isAncestorOf(TaxIdNode node, TaxIdNode ancestor) {
@@ -183,121 +86,21 @@ public class TaxTree {
 			if (node.equals(ancestor)) {
 				return true;
 			}
-			node = node.getParent();
+			node = node.parent;
 		}
 
 		return false;
 	}
 
 	public TaxIdNode getLeastCommonAncestor(final TaxIdNode node1, final TaxIdNode node2) {
-		for (TaxIdNode res = node1; res != null; res = res.getParent()) {
-			for (TaxIdNode ancestor2 = node2; ancestor2 != null; ancestor2 = ancestor2.getParent()) {
+		for (TaxIdNode res = node1; res != null; res = res.parent) {
+			for (TaxIdNode ancestor2 = node2; ancestor2 != null; ancestor2 = ancestor2.parent) {
 				if (res == ancestor2) {
 					return res;
 				}
 			}
 		}
 		return null;
-	}
-
-	protected InputStream createNodesResource(File path) throws IOException {
-		return StreamProvider.getInputStreamForFile(new File(path, NODES_DMP));
-	}
-
-	protected InputStream createNamesResource(File path) throws IOException {
-		return StreamProvider.getInputStreamForFile(new File(path, NAMES_DMP));
-	}
-
-	protected void readNamesFromStream(InputStream stream) throws IOException {
-		BufferedLineReader br = new BufferedLineReader(stream);
-		int size;
-		byte[] target = new byte[MAX_LINE_SIZE];
-
-		while ((size = br.nextLine(target)) > 0) {
-			boolean scientific = ByteArrayUtil.indexOf(target, 0, size, "scientific name") != -1;
-			int a = ByteArrayUtil.indexOf(target, 0, size, '|');
-			int b = ByteArrayUtil.indexOf(target, a + 1, size, '|');
-			if (a != -1 && b != -1) {
-				TaxIdNode node = taxIdNodeTrie.get(target, 0, a - 1);
-				if (node != null) {
-					String name = new String(target, a + 2, b - a - 3);
-					if (node.name == null || scientific) {
-						node.name = name;
-					}
-				}
-			}
-		}
-		br.close();
-	}
-
-	protected TaxIdNode readNodesFromStream(InputStream stream) throws IOException {
-		TaxIdNode res = null;
-		int size;
-		byte[] target = new byte[MAX_LINE_SIZE];
-
-		BufferedLineReader br = new BufferedLineReader(stream);
-		while ((size = br.nextLine(target)) > 0) {
-//			ByteArrayUtil.print(target, System.out);
-			int a = ByteArrayUtil.indexOf(target, 0, size, '|');
-			int b = ByteArrayUtil.indexOf(target, a + 1, size, '|');
-			int c = ByteArrayUtil.indexOf(target, b + 1, size, '|');
-			if (a != -1 && b != -1) {
-				TaxIdNode nodeA = taxIdNodeTrie.get(target, 0, a - 1, true);
-				TaxIdNode nodeB = taxIdNodeTrie.get(target, a + 2, b - 1, true);
-
-				if (nodeA != nodeB) {
-					nodeA.parent = nodeB;
-					nodeB.addSubNode(nodeA);
-				}
-				nodeA.rank = getRank(target, b + 2, c - 1);
-
-				if (nodeA == nodeB && "1".equals(nodeA.taxId)) {
-					res = nodeA;
-				}
-			}
-		}
-		br.close();
-
-		return res;
-	}
-
-	protected Rank getRank(byte[] outerArray, int start, int end) {
-		for (Rank rank : Rank.values()) {
-			if (ByteArrayUtil.indexOf(outerArray, start, end, rank.getName()) != -1) {
-				return rank;
-			}
-		}
-		return null;
-	}
-
-	protected int initPositions(int counter, TaxIdNode taxIdNode) {
-		taxIdNode.position = counter;
-		for (TaxIdNode subNode : taxIdNode.subNodes) {
-			counter = initPositions(counter + 1, subNode);
-		}
-		return counter;
-	}
-
-	public List<String> sortTaxidsViaTree(List<String> taxids) {
-		Collections.sort(taxids, taxIdComparator);
-		return taxids;
-	}
-
-	public static List<TaxIdNode> sortNodes(List<TaxIdNode> taxids) {
-		Collections.sort(taxids, NODE_COMPARATOR);
-		return taxids;
-	}
-
-	public TaxIdNode getRoot() {
-		return root;
-	}
-
-	public TaxIdNode getNodeByTaxId(String taxId) {
-		return taxIdNodeTrie.get(taxId);
-	}
-
-	public TaxIdNode getNodeByTaxId(byte[] seq, int start, int end) {
-		return taxIdNodeTrie.get(seq, start, end);
 	}
 
 	public TaxIdNode getRankedNode(String taxid, Rank rank) {
@@ -312,130 +115,142 @@ public class TaxTree {
 			if (node.getRank() == null || !node.getRank().isBelow(rank)) {
 				return null;
 			}
-			node = node.getParent();
+			node = node.parent;
 		}
 		return null;
 	}
+	
+	protected InputStream createNodesResource(File path) throws IOException {
+		return StreamProvider.getInputStreamForFile(new File(path, NODES_DMP));
+	}
 
-	public static class TaxIdNode implements Comparable<TaxIdNode>, Serializable {
-		private static final long serialVersionUID = 1L;
+	protected InputStream createNamesResource(File path) throws IOException {
+		return StreamProvider.getInputStreamForFile(new File(path, NAMES_DMP));
+	}
 
-		private final String taxId;
-		private String name;
-		private final List<TaxIdNode> subNodes;
-		private TaxIdNode parent;
-		private int position;
-		private Rank rank;
-		private short[] counts;
-		private long[] countsInitKeys;
+	protected void readNamesFromStream(InputStream stream) throws IOException {
+		try (BufferedLineReader br = new BufferedLineReader(stream)) {
+			int size;
+			byte[] target = new byte[MAX_LINE_SIZE];
 
-		public TaxIdNode(String taxId) {
-			this.taxId = taxId;
-			subNodes = new ArrayList<TaxIdNode>();
-		}
-
-		public TaxIdNode(String taxId, Rank rank) {
-			this.taxId = taxId;
-			this.rank = rank;
-			subNodes = new ArrayList<TaxIdNode>();
-		}
-
-		private void incCount(TaxIdNode node, int index, long initKey, int size) {
-			if (counts == null) {
-				synchronized (this) {
-					if (counts == null) {
-						counts = new short[size];
-						countsInitKeys = new long[size];
+			while ((size = br.nextLine(target)) > 0) {
+				boolean scientific = ByteArrayUtil.indexOf(target, 0, size, "scientific name") != -1;
+				int a = ByteArrayUtil.indexOf(target, 0, size, '|');
+				int b = ByteArrayUtil.indexOf(target, a + 1, size, '|');
+				if (a != -1 && b != -1) {
+					TaxIdNode node = taxIdNodeTrie.get(target, 0, a - 1);
+					if (node != null) {
+						String name = new String(target, a + 2, b - a - 3);
+						if (node.name == null || scientific) {
+							node.name = name;
+						}
 					}
 				}
 			}
-			if (countsInitKeys[index] == initKey) {
-				counts[index]++;
-			} else {
-				countsInitKeys[index] = initKey;
-				counts[index] = 1;
-			}
 		}
+	}
 
-		public Rank getRank() {
-			return rank;
-		}
+	protected TaxIdNode readNodesFromStream(InputStream stream) throws IOException {
+		TaxIdNode res = null;
+		int size;
+		byte[] target = new byte[MAX_LINE_SIZE];
 
-		public TaxIdNode getParent() {
-			return parent;
-		}
+		try (BufferedLineReader br = new BufferedLineReader(stream)) {
+			while ((size = br.nextLine(target)) > 0) {
+				int a = ByteArrayUtil.indexOf(target, 0, size, '|');
+				int b = ByteArrayUtil.indexOf(target, a + 1, size, '|');
+				int c = ByteArrayUtil.indexOf(target, b + 1, size, '|');
+				if (a != -1 && b != -1) {
+					TaxIdNode nodeA = taxIdNodeTrie.get(target, 0, a - 1, true);
+					TaxIdNode nodeB = taxIdNodeTrie.get(target, a + 2, b - 1, true);
 
-		public int getPosition() {
-			return position;
-		}
+					if (nodeA != nodeB) {
+						nodeB.addSubNode(nodeA);
+					}
+					Rank r = Rank.getRankFromBytes(target, b + 2, c - 1);
+					nodeA.rank = (short) (r == null ? -1 : r.ordinal());
 
-		public String getName() {
-			return name;
-		}
-
-		public String getTaxId() {
-			return taxId;
-		}
-
-		public List<TaxIdNode> getSubNodes() {
-			return Collections.unmodifiableList(subNodes);
-		}
-
-		public void addSubNode(TaxIdNode node) {
-			subNodes.add(node);
-		}
-
-		public void addSubNode(int position, TaxIdNode node) {
-			subNodes.add(position, node);
-		}
-
-		@Override
-		public int compareTo(TaxIdNode o) {
-			return position - o.position;
-		}
-
-		@Override
-		public String toString() {
-			return "Node: " + taxId;
-		}
-
-		public TaxIdNode shallowCopy() {
-			TaxIdNode copy = new TaxIdNode(taxId, rank);
-			copy.name = name;
-			copy.position = position;
-			return copy;
-		}
-
-		private void resetCounts() {
-			if (countsInitKeys != null) {
-				for (int i = 0; i < countsInitKeys.length; i++) {
-					countsInitKeys[i] = -1;
+					if (nodeA == nodeB && "1".equals(nodeA.taxId)) {
+						res = nodeA;
+					}
 				}
 			}
-			for (TaxIdNode node : subNodes) {
-				node.resetCounts();
+		}
+
+		return res;
+	}
+
+	protected int initPositions(int counter, TaxIdNode taxIdNode) {
+		taxIdNode.position = counter;
+		List<TaxIdNode> subNodes = taxIdNode.subNodes;
+		if (subNodes != null) {
+			// Not using iterator for more efficiency (less object burn)
+			int size = subNodes.size();
+			for (int i = 0; i < size; i++) {
+				counter = initPositions(counter + 1, subNodes.get(i));
 			}
 		}
+		return counter;
 	}
 
-	public void writeSortedSpecies(PrintWriter writer) throws IOException {
-		writeSortedSpecies(root, writer);
+	public static List<TaxIdNode> sortNodes(List<TaxIdNode> taxids) {
+		Collections.sort(taxids, NODE_COMPARATOR);
+		return taxids;
 	}
 
-	protected void writeSortedSpecies(TaxIdNode node, PrintWriter writer) throws IOException {
-		writer.print(node.position);
-		writer.print('|');
-		writer.print(node.taxId);
-		writer.print('|');
-		writer.println(node.name);
-		for (TaxIdNode subNode : node.subNodes) {
-			writeSortedSpecies(subNode, writer);
+	protected TaxIdNode getRoot() {
+		return root;
+	}
+
+	public TaxIdNode getNodeByTaxId(String taxId) {
+		return taxIdNodeTrie.get(taxId);
+	}
+
+	public TaxIdNode getNodeByTaxId(byte[] seq, int start, int end) {
+		return taxIdNodeTrie.get(seq, start, end);
+	}
+
+	public static class TaxIdNode extends TaxIdInfo {
+		private static final long serialVersionUID = 1L;
+
+		private List<TaxIdNode> subNodes;
+		volatile private TaxIdNode parent;
+		volatile private boolean required;
+
+		public TaxIdNode(String taxId) {
+			this(taxId, null);
 		}
-	}
 
-	public static void main(String[] args) throws IOException {
-		File file = new File("sortedSpecies.txt");
-		new TaxTree(new File("db/")).writeSortedSpecies(new PrintWriter(file));
+		public TaxIdNode(String taxId, Rank rank) {
+			super(taxId, rank);
+			subNodes = null;
+		}
+
+		public void markRequired() {
+			if (required) {
+				return;
+			}
+			required = true;
+			if (parent != null) {
+				parent.markRequired();
+			}
+		}
+		
+		public boolean isRequired() {
+			return required;
+		}
+
+		protected List<TaxIdNode> getSubNodes() {
+			return subNodes;
+		}
+		
+		private void addSubNode(TaxIdNode node) {
+			if (subNodes == null) {
+				subNodes = new ArrayList<TaxIdNode>();
+			}
+			node.parent = this;
+			subNodes.add(node);
+		}
 	}
 
 	public static class TaxIdNodeTrie extends DigitTrie<TaxIdNode> {

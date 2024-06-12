@@ -24,38 +24,39 @@
  */
 package org.metagene.genestrip.io;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class BufferedLineReader {
+public class BufferedLineReader implements Closeable {
 	public static final int DEFAULT_BUFFER_SIZE = 8 * 4096;
-	
+
 	private static int bufferSize = DEFAULT_BUFFER_SIZE;
-	
+
 	public static void setBufferSize(int bufferSize) {
 		BufferedLineReader.bufferSize = bufferSize;
 	}
-	
+
 	public static int getBufferSize() {
 		return bufferSize;
 	}
-	
+
 	private final byte[] buffer;
 
 	private int pos; // Position from which to start reading from the buffer.
 	private InputStream stream;
 	private int bufferFill;
-	
+
 	private long millis;
 
 	public BufferedLineReader() {
 		this(null);
 	}
-	
+
 	public BufferedLineReader(InputStream stream) {
 		this(stream, bufferSize);
 	}
-	
+
 	public BufferedLineReader(InputStream stream, int bufferSize) {
 		this.buffer = new byte[bufferSize];
 		setInputStream(stream);
@@ -89,11 +90,11 @@ public class BufferedLineReader {
 		}
 		return size;
 	}
-	
+
 	public int nextLine(byte[] target) throws IOException {
 		return nextLine(target, 0);
 	}
-	
+
 	// Returns target.length + 1 if target is full but end of line not reached.
 	public int nextLine(byte[] target, int startPos) throws IOException {
 		int size = startPos;
@@ -120,12 +121,15 @@ public class BufferedLineReader {
 		}
 		return size;
 	}
-	
+
 	public long getMillis() {
 		return millis;
 	}
-	
+
+	@Override
 	public void close() throws IOException {
-		stream.close();
+		if (stream != null) {
+			stream.close();
+		}
 	}
 }

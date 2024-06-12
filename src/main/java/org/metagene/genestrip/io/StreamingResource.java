@@ -24,16 +24,32 @@
  */
 package org.metagene.genestrip.io;
 
+import java.io.Closeable;
 import java.io.IOException;
-
-import org.metagene.genestrip.io.StreamProvider.ByteCountingInputStreamAccess;
+import java.io.InputStream;
 
 public interface StreamingResource {
-	public String getName();
+	interface StreamAccess extends Closeable {
+		public InputStream getInputStream();
+	
+		public long getBytesRead();
+	
+		public long getSize() throws IOException;
+		
+		@Override
+		default void close() throws IOException {
+			InputStream is = getInputStream();
+			if (is != null) {
+				is.close();
+			}
+		}
+	}
 	
 	public long getSize() throws IOException;
 
+	public String getName();
+	
 	public boolean isExists();
 
-	public ByteCountingInputStreamAccess getStreamAccess() throws IOException;
+	public StreamAccess openStream() throws IOException;
 }

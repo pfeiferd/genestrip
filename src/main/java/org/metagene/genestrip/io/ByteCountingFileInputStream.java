@@ -30,30 +30,50 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 
 public class ByteCountingFileInputStream extends FileInputStream {
+	private long readToMark;
 	private long bRead;
 
 	public ByteCountingFileInputStream(File file) throws FileNotFoundException {
 		super(file);
+		bRead = 0;
+		readToMark = 0;
 	}
 
 	@Override
 	public int read() throws IOException {
-		bRead++;
-		return super.read();
+		int res = super.read();
+		if (res != -1) {
+			bRead++;
+		}
+		return res;
 	}
 
 	@Override
 	public int read(byte[] b) throws IOException {
-		bRead += b.length;
-		return super.read(b);
+		int res = super.read(b);
+		bRead += res;
+		return res;
 	}
 
 	@Override
 	public int read(byte[] b, int off, int len) throws IOException {
-		bRead += len;
-		return super.read(b, off, len);
+		int res = super.read(b, off, len);
+		bRead += res;
+		return res;
+	}
+	
+	@Override
+	public synchronized void mark(int readlimit) {
+		super.mark(readlimit);
+		readToMark = bRead;
 	}
 
+	@Override
+	public synchronized void reset() throws IOException {
+		super.reset();
+		bRead = readToMark;
+	}
+	
 	public long getBytesRead() {
 		return bRead;
 	}

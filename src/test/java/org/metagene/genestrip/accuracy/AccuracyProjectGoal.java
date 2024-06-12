@@ -32,11 +32,12 @@ import java.util.List;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.make.GoalKey.DefaultGoalKey;
 
 public class AccuracyProjectGoal extends FileListGoal<GSProject> {
 	@SafeVarargs
-	public AccuracyProjectGoal(GSProject project, String name, Goal<GSProject>... dependencies) {
-		super(project, name, (List<File>) null, dependencies);
+	public AccuracyProjectGoal(GSProject project, Goal<GSProject>... dependencies) {
+		super(project, new DefaultGoalKey("accproject"), (List<File>) null, dependencies);
 // We generate the taxids.txt file instead because we need the taxid on the genus level.		
 //		addFile(new File(project.getProjectDir(), "taxids.txt"));
 		addFile(new File(project.getProjectDir(), "categories.txt"));

@@ -24,7 +24,7 @@
  */
 package org.metagene.genestrip.match;
 
-import org.metagene.genestrip.store.KMerStoreWrapper;
+import org.metagene.genestrip.store.Database;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
@@ -33,7 +33,7 @@ public class UniqueKMerEstimator {
 	private final Object2LongMap<String> storeStats;
 	private final long normalizedKMersFactor;
 
-	public UniqueKMerEstimator(KMerStoreWrapper storeWrapper, long normalizedKMersFactor) {
+	public UniqueKMerEstimator(Database storeWrapper, long normalizedKMersFactor) {
 		storeStats = storeWrapper.getStats();
 		this.normalizedKMersFactor = normalizedKMersFactor;
 	}

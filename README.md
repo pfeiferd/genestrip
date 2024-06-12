@@ -50,13 +50,13 @@ Genestrip is structured as a standard [Maven 2 or 3](https://maven.apache.org/) 
 
 To build it, `cd` to the installation directory `genestrip`. Given a matching Maven and JDK installation, `mvn install` will compile, test and install the Genestrip program library. Afterwards a self-contained and executable `genestrip.jar` file will be stored under `./lib`. 
 
-Since version 0.5 Genestrip, is also available on [Maven Central](https://repo1.maven.org/maven2/org/genestrip/genestrip/).
+Since version 0.5, Genestrip is also available on [Maven Central](https://repo1.maven.org/maven2/org/genestrip/genestrip/).
 Here is the dependency:
 ```
 <dependency>
 	<groupId>org.genestrip</groupId>
 	<artifactId>genestrip</artifactId>
-	<version>0.5</version>
+	<version>1.0</version>
 </dependency>
 ```
 You may check for higher versions and update the dependency accordingly...
@@ -73,7 +73,7 @@ Genestrip follows a goal-oriented approach in order to create any result files (
 1. download the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip) and unzip it to `./data/common`,
 1. download the [RefSeq release catalog](https://ftp.ncbi.nlm.nih.gov/refseq/release/release-catalog/) to `./data/common/refseq`,
 1. download [all virus related RefSeq fna files](https://ftp.ncbi.nlm.nih.gov/refseq/release/viral/) to `./data/commmon/refseq` (which is currently just a single file),
-1. perform several follow-up goals, until the database file `human_virus_db.kmers.ser.gz` is finally made under `./data/projects/human_virus/db`, 
+1. perform several follow-up goals, until the database file `human_virus_db.zip` is finally made under `./data/projects/human_virus/db`, 
 1. create a CSV file `human_virus_dbinfo.csv` under `./data/projects/human_virus/csv`, which contains basic information about the database, i.e. the number of *k*-mers stored per tax id.
 
 The generated database comprises *k*-mers for all viruses according to the tax id file `./data/project/human_virus/taxids.txt`.
@@ -88,27 +88,36 @@ Generating your own database is straight-forward:
 1. The following categories are allowed, and originate from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/):
 `archaea`, `bacteria`, `complete`, `fungi`, `invertebrate`, `mitochondrion`, `other`, `plant`, `plasmid`, `plastid`, `protozoa`, `vertebrate_mammalian`, `vertebrate_other` and `viral`. You may enter one category per line.
 The *entire* set of genomes that belong to a category referenced in `categories.txt` will be used to determine the least common ancestors tax ids of the *k*-mers stored in the finalized database. The more categories you reference in `categories.txt`, the more genomes files will have to be downloaded from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) and the longer the database generation process will take. E.g., if only the category `viral` is included, it should just take a few minutes, but with `bacteria` included, it may typically take about a day or more.
-So you should chose a suitable set of categories to balance completeness of considered genomes with efficiency of the database generation process.
+So you should choose a suitable set of categories to balance completeness of considered genomes with efficiency of the database generation process.
 
-1. Start the database generation process via the command `sh ./bin/genestrip.sh <project_name> dbinfo`. This will also create a CSV file `./data/projects/<project_name>/csv/<project_name>_dbinfo.csv` with basic information about the database, i.e. the number of *k*-mers stored per tax id. The path of the database will be `./data/projects/<project_name>/db/<project_name>_db.kmers.ser.gz`. The file `./data/projects/<project_name>/db/<project_name>_db.bloom.ser.gz` is an optional part of the database and created as well. It is used by default during fastq file analysis to improve performance (in most cases) but increases main memory usage. (Please check the configuration property `useBloomFilterForMatch` for more information on this.)
+1. Start the database generation process via the command `sh ./bin/genestrip.sh <project_name> dbinfo`. 
+This will also create a CSV file `./data/projects/<project_name>/csv/<project_name>_dbinfo.csv` with 
+basic information about the database, i.e. the number of *k*-mers stored per tax id. 
+The path of the database will be `./data/projects/<project_name>/db/<project_name>_db.zip`. 
+The database file `<project_name>_db.zip` is self-contained and includes all necessary taxonomic information for its 
+later use via the goals `match` and `matchlr`.
 
 In general, Genestrip organizes a project folder `./data/projects/<project_name>` by means of the following sub-folders:
 * `csv` is where analysis results of fastq files will be stored (by default).
-* `fastq` is where Genestrip will store filtered fastq files. You may also put the fastq files to be analyzed there (but they can be read from any other path too).
-* `fasta` may be used to store *additional* genome files (not part of in the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/)) that should be considered for the database generation process (see Section [Manually adding fasta-files](#manually-adding-fasta-files)).
-* `db` is where Genestrip puts the generated database. If your focus is on filtering fastq files, Genestrip can create a specialized, smaller filtering database named `<project_name>_db.bloom.ser.gz` that will be put there too. Moreover, the intermediate databases `<project_name>_tempdb.kmers.ser.gz` and `<project_name>_tempdb.bloom.ser.gz` will be put there as part of the database generation process. The intermediate databases are not required for *k*-mer matching or fastq filtering and so, they may be deleted afterwards.
+* `db` is where Genestrip puts the generated database. If your focus is on filtering fastq files, Genestrip can create a specialized,  filtering database named `<project_name>_index.ser.gz` that will be put there too. Moreover, the intermediate database `<project_name>_tempdb.zip` will be put there as part of the database generation process. The intermediate database is not required for *k*-mer matching or fastq filtering and so, it may be (manually) deleted afterwards.
+* `fasta` may be used to store *additional* genome files (not part of in the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/)) that should be considered for the database generation process (see Section [Additional fasta files](#additional-fasta-files)).
+* `fastq` is where Genestrip will store filtered (or generated) fastq files. You may also put you own fastq files to be analyzed there (but they can be read from any other path too).
+* `genbank` is where genomic files from Genbank will be downloaded to if needed during the project's database generation process.
 * `krakenout` is for output files in the style of [Kraken](https://ccb.jhu.edu/software/kraken/MANUAL.html#output-format). They may optionally be generated when analyzing fastq files.
+* `log` is reserved for future use in conjunction with a server-side integration of Genestrip.
 
-A database covering more species may require more memory - especially when generating the database. This can be addressed by adjusting the script `genestrip.sh` where the argument `-Xmx32g` sets the maximum heap space of the Java Virtual Machine to 32GB. E.g. to double it, simple replace `32g` by `64g`.
+A database covering more species may require more memory - especially while generating the database. This can be addressed by adjusting the script `genestrip.sh` where the argument `-Xmx32g` sets the maximum heap space of the Java Virtual Machine to 32GB. E.g. to double it, simple replace `32g` by `64g`.
 
 
 # Analyzing fastq files by matching *k*-mers of reads
 
 Genestrip's main purpose is to analyze reads from fastq files and count the contained *k*-mers per tax id according to a previously generated database. As an example, Genestrip comes with a small fastq-file `sample.fastq.gz` in `./data/projects/human_virus/fastq`. To start the matching process for it, run
 ```
-sh ./bin/genestrip.sh -f ./data/projects/human_virus/fastq/sample.fastq.gz human_virus match
+sh ./bin/genestrip.sh -f./data/projects/human_virus/fastq/sample.fastq.gz human_virus match
 ```
-The resulting CSV file will be named `human_virus_match_sample.csv` under `./data/projects/human_virus/csv`. The same principles apply to your own projects under `./data/projects`.
+**Beware: No blank between `-f` and the file path.**
+
+The resulting CSV file will be named `human_virus_match_sample.csv` under `./data/projects/human_virus/csv`. The same applies to your own projects under `./data/projects`.
 
 These are a few lines of its contents along with the header line:
 ```
@@ -134,11 +143,12 @@ The meaning of the columns is a follows:
 | `average contig length`      | The average  base pair length of contiguous sequences of *k*-mers that are specific to the tax id's genome. |
 | `max contig length`      |  The maximum base pair length of all contiguous sequences of *k*-mers that are specific to the tax id's genome. |
 | `max contig desc.`      |  The descriptor of a read that holds a contiguous sequence of maximum length (according to the previous column).   |
-| `normalized kmers`      |   *k*-mer counts from column `kmers` but normalized with respect to the total number of *k*-mers per fastq file and the number of specific *k*-mers for a tax id in the database. The value allows for a less biased comparison of *k*-mer counts across fastq files and across species. It is computed as `normalizedKMersFactor` * `kmers` */ k<sub>f</sub> * u / u<sub>t</sub>*, where *k<sub>f</sub>* is the total number of *k*-mers in the fastq file, *u* is the total number of *k*-mers in the database and *u<sub>t</sub>* is the number of specific *k*-mers for a tax id in the database. `normalizedKMersFactor` is a configuration property; its default is 1000000000 (see also Section [Configuration properties](#configuration-properties)). |
-| `exp. unique kmers`      |  The number of expected unique *k*-mers, which is *u<sub>t</sub> * (1 - (1 - 1/u<sub>t</sub>)*<sup>`kmers`</sup>), where *u<sub>t</sub>* is the number of specific *k*-mers for a tax id in the database. |
+| `db coverage` |  The ratio `unique kmers` / u<sub>t</sub>, , where *u<sub>t</sub>* is the number of specific *k*-mers for the tax id in the database. |
+| `normalized kmers`      |   *k*-mer counts from column `kmers` but normalized with respect to the total number of *k*-mers per fastq file and the number of specific *k*-mers for the tax id in the database. The value allows for a less biased comparison of *k*-mer counts across fastq files and across species. It is computed as `normalizedKMersFactor` * `kmers` */ k<sub>f</sub> * u / u<sub>t</sub>*, where *k<sub>f</sub>* is the total number of *k*-mers in the fastq file, *u* is the total number of *k*-mers in the database and *u<sub>t</sub>* is the number of specific *k*-mers for the tax id in the database. `normalizedKMersFactor` is a configuration property; its default is 1000000000 (see also Section [Configuration parameters](#configuration-parameters)). |
+| `exp. unique kmers`      |  The number of expected unique *k*-mers, which is *u<sub>t</sub> * (1 - (1 - 1/u<sub>t</sub>)*<sup>`kmers`</sup>), where *u<sub>t</sub>* is the number of specific *k*-mers for the tax id in the database. |
 | `unique kmers / exp.`      |  The ratio `unique kmers` / `exp. unique kmers` for the tax id. This should be close to 1 for a consistent match of *k*-mers. ([This paper](https://arxiv.org/pdf/1602.05822.pdf) discusses the corresponding background distribution (of `unique kmers`).)  |
 | `quality prediction`      | Computed as  `normalized kmers` * `unique kmers / exp.`. It combines the normalized counts of *k*-mers with the valued consistency between *k*-mers and unique *k*-mers. |
-| `max kmer counts` | The frequencies of the most frequent unique *k*-mers which are specific to the tax id's genome in descending order separated by `;`. This column is experimental and only added when the configuration property `matchWithKMerCounts` is set to `true`. The number of frequencies is determined via `maxKMerResCounts` (see also Section [Configuration properties](#configuration-properties)). |
+| `max kmer counts` | The frequencies of the most frequent unique *k*-mers which are specific to the tax id's genome in descending order separated by `;`. This column is experimental and only added when the configuration property `matchWithKMerCounts` is set to `true`. The number of frequencies is determined via `maxKMerResCounts` (see also Section [Configuration parameters](#configuration-parameters)). |
 
 The frequencies from `max kmer counts` can be used to build frequency graph's for *k*-mers as shown below. The frequency graphs help to further assess the validity of analysis results.
 
@@ -163,77 +173,115 @@ Despite of the these limitations, we tested the Genestrip in the following ways:
 * Results have been evaluated based on [Kraken's accuracy datasets](https://ccb.jhu.edu/software/kraken/dl/accuracy.tgz) by including "HiSeq" and "MiSeq". For this purpose we generated Genestrip databases covering the organisms from respective datasets. Genestrip's accuracy results were comparable to those obtained via [Kraken](https://ccb.jhu.edu/software/kraken/).
 * We applied the human virus database from above to real-world fastq files, and Genestrip returned similar results and (unique) *k*-mer counts as [KrakenUniq](https://github.com/fbreitwieser/krakenuniq) for this case.
 * We applied Genestrip to 20 real-world fastq files based on human saliva samples. The findings matched the "general expectations" with regard to Herpes viruses and mouth bacteria such as Steptococcus mutans, Helicobacter pylori and others.
+* We correctly recovered Borrelia DNA in ticks from fastq files as given and presented in [this publication](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10328957/).
 
 # Filtering fastq files
 
-Genestrip can be used to *filter* fastq files via *k*-mers present in a previously generated database. As an example, one may also use the fastq file `sample.fastq.gz` from `./data/projects/human_virus/fastq`. To start the filtering process, run
+Genestrip can be used to *filter* fastq files via *k*-mers from a previously generated database. As an example, one may also use the fastq file `sample.fastq.gz` from `./data/projects/human_virus/fastq`. To start the filtering process, run
 ````
-sh ./bin/genestrip.sh -f ./data/projects/human_virus/fastq/sample.fastq.gz human_virus filter
+sh ./bin/genestrip.sh -f./data/projects/human_virus/fastq/sample.fastq.gz human_virus filter
 ````
-First, the command creates a filtering database file `human_virus_index.bloom.ser.gz`, if not yet present, under `./data/projects/<project_name>/db`. 
+First, the command creates a filtering database file `human_virus_index.ser.gz`, if not yet present, under `./data/projects/<project_name>/db`. 
 
 The resulting filtered fastq file named `human_virus_filtered_sample.fastq.gz` will be put under `./data/projects/human_virus/fastq`. It holds just the reads which contain at least one *k*-mer from the `human_virus` database. Note that, in case of the specific sample fastq file, the filtered fastq file has about the same size as the original file because the sample had *originally been created to just contain human virus-related reads*.
 
 A filtering database is typically smaller than a database required for *k*-mer matching but the former can only be used for filtering. So, if you are tight on resources and your focus is on filtering, you may prefer using a filtering database. Also, the filtering process is  faster than the *k*-mer matching process.
 
-# Usage and Goals
+# Usage and goals
 
 The usage of Genestrip:
 ```
 usage: genestrip.sh [options] <project> [<goal1> <goal2>...]
- -d <base dir>   Base directory for all data files. The default is
-                 './data'.
- -f <fqfile>     Input fastq file in case of filtering or k-mer matching
-                 (regarding goals 'filter' and 'match') or CSV file with a
-                 list of fastq files to be processed via 'multimatch'.
-                 Each line of a CSV file should have the format '<prefix>
-                 <path to fastq file>'.
- -r <path>       Common store folder for filtered fastq files and
-                 resulting CSV files created via the goals 'filter' and
-                 'match'. The defaults are '<base dir>/projects/<project
-                 name>/fastq' and '<base dir>/projects/<project
-                 name>/csv', respectively.
- -t <target>     Generation target ('make', 'clean' or 'cleanall'). The
-                 default is 'make'.
- -tx <taxids>    List of tax ids separated by ',' (but no blanks) for the
-                 goal 'db2fastq'. A tax id may have the suffix '+', which
-                 means that taxonomic descendants from a database will be included.
+ -C <key>=<value>           To set Genestrip configuration paramaters via
+                            the command line.
+ -d <base dir>              Base directory for all data files. The default
+                            is './data'.
+ -db <database>             Path to filtering or matching database for the
+                            goals 'filter' or 'match', 'matchlr', 'dbinfo'
+                            and 'db2fastq' for use without project
+                            context.
+ -f <fqfile1,fqfile2,...>   Input fastq files as paths or URLs to be
+                            processed via the goals 'filter', 'match' or
+                            'matchlr'. When a URL is given, the fastq file
+                            will not be downloaded but data streaming will
+                            be applied unless '-l' or '-ll' is given.
+ -k <key>                   Key used as a prefix for naming result files
+                            in conjuntion with '-f'.
+ -l                         Download fastqs from URLs to '<base
+                            dir>/projects/<project name>/fastq' instead of
+                            streaming them for the goals 'filter', 'match'
+                            and 'matchlr'.
+ -ll                        Download fastqs from URLs to '<base
+                            dir>/fastq' instead of streaming them for the
+                            goals 'filter', 'match' and 'matchlr'.
+ -m <fqmap>                 Mapping file with a list of fastq files to be
+                            processed via the goals 'filter', 'match' or
+                            'matchlr'. Each line of the file must have the
+                            format '<key> <URL or path to fastq file>'.
+ -r <path>                  Common store folder for filtered fastq files
+                            and result files created via the goals
+                            'filter', 'match' or 'matchlr'. The defaults
+                            are '<base dir>/projects/<project name>/fastq'
+                            and '<base dir>/projects/<project name>/csv',
+                            respectively.
+ -t <target>                Generation target ('make', 'clean' or
+                            'cleanall'). The default is 'make'.
+ -tx <taxids>               List of tax ids separated by ',' (but no
+                            blanks) for the goal 'db2fastq'. A tax id may
+                            have the suffix '+', which means that
+                            taxonomic descendants from the project's
+                            database will be included.
 ```
 
 Genestrip follows a goal-oriented approach in order to create any result file (in similarity to  [make](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/make.html)). Goals are executed in a lazy manner, i.e. a file is only (re-)generated, if it is missing at its designated place in the `<base dir>` folder or any of its subfolders.
 
-Most user-related goals are project-oriented. This means that a database project must exist for the goal to be executable. Some goals refer to fastq files. This means that they can only be executed if a fastq file or a multi-match CSV file is given via the `-f` option. 
+Most user-related goals are project-oriented. This means that a database project must exist for the goal to be executable. The goals `match`, `matchlr` and `filter` refer to fastq files. This means that they can only be executed if fastq files are given via the `-f` or `-m` option. 
 
-Genestrip supports matching of *k*-mers from multiple fastq files in batches: For this purpose you may create a mutli-match CSV file with one line per fastq file to be processed. Each line should have the following form:
+Genestrip supports matching of *k*-mers from multiple fastq files in batches: For this purpose you may create a mapping file with one line per fastq file to be processed. Each line should have the following form:
 ```
-<name> <path_to_fastq_file>
+<key> <path_or_URL_to_fastq_file>
 ```
-If several fastq files in the multi-match CSV file are associated with the same `<name>`, then the matching results of these files will be aggregated. A resulting CSV file named `<project_name>_multimatch_<name>.csv` will be put under `<base dir>/projects/<project_name>/csv` unless specified otherwise via the `-r` option. If `<path_to_fastq_file>` is a file name without a path prefix, the file is assumed to be located in `<base dir>/projects/<project_name>/fastq`.
+If several fastq files in the mapping file have the same `<key>`, then the matching results of these files will be merged. 
+A resulting CSV file named `<project_name>_imatch_<key>.csv` will be put under `<base dir>/projects/<project_name>/csv` unless specified otherwise via the `-r` option. 
+If `<path_or_URL_to_fastq_file>` is a file name without a path prefix, the file is assumed to be located in `<base dir>/projects/<project_name>/fastq`.
+If `<path_or_URL_to_fastq_file>` is a URL then the fastq file will be streamed or downloaded depending on the command line options `-l` or `-ll` (see Section [Reading, streaming and downloading fastq files](#reading-streaming-and-downloading-fastq-files)).
 
 Fastq files and fasta file may be g-zipped or not. Genestrip will automatically recognize g-zipped files via the suffixes `.gz` and `.gzip`.
 
 Some named goals are for internal purposes only. In principle, they could be run directly by users but rather serve the generation process of databases or they exist for experimental reasons.
 
-Here is the list of user-related goals:
-- `show`: Show user-related goals. Note that some goals will only be shown when using the `-f` option.
-- `showall`: Show user-related and most internal goals. Note that some goals will only be shown when using the `-f` option.
-- `db`: Generate the database for *k*-mer matching with respect to the given project.
-- `dbinfo`: Write information about a project's database content to a CSV file.
-- `db2fastq`: Generate fastq files from the database. A respective fastq file will contain all *k*-mers specifically associated with a 
-single tax id from the database where each *k*-mer is represented by a read consisting of *k* bases. Respective fastq files will be stored 
-in `<base dir>/projects/<project_name>/fastq` with the file name format `<project_name>_db2fastq_<taxid>.fastq.gz`. 
-The command line option `tx` serves at selecting the corresponding tax ids for the fastq files to be generated (see Section [Usage and Goals](#usage-and-goals)). 
-If the option is omitted, then fastq files for *all* tax ids from the database will be generated.
-- `index`: Generate a filtering database with respect to a given project.
-- `genall`: Generate the *k*-mer matching database and also the filtering database with respect to the given project.
-- `clear`: Clear the folders `csv`, `db` and `krakenout`  of a project. This will delete all files the respective folders!
-- `match`: Analyze a fastq file as given by the `-f` option. The resulting CSV file will be stored in `<base dir>/projects/<project_name>/csv` unless specified otherwise via the `-r` option.
-- `multimatch`: Analyze several fastq files as specified via multi-match CSV file given by the `-f` option.
-- `matchlr`: Same as `match` but without doing read classification. This corresponds to the configuration setting `classifyReads=false` from below.
-- `multimatchlr`:  Same as `multimatch` but without doing read classification. This corresponds to the configuration setting `classifyReads=false` from below.
-- `filter`:  Filter a fastq file as given by the `-f` option. The resulting filtered fastq file `filtered_<fqfile>` will be stored under `<base dir>/projects/<project_name>/fastq/` unless specified otherwise via the `-r` option.
+[**This is a list of all goals.**](Goals.md)
 
-Many goals depend on other goals. E.g., the `dbinfo` goal requires the corresponding database to exist and so, it will trigger the execution of the ``db`` goal in case the corresponding database is missing and so on.
+Many goals depend on other goals. E.g., the `dbinfo` goal requires the corresponding database to exist and so, it will trigger the execution of the ``db`` goal in case the corresponding database is missing and so on. 
+
+The following goal graph depicts the goals' dependencies.
+`o:...` are goals whose result is an object in memory. `f:...` are file goals that produce one or more files as a result. `d:...` are download goals - they download files from a source and store them locally for further processing.
+<p align="center">
+  <img src="GoalGraph.svg" width="1400"/>
+</p>
+
+# Reading, streaming and downloading fastq files
+
+Regarding analysis, fastq files will processed in one of the following ways:
+1. Reading from the file system: This happens if a *file path* is given after the `-f` option.
+1. *Streaming* from the network: This happens if a *URL* is given after the `-f` option. (The corresponding fastq file will not be downloaded to the file system then.)
+1. *Downloading* from the network: This happens if a *URL* is given after the `-f` option *and if the option `-l` or `-ll`* is given, respectively. The corresponding fastq file be downloaded if not yet present. Afterward, the downloaded file will be processed from the file system.
+
+A comma-separated list of file paths or URLs or both may be put after `-f` without blanks. In this case related fastq files will be analyzed together and the results will be merged.
+
+Unless a key is given via `-k`, a resulting CSV-file will be named after the first file path or URL as given via `-f`.
+Otherwise the name of key will be used for it. E.g.:
+```
+sh ./bin/genestrip.sh -k mykey -f./data/projects/human_virus/fastq/sample.fastq.gz human_virus match
+```
+will result in the CSV file `./data/projects/human_virus/csv/human_virus_match_mykey.csv`.
+
+In order to run the goals `match` or `matchlr` a project context is not strictly needed, when a database file is given via the option `-db`. 
+E.g., the following command works with arbitrary project name (here `someprojectname`):
+```
+sh ./bin/genestrip.sh -r . -k mysample -f./data/projects/human_virus/fastq/sample.fastq.gz -db ./data/projects/human_virus/db/human_virus_db.zip someprojectname match
+```
+and produces the result file `./someprojectname_match_mysample.csv`.
 
 # Targets
 
@@ -243,9 +291,30 @@ Genestrip supports three targets for each goal, namely `make`, `clean` and `clea
 - `clean` *deletes* all files associated with the given goal but it does not delete any files of goals that the given goal depends on.
 - `cleanall` does same as `clean`, but it *also recursively deletes* any files of goals that the given goal depends on.
 
-# Manually adding fasta files
+# Configuration parameters
 
-In some cases you may want to add *k*-mers of genomes to your database, where the genomes are not part of the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/). Genestrip supports this via an optional text file `additional.txt` under `<base dir>/projects/<project_name>`.
+An optional configuration properties file `config.properties` or `Config.properties` may be put under `<base dir>`.
+Entries per line should have the form
+```
+<key>=<value>
+```
+[**This as list of all configuration parameters**](ConfigParams.md)
+
+An optional configuration properties file `config.properties` or `config.properties` may also be put under the project folder `<base dir>/projects/<project_name>`. Configuration entries from the project level override entries from the level `<base dir>`.
+
+Moreover, configuration parameters may be set on the command line like this:
+```
+-C<key>=<value>
+```
+They have the highest priority.
+
+# Additional fasta files
+
+The following configuration files exclusively affect the generation of databases via the goals `db` and `index`.
+
+## Manually adding fasta files
+
+In some cases you may want to add *k*-mers of genomes to your database, where the genomes are not part of the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) (or Genbank). Genestrip supports this via an optional text file `additional.txt` under `<base dir>/projects/<project_name>`.
 The file should contain one line for each additional genome file. (The genome file must be in fasta format and may be g-zipped or not.)
 The line format is
 ```
@@ -253,75 +322,42 @@ The line format is
 ```
 where `<taxid>` is the (unique) tax id associated with the file's genomic data. (Multiple tax ids per fasta file are not supported in this context.) 
 If `<path_to_fastq_file>` is a file name without a path prefix, then the file is assumed to be located in `<base dir>/projects/<project_name>/fasta`. If not found there,
-the directory `<base dir>/fasta` will be checked as a secondary location.
+the directory `<base dir>/common/fasta` will be checked as a secondary location.
 
 This adding of fasta files can also be used to *just* correct the least common ancestor of *k*-mers in the resulting database since the added fasta files will be automatically used during the update phase of the ``db`` goal. E.g., to correct the least common ancestor of *k*-mers occurring in a purely `protozoa`n database *but also* in the human genome, one may simple add
 ```
 9606 <path_to_human_genome_fasta_file>
 ```
-to `additional.txt` where `<path_to_human_genome_fasta_file>` is the path to the [human genome fasta file](https://www.ncbi.nlm.nih.gov/datasets/taxonomy/9606/). (Note that for this purpose, ``9606`` *must not* occur in `taxids.txt`, since otherwise all *k*-mers from the human genome would be included in a `protozoa`n database.)
+to `additional.txt` where `<path_to_human_genome_fasta_file>` points to the [human genome fasta file](https://www.ncbi.nlm.nih.gov/datasets/taxonomy/9606/). (Note that for this purpose, ``9606`` *must not* occur in `taxids.txt`, since otherwise all *k*-mers from the human genome would be included in a `protozoa`n database.)
 
-# Configuration properties
+## Automated download of additional fasta files per project
 
-An optional configuration properties file `config.properties` or `Config.properties` may be put under `<base dir>`.
-Entries per line should have the form
+The manually adding of fasta files as described above involves the manual download and positioning in the local file system.
+To automate the download, *an extended format for entries in `additional.txt` is also possible*:
 ```
-<key>=<value>
+<taxid> <path_to_fasta_file> <URL_to_fasta_file> [<md5 fingerprint>]
 ```
-The following entries are possible:
+The `<md5 fingerprint>` is optional and if given, will be used to ensure consistency of the downloaded file.
+E.g., to automate the download of the human genome, the following entry will suffice:
+```
+9606 GCA_000001405.29_GRCh38.p14_genomic.fna.gz https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.29_GRCh38.p14/GCA_000001405.29_GRCh38.p14_genomic.fna.gz 22907ad69ddfae66071bf9cf99b3e8de
+```
+The corresponding download file will be stored under `<base dir>/projects/<project_name>/fasta`.
 
-| Key         | Default Value     | Description | Affected Goals |
-| ----------- | ----------- | ----------- | ----------- |
-| `logLevel`      | `trace`       | The log levels `error`, `warn` and `info` are also possible and result in (much) less verbose logging. | all |
-| `matchLogUpdateCycle`      | `1000000`       | Affects the log level `trace`: Defines after how many reads per fastq file, information on the matching progress is logged. If less than 1, then no progress information is logged. | `match`, `multimatch`, `filter` |
-| `threads`      | `-1`       | The number of consumer threads *n* when processing data with respect to goals ``match``, ``filter`` and ``multimatch`` and also so during the update phase of the ``db`` goal. There is always one additional thread that reads and uncompresses a corresponding fastq or fasta file (so it is *n + 1* threads in total). When negative, the number of available processors *- 1* is used as *n*. When 0, then the corresponding goals run in single-threaded mode. | `db`, `match`, `multimatch`, `filter` |
-| `countUniqueKMers`      | `true`       | If `true`, unique *k*-mers will be counted. This requires less than 5% of additional main memory.        |  `match`, `multimatch` |
-| `writeDumpedFastq`   | `false`        | If `true`, then ``filter`` will also generate a fastq file `dumped_<fqfile>` with all reads not written to the corresponding filtered fastq file. |  `filter` |
-| `writeFilteredFastq`   | `false`        | If `true`, then the goal `match` writes a filtered fastq file in the same way that the goal `filter` does. Moreover, Genestrip will write an output file `<fqfile>.out` in the [Kraken output format](https://ccb.jhu.edu/software/kraken/MANUAL.html#output-format) under `<base dir>/projects/<project_name>/krakenout` covering all filtered reads. | `match` |
-| `matchWithKMerCounts`   | `false`        | Experimental: Counts how many times each unique *k*-mer has been detected.        |  `match`, `multimatch` |
-| `maxKMerResCounts`   | `200`        | The number of the most frequent *k*-mers that will be reported, if `matchWithKMerCounts=true`.       |`match`, `multimatch` |
-| `kMerSize`   | `31`        | The number of base pairs *k* for a *k*-mers. Changes to this values do *not* affect the memory usage of database. A value > 32 will cause collisions, i.e. leads to false positives for the `match` goal. | all |
-| `useHttp` | `true` | Use http(s) to download data from NCBI. If ``false``, then Genestrip will try anonymous FTP instead (with login and password set to `anonymous`). | `db` |
-| `refseqHttpBaseURL`   | `https://ftp.ncbi.nlm.nih.gov/refseq` | This [mirror](https://www.funet.fi/pub/mirrors/ftp.ncbi.nlm.nih.gov/refseq/) might be considered as an alternative. (No other mirror sites are known.) | `db` |
-| `refseqFTPBaseURL`   | `ftp.ncbi.nih.gov`       |         | `db` |
-| `taxHttpBaseURL`   | `https://ftp.ncbi.nlm.nih.gov`        | This base URL will be extended by the path `/pub/taxonomy/` in order to download the taxonomy file `taxdmp.zip`.        | all |
-| `taxFTPBaseURL`   | `ftp.ncbi.nih.gov`        |         |  all |
-| `ignoreMissingFastas`   | `true`        | If `true`, then a download of files from NCBI will not stop in case a file is missing on the [NCBI server](https://ftp.ncbi.nlm.nih.gov/).        |  `db` |
-| `completeGenomesOnly`   | `false`        | If `true`, then only genomic accessions with the prefixes `AC`, `NC_`, `NZ_` will be considered when generating a database. Otherwise, all genomic accessions will be considered. See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.       |  `db` |
-| `rankCompletionDepth` | *empty* | The rank up to which tax ids from `taxids.txt` will be completed by descendants of the taxonomy tree (the set rank included). If not set, the completion will traverse down to the lowest possible levels of the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip). Typical values could be `genus`, `species` or `strain`, but  all values used for assigning ranks in the taxonomy are possible. | `db` |
-| `maxGenomesPerTaxid` | *unlimited* | The maximum number of genomes per tax id from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) to be included in the database. If negative, zero or not set, there is not limit. Note, that this is an important parameter to control database size, because in some cases, there are millions of genomic entries for a tax id such as for `573` (which does not even account for entries of its descendants). |  `db` |
-| `useBloomFilterForMatch`   | `true`        | If `true` and if a bloom filter file for a database is present, it will be used during fastq file analysis (i.e. matching). Using the bloom filter tends to shorten matching time, if the most part of the reads cannot be classified because they contain *no* *k*-mers from the database. Otherwise, using the bloom filter might increase matching time by up to 30%. It also requires more main memory. | `match`, `multimatch` |
-| `maxReadTaxErrorCount`   | `0.1`        | The absolute or relative maximum number of *k*-mers that do not have to be in the database for a read to be classified. If the number is above `maxReadTaxErrorCount`, then the read will not be classified. Otherwise the read will be classified in the same way as [done by Kraken](https://genomebiology.biomedcentral.com/articles/10.1186/gb-2014-15-3-r46/figures/1).  If  `maxReadTaxErrorCount` is >= 1, then it is interpreted as an absolute number of *k*-mers. Otherwise (and so, if >= 0 and < 1), it is interpreted as the ratio between the *k*-mers not in the database and all *k*-mers of the read. | `match`, `multimatch` |
-| `maxDust`   | `-1`        | When generating a database via the goal `db`, any low-complexity *k*-mer with too many repetitive sequences of base pairs may be omitted for storing. To do so, Genestrip employs a simple [genetic dust-filter](https://pubmed.ncbi.nlm.nih.gov/16796549/) for *k*-mers: It assigns a dust value *d* to each *k*-mer, and if *d* >  `maxDust`, then the *k*-mer will not be stored. Given a *k*-mer with *n* repeating base pairs of repeat length *k(1), ... k(n)* with *k(i) > 1*, then *d = fib(k(1)) + ... + fib(k(n))*, where *fib(k(i))* is the Fibonacci number of *k(i)*.  E.g., for the *8*-mer `TTTCGGTC`, we have *n = 2* with *k(1) = 3*, *k(2) = 2* and *d = fib(3) + fib(2) = 2 + 1 = 3*. For practical concerns `maxDust = 20` may be suitable. In this case, if *31*-mers were uniformly, randomly generated, then about 0.2 % of them would be omitted. If `maxDust = -1`, then dust-filtering is inactive.| `db` |
-| `normalizedKMersFactor` | 1000000000 | A factor used to compute `normalized kmers` at read analysis time. | `match`, `multimatch` |
-| `intialReadSizeBytes` | 4096 | The initial internal buffer size for reads in number of base pairs plus one. If longer reads occur, then internal buffer sizes will grow automatically. | `match`, `multimatch`, `filter` |
-| `seqType` | `genomic` | Which type of sequence files to include from the RefSeq. Possible values are `genomic`, `rna` or `both`. RNA files from the RefSeq end with `rna.fna.gz`, whereas genomes end with `genomic.fna.gz`. | `db`, `index` |
-| `classifyReads` | `true` | Whether to do read classification in the style of Kraken and KrakenUniq. Matching is faster without read classification and the columns `kmers`, `unique kmers` and `max contig length` in resulting CSV files are usually more conclusive anyways - in particular with respect to long reads. When read classification is off, the columns `reads` and `kmers from reads` will be 0 in resulting CSV files. | `match`, `multimatch` |
-| `refSeqLimitForGenbankAccess` | `0` | Determines whether Genestrip should try to lookup genomic fasta files from Genbank, if the number of corresponding reference genomes from the RefSeq is below the given limit for a requested tax id. E.g. `refSeqLimitForGenbankAccess=1` would imply that Genbank is consulted if not a single reference genome is found in the RefSeq for a requested tax id. The default `refSeqLimitForGenbankAccess=0` essentially inactivates this feature. In addition, Genbank access is also influenced by the keys `fastaQualities` and `maxFromGenBank` (see below). | `db`, `index` |
-| `fastaQualities` | `COMPLETE_LATEST` `,` `CHROMOSOME_LATEST` | Determines the allowed quality levels of fasta files from Genbank. The values must be comma-separated. The possible values are ordered from best to worst: `COMPLETE_LATEST`, `COMPLETE`, `CHROMOSOME_LATEST`, `CHROMOSOME`, `CONTIG_LATEST`, `CONTIG`, `LATEST`, `NONE`. If a corresponding value is included in the list, then a fasta file for a requested tax id on that quality level will be included, otherwise not (while also respecting the conditiions excerted via the keys `refSeqLimitForGenbankAccess` and `maxFromGenBank`). The quality levels are based on Genbank's [Assembly Summary File](https://ftp.ncbi.nlm.nih.gov/genomes/genbank/assembly_summary_genbank.txt) (columns `version_status` and `assembly_level`). | `db`, `index` |
-| `maxFromGenBank` | `1` | Determines the maximum number of fasta files used from Genbank per requested tax id. If the corresponding number of matching files exceeds `maxFromGenBank`, then then best ones according to `fastaQualities` will be retained to still match this maximum.  | `db`, `index` |
+## Automated download of additional fasta files across projects
 
-
-# Project properties
-
-An optional configuration properties file `project.properties` or `Project.properties` may be put under the project folder `<base dir>/projects/<project_name>`.
-
-The following entries are possible:
-* `ignoreMissingFastas`,
-* `completeGenomesOnly`,
-* `rankCompletionDepth`,
-* `maxGenomesPerTaxid`,
-* `useBloomFilterForMatch`,
-* `maxReadTaxErrorCount`,
-* `maxDust`,
-* `seqType` and
-* `classifyReads`,
-* `refSeqLimitForGenbankAccess`,
-* `fastaQualities` and
-* `maxFromGenBank`.
-
-The use of the entries is the same as in the `config.properties` file. If given, an entry in `project.properties` overrides a corresponding entry from `config.properties` under this project.
+The automated download from the previous section is unsuitable, if the fasta file is large and is needed in several projects, as it will be downloaded and stored once per project.
+To enable an automated download *across projects*, the file `<base dir>/common/fasta/downloads.txt` may be created with the line format:
+```
+<taxid> <fasta_file_name> <URL_to_fasta_file> [<md5 fingerprint>]
+```
+So in this case, if a file named `<fasta_file_name>` cannot be found in `<base dir>/projects/<project_name>/fasta` or `<base dir>/common/fasta`, it will be downloaded
+and stored as `<base dir>/common/fasta/<fasta_file_name>`. Afterwards it will be available with regard to entries like
+```
+<taxid> <fasta_file_name>
+```
+from a project's `additional.txt` file.
 
 # API-based usage
 
-An API-based usage of the `match` goal is straight-forward: Please check out the test class `org.metagene.genestrip.APITest` in the folder `src/test/java` as a simple example.
+An API-based invocation of the goals `match` and `filter` is straight-forward: Please check out the test class [`org.metagene.genestrip.APITest`](./src/test/java/org/metagene/genestrip/APITest.java) in the folder `src/test/java` as a code example.

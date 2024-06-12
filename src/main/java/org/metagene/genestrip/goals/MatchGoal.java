@@ -27,85 +27,113 @@ package org.metagene.genestrip.goals;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import org.metagene.genestrip.GSConfig;
+import org.metagene.genestrip.ExecutionContext;
+import org.metagene.genestrip.GSConfigKey;
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.io.StreamProvider;
-import org.metagene.genestrip.io.StreamingFileResource;
-import org.metagene.genestrip.make.FileListGoal;
+import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.match.FastqKMerMatcher2;
+import org.metagene.genestrip.match.FastqKMerMatcher;
 import org.metagene.genestrip.match.MatchingResult;
 import org.metagene.genestrip.match.ResultReporter;
+import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.KMerSortedArray;
-import org.metagene.genestrip.store.KMerStoreWrapper;
-import org.metagene.genestrip.store.KMerUniqueCounterBits;
 import org.metagene.genestrip.store.KMerSortedArray.ValueConverter;
-import org.metagene.genestrip.tax.TaxTree;
-import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.util.ExecutorServiceBundle;
+import org.metagene.genestrip.store.KMerUniqueCounter;
+import org.metagene.genestrip.store.KMerUniqueCounterBits;
+import org.metagene.genestrip.tax.SmallTaxTree;
+import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
-public class MatchGoal extends FileListGoal<GSProject> {
-	private final File fastq;
-	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
-	private final ObjectGoal<KMerStoreWrapper, GSProject> storeGoal;
-	private final boolean writedFiltered;
-	private final ExecutorServiceBundle bundle;
-	private FastqKMerMatcher2 matcher;
+public class MatchGoal extends MultiFileGoal {
+	private final ObjectGoal<Database, GSProject> storeGoal;
+	protected final ExecutionContext bundle;
+	private final Map<String, MatchingResult> matchResults;
+
+	private FastqKMerMatcher matcher;
+	private Database wrapper;
+	private ResultReporter reporter;
+	private KMerUniqueCounter uniqueCounter;
 
 	@SafeVarargs
-	public MatchGoal(GSProject project, String name, File fastq, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
-			ObjectGoal<KMerStoreWrapper, GSProject> storeGoal, boolean writeFiltered, ExecutorServiceBundle bundle,
-			Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, null, fastq.getName(), FileType.CSV, false),
-				Goal.append(deps, taxTreeGoal, storeGoal));
-		this.fastq = fastq;
-		this.taxTreeGoal = taxTreeGoal;
+	public MatchGoal(GSProject project, GoalKey key, ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapGoal,
+			ObjectGoal<Database, GSProject> storeGoal, ExecutionContext bundle, Goal<GSProject>... deps) {
+		super(project, key, fastqMapGoal, Goal.append(deps, storeGoal));
 		this.storeGoal = storeGoal;
-		this.writedFiltered = writeFiltered;
 		this.bundle = bundle;
+		matchResults = new HashMap<String, MatchingResult>();
+	}
+
+	@Override
+	protected FileType getFileType() {
+		return FileType.CSV;
 	}
 
 	@Override
 	protected void makeFile(File file) {
-		matcher = null;
 		try {
 			File filteredFile = null;
 			File krakenOutStyleFile = null;
-			if (writedFiltered) {
-				filteredFile = getProject().getOutputFile(getName(), null, fastq.getName(), FileType.FASTQ_RES, true);
-				krakenOutStyleFile = getProject().getOutputFile(getName(), null, fastq.getName(),
+			List<StreamingResource> fastqs = fileToFastqs.get(file);
+
+			if (booleanConfigValue(GSConfigKey.WRITED_FILTERED_FASTQ)) {
+				filteredFile = getProject().getOutputFile(getKey().getName(), null, file.getName(), FileType.FASTQ_RES,
+						true);
+			}
+			if (booleanConfigValue(GSConfigKey.WRITED_KRAKEN_STYLE_OUT)) {
+				krakenOutStyleFile = getProject().getOutputFile(getKey().getName(), null, file.getName(),
 						FileType.KRAKEN_OUT_RES, false);
 			}
 
-			KMerStoreWrapper wrapper = storeGoal.get();
-			wrapper.getKmerStore().setUseFilter(getProject().isUseBloomFilterForMatch());
+			if (matcher == null) {
+				wrapper = storeGoal.get();
+				wrapper.getKmerStore().setUseFilter(booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH));
 
-			GSConfig config = getProject().getConfig();
+				SmallTaxTree taxTree = wrapper.getTaxTree();
 
-			KMerSortedArray<TaxIdNode> store = new KMerSortedArray<TaxIdNode>(wrapper.getKmerStore(),
-					new ValueConverter<String, TaxIdNode>() {
-						@Override
-						public TaxIdNode convertValue(String value) {
-							return taxTreeGoal.get().getNodeByTaxId(value);
-						}
-					});
+				KMerSortedArray<SmallTaxIdNode> store = new KMerSortedArray<SmallTaxIdNode>(wrapper.getKmerStore(),
+						new ValueConverter<String, SmallTaxIdNode>() {
+							@Override
+							public SmallTaxIdNode convertValue(String value) {
+								return taxTree.getNodeByTaxId(value);
+							}
+						});
 
-			matcher = createMatcher(store, taxTreeGoal.get(), bundle);
-			MatchingResult res = matcher.runMatcher(new StreamingFileResource(fastq), filteredFile, krakenOutStyleFile,
-					config.isCountUniqueKMers()
-							? new KMerUniqueCounterBits(wrapper.getKmerStore(), config.isMatchWithKMerCounts())
-							: null);
-			matcher.dump();
-
+				matcher = createMatcher(store,
+						(booleanConfigValue(GSConfigKey.CLASSIFY_READS) && !GSGoalKey.MATCHLR.equals(getKey()))
+								? taxTree
+								: null,
+						bundle);
+				reporter = new ResultReporter(taxTree, longConfigValue(GSConfigKey.NORMALIZED_KMERS_FACTOR));
+				uniqueCounter = booleanConfigValue(GSConfigKey.COUNT_UNIQUE_KMERS)
+						? new KMerUniqueCounterBits(wrapper.getKmerStore(),
+								intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS) > 0)
+						: null;
+			}
+			if (uniqueCounter != null) {
+				uniqueCounter.clear();
+			}
+			MatchingResult res = matcher.runMatcher(fastqs, filteredFile, krakenOutStyleFile, uniqueCounter);
+			storeResult(file, res);
 			writeOutputFile(file, res, wrapper);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
-		} finally {
-			dumpMatcher();
 		}
+	}
+
+	protected void storeResult(File file, MatchingResult res) {
+		matchResults.put(fileToKeyMap.get(file), res);
+	}
+
+	public Map<String, MatchingResult> getMatchResults() {
+		return matchResults;
 	}
 
 	@Override
@@ -121,19 +149,28 @@ public class MatchGoal extends FileListGoal<GSProject> {
 		}
 	}
 
-	protected void writeOutputFile(File file, MatchingResult result, KMerStoreWrapper wrapper) throws IOException {
-		PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-		new ResultReporter(taxTreeGoal.get(), getProject().getConfig().getNormalizedKMersFactor())
-				.printMatchResult(result, out, wrapper);
-		out.close();
+	protected void writeOutputFile(File file, MatchingResult result, Database wrapper) throws IOException {
+		try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
+			reporter.printMatchResult(result, out, wrapper);
+		}
 	}
 
-	protected FastqKMerMatcher2 createMatcher(KMerSortedArray<TaxIdNode> store, TaxTree taxTree,
-			ExecutorServiceBundle bundle) {
-		GSConfig config = getProject().getConfig();
+	protected FastqKMerMatcher createMatcher(KMerSortedArray<SmallTaxIdNode> store, SmallTaxTree taxTree,
+			ExecutionContext bundle) {
+		return new FastqKMerMatcher(store, intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
+				intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS),
+				taxTree, intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS),
+				doubleConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT));
+	}
 
-		return new FastqKMerMatcher2(store, config.getInitialReadSizeBytes(), config.getThreadQueueSize(), bundle,
-				config.getMaxKMerResCounts(), getProject().isClassifyReads() ? taxTree : null,
-				config.getMaxClassificationPaths(), getProject().getMaxReadTaxErrorCount());
+	@Override
+	protected void endMake() {
+		if (matcher != null) {
+			matcher.dump();
+			matcher = null;
+			wrapper = null;
+			uniqueCounter = null;
+			reporter = null;
+		}
 	}
 }

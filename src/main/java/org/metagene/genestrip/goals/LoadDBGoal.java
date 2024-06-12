@@ -26,41 +26,37 @@ package org.metagene.genestrip.goals;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 
+import org.metagene.genestrip.GSConfigKey;
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.GSProject.FileType;
-import org.metagene.genestrip.io.StreamProvider;
-import org.metagene.genestrip.make.FileListGoal;
+import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.match.ResultReporter;
-import org.metagene.genestrip.store.KMerStoreWrapper;
-import org.metagene.genestrip.tax.TaxTree;
+import org.metagene.genestrip.store.Database;
 
-public class StoreInfoGoal extends FileListGoal<GSProject> {
-	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
-	private final ObjectGoal<KMerStoreWrapper, GSProject> storeGoal;
+public class LoadDBGoal extends ObjectGoal<Database, GSProject> {
+	private final File dbFile;
 
 	@SafeVarargs
-	public StoreInfoGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
-			ObjectGoal<KMerStoreWrapper, GSProject> storeGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, FileType.CSV, false),
-				Goal.append(deps, taxTreeGoal, storeGoal));
-		this.taxTreeGoal = taxTreeGoal;
-		this.storeGoal = storeGoal;
+	public LoadDBGoal(GSProject project, FileGoal<GSProject> updateStoreGoal, Goal<GSProject>... dependencies) {
+		super(project, GSGoalKey.LOAD_DB,
+				project.getDBPath() == null ? append(dependencies, updateStoreGoal) : dependencies);
+		this.dbFile = getProject().getDBPath() == null ? updateStoreGoal.getFile() : new File(getProject().getDBPath());
 	}
 
 	@Override
-	protected void makeFile(File file) {
+	public void makeThis() {
 		try {
-			KMerStoreWrapper wrapper = storeGoal.get();
-			PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-			new ResultReporter(taxTreeGoal.get(), getProject().getConfig().getNormalizedKMersFactor())
-					.printStoreInfo(wrapper.getStats(), out);
-			out.close();
+			set(Database.load(dbFile, booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH)));
+		} catch (ClassNotFoundException e) {
+			throw new RuntimeException(e);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	public void setDatabase(Database object) {
+		set(object);
 	}
 }

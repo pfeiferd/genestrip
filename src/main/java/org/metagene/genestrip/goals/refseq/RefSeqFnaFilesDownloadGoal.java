@@ -37,6 +37,9 @@ import java.util.Set;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
+import org.metagene.genestrip.GSConfigKey;
+import org.metagene.genestrip.GSConfigKey.SeqType;
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.Goal;
@@ -51,15 +54,18 @@ public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
 	private final RefSeqCatalogDownloadGoal catalogDLGoal;
 	private List<File> files;
 	private Map<File, RefSeqCategory> file2Cat;
+	private ObjectGoal<Map<String, String>, GSProject> checkSumGoal;
 
 	@SafeVarargs
-	public RefSeqFnaFilesDownloadGoal(GSProject project, String name,
+	public RefSeqFnaFilesDownloadGoal(GSProject project, 
 			ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal, RefSeqCatalogDownloadGoal catalogDLGoal,
+			ObjectGoal<Map<String, String>, GSProject> checkSumGoal,
 			Goal<GSProject>... deps) {
-		super(project, name, Goal.append(deps, categoriesGoal, catalogDLGoal));
+		super(project, GSGoalKey.REFSEQFNA, Goal.append(deps, categoriesGoal, catalogDLGoal));
 
 		this.categoriesGoal = categoriesGoal;
 		this.catalogDLGoal = catalogDLGoal;
+		this.checkSumGoal = checkSumGoal;
 	}
 
 	public RefSeqCategory getCategoryForFile(File file) {
@@ -68,7 +74,7 @@ public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
 
 	protected boolean isRelevantFileName(String filename) {
 		// TODO: Code not very elegant - but whatever...
-		switch (getProject().getSeqType()) {
+		switch ((SeqType) configValue(GSConfigKey.SEQ_TYPE)) {
 		case RNA:
 			return filename.endsWith(".rna.fna.gz") || filename.endsWith(".rna.fna");
 		case BOTH:
@@ -93,6 +99,11 @@ public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
 	protected String getFTPDir(File file) {
 		return RELEASE_FOLDER + "/" + file2Cat.get(file).getDirectory();
 	}
+	
+	@Override
+	protected String getMD5CheckSum(File file) {
+		return checkSumGoal.get().get(file.getName());
+	}
 
 	@Override
 	public List<File> getFiles() {
@@ -106,21 +117,19 @@ public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
 
 			File installedFiles = catalogDLGoal.getInstalledFilesFile();
 
-			try {
-				Reader in = new InputStreamReader(StreamProvider.getInputStreamForFile(installedFiles));
+			try (Reader in = new InputStreamReader(StreamProvider.getInputStreamForFile(installedFiles))) {
 				Iterable<CSVRecord> records = FORMAT.parse(in);
 				for (CSVRecord record : records) {
 					String filename = record.get(1);
 					RefSeqCategory cat = getCategoryForFileName(filename);
 					if (cat != null) {
 						if (isRelevantFileName(filename)) {
-							File file = new File(getProject().getConfig().getRefSeqDir(), filename);
+							File file = new File(getProject().getCommon().getRefSeqDir(), filename);
 							files.add(file);
 							file2Cat.put(file, cat);
 						}
 					}
 				}
-				in.close();
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}

@@ -73,7 +73,6 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Dust ratio: " + ((double) dustCounter) / totalKmerCounter);
 		}
-
 	}
 	
 	protected abstract void handleStore();

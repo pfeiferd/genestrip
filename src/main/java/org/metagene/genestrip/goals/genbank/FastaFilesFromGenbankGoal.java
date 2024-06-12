@@ -33,6 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.metagene.genestrip.GSConfigKey;
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.genbank.AssemblySummaryReader;
 import org.metagene.genestrip.genbank.AssemblySummaryReader.FTPEntryQuality;
@@ -57,14 +59,15 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<FT
 	private final List<FTPEntryQuality> fastaQualities;
 	private final int maxFromGenbank;
 
-	public FastaFilesFromGenbankGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
+	@SuppressWarnings("unchecked")
+	public FastaFilesFromGenbankGoal(GSProject project, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
 			FileGoal<GSProject> assemblyGoal, ObjectGoal<Set<TaxIdNode>, GSProject> taxidsFromGenbankGoal) {
-		super(project, name, taxTreeGoal, taxidsFromGenbankGoal);
+		super(project, GSGoalKey.FASTAGSENBANK, taxTreeGoal, taxidsFromGenbankGoal, assemblyGoal);
 		this.assemblyGoal = assemblyGoal;
 		this.taxTreeGoal = taxTreeGoal;
 		this.taxidsFromGenbankGoal = taxidsFromGenbankGoal;
-		this.fastaQualities = getProject().getFastaQualities();
-		this.maxFromGenbank = getProject().getMaxFromGenbank();
+		this.fastaQualities = (List<FTPEntryQuality>) configValue(GSConfigKey.FASTA_QUALITIES);
+		this.maxFromGenbank = intConfigValue(GSConfigKey.MAX_FROM_GENBANK);
 	}
 
 	@Override
@@ -80,10 +83,10 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<FT
 				assemblyGoal.make();
 
 				AssemblySummaryReader assemblySummaryReader = new AssemblySummaryReader(
-						getProject().getConfig().getGenbankDir(), true, taxTreeGoal.get());
+						getProject().getCommon().getGenbankDir(), true, taxTreeGoal.get());
 				int[] nEntriesTotal = new int[1];
 				Map<TaxIdNode, List<FTPEntryWithQuality>> entries = assemblySummaryReader.getRelevantEntries(
-						taxidsFromGenbankGoal.get(), getProject().getFastaQualities(), nEntriesTotal);
+						taxidsFromGenbankGoal.get(), fastaQualities, nEntriesTotal);
 				if (getLogger().isInfoEnabled()) {
 					int sum = 0;
 					for (TaxIdNode node : entries.keySet()) {
@@ -136,7 +139,7 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<FT
 		return fastaQualities.contains(entry.getQuality());
 	}
 
+	// Just for potential override.
 	protected void updateEntriesForNode(List<FTPEntryWithQuality> currentEntries, TaxIdNode node) {
-
 	}
 }

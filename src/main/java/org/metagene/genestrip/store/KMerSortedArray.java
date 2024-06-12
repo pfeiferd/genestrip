@@ -40,6 +40,7 @@ import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ShortMap;
 import it.unimi.dsi.fastutil.objects.Object2ShortOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectCollection;
 import it.unimi.dsi.fastutil.shorts.Short2ObjectMap;
 import it.unimi.dsi.fastutil.shorts.Short2ObjectOpenHashMap;
 
@@ -126,6 +127,10 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			indexMap.put(s, value);
 			valueMap.put(value, s);
 		}
+	}
+	
+	public ObjectCollection<V> getValues() {
+		return indexMap.values();
 	}
 	
 	public MurmurCGATBloomFilter getFilter() {
@@ -264,7 +269,6 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	}
 
 	/**
-	 * 
 	 * @return true if put succeeded, false if (probably) some value is already
 	 *         stored under that kmer.
 	 */
@@ -309,9 +313,6 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		return sindex;
 	}
 
-	/**
-	 * @deprecated
-	 */
 	@Override
 	public V get(CGATRingBuffer buffer, boolean reverse) {
 		throw new UnsupportedOperationException("Deprecated and almost removed.");
@@ -364,7 +365,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			V oldValue = indexMap.get(index);
 			V newValue = provider.getUpdateValue(oldValue);
 			if (newValue == null) {
-				throw new NullPointerException("null is not allowed as a value.");
+				throw new NullPointerException("Null is not allowed as a value.");
 			}
 			if (newValue != oldValue && !newValue.equals(oldValue)) {
 				index = getAddValueIndex(newValue);

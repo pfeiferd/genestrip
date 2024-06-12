@@ -32,51 +32,49 @@ import java.util.Map;
 
 import org.junit.Ignore;
 import org.junit.Test;
-import org.metagene.genestrip.GSConfig;
+import org.metagene.genestrip.DefaultExecutionContext;
+import org.metagene.genestrip.ExecutionContext;
+import org.metagene.genestrip.GSCommon;
+import org.metagene.genestrip.GSConfigKey;
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSMaker;
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.goals.GSFileDownloadGoal;
+import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.make.FileDownloadGoal;
+import org.metagene.genestrip.make.GoalKey.DefaultGoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.store.KMerStoreWrapper;
+import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.tax.TaxTree;
-import org.metagene.genestrip.util.DefaultExecutorServiceBundle;
-import org.metagene.genestrip.util.ExecutorServiceBundle;
 
 @Ignore
 public class AccuracyTest {
-	private final GSConfig config;
+	private final GSCommon config;
 	private final GSProject project;
 	private final GSMaker maker;
 	private final FastaTransformGoal fastaTransformGoal;
 	private final AccuracyProjectGoal accuracyProjectGoal;
 	private final TaxIdsTxtGoal taxIdsTxtGoal;
-	private final File multiMatchCSVFile;
 
 	@SuppressWarnings("unchecked")
 	public AccuracyTest() {
 		try {
-			config = new GSConfig(getTargetDir()) {
-				// Override for fair speed test.
-				@Override
-				public int getThreads() {
-					return 0;
-				}
-			};
-			project = new GSProject(config, "accuracy", 31, null, null, null, null, null);
+			config = new GSCommon(getTargetDir());
+			project = new GSProject(config, "accuracy", "multimatch.txt");
+			// Override for fair speed test.
+			project.initConfigParam(GSConfigKey.THREADS, 0);
 			maker = new GSMaker(project);
 
-			multiMatchCSVFile = new File(project.getProjectDir(), "multimatch.txt");
+			AccuracyDataDownloadGoal accDownloadGoal = new AccuracyDataDownloadGoal(project,
+					maker.getGoal(GSGoalKey.SETUP));
 
-			AccuracyDataDownloadGoal accDownloadGoal = new AccuracyDataDownloadGoal(project, "accdatadownload",
-					maker.getGoal("setup"));
-
-			FileDownloadGoal<GSProject> acc2taxidDownloadGoal = new FileDownloadGoal<GSProject>(project, "accdownload",
-					maker.getGoal("commonsetup")) {
+			FileDownloadGoal<GSProject> acc2taxidDownloadGoal = new GSFileDownloadGoal(project,
+					new DefaultGoalKey("acc2taxiddownload"), maker.getGoal(GSGoalKey.COMMON_SETUP)) {
 				@Override
 				public List<File> getFiles() {
 					return Arrays.asList(
-							new File(project.getConfig().getCommonDir(), AccessionNumber2TaxidGoal.ACCESSION_MAP_FILE),
-							new File(project.getConfig().getCommonDir(),
+							new File(project.getCommon().getCommonDir(), AccessionNumber2TaxidGoal.ACCESSION_MAP_FILE),
+							new File(project.getCommon().getCommonDir(),
 									AccessionNumber2TaxidGoal.OLD_ACCESSION_MAP_FILE));
 				}
 
@@ -96,15 +94,14 @@ public class AccuracyTest {
 			};
 
 			ObjectGoal<Map<String, String>, GSProject> accessionNumber2TaxidGoal = new AccessionNumber2TaxidGoal(
-					project, "acc2taxid", new File(project.getFastaDir(), "accuracy/simBA5_accuracy.fa"),
+					project, new File(project.getFastaDir(), "accuracy/simBA5_accuracy.fa"),
 					acc2taxidDownloadGoal);
 
-			accuracyProjectGoal = new AccuracyProjectGoal(project, "accproject");
-			taxIdsTxtGoal = new TaxIdsTxtGoal(project, "taxidtxt",
-					(ObjectGoal<TaxTree, GSProject>) maker.getGoal("taxtree"), accessionNumber2TaxidGoal);
+			accuracyProjectGoal = new AccuracyProjectGoal(project);
+			taxIdsTxtGoal = new TaxIdsTxtGoal(project,
+					(ObjectGoal<TaxTree, GSProject>) maker.getGoal(GSGoalKey.TAXTREE), accessionNumber2TaxidGoal);
 
-			fastaTransformGoal = new FastaTransformGoal(project, "fastatransform", accessionNumber2TaxidGoal,
-					accDownloadGoal);
+			fastaTransformGoal = new FastaTransformGoal(project, accessionNumber2TaxidGoal, accDownloadGoal);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -126,16 +123,22 @@ public class AccuracyTest {
 		taxIdsTxtGoal.make();
 		fastaTransformGoal.make();
 
-		ExecutorServiceBundle bundle = new DefaultExecutorServiceBundle(0, config.getMatchLogUpdateCycle());
-		
-		AccuracyMatchGoal tempdbMatchGoal = new AccuracyMatchGoal(project, "acctempdbmatch", multiMatchCSVFile,
-				(ObjectGoal<TaxTree, GSProject>) maker.getGoal("taxtree"),
-				(ObjectGoal<KMerStoreWrapper, GSProject>) maker.getGoal("filleddb"),  bundle, fastaTransformGoal);
+		ExecutionContext bundle = new DefaultExecutionContext(0,
+				project.longConfigValue(GSConfigKey.LOG_PROGRESS_UPDATE_CYCLE));
+
+		ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapGoal = (ObjectGoal<Map<String, List<StreamingResource>>, GSProject>) maker
+				.getGoal(GSGoalKey.FASTQ_MAP);
+
+		ObjectGoal<TaxTree, GSProject> taxTreeGoal = (ObjectGoal<TaxTree, GSProject>) maker.getGoal(GSGoalKey.TAXTREE);
+
+		AccuracyMatchGoal tempdbMatchGoal = new AccuracyMatchGoal(project, new DefaultGoalKey("acctempdbmatch"),
+				fastqMapGoal, (ObjectGoal<Database, GSProject>) maker.getGoal(GSGoalKey.LOAD_TEMPDB), taxTreeGoal, bundle,
+				fastaTransformGoal);
 		tempdbMatchGoal.make();
 
-		AccuracyMatchGoal matchGoal = new AccuracyMatchGoal(project, "accmatch", multiMatchCSVFile,
-				(ObjectGoal<TaxTree, GSProject>) maker.getGoal("taxtree"),
-				(ObjectGoal<KMerStoreWrapper, GSProject>) maker.getGoal("updateddb"), bundle, fastaTransformGoal);
+		AccuracyMatchGoal matchGoal = new AccuracyMatchGoal(project, new DefaultGoalKey("accmatch"), fastqMapGoal,
+				(ObjectGoal<Database, GSProject>) maker.getGoal(GSGoalKey.LOAD_DB), taxTreeGoal, bundle,
+				fastaTransformGoal);
 		matchGoal.make();
 	}
 
@@ -147,8 +150,11 @@ public class AccuracyTest {
 		taxIdsTxtGoal.make();
 		fastaTransformGoal.make();
 
-		KrakenAccuracyMatchGoal krakenAccuracyMatchGoal = new KrakenAccuracyMatchGoal(project, "krakenacc",
-				multiMatchCSVFile, (ObjectGoal<TaxTree, GSProject>) maker.getGoal("taxtree"), fastaTransformGoal);
+		ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapGoal = (ObjectGoal<Map<String, List<StreamingResource>>, GSProject>) maker
+				.getGoal(GSGoalKey.FASTQ_MAP);
+
+		KrakenAccuracyMatchGoal krakenAccuracyMatchGoal = new KrakenAccuracyMatchGoal(project,
+				fastqMapGoal, (ObjectGoal<TaxTree, GSProject>) maker.getGoal(GSGoalKey.TAXTREE), fastaTransformGoal);
 		krakenAccuracyMatchGoal.make();
 	}
 }

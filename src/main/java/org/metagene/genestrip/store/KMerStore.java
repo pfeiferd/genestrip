@@ -42,24 +42,16 @@ public interface KMerStore<V extends Serializable> extends Serializable {
 
 	public long getSize();
 
-	/**
-	 * @deprecated
-	 */
+	@Deprecated
 	public boolean put(CGATRingBuffer buffer, V value, boolean reverse);
 
-	/**
-	 * @deprecated
-	 */
+	@Deprecated
 	public boolean put(byte[] nseq, int start, V value, boolean reverse);
 
-	/**
-	 * @deprecated
-	 */
+	@Deprecated
 	public V get(CGATRingBuffer buffer, boolean reverse);
 
-	/**
-	 * @deprecated
-	 */
+	@Deprecated
 	public V get(byte[] nseq, int start, boolean reverse);
 
 	public void visit(KMerStoreVisitor<V> visitor);
@@ -69,18 +61,17 @@ public interface KMerStore<V extends Serializable> extends Serializable {
 	public boolean isOptimized();
 
 	public static <T extends Serializable> void save(KMerStore<T> store, File trieFile) throws IOException {
-		ObjectOutputStream oOut = new ObjectOutputStream(StreamProvider.getOutputStreamForFile(trieFile));
-		oOut.writeObject(store);
-		oOut.close();
+		try (ObjectOutputStream oOut = new ObjectOutputStream(StreamProvider.getOutputStreamForFile(trieFile))) {
+			oOut.writeObject(store);			
+		}
 	}
 
+	@SuppressWarnings("unchecked")
 	public static <T extends Serializable> KMerStore<T> load(File filterFile)
 			throws IOException, ClassNotFoundException {
-		ObjectInputStream oOut = new ObjectInputStream(StreamProvider.getInputStreamForFile(filterFile));
-		@SuppressWarnings("unchecked")
-		KMerStore<T> res = (KMerStore<T>) oOut.readObject();
-		oOut.close();
-		return res;
+		try (ObjectInputStream oOut = new ObjectInputStream(StreamProvider.getInputStreamForFile(filterFile))) {			
+			return (KMerStore<T>) oOut.readObject();
+		}
 	}
 
 	public interface KMerStoreVisitor<V extends Serializable> {

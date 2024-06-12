@@ -31,8 +31,12 @@ import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
+import org.metagene.genestrip.ExecutionContext;
+import org.metagene.genestrip.GSConfigKey;
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
+import org.metagene.genestrip.goals.LoadDBGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -40,36 +44,35 @@ import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
 import org.metagene.genestrip.refseq.AbstractStoreFastaReader;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
+import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerSortedArray.UpdateValueProvider;
-import org.metagene.genestrip.store.KMerStoreWrapper;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.util.ExecutorServiceBundle;
 
-public class UpdateStoreGoal extends FileListGoal<GSProject> {
+public class DBGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
 	private final ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal;
 	private final ObjectGoal<AccessionMap, GSProject> accessionTrieGoal;
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
-	private final ObjectGoal<KMerStoreWrapper, GSProject> filledStoreGoal;
-	private final ExecutorServiceBundle bundle;
+	private final ObjectGoal<Database, GSProject> filledStoreGoal;
+	private final ExecutionContext bundle;
 
-	private UpdatedStoreGoal updatedStoreGoal;
+	private LoadDBGoal updatedStoreGoal;
 
 	private boolean dump;
 	private int doneCounter;
 	private Object[] syncs = new Object[256];
 
 	@SafeVarargs
-	public UpdateStoreGoal(GSProject project, String name, ExecutorServiceBundle bundle,
+	public DBGoal(GSProject project, ExecutionContext bundle,
 			ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
 			RefSeqFnaFilesDownloadGoal fnaFilesGoal, ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
-			ObjectGoal<AccessionMap, GSProject> accessionTrieGoal,
-			ObjectGoal<KMerStoreWrapper, GSProject> filledStoreGoal, Goal<GSProject>... deps) {
-		super(project, name, project.getOutputFile(name, FileType.DB),
-				Goal.append(deps, categoriesGoal, taxTreeGoal, fnaFilesGoal, accessionTrieGoal, filledStoreGoal));
+			ObjectGoal<AccessionMap, GSProject> accessionTrieGoal, ObjectGoal<Database, GSProject> filledStoreGoal,
+			Goal<GSProject>... deps) {
+		super(project, GSGoalKey.DB, project.getOutputFile(GSGoalKey.DB.getName(), FileType.DB, false),
+				Goal.append(deps, additionalGoal, categoriesGoal, taxTreeGoal, fnaFilesGoal, accessionTrieGoal, filledStoreGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxTreeGoal = taxTreeGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
@@ -79,14 +82,14 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 		this.bundle = bundle;
 	}
 
-	public void setUpdatedStoreGoal(UpdatedStoreGoal updatedStoreGoal) {
+	public void setLoadDBGoal(LoadDBGoal updatedStoreGoal) {
 		this.updatedStoreGoal = updatedStoreGoal;
 	}
 
 	@Override
-	public void makeFile(File storeFile) {
+	protected void makeFile(File storeFile) {
 		try {
-			KMerStoreWrapper wrapper = filledStoreGoal.get();
+			Database wrapper = filledStoreGoal.get();
 			KMerSortedArray<String> store = wrapper.getKmerStore();
 			AbstractRefSeqFastaReader fastaReader = createFastaReader(store);
 
@@ -95,16 +98,19 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 			}
 			bundle.clearThrowableList();
 
-			BlockingQueue<FileAndNode> blockingQueue = new ArrayBlockingQueue<FileAndNode>(bundle.getThreads());
-			for (int i = 0; i < bundle.getThreads(); i++) {
-				bundle.execute(createFastaReaderRunnable(i, store, blockingQueue));
+			BlockingQueue<FileAndNode> blockingQueue = null;
+			if (bundle.getThreads() > 0) {
+				blockingQueue = new ArrayBlockingQueue<FileAndNode>(intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE));
+				for (int i = 0; i < bundle.getThreads(); i++) {
+					bundle.execute(createFastaReaderRunnable(i, store, blockingQueue));
+				}
 			}
 
 			doneCounter = 0;
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
 				if (categoriesGoal.get()[1].contains(cat)) {
-					if (bundle.getThreads() == 0) {
+					if (blockingQueue == null) {
 						fastaReader.readFasta(fnaFile);
 					} else {
 						try {
@@ -149,16 +155,13 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 				}
 			}
 
-			KMerStoreWrapper wrapper2 = new KMerStoreWrapper((KMerSortedArray<String>) store);
-			File filterFile = getProject().getFilterFile(this);
-			wrapper2.save(storeFile, filterFile);
+			Database wrapper2 = new Database((KMerSortedArray<String>) store, wrapper.getTaxTree());
+			wrapper2.save(storeFile);
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("File saved " + storeFile + " along with index " + filterFile);
+				getLogger().info("File saved " + storeFile + " along with index.");
 			}
-			updatedStoreGoal.setStoreWrapper(wrapper2);
-		} catch (
-
-		IOException e) {
+			updatedStoreGoal.setDatabase(wrapper2);
+		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {
 			dump();
@@ -206,8 +209,9 @@ public class UpdateStoreGoal extends FileListGoal<GSProject> {
 	}
 
 	protected AbstractRefSeqFastaReader createFastaReader(KMerSortedArray<String> store) {
-		return new MyFastaReader(getProject().getConfig().getInitialReadSizeBytes(), taxTreeGoal.get(),
-				accessionTrieGoal.get(), store, getProject().getMaxGenomesPerTaxid(), getProject().getMaxDust());
+		return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxTreeGoal.get(),
+				accessionTrieGoal.get(), store, intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
+				intConfigValue(GSConfigKey.MAX_DUST));
 	}
 
 	public void dump() {

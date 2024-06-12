@@ -35,9 +35,10 @@ import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.make.GoalKey.DefaultGoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree;
-import org.metagene.genestrip.tax.TaxTree.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 public class TaxIdsTxtGoal extends FileListGoal<GSProject> {
@@ -46,10 +47,10 @@ public class TaxIdsTxtGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Map<String, String>, GSProject> accessionNumber2TaxidGoal;
 
 	@SafeVarargs
-	public TaxIdsTxtGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
+	public TaxIdsTxtGoal(GSProject project, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
 			ObjectGoal<Map<String, String>, GSProject> accessionNumber2TaxidGoal, Goal<GSProject>... dependencies) {
-		super(project, name, new File(project.getProjectDir(), "taxids.txt"),
-				append(dependencies, taxTreeGoal/*, accessionNumber2TaxidGoal*/));
+		super(project, new DefaultGoalKey("taxidstxt"), new File(project.getProjectDir(), "taxids.txt"),
+				append(dependencies, taxTreeGoal/* , accessionNumber2TaxidGoal */));
 		this.taxTreeGoal = taxTreeGoal;
 		this.accessionNumber2TaxidGoal = accessionNumber2TaxidGoal;
 	}
@@ -67,13 +68,12 @@ public class TaxIdsTxtGoal extends FileListGoal<GSProject> {
 //			addNodesForTaxid(taxid, nodes);
 //		}
 
-		PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-		TaxTree.sortNodes(nodes);
-		for (TaxIdNode node : nodes) {
-			out.println(node.getTaxId());
+		try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
+			TaxTree.sortNodes(nodes);
+			for (TaxIdNode node : nodes) {
+				out.println(node.getTaxId());
+			}
 		}
-
-		out.close();
 	}
 
 	protected void addNodesForTaxid(String taxid, List<TaxIdNode> nodes) {

@@ -24,25 +24,27 @@
  */
 package org.metagene.genestrip.goals.refseq;
 
+import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.make.FileDownloadGoal;
+import org.metagene.genestrip.goals.GSFileDownloadGoal;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.make.GoalKey;
 
-public abstract class RefSeqDownloadGoal extends FileDownloadGoal<GSProject> {
+public abstract class RefSeqDownloadGoal extends GSFileDownloadGoal {
 	public static final String RELEASE_FOLDER = "/release";
 
 	@SafeVarargs
-	public RefSeqDownloadGoal(GSProject project, String name, Goal<GSProject>... deps) {
-		super(project, name, deps);
+	public RefSeqDownloadGoal(GSProject project, GoalKey key, Goal<GSProject>... deps) {
+		super(project, key, deps);
 	}
 	
 	@Override
 	protected String getHttpBaseURL() {
-		return getProject().getConfig().getRefSeqHttpBaseURL();
+		return stringConfigValue(GSConfigKey.REF_SEQ_HTTP_BASE_URL);
 	}
 	
 	@Override
 	protected String getFTPBaseURL() {
-		return getProject().getConfig().getRefSeqFTPBaseURL();
+		return stringConfigValue(GSConfigKey.REF_SEQ_FTP_BASE_URL);
 	}
 }

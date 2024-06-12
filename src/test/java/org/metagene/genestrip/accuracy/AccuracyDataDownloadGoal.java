@@ -37,10 +37,11 @@ import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.make.FileDownloadGoal;
+import org.metagene.genestrip.goals.GSFileDownloadGoal;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.make.GoalKey.DefaultGoalKey;
 
-public class AccuracyDataDownloadGoal extends FileDownloadGoal<GSProject> {
+public class AccuracyDataDownloadGoal extends GSFileDownloadGoal {
 	public static final String ACCURACY_FILE = "accuracy.tgz";
 	public static final String TIMING_FILE = "timing.tgz";
 	public static final String FTP_DIR = "/software/kraken/dl";
@@ -48,8 +49,8 @@ public class AccuracyDataDownloadGoal extends FileDownloadGoal<GSProject> {
 	private final List<File> files;
 
 	@SafeVarargs
-	public AccuracyDataDownloadGoal(GSProject project, String name, Goal<GSProject>... deps) {
-		super(project, name, deps);
+	public AccuracyDataDownloadGoal(GSProject project, Goal<GSProject>... deps) {
+		super(project, new DefaultGoalKey("accdatadownload"), deps);
 		files = new ArrayList<File>();
 		files.add(new File(getProject().getFastaDir(), ACCURACY_FILE));
 		files.add(new File(getProject().getFastaDir(), TIMING_FILE));

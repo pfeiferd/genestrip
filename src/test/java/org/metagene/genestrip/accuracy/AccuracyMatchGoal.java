@@ -28,35 +28,43 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import org.metagene.genestrip.GSConfig;
+import org.metagene.genestrip.ExecutionContext;
+import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.goals.MultiMatchGoal;
+import org.metagene.genestrip.goals.MatchGoal;
 import org.metagene.genestrip.io.StreamProvider;
+import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.match.FastqKMerMatcher2;
+import org.metagene.genestrip.match.FastqKMerMatcher;
 import org.metagene.genestrip.match.MatchingResult;
+import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.KMerSortedArray;
-import org.metagene.genestrip.store.KMerSortedArray.ValueConverter;
-import org.metagene.genestrip.store.KMerStoreWrapper;
+import org.metagene.genestrip.tax.Rank;
+import org.metagene.genestrip.tax.SmallTaxTree;
+import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.tax.TaxTree;
-import org.metagene.genestrip.tax.TaxTree.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
-import org.metagene.genestrip.util.ExecutorServiceBundle;
 
-public class AccuracyMatchGoal extends MultiMatchGoal {
+public class AccuracyMatchGoal extends MatchGoal {
+	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 	private final AccuracyCounts accuracyCounts;
 	private long startMillis;
 	private boolean timing;
 	private int totalCount;
 
 	@SafeVarargs
-	public AccuracyMatchGoal(GSProject project, String name, File csvFile, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
-			ObjectGoal<KMerStoreWrapper, GSProject> storeGoal, ExecutorServiceBundle bundle, Goal<GSProject>... deps) {
-		super(project, name, true, csvFile, taxTreeGoal, storeGoal, false, bundle, deps);
+	public AccuracyMatchGoal(GSProject project, GoalKey goalKey,
+			ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapGoal,
+			ObjectGoal<Database, GSProject> storeGoal, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
+			ExecutionContext bundle, Goal<GSProject>... deps) {
+		super(project, goalKey, fastqMapGoal, storeGoal, bundle, append(deps, taxTreeGoal));
+		this.taxTreeGoal = taxTreeGoal;
 		accuracyCounts = new AccuracyCounts();
 	}
 
@@ -69,57 +77,43 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 		super.makeFile(file);
 	}
 
-	protected FastqKMerMatcher2 createMatcher(KMerStoreWrapper wrapper, TaxTree taxTree) {
-		GSConfig config = getProject().getConfig();
-
-		KMerSortedArray<TaxIdNode> store = new KMerSortedArray<TaxIdNode>(wrapper.getKmerStore(),
-				new ValueConverter<String, TaxIdNode>() {
-					@Override
-					public TaxIdNode convertValue(String value) {
-						return taxTree.getNodeByTaxId(value);
-					}
-				});
-
-		return new FastqKMerMatcher2(store, config.getInitialReadSizeBytes(), config.getThreadQueueSize(),
-				bundle, config.getMaxKMerResCounts(), getProject().isClassifyReads() ? taxTree : null,
-				config.getMaxClassificationPaths(), getProject().getMaxReadTaxErrorCount());
-	}
-	
-	protected FastqKMerMatcher2 createMatcher(KMerSortedArray<TaxIdNode> store, TaxTree taxTree) {
-		GSConfig config = getProject().getConfig();
-
-		return new FastqKMerMatcher2(store, config.getInitialReadSizeBytes(), config.getThreadQueueSize(),
-				bundle, config.getMaxKMerResCounts(), getProject().isClassifyReads() ? taxTree : null,
-				config.getMaxClassificationPaths(), getProject().getMaxReadTaxErrorCount()) {
+	@Override
+	protected FastqKMerMatcher createMatcher(KMerSortedArray<SmallTaxIdNode> store, SmallTaxTree taxTree,
+			ExecutionContext bundle) {
+		return new FastqKMerMatcher(store, intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
+				intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS),
+				booleanConfigValue(GSConfigKey.CLASSIFY_READS) ? taxTree : null,
+				intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS),
+				intConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT)) {
 			@Override
 			protected void afterMatch(MyReadEntry entry, boolean found) throws IOException {
 				super.afterMatch(entry, found);
 				totalCount++;
 				if (!timing) {
 					String taxid = entry.classNode == null ? null : entry.classNode.getTaxId();
-					accuracyCounts.updateCounts(taxid, entry.readDescriptor, taxTree);
+					accuracyCounts.updateCounts(taxid, entry.readDescriptor, taxTreeGoal.get());
 				}
 			}
 		};
 	}
 
 	@Override
-	protected void writeOutputFile(File file, MatchingResult result, KMerStoreWrapper wrapper) throws IOException {
-		PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-		if (!timing) {
-			accuracyCounts.printCounts(out);
-			accuracyCounts.printNoTaxidErrors(System.out);
-		} else {
-			long millis = System.currentTimeMillis() - startMillis;
-			out.println("total; elapsed millis; reads per min.;");
-			out.print(totalCount);
-			out.print(';');
-			out.print(millis);
-			out.print(';');
-			out.print(totalCount * 1000 * 60 / millis);
-			out.println(';');
+	protected void writeOutputFile(File file, MatchingResult result, Database wrapper) throws IOException {
+		try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
+			if (!timing) {
+				accuracyCounts.printCounts(out);
+				accuracyCounts.printNoTaxidErrors(System.out);
+			} else {
+				long millis = System.currentTimeMillis() - startMillis;
+				out.println("total; elapsed millis; reads per min.;");
+				out.print(totalCount);
+				out.print(';');
+				out.print(millis);
+				out.print(';');
+				out.print(totalCount * 1000 * 60 / millis);
+				out.println(';');
+			}
 		}
-		out.close();
 	}
 
 	public static class AccuracyCounts {
@@ -193,7 +187,7 @@ public class AccuracyMatchGoal extends MultiMatchGoal {
 				}
 			}
 		}
-		
+
 		public void printNoTaxidErrors(PrintStream out) {
 			out.println("taxid; error;");
 			for (String tax : noTaxIdErrorPerTaxid.keySet()) {

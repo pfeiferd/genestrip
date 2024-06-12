@@ -24,15 +24,18 @@
  */
 package org.metagene.genestrip.goals.refseq;
 
-import java.io.File;
 import java.util.Set;
 
+import org.metagene.genestrip.GSConfigKey;
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.io.StreamingFileResource;
+import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.refseq.AccessionMapImpl;
 import org.metagene.genestrip.refseq.AccessionFileProcessor;
 import org.metagene.genestrip.refseq.AccessionMap;
+import org.metagene.genestrip.refseq.AccessionMapImpl;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
@@ -44,11 +47,12 @@ public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
 	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
 
 	@SafeVarargs
-	public AccessionMapGoal(GSProject project, String name, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
+	public AccessionMapGoal(GSProject project, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
 			ObjectGoal<TaxTree, GSProject> taxTreeGoal, RefSeqCatalogDownloadGoal catalogGoal,
 			RefSeqFnaFilesDownloadGoal downloadGoal, ObjectGoal<Integer, GSProject> accessionMapSizeGoal,
 			Goal<GSProject>... deps) {
-		super(project, name, Goal.append(deps, categoriesGoal, catalogGoal, downloadGoal, accessionMapSizeGoal));
+		super(project, GSGoalKey.ACCMAP,
+				Goal.append(deps, categoriesGoal, catalogGoal, downloadGoal, accessionMapSizeGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxTreeGoal = taxTreeGoal;
 		this.catalogGoal = catalogGoal;
@@ -58,12 +62,12 @@ public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
 	@Override
 	public void makeThis() {
 		AccessionFileProcessor processor = new AccessionFileProcessor(categoriesGoal.get()[1],
-				getProject().isUseCompleteGenomesOnly()) {
+				booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY)) {
 			private AccessionMap map = new AccessionMapImpl(accessionMapSizeGoal.get());
 			private TaxTree taxTree = taxTreeGoal.get();
 
 			@Override
-			public void processCatalog(File catalogFile) {
+			public void processCatalog(StreamingResource catalogFile) {
 				super.processCatalog(catalogFile);
 				map.optimize();
 				set(map);
@@ -71,12 +75,13 @@ public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
 
 			@Override
 			protected void handleEntry(byte[] target, int taxIdEnd, int accessionStart, int accessionEnd) {
+				// TODO: Only enter stuff that is actually needed -> requested taxids...
 				TaxIdNode node = taxTree.getNodeByTaxId(target, 0, taxIdEnd);
 				if (node != null) {
 					map.put(target, accessionStart, accessionEnd, node);
 				}
 			}
 		};
-		processor.processCatalog(catalogGoal.getCatalogFile());
+		processor.processCatalog(new StreamingFileResource(catalogGoal.getCatalogFile()));
 	}
 }

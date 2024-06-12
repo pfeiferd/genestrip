@@ -31,32 +31,33 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.fastqgen.KMerFastqGenerator;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.store.KMerStoreWrapper;
-import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.store.Database;
+import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
 public class DB2FastqGoal extends FileListGoal<GSProject> {
-	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
-	private final ObjectGoal<KMerStoreWrapper, GSProject> storeGoal;
-	private final Map<File, TaxIdNode> fileToTaxid;
+	private final ObjectGoal<Set<SmallTaxIdNode>, GSProject> taxNodesGoal;
+	private final ObjectGoal<Database, GSProject> storeGoal;
+	private final Map<File, SmallTaxIdNode> fileToTaxid;
 
 	@SafeVarargs
-	public DB2FastqGoal(GSProject project, String name, ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			ObjectGoal<KMerStoreWrapper, GSProject> storeGoal, Goal<GSProject>... deps) {
-		super(project, name, (List<File>) null, true, Goal.append(deps, taxNodesGoal, storeGoal));
+	public DB2FastqGoal(GSProject project, ObjectGoal<Set<SmallTaxIdNode>, GSProject> taxNodesGoal,
+			ObjectGoal<Database, GSProject> storeGoal, Goal<GSProject>... deps) {
+		super(project, GSGoalKey.DB2FASTQ, (List<File>) null, true, Goal.append(deps, taxNodesGoal, storeGoal));
 		this.taxNodesGoal = taxNodesGoal;
 		this.storeGoal = storeGoal;
-		this.fileToTaxid = new HashMap<File, TaxIdNode>();
+		this.fileToTaxid = new HashMap<File, SmallTaxIdNode>();
 	}
 
 	@Override
 	protected void provideFiles() {
-		for (TaxIdNode node : taxNodesGoal.get()) {
+		for (SmallTaxIdNode node : taxNodesGoal.get()) {
 			File file = getOutputFile(node.getTaxId());
 			addFile(file);
 			fileToTaxid.put(file, node);
@@ -64,13 +65,13 @@ public class DB2FastqGoal extends FileListGoal<GSProject> {
 	}
 
 	protected File getOutputFile(String taxid) {
-		return getProject().getOutputFile(getName(), taxid, null, FileType.FASTQ_RES, true);
+		return getProject().getOutputFile(getKey().getName(), taxid, null, FileType.FASTQ_RES, true);
 	}
 
 	@Override
 	protected void makeFile(File file) {
 		KMerFastqGenerator generator = new KMerFastqGenerator(storeGoal.get().getKmerStore());
-		TaxIdNode node = fileToTaxid.get(file);
+		SmallTaxIdNode node = fileToTaxid.get(file);
 		try {
 			generator.generateFastq(file, node.getTaxId(), getProject().getName() + ":" + node.getName());
 		} catch (IOException e) {

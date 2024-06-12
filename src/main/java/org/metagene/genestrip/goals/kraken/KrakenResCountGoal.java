@@ -34,9 +34,13 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import org.metagene.genestrip.GSConfigKey;
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.goals.MultiFileGoal;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.io.StreamingFileResource;
@@ -53,24 +57,30 @@ public class KrakenResCountGoal extends MultiFileGoal {
 	protected final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 
 	@SafeVarargs
-	public KrakenResCountGoal(GSProject project, String name, boolean csv, File csvOrFastqFile,
+	public KrakenResCountGoal(GSProject project, 
+			ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapGoal,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, Goal<GSProject>... deps) {
-		super(project, name, csv, csvOrFastqFile, Goal.append(deps, taxNodesGoal));
+		super(project, GSGoalKey.KRAKENRES, fastqMapGoal, Goal.append(deps, taxNodesGoal));
 		this.taxNodesGoal = taxNodesGoal;
 	}
 
 	@Override
-	protected void makeFile(File file) throws IOException {
-		PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file));
-		List<File> files = new ArrayList<File>();
-		for (StreamingResource s : fileToFastqs.get(file)) {
-			files.add(((StreamingFileResource) s).getFile());
-		}
-		List<KrakenResStats> list = computeStats(files);
-		print(list, out);
-		out.close();
+	protected FileType getFileType() {
+		return FileType.KRAKEN_OUT_RES;
 	}
-	
+
+	@Override
+	protected void makeFile(File file) throws IOException {
+		try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
+			List<File> files = new ArrayList<File>();
+			for (StreamingResource s : fileToFastqs.get(file)) {
+				files.add(((StreamingFileResource) s).getFile());
+			}
+			List<KrakenResStats> list = computeStats(files);
+			print(list, out);
+		}
+	}
+
 	protected List<KrakenResStats> computeStats(List<File> fastqs) throws IOException {
 		DigitTrie<KrakenResStats> countingTrie = new DigitTrie<KrakenResStats>() {
 			@Override
@@ -92,12 +102,11 @@ public class KrakenResCountGoal extends MultiFileGoal {
 			taxIds = null;
 		}
 
-		KrakenExecutor krakenExecutor = new KrakenExecutor(getProject().getConfig().getKrakenBin(),
-				getProject().getConfig().getKrakenExecExpr()) {
+		KrakenExecutor krakenExecutor = new KrakenExecutor(stringConfigValue(GSConfigKey.KRAKEN_BIN),
+				stringConfigValue(GSConfigKey.KRAKEN_EXEC_EXPR)) {
 			@Override
 			protected void handleOutputStream(InputStream stream, OutputStream out) throws IOException {
-				KrakenResultProcessor parser = new KrakenResultProcessor(
-						getProject().getConfig().getInitialReadSizeBytes());
+				KrakenResultProcessor parser = new KrakenResultProcessor(4096);
 
 				parser.process(new BufferedInputStream(stream), new KrakenResultListener() {
 					private long lastLine = -1;
@@ -125,7 +134,7 @@ public class KrakenResCountGoal extends MultiFileGoal {
 			}
 		};
 		if (getLogger().isInfoEnabled()) {
-			String execLine = krakenExecutor.genExecLine(getProject().getKrakenDB(), fastqs, null);
+			String execLine = krakenExecutor.genExecLine(stringConfigValue(GSConfigKey.KRAKEN_DB), fastqs, null);
 			getLogger().info("Run kraken with " + execLine);
 		}
 		try {
@@ -133,12 +142,12 @@ public class KrakenResCountGoal extends MultiFileGoal {
 				throw new IOException("This goal does not work with an outfile as a parameter (like in krakenuniq)");
 			}
 
-			krakenExecutor.execute(getProject().getKrakenDB(), fastqs, null, null, System.err);
+			krakenExecutor.execute(stringConfigValue(GSConfigKey.KRAKEN_DB), fastqs, null, null, System.err);
 
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Finished kraken");
 			}
-			
+
 			List<KrakenResStats> list = new ArrayList<KrakenResStats>();
 			countingTrie.collect(list);
 			return list;
@@ -146,8 +155,8 @@ public class KrakenResCountGoal extends MultiFileGoal {
 			throw new RuntimeException(e);
 		}
 	}
-	
-	protected void afterReadMatch(String krakenTaxid, byte[] readDescriptor) {		
+
+	protected void afterReadMatch(String krakenTaxid, byte[] readDescriptor) {
 	}
 
 	protected void print(List<KrakenResStats> list, PrintStream out) {

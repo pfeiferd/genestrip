@@ -73,7 +73,6 @@ public class AccessionMapImpl implements AccessionMap {
 				return mid;
 		}
 		return -(from + 1);
-
 	}
 
 	@Override

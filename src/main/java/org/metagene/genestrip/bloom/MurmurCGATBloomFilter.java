@@ -201,15 +201,14 @@ public class MurmurCGATBloomFilter implements Serializable {
 	}
 	
 	public void save(File filterFile) throws IOException {
-		ObjectOutputStream oOut = new ObjectOutputStream(StreamProvider.getOutputStreamForFile(filterFile));
-		oOut.writeObject(this);
-		oOut.close();
+		try (ObjectOutputStream oOut = new ObjectOutputStream(StreamProvider.getOutputStreamForFile(filterFile))) {
+			oOut.writeObject(this);			
+		}
 	}
 
 	public static MurmurCGATBloomFilter load(File filterFile) throws IOException, ClassNotFoundException {
-		ObjectInputStream oOut = new ObjectInputStream(StreamProvider.getInputStreamForFile(filterFile));
-		MurmurCGATBloomFilter res = (MurmurCGATBloomFilter) oOut.readObject();
-		oOut.close();
-		return res;
+		try (ObjectInputStream oOut = new ObjectInputStream(StreamProvider.getInputStreamForFile(filterFile))) {
+			return (MurmurCGATBloomFilter) oOut.readObject();			
+		}
 	}
 }

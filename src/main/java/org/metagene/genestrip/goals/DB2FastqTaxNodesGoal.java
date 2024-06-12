@@ -27,38 +27,37 @@ package org.metagene.genestrip.goals;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.KMerSortedArray;
-import org.metagene.genestrip.store.KMerStoreWrapper;
-import org.metagene.genestrip.tax.TaxIdCollector;
-import org.metagene.genestrip.tax.TaxTree;
-import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.tax.Rank;
+import org.metagene.genestrip.tax.SmallTaxTree;
+import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
-public class DB2FastqTaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
-	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
-	private final ObjectGoal<KMerStoreWrapper, GSProject> storeGoal;
+public class DB2FastqTaxNodesGoal extends ObjectGoal<Set<SmallTaxIdNode>, GSProject> {
+	private final ObjectGoal<Database, GSProject> storeGoal;
 
 	@SafeVarargs
-	public DB2FastqTaxNodesGoal(GSProject project, String name, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
-			ObjectGoal<KMerStoreWrapper, GSProject> storeGoal, Goal<GSProject>... deps) {
-		super(project, name, Goal.append(deps, taxTreeGoal, storeGoal));
-		this.taxTreeGoal = taxTreeGoal;
+	public DB2FastqTaxNodesGoal(GSProject project,
+			ObjectGoal<Database, GSProject> storeGoal, Goal<GSProject>... deps) {
+		super(project, GSGoalKey.DB2FASTQ_TAXIDS, Goal.append(deps, storeGoal));
 		this.storeGoal = storeGoal;
 	}
 
 	@Override
 	public void makeThis() {
-		Set<TaxIdNode> taxIdNodes;
-		TaxTree taxTree = taxTreeGoal.get();
+		Set<SmallTaxIdNode> taxIdNodes;
 		KMerSortedArray<String> store = storeGoal.get().getKmerStore();
+		SmallTaxTree taxTree = storeGoal.get().getTaxTree();
 
-		Set<TaxIdNode> storedNodes = new HashSet<TaxTree.TaxIdNode>();
+		Set<SmallTaxIdNode> storedNodes = new HashSet<SmallTaxIdNode>();
 		for (short j = 0; j < store.getNValues(); j++) {
 			String storeId = store.getValueForIndex(j);
 			if (storeId != null) {
-				TaxIdNode node = taxTree.getNodeByTaxId(storeId);
+				SmallTaxIdNode node = taxTree.getNodeByTaxId(storeId);
 				if (node != null) {
 					storedNodes.add(node);						
 				}
@@ -67,7 +66,6 @@ public class DB2FastqTaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> 
 
 		String encodedTaxIds = getProject().getTaxids();
 		if (encodedTaxIds != null) {
-			TaxIdCollector taxIdCollector = new TaxIdCollector(taxTree);
 			String[] taxids = encodedTaxIds.split(",");
 			boolean[] withDescs = new boolean[taxids.length];
 			for (int i = 0; i < taxids.length; i++) {
@@ -77,12 +75,7 @@ public class DB2FastqTaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> 
 				}
 			}
 
-			taxIdNodes = taxIdCollector.asNodesWithDesc(taxids, withDescs);
-			for (short j = 0; j < store.getNValues(); j++) {
-				String storeId = store.getValueForIndex(j);
-				if (storeId != null) {
-				}
-			}
+			taxIdNodes = asNodesWithDesc(taxTree, taxids, withDescs);
 			taxIdNodes.retainAll(storedNodes);
 		}
 		else {
@@ -93,4 +86,34 @@ public class DB2FastqTaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> 
 		}
 		set(taxIdNodes);
 	}
+
+	public Set<SmallTaxIdNode> asNodesWithDesc(SmallTaxTree taxTree, String[] taxids, boolean[] withDescs) {
+		Set<SmallTaxIdNode> res = new HashSet<SmallTaxIdNode>();
+		for (int i = 0; i < taxids.length; i++) {
+			SmallTaxIdNode node = taxTree.getNodeByTaxId(taxids[i]);
+			if (node != null) {
+				res.add(node);
+				if (withDescs[i]) {
+					completeFilterlist(res, node, null);
+				}
+			}
+		}
+
+		return res;
+	}
+
+	private void completeFilterlist(Set<SmallTaxIdNode> filter, SmallTaxIdNode node, Rank depth) {
+		if (node != null) {
+			filter.add(node);
+			SmallTaxIdNode[] subNodes = node.getSubNodes();
+			if (subNodes != null) {
+				for (SmallTaxIdNode subNode : subNodes) {
+					if (depth == null
+							|| (subNode != null && subNode.getRank() != null && !subNode.getRank().isBelow(depth))) {
+						completeFilterlist(filter, subNode, depth);
+					}
+				}
+			}
+		}
+	}	
 }

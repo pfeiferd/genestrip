@@ -1,4 +1,0 @@
-HiSeq HiSeq_accuracy.fastq
-MiSeq MiSeq_accuracy.fastq
-HiSeq_timing HiSeq_timing.fastq
-MiSeq_timing MiSeq_timing.fastq

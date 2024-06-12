@@ -27,7 +27,7 @@ package org.metagene.genestrip;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.Set;
+import java.util.Properties;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
@@ -35,11 +35,11 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.metagene.genestrip.make.GoalKey;
 
 public class Main {
 	private final Options options;
 	private GSProject project;
-	private GSConfig config;
 	private String target;
 	private String[] restArgs;
 	private GSMaker maker;
@@ -49,20 +49,15 @@ public class Main {
 	}
 
 	public void parse(String[] args) throws ParseException, IOException {
-		preconfigureLogger();
 		CommandLine line = new DefaultParser().parse(options, args);
 
 		String baseDir = line.getOptionValue("d", "./data");
-		config = new GSConfig(new File(baseDir));
-		configureLogger(config);
 
 		target = line.getOptionValue("t", "make");
 
-		String fastqName = line.getOptionValue("f");
-		File fastqFile = null;
-		if (fastqName != null && !fastqName.trim().isEmpty()) {
-			fastqFile = new File(fastqName.trim());
-		}
+		String key = line.getOptionValue("k");
+		String[] fastqFiles = line.getOptionValues("f");
+		String mapFilePath = line.getOptionValue("m");
 
 		File resFolder = null;
 		String resStr = line.getOptionValue("r");
@@ -72,24 +67,25 @@ public class Main {
 
 		String taxids = line.getOptionValue("tx");
 
+		boolean download = line.hasOption("l");
+		boolean downloadToCommon = line.hasOption("ll");
+		
+		String dbPath = line.getOptionValue("db");
+
 		restArgs = line.getArgs();
 		if (restArgs.length == 0) {
 			throw new ParseException("Missing project name.");
 		}
 		String projectName = restArgs[0];
+		
+		Properties props = line.getOptionProperties("C");
 
-		project = new GSProject(config, projectName, 0, null, fastqFile, resFolder, resFolder, taxids);
+		project = new GSProject(new GSCommon(new File(baseDir)), projectName, key, fastqFiles, mapFilePath, resFolder,
+				resFolder, true, taxids, props, null, dbPath);
+		project.setDownloadFastqs(download);
+		project.setDownloadFastqsToCommon(downloadToCommon);
+
 		maker = new GSMaker(project);
-	}
-
-	protected void preconfigureLogger() {
-		// Not required anymore:
-		System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.SimpleLog");
-	}
-
-	protected void configureLogger(GSConfig config) {
-		System.setProperty("org.apache.commons.logging.simplelog.defaultlog", config.getLogLevel());
-		System.setProperty("org.apache.commons.logging.simplelog.showdatetime", "false");
 	}
 
 	public String getTarget() {
@@ -114,7 +110,6 @@ public class Main {
 
 	protected Options createOptions() {
 		Options options = new Options();
-//		options.addOption(new Option("v", "verbose", true, "Verbose information."));
 
 		Option baseDir = Option.builder("d").hasArg().argName("base dir")
 				.desc("Base directory for all data files. The default is './data'.").build();
@@ -124,21 +119,45 @@ public class Main {
 				.desc("Generation target ('make', 'clean' or 'cleanall'). The default is 'make'.").build();
 		options.addOption(target);
 
-		Option fastq = Option.builder("f").hasArg().argName("fqfile").desc(
-				"Input fastq file in case of filtering or k-mer matching (regarding goals 'filter' and 'match') or "
-						+ "CSV file with a list of fastq files to be processed via 'multimatch'. Each line of a CSV file should have the format '<prefix> <path to fastq file>'.")
+		Option fastqs = Option.builder("f").hasArgs().valueSeparator(',').argName("fqfile1,fqfile2,...").desc(
+				"Input fastq files as paths or URLs to be processed via the goals 'filter', 'match' or 'matchlr'. When a URL is given, the fastq file will not be downloaded but data streaming will be applied unless '-l' or '-ll' is given.")
 				.build();
-		options.addOption(fastq);
+		options.addOption(fastqs);
+
+		Option key = Option.builder("k").hasArgs().argName("key")
+				.desc("Key used as a prefix for naming result files in conjuntion with '-f'.").build();
+		options.addOption(key);
+
+		Option csv = Option.builder("m").hasArg().argName("fqmap").desc(
+				"Mapping file with a list of fastq files to be processed via the goals 'filter', 'match' or 'matchlr'. Each line of the file must have the format '<key> <URL or path to fastq file>'.")
+				.build();
+		options.addOption(csv);
 
 		Option resFolder = Option.builder("r").hasArg().argName("path").desc(
-				"Common store folder for filtered fastq files and resulting CSV files created via the goals 'filter' and 'match'. The defaults are '<base dir>/projects/<project name>/fastq' and '<base dir>/projects/<project name>/csv', respectively.")
+				"Common store folder for filtered fastq files and result files created via the goals 'filter', 'match' or 'matchlr'. The defaults are '<base dir>/projects/<project name>/fastq' and '<base dir>/projects/<project name>/csv', respectively.")
 				.build();
 		options.addOption(resFolder);
 
 		Option tax = Option.builder("tx").hasArg().argName("taxids").desc(
-				"List of tax ids separated by ',' (but no blanks) for the goal 'db2fastq'. A tax id may have the suffix '+', which means that taxonomic descendants from the respective database will be included.")
+				"List of tax ids separated by ',' (but no blanks) for the goal 'db2fastq'. A tax id may have the suffix '+', which means that taxonomic descendants from the project's database will be included.")
 				.build();
 		options.addOption(tax);
+
+		Option download = Option.builder("l").hasArg(false).argName("load").desc(
+				"Download fastqs from URLs to '<base dir>/projects/<project name>/fastq' instead of streaming them for the goals 'filter', 'match' and 'matchlr'.")
+				.build();
+		options.addOption(download);
+
+		Option downloadToCommon = Option.builder("ll").hasArg(false).argName("loadToCommon").desc(
+				"Download fastqs from URLs to '<base dir>/fastq' instead of streaming them for the goals 'filter', 'match' and 'matchlr'.")
+				.build();
+		options.addOption(downloadToCommon);
+		
+		Option db = Option.builder("db").hasArg().argName("database").desc("Path to filtering or matching database for the goals 'filter' or 'match', 'matchlr', 'dbinfo' and 'db2fastq' for use without project context.").build();
+		options.addOption(db);
+		
+		Option propsOption = Option.builder("C").hasArgs().valueSeparator('=').argName("key>=<value").desc("To set Genestrip configuration paramaters via the command line.").build();
+		options.addOption(propsOption);
 
 		return options;
 	}
@@ -153,41 +172,41 @@ public class Main {
 			System.out.flush();
 			System.out.println();
 			e.printStackTrace();
+		} finally {
+			if (maker != null) {
+				maker.dumpAll();
+			}
 		}
 	}
 
 	public void run(PrintStream out) {
-		try {
-			String[] restArgs = getRestArgs();
-			if (restArgs.length == 1) {
-				restArgs = new String[] { null, maker.getDefaultGoalName() };
-			}
-			Set<String> goalNames = maker.getGoalNames();
-			for (int i = 1; i < restArgs.length; i++) {
-				if (goalNames.contains(restArgs[i])) {
-					out.println("Executing target " + getTarget() + " for goal " + restArgs[i] + "...");
-					switch (getTarget()) {
-					case "cleantotal":
-						maker.cleanTotal(restArgs[i]);
-						break;
-					case "cleanall":
-						maker.cleanAll(restArgs[i]);
-						break;
-					case "clean":
-						maker.clean(restArgs[i]);
-						break;
-					default:
-					case "make":
-						maker.make(restArgs[i]);
-						break;
-					}
-					out.println("Done with target " + getTarget() + " for goal " + restArgs[i]);
-				} else {
-					out.println("Omitting unknown goal " + restArgs[i]);
+		String[] restArgs = getRestArgs();
+		if (restArgs.length == 1) {
+			restArgs = new String[] { null, maker.getDefaultGoalKey().getName() };
+		}
+		for (int i = 1; i < restArgs.length; i++) {
+			GoalKey goalKey = maker.getKeyByName(restArgs[i]);
+			if (goalKey != null) {
+				out.println("Executing target " + getTarget() + " for goal " + goalKey.getName() + "...");
+				switch (getTarget()) {
+				case "cleantotal":
+					maker.cleanTotal(goalKey);
+					break;
+				case "cleanall":
+					maker.cleanAll(goalKey);
+					break;
+				case "clean":
+					maker.clean(goalKey);
+					break;
+				default:
+				case "make":
+					maker.make(goalKey);
+					break;
 				}
+				out.println("Done with target " + getTarget() + " for goal " + restArgs[i]);
+			} else {
+				out.println("Omitting unknown goal " + restArgs[i]);
 			}
-		} finally {
-			maker.dump();
 		}
 	}
 

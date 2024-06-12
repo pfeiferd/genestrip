@@ -27,28 +27,23 @@ package org.metagene.genestrip;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.Properties;
-import java.util.StringTokenizer;
 
-import org.apache.commons.logging.Log;
-import org.metagene.genestrip.make.FileDownloadGoal.DownloadProject;
-import org.metagene.genestrip.GSConfig.SeqType;
-import org.metagene.genestrip.genbank.AssemblySummaryReader.FTPEntryQuality;
-import org.metagene.genestrip.io.StreamingResource;
+import org.metagene.genestrip.make.ConfigKey;
 import org.metagene.genestrip.make.Goal;
-import org.metagene.genestrip.tax.TaxTree.Rank;
+import org.metagene.genestrip.make.Project;
 import org.metagene.genestrip.util.GSLogFactory;
 
-public class GSProject implements DownloadProject {
-	public static final String PROJECT_PROPERTIES = "project.properties";
-	public static final String PROJECT_PROPERTIES_2 = "Project.properties";
+public class GSProject extends Project {
+	public static final String CONFIG_PROPERTIES = "config.properties";
+	public static final String CONFIG_PROPERTIES_2 = "Config.properties";
 
 	public enum FileType {
 		FASTQ_RES(".fastq"), FASTQ(".fastq"), FASTA(".fasta"), CSV(".csv"), KRAKEN_OUT(".out"), KRAKEN_OUT_RES(".out"),
-		SER(".ser"), DB(".kmers.ser"), FILTER(".bloom.ser"), LOG(".log");
+		SER(".ser"), DB(".zip"), FILTER(".ser"), LOG(".log");
 
 		private final String suffix;
 
@@ -61,62 +56,125 @@ public class GSProject implements DownloadProject {
 		}
 	}
 
-	private final GSConfig config;
-	private final String name;
-	private final String krakenDB;
-	private final int kMserSize;
-	private final File fastqOrCSVFile;
+	private final GSCommon common;
+	private final String key;
+	private final String[] fastqResources;
+	private final String fastqMapFile;
 	private final File csvDir;
 	private final File fastqResDir;
-	private final Properties properties;
+	private final Properties[] properties;
 	private final String taxids;
+	private final String dbPath;
 
-	public GSProject(GSConfig config, String name) {
-		this(config, name, 31, null, null, null, null, false, null);
+	private boolean downloadFastqs;
+	private boolean downloadFastqsToCommon;
+
+	public GSProject(GSCommon config, String name) {
+		this(config, name, null, null, null, null, null, true, null, null, null, null);
 	}
 
-	public GSProject(GSConfig config, String name, int kMerSize, String krakenDB, File fastqOrCSVFile, File csvDir,
-			File fastqResDir, String taxids) {
-		this(config, name, kMerSize, krakenDB, fastqOrCSVFile, csvDir, fastqResDir, true, taxids);
+	public GSProject(GSCommon config, String name, String key, String[] fastqFiles) {
+		this(config, name, key, fastqFiles, null, null, null, true, null, null, null, null);
 	}
 
-	public GSProject(GSConfig config, String name, int kMerSize, String krakenDB, File fastqOrCSVFile, File csvDir,
-			File fastqResDir, boolean loadProps, String taxids) {
-		this.config = config;
-		this.name = name;
-		this.kMserSize = kMerSize;
-		this.krakenDB = krakenDB;
-		this.fastqOrCSVFile = fastqOrCSVFile;
+	public GSProject(GSCommon config, String name, String csvFile) {
+		this(config, name, null, null, csvFile, null, null, true, null, null, null, null);
+	}
+
+	public GSProject(GSCommon config, String name, String key, String[] fastqFiles, String csvFile, File csvDir,
+			File fastqResDir, boolean loadProps, String taxids, Properties commandLineProps, GSGoalKey forGoal,
+			String dbPath) {
+		super(name);
+		this.common = config;
 		this.fastqResDir = fastqResDir;
+		this.key = key;
+		this.fastqResources = fastqFiles;
+		this.fastqMapFile = csvFile;
 		this.csvDir = csvDir != null ? csvDir : new File(getProjectDir(), "csv");
 		this.taxids = taxids;
+		this.dbPath = dbPath;
 
-		this.properties = new Properties();
-		if (loadProps) {
-			File configFile = new File(getProjectDir(), PROJECT_PROPERTIES);
-			if (!configFile.exists()) {
-				configFile = new File(getProjectDir(), PROJECT_PROPERTIES_2);
-			}
-			Log log = GSLogFactory.getLog("project");
-			try {
-				if (log.isInfoEnabled()) {
-					log.info("Loading project file " + configFile);
-				}
-				properties.load(new FileInputStream(configFile));
-			} catch (IOException e) {
-				if (log.isWarnEnabled()) {
-					log.warn("Could not read project configuation file '" + configFile + "'. Using defaults.");
-				}
+		if (commandLineProps != null) {
+			initConfigParams(commandLineProps); // Gotta do this here already, e.g. to impact logging early on.
+			configureLogger();
+		}
+
+		properties = new Properties[3];
+		properties[0] = commandLineProps == null ? new Properties() : commandLineProps;
+		properties[1] = loadConfigProperties(getProjectDir());
+		properties[2] = loadConfigProperties(getCommon().getBaseDir());
+
+		initConfigParams(properties);
+		configureLogger();
+
+		for (Properties props : properties) {
+			checkConfigProperties(props, forGoal);
+		}
+		logParamMap();
+	}
+
+	protected Properties loadConfigProperties(File dir) {
+		Properties properties = new Properties();
+		File configFile = new File(dir, CONFIG_PROPERTIES);
+		if (!configFile.exists()) {
+			configFile = new File(dir, CONFIG_PROPERTIES_2);
+		}
+		if (getLogger().isInfoEnabled()) {
+			getLogger().info("Loading config file '" + configFile + "'.");
+		}
+		try (InputStream is = new FileInputStream(configFile)) {
+			properties.load(is);
+		} catch (IOException e) {
+			if (getLogger().isWarnEnabled()) {
+				getLogger().warn("Could not read config file '" + configFile + "'.");
 			}
 		}
+		return properties;
+	}
+
+	protected void configureLogger() {
+		GSLogFactory.getInstance().setLogLevel(stringConfigValue(GSConfigKey.LOG_LEVEL));
+	}
+
+	@Override
+	protected ConfigKey[] getConfigKeys() {
+		return GSConfigKey.values();
+	}
+
+	public String getKey() {
+		return key;
+	}
+
+	public String getDBPath() {
+		return dbPath;
+	}
+
+	public String[] getFastqResources() {
+		return fastqResources;
+	}
+
+	public String getFastqMapFile() {
+		return fastqMapFile;
 	}
 
 	public String getTaxids() {
 		return taxids;
 	}
 
-	public File getFastqOrCSVFile() {
-		return fastqOrCSVFile;
+	public boolean isDownloadFastqs() {
+		return downloadFastqs;
+	}
+
+	public boolean isDownloadFastqsToCommon() {
+		return downloadFastqsToCommon;
+	}
+
+	public void setDownloadFastqs(boolean downloadFastqs) {
+		this.downloadFastqs = downloadFastqs;
+	}
+
+	public void setDownloadFastqsToCommon(boolean downloadFastqsToCommon) {
+		this.downloadFastqsToCommon = downloadFastqsToCommon;
 	}
 
 	public File getDirForType(FileType type) {
@@ -156,7 +214,29 @@ public class GSProject implements DownloadProject {
 	}
 
 	public File getOutputFile(String goal, String key, String baseFile, FileType type, boolean gzip) {
-		String baseName = baseFile == null ? "" : baseFile;
+		return getOutputFile(getDirForType(type), goal, key, baseFile, type, gzip);
+	}
+
+	public File getOutputFile(File dir, String goal, String key, String baseFile, FileType type, boolean gzip) {
+		return getOutputFile(dir, getOutputFilePrefix(goal), goal, key, baseFile, type, gzip);
+	}
+
+	public File getOutputFile(File dir, String project, String goal, String key, String baseFile, FileType type,
+			boolean gzip) {
+		String baseName = baseFile == null ? "" : getFileBaseName(baseFile);
+		if (baseName.startsWith(getName() + "_")) {
+			baseName = baseName.substring(getName().length() + 1);
+		}
+		if (!baseName.isEmpty()) {
+			baseName = "_" + baseName;
+		}
+
+		return new File(dir, (project == null ? "" : project) + getOutputFileGoalPrefix(goal, key) + baseName
+				+ type.getSuffix() + (gzip ? ".gz" : ""));
+	}
+
+	public String getFileBaseName(String projectFileName) {
+		String baseName = projectFileName;
 		if (baseName.endsWith(".gz")) {
 			baseName = baseName.substring(0, baseName.length() - 3);
 		} else if (baseName.endsWith(".gzip")) {
@@ -168,15 +248,7 @@ public class GSProject implements DownloadProject {
 				baseName = baseName.substring(0, baseName.length() - suffix.length());
 			}
 		}
-		if (baseName.startsWith(getName() + "_")) {
-			baseName = baseName.substring(getName().length() + 1);
-		}
-		if (!baseName.isEmpty()) {
-			baseName = "_" + baseName;
-		}
-
-		return new File(getDirForType(type), getOutputFilePrefix(goal) + getOutputFileGoalPrefix(goal, key) + baseName
-				+ type.getSuffix() + (gzip ? ".gz" : ""));
+		return baseName;
 	}
 
 	protected String getOutputFilePrefix(String goal) {
@@ -184,6 +256,16 @@ public class GSProject implements DownloadProject {
 	}
 
 	protected String getOutputFileGoalPrefix(String goal, String key) {
+		if (key != null) {
+			try {
+				key = URLEncoder.encode(key, "UTF-8");
+				if (key.length() > 256) {
+					key = key.substring(0, 256);
+				}
+			} catch (UnsupportedEncodingException e) {
+				throw new RuntimeException(e);
+			}
+		}
 		if (goal == null) {
 			return key == null ? "" : key;
 		} else {
@@ -191,47 +273,16 @@ public class GSProject implements DownloadProject {
 		}
 	}
 
-	@Override
-	public String getBaseFTPURL() {
-		return getConfig().getFtpBaseURL();
-	}
-
-	@Override
-	public String getHttpBaseURL() {
-		return getConfig().getHttpBaseURL();
-	}
-
-	@Override
-	public boolean isUseHttp() {
-		return getConfig().isUseHttp();
-	}
-
-	public GSConfig getConfig() {
-		return config;
-	}
-
-	public String getKrakenDB() {
-		return krakenDB == null ? config.getKrakenDB() : krakenDB;
-	}
-
-	public File getBaseDir() {
-		return config.getBaseDir();
-	}
-
-	public int getKMserSize() {
-		return kMserSize <= 0 ? config.getKMerSize() : kMserSize;
-	}
-
-	public String getName() {
-		return name;
+	public GSCommon getCommon() {
+		return common;
 	}
 
 	public File getProjectsDir() {
-		return new File(config.getBaseDir(), "projects");
+		return new File(getCommon().getBaseDir(), "projects");
 	}
 
 	public File getProjectDir() {
-		return new File(getProjectsDir(), name);
+		return new File(getProjectsDir(), getName());
 	}
 
 	public File getFastaDir() {
@@ -258,7 +309,7 @@ public class GSProject implements DownloadProject {
 		return new File(getProjectDir(), "taxids.txt");
 	}
 
-	public File getAddtionalFile() {
+	public File getAdditionalFile() {
 		return new File(getProjectDir(), "additional.txt");
 	}
 
@@ -274,130 +325,43 @@ public class GSProject implements DownloadProject {
 		return new File(getProjectDir(), "log");
 	}
 
-	public boolean isUseBloomFilterForMatch() {
-		String v = properties.getProperty(GSConfig.USE_BLOOM_FILTER_FOR_MATCH);
-		if (v != null) {
-			return Boolean.valueOf(v);
-
-		}
-		return getConfig().isUseBloomFilterForMatch();
+	public File getFilterFile(Goal<GSProject> goal) {
+		return getOutputFile(goal.getKey().getName(), FileType.FILTER);
 	}
 
-	public boolean isUseCompleteGenomesOnly() {
-		String v = properties.getProperty(GSConfig.COMPLETE_GENOMES_ONLY);
-		if (v != null) {
-			return Boolean.valueOf(v);
-
-		}
-		return getConfig().isUseCompleteGenomesOnly();
-	}
-
-	@Override
-	public boolean isIgnoreMissingFiles() {
-		String v = properties.getProperty(GSConfig.IGNORE_MISSING_FASTAS);
-		if (v != null) {
-			return Boolean.valueOf(v);
-
-		}
-		return getConfig().isIgnoreMissingFastas();
-	}
-
-	public boolean isClassifyReads() {
-		String v = properties.getProperty(GSConfig.CLASSIFY_READS);
-		if (v != null) {
-			return Boolean.valueOf(v);
-
-		}
-		return getConfig().isClassifyReads();
-	}
-
-	public Rank getRankCompletionDepth() {
-		String v = properties.getProperty(GSConfig.RANK_COMPLETION_DEPTH);
-		if (v != null) {
-			return Rank.byName(v);
-		}
-		return getConfig().getRankCompletionDepth();
-	}
-
-	public SeqType getSeqType() {
-		String v = properties.getProperty(GSConfig.SEQ_TYPE);
-		if (v != null) {
-			SeqType dr = SeqType.byName(v);
-			if (dr != null) {
-				return dr;
+	public File fastaFileFromPath(String fastaFilePath) {
+		if (fastaFilePath != null) {
+			File fasta = new File(fastaFilePath);
+			if (fasta.exists()) {
+				return fasta;
+			}
+			fasta = new File(getFastaDir(), fastaFilePath);
+			if (fasta.exists()) {
+				return fasta;
+			}
+			fasta = new File(getCommon().getFastaDir(), fastaFilePath);
+			if (fasta.exists()) {
+				return fasta;
 			}
 		}
-		return getConfig().getSeqType();
-	}
-
-	public int getMaxGenomesPerTaxid() {
-		String v = properties.getProperty(GSConfig.MAX_GENOMES_PER_TAXID);
-		if (v != null) {
-			int i = Integer.valueOf(v);
-			return i <= 0 ? Integer.MAX_VALUE : i;
-		}
-		return getConfig().getMaxGenomesPerTaxid();
-	}
-
-	public double getMaxReadTaxErrorCount() {
-		String v = properties.getProperty(GSConfig.MAX_READ_TAX_ERROR_COUNT);
-		if (v != null) {
-			return Double.valueOf(v);
-		}
-		return getConfig().getMaxReadTaxErrorCount();
-	}
-
-	public int getMaxDust() {
-		String v = properties.getProperty(GSConfig.MAX_DUST);
-		if (v != null) {
-			int i = Integer.valueOf(v);
-			return i <= 0 ? -1 : i;
-		}
-		return getConfig().getMaxDust();
-	}
-
-	public File getFilterFile(Goal<GSProject> goal) {
-		return getOutputFile(goal.getName(), FileType.FILTER);
-	}
-
-	public Map<String, List<StreamingResource>> getKeyToFastqs() {
 		return null;
 	}
 
-	public int getRefSeqLimitForGenbankAccess() {
-		String v = properties.getProperty(GSConfig.REQ_SEQ_LIMIT_FOR_GENBANK);
-		if (v != null) {
-			return Integer.valueOf(v);
-		}
-		return getConfig().getRefSeqLimitForGenbankAccess();
-
-	}
-
-	public List<FTPEntryQuality> getFastaQualities() {
-		String qs = properties.getProperty(GSConfig.FASTA_QUALITIES);
-		List<FTPEntryQuality> res = new ArrayList<FTPEntryQuality>();
-		if (qs != null) {
-			StringTokenizer tokenizer = new StringTokenizer(qs, ",;");
-			while (tokenizer.hasMoreTokens()) {
-				FTPEntryQuality q = FTPEntryQuality.valueOf(tokenizer.nextToken().trim());
-				if (q != null) {
-					res.add(q);
-				}
+	public File fastqFileFromPath(String fastqFilePath) {
+		if (fastqFilePath != null) {
+			File fastq = new File(fastqFilePath);
+			if (fastq.exists()) {
+				return fastq;
+			}
+			fastq = new File(getFastqDir(), fastqFilePath);
+			if (fastq.exists()) {
+				return fastq;
+			}
+			fastq = new File(getCommon().getFastqDir(), fastqFilePath);
+			if (fastq.exists()) {
+				return fastq;
 			}
 		}
-		return res.isEmpty() ? getConfig().getFastaQualities() : res;
-	}
-	
-	public int getMaxFromGenbank() {
-		String v = properties.getProperty(GSConfig.MAX_FROM_GENBANK);
-		if (v != null) {
-			return Integer.valueOf(v);
-		}
-		return getConfig().getMaxFromGenbank();
-	}
-
-
-	public File getGenbankDir() {
-		return new File(getProjectDir(), "genbank");
+		return null;
 	}
 }

@@ -28,21 +28,22 @@ import java.io.File;
 import java.util.Collections;
 import java.util.List;
 
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.genbank.AssemblySummaryReader;
-import org.metagene.genestrip.make.FileDownloadGoal;
+import org.metagene.genestrip.goals.GSFileDownloadGoal;
 import org.metagene.genestrip.make.Goal;
 
-public class AssemblyFileDownloadGoal extends FileDownloadGoal<GSProject> {
+public class AssemblyFileDownloadGoal extends GSFileDownloadGoal {
 	public static final String FTP_DIR_GENBANK = "/genomes/genbank";
 
 	private final List<File> files;
 
 	@SafeVarargs
-	public AssemblyFileDownloadGoal(GSProject project, String name, Goal<GSProject>... deps) {
-		super(project, name, deps);
+	public AssemblyFileDownloadGoal(GSProject project, Goal<GSProject>... deps) {
+		super(project, GSGoalKey.ASSEMBLYDOWNLOAD, deps);
 		files = Collections.singletonList(
-				new File(project.getConfig().getGenbankDir(), AssemblySummaryReader.ASSEMLY_SUM_GENBANK));
+				new File(project.getCommon().getGenbankDir(), AssemblySummaryReader.ASSEMLY_SUM_GENBANK));
 	}
 
 	@Override

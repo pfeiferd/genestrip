@@ -30,17 +30,17 @@ import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 
-public abstract class FileGoal<P> extends Goal<P> {
+public abstract class FileGoal<P extends Project> extends Goal<P> {
 	private final boolean allowEmptyFiles;
 
 	@SafeVarargs
-	public FileGoal(P project, String name, Goal<P>... dependencies) {
-		this(project, name, false, dependencies);
+	public FileGoal(P project, GoalKey key, Goal<P>... dependencies) {
+		this(project, key, false, dependencies);
 	}
 
 	@SafeVarargs
-	public FileGoal(P project, String name, boolean allowEmptyFiles, Goal<P>... dependencies) {
-		super(project, name, dependencies);
+	public FileGoal(P project, GoalKey key, boolean allowEmptyFiles, Goal<P>... dependencies) {
+		super(project, key, dependencies);
 		this.allowEmptyFiles = allowEmptyFiles;
 	}
 
@@ -67,11 +67,18 @@ public abstract class FileGoal<P> extends Goal<P> {
 		}
 		return true;
 	}
+	
+	@Override
+	protected void alreadyMade() {
+		if (getLogger().isInfoEnabled()) {
+			getLogger().info("Already made files " + getFiles());
+		}
+	}
 
 	protected boolean isMade(File file) {
 		return file.exists();
 	}
-	
+
 	protected boolean isBadEmpty(File file) {
 		return !isAllowEmptyFiles() && !file.isDirectory() && file.exists() && file.length() == 0;
 	}
@@ -95,11 +102,10 @@ public abstract class FileGoal<P> extends Goal<P> {
 						getLogger().info("Making file (" + counter + "/" + max + "):" + file);
 					}
 					makeFile(file);
-				}
-				else {
+				} else {
 					if (getLogger().isInfoEnabled()) {
 						getLogger().info("Already made file (" + counter + "/" + max + "):" + file);
-					}					
+					}
 				}
 			}
 		} catch (IOException e) {
@@ -145,6 +151,6 @@ public abstract class FileGoal<P> extends Goal<P> {
 
 	@Override
 	public String toString() {
-		return "file goal: " + getName();
+		return "file goal: " + getKey().getName();
 	}
 }
