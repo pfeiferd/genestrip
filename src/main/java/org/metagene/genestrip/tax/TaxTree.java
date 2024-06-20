@@ -214,8 +214,8 @@ public class TaxTree {
 		private static final long serialVersionUID = 1L;
 
 		private List<TaxIdNode> subNodes;
-		volatile private TaxIdNode parent;
-		volatile private boolean required;
+		private TaxIdNode parent;
+		private boolean required;
 
 		public TaxIdNode(String taxId) {
 			this(taxId, null);

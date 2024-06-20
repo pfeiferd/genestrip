@@ -52,7 +52,7 @@ public class TaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
 	}
 
 	@Override
-	public void makeThis() {
+	protected void doMakeThis() {
 		try {
 			TaxIdCollector taxIdCollector = new TaxIdCollector(taxTreeGoal.get());
 			Set<TaxIdNode> taxIdNodes = taxIdCollector.readFromFile(getProject().getTaxIdsFile());

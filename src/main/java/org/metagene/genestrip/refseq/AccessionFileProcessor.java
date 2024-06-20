@@ -45,11 +45,13 @@ public abstract class AccessionFileProcessor {
 
 	private final long recordLogCycle = 1000 * 1000 * 10;
 	private final boolean completeOnly;
-	private final Collection<RefSeqCategory> categories;
+	private final RefSeqCategory[] categories;
 
 	public AccessionFileProcessor(Collection<RefSeqCategory> categories, boolean completeOnly) {
 		this.completeOnly = completeOnly;
-		this.categories = categories;
+		// Converting to array makes iterator below way more efficient (less/no object allocations) - 
+		// found via optimizer ...
+		this.categories = categories.toArray(new RefSeqCategory[categories.size()]);
 	}
 
 	public void processCatalog(StreamingResource catalogFile) {
@@ -99,7 +101,7 @@ public abstract class AccessionFileProcessor {
 
 	protected abstract void handleEntry(byte[] target, int taxIdEnd, int accessionStart, int accessionEnd);
 
-	protected boolean containsCategory(byte[] outerArray, int start, int end, Collection<RefSeqCategory> categories) {
+	protected boolean containsCategory(byte[] outerArray, int start, int end, RefSeqCategory[] categories) {
 		for (RefSeqCategory cat : categories) {
 			if (ByteArrayUtil.indexOf(outerArray, start, end, cat.getDirectory()) != -1) {
 				return true;

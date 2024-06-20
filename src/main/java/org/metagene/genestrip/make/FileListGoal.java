@@ -61,6 +61,6 @@ public abstract class FileListGoal<P extends Project> extends FileGoal<P> {
 			provideFiles();
 			filesProvided = true;
 		}
-		return files;
+		return Collections.unmodifiableList(files);
 	}
 }

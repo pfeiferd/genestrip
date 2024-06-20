@@ -40,12 +40,12 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 
 public class FilterGoal extends MultiFileGoal {
-	private final BloomIndexedGoal indexedGoal;
+	private final LoadIndexGoal indexedGoal;
 	private final ExecutionContext executorServiceBundle;
 
 	@SafeVarargs
 	public FilterGoal(GSProject project, 
-			ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapGoal, BloomIndexedGoal indexedGoal,
+			ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapGoal, LoadIndexGoal indexedGoal,
 			ExecutionContext executorServiceBundle, Goal<GSProject>... deps) {
 		super(project, GSGoalKey.FILTER, fastqMapGoal, append(deps, indexedGoal));
 		this.executorServiceBundle = executorServiceBundle;

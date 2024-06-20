@@ -34,28 +34,37 @@ import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 
-public class BloomIndexedGoal extends ObjectGoal<MurmurCGATBloomFilter, GSProject> {
+public class LoadIndexGoal extends ObjectGoal<MurmurCGATBloomFilter, GSProject> {
+	private final ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomIndex;
 	private final File dbFile;
 
 	@SafeVarargs
-	public BloomIndexedGoal(GSProject project, FileGoal<GSProject> bloomIndexGoal, Goal<GSProject>... dependencies) {
-		super(project, GSGoalKey.LOADINDEX,
-				project.getDBPath() == null ? append(dependencies, bloomIndexGoal) : dependencies);
-		this.dbFile = getProject().getDBPath() == null ? bloomIndexGoal.getFile() : new File(getProject().getDBPath());
+	public LoadIndexGoal(GSProject project, ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomIndex,
+			FileGoal<GSProject> storeIndexGoal, Goal<GSProject>... dependencies) {
+		super(project, GSGoalKey.LOAD_INDEX,
+				project.getDBPath() == null ? append(dependencies, bloomIndex, storeIndexGoal) : dependencies);
+		this.bloomIndex = bloomIndex;
+		this.dbFile = getProject().getDBPath() == null ? storeIndexGoal.getFile() : new File(getProject().getDBPath());
+	}
+	
+	@Override
+	public boolean isWeakDependency(Goal<GSProject> toGoal) {
+		if (toGoal == bloomIndex) {
+			return true;
+		}
+		return super.isWeakDependency(toGoal);
 	}
 
 	@Override
-	public void makeThis() {
+	protected void doMakeThis() {
 		try {
-			setFilter(MurmurCGATBloomFilter.load(dbFile));
+			MurmurCGATBloomFilter filter = bloomIndex.isMade() ? bloomIndex.get()
+					: MurmurCGATBloomFilter.load(dbFile);
+			set(filter);
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-	public void setFilter(MurmurCGATBloomFilter object) {
-		set(object);
 	}
 }

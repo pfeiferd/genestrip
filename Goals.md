@@ -18,7 +18,7 @@
 |`taxnodes`||Compute the taxids for the project's database.|
 |`refseqrelease`||Download the RefSeq release number.|
 |`refseqcat`||Download the RefSeq release catalog files.|
-|`checksummap`||Load MD5 checksum for RefSeq files into memory|
+|`checksummap`||Load MD5 checksums for RefSeq files into memory|
 |`categories`||Load the RefSeq category names as requested for the project's database.|
 |`refseqfna`||Download the genomic files from RefSeq for the requested categories.|
 |`accmapsize`||Compute the number of RefSeq accession entries to be kept in memory.|
@@ -30,10 +30,13 @@
 |`adddownloads`||Download additionally requested fasta files.|
 |`addfastas`||Associate additional fasta files with tax ids in memory.|
 |`fillsize`||Precompute the number of *k*-mers for the project's database.|
-|`fillindex`||Fill the bloom index with *k*-mers.|
-|`tempdb`||Fill the database with *k*-mers and save it as a temporary file.|
+|`tempindex`||Fill the temporary bloom index with *k*-mers.|
+|`filldb`||Fill the database with *k*-mers.|
+|`tempdb`||Save temporary database.|
 |`loadtempdb`||Load the temporary database into memory.|
+|`updatedb`||Update the temporary database with regard to least commonn ancestors of *k*-mers.|
 |`loaddb`||Load the matching database into memory.|
+|`fillindex`||Fill the filtering database with *k*-mers.|
 |`loadindex`||Load the filtering database into memory.|
 |`db2fastqtaxids`||Determine tax ids for the goal `db2fast` from the command line argument.|
 |`fastqmap`||Determine the fastq mapping from command line arguments.|

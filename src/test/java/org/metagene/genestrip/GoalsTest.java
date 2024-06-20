@@ -29,7 +29,9 @@ import java.io.IOException;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.metagene.genestrip.goals.GSFileDownloadGoal;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.make.GoalKey;
 
 public class GoalsTest {
 	@BeforeClass
@@ -45,8 +47,12 @@ public class GoalsTest {
 		GSProject project = new GSProject(config, "human_virus", null, new String[] { fastq.getCanonicalPath() });
 		GSMaker maker = new GSMaker(project);
 		for (Goal<GSProject> goal : maker.getGoals()) {
-			if (!goal.getKey().equals(GSGoalKey.KRAKENRES)) {
-				goal.cleanThis();
+			GoalKey key = goal.getKey();
+			if (!GSGoalKey.KRAKENRES.equals(key)) {
+				// Don't download NCBI stuff over and over again via tests:
+				if (!GSGoalKey.COMMON_SETUP.equals(key) && !(goal instanceof GSFileDownloadGoal)) {
+					goal.cleanThis();
+				}
 				goal.make();
 			}
 		}

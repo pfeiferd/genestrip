@@ -35,9 +35,6 @@ import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.GSProject.FileType;
-import org.metagene.genestrip.goals.LoadDBGoal;
-import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
@@ -50,8 +47,8 @@ import org.metagene.genestrip.store.KMerSortedArray.UpdateValueProvider;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-public class DBGoal extends FileListGoal<GSProject> {
-	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
+public class DBGoal extends ObjectGoal<Database, GSProject> {
+	private final ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
 	private final ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal;
 	private final ObjectGoal<AccessionMap, GSProject> accessionTrieGoal;
@@ -59,20 +56,18 @@ public class DBGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Database, GSProject> filledStoreGoal;
 	private final ExecutionContext bundle;
 
-	private LoadDBGoal updatedStoreGoal;
-
 	private boolean dump;
 	private int doneCounter;
 	private Object[] syncs = new Object[256];
 
 	@SafeVarargs
-	public DBGoal(GSProject project, ExecutionContext bundle,
-			ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
-			RefSeqFnaFilesDownloadGoal fnaFilesGoal, ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
+	public DBGoal(GSProject project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
+			ObjectGoal<TaxTree, GSProject> taxTreeGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionTrieGoal, ObjectGoal<Database, GSProject> filledStoreGoal,
 			Goal<GSProject>... deps) {
-		super(project, GSGoalKey.DB, project.getOutputFile(GSGoalKey.DB.getName(), FileType.DB, false),
-				Goal.append(deps, additionalGoal, categoriesGoal, taxTreeGoal, fnaFilesGoal, accessionTrieGoal, filledStoreGoal));
+		super(project, GSGoalKey.UPDATE_DB, Goal.append(deps, additionalGoal, categoriesGoal, taxTreeGoal, fnaFilesGoal,
+				accessionTrieGoal, filledStoreGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxTreeGoal = taxTreeGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
@@ -81,13 +76,9 @@ public class DBGoal extends FileListGoal<GSProject> {
 		this.filledStoreGoal = filledStoreGoal;
 		this.bundle = bundle;
 	}
-
-	public void setLoadDBGoal(LoadDBGoal updatedStoreGoal) {
-		this.updatedStoreGoal = updatedStoreGoal;
-	}
-
+	
 	@Override
-	protected void makeFile(File storeFile) {
+	protected void doMakeThis() {       
 		try {
 			Database wrapper = filledStoreGoal.get();
 			KMerSortedArray<String> store = wrapper.getKmerStore();
@@ -109,7 +100,7 @@ public class DBGoal extends FileListGoal<GSProject> {
 			doneCounter = 0;
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
-				if (categoriesGoal.get()[1].contains(cat)) {
+				if (categoriesGoal.get().contains(cat)) {
 					if (blockingQueue == null) {
 						fastaReader.readFasta(fnaFile);
 					} else {
@@ -125,7 +116,7 @@ public class DBGoal extends FileListGoal<GSProject> {
 			}
 			Map<File, TaxIdNode> additionalMap = additionalGoal.get();
 			for (File additionalFasta : additionalMap.keySet()) {
-				if (bundle.getThreads() == 0) {
+				if (blockingQueue == null) {
 					fastaReader.ignoreAccessionMap(additionalMap.get(additionalFasta));
 					fastaReader.readFasta(additionalFasta);
 				} else {
@@ -155,16 +146,11 @@ public class DBGoal extends FileListGoal<GSProject> {
 				}
 			}
 
-			Database wrapper2 = new Database((KMerSortedArray<String>) store, wrapper.getTaxTree());
-			wrapper2.save(storeFile);
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("File saved " + storeFile + " along with index.");
-			}
-			updatedStoreGoal.setDatabase(wrapper2);
+			set(new Database((KMerSortedArray<String>) store, wrapper.getTaxTree()));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {
-			dump();
+			cleanUpThreads();
 		}
 	}
 
@@ -215,8 +201,13 @@ public class DBGoal extends FileListGoal<GSProject> {
 	}
 
 	public void dump() {
+		super.dump();
+		cleanUpThreads();
+	}
+	
+	protected void cleanUpThreads() {
 		dump = true;
-		bundle.interruptAll();
+		bundle.interruptAll();		
 	}
 
 	protected class MyFastaReader extends AbstractStoreFastaReader {

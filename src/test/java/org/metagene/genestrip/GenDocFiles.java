@@ -103,6 +103,9 @@ public class GenDocFiles {
 					ps.print(goal.getKey().getName());
 					ps.print(" -> ");
 					ps.print(to.getKey().getName());
+					if (goal.isWeakDependency(to)) {
+						ps.print(" [style=dotted]");						
+					}
 					ps.println(";");
 				}
 			}

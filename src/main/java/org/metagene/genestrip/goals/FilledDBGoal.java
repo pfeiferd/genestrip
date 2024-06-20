@@ -26,35 +26,42 @@ package org.metagene.genestrip.goals;
 
 import java.io.IOException;
 
+import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.Goal;
-import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.Database;
 
 public class FilledDBGoal extends ObjectGoal<Database, GSProject> {
-	private final FileGoal<GSProject> fillStoreGoal;
+	private final ObjectGoal<Database, GSProject> fillDBGoal;
+	private final FileGoal<GSProject> filledStoreGoal;
 
 	@SafeVarargs
-	public FilledDBGoal(GSProject project, GoalKey key, FileGoal<GSProject> fillStoreGoal,
-			Goal<GSProject>... dependencies) {
-		super(project, key, append(dependencies, fillStoreGoal));
-		this.fillStoreGoal = fillStoreGoal;
+	public FilledDBGoal(GSProject project, ObjectGoal<Database, GSProject> fillDBGoal,
+			FileGoal<GSProject> filledStoreGoal, Goal<GSProject>... dependencies) {
+		super(project, GSGoalKey.LOAD_TEMPDB, append(dependencies, filledStoreGoal, fillDBGoal));
+		this.fillDBGoal = fillDBGoal;
+		this.filledStoreGoal = filledStoreGoal;
+	}
+	
+	@Override
+	public boolean isWeakDependency(Goal<GSProject> toGoal) {
+		if (toGoal == fillDBGoal) {
+			return true;
+		}
+		return super.isWeakDependency(toGoal);
 	}
 
 	@Override
-	public void makeThis() {
+	protected void doMakeThis() {
 		try {
-			set(Database.load(fillStoreGoal.getFile(), true));
+			Database db = fillDBGoal.isMade() ? fillDBGoal.get() : Database.load(filledStoreGoal.getFile(), true);
+			set(db);
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
-
-	public void setDatabase(Database object) {
-		set(object);
-	}	
 }

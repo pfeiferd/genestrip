@@ -24,7 +24,9 @@
  */
 package org.metagene.genestrip.make;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.metagene.genestrip.util.GSLogFactory;
@@ -34,6 +36,7 @@ public abstract class Goal<P extends Project> {
 	private final GoalKey goalKey;
 	private final Goal<P>[] dependencies;
 	private final P project;
+	private final List<Goal<P>> dependents;
 
 	@SafeVarargs
 	public Goal(P project, GoalKey goalKey, Goal<P>... dependencies) {
@@ -41,6 +44,31 @@ public abstract class Goal<P extends Project> {
 		logger = GSLogFactory.getLog(this.goalKey.getName());
 		this.dependencies = dependencies;
 		this.project = project;
+		this.dependents = new ArrayList<>();
+		for (Goal<P> dep : dependencies) {
+			dep.addDependent(this);
+		}
+	}
+
+	protected void addDependent(Goal<P> goal) {
+		dependents.add(goal);
+	}
+
+	protected void dependentMade(Goal<P> goal) {
+		boolean allMade = true;
+		for (Goal<P> dep : dependents) {
+			if (!dep.isMade()) {
+				allMade = false;
+				break;
+			}
+		}
+		if (allMade) {
+			allDependentsMade();
+		}
+	}
+
+	// For override:
+	protected void allDependentsMade() {
 	}
 
 	// Chance to change the key by overriding this method.
@@ -64,6 +92,10 @@ public abstract class Goal<P extends Project> {
 		return logger;
 	}
 
+	public boolean isWeakDependency(Goal<P> toGoal) {
+		return false;
+	}
+
 	public abstract boolean isMade();
 
 	public final void make() {
@@ -75,26 +107,30 @@ public abstract class Goal<P extends Project> {
 			startMake();
 			GSLogFactory.incN();
 			for (Goal<P> dep : dependencies) {
-				if (dep != null) {
+				if (dep != null && !isWeakDependency(dep)) {
 					dep.make();
 				}
 			}
-			// It is important to check "isMade()" again here because sometime the goal get automatically
+			GSLogFactory.decN();
+			// It is important to check "isMade()" again here because sometime the goal get
+			// automatically
 			// made via a dependent goal as there are "shortcuts".
-			if (!isMade()) {
-				GSLogFactory.decN();
-				if (getLogger().isInfoEnabled()) {
-					getLogger().info("Making this " + this);
-				}
-				makeThis();
-			}
+			makeThis();
 			endMake();
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Made " + this);
 			}
-		}
-		else {
+		} else {
 			alreadyMade();
+		}
+	}
+
+	private void logHeapInfo() {
+		if (getLogger().isTraceEnabled()) {
+			long total = Runtime.getRuntime().totalMemory();
+			long free = Runtime.getRuntime().freeMemory();
+			getLogger().trace("Total heap size: " + (total / 1024 / 1024) + " MB");
+			getLogger().trace("Used heap size: " + ((total - free) / 1024 / 1024) + " MB");
 		}
 	}
 
@@ -103,18 +139,41 @@ public abstract class Goal<P extends Project> {
 
 	protected void startMake() {
 	}
-	
-	protected void alreadyMade() {		
+
+	protected void alreadyMade() {
 	}
 
-	public void makeThis() {
+	public final void makeThis() {
+		if (!isMade()) {
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("Making this " + this);
+			}
+			logHeapInfo();
+			doMakeThis();
+			logHeapInfo();
+			for (Goal<P> dep : dependencies) {
+				dep.dependentMade(this);
+			}
+		}
 	}
 
-	public void cleanThis() {
+	protected void doMakeThis() {
 	}
 
-	protected boolean isThisCleaned() {
-		return false;
+	public final void cleanThis() {
+		if (!isCleaned()) {
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("Cleaning this " + this);
+			}
+			doCleanThis();
+		}
+	}
+
+	protected void doCleanThis() {
+	}
+
+	public boolean isCleaned() {
+		return !isMade();
 	}
 
 	@Override
@@ -151,14 +210,9 @@ public abstract class Goal<P extends Project> {
 				dep.transitiveClean();
 			}
 		}
-		if (!isThisCleaned()) {
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Cleaning this " + this);
-			}
-			cleanThis();
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Cleaned " + this);
-			}
+		cleanThis();
+		if (getLogger().isInfoEnabled()) {
+			getLogger().info("Cleaned " + this);
 		}
 	}
 

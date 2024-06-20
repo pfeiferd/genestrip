@@ -48,7 +48,7 @@ public class DB2FastqTaxNodesGoal extends ObjectGoal<Set<SmallTaxIdNode>, GSProj
 	}
 
 	@Override
-	public void makeThis() {
+	protected void doMakeThis() {
 		Set<SmallTaxIdNode> taxIdNodes;
 		KMerSortedArray<String> store = storeGoal.get().getKmerStore();
 		SmallTaxTree taxTree = storeGoal.get().getTaxTree();

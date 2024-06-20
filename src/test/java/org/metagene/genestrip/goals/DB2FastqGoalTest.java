@@ -72,12 +72,10 @@ public class DB2FastqGoalTest {
 		for (int i = 0; i < taxids.length; i++) {
 			File file = goal.getOutputFile(taxids[i]);
 			MatchingResult result = maker.match(false, "", file.toString());
-			;
 			Map<String, CountsPerTaxid> map = result.getTaxid2Stats();
 			assertEquals(kmers[i], map.get(taxids[i]).getKMers());
 			assertEquals(kmers[i], map.get(taxids[i]).getUniqueKMers());
 			assertEquals(1, map.size());
-
 		}
 		maker.dumpAll();
 	}

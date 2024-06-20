@@ -41,7 +41,7 @@ import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSProject> {
-	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
+	private final ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
 	private final ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal;
@@ -49,11 +49,11 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 	private final ObjectGoal<Long, GSProject> sizeGoal;
 
 	@SafeVarargs
-	public FillBloomFilterGoal(GSProject project, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
+	public FillBloomFilterGoal(GSProject project, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
 			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, FillSizeGoal sizeGoal, Goal<GSProject>... deps) {
-		super(project, GSGoalKey.FILLINDEX, Goal.append(deps, taxNodesGoal, fnaFilesGoal, accessionMapGoal, sizeGoal, additionalGoal));
+		super(project, GSGoalKey.TEMPINDEX, Goal.append(deps, taxNodesGoal, fnaFilesGoal, accessionMapGoal, sizeGoal, additionalGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxNodesGoal = taxNodesGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
@@ -61,12 +61,18 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 		this.accessionMapGoal = accessionMapGoal;
 		this.sizeGoal = sizeGoal;
 	}
+	
+	@Override
+	protected void allDependentsMade() {
+		// To save memory...
+		doCleanThis();
+	}
 
 	@Override
-	public void makeThis() {
+	protected void doMakeThis() {
 		try {
 			MurmurCGATBloomFilter filter = new MurmurCGATBloomFilter(intConfigValue(GSConfigKey.KMER_SIZE),
-					doubleConfigValue(GSConfigKey.BLOOM_FILTER_FPP));
+					doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP));
 			filter.ensureExpectedSize(sizeGoal.get(), false);
 
 			MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
@@ -75,7 +81,7 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
-				if (categoriesGoal.get()[0].contains(cat)) {
+				if (categoriesGoal.get().contains(cat)) {
 					fastaReader.readFasta(fnaFile);
 				}
 			}

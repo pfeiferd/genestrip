@@ -44,14 +44,14 @@ import org.metagene.genestrip.util.StringLongDigitTrie;
 import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
 
 public class TaxNodesFromGenbankGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
-	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
+	private final ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 
 	@SafeVarargs
 	public TaxNodesFromGenbankGoal(GSProject project, 
-			ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
+			ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, Goal<GSProject>... deps) {
 		super(project, GSGoalKey.TAXFROMGENBANK, Goal.append(deps, categoriesGoal, taxNodesGoal, fnaFilesGoal, accessionMapGoal));
@@ -62,7 +62,7 @@ public class TaxNodesFromGenbankGoal extends ObjectGoal<Set<TaxIdNode>, GSProjec
 	}
 
 	@Override
-	public void makeThis() {
+	protected void doMakeThis() {
 		try {
 			Set<TaxIdNode> missingTaxIds = new HashSet<TaxIdNode>();
 			// We only get Genomic data from genbank (so far) - so if just RNA is wanted, there is no need to access it.
@@ -77,7 +77,7 @@ public class TaxNodesFromGenbankGoal extends ObjectGoal<Set<TaxIdNode>, GSProjec
 
 				for (File fnaFile : fnaFilesGoal.getFiles()) {
 					RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
-					if (categoriesGoal.get()[0].contains(cat)) {
+					if (categoriesGoal.get().contains(cat)) {
 						fastaReader.readFasta(fnaFile);
 					}
 				}

@@ -63,7 +63,7 @@ public class AdditionalFastasGoal extends ObjectGoal<Map<File, TaxIdNode>, GSPro
 	}
 
 	@Override
-	public void makeThis() {
+	protected void doMakeThis() {
 		Map<File, TaxIdNode> res = new HashMap<File, TaxTree.TaxIdNode>();
 		File additonalEntryFile = getProject().getAdditionalFile();
 		if (additonalEntryFile.exists()) {

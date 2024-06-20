@@ -43,14 +43,14 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
 
 public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
-	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
+	private final ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
 	private final ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal;
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 
 	@SafeVarargs
-	public FillSizeGoal(GSProject project, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
+	public FillSizeGoal(GSProject project, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
 			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, Goal<GSProject>... deps) {
@@ -64,7 +64,7 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 	}
 
 	@Override
-	public void makeThis() {
+	protected void doMakeThis() {
 		try {
 			MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
 					taxNodesGoal.get(), accessionMapGoal.get(), intConfigValue(GSConfigKey.KMER_SIZE),
@@ -72,7 +72,7 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
-				if (categoriesGoal.get()[0].contains(cat)) {
+				if (categoriesGoal.get().contains(cat)) {
 					fastaReader.readFasta(fnaFile);
 				}
 			}
@@ -133,7 +133,9 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 			if (getLogger().isInfoEnabled()) {
 				List<StringLong> values = new ArrayList<StringLong>();
 				regionsPerTaxid.collect(values);
-				getLogger().info("Matching regions per taxid: " + values);
+				if (getLogger().isTraceEnabled()) {
+					getLogger().trace("Matching regions per taxid: " + values);
+				}
 			}
 		}
 	}

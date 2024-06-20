@@ -71,10 +71,10 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<FT
 	}
 
 	@Override
-	public void makeThis() {
+	protected void doMakeThis() {
 		try {
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info(
+			if (getLogger().isDebugEnabled()) {
+				getLogger().debug(
 						"Tax ids used for additional fasta downloads from genbank: " + taxidsFromGenbankGoal.get());
 			}
 			Map<TaxIdNode, List<FTPEntryWithQuality>> res = new HashMap<TaxIdNode, List<FTPEntryWithQuality>>();

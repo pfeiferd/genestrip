@@ -102,7 +102,7 @@ public enum GSConfigKey implements ConfigKey {
 	FASTA_QUALITIES("fastaQualities", new FastaQualitiesConfigInfo(), GSGoalKey.DB),
 
 	// Database generation
-	@MDDescription("The number of base pairs *k* for a *k*-mers. "
+	@MDDescription("The number of base pairs *k* for *k*-mers. "
 			+ "Changes to this values do *not* affect the memory usage of database. "
 			+ "A value > 32 will cause collisions, i.e. leads to false positives for the `match` goal.")
 	KMER_SIZE("kMerSize", new IntConfigParamInfo(15, 64, 31), GSGoalKey.DB),
@@ -116,6 +116,7 @@ public enum GSConfigKey implements ConfigKey {
 			+ "For practical concerns `maxDust = 20` may be suitable. In this case, if *31*-mers were uniformly, randomly generated, "
 			+ "then about 0.2 % of them would be omitted. If `maxDust = -1`, then dust-filtering is inactive.")
 	MAX_DUST("maxDust", new IntConfigParamInfo(-1, Integer.MAX_VALUE, -1), GSGoalKey.DB),
+	TEMP_BLOOM_FILTER_FPP("tempBloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.001d), true, GSGoalKey.DB),
 	BLOOM_FILTER_FPP("bloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.00000000001d), true, GSGoalKey.DB),
 	FASTA_LINE_SIZE_BYTES("fastaLineSizeBytes", new IntConfigParamInfo(4096, 65536, 4096), true, GSGoalKey.DB),
 

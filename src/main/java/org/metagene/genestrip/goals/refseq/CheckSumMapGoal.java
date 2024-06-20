@@ -47,7 +47,7 @@ public class CheckSumMapGoal extends ObjectGoal<Map<String, String>, GSProject> 
 	}
 
 	@Override
-	public void makeThis() {
+	protected void doMakeThis() {
 		try (BufferedLineReader lineReader = new BufferedLineReader(
 				new FileInputStream(catalogGoal.getInstalledFilesFile()))) {
 			byte[] target = new byte[2048];

@@ -22,54 +22,38 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.make;
+package org.metagene.genestrip.goals.refseq;
 
-public abstract class ObjectGoal<T, P extends Project> extends Goal<P> {
-	private T object;
+import java.io.File;
+import java.io.IOException;
+
+import org.metagene.genestrip.GSGoalKey;
+import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.GSProject.FileType;
+import org.metagene.genestrip.make.FileListGoal;
+import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.store.Database;
+
+public class StoreDBGoal extends FileListGoal<GSProject> {
+	private final ObjectGoal<Database, GSProject> dbGoal;
 
 	@SafeVarargs
-	public ObjectGoal(P project, GoalKey key, Goal<P>... dependencies) {
-		super(project, key, dependencies);
+	public StoreDBGoal(GSProject project, GSGoalKey key, ObjectGoal<Database, GSProject> dbGoal, Goal<GSProject>... deps) {
+		super(project, key, project.getOutputFile(key.getName(), FileType.DB, false),
+				Goal.append(deps, dbGoal));
+		this.dbGoal = dbGoal;
 	}
 	
 	@Override
-	protected void allDependentsMade() {
-		cleanThis();
-	}
-	
-	public final T get() {
-		make();
-		return object;
-	}
-
-	protected final void set(T object) {
-		if (getLogger().isDebugEnabled()) {
-			getLogger().debug("Setting " + this + " to " + (object == null ? null : logSetObject(object)));
+	protected void makeFile(File storeFile) {
+		try {
+			dbGoal.get().save(storeFile);
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("File saved " + storeFile + " along with index.");
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
-		this.object = object;
-	}
-	
-	protected String logSetObject(T object) {
-		return object.toString();
-	}
-
-	@Override
-	protected void doCleanThis() {
-		set(null);
-	}
-
-	@Override
-	public final boolean isMade() {
-		return object != null;
-	}
-
-	@Override
-	public void dump() {
-		doCleanThis();
-	}
-	
-	@Override
-	public String toString() {
-		return "object goal: " + getKey().getName();
 	}
 }

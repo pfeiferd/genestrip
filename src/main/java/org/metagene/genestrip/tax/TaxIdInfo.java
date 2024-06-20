@@ -42,13 +42,13 @@ public class TaxIdInfo implements Serializable, Comparable<TaxIdInfo> {
 		this.taxId = taxId;
 		this.rank = rank;		
 	}
+		
+	public int getPosition() {
+		return position;
+	}
 	
 	public Rank getRank() {
 		return Rank.byOrdinal(rank);
-	}
-
-	public int getPosition() {
-		return position;
 	}
 
 	public String getName() {
@@ -61,7 +61,7 @@ public class TaxIdInfo implements Serializable, Comparable<TaxIdInfo> {
 
 	@Override
 	public int compareTo(TaxIdInfo o) {
-		return position - o.position;
+		return getPosition() - o.getPosition();
 	}
 
 	@Override

@@ -84,7 +84,7 @@ public abstract class FileGoal<P extends Project> extends Goal<P> {
 	}
 
 	@Override
-	public void makeThis() {
+	protected void doMakeThis() {
 		try {
 			int counter = 0;
 			List<File> files = getFiles();
@@ -116,7 +116,7 @@ public abstract class FileGoal<P extends Project> extends Goal<P> {
 	protected abstract void makeFile(File file) throws IOException;
 
 	@Override
-	public void cleanThis() {
+	protected void doCleanThis() {
 		try {
 			for (File file : getFilesToClean()) {
 				if (file.exists()) {
@@ -134,19 +134,19 @@ public abstract class FileGoal<P extends Project> extends Goal<P> {
 			throw new RuntimeException(e);
 		}
 	}
+	
+	protected List<File> getFilesToClean() {
+		return getFiles();
+	}
 
 	@Override
-	protected boolean isThisCleaned() {
+	public boolean isCleaned() {
 		for (File file : getFilesToClean()) {
 			if (file.exists()) {
 				return false;
 			}
 		}
 		return true;
-	}
-
-	protected List<File> getFilesToClean() {
-		return getFiles();
 	}
 
 	@Override

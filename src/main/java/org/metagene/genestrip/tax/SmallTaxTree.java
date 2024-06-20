@@ -201,12 +201,12 @@ public class SmallTaxTree implements Serializable {
 			subNodes = null;
 		}
 
-		public SmallTaxIdNode(String taxId, Rank rank) {
+		private SmallTaxIdNode(String taxId, Rank rank) {
 			super(taxId, rank);
 			subNodes = null;
 		}
 
-		public SmallTaxIdNode(TaxIdNode node) {
+		private SmallTaxIdNode(TaxIdNode node) {
 			super(node.taxId, node.rank);
 			name = node.name;
 			position = node.position;
@@ -232,6 +232,20 @@ public class SmallTaxTree implements Serializable {
 					}
 				}
 			}
+		}
+		
+		public boolean isRequested() {
+			return position < 0;
+		}
+		
+		public void setRequested(boolean value) {
+			if (isRequested() != value) {
+				position = -position - 1;
+			}
+		}
+		
+		public int getPosition() {
+			return position < 0 ? -position - 1 : position;
 		}
 		
 		public SmallTaxIdNode[] getSubNodes() {

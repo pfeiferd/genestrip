@@ -24,62 +24,37 @@
  */
 package org.metagene.genestrip.goals.refseq;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.io.StreamProvider;
+import org.metagene.genestrip.GSProject.FileType;
+import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
+import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.refseq.RefSeqCategory;
 
-public class CategoriesGoal extends ObjectGoal<Set<RefSeqCategory>, GSProject> {
+public class StoreIndexGoal extends FileListGoal<GSProject> {
+	private final ObjectGoal<MurmurCGATBloomFilter, GSProject> indexGoal;
+
 	@SafeVarargs
-	public CategoriesGoal(GSProject project, Goal<GSProject>... deps) {
-		super(project, GSGoalKey.CATEGORIES, deps);
+	public StoreIndexGoal(GSProject project, ObjectGoal<MurmurCGATBloomFilter, GSProject> indexGoal,
+			Goal<GSProject>... deps) {
+		super(project, GSGoalKey.INDEX, project.getOutputFile(GSGoalKey.INDEX.getName(), FileType.FILTER, true),
+				Goal.append(deps, indexGoal));
+		this.indexGoal = indexGoal;
 	}
 
 	@Override
-	protected void doMakeThis() {
+	protected void makeFile(File indexFile) {
 		try {
-			set(readFromFile(getProject().getCategoriesFile()));
+			indexGoal.get().save(indexFile);
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("Index file " + indexFile + " saved.");
+			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-	protected Set<RefSeqCategory> readFromFile(File file) throws IOException {
-		Set<RefSeqCategory> res = new HashSet<RefSeqCategory>();
-
-		try (BufferedReader br = new BufferedReader(
-				new InputStreamReader(StreamProvider.getInputStreamForFile(file), StandardCharsets.UTF_8))) {
-			String line = null;
-			while ((line = br.readLine()) != null) {
-				line = line.trim();
-				// Ignore whole line comments.
-				if (!line.startsWith("#")) {
-					// Ignore end of line comments.
-					int commentIndex = line.indexOf('#');
-					if (commentIndex != -1) {
-						line = line.substring(0, commentIndex);
-					}
-					String category = line.trim();
-					RefSeqCategory cat = RefSeqCategory.fromDirectoryString(category);
-					res.add(cat);
-				}
-			}
-		}
-
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Categories for store: " + res);
-		}
-
-		return res;
 	}
 }

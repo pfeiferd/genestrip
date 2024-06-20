@@ -50,7 +50,7 @@ public class FastqMapTransformGoal extends ObjectGoal<Map<String, List<Streaming
 	}
 
 	@Override
-	public void makeThis() {
+	protected void doMakeThis() {
 		if (getProject().isDownloadFastqs() || getProject().isDownloadFastqsToCommon()) {
 			// Linked hash map preserve order of keys as entered.
 			Map<String, List<StreamingResource>> map = new LinkedHashMap<String, List<StreamingResource>>();

@@ -44,10 +44,10 @@ public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 	private final RefSeqCatalogDownloadGoal catalogGoal;
 	private final ObjectGoal<Integer, GSProject> accessionMapSizeGoal;
-	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
+	private final ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal;
 
 	@SafeVarargs
-	public AccessionMapGoal(GSProject project, ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal,
+	public AccessionMapGoal(GSProject project, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
 			ObjectGoal<TaxTree, GSProject> taxTreeGoal, RefSeqCatalogDownloadGoal catalogGoal,
 			RefSeqFnaFilesDownloadGoal downloadGoal, ObjectGoal<Integer, GSProject> accessionMapSizeGoal,
 			Goal<GSProject>... deps) {
@@ -60,8 +60,8 @@ public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
 	}
 
 	@Override
-	public void makeThis() {
-		AccessionFileProcessor processor = new AccessionFileProcessor(categoriesGoal.get()[1],
+	protected void doMakeThis() {
+		AccessionFileProcessor processor = new AccessionFileProcessor(categoriesGoal.get(),
 				booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY)) {
 			private AccessionMap map = new AccessionMapImpl(accessionMapSizeGoal.get());
 			private TaxTree taxTree = taxTreeGoal.get();

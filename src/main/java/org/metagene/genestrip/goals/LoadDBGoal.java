@@ -36,19 +36,32 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.Database;
 
 public class LoadDBGoal extends ObjectGoal<Database, GSProject> {
+	private final ObjectGoal<Database, GSProject> dbGoal;
 	private final File dbFile;
 
 	@SafeVarargs
-	public LoadDBGoal(GSProject project, FileGoal<GSProject> updateStoreGoal, Goal<GSProject>... dependencies) {
+	public LoadDBGoal(GSProject project, ObjectGoal<Database, GSProject> dbGoal, FileGoal<GSProject> updateStoreGoal,
+			Goal<GSProject>... dependencies) {
 		super(project, GSGoalKey.LOAD_DB,
-				project.getDBPath() == null ? append(dependencies, updateStoreGoal) : dependencies);
+				project.getDBPath() == null ? append(dependencies, dbGoal, updateStoreGoal) : dependencies);
+		this.dbGoal = dbGoal;
 		this.dbFile = getProject().getDBPath() == null ? updateStoreGoal.getFile() : new File(getProject().getDBPath());
+	}
+	
+	@Override
+	public boolean isWeakDependency(Goal<GSProject> toGoal) {
+		if (toGoal == dbGoal) {
+			return true;
+		}
+		return super.isWeakDependency(toGoal);
 	}
 
 	@Override
-	public void makeThis() {
+	protected void doMakeThis() {
 		try {
-			set(Database.load(dbFile, booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH)));
+			Database db = dbGoal.isMade() ? dbGoal.get()
+					: Database.load(dbFile, booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH));
+			set(db);
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);
 		} catch (IOException e) {

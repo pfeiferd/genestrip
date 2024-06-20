@@ -20,7 +20,7 @@
 [comment]: # ()
 [comment]: # (Licensor: Daniel Pfeifer, daniel.pfeifer@progotec.de)
 
-Genestrip - Efficient read classification, filtering and *k*-mer counting for selected groups of species 
+**Genestrip**: Efficient read classification, filtering and *k*-mer counting for selected groups of species 
 ===============================================
 
 # Introduction
@@ -56,7 +56,7 @@ Here is the dependency:
 <dependency>
 	<groupId>org.genestrip</groupId>
 	<artifactId>genestrip</artifactId>
-	<version>1.0</version>
+	<version>1.1</version>
 </dependency>
 ```
 You may check for higher versions and update the dependency accordingly...
@@ -99,7 +99,7 @@ later use via the goals `match` and `matchlr`.
 
 In general, Genestrip organizes a project folder `./data/projects/<project_name>` by means of the following sub-folders:
 * `csv` is where analysis results of fastq files will be stored (by default).
-* `db` is where Genestrip puts the generated database. If your focus is on filtering fastq files, Genestrip can create a specialized,  filtering database named `<project_name>_index.ser.gz` that will be put there too. Moreover, the intermediate database `<project_name>_tempdb.zip` will be put there as part of the database generation process. The intermediate database is not required for *k*-mer matching or fastq filtering and so, it may be (manually) deleted afterwards.
+* `db` is where Genestrip puts the generated database. If your focus is on filtering fastq files, Genestrip can create a specialized,  filtering database named `<project_name>_index.ser.gz` that will be put there too. Moreover, the intermediate database `<project_name>_tempdb.zip` will be put there temporarily as part of the database generation process. 
 * `fasta` may be used to store *additional* genome files (not part of in the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/)) that should be considered for the database generation process (see Section [Additional fasta files](#additional-fasta-files)).
 * `fastq` is where Genestrip will store filtered (or generated) fastq files. You may also put you own fastq files to be analyzed there (but they can be read from any other path too).
 * `genbank` is where genomic files from Genbank will be downloaded to if needed during the project's database generation process.
@@ -254,7 +254,7 @@ Some named goals are for internal purposes only. In principle, they could be run
 
 Many goals depend on other goals. E.g., the `dbinfo` goal requires the corresponding database to exist and so, it will trigger the execution of the ``db`` goal in case the corresponding database is missing and so on. 
 
-The following goal graph depicts the goals' dependencies.
+The following goal graph depicts the goals' dependencies (without the trivial goal `setup` because of too many edges).
 `o:...` are goals whose result is an object in memory. `f:...` are file goals that produce one or more files as a result. `d:...` are download goals - they download files from a source and store them locally for further processing.
 <p align="center">
   <img src="GoalGraph.svg" width="1400"/>
@@ -277,7 +277,7 @@ sh ./bin/genestrip.sh -k mykey -f./data/projects/human_virus/fastq/sample.fastq.
 will result in the CSV file `./data/projects/human_virus/csv/human_virus_match_mykey.csv`.
 
 In order to run the goals `match` or `matchlr` a project context is not strictly needed, when a database file is given via the option `-db`. 
-E.g., the following command works with arbitrary project name (here `someprojectname`):
+E.g., the following command works with an arbitrary project name (here `someprojectname`):
 ```
 sh ./bin/genestrip.sh -r . -k mysample -f./data/projects/human_virus/fastq/sample.fastq.gz -db ./data/projects/human_virus/db/human_virus_db.zip someprojectname match
 ```

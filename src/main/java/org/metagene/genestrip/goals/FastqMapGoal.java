@@ -56,7 +56,7 @@ public class FastqMapGoal extends ObjectGoal<Map<String, List<StreamingResource>
 	}
 
 	@Override
-	public void makeThis() {
+	protected void doMakeThis() {
 		Map<String, List<StreamingResource>> map = createFastqMap(getProject().getKey(),
 				getProject().getFastqResources(), getProject().getFastqMapFile());
 		set(map);

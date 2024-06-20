@@ -40,7 +40,8 @@ public enum GSGoalKey implements GoalKey {
 	@MDDescription("Clear the folders `csv`, `db` and `krakenout`  of a project. This will delete all files the respective folders!")
 	CLEAR("clear", true), 
 	@MDDescription("Generate the database for k-mer matching respect to the given project.")
-	DB("db", true), @MDDescription("Write information about a project's database content to a CSV file.")
+	DB("db", true), 
+	@MDDescription("Write information about a project's database content to a CSV file.")
 	DBINFO("dbinfo", true),
 	@MDDescription("Generate fastq files from the database. A respective fastq file will contain all *k*-mers specifically associated with a "
 			+ "single tax id from the database where each *k*-mer is represented by a read consisting of *k* bases. Respective fastq files will be stored "
@@ -64,7 +65,7 @@ public enum GSGoalKey implements GoalKey {
 	TAXTREE("taxtree"), @MDDescription("Compute the taxids for the project's database.")
 	TAXNODES("taxnodes"), @MDDescription("Download the RefSeq release number.")
 	REFSEQRELEASE("refseqrelease"), @MDDescription("Download the RefSeq release catalog files.")
-	REFSEQCAT("refseqcat"), @MDDescription("Load MD5 checksum for RefSeq files into memory")
+	REFSEQCAT("refseqcat"), @MDDescription("Load MD5 checksums for RefSeq files into memory")
 	CHECKSUMMAP("checksummap"),
 	@MDDescription("Load the RefSeq category names as requested for the project's database.")
 	CATEGORIES("categories"), @MDDescription("Download the genomic files from RefSeq for the requested categories.")
@@ -78,14 +79,23 @@ public enum GSGoalKey implements GoalKey {
 	FASTAGSENBANKDL("fastasgenbankdl"), @MDDescription("Download additionally requested fasta files.")
 	ADD_DOWNLOADS("adddownloads"), @MDDescription("Associate additional fasta files with tax ids in memory.")
 	ADD_FASTAS("addfastas"), @MDDescription("Precompute the number of *k*-mers for the project's database.")
-	FILLSIZE("fillsize"), @MDDescription("Fill the bloom index with *k*-mers.")
-	FILLINDEX("fillindex"), @MDDescription("Fill the database with *k*-mers and save it as a temporary file.")
-	TEMPDB("tempdb"), @MDDescription("Load the temporary database into memory.")
+	FILLSIZE("fillsize"), 
+	@MDDescription("Fill the temporary bloom index with *k*-mers.")
+	TEMPINDEX("tempindex"), 
+	@MDDescription("Fill the database with *k*-mers.")
+	FILL_DB("filldb"),
+	@MDDescription("Save temporary database.")
+	TEMPDB("tempdb"), 
+	@MDDescription("Load the temporary database into memory.")
 	LOAD_TEMPDB("loadtempdb"), 
+	@MDDescription("Update the temporary database with regard to least commonn ancestors of *k*-mers.")
+	UPDATE_DB("updatedb"), 
 	@MDDescription("Load the matching database into memory.")
 	LOAD_DB("loaddb"),
+	@MDDescription("Fill the filtering database with *k*-mers.")
+	FILL_INDEX("fillindex"), 
 	@MDDescription("Load the filtering database into memory.")
-	LOADINDEX("loadindex"),
+	LOAD_INDEX("loadindex"),
 	@MDDescription("Determine tax ids for the goal `db2fast` from the command line argument.")
 	DB2FASTQ_TAXIDS("db2fastqtaxids"), @MDDescription("Determine the fastq mapping from command line arguments.")
 	FASTQ_MAP("fastqmap"), @MDDescription("Transform URLs of fastq files to be downloaded to local paths.")

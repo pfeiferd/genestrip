@@ -45,6 +45,8 @@ public class APITest {
 		GSProject project = new GSProject(config, "human_virus");
 		GSMaker maker = new GSMaker(project);
 		maker.getGoal(GSGoalKey.CLEAR).make();
+		
+		maker.dumpAll();
 	}
 
 	@Test
@@ -70,6 +72,8 @@ public class APITest {
 		// the 'db' goal to first create the 'human_virus' database.
 		maker.match(false, null, fastq.toString());
 
+		// Delete a potential result that has previously been generated.
+		maker.cleanFilter(null, fastq.toString());
 		// Run the 'filter' goal for the given file. This may trigger other goals such
 		// as the 'index' goal to
 		// first create the 'human_virus' filtering database.

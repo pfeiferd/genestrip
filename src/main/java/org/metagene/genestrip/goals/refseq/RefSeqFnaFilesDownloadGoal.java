@@ -50,7 +50,7 @@ public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setDelimiter('\t').setRecordSeparator('\n')
 			.build();
 
-	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
+	private final ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal;
 	private final RefSeqCatalogDownloadGoal catalogDLGoal;
 	private List<File> files;
 	private Map<File, RefSeqCategory> file2Cat;
@@ -58,10 +58,10 @@ public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
 
 	@SafeVarargs
 	public RefSeqFnaFilesDownloadGoal(GSProject project, 
-			ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal, RefSeqCatalogDownloadGoal catalogDLGoal,
+			ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal, RefSeqCatalogDownloadGoal catalogDLGoal,
 			ObjectGoal<Map<String, String>, GSProject> checkSumGoal,
 			Goal<GSProject>... deps) {
-		super(project, GSGoalKey.REFSEQFNA, Goal.append(deps, categoriesGoal, catalogDLGoal));
+		super(project, GSGoalKey.REFSEQFNA, Goal.append(deps, categoriesGoal, catalogDLGoal, checkSumGoal));
 
 		this.categoriesGoal = categoriesGoal;
 		this.catalogDLGoal = catalogDLGoal;
@@ -87,7 +87,7 @@ public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
 	}
 
 	protected RefSeqCategory getCategoryForFileName(String filename) {
-		for (RefSeqCategory cat : categoriesGoal.get()[1]) {
+		for (RefSeqCategory cat : categoriesGoal.get()) {
 			if (filename.startsWith(cat.getDirectory() + ".")) {
 				return cat;
 			}

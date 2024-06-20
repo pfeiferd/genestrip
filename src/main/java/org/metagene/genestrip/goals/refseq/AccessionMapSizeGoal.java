@@ -38,12 +38,12 @@ import org.metagene.genestrip.refseq.AccessionFileProcessor;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 
 public class AccessionMapSizeGoal extends ObjectGoal<Integer, GSProject> {
-	private final ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal;
+	private final ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal;
 	private final RefSeqCatalogDownloadGoal catalogGoal;
 
 	@SafeVarargs
 	public AccessionMapSizeGoal(GSProject project, 
-			ObjectGoal<Set<RefSeqCategory>[], GSProject> categoriesGoal, RefSeqCatalogDownloadGoal catalogGoal,
+			ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal, RefSeqCatalogDownloadGoal catalogGoal,
 			RefSeqFnaFilesDownloadGoal downloadGoal, Goal<GSProject>... deps) {
 		super(project, GSGoalKey.ACCMAPSIZE, Goal.append(deps, categoriesGoal, catalogGoal, downloadGoal));
 		this.categoriesGoal = categoriesGoal;
@@ -51,9 +51,9 @@ public class AccessionMapSizeGoal extends ObjectGoal<Integer, GSProject> {
 	}
 
 	@Override
-	public void makeThis() {
+	protected void doMakeThis() {
 		File catalogFile = catalogGoal.getCatalogFile();
-		AccessionFileProcessor processor = new AccessionFileProcessor(categoriesGoal.get()[1],
+		AccessionFileProcessor processor = new AccessionFileProcessor(categoriesGoal.get(),
 				booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY)) {
 			private int counter = 0;
 

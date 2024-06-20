@@ -57,7 +57,7 @@ public class AccessionNumber2TaxidGoal extends ObjectGoal<Map<String, String>, G
 	}
 
 	@Override
-	public void makeThis() {
+	protected void doMakeThis() {
 		final Map<String, String> accesion2TaxidMap = new HashMap<String, String>();
 		Set<String> accNumbers = new HashSet<String>();
 		AbstractFastaReader fastaReader1 = new AbstractFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES)) {

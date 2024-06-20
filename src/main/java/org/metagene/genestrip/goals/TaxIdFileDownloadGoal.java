@@ -69,8 +69,8 @@ public class TaxIdFileDownloadGoal extends GSFileDownloadGoal {
 	}
 
 	@Override
-	public void cleanThis() {
-		super.cleanThis();
+	protected void doCleanThis() {
+		super.doCleanThis();
 		File zipFile = new File(getProject().getCommon().getCommonDir(), TAX_DMP_ZIP);
 		if (zipFile.exists()) {
 			zipFile.delete();
