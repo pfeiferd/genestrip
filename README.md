@@ -349,7 +349,7 @@ The corresponding download file will be stored under `<base dir>/projects/<proje
 The automated download from the previous section is unsuitable, if the fasta file is large and is needed in several projects, as it will be downloaded and stored once per project.
 To enable an automated download *across projects*, the file `<base dir>/common/fasta/downloads.txt` may be created with the line format:
 ```
-<taxid> <fasta_file_name> <URL_to_fasta_file> [<md5 fingerprint>]
+<fasta_file_name> <URL_to_fasta_file> [<md5 fingerprint>]
 ```
 So in this case, if a file named `<fasta_file_name>` cannot be found in `<base dir>/projects/<project_name>/fasta` or `<base dir>/common/fasta`, it will be downloaded
 and stored as `<base dir>/common/fasta/<fasta_file_name>`. Afterwards it will be available with regard to entries like
