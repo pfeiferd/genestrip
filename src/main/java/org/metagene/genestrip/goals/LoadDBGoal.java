@@ -26,6 +26,7 @@ package org.metagene.genestrip.goals;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InvalidClassException;
 
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
@@ -64,6 +65,8 @@ public class LoadDBGoal extends ObjectGoal<Database, GSProject> {
 			set(db);
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);
+		} catch (InvalidClassException e) {
+			throw new RuntimeException("Database file version does not match genestrip library version.", e);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

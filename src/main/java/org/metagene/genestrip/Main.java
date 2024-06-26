@@ -51,6 +51,11 @@ public class Main {
 	public void parse(String[] args) throws ParseException, IOException {
 		CommandLine line = new DefaultParser().parse(options, args);
 
+		if (line.hasOption("v")) {
+			Package p = Main.class.getPackage();
+			System.out.println(p.getImplementationTitle() + " version " + p.getImplementationVersion());
+		}
+
 		String baseDir = line.getOptionValue("d", "./data");
 
 		target = line.getOptionValue("t", "make");
@@ -69,7 +74,7 @@ public class Main {
 
 		boolean download = line.hasOption("l");
 		boolean downloadToCommon = line.hasOption("ll");
-		
+
 		String dbPath = line.getOptionValue("db");
 
 		restArgs = line.getArgs();
@@ -77,7 +82,7 @@ public class Main {
 			throw new ParseException("Missing project name.");
 		}
 		String projectName = restArgs[0];
-		
+
 		Properties props = line.getOptionProperties("C");
 
 		project = new GSProject(new GSCommon(new File(baseDir)), projectName, key, fastqFiles, mapFilePath, resFolder,
@@ -110,6 +115,9 @@ public class Main {
 
 	protected Options createOptions() {
 		Options options = new Options();
+
+		Option version = Option.builder("v").hasArg(false).desc("Print version.").build();
+		options.addOption(version);
 
 		Option baseDir = Option.builder("d").hasArg().argName("base dir")
 				.desc("Base directory for all data files. The default is './data'.").build();
@@ -152,11 +160,14 @@ public class Main {
 				"Download fastqs from URLs to '<base dir>/fastq' instead of streaming them for the goals 'filter', 'match' and 'matchlr'.")
 				.build();
 		options.addOption(downloadToCommon);
-		
-		Option db = Option.builder("db").hasArg().argName("database").desc("Path to filtering or matching database for the goals 'filter' or 'match', 'matchlr', 'dbinfo' and 'db2fastq' for use without project context.").build();
+
+		Option db = Option.builder("db").hasArg().argName("database").desc(
+				"Path to filtering or matching database for the goals 'filter' or 'match', 'matchlr', 'dbinfo' and 'db2fastq' for use without project context.")
+				.build();
 		options.addOption(db);
-		
-		Option propsOption = Option.builder("C").hasArgs().valueSeparator('=').argName("key>=<value").desc("To set Genestrip configuration paramaters via the command line.").build();
+
+		Option propsOption = Option.builder("C").hasArgs().valueSeparator('=').argName("key>=<value")
+				.desc("To set Genestrip configuration paramaters via the command line.").build();
 		options.addOption(propsOption);
 
 		return options;
@@ -168,7 +179,8 @@ public class Main {
 			run(System.err);
 		} catch (IOException | ParseException e) {
 			HelpFormatter formatter = new HelpFormatter();
-			formatter.printHelp("genestrip.sh [options] <project> [<goal1> <goal2>...]", getOptions());
+			Package p = Main.class.getPackage();			
+			formatter.printHelp(p.getImplementationTitle() + " [options] <project> [<goal1> <goal2>...]", getOptions());
 			System.out.flush();
 			System.out.println();
 			e.printStackTrace();

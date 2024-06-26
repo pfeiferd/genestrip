@@ -26,6 +26,7 @@ package org.metagene.genestrip.goals;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InvalidClassException;
 
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
@@ -63,6 +64,8 @@ public class LoadIndexGoal extends ObjectGoal<MurmurCGATBloomFilter, GSProject> 
 			set(filter);
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);
+		} catch (InvalidClassException e) {
+			throw new RuntimeException("Index file version does not match genestrip library version.", e);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
