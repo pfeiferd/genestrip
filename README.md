@@ -61,6 +61,21 @@ Here is the dependency:
 ```
 You may check for higher versions and update the dependency accordingly...
 
+### Self-contained Windows executable
+
+The Maven command `mvn -P winexe package` creates a self-contained Windows executable `bin/genestrip.exe` along with a reduced JRE under `lib/jre`. 
+You need a [JDK](https://jdk.java.net/) 11 installation or higher on Windows for this command to succeed.
+Moreover it creates a Zip folder `target/genestrip-${version}-windows-x64.zip` that contains the same files with less than 40 MB of disk space.
+
+When extracted Genestrip can be executed via `bin\genestrip.exe` (on a Windows x86, 64 bit architecture). It will search for the above JRE for 
+execution under the relative location `..\lib\jre`. So the folders `bin` and `lib` should be kept together accordingly. **These few files is all it takes to run Genestrip under Windows!** There is no additional JRE necessary.
+
+For convenience, the ready-made Zip folder `genestrip-${version}-windows-x64.zip` is also [publicly available for download on Google Drive](https://drive.google.com/file/d/1fxI8M1I4d_W6NoapbPPv93XvZelsqA_N/view?usp=sharing).
+
+### Runnning the JUnit tests
+
+The Maven command `mvn -P prerelease install` runs all the JUnit tests for Genestrip and more. It will take time...
+
 [^1]: Counter to common belief, Java can well be used for such high performance applications when using its programming facilities the right way.
 
 ## Generating the sample database
@@ -231,6 +246,7 @@ usage: genestrip.sh [options] <project> [<goal1> <goal2>...]
                             have the suffix '+', which means that
                             taxonomic descendants from the project's
                             database will be included.
+ -v                         Print version.                            
 ```
 
 Genestrip follows a goal-oriented approach in order to create any result file (in similarity to  [make](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/make.html)). Goals are executed in a lazy manner, i.e. a file is only (re-)generated, if it is missing at its designated place in the `<base dir>` folder or any of its subfolders.

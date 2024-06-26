@@ -24,19 +24,29 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.genestrip</groupId>
 	<artifactId>genestrip</artifactId>
-	<version>1.1</version>
+	<version>1.1-SNAPSHOT</version>
+	<packaging>jar</packaging>
+
 	<properties>
 		<main.class>org.metagene.genestrip.Main</main.class>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<javapackager.jdkPath>C:/java/jdk-17.0.2</javapackager.jdkPath>
 	</properties>
 
-	<name>Genestrip</name>
+	<name>genestrip</name>
 	<description>Genestrip is a Bioinformatics tool for efficient read classification, filtering and k-mer counting for selected groups of species.</description>
 	<url>https://github.com/pfeiferd/genestrip</url>
+	<inceptionYear>2024</inceptionYear>
+
+	<organization>
+		<name>Progotec</name>
+		<url>http://www.progotec.de</url>
+	</organization>
 
 	<licenses>
 		<license>
 			<name>The Apache Software License, Version 2.0 subject to Commons Clause License Condition 1.0</name>
-			<url>https://github.com/pfeiferd/genestrip/blob/master/LICENSE.txt</url>
+			<url>https://raw.githubusercontent.com/pfeiferd/genestrip/master/LICENSE.txt</url>
 		</license>
 	</licenses>
 
@@ -44,8 +54,6 @@
 		<developer>
 			<name>Daniel Pfeifer</name>
 			<email>daniel.pfeifer@progotec.de</email>
-			<organization>Progotec</organization>
-			<organizationUrl>http://www.progotec.de</organizationUrl>
 		</developer>
 	</developers>
 
@@ -123,7 +131,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>2.3.2</version>
+				<version>3.8.0</version>
 				<configuration>
 					<source>1.8</source>
 					<target>1.8</target>
@@ -151,8 +159,10 @@
 					<archive>
 						<manifest>
 							<addClasspath>true</addClasspath>
-							<classpathPrefix>libs/</classpathPrefix>
 							<mainClass>${main.class}</mainClass>
+							<addDefaultImplementationEntries>
+              					true
+            				</addDefaultImplementationEntries>
 						</manifest>
 					</archive>
 				</configuration>
@@ -185,7 +195,7 @@
 							<goal>copy</goal>
 						</goals>
 						<configuration>
-							<sourceFile>target/${project.artifactId}-${project.version}-all.jar</sourceFile>
+							<sourceFile>${project.build.directory}/${project.build.finalName}-all.jar</sourceFile>
 							<destinationFile>lib/${project.artifactId}.jar</destinationFile>
 						</configuration>
 					</execution>
@@ -208,6 +218,159 @@
 		</plugins>
 	</reporting>
 	<profiles>
+		<profile>
+			<id>winexe</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>build-helper-maven-plugin</artifactId>
+						<version>1.8</version>
+						<executions>
+							<execution>
+								<id>parse-version</id>
+								<goals>
+									<goal>parse-version</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>com.akathist.maven.plugins.launch4j</groupId>
+						<artifactId>launch4j-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>l4j-genestrip</id>
+								<phase>package</phase>
+								<goals>
+									<goal>launch4j</goal>
+								</goals>
+								<configuration>
+									<headerType>console</headerType>
+									<outfile>${project.build.directory}/${project.name}.exe</outfile>
+									<jar>${project.build.directory}/${project.build.finalName}-all.jar</jar>
+									<supportUrl>${project.url}</supportUrl>
+									<icon>${project.basedir}/src/main/resources/windows/logo.ico</icon>
+									<jre>
+										<path>../lib/jre</path>
+										<minVersion>1.8</minVersion>
+										<requires64Bit>64</requires64Bit>
+										<initialHeapSize>256</initialHeapSize>
+										<maxHeapSize>32768</maxHeapSize>
+									</jre>
+									<versionInfo>
+										<fileVersion>${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.incrementalVersion}.0</fileVersion>
+										<txtFileVersion>${project.version}</txtFileVersion>
+										<fileDescription>${project.description}</fileDescription>
+										<copyright>${project.organization.name}</copyright>
+										<productVersion>${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.incrementalVersion}.0</productVersion>
+										<txtProductVersion>${project.version}</txtProductVersion>
+										<productName>${project.name}</productName>
+										<companyName>${project.organization.name}</companyName>
+										<internalName>${project.name}</internalName>
+										<originalFilename>${project.name}.exe</originalFilename>
+									</versionInfo>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>com.github.akman</groupId>
+						<artifactId>jlink-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<phase>package</phase>
+								<goals>
+									<goal>jlink</goal>
+								</goals>
+								<configuration>
+									<addmodules>
+										<addmodule>java.base</addmodule>
+									</addmodules>
+									<noheaderfiles>true</noheaderfiles>
+									<nomanpages>true</nomanpages>
+									<stripdebug>true</stripdebug>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>com.coderplus.maven.plugins</groupId>
+						<artifactId>copy-rename-maven-plugin</artifactId>
+						<version>1.0</version>
+						<executions>
+							<execution>
+								<id>copy-exe</id>
+								<phase>package</phase>
+								<goals>
+									<goal>copy</goal>
+								</goals>
+								<configuration>
+									<sourceFile>${project.build.directory}/${project.name}.exe</sourceFile>
+									<destinationFile>bin/${project.name}.exe</destinationFile>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<artifactId>maven-resources-plugin</artifactId>
+						<version>3.3.1</version>
+						<executions>
+							<execution>
+								<id>copy-jre</id>
+								<phase>package</phase>
+								<goals>
+									<goal>copy-resources</goal>
+								</goals>
+								<configuration>
+									<outputDirectory>${project.basedir}/lib/jre</outputDirectory>
+									<resources>
+										<resource>
+											<directory>${project.build.directory}/jlink/image</directory>
+										</resource>
+									</resources>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<artifactId>maven-assembly-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>assembly</id>
+								<phase>package</phase>
+								<goals>
+									<goal>single</goal>
+								</goals>
+								<configuration>
+									<inlineDescriptors>
+										<assembly>
+											<id>windows-x64</id>
+											<formats>
+												<format>zip</format>
+											</formats>
+											<baseDirectory>${project.name}</baseDirectory>
+											<fileSets>
+												<fileSet>
+													<directory>${project.build.directory}/jlink/image</directory>
+													<outputDirectory>lib/jre</outputDirectory>
+												</fileSet>
+											</fileSets>
+											<files>
+												<file>
+													<source>${project.build.directory}/${project.name}.exe</source>
+													<outputDirectory>bin</outputDirectory>
+												</file>
+											</files>
+										</assembly>
+									</inlineDescriptors>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
 		<profile>
 			<id>prerelease</id>
 			<build>
