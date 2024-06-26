@@ -206,7 +206,7 @@ A filtering database is typically smaller than a database required for *k*-mer m
 
 The usage of Genestrip:
 ```
-usage: genestrip.sh [options] <project> [<goal1> <goal2>...]
+usage: genestrip [options] <project> [<goal1> <goal2>...]
  -C <key>=<value>           To set Genestrip configuration paramaters via
                             the command line.
  -d <base dir>              Base directory for all data files. The default
