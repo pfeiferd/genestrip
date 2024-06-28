@@ -123,6 +123,9 @@ In general, Genestrip organizes a project folder `./data/projects/<project_name>
 
 A database covering more species may require more memory - especially while generating the database. This can be addressed by adjusting the script `genestrip.sh` where the argument `-Xmx32g` sets the maximum heap space of the Java Virtual Machine to 32GB. E.g. to double it, simple replace `32g` by `64g`.
 
+## Some preconfigured and ready-made databases
+
+There is a separate project [Genestrip-DB](https://github.com/pfeiferd/genestrip-db) on GitHub that covers [8 databases](https://github.com/pfeiferd/genestrip-db/blob/main/README.md#the-databases) and offers a [corresponding download from Google Drive](https://drive.google.com/drive/folders/1cmMPjHTAs4pEti4eEM-gOngvOn39btdU?usp=sharing). 
 
 ## Analyzing fastq files by matching *k*-mers of reads
 
