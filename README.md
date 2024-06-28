@@ -78,7 +78,9 @@ The Maven command `mvn -P prerelease install` runs all the JUnit tests for Genes
 
 [^1]: Counter to common belief, Java can well be used for such high performance applications when using its programming facilities the right way.
 
-## Generating the sample database
+## Genestrip Databases
+
+### Generating the sample database
 
 The Genestrip installation holds additional folders that include the sample project `human_virus`. After building Genestrip, you may call
 `sh ./bin/genestrip.sh human_virus dbinfo`
@@ -94,7 +96,7 @@ Genestrip follows a goal-oriented approach in order to create any result files (
 The generated database comprises *k*-mers for all viruses according to the tax id file `./data/project/human_virus/taxids.txt`.
 
 
-## Generating your own database
+### Generating your own database
 
 Generating your own database is straight-forward:
 1. Create a project folder `<project_name>` under `./data/projects/`. This is the place for all subsequent files that specify the content of a database to be generated. It is also the core name of a related database.
@@ -123,11 +125,13 @@ In general, Genestrip organizes a project folder `./data/projects/<project_name>
 
 A database covering more species may require more memory - especially while generating the database. This can be addressed by adjusting the script `genestrip.sh` where the argument `-Xmx32g` sets the maximum heap space of the Java Virtual Machine to 32GB. E.g. to double it, simple replace `32g` by `64g`.
 
-## Some preconfigured and ready-made databases
+### Some preconfigured and ready-made databases
 
 There is a separate project [Genestrip-DB](https://github.com/pfeiferd/genestrip-db) on GitHub that covers [8 databases](https://github.com/pfeiferd/genestrip-db/blob/main/README.md#the-databases) and offers a [corresponding download from Google Drive](https://drive.google.com/drive/folders/1cmMPjHTAs4pEti4eEM-gOngvOn39btdU?usp=sharing). 
 
-## Analyzing fastq files by matching *k*-mers of reads
+## Analysis with Genestrip
+
+### Analyzing fastq files by matching *k*-mers of reads
 
 Genestrip's main purpose is to analyze reads from fastq files and count the contained *k*-mers per tax id according to a previously generated database. As an example, Genestrip comes with a small fastq-file `sample.fastq.gz` in `./data/projects/human_virus/fastq`. To start the matching process for it, run
 ```
@@ -182,7 +186,7 @@ Human gammaherpesvirus 4;SPECIES;10376;113252;4061786;4151610;120419;239293;47.3
 ```
 As this result is rather consistent with the statistical expectation (for the unique *k*-mer frequency distribution), the graph is quite flat and `unique kmers / exp. = 0.8631` is close to 1.
 
-## Reliability of results
+### Reliability of results
 
 We cannot guarantee for any results returned by Genestrip. Use this software at you own risk. **Important: It is by no means meant to be used for any medical purposes** and it is purely experimental in nature.
 
@@ -193,7 +197,7 @@ Despite of the these limitations, we tested the Genestrip in the following ways:
 * We applied Genestrip to 20 real-world fastq files based on human saliva samples. The findings matched the "general expectations" with regard to Herpes viruses and mouth bacteria such as Steptococcus mutans, Helicobacter pylori and others.
 * We correctly recovered Borrelia DNA in ticks from fastq files as given and presented in [this publication](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10328957/).
 
-## Filtering fastq files
+### Filtering fastq files
 
 Genestrip can be used to *filter* fastq files via *k*-mers from a previously generated database. As an example, one may also use the fastq file `sample.fastq.gz` from `./data/projects/human_virus/fastq`. To start the filtering process, run
 ````
@@ -205,7 +209,9 @@ The resulting filtered fastq file named `human_virus_filtered_sample.fastq.gz` w
 
 A filtering database is typically smaller than a database required for *k*-mer matching but the former can only be used for filtering. So, if you are tight on resources and your focus is on filtering, you may prefer using a filtering database. Also, the filtering process is  faster than the *k*-mer matching process.
 
-## Usage and goals
+## Technical documentation
+
+### Usage and goals
 
 The usage of Genestrip:
 ```
@@ -279,7 +285,7 @@ The following goal graph depicts the goals' dependencies (without the trivial go
   <img src="GoalGraph.svg" width="1400"/>
 </p>
 
-## Reading, streaming and downloading fastq files
+### Reading, streaming and downloading fastq files
 
 Regarding analysis, fastq files will processed in one of the following ways:
 1. Reading from the file system: This happens if a *file path* is given after the `-f` option.
@@ -302,7 +308,7 @@ sh ./bin/genestrip.sh -r . -k mysample -f./data/projects/human_virus/fastq/sampl
 ```
 and produces the result file `./someprojectname_match_mysample.csv`.
 
-## Targets
+### Targets
 
 Genestrip supports three targets for each goal, namely `make`, `clean` and `cleanall`.
 
@@ -310,7 +316,7 @@ Genestrip supports three targets for each goal, namely `make`, `clean` and `clea
 - `clean` *deletes* all files associated with the given goal but it does not delete any files of goals that the given goal depends on.
 - `cleanall` does same as `clean`, but it *also recursively deletes* any files of goals that the given goal depends on.
 
-## Configuration parameters
+### Configuration parameters
 
 An optional configuration properties file `config.properties` or `Config.properties` may be put under `<base dir>`.
 Entries per line should have the form
@@ -327,11 +333,11 @@ Moreover, configuration parameters may be set on the command line like this:
 ```
 They have the highest priority.
 
-## Additional fasta files
+### Additional fasta files
 
 The following configuration files exclusively affect the generation of databases via the goals `db` and `index`.
 
-### Manually adding fasta files
+#### Manually adding fasta files
 
 In some cases you may want to add *k*-mers of genomes to your database, where the genomes are not part of the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) (or Genbank). Genestrip supports this via an optional text file `additional.txt` under `<base dir>/projects/<project_name>`.
 The file should contain one line for each additional genome file. (The genome file must be in fasta format and may be g-zipped or not.)
@@ -349,7 +355,7 @@ This adding of fasta files can also be used to *just* correct the least common a
 ```
 to `additional.txt` where `<path_to_human_genome_fasta_file>` points to the [human genome fasta file](https://www.ncbi.nlm.nih.gov/datasets/taxonomy/9606/). (Note that for this purpose, ``9606`` *must not* occur in `taxids.txt`, since otherwise all *k*-mers from the human genome would be included in a `protozoa`n database.)
 
-### Automated download of additional fasta files per project
+#### Automated download of additional fasta files per project
 
 The manually adding of fasta files as described above involves the manual download and positioning in the local file system.
 To automate the download, *an extended format for entries in `additional.txt` is also possible*:
@@ -363,7 +369,7 @@ E.g., to automate the download of the human genome, the following entry will suf
 ```
 The corresponding download file will be stored under `<base dir>/projects/<project_name>/fasta`.
 
-### Automated download of additional fasta files across projects
+#### Automated download of additional fasta files across projects
 
 The automated download from the previous section is unsuitable, if the fasta file is large and is needed in several projects, as it will be downloaded and stored once per project.
 To enable an automated download *across projects*, the file `<base dir>/common/fasta/downloads.txt` may be created with the line format:
@@ -377,6 +383,6 @@ and stored as `<base dir>/common/fasta/<fasta_file_name>`. Afterwards it will be
 ```
 from a project's `additional.txt` file.
 
-## API-based usage
+### API-based usage
 
 An API-based invocation of the goals `match` and `filter` is straight-forward: Please check out the test class [`org.metagene.genestrip.APITest`](./src/test/java/org/metagene/genestrip/APITest.java) in the folder `src/test/java` as a code example.
