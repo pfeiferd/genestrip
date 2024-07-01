@@ -78,7 +78,7 @@ The Maven command `mvn -P prerelease install` runs all the JUnit tests for Genes
 
 [^1]: Counter to common belief, Java can well be used for such high performance applications when using its programming facilities the right way.
 
-## Genestrip Databases
+## Genestrip databases
 
 ### Generating the sample database
 
