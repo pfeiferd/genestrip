@@ -290,9 +290,9 @@ The following goal graph depicts the goals' dependencies (without the trivial go
 Regarding analysis, fastq files will processed in one of the following ways:
 1. Reading from the file system: This happens if a *file path* is given after the `-f` option.
 1. *Streaming* from the network: This happens if a *URL* is given after the `-f` option. (The corresponding fastq file will not be downloaded to the file system then.)
-1. *Downloading* from the network: This happens if a *URL* is given after the `-f` option *and if the option `-l` or `-ll`* is given, respectively. The corresponding fastq file be downloaded if not yet present. Afterward, the downloaded file will be processed from the file system.
+1. *Downloading* from the network: This happens if a *URL* is given after the `-f` option *and if the option `-l` or `-ll`* is given, respectively. The corresponding fastq file be downloaded if not yet present. Afterwards, the downloaded file will be processed from the file system.
 
-A comma-separated list of file paths or URLs or both may be put after `-f` without blanks. In this case related fastq files will be analyzed together and the results will be merged.
+A comma-separated list of file paths or URLs or both may be put after `-f` without blanks. In this case, related fastq files will be analyzed together and the results will be merged.
 
 Unless a key is given via `-k`, a resulting CSV-file will be named after the first file path or URL as given via `-f`.
 Otherwise the name of key will be used for it. E.g.:
