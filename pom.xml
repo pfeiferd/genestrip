@@ -142,12 +142,6 @@
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>3.1.2</version>
 				<configuration>
-					<systemPropertyVariables>
-						<propertyName>project.build.directory</propertyName>
-						<buildDirectory>${project.build.directory}</buildDirectory>
-						<propertyName>project.directory</propertyName>
-						<buildDirectory>${project.directory}</buildDirectory>
-					</systemPropertyVariables>
 					<skipTests>true</skipTests>
 				</configuration>
 			</plugin>
