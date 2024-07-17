@@ -86,7 +86,7 @@ public class Main {
 		Properties props = line.getOptionProperties("C");
 
 		project = new GSProject(new GSCommon(new File(baseDir)), projectName, key, fastqFiles, mapFilePath, resFolder,
-				resFolder, true, taxids, props, null, dbPath);
+				resFolder, true, taxids, props, null, dbPath, false);
 		project.setDownloadFastqs(download);
 		project.setDownloadFastqsToCommon(downloadToCommon);
 

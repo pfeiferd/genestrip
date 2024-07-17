@@ -53,7 +53,7 @@ public class DB2FastqGoalTest {
 		// Create the 'human_virus' project (whose config files are part of the
 		// release).
 		GSProject project = new GSProject(config, "human_virus", null, null, null, null, null, false, "64320,12637+",
-				null, null, null);
+				null, null, null, false);
 		GSMaker maker = new GSMaker(project);
 
 		String[] taxids = new String[] { "64320", "12637", "11053", "11060", "11069", "11070" };

@@ -70,20 +70,28 @@ public class GSProject extends Project {
 	private boolean downloadFastqsToCommon;
 
 	public GSProject(GSCommon config, String name) {
-		this(config, name, null, null, null, null, null, true, null, null, null, null);
+		this(config, name, null, null, null, null, null, true, null, null, null, null, false);
 	}
 
+	public GSProject(GSCommon config, String name, boolean quiet) {
+		this(config, name, null, null, null, null, null, true, null, null, null, null, quiet);
+	}
+	
 	public GSProject(GSCommon config, String name, String key, String[] fastqFiles) {
-		this(config, name, key, fastqFiles, null, null, null, true, null, null, null, null);
+		this(config, name, key, fastqFiles, null, null, null, true, null, null, null, null, false);
+	}
+	
+	public GSProject(GSCommon config, String name, String key, String[] fastqFiles, boolean quiet) {
+		this(config, name, key, fastqFiles, null, null, null, true, null, null, null, null, quiet);
 	}
 
 	public GSProject(GSCommon config, String name, String csvFile) {
-		this(config, name, null, null, csvFile, null, null, true, null, null, null, null);
+		this(config, name, null, null, csvFile, null, null, true, null, null, null, null, false);
 	}
 
 	public GSProject(GSCommon config, String name, String key, String[] fastqFiles, String csvFile, File csvDir,
 			File fastqResDir, boolean loadProps, String taxids, Properties commandLineProps, GSGoalKey forGoal,
-			String dbPath) {
+			String dbPath, boolean quietInit) {
 		super(name);
 		this.common = config;
 		this.fastqResDir = fastqResDir;
@@ -101,8 +109,8 @@ public class GSProject extends Project {
 
 		properties = new Properties[3];
 		properties[0] = commandLineProps == null ? new Properties() : commandLineProps;
-		properties[1] = loadConfigProperties(getProjectDir());
-		properties[2] = loadConfigProperties(getCommon().getBaseDir());
+		properties[1] = loadConfigProperties(getProjectDir(), quietInit);
+		properties[2] = loadConfigProperties(getCommon().getBaseDir(), quietInit);
 
 		initConfigParams(properties);
 		configureLogger();
@@ -110,22 +118,24 @@ public class GSProject extends Project {
 		for (Properties props : properties) {
 			checkConfigProperties(props, forGoal);
 		}
-		logParamMap();
+		if (!quietInit) {
+			logParamMap();
+		}
 	}
 
-	protected Properties loadConfigProperties(File dir) {
+	protected Properties loadConfigProperties(File dir, boolean quiet) {
 		Properties properties = new Properties();
 		File configFile = new File(dir, CONFIG_PROPERTIES);
 		if (!configFile.exists()) {
 			configFile = new File(dir, CONFIG_PROPERTIES_2);
 		}
-		if (getLogger().isInfoEnabled()) {
+		if (!quiet && getLogger().isInfoEnabled()) {
 			getLogger().info("Loading config file '" + configFile + "'.");
 		}
 		try (InputStream is = new FileInputStream(configFile)) {
 			properties.load(is);
 		} catch (IOException e) {
-			if (getLogger().isWarnEnabled()) {
+			if (!quiet && getLogger().isWarnEnabled()) {
 				getLogger().warn("Could not read config file '" + configFile + "'.");
 			}
 		}

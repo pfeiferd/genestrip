@@ -113,12 +113,12 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
 	protected void doLog() {
 		if (logger.isTraceEnabled() || bundle.isRequiresProgress()) {
 			long bytesCovered = byteCountAccess.getBytesRead();
-			double ratio = fastqFileSize == -1 ? -1 : bytesCovered / (double) fastqsFileSize;
+			double ratio = fastqFileSize == -1 ? -1 : bytesCovered / (double) fastqFileSize;
 			long stopTime = System.currentTimeMillis();
 			long diff = (stopTime - fastqStartTime);
 			double totalTime = ratio == -1 ? -1 : diff / ratio;
 			if (bundle.isRequiresProgress()) {
-				bundle.setFastqProgress(currentFastq, bytesCovered, fastqsFileSize, diff, (long) totalTime, ratio,
+				bundle.setFastqProgress(currentFastq, bytesCovered, fastqFileSize, diff, (long) totalTime, ratio,
 						reads);
 			}
 			if (logger.isTraceEnabled()) {
