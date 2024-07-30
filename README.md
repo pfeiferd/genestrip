@@ -188,7 +188,7 @@ As this result is rather consistent with the statistical expectation (for the un
 
 ### Reliability of results
 
-We cannot guarantee for any results returned by Genestrip. Use this software at you own risk. **Important: It is by no means meant to be used for any medical purposes** and it is purely experimental in nature.
+We cannot guarantee for any results returned by Genestrip. Use this software at your own risk. **Important: It is by no means meant to be used for any medical purposes** and it is purely experimental in nature.
 
 Despite of the these limitations, we tested the Genestrip in the following ways:
 * Critical code is covered by functional tests (using [JUnit](https://junit.org)).
