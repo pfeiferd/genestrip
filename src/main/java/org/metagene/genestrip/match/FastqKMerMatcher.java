@@ -63,7 +63,8 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 	protected final double maxReadTaxErrorCount;
 	private OutputStream indexed;
 
-	// This should stay a box type for the line root.get(taxid.getTaxId(), maxReadSize);
+	// This should stay a box type for the line root.get(taxid.getTaxId(),
+	// maxReadSize);
 	private final Integer initialReadSize;
 
 	// A PrintStream is implicitly synchronized. So we don't need to worry about
@@ -148,12 +149,15 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 
 	@Override
 	protected void readFastq(InputStream inputStream) throws IOException {
-		if (taxTree != null) {
-			taxTree.resetCounts(this);
-		}
-		super.readFastq(inputStream);
-		if (taxTree != null) {
-			taxTree.releaseOwner();
+		try {
+			if (taxTree != null) {
+				taxTree.resetCounts(this);
+			}
+			super.readFastq(inputStream);
+		} finally {
+			if (taxTree != null) {
+				taxTree.releaseOwner();
+			}
 		}
 	}
 
@@ -194,7 +198,9 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 			}
 			if (out != null) {
 				synchronized (out) {
-					myEntry.flush(out);
+//					if (myEntry.classNode != null && "139".equals(myEntry.classNode.getTaxId())) {
+						myEntry.flush(out);
+//					}
 				}
 			}
 		}
@@ -360,7 +366,9 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 		}
 	}
 
-	protected void printKrakenStyleOut(MyReadEntry entry, SmallTaxIdNode taxid, int contigLen, int state, boolean reverse) {
+	protected void printKrakenStyleOut(MyReadEntry entry, SmallTaxIdNode taxid, int contigLen, int state,
+			boolean reverse) {
+		entry.enablePrintBuffer();
 		if (state != 0) {
 			entry.printChar(' ');
 		}
@@ -374,7 +382,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 	}
 
 	public static class MyReadEntry extends ReadEntry {
-		public final byte[] buffer;
+		public byte[] buffer;
 		public int bufferPos;
 		public int[] badPos = new int[1];
 
@@ -387,7 +395,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 		public MyReadEntry(int maxReadSizeBytes, boolean enablePrint, int paths) {
 			super(maxReadSizeBytes);
 
-			buffer = enablePrint ? new byte[maxReadSizeBytes * 4] : null; // It has to be rather long in some cases...
+			buffer = null; 
 			readTaxIdNode = new SmallTaxIdNode[paths];
 			counts = new short[paths];
 			indexPos = new long[1];
@@ -419,6 +427,9 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 		}
 
 		public void flush(PrintStream out) {
+			if (buffer == null) {
+				return;
+			}
 			if (classNode == null) {
 				out.print("U\t");
 			} else {
@@ -436,6 +447,12 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 			out.print('\t');
 			out.write(buffer, 0, bufferPos);
 			out.println();
+		}
+		
+		public void enablePrintBuffer() {
+			if (buffer == null) {
+				buffer = new byte[read.length + 2048]; // It has to be rather long in some cases...
+			}
 		}
 	}
 

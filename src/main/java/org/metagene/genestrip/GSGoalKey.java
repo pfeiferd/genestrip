@@ -102,7 +102,9 @@ public enum GSGoalKey implements GoalKey {
 	FASTQ_MAP_TRANSFORM("fastqmaptransform"), @MDDescription("Download fastq files given via URLs as requested.")
 	FASTQ_DOWNLOAD("fastqdownload"),
 	@MDDescription("For internal use (to invoke kraken).")
-	KRAKENRES("krakenres");
+	KRAKENRES("krakenres"),
+	@MDDescription("Download and install a project's database from a URL.")
+	DB_DOWNLOAD("dbdownload");
 
 	private final boolean forUser;
 	private final String name;

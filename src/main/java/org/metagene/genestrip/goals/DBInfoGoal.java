@@ -31,7 +31,6 @@ import java.io.PrintStream;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
@@ -44,7 +43,7 @@ public class DBInfoGoal extends FileListGoal<GSProject> {
 
 	@SafeVarargs
 	public DBInfoGoal(GSProject project, ObjectGoal<Database, GSProject> storeGoal, Goal<GSProject>... deps) {
-		super(project, GSGoalKey.DBINFO, project.getOutputFile(GSGoalKey.DBINFO.getName(), FileType.CSV, false),
+		super(project, GSGoalKey.DBINFO, project.getDBInfoFile(),
 				Goal.append(deps, storeGoal));
 		this.storeGoal = storeGoal;
 	}

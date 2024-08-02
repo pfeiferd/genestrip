@@ -144,9 +144,9 @@ public enum GSConfigKey implements ConfigKey {
 			+ "Otherwise the read will be classified in the same way as [done by Kraken](https://genomebiology.biomedcentral.com/articles/10.1186/gb-2014-15-3-r46/figures/1). "
 			+ "If `maxReadTaxErrorCount` is >= 1, then it is interpreted as an absolute number of *k*-mers. "
 			+ "Otherwise (and so, if >= 0 and < 1), it is interpreted as the ratio between the *k*-mers not in the database and all *k*-mers of the read.")
-	MAX_READ_TAX_ERROR_COUNT("maxReadTaxErrorCount", new DoubleConfigParamInfo(0, Double.MAX_VALUE, 0.1),
+	MAX_READ_TAX_ERROR_COUNT("maxReadTaxErrorCount", new DoubleConfigParamInfo(0, Double.MAX_VALUE, 0.5),
 			GSGoalKey.MATCH, GSGoalKey.MATCHLR),
-	@MDDescription("If > 0, the corresponding number frequencies of the most frequent *k*-mers per tax id will be reported.")
+	@MDDescription("If > 0, the corresponding number of frequencies of the most frequent *k*-mers per tax id will be reported.")
 	MAX_KMER_RES_COUNTS("maxKMerResCounts", new IntConfigParamInfo(0, 65536, 0), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 	THREAD_QUEUE_SIZE("threadQueueSize", new IntConfigParamInfo(10, 10000, 1000), true),
 	INITIAL_READ_SIZE_BYTES("initialReadSizeBytes", new IntConfigParamInfo(256, 65536, 4096), true),

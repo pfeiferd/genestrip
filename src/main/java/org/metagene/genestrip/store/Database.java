@@ -63,7 +63,7 @@ public class Database implements Serializable {
 	}
 
 	public Object2LongMap<String> getStats() {
-		return kmerStore.getStats();
+		return kmerStore.getFixedNKmersPerTaxid();
 	}
 
 	public void save(File file) throws IOException {

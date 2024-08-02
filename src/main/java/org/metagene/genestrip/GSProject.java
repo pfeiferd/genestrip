@@ -310,6 +310,14 @@ public class GSProject extends Project {
 	public File getDBDir() {
 		return new File(getProjectDir(), "db");
 	}
+	
+	public File getDBFile() {
+		return getOutputFile(GSGoalKey.DB.getName(), FileType.DB, false);
+	}
+	
+	public File getDBInfoFile() {
+		return getOutputFile(GSGoalKey.DBINFO.getName(), FileType.CSV, false);
+	}
 
 	public File getKrakenOutDir() {
 		return new File(getProjectDir(), "krakenout");

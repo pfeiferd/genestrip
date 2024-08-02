@@ -193,7 +193,7 @@ public abstract class Goal<P extends Project> {
 
 	public void dump() {
 	}
-
+	
 	public final void clean() {
 		clean(false);
 	}

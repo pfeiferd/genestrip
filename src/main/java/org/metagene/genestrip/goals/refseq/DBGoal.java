@@ -129,13 +129,6 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 				}
 				checkAndLogConsumerThreadProblem();
 			}
-// Old code replaced by multithreading approach...			
-//			// Simply do this on main thread - should not be so much work...
-//			Map<File, TaxIdNode> additionalMap = additionalGoal.get();
-//			for (File additionalFasta : additionalMap.keySet()) {
-//				fastaReader.ignoreAccessionMap(additionalMap.get(additionalFasta));
-//				fastaReader.readFasta(additionalFasta);
-//			}
 			// Gentle polling and waiting until all consumers are done.
 			while (doneCounter > 0) {
 				checkAndLogConsumerThreadProblem();
@@ -145,7 +138,7 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 					// Ignore.
 				}
 			}
-
+			store.fix();
 			set(new Database((KMerSortedArray<String>) store, wrapper.getTaxTree()));
 		} catch (IOException e) {
 			throw new RuntimeException(e);

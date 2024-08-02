@@ -61,7 +61,7 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
 		for (StreamingResource fastq : fastqs) {
 			long size = fastq.getSize();
 			if (size < 0) {
-				fastqFileSize = -1;
+				fastqsFileSize = -1;
 				break;
 			}
 			fastqsFileSize += size;
@@ -74,7 +74,7 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
 			try (StreamingResource.StreamAccess lbyteCountAccess = fastq.openStream()) {
 				byteCountAccess = lbyteCountAccess;
 				fastqFileSize = byteCountAccess.getSize();
-				if (fastqsFileSize == -1) {
+				if (fastqFileSize != -1 && fastqsFileSize == -1) {
 					if (coveredCounter == totalCount - 1) {
 						fastqsFileSize = coveredFilesSize + fastqFileSize;
 					}

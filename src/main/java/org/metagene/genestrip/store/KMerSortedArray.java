@@ -59,7 +59,8 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 	private final int k;
 	private final Object2ShortMap<V> valueMap;
-	// For efficiency and synchronization problems this was turned into an array of lenth Short.MAX_VALUE. Only 250kb in size...
+	// For efficiency and synchronization problems this was turned into an array of
+	// lenth Short.MAX_VALUE. Only 250kb in size...
 	private final V[] indexMap;
 	private final boolean enforceLarge;
 
@@ -71,6 +72,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	private short nextValueIndex;
 	private transient MurmurCGATBloomFilter filter;
 	private boolean useFilter;
+	private Object2LongMap<V> kmerPersTaxid;
 
 	public KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge) {
 		this(k, fpp, initialValues, enforceLarge, new MurmurCGATBloomFilter(k, fpp));
@@ -97,6 +99,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		}
 		this.filter = filter;
 		this.useFilter = filter != null;
+		this.kmerPersTaxid = null;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -122,23 +125,30 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		indexMap = (V[]) new Serializable[MAX_VALUES];
 		valueMap = new Object2ShortOpenHashMap<V>(org.valueMap.size());
 
+		if (org.kmerPersTaxid != null) {
+			kmerPersTaxid = new Object2LongOpenHashMap<V>();
+		}
+
 		for (short s = 0; s < org.valueMap.size(); s++) {
 			W orgValue = org.indexMap[s];
 			V value = converter.convertValue(orgValue);
 			indexMap[s] = value;
 			valueMap.put(value, s);
+			if (kmerPersTaxid != null) {
+				kmerPersTaxid.put(value, org.kmerPersTaxid.getLong(orgValue));
+			}
 		}
 	}
 
 	public Iterator<V> getValues() {
 		return new Iterator<V>() {
 			private int i = 0;
-			 
+
 			@Override
 			public boolean hasNext() {
 				return i < nextValueIndex;
 			}
-			
+
 			@Override
 			public V next() {
 				return indexMap[i++];
@@ -162,30 +172,28 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		return useFilter;
 	}
 
-	protected long[] getStatsAsIndexArray() {
-		long[] counts = new long[getNValues()];
-		visit(new KMerSortedArrayVisitor<V>() {
-			@Override
-			public void nextValue(KMerSortedArray<V> trie, long kmer, short index, long i) {
-				counts[index]++;
+	public Object2LongMap<V> getNKmersPerTaxid() {
+		long[] countArray = new long[getNValues()];
+		if (largeKmers != null) {
+			for (long i = 0; i < entries; i++) {
+				countArray[BigArrays.get(largeValueIndexes, i)]++;
 			}
-		});
-		return counts;
-	}
-
-	public Object2LongMap<V> getStats() {
-		long[] counts = getStatsAsIndexArray();
-
-		Object2LongMap<V> res = new Object2LongOpenHashMap<V>(counts.length);
-		for (short i = 0; i < counts.length; i++) {
-			V value = indexMap[i];
-			if (value != null) {
-				res.put(value, counts[i]);
+		} else {
+			for (int i = 0; i < entries; i++) {
+				countArray[valueIndexes[i]]++;
 			}
 		}
-		res.put(null, entries);
 
-		return res;
+		Object2LongMap<V> map = new Object2LongOpenHashMap<V>();
+		for (int i = 0; i < countArray.length; i++) {
+			V value = indexMap[i];
+			if (value != null) {
+				map.put(value, countArray[i]);
+			}
+		}
+		map.put(null, entries);
+
+		return map;
 	}
 
 	public int getNValues() {
@@ -220,30 +228,6 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			kmers = new long[(int) size];
 			valueIndexes = new short[(int) size];
 		}
-	}
-
-	public Object2LongMap<V> getNKmersPerTaxid() {
-		long[] countArray = new long[getNValues()];
-		if (largeKmers != null) {
-			for (long i = 0; i < entries; i++) {
-				countArray[BigArrays.get(largeValueIndexes, i)]++;
-			}
-		} else {
-			for (int i = 0; i < entries; i++) {
-				countArray[valueIndexes[i]]++;
-			}
-		}
-
-		Object2LongMap<V> map = new Object2LongOpenHashMap<V>();
-		for (int i = 0; i < countArray.length; i++) {
-			V value = indexMap[i];
-			if (value != null) {
-				map.put(value, countArray[i]);
-			}
-		}
-		map.put(null, entries);
-
-		return map;
 	}
 
 	@Override
@@ -394,6 +378,21 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			}
 			return false;
 		}
+	}
+
+	public void fix() {
+		fixNKmersPerTaxid();
+	}
+
+	protected void fixNKmersPerTaxid() {
+		this.kmerPersTaxid = getNKmersPerTaxid();
+	}
+
+	public Object2LongMap<V> getFixedNKmersPerTaxid() {
+		if (this.kmerPersTaxid == null) {
+			fixNKmersPerTaxid();
+		}
+		return this.kmerPersTaxid;
 	}
 
 	public V getLong(long kmer, long[] posStore) {

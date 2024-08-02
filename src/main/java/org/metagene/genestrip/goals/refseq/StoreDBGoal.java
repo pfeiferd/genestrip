@@ -29,7 +29,6 @@ import java.io.IOException;
 
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -39,12 +38,12 @@ public class StoreDBGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Database, GSProject> dbGoal;
 
 	@SafeVarargs
-	public StoreDBGoal(GSProject project, GSGoalKey key, ObjectGoal<Database, GSProject> dbGoal, Goal<GSProject>... deps) {
-		super(project, key, project.getOutputFile(key.getName(), FileType.DB, false),
-				Goal.append(deps, dbGoal));
+	public StoreDBGoal(GSProject project, GSGoalKey key, File dbFile, ObjectGoal<Database, GSProject> dbGoal,
+			Goal<GSProject>... deps) {
+		super(project, key, dbFile, Goal.append(deps, dbGoal));
 		this.dbGoal = dbGoal;
 	}
-	
+
 	@Override
 	protected void makeFile(File storeFile) {
 		try {

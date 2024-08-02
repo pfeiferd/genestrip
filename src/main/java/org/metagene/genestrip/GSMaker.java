@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
 import org.metagene.genestrip.goals.AdditionalDownloadsGoal;
 import org.metagene.genestrip.goals.AdditionalFastasGoal;
@@ -218,7 +219,7 @@ public class GSMaker extends Maker<GSProject> {
 				files.remove(project.getFastqDir());
 				return files;
 			}
-			
+
 			@Override
 			protected void makeFile(File file) throws IOException {
 				file.mkdir();
@@ -305,7 +306,8 @@ public class GSMaker extends Maker<GSProject> {
 				additionalFastasGoal, accessCollGoal, fillBloomGoal, taxTreeGoal, projectSetupGoal);
 		registerGoal(fillDBGoal);
 
-		StoreDBGoal storeTempDBGoal = new StoreDBGoal(project, GSGoalKey.TEMPDB, fillDBGoal, projectSetupGoal) {
+		StoreDBGoal storeTempDBGoal = new StoreDBGoal(project, GSGoalKey.TEMPDB,
+				project.getOutputFile(GSGoalKey.TEMPDB.getName(), FileType.DB, false), fillDBGoal, projectSetupGoal) {
 			@Override
 			protected void dependentMade(Goal<GSProject> goal) {
 				super.dependentMade(goal);
@@ -327,8 +329,8 @@ public class GSMaker extends Maker<GSProject> {
 		// We weed the storeTempDBGoal as a dependency here so that it does not get
 		// automatically deleted until
 		// the final database got stored.
-		StoreDBGoal storeDBGoal = new StoreDBGoal(project, GSGoalKey.DB, updateDBGoal, storeTempDBGoal,
-				projectSetupGoal);
+		StoreDBGoal storeDBGoal = new StoreDBGoal(project, GSGoalKey.DB, project.getDBFile(), updateDBGoal,
+				storeTempDBGoal, projectSetupGoal);
 		registerGoal(storeDBGoal);
 
 		LoadDBGoal loadDBGoal = new LoadDBGoal(project, updateDBGoal, storeDBGoal);

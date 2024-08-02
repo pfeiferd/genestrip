@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class ByteCountingInputStream extends InputStream {
-	private long bRead;
+	protected long bRead;
 	private long readToMark;
 	private final InputStream delegate;
 

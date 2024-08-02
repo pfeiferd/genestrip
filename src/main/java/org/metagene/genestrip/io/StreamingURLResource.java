@@ -38,13 +38,13 @@ public class StreamingURLResource implements StreamingResource {
 	public StreamingURLResource(URL url) {
 		this(url.getFile(), url, false);
 	}
-	
+
 	public StreamingURLResource(String name, URL url, boolean noGZ) {
 		this.name = name;
 		this.url = url;
 		this.noGZ = noGZ;
 	}
-	
+
 	public boolean isNoGZ() {
 		return noGZ;
 	}
@@ -52,27 +52,31 @@ public class StreamingURLResource implements StreamingResource {
 	public StreamingResource.StreamAccess openStream() throws IOException {
 		URLConnection connection = url.openConnection();
 		connection.connect();
-		ByteCountingInputStream is = new ByteCountingInputStream(connection.getInputStream());
-		InputStream readFromIs = noGZ ? is : new GZIPInputStream(is, StreamProvider.getBufferSize()); 
+		ByteCountingInputStream is = createByteCountingInputStream(connection.getInputStream());
+		InputStream readFromIs = noGZ ? is : new GZIPInputStream(is, StreamProvider.getBufferSize());
 
-		return new StreamAccess() {			
+		return new StreamAccess() {
 			@Override
 			public InputStream getInputStream() {
 				return readFromIs;
 			}
-			
+
 			@Override
 			public long getBytesRead() {
 				return is.getBytesRead();
 			}
-			
+
 			@Override
 			public long getSize() throws IOException {
 				return connection.getContentLengthLong();
 			}
 		};
 	}
-	
+
+	protected ByteCountingInputStream createByteCountingInputStream(InputStream is) throws IOException {
+		return new ByteCountingInputStream(is);
+	}
+
 	@Override
 	public long getSize() throws IOException {
 		return -1;
@@ -82,16 +86,16 @@ public class StreamingURLResource implements StreamingResource {
 	public boolean isExists() {
 		return true;
 	}
-	
+
 	@Override
 	public String getName() {
 		return name;
 	}
-	
+
 	public URL getURL() {
 		return url;
 	}
-	
+
 	@Override
 	public String toString() {
 		return "Streaming URL: " + url.toString();

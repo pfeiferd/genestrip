@@ -48,8 +48,8 @@ public abstract class AbstractFastqReader {
 	private final BufferedLineReader bufferedLineReaderFastQ;
 	private final ReadEntry[] readStructPool;
 	private final BlockingQueue<ReadEntry> blockingQueue;
-	protected final int k;
 	private final byte[] plusLine;
+	protected final int k;
 
 	private boolean dump;
 
@@ -59,10 +59,9 @@ public abstract class AbstractFastqReader {
 			Object... config) {
 		this.k = k;
 		this.bundle = bundle;
-		this.plusLine = new byte[initialSizeBytes];
 		bufferedLineReaderFastQ = new BufferedLineReader();
 		int consumerNumber = bundle.getThreads();
-
+		plusLine = new byte[initialSizeBytes];
 		readStructPool = new ReadEntry[consumerNumber == 0 ? 1 : (maxQueueSize + consumerNumber + 1)];
 		for (int i = 0; i < readStructPool.length; i++) {
 			readStructPool[i] = createReadEntry(initialSizeBytes, config);
@@ -136,17 +135,6 @@ public abstract class AbstractFastqReader {
 		return logger;
 	}
 
-	protected void growReadBuffer(ReadEntry readStruct, BufferedLineReader lineReader) throws IOException {
-		while (readStruct.readSize == readStruct.read.length) {
-			byte[] newBuffer = new byte[readStruct.read.length * 2];
-			System.arraycopy(readStruct.read, 0, newBuffer, 0, readStruct.read.length);
-			readStruct.readSize = lineReader.nextLine(newBuffer, readStruct.read.length) - 1;
-			readStruct.read = newBuffer;
-		}
-		// Probs must grow in the same way.
-		readStruct.readProbs = new byte[readStruct.read.length];
-	}
-
 	protected void readFastq(InputStream inputStream) throws IOException {
 		start();
 		reads = 0;
@@ -160,20 +148,33 @@ public abstract class AbstractFastqReader {
 			readStruct.readDescriptor[readStruct.readDescriptorSize] = 0;
 			readStruct.readSize = bufferedLineReaderFastQ.nextLine(readStruct.read) - 1;
 			if (readStruct.readSize == readStruct.read.length) {
-				growReadBuffer(readStruct, bufferedLineReaderFastQ);
+				readStruct.growReadBuffer(bufferedLineReaderFastQ);
+			}
+
+			int newSize = bufferedLineReaderFastQ.nextLine(readStruct.read, readStruct.readSize) - 1;
+			// If there is no '+' then the line still belongs to the read.
+			while (readStruct.read[readStruct.readSize] != '+') {
+				readStruct.readSize = newSize;
+				if (newSize == readStruct.read.length) {
+					readStruct.growReadBuffer(bufferedLineReaderFastQ);
+				}
+				newSize = bufferedLineReaderFastQ.nextLine(readStruct.read, readStruct.readSize) - 1;
 			}
 			readStruct.read[readStruct.readSize] = 0;
-
-			// Old code:
-			// bufferedLineReaderFastQ.skipLine(); // Ignoring line 3.
-			// New code does basic consistency check:
-			bufferedLineReaderFastQ.nextLine(plusLine);
-			if (plusLine[0] != '+') {
-				throw new IllegalStateException("Inconsistent read no. " + reads + ", the line with '+' is missing.");
+			// This means the buffer (i.e. readStruct.read) was full but we found the '+', but still not passed the plus line
+			// as not read passed the buffer 
+			if (newSize == readStruct.read.length) {
+				// Dump the rest of the plus line here (until eol reached).
+				bufferedLineReaderFastQ.nextLine(plusLine);
 			}
-
-			readStruct.readProbsSize = bufferedLineReaderFastQ.nextLine(readStruct.readProbs) - 1;
-			readStruct.readProbs[readStruct.readProbsSize] = 0;
+			
+			// We got passed the '+' line...
+			int readProbsSize = bufferedLineReaderFastQ.nextLine(readStruct.readProbs) - 1;
+			while (readProbsSize < readStruct.readSize) {
+				readProbsSize = bufferedLineReaderFastQ.nextLine(readStruct.readProbs, readProbsSize) - 1;
+			}
+			readStruct.readProbsSize = readProbsSize;
+			readStruct.readProbs[readProbsSize] = 0;
 
 			readStruct.readNo = reads;
 
@@ -181,6 +182,9 @@ public abstract class AbstractFastqReader {
 			kMers += readStruct.readSize - k + 1;
 			if (blockingQueue == null) {
 				nextEntry(readStruct, 0);
+				if (dump) {
+					throw new FastqReaderInterruptedException();					
+				}
 			} else {
 				try {
 					blockingQueue.put(readStruct);
@@ -312,5 +316,16 @@ public abstract class AbstractFastqReader {
 			printStream.println('+');
 			ByteArrayUtil.println(readProbs, printStream);
 		}
+		
+		protected void growReadBuffer(BufferedLineReader lineReader) throws IOException {
+			while (readSize == read.length) {
+				byte[] newBuffer = new byte[read.length * 2];
+				System.arraycopy(read, 0, newBuffer, 0, read.length);
+				readSize = lineReader.nextLine(newBuffer, read.length) - 1;
+				read = newBuffer;
+			}
+			// Probs must grow in the same way.
+			readProbs = new byte[read.length];
+		}		
 	}
 }
