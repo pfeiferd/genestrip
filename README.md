@@ -70,7 +70,7 @@ Moreover it creates a Zip folder `target/genestrip-${version}-windows-x64.zip` t
 When extracted Genestrip can be executed via `bin\genestrip.exe` (on a Windows x86, 64 bit architecture). It will search for the above JRE for 
 execution under the relative location `..\lib\jre`. So the folders `bin` and `lib` should be kept together accordingly. **These few files is all it takes to run Genestrip under Windows!** There is no additional JRE necessary.
 
-For convenience, the ready-made Zip folder `genestrip-${version}-windows-x64.zip` is also [publicly available for download on Google Drive](https://drive.google.com/file/d/1fxI8M1I4d_W6NoapbPPv93XvZelsqA_N/view?usp=drive_link).
+For convenience, the ready-made Zip folder `genestrip-${version}-windows-x64.zip` is also [publicly available for download on Google Drive](https://drive.google.com/file/d/1gjOCMhO55PBFGNy3jvwHzp79p_Wo-ixt/view?usp=sharing).
 
 ### Runnning the JUnit tests
 
