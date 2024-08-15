@@ -268,7 +268,11 @@ Genestrip supports matching of *k*-mers from multiple fastq files in batches: Fo
 ```
 If several fastq files in the mapping file have the same `<key>`, then the matching results of these files will be merged. 
 A resulting CSV file named `<project_name>_imatch_<key>.csv` will be put under `<base dir>/projects/<project_name>/csv` unless specified otherwise via the `-r` option. 
-If `<path_or_URL_to_fastq_file>` is a file name without a path prefix, the file is assumed to be located in `<base dir>/projects/<project_name>/fastq`.
+If `<path_or_URL_to_fastq_file>` is a file name without a path prefix, the file is assumed to be located in `<base dir>/projects/<project_name>/fastq` or otherwise in `<base dir>/fastq`.
+
+[Glob patterns](https://docs.oracle.com/javase/tutorial/essential/io/fileOps.html#glob) may be used for all file names (i.e. the last component of a file path) in `<path_or_URL_to_fastq_file>`:
+If the glob pattern matches a file from one of the above directories, then *all* matching files from that directory will be added to the joint analysis. 
+
 If `<path_or_URL_to_fastq_file>` is a URL then the fastq file will be streamed or downloaded depending on the command line options `-l` or `-ll` (see Section [Reading, streaming and downloading fastq files](#reading-streaming-and-downloading-fastq-files)).
 
 Fastq files and fasta file may be g-zipped or not. Genestrip will automatically recognize g-zipped files via the suffixes `.gz` and `.gzip`.

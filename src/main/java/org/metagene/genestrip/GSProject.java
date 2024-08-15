@@ -30,6 +30,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 
 import org.metagene.genestrip.make.ConfigKey;
@@ -76,11 +82,11 @@ public class GSProject extends Project {
 	public GSProject(GSCommon config, String name, boolean quiet) {
 		this(config, name, null, null, null, null, null, true, null, null, null, null, quiet);
 	}
-	
+
 	public GSProject(GSCommon config, String name, String key, String[] fastqFiles) {
 		this(config, name, key, fastqFiles, null, null, null, true, null, null, null, null, false);
 	}
-	
+
 	public GSProject(GSCommon config, String name, String key, String[] fastqFiles, boolean quiet) {
 		this(config, name, key, fastqFiles, null, null, null, true, null, null, null, null, quiet);
 	}
@@ -310,11 +316,11 @@ public class GSProject extends Project {
 	public File getDBDir() {
 		return new File(getProjectDir(), "db");
 	}
-	
+
 	public File getDBFile() {
 		return getOutputFile(GSGoalKey.DB.getName(), FileType.DB, false);
 	}
-	
+
 	public File getDBInfoFile() {
 		return getOutputFile(GSGoalKey.DBINFO.getName(), FileType.CSV, false);
 	}
@@ -381,5 +387,60 @@ public class GSProject extends Project {
 			}
 		}
 		return null;
+	}
+
+	public List<File> fastqFilesFromPath(String fastqFilePath) {
+		if (fastqFilePath != null) {
+			File fastq = new File(fastqFilePath);
+			if (fastq.exists()) {
+				return Collections.singletonList(fastq);
+			}
+			fastq = new File(getFastqDir(), fastqFilePath);
+			if (fastq.exists()) {
+				return Collections.singletonList(fastq);
+			}
+			fastq = new File(getCommon().getFastqDir(), fastqFilePath);
+			if (fastq.exists()) {
+				return Collections.singletonList(fastq);
+			}
+			List<File> list = null;
+			list = findFilesByGlobPattern(null, fastqFilePath);
+			if (list != null) {
+				return list;
+			}
+			list = findFilesByGlobPattern(getFastqDir(), fastqFilePath);
+			if (list != null) {
+				return list;
+			}
+			list = findFilesByGlobPattern(getCommon().getFastqDir(), fastqFilePath);
+			if (list != null) {
+				return list;
+			}
+		}
+		return null;
+	}
+
+	protected List<File> findFilesByGlobPattern(File rootDir, String pattern) {
+		List<File> res = null;
+		File dir = rootDir;
+		if (dir == null) {
+			dir = new File(pattern).getParentFile();
+		}
+		if (dir != null) {
+			File[] files = dir.listFiles();
+			if (files != null && files.length > 0) {
+				PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
+				for (File file : files) {
+					Path path = file.toPath();
+					if (matcher.matches(rootDir == null ? path : path.getFileName())) {
+						if (res == null) {
+							res = new ArrayList<File>();
+						}
+						res.add(file);
+					}
+				}
+			}
+		}
+		return res;
 	}
 }

@@ -30,6 +30,7 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,14 +68,14 @@ public class FastqMapGoal extends ObjectGoal<Map<String, List<StreamingResource>
 
 	protected Map<String, List<StreamingResource>> createFastqMap(String key, String[] fastqs, String mapFilePath) {
 		// Linked hash map preserve order of keys as entered.
-		Map<String, List<StreamingResource>> res = new LinkedHashMap<String, List<StreamingResource>>();
+		Map<String, List<StreamingResource>> resMap = new LinkedHashMap<String, List<StreamingResource>>();
 
 		if (fastqs != null && fastqs.length > 0) {
 			List<StreamingResource> resources = new ArrayList<StreamingResource>();
 			for (String pathOrURL : fastqs) {
-				StreamingResource resource = getResource(pathOrURL);
-				if (resource != null) {
-					resources.add(resource);
+				List<StreamingResource> res = getResources(pathOrURL);
+				if (resources != null) {
+					resources.addAll(res);
 				} else if (getLogger().isWarnEnabled()) {
 					getLogger().warn("Missing fastq resource: " + pathOrURL);
 				}
@@ -83,7 +84,7 @@ public class FastqMapGoal extends ObjectGoal<Map<String, List<StreamingResource>
 				if (key == null) {
 					key = getProject().getFileBaseName(resources.get(0).getName());
 				}
-				res.put(key, resources);
+				resMap.put(key, resources);
 			}
 		}
 		if (mapFilePath != null) {
@@ -93,14 +94,14 @@ public class FastqMapGoal extends ObjectGoal<Map<String, List<StreamingResource>
 						.parse(new InputStreamReader(StreamProvider.getInputStreamForFile(csvFile)))) {
 					for (CSVRecord record : parser) {
 						key = record.get(0);
-						StreamingResource resource = getResource(record.get(1));
-						if (resource != null) {
-							List<StreamingResource> l = res.get(key);
+						List<StreamingResource> resources = getResources(record.get(1));
+						if (resources != null) {
+							List<StreamingResource> l = resMap.get(key);
 							if (l == null) {
 								l = new ArrayList<StreamingResource>();
-								res.put(key, l);
+								resMap.put(key, l);
 							}
-							l.add(resource);
+							l.addAll(resources);
 						} else if (getLogger().isWarnEnabled()) {
 							getLogger().warn("Missing fastq resource: " + record.get(1));
 						}
@@ -110,20 +111,23 @@ public class FastqMapGoal extends ObjectGoal<Map<String, List<StreamingResource>
 				}
 			}
 		}
-		return res;
+		return resMap;
 	}
 
-	protected StreamingResource getResource(String pathOrURL) {
-		StreamingResource resource = null;
+	protected List<StreamingResource> getResources(String pathOrURL) {
 		try {
-			resource = new StreamingURLResource(new URL(pathOrURL));
+			return Collections.singletonList(new StreamingURLResource(new URL(pathOrURL)));
 		} catch (MalformedURLException e) {
-			File fastq = getProject().fastqFileFromPath(pathOrURL);
-			if (fastq != null) {
-				resource = new StreamingFileResource(new File(pathOrURL));
+			List<File> fastqs = getProject().fastqFilesFromPath(pathOrURL);
+			if (fastqs != null) {
+				List<StreamingResource> res = new ArrayList<StreamingResource>();
+				for (File file : fastqs) {
+					res.add(new StreamingFileResource(file));
+				}
+				return res;
 			}
+			return null;
 		}
-		return resource;
 	}
 
 }
