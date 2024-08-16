@@ -41,7 +41,8 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
 	private long coveredFilesSize;
 	private long startTime;
 	protected long indexedC;
-	private int totalReads;
+	protected long totalReads;
+	protected long totalKMers;
 	private final long logUpdateCycle;
 
 	public AbstractLoggingFastqStreamer(int k, int initialReadSize, int maxQueueSize, ExecutionContext bundle,
@@ -82,6 +83,7 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
 				fastqStartTime = System.currentTimeMillis();
 				readFastq(byteCountAccess.getInputStream());
 				totalReads += reads;
+				totalKMers += kMers;
 				coveredFilesSize += byteCountAccess.getBytesRead();
 			}
 			coveredCounter++;
