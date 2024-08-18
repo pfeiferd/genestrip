@@ -198,9 +198,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 			}
 			if (out != null) {
 				synchronized (out) {
-//					if (myEntry.classNode != null && "139".equals(myEntry.classNode.getTaxId())) {
 						myEntry.flush(out);
-//					}
 				}
 			}
 		}
