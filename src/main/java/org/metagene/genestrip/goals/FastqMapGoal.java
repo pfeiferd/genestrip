@@ -74,7 +74,7 @@ public class FastqMapGoal extends ObjectGoal<Map<String, List<StreamingResource>
 			List<StreamingResource> resources = new ArrayList<StreamingResource>();
 			for (String pathOrURL : fastqs) {
 				List<StreamingResource> res = getResources(pathOrURL);
-				if (resources != null) {
+				if (res != null) {
 					resources.addAll(res);
 				} else if (getLogger().isWarnEnabled()) {
 					getLogger().warn("Missing fastq resource: " + pathOrURL);
