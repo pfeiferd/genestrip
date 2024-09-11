@@ -46,7 +46,6 @@ import org.metagene.genestrip.match.MatchingResult;
 import org.metagene.genestrip.match.ResultReporter;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.KMerSortedArray;
-import org.metagene.genestrip.store.KMerSortedArray.ValueConverter;
 import org.metagene.genestrip.store.KMerUniqueCounter;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
 import org.metagene.genestrip.tax.SmallTaxTree;
