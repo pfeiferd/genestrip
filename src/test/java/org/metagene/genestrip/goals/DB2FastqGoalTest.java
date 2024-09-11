@@ -33,6 +33,7 @@ import java.util.Map;
 import org.junit.Test;
 import org.metagene.genestrip.APITest;
 import org.metagene.genestrip.GSCommon;
+import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSMaker;
 import org.metagene.genestrip.GSProject;
@@ -54,6 +55,8 @@ public class DB2FastqGoalTest {
 		// release).
 		GSProject project = new GSProject(config, "human_virus", null, null, null, null, null, false, "64320,12637+",
 				null, null, null, false);
+		project.initConfigParam(GSConfigKey.WRITED_KRAKEN_STYLE_OUT, true);
+		
 		GSMaker maker = new GSMaker(project);
 
 		String[] taxids = new String[] { "64320", "12637", "11053", "11060", "11069", "11070" };
@@ -71,7 +74,7 @@ public class DB2FastqGoalTest {
 
 		for (int i = 0; i < taxids.length; i++) {
 			File file = goal.getOutputFile(taxids[i]);
-			MatchingResult result = maker.match(false, "", file.toString());
+			MatchingResult result = maker.match(false, taxids[i], file.toString());
 			Map<String, CountsPerTaxid> map = result.getTaxid2Stats();
 			assertEquals(kmers[i], map.get(taxids[i]).getKMers());
 			assertEquals(kmers[i], map.get(taxids[i]).getUniqueKMers());
