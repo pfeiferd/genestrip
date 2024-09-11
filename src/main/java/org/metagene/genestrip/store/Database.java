@@ -36,7 +36,9 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
+import org.metagene.genestrip.store.KMerSortedArray.ValueConverter;
 import org.metagene.genestrip.tax.SmallTaxTree;
+import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
@@ -56,6 +58,15 @@ public class Database implements Serializable {
 
 	public KMerSortedArray<String> getKmerStore() {
 		return kmerStore;
+	}
+
+	public KMerSortedArray<SmallTaxIdNode> convertKMerStore() {
+		return new KMerSortedArray<SmallTaxIdNode>(kmerStore, new ValueConverter<String, SmallTaxIdNode>() {
+			@Override
+			public SmallTaxIdNode convertValue(String value) {
+				return taxTree.getNodeByTaxId(value);
+			}
+		});
 	}
 
 	public SmallTaxTree getTaxTree() {

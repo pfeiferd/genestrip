@@ -422,13 +422,17 @@ public class GSProject extends Project {
 
 	protected List<File> findFilesByGlobPattern(File rootDir, String pattern) {
 		List<File> res = null;
-		File dir = rootDir;
-		if (dir == null) {
+		File dir;
+		if (rootDir == null) {
 			dir = new File(pattern).getParentFile();
+		}
+		else {
+			dir = new File(rootDir, pattern).getParentFile();
 		}
 		if (dir != null) {
 			File[] files = dir.listFiles();
 			if (files != null && files.length > 0) {
+				pattern = new File(pattern).getName();
 				PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
 				for (File file : files) {
 					Path path = file.toPath();

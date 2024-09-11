@@ -97,16 +97,7 @@ public class MatchGoal extends MultiFileGoal {
 				wrapper.getKmerStore().setUseFilter(booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH));
 
 				SmallTaxTree taxTree = wrapper.getTaxTree();
-
-				KMerSortedArray<SmallTaxIdNode> store = new KMerSortedArray<SmallTaxIdNode>(wrapper.getKmerStore(),
-						new ValueConverter<String, SmallTaxIdNode>() {
-							@Override
-							public SmallTaxIdNode convertValue(String value) {
-								return taxTree.getNodeByTaxId(value);
-							}
-						});
-
-				matcher = createMatcher(store,
+				matcher = createMatcher(wrapper.convertKMerStore(),
 						(booleanConfigValue(GSConfigKey.CLASSIFY_READS) && !GSGoalKey.MATCHLR.equals(getKey()))
 								? taxTree
 								: null,
