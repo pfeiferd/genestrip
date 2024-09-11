@@ -216,7 +216,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 		CountsPerTaxid stats = null;
 
 		long kmer = -1;
-		for (int i = 0; i <= max; i++) {
+		for (int i = 0; i < max; i++) {
 			// TODO: Inline all of this...
 			if (kmer == -1) {
 				kmer = reverse ? CGAT.kMerToLongReverse(entry.read, i, k, entry.badPos)
