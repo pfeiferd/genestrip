@@ -70,7 +70,7 @@ Moreover it creates a Zip folder `target/genestrip-${version}-windows-x64.zip` t
 When extracted Genestrip can be executed via `bin\genestrip.exe` (on a Windows x86, 64 bit architecture). It will search for the above JRE for 
 execution under the relative location `..\lib\jre`. So the folders `bin` and `lib` should be kept together accordingly. **These few files is all it takes to run Genestrip under Windows!** There is no additional JRE necessary.
 
-For convenience, the ready-made Zip folder `genestrip-${version}-windows-x64.zip` is also [publicly available for download on Google Drive](https://drive.google.com/file/d/1gjOCMhO55PBFGNy3jvwHzp79p_Wo-ixt/view?usp=sharing).
+For convenience, the ready-made Zip folder `genestrip-${version}-windows-x64.zip` is also [publicly available for download on genestrip.org](https://www.genestrip.org/dbs/bin).
 
 ### Runnning the JUnit tests
 
@@ -127,7 +127,7 @@ A database covering more species may require more memory - especially while gene
 
 ### Some preconfigured and ready-made databases
 
-There is a separate project [Genestrip-DB](https://github.com/pfeiferd/genestrip-db) on GitHub that covers [8 databases](https://github.com/pfeiferd/genestrip-db/blob/main/README.md#the-databases) and offers a [corresponding download from Google Drive](https://drive.google.com/drive/folders/1cmMPjHTAs4pEti4eEM-gOngvOn39btdU?usp=sharing). 
+There is a separate project [Genestrip-DB](https://github.com/pfeiferd/genestrip-db) on GitHub that covers [several databases](https://github.com/pfeiferd/genestrip-db/blob/main/README.md#the-databases) and offers a [corresponding download from genestrip.org](https://www.genestrip.org/dbs/data). 
 
 ## Analysis with Genestrip
 
