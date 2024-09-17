@@ -56,7 +56,7 @@ Here is the dependency:
 <dependency>
 	<groupId>org.genestrip</groupId>
 	<artifactId>genestrip</artifactId>
-	<version>1.1</version>
+	<version>1.4</version>
 </dependency>
 ```
 You may check for higher versions and update the dependency accordingly...
