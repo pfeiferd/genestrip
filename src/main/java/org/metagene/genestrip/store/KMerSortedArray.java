@@ -302,13 +302,10 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			if (nextValueIndex == MAX_VALUES) {
 				throw new IllegalStateException("Too many different values - only " + MAX_VALUES + " are possible.");
 			}
-			// This is important in the multi-threading context of the update() method:
-			synchronized (this) {
-				valueMap.put(value, nextValueIndex);
-				indexMap[nextValueIndex] = value;
-				sindex = nextValueIndex;
-				nextValueIndex++;
-			}
+			valueMap.put(value, nextValueIndex);
+			indexMap[nextValueIndex] = value;
+			sindex = nextValueIndex;
+			nextValueIndex++;
 		}
 		return sindex;
 	}
@@ -368,7 +365,10 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				throw new NullPointerException("Null is not allowed as a value.");
 			}
 			if (newValue != oldValue && !newValue.equals(oldValue)) {
-				index = getAddValueIndex(newValue);
+				// This is important in the multi-threading context:
+				synchronized (valueMap) {
+					index = getAddValueIndex(newValue);
+				}
 				if (largeKmers != null) {
 					BigArrays.set(largeValueIndexes, pos, index);
 				} else {
