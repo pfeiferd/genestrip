@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.Collection;
 
 import org.apache.commons.logging.Log;
+import org.metagene.genestrip.GSConfigKey.SeqType;
 import org.metagene.genestrip.io.BufferedLineReader;
 import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.io.StreamingResource.StreamAccess;
@@ -41,17 +42,28 @@ public abstract class AccessionFileProcessor {
 
 	protected static final String[] COMPLETE_GENOMIC_ACCESSION_PREFIXES = { "AC_", "NC_", "NZ_" };
 
+	protected static final String[] RNA_PREFIXES = { "NR_", "XR_" };
+
+	protected static final String[] M_RNA_PREFIXES = { "NM_", "XM_" };
+
 	protected final Log logger = GSLogFactory.getLog("accreader");
 
 	private final long recordLogCycle = 1000 * 1000 * 10;
 	private final boolean completeOnly;
 	private final RefSeqCategory[] categories;
+	private final boolean dna;
+	private final boolean rna;
+	private final boolean mrna;
 
-	public AccessionFileProcessor(Collection<RefSeqCategory> categories, boolean completeOnly) {
+	public AccessionFileProcessor(Collection<RefSeqCategory> categories, SeqType seqType, boolean completeOnly) {
 		this.completeOnly = completeOnly;
-		// Converting to array makes iterator below way more efficient (less/no object allocations) - 
+		// Converting to array makes iterator below way more efficient (less/no object
+		// allocations) -
 		// found via optimizer ...
 		this.categories = categories.toArray(new RefSeqCategory[categories.size()]);
+		dna = SeqType.GENOMIC.equals(seqType) || SeqType.ALL.equals(seqType);
+		rna = SeqType.RNA.equals(seqType) || SeqType.ALL.equals(seqType) || SeqType.ALL_RNA.equals(seqType);
+		mrna = SeqType.M_RNA.equals(seqType) || SeqType.ALL.equals(seqType) || SeqType.ALL_RNA.equals(seqType);
 	}
 
 	public void processCatalog(StreamingResource catalogFile) {
@@ -71,7 +83,8 @@ public abstract class AccessionFileProcessor {
 					int pos2 = ByteArrayUtil.indexOf(target, pos1 + 1, size, '\t');
 					int pos3 = ByteArrayUtil.indexOf(target, pos2 + 1, size, '\t');
 					int pos4 = ByteArrayUtil.indexOf(target, pos3 + 1, size, '\t');
-					if (isGenomicAccession(target, pos2 + 1)) {
+					if ((dna && isGenomicAccession(target, pos2 + 1)) || (rna && isRNAAccession(target, pos2 + 1))
+							|| (mrna && isMRNAAccession(target, pos2 + 1))) {
 						if (containsCategory(target, pos3 + 1, pos4, categories)) {
 							handleEntry(target, pos1, pos2 + 1, pos3);
 						}
@@ -112,6 +125,24 @@ public abstract class AccessionFileProcessor {
 
 	protected boolean isGenomicAccession(byte[] outerArray, int start) {
 		for (String prefix : completeOnly ? COMPLETE_GENOMIC_ACCESSION_PREFIXES : ALL_GENOMIC_ACCESSION_PREFIXES) {
+			if (ByteArrayUtil.startsWith(outerArray, start, prefix)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	protected boolean isRNAAccession(byte[] outerArray, int start) {
+		for (String prefix : RNA_PREFIXES) {
+			if (ByteArrayUtil.startsWith(outerArray, start, prefix)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	protected boolean isMRNAAccession(byte[] outerArray, int start) {
+		for (String prefix : M_RNA_PREFIXES) {
 			if (ByteArrayUtil.startsWith(outerArray, start, prefix)) {
 				return true;
 			}

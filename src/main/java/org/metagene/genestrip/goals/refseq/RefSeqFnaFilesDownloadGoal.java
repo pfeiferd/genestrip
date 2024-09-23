@@ -76,8 +76,10 @@ public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
 		// TODO: Code not very elegant - but whatever...
 		switch ((SeqType) configValue(GSConfigKey.SEQ_TYPE)) {
 		case RNA:
+		case M_RNA:
+		case ALL_RNA:
 			return filename.endsWith(".rna.fna.gz") || filename.endsWith(".rna.fna");
-		case BOTH:
+		case ALL:
 			return filename.endsWith(".genomic.fna.gz") || filename.endsWith(".genomic.fna")
 					|| filename.endsWith(".rna.fna.gz") || filename.endsWith(".rna.fna");
 		case GENOMIC:

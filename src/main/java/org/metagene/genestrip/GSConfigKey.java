@@ -71,7 +71,7 @@ public enum GSConfigKey implements ConfigKey {
 	IGNORE_MISSING_FASTAS("ignoreMissingFastas", new BooleanConfigParamInfo(false), GSGoalKey.DB),
 	@MDDescription("The number of download attempts for a file before giving up.")
 	MAX_DOWNLOAD_TRIES("maxDownloadTries", new IntConfigParamInfo(1, 1024, 5), GSGoalKey.DB),
-	@MDDescription("Which type of sequence files to include from the RefSeq. Possible values are `genomic`, `rna` or `both`. RNA files from the RefSeq end with `rna.fna.gz`, whereas genomes end with `genomic.fna.gz`.")
+	@MDDescription("Which type of sequence files to include from the RefSeq. RNA files from the RefSeq end with `rna.fna.gz`, whereas genomes end with `genomic.fna.gz`.")
 	SEQ_TYPE("seqType", new SeqTypeConfigParamInfo(SeqType.GENOMIC), GSGoalKey.DB),
 	@MDDescription("The rank up to which tax ids from `taxids.txt` will be completed by descendants of the taxonomy tree (the set rank included). "
 			+ "If not set, the completion will traverse down to the lowest possible levels of the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip). "
@@ -293,7 +293,7 @@ public enum GSConfigKey implements ConfigKey {
 	}
 
 	public static enum SeqType {
-		GENOMIC, RNA, BOTH;
+		GENOMIC, RNA, M_RNA, ALL_RNA, ALL;
 
 		public static SeqType byName(String name) {
 			for (SeqType r : SeqType.values()) {
