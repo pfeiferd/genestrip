@@ -43,3 +43,4 @@
 |`fastqmaptransform`||Transform URLs of fastq files to be downloaded to local paths.|
 |`fastqdownload`||Download fastq files given via URLs as requested.|
 |`krakenres`||For internal use (to invoke kraken).|
+|`dbdownload`||Download and install a project's database from a URL.|
