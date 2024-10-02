@@ -414,7 +414,7 @@ public class GSMaker extends Maker<GSProject> {
 				getGoal(GSGoalKey.SETUP)) {
 			@Override
 			protected void doMakeThis() {
-				Map<String, List<StreamingResource>> map = createFastqMap(key, pathsOrURLs, null);
+				Map<String, List<StreamingResource>> map = createFastqMap(key, pathsOrURLs, null, null);
 				set(map);
 				if (getLogger().isInfoEnabled()) {
 					getLogger().info("Derived fastq map: " + map);
@@ -445,7 +445,7 @@ public class GSMaker extends Maker<GSProject> {
 				getGoal(GSGoalKey.SETUP)) {
 			@Override
 			protected void doMakeThis() {
-				Map<String, List<StreamingResource>> map = createFastqMap(key, pathsOrURLs, null);
+				Map<String, List<StreamingResource>> map = createFastqMap(key, pathsOrURLs, null, null);
 				set(map);
 				if (getLogger().isInfoEnabled()) {
 					getLogger().info("Derived fastq map: " + map);
