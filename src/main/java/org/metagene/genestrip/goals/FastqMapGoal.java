@@ -59,26 +59,33 @@ public class FastqMapGoal extends ObjectGoal<Map<String, List<StreamingResource>
 	@Override
 	protected void doMakeThis() {
 		Map<String, List<StreamingResource>> map = createFastqMap(getProject().getKey(),
-				getProject().getFastqResources(), getProject().getFastqMapFile());
+				getProject().getFastqResources(), getProject().getStreamingFastqResources(),
+				getProject().getFastqMapFile());
 		set(map);
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Derived fastq map: " + map);
 		}
 	}
 
-	protected Map<String, List<StreamingResource>> createFastqMap(String key, String[] fastqs, String mapFilePath) {
+	protected Map<String, List<StreamingResource>> createFastqMap(String key, String[] fastqs,
+			List<StreamingResource> otherResources, String mapFilePath) {
 		// Linked hash map preserve order of keys as entered.
 		Map<String, List<StreamingResource>> resMap = new LinkedHashMap<String, List<StreamingResource>>();
 
-		if (fastqs != null && fastqs.length > 0) {
+		if ((fastqs != null && fastqs.length > 0) || (otherResources != null && !otherResources.isEmpty())) {
 			List<StreamingResource> resources = new ArrayList<StreamingResource>();
-			for (String pathOrURL : fastqs) {
-				List<StreamingResource> res = getResources(pathOrURL);
-				if (res != null) {
-					resources.addAll(res);
-				} else if (getLogger().isWarnEnabled()) {
-					getLogger().warn("Missing fastq resource: " + pathOrURL);
+			if (fastqs != null) {
+				for (String pathOrURL : fastqs) {
+					List<StreamingResource> res = getResources(pathOrURL);
+					if (res != null) {
+						resources.addAll(res);
+					} else if (getLogger().isWarnEnabled()) {
+						getLogger().warn("Missing fastq resource: " + pathOrURL);
+					}
 				}
+			}
+			if (otherResources != null) {
+				resources.addAll(otherResources);
 			}
 			if (!resources.isEmpty()) {
 				if (key == null) {

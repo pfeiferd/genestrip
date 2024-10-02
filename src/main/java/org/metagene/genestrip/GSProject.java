@@ -38,6 +38,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
+import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.make.ConfigKey;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.Project;
@@ -167,6 +168,11 @@ public class GSProject extends Project {
 
 	public String[] getFastqResources() {
 		return fastqResources;
+	}
+	
+	// For override...
+	public List<StreamingResource> getStreamingFastqResources() {
+		return null;
 	}
 
 	public String getFastqMapFile() {

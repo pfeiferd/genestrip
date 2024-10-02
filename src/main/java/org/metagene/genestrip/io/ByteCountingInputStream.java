@@ -24,7 +24,6 @@
  */
 package org.metagene.genestrip.io;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -33,7 +32,7 @@ public class ByteCountingInputStream extends InputStream {
 	private long readToMark;
 	private final InputStream delegate;
 
-	public ByteCountingInputStream(InputStream delegate) throws FileNotFoundException {
+	public ByteCountingInputStream(InputStream delegate) {
 		this.delegate = delegate;
 	}
 

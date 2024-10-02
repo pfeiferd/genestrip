@@ -30,7 +30,7 @@ import java.io.InputStream;
 
 public interface StreamingResource {
 	interface StreamAccess extends Closeable {
-		public InputStream getInputStream();
+		public InputStream getInputStream() throws IOException;
 	
 		public long getBytesRead();
 	
