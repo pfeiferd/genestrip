@@ -40,7 +40,7 @@ import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSMaker;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.goals.GSFileDownloadGoal;
-import org.metagene.genestrip.io.StreamingResource;
+import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.make.FileDownloadGoal;
 import org.metagene.genestrip.make.GoalKey.DefaultGoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -126,7 +126,7 @@ public class AccuracyTest {
 		ExecutionContext bundle = new DefaultExecutionContext(0,
 				project.longConfigValue(GSConfigKey.LOG_PROGRESS_UPDATE_CYCLE));
 
-		ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapGoal = (ObjectGoal<Map<String, List<StreamingResource>>, GSProject>) maker
+		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal = (ObjectGoal<Map<String, StreamingResourceStream>, GSProject>) maker
 				.getGoal(GSGoalKey.FASTQ_MAP);
 
 		ObjectGoal<TaxTree, GSProject> taxTreeGoal = (ObjectGoal<TaxTree, GSProject>) maker.getGoal(GSGoalKey.TAXTREE);
@@ -150,7 +150,7 @@ public class AccuracyTest {
 		taxIdsTxtGoal.make();
 		fastaTransformGoal.make();
 
-		ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapGoal = (ObjectGoal<Map<String, List<StreamingResource>>, GSProject>) maker
+		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal = (ObjectGoal<Map<String, StreamingResourceStream>, GSProject>) maker
 				.getGoal(GSGoalKey.FASTQ_MAP);
 
 		KrakenAccuracyMatchGoal krakenAccuracyMatchGoal = new KrakenAccuracyMatchGoal(project,

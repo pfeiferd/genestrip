@@ -26,7 +26,6 @@ package org.metagene.genestrip.goals;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 import org.metagene.genestrip.ExecutionContext;
@@ -35,7 +34,7 @@ import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.bloom.FastqBloomFilter;
-import org.metagene.genestrip.io.StreamingResource;
+import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 
@@ -45,7 +44,7 @@ public class FilterGoal extends MultiFileGoal {
 
 	@SafeVarargs
 	public FilterGoal(GSProject project, 
-			ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapGoal, LoadIndexGoal indexedGoal,
+			ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal, LoadIndexGoal indexedGoal,
 			ExecutionContext executorServiceBundle, Goal<GSProject>... deps) {
 		super(project, GSGoalKey.FILTER, fastqMapGoal, append(deps, indexedGoal));
 		this.executorServiceBundle = executorServiceBundle;
@@ -62,7 +61,7 @@ public class FilterGoal extends MultiFileGoal {
 		FastqBloomFilter f = null;
 		try {
 			GSProject project = getProject();
-			List<StreamingResource> resources = fileToFastqs.get(file);
+			StreamingResourceStream resources = fileToFastqs.get(file);
 			File dumpFile = booleanConfigValue(GSConfigKey.WRITED_DUMPED_FASTQ)
 					? project.getOutputFile("dumped", file.getName(), FileType.FASTQ_RES)
 					: null;

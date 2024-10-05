@@ -30,7 +30,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +38,8 @@ import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.fastq.AbstractLoggingFastqStreamer;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.io.StreamingResource;
+import org.metagene.genestrip.io.StreamingResourceListStream;
+import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerUniqueCounter;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
@@ -93,10 +94,10 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 
 	public MatchingResult runMatcher(StreamingResource fastq, File filteredFile, File krakenOutStyleFile,
 			KMerUniqueCounter uniqueCounter) throws IOException {
-		return runMatcher(Collections.singletonList(fastq), filteredFile, krakenOutStyleFile, uniqueCounter);
+		return runMatcher(new StreamingResourceListStream(fastq), filteredFile, krakenOutStyleFile, uniqueCounter);
 	}
 
-	public MatchingResult runMatcher(List<StreamingResource> fastqs, File filteredFile, File krakenOutStyleFile,
+	public MatchingResult runMatcher(StreamingResourceStream fastqs, File filteredFile, File krakenOutStyleFile,
 			KMerUniqueCounter uniqueCounter) throws IOException {
 		try (OutputStream lindexed = filteredFile != null ? StreamProvider.getOutputStreamForFile(filteredFile) : null;
 				// A PrintStream is implicitly synchronized. So we don't need to worry about

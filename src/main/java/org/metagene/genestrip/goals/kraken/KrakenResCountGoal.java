@@ -45,6 +45,7 @@ import org.metagene.genestrip.goals.MultiFileGoal;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.io.StreamingFileResource;
 import org.metagene.genestrip.io.StreamingResource;
+import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.kraken.KrakenExecutor;
 import org.metagene.genestrip.kraken.KrakenResultListener;
 import org.metagene.genestrip.kraken.KrakenResultProcessor;
@@ -58,7 +59,7 @@ public class KrakenResCountGoal extends MultiFileGoal {
 
 	@SafeVarargs
 	public KrakenResCountGoal(GSProject project, 
-			ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapGoal,
+			ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal,
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, Goal<GSProject>... deps) {
 		super(project, GSGoalKey.KRAKENRES, fastqMapGoal, Goal.append(deps, taxNodesGoal));
 		this.taxNodesGoal = taxNodesGoal;

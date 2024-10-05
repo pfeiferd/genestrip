@@ -39,6 +39,8 @@ import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.io.StreamingFileResource;
 import org.metagene.genestrip.io.StreamingResource;
+import org.metagene.genestrip.io.StreamingResourceListStream;
+import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.io.StreamingURLResource;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -46,13 +48,12 @@ import org.metagene.genestrip.make.ObjectGoal;
 public class FastqDownloadsGoal extends GSFileDownloadGoal {
 	private List<File> files;
 	private final Map<File, URL> fileToURL;
-	private final ObjectGoal<Map<String, List<StreamingResource>>, GSProject> mapGoal;
-	private final ObjectGoal<Map<String, List<StreamingResource>>, GSProject> transformGoal;
+	private final ObjectGoal<Map<String, StreamingResourceStream>, GSProject> mapGoal;
+	private final ObjectGoal<Map<String, StreamingResourceStream>, GSProject> transformGoal;
 
 	@SafeVarargs
-	public FastqDownloadsGoal(GSProject project,
-			ObjectGoal<Map<String, List<StreamingResource>>, GSProject> mapGoal,
-			ObjectGoal<Map<String, List<StreamingResource>>, GSProject> transformGoal, Goal<GSProject>... deps) {
+	public FastqDownloadsGoal(GSProject project, ObjectGoal<Map<String, StreamingResourceStream>, GSProject> mapGoal,
+			ObjectGoal<Map<String, StreamingResourceStream>, GSProject> transformGoal, Goal<GSProject>... deps) {
 		super(project, GSGoalKey.FASTQ_DOWNLOAD, Goal.append(deps, mapGoal, transformGoal));
 		fileToURL = new HashMap<File, URL>();
 		this.mapGoal = mapGoal;
@@ -70,17 +71,21 @@ public class FastqDownloadsGoal extends GSFileDownloadGoal {
 			files = new ArrayList<File>();
 			for (String key : mapGoal.get().keySet()) {
 				int index = 0;
-				List<StreamingResource> list = mapGoal.get().get(key);
-				for (StreamingResource resource : list) {
-					if (resource instanceof StreamingURLResource) {
-						StreamingResource fr = transformGoal.get().get(key).get(index);
-						if (fr instanceof StreamingFileResource) {
-							File file = ((StreamingFileResource) fr).getFile();
-							files.add(file);
-							fileToURL.put(file, ((StreamingURLResource) resource).getURL());
+				StreamingResourceStream list = mapGoal.get().get(key);
+				if (list instanceof StreamingResourceListStream) {
+					StreamingResourceStream ll = (StreamingResourceListStream) list;
+					for (StreamingResource resource : ll) {
+						if (resource instanceof StreamingURLResource) {
+							StreamingResource fr = ((StreamingResourceListStream) transformGoal.get().get(key))
+									.getList().get(index);
+							if (fr instanceof StreamingFileResource) {
+								File file = ((StreamingFileResource) fr).getFile();
+								files.add(file);
+								fileToURL.put(file, ((StreamingURLResource) resource).getURL());
+							}
 						}
+						index++;
 					}
-					index++;
 				}
 			}
 		}

@@ -78,16 +78,6 @@ public class StreamingURLResource implements StreamingResource {
 	}
 
 	@Override
-	public long getSize() throws IOException {
-		return -1;
-	}
-
-	@Override
-	public boolean isExists() {
-		return true;
-	}
-
-	@Override
 	public String getName() {
 		return name;
 	}

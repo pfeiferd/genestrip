@@ -81,11 +81,6 @@ public class StreamingFileResource implements StreamingResource {
 	}
 	
 	@Override
-	public boolean isExists() {
-		return file.exists();
-	}
-	
-	@Override
 	public String getName() {
 		return file.getName();
 	}

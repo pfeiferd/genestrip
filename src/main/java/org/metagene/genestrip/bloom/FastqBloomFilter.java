@@ -27,12 +27,11 @@ package org.metagene.genestrip.bloom;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.List;
 
 import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.fastq.AbstractLoggingFastqStreamer;
 import org.metagene.genestrip.io.StreamProvider;
-import org.metagene.genestrip.io.StreamingResource;
+import org.metagene.genestrip.io.StreamingResourceStream;
 
 public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 	private final double positiveRatio;
@@ -74,7 +73,7 @@ public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 		return new MyReadEntry(maxReadSizeBytes);
 	}
 
-	public void runFilter(List<StreamingResource> fastqs, File filteredFile, File restFile) throws IOException {
+	public void runFilter(StreamingResourceStream fastqs, File filteredFile, File restFile) throws IOException {
 		try (OutputStream lindexed = filteredFile != null ? StreamProvider.getOutputStreamForFile(filteredFile) : null;
 				OutputStream lnotIndexed = restFile != null ? StreamProvider.getOutputStreamForFile(restFile) : null) {
 			indexed = lindexed;

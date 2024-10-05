@@ -31,54 +31,48 @@ import java.util.Map;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
-import org.metagene.genestrip.io.StreamingResource;
+import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
 
 public abstract class MultiFileGoal extends FileListGoal<GSProject> {
-	protected final ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapGoal;
-	protected final Map<File, List<StreamingResource>> fileToFastqs;
+	protected final ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal;
+	protected final Map<File, StreamingResourceStream> fileToFastqs;
 	protected final Map<File, String> fileToKeyMap;
 
 	@SafeVarargs
 	public MultiFileGoal(GSProject project, GoalKey key,
-			ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapGoal, Goal<GSProject>... deps) {
+			ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal, Goal<GSProject>... deps) {
 		super(project, key, (List<File>) null, append(deps, fastqMapGoal));
 		this.fastqMapGoal = fastqMapGoal;
-		fileToFastqs = new HashMap<File, List<StreamingResource>>();
+		fileToFastqs = new HashMap<File, StreamingResourceStream>();
 		fileToKeyMap = new HashMap<File, String>();
 	}
 
 	protected File getSourceDir() {
 		return getProject().getFastqDir();
 	}
-	
+
 	public Map<File, String> getFileToKeyMap() {
 		return fileToKeyMap;
 	}
 
 	@Override
 	protected void provideFiles() {
-		Map<String, List<StreamingResource>> keyToFastqs = fastqMapGoal.get();
+		Map<String, StreamingResourceStream> keyToFastqs = fastqMapGoal.get();
 		for (String key : keyToFastqs.keySet()) {
-			File matchFile;
-			if (key != null) {
-				matchFile = getProject().getOutputFile(getKey().getName(), key, null, getFileType(), isUseGZip());
-			} else {
-				StreamingResource file = keyToFastqs.get(null).get(0);
-				matchFile = getProject().getOutputFile(getKey().getName(), null, file.getName(), getFileType(), isUseGZip());
-			}
+			File matchFile = getProject().getOutputFile(getKey().getName(), key, null, getFileType(), isUseGZip());
 			addFile(matchFile);
 			fileToFastqs.put(matchFile, keyToFastqs.get(key));
 			fileToKeyMap.put(matchFile, key);
 		}
 	}
-	
+
 	protected boolean isUseGZip() {
 		return false;
 	}
-	
+
 	protected abstract FileType getFileType();
 }

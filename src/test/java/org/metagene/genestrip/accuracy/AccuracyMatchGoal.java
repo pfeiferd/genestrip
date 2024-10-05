@@ -28,7 +28,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.metagene.genestrip.ExecutionContext;
@@ -36,7 +35,7 @@ import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.goals.MatchGoal;
 import org.metagene.genestrip.io.StreamProvider;
-import org.metagene.genestrip.io.StreamingResource;
+import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -60,7 +59,7 @@ public class AccuracyMatchGoal extends MatchGoal {
 
 	@SafeVarargs
 	public AccuracyMatchGoal(GSProject project, GoalKey goalKey,
-			ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapGoal,
+			ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal,
 			ObjectGoal<Database, GSProject> storeGoal, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
 			ExecutionContext bundle, Goal<GSProject>... deps) {
 		super(project, goalKey, fastqMapGoal, storeGoal, bundle, append(deps, taxTreeGoal));

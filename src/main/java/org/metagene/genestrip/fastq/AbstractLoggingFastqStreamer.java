@@ -25,10 +25,10 @@
 package org.metagene.genestrip.fastq;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.io.StreamingResource;
+import org.metagene.genestrip.io.StreamingResourceStream;
 
 public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
 	private StreamingResource.StreamAccess byteCountAccess;
@@ -52,21 +52,14 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
 		this.logUpdateCycle = bundle.getLogUpdateCycle();
 	}
 
-	protected void processFastqStreams(List<StreamingResource> fastqs) throws IOException {
+	protected void processFastqStreams(StreamingResourceStream fastqs) throws IOException {
 		if (logger.isInfoEnabled()) {
 			logger.info("Number of consumer threads: " + bundle.getThreads());
 		}
 		
 		startTime = System.currentTimeMillis();
 		totalCount = fastqs.size();
-		for (StreamingResource fastq : fastqs) {
-			long size = fastq.getSize();
-			if (size < 0) {
-				fastqsFileSize = -1;
-				break;
-			}
-			fastqsFileSize += size;
-		}
+		fastqsFileSize = fastqs.getTotalByteSize();
 		coveredFilesSize = 0;
 		coveredCounter = 0;
 		totalReads = 0;

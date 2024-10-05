@@ -25,9 +25,7 @@
 package org.metagene.genestrip.goals;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.metagene.genestrip.GSGoalKey;
@@ -35,16 +33,18 @@ import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.io.StreamingFileResource;
 import org.metagene.genestrip.io.StreamingResource;
+import org.metagene.genestrip.io.StreamingResourceListStream;
+import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.io.StreamingURLResource;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 
-public class FastqMapTransformGoal extends ObjectGoal<Map<String, List<StreamingResource>>, GSProject> {
-	private final ObjectGoal<Map<String, List<StreamingResource>>, GSProject> inputGoal;
+public class FastqMapTransformGoal extends ObjectGoal<Map<String, StreamingResourceStream>, GSProject> {
+	private final ObjectGoal<Map<String, StreamingResourceStream>, GSProject> inputGoal;
 
 	@SafeVarargs
 	public FastqMapTransformGoal(GSProject project,
-			ObjectGoal<Map<String, List<StreamingResource>>, GSProject> inputGoal, Goal<GSProject>... deps) {
+			ObjectGoal<Map<String, StreamingResourceStream>, GSProject> inputGoal, Goal<GSProject>... deps) {
 		super(project, GSGoalKey.FASTQ_MAP_TRANSFORM, append(deps, inputGoal));
 		this.inputGoal = inputGoal;
 	}
@@ -53,7 +53,7 @@ public class FastqMapTransformGoal extends ObjectGoal<Map<String, List<Streaming
 	protected void doMakeThis() {
 		if (getProject().isDownloadFastqs() || getProject().isDownloadFastqsToCommon()) {
 			// Linked hash map preserve order of keys as entered.
-			Map<String, List<StreamingResource>> map = new LinkedHashMap<String, List<StreamingResource>>();
+			Map<String, StreamingResourceStream> map = new LinkedHashMap<String, StreamingResourceStream>();
 			if (getProject().isDownloadFastqs()) {
 				fillMap(map, getProject().getFastqDir());
 			}
@@ -69,9 +69,9 @@ public class FastqMapTransformGoal extends ObjectGoal<Map<String, List<Streaming
 		}
 	}
 
-	protected void fillMap(Map<String, List<StreamingResource>> map, File dir) {
+	protected void fillMap(Map<String, StreamingResourceStream> map, File dir) {
 		for (String key : inputGoal.get().keySet()) {
-			List<StreamingResource> list = new ArrayList<StreamingResource>();
+			StreamingResourceListStream list = new StreamingResourceListStream();
 			for (StreamingResource resource : inputGoal.get().get(key)) {
 				if (resource instanceof StreamingURLResource) {
 					StreamingURLResource urlRes = (StreamingURLResource) resource;
@@ -80,7 +80,7 @@ public class FastqMapTransformGoal extends ObjectGoal<Map<String, List<Streaming
 							!urlRes.isNoGZ());
 					resource = new StreamingFileResource(file);
 				}
-				list.add(resource);
+				list.getList().add(resource);
 			}
 			map.put(key, list);
 		}

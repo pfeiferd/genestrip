@@ -34,7 +34,9 @@ public interface StreamingResource {
 	
 		public long getBytesRead();
 	
-		public long getSize() throws IOException;
+		default long getSize() throws IOException {
+			return -1;
+		}
 		
 		@Override
 		default void close() throws IOException {
@@ -45,11 +47,11 @@ public interface StreamingResource {
 		}
 	}
 	
-	public long getSize() throws IOException;
+	default long getSize() throws IOException {
+		return -1;
+	}
 
 	public String getName();
-	
-	public boolean isExists();
 
 	public StreamAccess openStream() throws IOException;
 }

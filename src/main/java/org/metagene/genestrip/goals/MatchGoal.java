@@ -28,7 +28,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.metagene.genestrip.ExecutionContext;
@@ -37,7 +36,7 @@ import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.io.StreamProvider;
-import org.metagene.genestrip.io.StreamingResource;
+import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -62,7 +61,7 @@ public class MatchGoal extends MultiFileGoal {
 	private KMerUniqueCounter uniqueCounter;
 
 	@SafeVarargs
-	public MatchGoal(GSProject project, GoalKey key, ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapGoal,
+	public MatchGoal(GSProject project, GoalKey key, ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal,
 			ObjectGoal<Database, GSProject> storeGoal, ExecutionContext bundle, Goal<GSProject>... deps) {
 		super(project, key, fastqMapGoal, Goal.append(deps, storeGoal));
 		this.storeGoal = storeGoal;
@@ -80,7 +79,7 @@ public class MatchGoal extends MultiFileGoal {
 		try {
 			File filteredFile = null;
 			File krakenOutStyleFile = null;
-			List<StreamingResource> fastqs = fileToFastqs.get(file);
+			StreamingResourceStream fastqs = fileToFastqs.get(file);
 
 			if (booleanConfigValue(GSConfigKey.WRITED_FILTERED_FASTQ)) {
 				filteredFile = getProject().getOutputFile(getKey().getName(), null, file.getName(), FileType.FASTQ_RES,

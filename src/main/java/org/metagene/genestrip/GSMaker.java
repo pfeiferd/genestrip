@@ -36,7 +36,6 @@ import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
 import org.metagene.genestrip.goals.AdditionalDownloadsGoal;
 import org.metagene.genestrip.goals.AdditionalFastasGoal;
-import org.metagene.genestrip.goals.LoadIndexGoal;
 import org.metagene.genestrip.goals.DB2FastqGoal;
 import org.metagene.genestrip.goals.DB2FastqTaxNodesGoal;
 import org.metagene.genestrip.goals.DBInfoGoal;
@@ -46,6 +45,7 @@ import org.metagene.genestrip.goals.FastqMapTransformGoal;
 import org.metagene.genestrip.goals.FilledDBGoal;
 import org.metagene.genestrip.goals.FilterGoal;
 import org.metagene.genestrip.goals.LoadDBGoal;
+import org.metagene.genestrip.goals.LoadIndexGoal;
 import org.metagene.genestrip.goals.MatchGoal;
 import org.metagene.genestrip.goals.TaxIdFileDownloadGoal;
 import org.metagene.genestrip.goals.TaxNodesGoal;
@@ -68,7 +68,7 @@ import org.metagene.genestrip.goals.refseq.RefSeqFnaFilesDownloadGoal;
 import org.metagene.genestrip.goals.refseq.RefSeqRNumDownloadGoal;
 import org.metagene.genestrip.goals.refseq.StoreDBGoal;
 import org.metagene.genestrip.goals.refseq.StoreIndexGoal;
-import org.metagene.genestrip.io.StreamingResource;
+import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
@@ -371,11 +371,11 @@ public class GSMaker extends Maker<GSProject> {
 
 		// Use database and bloom filter
 
-		ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapGoal = new FastqMapGoal(project,
+		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal = new FastqMapGoal(project,
 				projectSetupGoal);
 		registerGoal(fastqMapGoal);
 
-		ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapTransfGoal = new FastqMapTransformGoal(
+		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapTransfGoal = new FastqMapTransformGoal(
 				project, fastqMapGoal, projectSetupGoal);
 		registerGoal(fastqMapTransfGoal);
 
@@ -410,11 +410,11 @@ public class GSMaker extends Maker<GSProject> {
 	}
 
 	protected MatchGoal createGoalChainForMatch(boolean lr, String key, String... pathsOrURLs) {
-		ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapGoal = new FastqMapGoal(getProject(),
+		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal = new FastqMapGoal(getProject(),
 				getGoal(GSGoalKey.SETUP)) {
 			@Override
 			protected void doMakeThis() {
-				Map<String, List<StreamingResource>> map = createFastqMap(key, pathsOrURLs, null, null);
+				Map<String, StreamingResourceStream> map = createFastqMap(key, pathsOrURLs, null, null, null);
 				set(map);
 				if (getLogger().isInfoEnabled()) {
 					getLogger().info("Derived fastq map: " + map);
@@ -422,7 +422,7 @@ public class GSMaker extends Maker<GSProject> {
 			}
 		};
 
-		ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapTransfGoal = new FastqMapTransformGoal(
+		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapTransfGoal = new FastqMapTransformGoal(
 				getProject(), fastqMapGoal, getGoal(GSGoalKey.SETUP));
 
 		FastqDownloadsGoal fastqDownloadsGoal = new FastqDownloadsGoal(getProject(), fastqMapGoal, fastqMapTransfGoal,
@@ -441,11 +441,11 @@ public class GSMaker extends Maker<GSProject> {
 	}
 
 	protected FilterGoal createGoalChainForFilter(String key, String... pathsOrURLs) {
-		ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapGoal = new FastqMapGoal(getProject(),
+		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal = new FastqMapGoal(getProject(),
 				getGoal(GSGoalKey.SETUP)) {
 			@Override
 			protected void doMakeThis() {
-				Map<String, List<StreamingResource>> map = createFastqMap(key, pathsOrURLs, null, null);
+				Map<String, StreamingResourceStream> map = createFastqMap(key, pathsOrURLs, null, null, null);
 				set(map);
 				if (getLogger().isInfoEnabled()) {
 					getLogger().info("Derived fastq map: " + map);
@@ -453,7 +453,7 @@ public class GSMaker extends Maker<GSProject> {
 			}
 		};
 
-		ObjectGoal<Map<String, List<StreamingResource>>, GSProject> fastqMapTransfGoal = new FastqMapTransformGoal(
+		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapTransfGoal = new FastqMapTransformGoal(
 				getProject(), fastqMapGoal, getGoal(GSGoalKey.SETUP));
 
 		FastqDownloadsGoal fastqDownloadsGoal = new FastqDownloadsGoal(getProject(), fastqMapGoal, fastqMapTransfGoal,

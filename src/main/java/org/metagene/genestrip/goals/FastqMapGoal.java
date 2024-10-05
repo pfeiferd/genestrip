@@ -43,11 +43,13 @@ import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.io.StreamingFileResource;
 import org.metagene.genestrip.io.StreamingResource;
+import org.metagene.genestrip.io.StreamingResourceListStream;
+import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.io.StreamingURLResource;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 
-public class FastqMapGoal extends ObjectGoal<Map<String, List<StreamingResource>>, GSProject> {
+public class FastqMapGoal extends ObjectGoal<Map<String, StreamingResourceStream>, GSProject> {
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#')
 			.setDelimiter(' ').setRecordSeparator('\n').build();
 
@@ -58,8 +60,8 @@ public class FastqMapGoal extends ObjectGoal<Map<String, List<StreamingResource>
 
 	@Override
 	protected void doMakeThis() {
-		Map<String, List<StreamingResource>> map = createFastqMap(getProject().getKey(),
-				getProject().getFastqResources(), getProject().getStreamingFastqResources(),
+		Map<String, StreamingResourceStream> map = createFastqMap(getProject().getKey(),
+				getProject().getFastqResources(), getProject().getExtraResourcesKey(), getProject().getExtraResources(),
 				getProject().getFastqMapFile());
 		set(map);
 		if (getLogger().isInfoEnabled()) {
@@ -67,29 +69,24 @@ public class FastqMapGoal extends ObjectGoal<Map<String, List<StreamingResource>
 		}
 	}
 
-	protected Map<String, List<StreamingResource>> createFastqMap(String key, String[] fastqs,
-			List<StreamingResource> otherResources, String mapFilePath) {
+	protected Map<String, StreamingResourceStream> createFastqMap(String key, String[] fastqs, String orKey,
+			StreamingResourceStream otherResources, String mapFilePath) {
 		// Linked hash map preserve order of keys as entered.
-		Map<String, List<StreamingResource>> resMap = new LinkedHashMap<String, List<StreamingResource>>();
+		Map<String, StreamingResourceStream> resMap = new LinkedHashMap<String, StreamingResourceStream>();
 
-		if ((fastqs != null && fastqs.length > 0) || (otherResources != null && !otherResources.isEmpty())) {
-			List<StreamingResource> resources = new ArrayList<StreamingResource>();
-			if (fastqs != null) {
-				for (String pathOrURL : fastqs) {
-					List<StreamingResource> res = getResources(pathOrURL);
-					if (res != null) {
-						resources.addAll(res);
-					} else if (getLogger().isWarnEnabled()) {
-						getLogger().warn("Missing fastq resource: " + pathOrURL);
-					}
+		if (fastqs != null && fastqs.length > 0) {
+			StreamingResourceListStream resources = new StreamingResourceListStream();
+			for (String pathOrURL : fastqs) {
+				List<StreamingResource> res = getResources(pathOrURL);
+				if (res != null) {
+					resources.getList().addAll(res);
+				} else if (getLogger().isWarnEnabled()) {
+					getLogger().warn("Missing fastq resource: " + pathOrURL);
 				}
 			}
-			if (otherResources != null) {
-				resources.addAll(otherResources);
-			}
-			if (!resources.isEmpty()) {
+			if (!resources.getList().isEmpty()) {
 				if (key == null) {
-					key = getProject().getFileBaseName(resources.get(0).getName());
+					key = getProject().getFileBaseName(resources.getList().get(0).getName());
 				}
 				resMap.put(key, resources);
 			}
@@ -103,18 +100,29 @@ public class FastqMapGoal extends ObjectGoal<Map<String, List<StreamingResource>
 						key = record.get(0);
 						List<StreamingResource> resources = getResources(record.get(1));
 						if (resources != null) {
-							List<StreamingResource> l = resMap.get(key);
-							if (l == null) {
-								l = new ArrayList<StreamingResource>();
-								resMap.put(key, l);
+							StreamingResourceListStream ll = (StreamingResourceListStream) resMap.get(key);
+							if (ll == null) {
+								ll = new StreamingResourceListStream();
+								resMap.put(key, ll);
 							}
-							l.addAll(resources);
+							ll.getList().addAll(resources);
 						} else if (getLogger().isWarnEnabled()) {
 							getLogger().warn("Missing fastq resource: " + record.get(1));
 						}
 					}
 				} catch (IOException e) {
 					throw new RuntimeException(e);
+				}
+			}
+		}
+		if (otherResources != null) {
+			if (orKey == null) {
+				getLogger().warn("Extra streaming resources key must not be null.");
+			} else {
+				if (resMap.containsKey(orKey)) {
+					getLogger().warn("Extra streaming resource not under unique key: " + orKey);
+				} else {
+					resMap.put(orKey, otherResources);
 				}
 			}
 		}
