@@ -99,7 +99,7 @@ public class MatchGoal extends MultiFileGoal {
 						(booleanConfigValue(GSConfigKey.CLASSIFY_READS) && !GSGoalKey.MATCHLR.equals(getKey()))
 								? taxTree
 								: null,
-						bundle);
+						bundle, booleanConfigValue(GSConfigKey.WITH_PROBS));
 				reporter = new ResultReporter(taxTree, longConfigValue(GSConfigKey.NORMALIZED_KMERS_FACTOR));
 				uniqueCounter = booleanConfigValue(GSConfigKey.COUNT_UNIQUE_KMERS)
 						? new KMerUniqueCounterBits(wrapper.getKmerStore(),
@@ -145,9 +145,9 @@ public class MatchGoal extends MultiFileGoal {
 	}
 
 	protected FastqKMerMatcher createMatcher(KMerSortedArray<SmallTaxIdNode> store, SmallTaxTree taxTree,
-			ExecutionContext bundle) {
+			ExecutionContext bundle, boolean withProbs) {
 		return new FastqKMerMatcher(store, intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
-				intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS),
+				intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, withProbs, intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS),
 				taxTree, intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS),
 				doubleConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT));
 	}

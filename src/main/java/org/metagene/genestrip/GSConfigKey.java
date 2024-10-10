@@ -159,7 +159,8 @@ public enum GSConfigKey implements ConfigKey {
 	MIN_POS_COUNT_FILTER("minPosCountFilter", new IntConfigParamInfo(0, 1024, 1), GSGoalKey.FILTER),
 	@MDDescription("Only effective if `minPosCountFilter=0`: The mininum ratio of a read's *k*-mers to be found in the bloom index such that the read is added to the filtered fastq file.")
 	POS_RATIO_FILTER("posRatioFilter", new DoubleConfigParamInfo(0, 1, 0.2), GSGoalKey.FILTER),
-
+	@MDDescription("Whether to process bp probabilities and potentially write them to filtered fastq files. (Takes slightly more memory if `true`.)")
+	WITH_PROBS("withProbs", new BooleanConfigParamInfo(false),  GSGoalKey.FILTER, GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 	// Kraken
 	KRAKEN_BIN("krakenBin", new StringConfigParamInfo("krakenuniq"), true),
 	KRAKEN_DB("krakenDB", new StringConfigParamInfo("krakenuniq"), true),

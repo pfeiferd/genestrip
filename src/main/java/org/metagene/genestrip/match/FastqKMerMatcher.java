@@ -73,9 +73,9 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 	protected PrintStream out;
 
 	public FastqKMerMatcher(KMerSortedArray<SmallTaxIdNode> kmerStore, int initialReadSize, int maxQueueSize,
-			ExecutionContext bundle, int maxKmerResCounts, SmallTaxTree taxTree, int maxPaths,
+			ExecutionContext bundle, boolean withProbs, int maxKmerResCounts, SmallTaxTree taxTree, int maxPaths,
 			double maxReadTaxErrorCount) {
-		super(kmerStore.getK(), initialReadSize, maxQueueSize, bundle, maxPaths);
+		super(kmerStore.getK(), initialReadSize, maxQueueSize, bundle, withProbs, maxPaths);
 		this.kmerStore = kmerStore;
 		this.initialReadSize = initialReadSize;
 		this.maxKmerResCounts = maxKmerResCounts;
@@ -88,8 +88,8 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 	}
 
 	@Override
-	protected ReadEntry createReadEntry(int initialReadSizeBytes, Object... config) {
-		return new MyReadEntry(initialReadSizeBytes, out != null, (int) config[0]);
+	protected ReadEntry createReadEntry(int initialReadSizeBytes, boolean withProbs, Object... config) {
+		return new MyReadEntry(initialReadSizeBytes, withProbs, (int) config[0]);
 	}
 
 	public MatchingResult runMatcher(StreamingResource fastq, File filteredFile, File krakenOutStyleFile,
@@ -391,8 +391,8 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 		public long[] indexPos;
 		public SmallTaxIdNode classNode;
 
-		public MyReadEntry(int maxReadSizeBytes, boolean enablePrint, int paths) {
-			super(maxReadSizeBytes);
+		public MyReadEntry(int maxReadSizeBytes, boolean withProbs, int paths) {
+			super(maxReadSizeBytes, withProbs);
 
 			buffer = null; 
 			readTaxIdNode = new SmallTaxIdNode[paths];

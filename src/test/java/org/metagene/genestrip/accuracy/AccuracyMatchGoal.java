@@ -78,9 +78,10 @@ public class AccuracyMatchGoal extends MatchGoal {
 
 	@Override
 	protected FastqKMerMatcher createMatcher(KMerSortedArray<SmallTaxIdNode> store, SmallTaxTree taxTree,
-			ExecutionContext bundle) {
+			ExecutionContext bundle, boolean withProbs) {
 		return new FastqKMerMatcher(store, intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
-				intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS),
+				intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, booleanConfigValue(GSConfigKey.WITH_PROBS),
+				intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS),
 				booleanConfigValue(GSConfigKey.CLASSIFY_READS) ? taxTree : null,
 				intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS),
 				intConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT)) {

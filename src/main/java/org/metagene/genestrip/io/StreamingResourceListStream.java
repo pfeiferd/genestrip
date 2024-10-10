@@ -31,7 +31,7 @@ public class StreamingResourceListStream implements StreamingResourceStream {
 		if (iteratorCalled) {
 			throw new IllegalStateException("iterator() must only be called once");
 		}
-		iteratorCalled = true;
+//	iteratorCalled = true;
 		return list.iterator();
 	}
 	

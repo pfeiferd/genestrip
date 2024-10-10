@@ -175,10 +175,10 @@ public class FastqKMerMatcherTest {
 		ExecutionContext bundle = new DefaultExecutionContext(0, 1000);
 		MyFastqMatcher2 matcher = new MyFastqMatcher2(db.convertKMerStore(), bundle, smallTree, 0);
 		matcher.initRoot();
-		
+
 		MyReadEntry entry = new MyReadEntry(10, true, 4);
 		entry.readSize = 4;
-		
+
 		fillInRead("TTTT", entry);
 		matcher.matchRead(entry, 0, false);
 		assertEquals(null, entry.classNode);
@@ -218,7 +218,7 @@ public class FastqKMerMatcherTest {
 		fillInRead("TCCT", entry);
 		matcher.matchRead(entry, 0, false);
 		assertEquals(null, entry.classNode);
-		
+
 		matcher = new MyFastqMatcher2(db.convertKMerStore(), bundle, smallTree, 0.5);
 		matcher.initRoot();
 		fillInRead("CCCT", entry);
@@ -230,7 +230,7 @@ public class FastqKMerMatcherTest {
 		fillInRead("TTCT", entry);
 		matcher.matchRead(entry, 0, false);
 		assertEquals(null, entry.classNode);
-		
+
 		matcher = new MyFastqMatcher2(db.convertKMerStore(), bundle, smallTree, 0.1);
 		matcher.initRoot();
 		fillInRead("CCCT", entry);
@@ -239,7 +239,7 @@ public class FastqKMerMatcherTest {
 		fillInRead("CCCC", entry);
 		matcher.matchRead(entry, 0, false);
 		assertEquals("1", entry.classNode.getTaxId());
-		
+
 		matcher = new MyFastqMatcher2(db.convertKMerStore(), bundle, smallTree, 0.99);
 		matcher.initRoot();
 		fillInRead("TTTT", entry);
@@ -249,7 +249,7 @@ public class FastqKMerMatcherTest {
 		matcher.matchRead(entry, 0, false);
 		assertEquals("1", entry.classNode.getTaxId());
 	}
-	
+
 	private void fillInRead(String cgat, MyReadEntry entry) {
 		initEntry(entry);
 		for (int i = 0; i < cgat.length(); ++i) {
@@ -258,7 +258,7 @@ public class FastqKMerMatcherTest {
 		entry.read[cgat.length()] = 0;
 		entry.readNo++;
 	}
-	
+
 	private void initEntry(MyReadEntry myEntry) {
 		myEntry.bufferPos = 0;
 		myEntry.usedPaths = 0;
@@ -268,7 +268,6 @@ public class FastqKMerMatcherTest {
 			myEntry.counts[i] = 0;
 		}
 	}
-	
 
 	protected static class MyFastqMatcher extends FastqKMerMatcher {
 		public MyFastqMatcher(KMerSortedArray<String> kmerStore, int initialReadSize, int maxQueueSize,
@@ -278,7 +277,7 @@ public class FastqKMerMatcherTest {
 				public SmallTaxIdNode convertValue(String value) {
 					return new SmallTaxIdNode(value);
 				}
-			}), initialReadSize, maxQueueSize, bundle, 10, null, 4, 0);
+			}), initialReadSize, maxQueueSize, bundle, false, 10, null, 4, 0);
 			out = System.out;
 		}
 
@@ -303,15 +302,16 @@ public class FastqKMerMatcherTest {
 	}
 
 	protected static class MyFastqMatcher2 extends FastqKMerMatcher {
-		public MyFastqMatcher2(KMerSortedArray<SmallTaxIdNode> kmerStore, ExecutionContext bundle, SmallTaxTree tree, double error) {
-			super(kmerStore, 1024, 100, bundle, 10, tree, 4, error);
+		public MyFastqMatcher2(KMerSortedArray<SmallTaxIdNode> kmerStore, ExecutionContext bundle, SmallTaxTree tree,
+				double error) {
+			super(kmerStore, 1024, 100, bundle, false, 10, tree, 4, error);
 		}
 
 		@Override
 		public void initRoot() {
 			super.initRoot();
 		}
-		
+
 		public CountsPerTaxid getStats(String taxid) {
 			return root.get(taxid);
 		}

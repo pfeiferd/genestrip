@@ -68,7 +68,7 @@ public class FilterGoal extends MultiFileGoal {
 			f = new FastqBloomFilter(indexedGoal.get(), intConfigValue(GSConfigKey.MIN_POS_COUNT_FILTER),
 					doubleConfigValue(GSConfigKey.POS_RATIO_FILTER),
 					intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES), intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE),
-					executorServiceBundle);
+					executorServiceBundle, booleanConfigValue(GSConfigKey.WITH_PROBS));
 			f.runFilter(resources, file, dumpFile);
 		} catch (IOException e) {
 			throw new RuntimeException(e);

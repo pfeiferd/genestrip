@@ -45,9 +45,9 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
 	protected long totalKMers;
 	private final long logUpdateCycle;
 
-	public AbstractLoggingFastqStreamer(int k, int initialReadSize, int maxQueueSize, ExecutionContext bundle,
+	public AbstractLoggingFastqStreamer(int k, int initialReadSize, int maxQueueSize, ExecutionContext bundle, boolean withProbs,
 			Object... config) {
-		super(k, initialReadSize, maxQueueSize, bundle, config);
+		super(k, initialReadSize, maxQueueSize, bundle, withProbs, config);
 
 		this.logUpdateCycle = bundle.getLogUpdateCycle();
 	}

@@ -25,6 +25,7 @@
 package org.metagene.genestrip.fastq;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 
@@ -35,8 +36,14 @@ import org.metagene.genestrip.util.ByteArrayUtil;
 public class FastqReaderTest {
 	@Test
 	public void testSingleThreadFastqReader() throws IOException {
+		testSingleThreadFastqReaderProbs(true);
+		testSingleThreadFastqReaderProbs(false);
+	}
+
+	protected void testSingleThreadFastqReaderProbs(boolean withProbs) throws IOException {
 		int[] calls = new int[1];
-		AbstractFastqReader fastqReader = new AbstractFastqReader(2, 3, 0, new DefaultExecutionContext(0, 1)) {
+		AbstractFastqReader fastqReader = new AbstractFastqReader(2, 3, 0, new DefaultExecutionContext(0, 1),
+				withProbs) {
 			@Override
 			protected void nextEntry(ReadEntry readStruct, int threadIndex) throws IOException {
 				calls[0]++;
@@ -45,15 +52,23 @@ public class FastqReaderTest {
 					String s = "GATTTGGGGTTCAAAGCAGTATCGATCAAATAGTAAATCCATTTGTTCAACTCACAGTTT";
 					assertEquals(s, ByteArrayUtil.toString(readStruct.read));
 					assertEquals(s.length(), readStruct.readSize);
-					assertEquals("!''*((((***+))%%%++)(%%%%).1***-+*''))**55CCF>>>>>>CCCCCCC65", ByteArrayUtil.toString(readStruct.readProbs));
+					if (withProbs) {
+						assertEquals("!''*((((***+))%%%++)(%%%%).1***-+*''))**55CCF>>>>>>CCCCCCC65",
+								ByteArrayUtil.toString(readStruct.readProbs));
+					} else {
+						assertNull(readStruct.readProbs);
+					}
 					assertEquals(s.length(), readStruct.readProbsSize);
-				}
-				else if (calls[0] == 2) {
+				} else if (calls[0] == 2) {
 					assertEquals("@T", ByteArrayUtil.toString(readStruct.readDescriptor));
 					String s = "CGAT";
 					assertEquals(s, ByteArrayUtil.toString(readStruct.read));
 					assertEquals(s.length(), readStruct.readSize);
-					assertEquals("!**>", ByteArrayUtil.toString(readStruct.readProbs));
+					if (withProbs) {
+						assertEquals("!**>", ByteArrayUtil.toString(readStruct.readProbs));
+					} else {
+						assertNull(readStruct.readProbs);
+					}
 					assertEquals(s.length(), readStruct.readProbsSize);
 				}
 			}
@@ -61,5 +76,16 @@ public class FastqReaderTest {
 		ClassLoader classLoader = getClass().getClassLoader();
 		fastqReader.readFastq(classLoader.getResourceAsStream("fastq/SimpleTest.fastq"));
 		assertEquals(2, calls[0]);
+	}
+
+	protected String probs(String s, boolean withProbs) {
+		if (withProbs) {
+			return s;
+		}
+		StringBuilder b = new StringBuilder();
+		for (int i = 0; i < s.length(); i++) {
+			b.append('~');
+		}
+		return b.toString();
 	}
 }

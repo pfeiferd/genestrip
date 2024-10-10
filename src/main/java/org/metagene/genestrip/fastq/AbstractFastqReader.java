@@ -56,7 +56,7 @@ public abstract class AbstractFastqReader {
 	protected final ExecutionContext bundle;
 
 	public AbstractFastqReader(int k, int initialSizeBytes, int maxQueueSize, ExecutionContext bundle,
-			Object... config) {
+			boolean withProbs, Object... config) {
 		this.k = k;
 		this.bundle = bundle;
 		bufferedLineReaderFastQ = new BufferedLineReader();
@@ -64,7 +64,7 @@ public abstract class AbstractFastqReader {
 		plusLine = new byte[initialSizeBytes];
 		readStructPool = new ReadEntry[consumerNumber == 0 ? 1 : (maxQueueSize + consumerNumber + 1)];
 		for (int i = 0; i < readStructPool.length; i++) {
-			readStructPool[i] = createReadEntry(initialSizeBytes, config);
+			readStructPool[i] = createReadEntry(initialSizeBytes, withProbs, config);
 		}
 		blockingQueue = consumerNumber == 0 ? null
 				: new ArrayBlockingQueue<AbstractFastqReader.ReadEntry>(maxQueueSize);
@@ -122,8 +122,8 @@ public abstract class AbstractFastqReader {
 		};
 	}
 
-	protected ReadEntry createReadEntry(int initialReadSizeBytes, Object... config) {
-		return new ReadEntry(initialReadSizeBytes);
+	protected ReadEntry createReadEntry(int initialReadSizeBytes, boolean withProbs, Object... config) {
+		return new ReadEntry(initialReadSizeBytes, withProbs);
 	}
 
 	public void dump() {
@@ -161,20 +161,39 @@ public abstract class AbstractFastqReader {
 				newSize = bufferedLineReaderFastQ.nextLine(readStruct.read, readStruct.readSize) - 1;
 			}
 			readStruct.read[readStruct.readSize] = 0;
-			// This means the buffer (i.e. readStruct.read) was full but we found the '+', but still not passed the plus line
-			// as not read passed the buffer 
+			// This means the buffer (i.e. readStruct.read) was full but we found the '+',
+			// but still not passed the plus line
+			// as not read passed the buffer
 			if (newSize == readStruct.read.length) {
 				// Dump the rest of the plus line here (until eol reached).
 				bufferedLineReaderFastQ.nextLine(plusLine);
 			}
-			
+
 			// We got passed the '+' line...
-			int readProbsSize = bufferedLineReaderFastQ.nextLine(readStruct.readProbs) - 1;
-			while (readProbsSize < readStruct.readSize) {
-				readProbsSize = bufferedLineReaderFastQ.nextLine(readStruct.readProbs, readProbsSize) - 1;
+			if (readStruct.readProbs != null) {
+				int readProbsSize = bufferedLineReaderFastQ.nextLine(readStruct.readProbs) - 1;
+				while (readProbsSize < readStruct.readSize) {
+					int oldSize = readProbsSize;
+					readProbsSize = bufferedLineReaderFastQ.nextLine(readStruct.readProbs, readProbsSize) - 1;
+					// The means we reached EOF:
+					if (readProbsSize == oldSize - 1) {
+						break;
+					}
+				}
+				readStruct.readProbsSize = readProbsSize;
+				readStruct.readProbs[readProbsSize] = 0;
+			} else {
+				int readProbsSize = bufferedLineReaderFastQ.skipLine() - 1;
+				while (readProbsSize < readStruct.readSize) {
+					int oldSize = readProbsSize;
+					readProbsSize = readProbsSize + bufferedLineReaderFastQ.skipLine() - 1;
+					// The means we reached EOF:
+					if (readProbsSize == oldSize - 1) {
+						break;
+					}
+				}
+				readStruct.readProbsSize = readProbsSize;
 			}
-			readStruct.readProbsSize = readProbsSize;
-			readStruct.readProbs[readProbsSize] = 0;
 
 			readStruct.readNo = reads;
 
@@ -183,7 +202,7 @@ public abstract class AbstractFastqReader {
 			if (blockingQueue == null) {
 				nextEntry(readStruct, 0);
 				if (dump) {
-					throw new FastqReaderInterruptedException();					
+					throw new FastqReaderInterruptedException();
 				}
 			} else {
 				try {
@@ -271,7 +290,14 @@ public abstract class AbstractFastqReader {
 			out.write(readStruct.read, 0, readStruct.readSize);
 			out.write('\n');
 			out.write(LINE_3);
-			out.write(readStruct.readProbs, 0, readStruct.readProbsSize);
+			if (readStruct.readProbs != null) {
+				out.write(readStruct.readProbs, 0, readStruct.readProbsSize);
+			}
+			else {
+				for (int i = 0; i < readStruct.readProbsSize; i++) {
+					out.write('~');
+				}
+			}
 			out.write('\n');
 			updateWriteStats();
 		}
@@ -302,10 +328,10 @@ public abstract class AbstractFastqReader {
 		public byte[] readProbs;
 		public int readProbsSize;
 
-		protected ReadEntry(int maxReadSizeBytes) {
+		protected ReadEntry(int maxReadSizeBytes, boolean withProbs) {
 			readDescriptor = new byte[maxReadSizeBytes];
 			read = new byte[maxReadSizeBytes];
-			readProbs = new byte[maxReadSizeBytes];
+			readProbs = withProbs ? new byte[maxReadSizeBytes] : null;
 
 			pooled = true;
 		}
@@ -314,9 +340,17 @@ public abstract class AbstractFastqReader {
 			ByteArrayUtil.println(readDescriptor, printStream);
 			ByteArrayUtil.println(read, printStream);
 			printStream.println('+');
-			ByteArrayUtil.println(readProbs, printStream);
+			if (readProbs != null) {
+				ByteArrayUtil.println(readProbs, printStream);
+			}
+			else {
+				for (int i = 0; i < readProbsSize; i++) {
+					printStream.print('~');
+				}
+				printStream.println();
+			}
 		}
-		
+
 		protected void growReadBuffer(BufferedLineReader lineReader) throws IOException {
 			while (readSize == read.length) {
 				byte[] newBuffer = new byte[read.length * 2];
@@ -324,8 +358,10 @@ public abstract class AbstractFastqReader {
 				readSize = lineReader.nextLine(newBuffer, read.length) - 1;
 				read = newBuffer;
 			}
-			// Probs must grow in the same way.
-			readProbs = new byte[read.length];
-		}		
+			if (readProbs != null) {
+				// Probs must grow in the same way.
+				readProbs = new byte[read.length];
+			}
+		}
 	}
 }

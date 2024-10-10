@@ -42,8 +42,8 @@ public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 	private OutputStream notIndexed;
 
 	public FastqBloomFilter(MurmurCGATBloomFilter filter, int minPosCount, double positiveRatio, int initialReadSize,
-			int maxQueueSize, ExecutionContext bundle) {
-		super(filter.getK(), initialReadSize, maxQueueSize, bundle);
+			int maxQueueSize, ExecutionContext bundle, boolean withProbs) {
+		super(filter.getK(), initialReadSize, maxQueueSize, bundle, withProbs);
 		this.filter = filter;
 		this.minPosCount = minPosCount;
 		this.positiveRatio = positiveRatio;
@@ -69,8 +69,8 @@ public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 	}
 
 	@Override
-	protected ReadEntry createReadEntry(int maxReadSizeBytes, Object... config) {
-		return new MyReadEntry(maxReadSizeBytes);
+	protected ReadEntry createReadEntry(int maxReadSizeBytes, boolean withProbs, Object... config) {
+		return new MyReadEntry(maxReadSizeBytes, withProbs);
 	}
 
 	public void runFilter(StreamingResourceStream fastqs, File filteredFile, File restFile) throws IOException {
@@ -144,8 +144,8 @@ public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 	protected static class MyReadEntry extends ReadEntry {
 		public final int[] badPos = new int[1];
 
-		protected MyReadEntry(int maxReadSizeBytes) {
-			super(maxReadSizeBytes);
+		protected MyReadEntry(int maxReadSizeBytes, boolean withProbs) {
+			super(maxReadSizeBytes, withProbs);
 		}
 	}
 }
