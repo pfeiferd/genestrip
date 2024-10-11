@@ -447,7 +447,7 @@ public class GSProject extends Project {
 				PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
 				for (File file : files) {
 					Path path = file.toPath();
-					if (matcher.matches(rootDir == null ? path : path.getFileName())) {
+					if (matcher.matches(path.getFileName())) {
 						if (res == null) {
 							res = new ArrayList<File>();
 						}
