@@ -8,7 +8,6 @@ import java.util.List;
 
 public class StreamingResourceListStream implements StreamingResourceStream {
 	private final List<StreamingResource> list;
-	private boolean iteratorCalled = false;
 	
 	public StreamingResourceListStream(StreamingResource elem) {
 		this(Collections.singletonList(elem));
@@ -28,10 +27,6 @@ public class StreamingResourceListStream implements StreamingResourceStream {
 	
 	@Override
 	public Iterator<StreamingResource> iterator() {
-		if (iteratorCalled) {
-			throw new IllegalStateException("iterator() must only be called once");
-		}
-//	iteratorCalled = true;
 		return list.iterator();
 	}
 	
