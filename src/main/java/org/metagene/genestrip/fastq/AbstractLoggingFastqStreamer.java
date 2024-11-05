@@ -118,10 +118,10 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
 			}
 			if (logger.isTraceEnabled()) {
 				double totalHours = totalTime == -1 ? -1 : totalTime / 1000 / 60 / 60;
-				logger.info("Progress for fastq: " + currentFastq);
-				logger.info("Elapsed hours: " + diff / 1000 / 60 / 60);
+				logger.trace("Progress for fastq: " + currentFastq);
+				logger.trace("Elapsed hours: " + diff / 1000 / 60 / 60);
 				if (totalHours != -1) {
-					logger.info("Estimated total hours: " + totalHours);
+					logger.trace("Estimated total hours: " + totalHours);
 				}
 			}
 
@@ -135,12 +135,12 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
 			}
 			if (logger.isTraceEnabled()) {
 				double totalHours = totalTime == -1 ? -1 : totalTime / 1000 / 60 / 60;
-				logger.info("Total progress: ");
-				logger.info("Elapsed hours: " + diff / 1000 / 60 / 60);
+				logger.trace("Total progress: ");
+				logger.trace("Elapsed hours: " + diff / 1000 / 60 / 60);
 				if (totalHours != -1) {
-					logger.info("Estimated total hours: " + totalHours);
+					logger.trace("Estimated total hours: " + totalHours);
 				}
-				logger.info("Reads processed: " + (totalReads + reads));
+				logger.trace("Reads processed: " + (totalReads + reads));
 			}
 		}
 	}
