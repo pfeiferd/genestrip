@@ -129,7 +129,7 @@ public class ResultReporter {
 		out.print(
 				"name;rank;taxid;reads;kmers from reads;kmers;unique kmers;contigs;average contig length;max contig length;max contig desc.;");
 		if (estimator != null) {
-			out.print("db coverage;normalized kmers;exp. unique kmers;unique kmers / exp.;quality prediction;cons. score 2;");
+			out.print("db coverage;normalized kmers;exp. unique kmers;unique kmers / exp.;quality prediction;");
 		}
 		if (res.isWithMaxKMerCounts()) {
 			out.print("max kmer counts;");
@@ -143,7 +143,7 @@ public class ResultReporter {
 		out.print(res.getTotalKMers());
 		out.print(";0;0;0;0;0;");
 		if (estimator != null) {
-			out.print("0;0;0;0;0;");
+			out.print("0;0;0;0;");
 		}
 		if (res.isWithMaxKMerCounts()) {
 			short[] counts = res.getTotalMaxCounts();
@@ -207,9 +207,11 @@ public class ResultReporter {
 						out.print(DF.format(normalizedKMers * cScore1));
 						out.print(';');
 
+						/*
 						double cScore2 = estimator.getUniqueKMerCountMatchScore(stats);
 						out.print(DF.format(cScore2));
 						out.print(';');
+						 */
 					}
 					if (res.isWithMaxKMerCounts()) {
 						short[] counts = stats.getMaxKMerCounts();
