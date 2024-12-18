@@ -52,14 +52,15 @@ import org.metagene.genestrip.util.DigitTrie;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
-	private final KMerSortedArray<SmallTaxIdNode> kmerStore;
+	protected final KMerSortedArray<SmallTaxIdNode> kmerStore;
 	private final int maxKmerResCounts;
 
-	protected KMerUniqueCounter uniqueCounter;
-	protected TaxidStatsTrie root;
+	// Turned from KMerUniqueCounter to KMerUniqueCounterBits for potential method inlining.
+	protected KMerUniqueCounterBits uniqueCounter;
+	//protected TaxidStatsTrie root;
+	protected CountsPerTaxid[] statsIndex;
 
 	private final int maxPaths;
-	protected long indexedC;
 	private final SmallTaxTree taxTree;
 	protected final double maxReadTaxErrorCount;
 	private OutputStream indexed;
@@ -115,32 +116,37 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 		out = null;
 		indexed = null;
 
-		List<CountsPerTaxid> allStats = new ArrayList<CountsPerTaxid>();
-		root.collect(allStats);
-		root = null;
-		Map<String, CountsPerTaxid> taxid2Stats = new HashMap<String, CountsPerTaxid>();
-		for (CountsPerTaxid stats : allStats) {
-			taxid2Stats.put(stats.getTaxid(), stats);
+		Map<String, CountsPerTaxid> taxid2Stats = new HashMap<>();
+		for (CountsPerTaxid stats : statsIndex) {
+			if (stats != null) {
+				taxid2Stats.put(stats.getTaxid(), stats);
+			}
 		}
 
 		Map<String, short[]> countMap = null;
 		if (uniqueCounter != null) {
 			Object2LongMap<String> counts = uniqueCounter.getUniqueKmerCounts();
-			for (CountsPerTaxid stats : allStats) {
-				stats.uniqueKmers = counts.getLong(stats.getTaxid());
+			for (CountsPerTaxid stats : statsIndex) {
+				if (stats != null) {
+					stats.uniqueKmers = counts.getLong(stats.getTaxid());
+				}
 			}
 			if (uniqueCounter instanceof KMerUniqueCounterBits) {
 				if (((KMerUniqueCounterBits) uniqueCounter).isWithCounts()) {
 					countMap = ((KMerUniqueCounterBits) uniqueCounter).getMaxCountsCounts(maxKmerResCounts);
-					for (CountsPerTaxid stats : allStats) {
-						stats.maxKMerCounts = countMap.get(stats.getTaxid());
+					for (CountsPerTaxid stats : statsIndex) {
+						if (stats != null) {
+							stats.maxKMerCounts = countMap.get(stats.getTaxid());
+						}
 					}
 				}
 			}
 			this.uniqueCounter = null;
 		} else {
-			for (CountsPerTaxid stats : allStats) {
-				stats.uniqueKmers = -1;
+			for (CountsPerTaxid stats : statsIndex) {
+				if (stats != null) {
+					stats.uniqueKmers = -1;
+				}
 			}
 		}
 
@@ -163,18 +169,21 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 	}
 
 	protected void initRoot() {
-		root = new TaxidStatsTrie();
+		// root = new TaxidStatsTrie();
+		statsIndex = new CountsPerTaxid[kmerStore.getNValues()];
 	}
 
 	protected void initUniqueCounter(KMerUniqueCounter uniqueCounter) {
-		this.uniqueCounter = uniqueCounter;
+		// Turned from KMerUniqueCounter to KMerUniqueCounterBits for potential method inlining.
+		this.uniqueCounter = (KMerUniqueCounterBits) uniqueCounter;
 		if (uniqueCounter != null) {
 			uniqueCounter.clear();
 		}
 	}
 
 	@Override
-	protected void nextEntry(ReadEntry entry, int index) throws IOException {
+	// Made final for potential inlining by JVM
+	protected final void nextEntry(ReadEntry entry, int index) throws IOException {
 		MyReadEntry myEntry = (MyReadEntry) entry;
 		myEntry.bufferPos = 0;
 
@@ -205,20 +214,21 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 		}
 	}
 
-	protected boolean matchRead(MyReadEntry entry, int index, boolean reverse) {
+	// Made final for potential inlining by JVM
+	protected final boolean matchRead(MyReadEntry entry, int index, boolean reverse) {
 		boolean found = false;
 		int prints = 0;
 		int readTaxErrorCount = taxTree == null ? -1 : 0;
 
-		SmallTaxIdNode taxid = null;
+		SmallTaxIdNode taxIdNode;
 		int max = entry.readSize - k + 1;
 		SmallTaxIdNode lastTaxid = null;
 		int contigLen = 0;
 		CountsPerTaxid stats = null;
+		//short vi;
 
 		long kmer = -1;
 		for (int i = 0; i < max; i++) {
-			// TODO: Inline all of this...
 			if (kmer == -1) {
 				kmer = reverse ? CGAT.kMerToLongReverse(entry.read, i, k, entry.badPos)
 						: CGAT.kMerToLongStraight(entry.read, i, k, entry.badPos);
@@ -232,11 +242,10 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 					i += k - 1;
 				}
 			}
-			// TODO: Inline end...
 			if (kmer != -1) {
-				taxid = kmerStore.getLong(kmer, entry.indexPos);
+				taxIdNode = kmerStore.getLong(kmer, entry.indexPos);
 				if (readTaxErrorCount != -1) {
-					if (taxid == null) {
+					if (taxIdNode == null) {
 						readTaxErrorCount++;
 						if (maxReadTaxErrorCount >= 0) {
 							if ((maxReadTaxErrorCount >= 1 && readTaxErrorCount > maxReadTaxErrorCount)
@@ -245,10 +254,10 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 							}
 						}
 					} else {
-						updateReadTaxid(taxid, entry, index);
+						updateReadTaxid(taxIdNode, entry, index);
 					}
 				}
-				if (taxid != lastTaxid) {
+				if (taxIdNode != lastTaxid) {
 					if (contigLen > 0) {
 						if (out != null) {
 							printKrakenStyleOut(entry, lastTaxid, contigLen, prints++, reverse);
@@ -270,12 +279,15 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 					}
 				}
 				contigLen++;
-				lastTaxid = taxid;
-				if (taxid != null) {
-					stats = root.get(taxid.getTaxId());
+				lastTaxid = taxIdNode;
+				if (taxIdNode != null) {
+					short vi = taxIdNode.getStoreIndex();
+					stats = statsIndex[vi];
 					if (stats == null) {
-						synchronized (root) {
-							stats = root.get(taxid.getTaxId(), initialReadSize);
+						synchronized (statsIndex) {
+							if (stats == null) {
+								stats = statsIndex[vi] = new CountsPerTaxid(taxIdNode.getTaxId(), initialReadSize);
+							}
 						}
 					}
 					synchronized (stats) {
@@ -283,7 +295,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 						found = true;
 					}
 					if (uniqueCounter != null) {
-						uniqueCounter.put(kmer, taxid.getTaxId(), entry.indexPos[0]);
+						uniqueCounter.put(kmer, taxIdNode.getTaxId(), entry.indexPos[0]);
 					}
 				} else {
 					stats = null;
@@ -327,12 +339,16 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 					node = taxTree.getLeastCommonAncestor(node, entry.readTaxIdNode[i]);
 				}
 				entry.classNode = node;
-				stats = root.get(node.getTaxId());
+				short vi = node.getStoreIndex();
+				stats = statsIndex[vi];
 				if (stats == null) {
-					synchronized (root) {
-						stats = root.get(node.getTaxId(), initialReadSize);
+					synchronized (statsIndex) {
+						if (stats == null) {
+							stats = statsIndex[vi] = new CountsPerTaxid(node.getTaxId(), initialReadSize);
+						}
 					}
 				}
+
 				synchronized (stats) {
 					stats.reads++;
 					stats.readKmers += ties > 0 ? taxTree.sumCounts(node, index, entry.readNo) : entry.counts[0];
@@ -343,7 +359,8 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 		return found;
 	}
 
-	protected void updateReadTaxid(SmallTaxIdNode node, MyReadEntry entry, int index) {
+	// Made final for potential inlining by JVM
+	protected final void updateReadTaxid(SmallTaxIdNode node, MyReadEntry entry, int index) {
 		taxTree.incCount(node, index, entry.readNo);
 
 		boolean found = false;
@@ -387,7 +404,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 
 		public int usedPaths;
 		public SmallTaxIdNode[] readTaxIdNode;
-		public short counts[];
+		public short[] counts;
 		public long[] indexPos;
 		public SmallTaxIdNode classNode;
 

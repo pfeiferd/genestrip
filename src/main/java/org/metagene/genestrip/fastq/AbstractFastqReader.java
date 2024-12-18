@@ -67,7 +67,7 @@ public abstract class AbstractFastqReader {
 			readStructPool[i] = createReadEntry(initialSizeBytes, withProbs, config);
 		}
 		blockingQueue = consumerNumber == 0 ? null
-				: new ArrayBlockingQueue<AbstractFastqReader.ReadEntry>(maxQueueSize);
+				: new ArrayBlockingQueue<>(maxQueueSize);
 
 		if (blockingQueue != null) {
 			for (int i = 0; i < consumerNumber; i++) {
@@ -76,8 +76,9 @@ public abstract class AbstractFastqReader {
 		}
 	}
 
-	protected void checkAndLogConsumerThreadProblem() {
-		if (!bundle.getThrowableList().isEmpty()) {
+	// Made final for potential inlining by JVM
+	protected final void checkAndLogConsumerThreadProblem() {
+		if (bundle.hasThrowables()) {
 			for (Throwable t : bundle.getThrowableList()) {
 				if (getLogger().isErrorEnabled()) {
 					getLogger().error("Error in consumer thread: ", t);
@@ -90,7 +91,7 @@ public abstract class AbstractFastqReader {
 
 	protected Runnable createRunnable(int rindex, Object... config) {
 		return new Runnable() {
-			private int index = rindex;
+			private final int index = rindex;
 
 			@Override
 			public void run() {
@@ -279,10 +280,6 @@ public abstract class AbstractFastqReader {
 		throw new IllegalStateException("There should always be a read struct available...");
 	}
 
-	protected long getMillis() {
-		return bufferedLineReaderFastQ.getMillis();
-	}
-
 	protected void rewriteInput(ReadEntry readStruct, OutputStream out) throws IOException {
 		synchronized (out) {
 			out.write(readStruct.readDescriptor, 0, readStruct.readDescriptorSize);
@@ -351,7 +348,7 @@ public abstract class AbstractFastqReader {
 			}
 		}
 
-		protected void growReadBuffer(BufferedLineReader lineReader) throws IOException {
+		protected final void growReadBuffer(BufferedLineReader lineReader) throws IOException {
 			while (readSize == read.length) {
 				byte[] newBuffer = new byte[read.length * 2];
 				System.arraycopy(read, 0, newBuffer, 0, read.length);

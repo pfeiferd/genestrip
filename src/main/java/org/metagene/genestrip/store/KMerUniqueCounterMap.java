@@ -42,7 +42,7 @@ public class KMerUniqueCounterMap implements KMerUniqueCounter {
 	}
 
 	@Override	
-	public synchronized void put(long kmer, String taxid, long index) {
+	public final synchronized void put(long kmer, String taxid, long index) {
 		map.put(kmer, taxid);
 	}
 

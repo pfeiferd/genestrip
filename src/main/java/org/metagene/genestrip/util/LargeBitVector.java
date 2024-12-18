@@ -106,7 +106,7 @@ public class LargeBitVector implements Serializable {
 		}
 	}
 	
-	public void set(long index) {
+	public final void set(long index) {
 		if (largeBits != null) {
 			long arrayIndex = ((index >>> 6) % size);
 			BigArrays.set(largeBits, arrayIndex, BigArrays.get(largeBits, arrayIndex) | (1L << (index & 0b111111)));
@@ -116,7 +116,7 @@ public class LargeBitVector implements Serializable {
 		}
 	}
 
-	public boolean get(long index) {
+	public final boolean get(long index) {
 		if (largeBits != null) {
 			long arrayIndex = ((index >>> 6) % size);
 			return ((BigArrays.get(largeBits, arrayIndex) >> (index & 0b111111)) & 1L) == 1;

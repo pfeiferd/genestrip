@@ -64,7 +64,11 @@ public class Database implements Serializable {
 		return new KMerSortedArray<SmallTaxIdNode>(kmerStore, new ValueConverter<String, SmallTaxIdNode>() {
 			@Override
 			public SmallTaxIdNode convertValue(String value) {
-				return taxTree.getNodeByTaxId(value);
+				SmallTaxIdNode node = taxTree.getNodeByTaxId(value);
+				if (node != null && node.getStoreIndex() == -1) {
+					node.setStoreIndex(kmerStore.getIndexForValue(value));
+				}
+				return node;
 			}
 		});
 	}
@@ -130,5 +134,4 @@ public class Database implements Serializable {
 		}
 		return filter;
 	}
-
 }

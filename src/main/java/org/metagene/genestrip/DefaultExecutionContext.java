@@ -37,6 +37,7 @@ import org.metagene.genestrip.io.StreamingResource;
 public class DefaultExecutionContext implements ExecutionContext {
 	private final String threadBaseName;
 	private final int consumers;
+	private boolean hasThrowables;
 	private final List<Throwable> throwablesInThreads;
 	private final List<Throwable> immutableThrowablesInThreads;
 	private final ExecutorService executorService;
@@ -105,8 +106,14 @@ public class DefaultExecutionContext implements ExecutionContext {
 	}
 
 	@Override
+	public final boolean hasThrowables() {
+		return hasThrowables;
+	}
+
+	@Override
 	public void clearThrowableList() {
 		throwablesInThreads.clear();
+		hasThrowables = false;
 	}
 
 	protected ThreadFactory createThreadFactory() {
@@ -121,6 +128,7 @@ public class DefaultExecutionContext implements ExecutionContext {
 					@Override
 					public void uncaughtException(Thread t, Throwable e) {
 						throwablesInThreads.add(e);
+						hasThrowables = true;
 					}
 				});
 				executorThreads.add(t);

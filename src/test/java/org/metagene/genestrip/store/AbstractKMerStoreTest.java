@@ -26,6 +26,7 @@ package org.metagene.genestrip.store;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -41,12 +42,14 @@ import org.metagene.genestrip.util.CGATRingBuffer;
 
 import junit.framework.TestCase;
 
-public abstract class AbstractKMerStoreTest extends TestCase implements KMerStoreFactory {
+public abstract class AbstractKMerStoreTest extends TestCase {
 	protected final Random random = new Random(42);
 
 	protected int k = 31;
 	protected int testSize = 1 * 1000 * 1000;
 	protected int negativeTestSize = testSize;
+
+	protected abstract <V extends Serializable> KMerStore<V> createKMerStore(Class<V> clazz, Object... params);
 
 	@Test
 	public void testSaveLoad() {

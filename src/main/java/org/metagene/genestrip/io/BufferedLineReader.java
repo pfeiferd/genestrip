@@ -47,8 +47,6 @@ public class BufferedLineReader implements Closeable {
 	private InputStream stream;
 	private int bufferFill;
 
-	private long millis;
-
 	public BufferedLineReader() {
 		this(null);
 	}
@@ -68,7 +66,8 @@ public class BufferedLineReader implements Closeable {
 		this.stream = stream;
 	}
 
-	public int skipLine() throws IOException {
+	// Made final for potential inlining by JVM
+	public final int skipLine() throws IOException {
 		int size = 0;
 		while (bufferFill != -1) {
 			if (pos < bufferFill) {
@@ -83,20 +82,20 @@ public class BufferedLineReader implements Closeable {
 					return size;
 				}
 			}
-			long start = System.currentTimeMillis();
 			bufferFill = stream.read(buffer);
-			millis += System.currentTimeMillis() - start;
 			pos = 0;
 		}
 		return size;
 	}
 
-	public int nextLine(byte[] target) throws IOException {
+	// Made final for potential inlining by JVM
+	public final int nextLine(byte[] target) throws IOException {
 		return nextLine(target, 0);
 	}
 
 	// Returns target.length + 1 if target is full but end of line not reached.
-	public int nextLine(byte[] target, int startPos) throws IOException {
+	// Made final for potential inlining by JVM
+	public final int nextLine(byte[] target, int startPos) throws IOException {
 		int size = startPos;
 		while (bufferFill != -1) {
 			if (pos < bufferFill) {
@@ -114,16 +113,10 @@ public class BufferedLineReader implements Closeable {
 					return size + 1; // Indicates that target buffer is full and more stuff in the line.
 				}
 			}
-			long start = System.currentTimeMillis();
 			bufferFill = stream.read(buffer);
-			millis += System.currentTimeMillis() - start;
 			pos = 0;
 		}
 		return size;
-	}
-
-	public long getMillis() {
-		return millis;
 	}
 
 	@Override

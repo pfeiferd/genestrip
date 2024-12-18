@@ -123,6 +123,7 @@ public class FillDBGoal extends ObjectGoal<Database, GSProject> {
 				SmallTaxIdNode smallNode = smallTaxTree.getNodeByTaxId(node.getTaxId());
 				if (smallNode != null) {
 					smallNode.setRequested(true);
+					// smallNode.setStoreIndex(store.getIndexForValue(node.getTaxId()));
 				}
 			}
 			Database wrapper = new Database((KMerSortedArray<String>) store, smallTaxTree);

@@ -86,11 +86,13 @@ public class SmallTaxTree implements Serializable {
 		this.owner = null;
 	}
 
-	public void incCount(SmallTaxIdNode node, int index, long initKey) {
+	// Made final for potential inlining by JVM
+	public final void incCount(SmallTaxIdNode node, int index, long initKey) {
 		node.incCount(index, initKey, countSize);
 	}
 
-	public short sumCounts(SmallTaxIdNode node, int index, long initKey) {
+	// Made final for potential inlining by JVM
+	public final short sumCounts(SmallTaxIdNode node, int index, long initKey) {
 		short res = 0;
 		while (node != null) {
 			if (node.counts != null && node.countsInitKeys != null && node.countsInitKeys[index] == initKey) {
@@ -105,7 +107,8 @@ public class SmallTaxTree implements Serializable {
 		return countSize;
 	}
 
-	public boolean isAncestorOf(SmallTaxIdNode node, SmallTaxIdNode ancestor) {
+	// Made final for potential inlining by JVM
+	public final boolean isAncestorOf(SmallTaxIdNode node, SmallTaxIdNode ancestor) {
 		while (node != null) {
 			if (node.equals(ancestor)) {
 				return true;
@@ -116,7 +119,8 @@ public class SmallTaxTree implements Serializable {
 		return false;
 	}
 
-	public SmallTaxIdNode getLeastCommonAncestor(final SmallTaxIdNode node1, final SmallTaxIdNode node2) {
+	// Made final for potential inlining by JVM
+	public final SmallTaxIdNode getLeastCommonAncestor(final SmallTaxIdNode node1, final SmallTaxIdNode node2) {
 		for (SmallTaxIdNode res = node1; res != null; res = res.parent) {
 			for (SmallTaxIdNode ancestor2 = node2; ancestor2 != null; ancestor2 = ancestor2.parent) {
 				if (res == ancestor2) {
@@ -169,6 +173,7 @@ public class SmallTaxTree implements Serializable {
 		return taxids;
 	}
 
+	/* Apparently not needed:
 	protected int initPositions(int counter, SmallTaxIdNode taxIdNode) {
 		taxIdNode.position = counter;
 		SmallTaxIdNode[] subNodes = taxIdNode.subNodes;
@@ -179,6 +184,7 @@ public class SmallTaxTree implements Serializable {
 		}
 		return counter;
 	}
+	*/
 
 	protected SmallTaxIdNode getRoot() {
 		return root;
@@ -195,21 +201,23 @@ public class SmallTaxTree implements Serializable {
 		protected SmallTaxIdNode parent;
 		private short[] counts;
 		private long[] countsInitKeys;
+		private transient short storeIndex;
 
 		public SmallTaxIdNode(String taxId) {
-			super(taxId, null);
-			subNodes = null;
+			this(taxId, null);
 		}
 
 		private SmallTaxIdNode(String taxId, Rank rank) {
 			super(taxId, rank);
 			subNodes = null;
+			storeIndex = -1;
 		}
 
 		private SmallTaxIdNode(TaxIdNode node) {
 			super(node.taxId, node.rank);
 			name = node.name;
 			position = node.position;
+			storeIndex = -1;
 			List<TaxIdNode> tsubNodes = node.getSubNodes();
 			if (tsubNodes != null) {
 				int count = 0;
@@ -243,7 +251,15 @@ public class SmallTaxTree implements Serializable {
 				position = -position - 1;
 			}
 		}
-		
+
+		public final short getStoreIndex() {
+			return storeIndex;
+		}
+
+		public void setStoreIndex(short storeIndex) {
+			this.storeIndex = storeIndex;
+		}
+
 		public int getPosition() {
 			return position < 0 ? -position - 1 : position;
 		}

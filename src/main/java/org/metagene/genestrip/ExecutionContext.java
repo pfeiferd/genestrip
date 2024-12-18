@@ -35,6 +35,8 @@ public interface ExecutionContext {
 
 	public List<Throwable> getThrowableList();
 
+	public boolean hasThrowables();
+
 	public void clearThrowableList();
 
 	public void interruptAll();
