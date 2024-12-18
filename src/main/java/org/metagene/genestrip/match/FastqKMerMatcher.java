@@ -29,9 +29,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.metagene.genestrip.ExecutionContext;
@@ -57,8 +56,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 
 	// Turned from KMerUniqueCounter to KMerUniqueCounterBits for potential method inlining.
 	protected KMerUniqueCounterBits uniqueCounter;
-	//protected TaxidStatsTrie root;
-	protected CountsPerTaxid[] statsIndex;
+	protected final CountsPerTaxid[] statsIndex;
 
 	private final int maxPaths;
 	private final SmallTaxTree taxTree;
@@ -78,6 +76,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 			double maxReadTaxErrorCount) {
 		super(kmerStore.getK(), initialReadSize, maxQueueSize, bundle, withProbs, maxPaths);
 		this.kmerStore = kmerStore;
+		this.statsIndex = new CountsPerTaxid[kmerStore.getNValues()];
 		this.initialReadSize = initialReadSize;
 		this.maxKmerResCounts = maxKmerResCounts;
 		this.taxTree = taxTree;
@@ -109,7 +108,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 			indexed = lindexed;
 			out = lout;
 
-			initRoot();
+			initStats();
 			initUniqueCounter(uniqueCounter);
 			processFastqStreams(fastqs);
 		}
@@ -168,9 +167,8 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 		}
 	}
 
-	protected void initRoot() {
-		// root = new TaxidStatsTrie();
-		statsIndex = new CountsPerTaxid[kmerStore.getNValues()];
+	protected void initStats() {
+		Arrays.fill(statsIndex, null);
 	}
 
 	protected void initUniqueCounter(KMerUniqueCounter uniqueCounter) {
@@ -225,7 +223,6 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 		SmallTaxIdNode lastTaxid = null;
 		int contigLen = 0;
 		CountsPerTaxid stats = null;
-		//short vi;
 
 		long kmer = -1;
 		for (int i = 0; i < max; i++) {
@@ -285,9 +282,10 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 					stats = statsIndex[vi];
 					if (stats == null) {
 						synchronized (statsIndex) {
-							if (stats == null) {
-								stats = statsIndex[vi] = new CountsPerTaxid(taxIdNode.getTaxId(), initialReadSize);
+							if (statsIndex[vi] == null) {
+								statsIndex[vi] = new CountsPerTaxid(taxIdNode.getTaxId(), initialReadSize);
 							}
+							stats = statsIndex[vi];
 						}
 					}
 					synchronized (stats) {
@@ -343,9 +341,10 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 				stats = statsIndex[vi];
 				if (stats == null) {
 					synchronized (statsIndex) {
-						if (stats == null) {
-							stats = statsIndex[vi] = new CountsPerTaxid(node.getTaxId(), initialReadSize);
+						if (statsIndex[vi] == null) {
+							statsIndex[vi] = new CountsPerTaxid(node.getTaxId(), initialReadSize);
 						}
+						stats = statsIndex[vi];
 					}
 				}
 

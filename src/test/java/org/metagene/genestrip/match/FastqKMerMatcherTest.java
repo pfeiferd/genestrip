@@ -94,7 +94,7 @@ public class FastqKMerMatcherTest {
 			Arrays.fill(contigs, 0);
 			Arrays.fill(maxContigLen, 0);
 			Arrays.fill(used, false);
-			matcher.initRoot();
+			matcher.initStats();
 			matcher.initUniqueCounter(uniqueCounter);
 			entry.bufferPos = 0;
 			contigLen = 0;
@@ -173,7 +173,7 @@ public class FastqKMerMatcherTest {
 
 		ExecutionContext bundle = new DefaultExecutionContext(0, 1000);
 		MyFastqMatcher2 matcher = new MyFastqMatcher2(db.convertKMerStore(), bundle, smallTree, 0);
-		matcher.initRoot();
+		matcher.initStats();
 
 		MyReadEntry entry = new MyReadEntry(10, true, 4);
 		entry.readSize = 4;
@@ -210,7 +210,7 @@ public class FastqKMerMatcherTest {
 		assertEquals("1", entry.classNode.getTaxId());
 
 		matcher = new MyFastqMatcher2(db.convertKMerStore(), bundle, smallTree, 1);
-		matcher.initRoot();
+		matcher.initStats();
 		fillInRead("CCCT", entry);
 		matcher.matchRead(entry, 0, false);
 		assertEquals("1", entry.classNode.getTaxId());
@@ -219,7 +219,7 @@ public class FastqKMerMatcherTest {
 		assertNull(entry.classNode);
 
 		matcher = new MyFastqMatcher2(db.convertKMerStore(), bundle, smallTree, 0.5);
-		matcher.initRoot();
+		matcher.initStats();
 		fillInRead("CCCT", entry);
 		matcher.matchRead(entry, 0, false);
 		assertEquals("1", entry.classNode.getTaxId());
@@ -231,7 +231,7 @@ public class FastqKMerMatcherTest {
 		assertNull(entry.classNode);
 
 		matcher = new MyFastqMatcher2(db.convertKMerStore(), bundle, smallTree, 0.1);
-		matcher.initRoot();
+		matcher.initStats();
 		fillInRead("CCCT", entry);
 		matcher.matchRead(entry, 0, false);
 		assertNull(entry.classNode);
@@ -240,7 +240,7 @@ public class FastqKMerMatcherTest {
 		assertEquals("1", entry.classNode.getTaxId());
 
 		matcher = new MyFastqMatcher2(db.convertKMerStore(), bundle, smallTree, 0.99);
-		matcher.initRoot();
+		matcher.initStats();
 		fillInRead("TTTT", entry);
 		matcher.matchRead(entry, 0, false);
 		assertNull(entry.classNode);
@@ -286,8 +286,8 @@ public class FastqKMerMatcherTest {
 		}
 
 		@Override
-		public void initRoot() {
-			super.initRoot();
+		public void initStats() {
+			super.initStats();
 		}
 
 		@Override
@@ -314,8 +314,8 @@ public class FastqKMerMatcherTest {
 		}
 
 		@Override
-		public void initRoot() {
-			super.initRoot();
+		public void initStats() {
+			super.initStats();
 		}
 
 		/*

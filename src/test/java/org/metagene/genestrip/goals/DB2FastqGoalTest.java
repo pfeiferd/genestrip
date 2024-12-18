@@ -56,6 +56,7 @@ public class DB2FastqGoalTest {
 		GSProject project = new GSProject(config, "human_virus", null, null, null, null, null, false, "64320,12637+",
 				null, null, null, false);
 		project.initConfigParam(GSConfigKey.WRITED_KRAKEN_STYLE_OUT, true);
+		// project.initConfigParam(GSConfigKey.THREADS, 0);
 		
 		GSMaker maker = new GSMaker(project);
 
@@ -76,7 +77,7 @@ public class DB2FastqGoalTest {
 			File file = goal.getOutputFile(taxids[i]);
 			MatchingResult result = maker.match(false, taxids[i], file.toString());
 			Map<String, CountsPerTaxid> map = result.getTaxid2Stats();
-			System.out.println(taxids[i]);
+
 			assertEquals(kmers[i], map.get(taxids[i]).getKMers());
 			assertEquals(kmers[i], map.get(taxids[i]).getUniqueKMers());
 			assertEquals(1, map.size());
