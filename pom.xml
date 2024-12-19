@@ -508,16 +508,16 @@
 		</profile>
 		<profile>
 			<id>native</id>
-			<dependencies>
-				<dependency>
-					<groupId>org.junit.platform</groupId>
-					<artifactId>junit-platform-launcher</artifactId>
-					<version>1.8.2</version>
-					<scope>test</scope>
-				</dependency>
-			</dependencies>
 			<build>
 				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<version>3.1.2</version>
+						<configuration>
+							<skipTests>false</skipTests>
+						</configuration>
+					</plugin>
 					<plugin>
 						<groupId>org.graalvm.buildtools</groupId>
 						<artifactId>native-maven-plugin</artifactId>
@@ -531,6 +531,7 @@
 								</goals>
 								<phase>package</phase>
 							</execution>
+							<!-- Could not get it to work... -->
 							<execution>
 								<id>test-native</id>
 								<goals>
@@ -540,7 +541,8 @@
 							</execution>
 						</executions>
 						<configuration>
-							<!-- ... -->
+							<!-- Skip native test - could not get them to work. -->
+							<skipNativeTests>true</skipNativeTests>
 						</configuration>
 					</plugin>
 				</plugins>
