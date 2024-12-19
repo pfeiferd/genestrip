@@ -60,6 +60,8 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 	private int doneCounter;
 	private Object[] syncs = new Object[256];
 
+	private boolean minUpdate;
+
 	@SafeVarargs
 	public DBGoal(GSProject project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
 			ObjectGoal<TaxTree, GSProject> taxTreeGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
@@ -75,6 +77,7 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 		this.accessionTrieGoal = accessionTrieGoal;
 		this.filledStoreGoal = filledStoreGoal;
 		this.bundle = bundle;
+		minUpdate = project.booleanConfigValue(GSConfigKey.MIN_UPDATE);
 	}
 	
 	@Override
@@ -243,15 +246,25 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 
 		@Override
 		protected void start() throws IOException {
-			includeRegion = true;
+			if (minUpdate) {
+				super.start();
+			}
+			else {
+				includeRegion = true;
+			}
 		}
 
 		@Override
 		protected void infoLine() throws IOException {
-			if (!ignoreMap) {
-				updateNodeFromInfoLine();
+			if (minUpdate) {
+				super.infoLine();
 			}
-			byteRingBuffer.reset();
+			else {
+				if (!ignoreMap) {
+					updateNodeFromInfoLine();
+				}
+				byteRingBuffer.reset();
+			}
 		}
 
 		@Override
