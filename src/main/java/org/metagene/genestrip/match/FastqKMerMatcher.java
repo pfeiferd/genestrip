@@ -46,7 +46,6 @@ import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGAT;
-import org.metagene.genestrip.util.DigitTrie;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
@@ -468,13 +467,6 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 			if (buffer == null) {
 				buffer = new byte[read.length + 2048]; // It has to be rather long in some cases...
 			}
-		}
-	}
-
-	protected static class TaxidStatsTrie extends DigitTrie<CountsPerTaxid> {
-		@Override
-		protected CountsPerTaxid createInGet(String digits, Object createContext) {
-			return new CountsPerTaxid(digits, (int) createContext);
 		}
 	}
 }
