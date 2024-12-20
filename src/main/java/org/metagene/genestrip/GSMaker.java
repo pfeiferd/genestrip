@@ -302,8 +302,8 @@ public class GSMaker extends Maker<GSProject> {
 				taxNodesGoal, refSeqFnaFilesGoal, additionalFastasGoal, accessCollGoal, fillSizeGoal);
 		registerGoal(fillBloomGoal);
 
-		FillDBGoal fillDBGoal = new FillDBGoal(project, categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal,
-				additionalFastasGoal, accessCollGoal, fillBloomGoal, taxTreeGoal, projectSetupGoal);
+		FillDBGoal fillDBGoal = new FillDBGoal(project, categoriesGoal, taxNodesGoal, taxTreeGoal, refSeqFnaFilesGoal,
+				additionalFastasGoal, accessCollGoal, fillBloomGoal, projectSetupGoal);
 		registerGoal(fillDBGoal);
 
 		StoreDBGoal storeTempDBGoal = new StoreDBGoal(project, GSGoalKey.TEMPDB,
@@ -322,7 +322,7 @@ public class GSMaker extends Maker<GSProject> {
 		FilledDBGoal filledDBGoal = new FilledDBGoal(project, fillDBGoal, storeTempDBGoal);
 		registerGoal(filledDBGoal);
 
-		DBGoal updateDBGoal = new DBGoal(project, getExecutionContext(project), categoriesGoal, taxTreeGoal,
+		DBGoal updateDBGoal = new DBGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, taxTreeGoal,
 				refSeqFnaFilesGoal, additionalFastasGoal, accessCollGoal, filledDBGoal, projectSetupGoal);
 		registerGoal(updateDBGoal);
 

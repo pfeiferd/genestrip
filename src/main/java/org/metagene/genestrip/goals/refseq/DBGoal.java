@@ -49,6 +49,7 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 public class DBGoal extends ObjectGoal<Database, GSProject> {
 	private final ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal;
+	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
 	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
 	private final ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal;
 	private final ObjectGoal<AccessionMap, GSProject> accessionTrieGoal;
@@ -64,13 +65,15 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 
 	@SafeVarargs
 	public DBGoal(GSProject project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
-			ObjectGoal<TaxTree, GSProject> taxTreeGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
+				  ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
+				  ObjectGoal<TaxTree, GSProject> taxTreeGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+				  ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionTrieGoal, ObjectGoal<Database, GSProject> filledStoreGoal,
 			Goal<GSProject>... deps) {
-		super(project, GSGoalKey.UPDATE_DB, Goal.append(deps, additionalGoal, categoriesGoal, taxTreeGoal, fnaFilesGoal,
-				accessionTrieGoal, filledStoreGoal));
+		super(project, GSGoalKey.UPDATE_DB, Goal.append(deps, additionalGoal, categoriesGoal, taxTreeGoal, taxNodesGoal,
+				fnaFilesGoal, accessionTrieGoal, filledStoreGoal));
 		this.categoriesGoal = categoriesGoal;
+		this.taxNodesGoal = taxNodesGoal;
 		this.taxTreeGoal = taxTreeGoal;
 		this.fnaFilesGoal = fnaFilesGoal;
 		this.additionalGoal = additionalGoal;
@@ -191,7 +194,7 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 	}
 
 	protected AbstractRefSeqFastaReader createFastaReader(KMerSortedArray<String> store) {
-		return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxTreeGoal.get(),
+		return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxTreeGoal.get(), taxNodesGoal.get(),
 				accessionTrieGoal.get(), store, intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
 				intConfigValue(GSConfigKey.MAX_DUST));
 	}
@@ -210,9 +213,9 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 		private final KMerSortedArray<String> store;
 		private final UpdateValueProvider<String> provider;
 
-		public MyFastaReader(int bufferSize, TaxTree taxTree, AccessionMap accessionMap, KMerSortedArray<String> store,
+		public MyFastaReader(int bufferSize, TaxTree taxTree, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, KMerSortedArray<String> store,
 				int maxGenomesPerTaxId, int maxDust) {
-			super(bufferSize, null, accessionMap, store.getK(), maxGenomesPerTaxId, maxDust);
+			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxDust);
 			this.store = store;
 			provider = new UpdateValueProvider<String>() {
 				// Caches for last results of getLeastCommonAncestor()

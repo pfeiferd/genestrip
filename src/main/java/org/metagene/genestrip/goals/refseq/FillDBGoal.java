@@ -57,10 +57,12 @@ public class FillDBGoal extends ObjectGoal<Database, GSProject> {
 
 	@SafeVarargs
 	public FillDBGoal(GSProject project, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
-			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
+					  ObjectGoal<TaxTree, GSProject> taxTreeGoal,
+					  RefSeqFnaFilesDownloadGoal fnaFilesGoal,
 			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionMapGoal,
-			ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
+			ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal,
 			Goal<GSProject>... deps) {
 		super(project, GSGoalKey.FILL_DB, Goal.append(deps, categoriesGoal, taxNodesGoal, fnaFilesGoal,
 				accessionMapGoal, bloomFilterGoal, taxTreeGoal, additionalGoal));
