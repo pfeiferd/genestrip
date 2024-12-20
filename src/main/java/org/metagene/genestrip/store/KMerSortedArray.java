@@ -74,6 +74,8 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	private boolean useFilter;
 	private Object2LongMap<V> kmerPersTaxid;
 
+	private transient long kmersMoved;
+
 	public KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge) {
 		this(k, fpp, initialValues, enforceLarge, new MurmurCGATBloomFilter(k, fpp));
 	}
@@ -100,6 +102,11 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		this.filter = filter;
 		this.useFilter = filter != null;
 		this.kmerPersTaxid = null;
+		this.kmersMoved = 0;
+	}
+
+	public long getKMersMoved() {
+		return kmersMoved;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -368,6 +375,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				// This is important in the multi-threading context:
 				synchronized (valueMap) {
 					index = getAddValueIndex(newValue);
+					kmersMoved++;
 				}
 				if (largeKmers != null) {
 					BigArrays.set(largeValueIndexes, pos, index);

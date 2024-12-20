@@ -145,7 +145,10 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 				}
 			}
 			store.fix();
-			set(new Database((KMerSortedArray<String>) store, wrapper.getTaxTree()));
+			set(new Database(store, wrapper.getTaxTree()));
+			if (getLogger().isTraceEnabled()) {
+				getLogger().trace("KMers moved: " + store.getKMersMoved());
+			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {
