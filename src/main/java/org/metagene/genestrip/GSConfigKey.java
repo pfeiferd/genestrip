@@ -166,7 +166,9 @@ public enum GSConfigKey implements ConfigKey {
 	KRAKEN_DB("krakenDB", new StringConfigParamInfo("krakenuniq"), true),
 	KRAKEN_EXEC_EXPR("krakenExecExpr", new StringConfigParamInfo("{0} -db {1} {2}"), true),
 	@MDDescription("Perform database update regarding least common ancestors only based on genomes as selected for the database generation (not all of respective RefSeq genomes).")
-	MIN_UPDATE("minUpdate", new BooleanConfigParamInfo(false), true);
+	MIN_UPDATE("minUpdate", new BooleanConfigParamInfo(false), true),
+	@MDDescription("Wether to delete the temporary database after the final database has been saved or not.")
+	REMOVE_TEMP_DB("removeTempDB", new BooleanConfigParamInfo(true), true);
 
 	private final String name;
 	private final ConfigParamInfo<?> param;

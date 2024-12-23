@@ -311,9 +311,11 @@ public class GSMaker extends Maker<GSProject> {
 			@Override
 			protected void dependentMade(Goal<GSProject> goal) {
 				super.dependentMade(goal);
-				// Remove temp file if not required any more...
-				if (GSGoalKey.DB.equals(goal.getKey())) {
-					cleanThis();
+				if (booleanConfigValue(GSConfigKey.REMOVE_TEMP_DB)) {
+					// Remove temp file if not required any more...
+					if (GSGoalKey.DB.equals(goal.getKey())) {
+						cleanThis();
+					}
 				}
 			}
 		};
