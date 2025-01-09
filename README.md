@@ -327,7 +327,7 @@ Entries per line should have the form
 ```
 <key>=<value>
 ```
-[**This as list of all configuration parameters**](ConfigParams.md)
+[**This is a list of all configuration parameters**](ConfigParams.md)
 
 An optional configuration properties file `config.properties` or `config.properties` may also be put under the project folder `<base dir>/projects/<project_name>`. Configuration entries from the project level override entries from the level `<base dir>`.
 
