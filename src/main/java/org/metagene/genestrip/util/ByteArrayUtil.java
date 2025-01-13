@@ -80,7 +80,7 @@ public class ByteArrayUtil {
 		println(array, 0, array.length, ps);
 	}
 
-	public static void print(byte[] array, PrintStream ps) {
+	public static void print(final byte[] array, final PrintStream ps) {
 		print(array, 0, array.length, ps);
 	}
 
@@ -120,7 +120,7 @@ public class ByteArrayUtil {
 		return result;
 	}
 
-	public static int intToByteArray(int value, byte[] data, int pos) {
+	public static int intToByteArray(int value, final byte[] data, int pos) {
 		if (value == 0) {
 			data[pos++] = '0';
 			return pos;

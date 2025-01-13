@@ -95,7 +95,7 @@ public class LargeShortVector implements Serializable {
 		return size;
 	}
 	
-	public final short inc(long index) {
+	public final short inc(final long index) {
 		if (largeShorts != null) {
 			BigArrays.incr(largeShorts, index);
 			return BigArrays.get(largeShorts, index);

@@ -131,6 +131,7 @@ public class ResultReporter {
 		if (estimator != null) {
 			out.print("db coverage;normalized kmers;exp. unique kmers;unique kmers / exp.;quality prediction;");
 		}
+		out.print("reads >= 1 kmer;");
 		if (res.isWithMaxKMerCounts()) {
 			out.print("max kmer counts;");
 		}
@@ -145,6 +146,7 @@ public class ResultReporter {
 		if (estimator != null) {
 			out.print("0;0;0;0;");
 		}
+		out.print("0;");
 		if (res.isWithMaxKMerCounts()) {
 			short[] counts = res.getTotalMaxCounts();
 			if (counts != null) {
@@ -213,6 +215,8 @@ public class ResultReporter {
 						out.print(';');
 						 */
 					}
+					out.print(stats.getReads1Kmer());
+					out.print(';');
 					if (res.isWithMaxKMerCounts()) {
 						short[] counts = stats.getMaxKMerCounts();
 						if (counts != null) {

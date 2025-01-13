@@ -95,7 +95,7 @@ public class CGAT {
 		return reverse ? kMerToLongReverse(seq, start, k, badPos) : kMerToLongStraight(seq, start, k, badPos);
 	}
 
-	public static long kMerToLongStraight(byte[] seq, int start, int k, int[] badPos) {
+	public static long kMerToLongStraight(final byte[] seq, final int start, final int k, final int[] badPos) {
 		long res = 0;
 		int c;
 		if (badPos != null) {
@@ -126,7 +126,7 @@ public class CGAT {
 		}
 	}
 
-	public static long nextKMerStraight(long kmer, byte bp, int k) {
+	public static long nextKMerStraight(final long kmer, final byte bp, final int k) {
 		int c = CGAT_JUMP_TABLE[bp];
 		if (c == -1) {
 			return -1L;
@@ -134,7 +134,7 @@ public class CGAT {
 		return ((kmer << 2) & SHIFT_FILTERS_STRAIGHT[k]) | (long) c;
 	}
 
-	public static long nextKMerReverse(long kmer, byte bp, int k) {
+	public static long nextKMerReverse(final long kmer, final byte bp, final int k) {
 		int c = CGAT_REVERSE_JUMP_TABLE[bp];
 		if (c == -1) {
 			return -1L;
@@ -142,7 +142,7 @@ public class CGAT {
 		return (kmer >>> 2) | (((long) c) << SHIFT_FILTERS_REVERSE[k]);
 	}
 	
-	public static long kMerToLongReverse(byte[] seq, int start, int k, int[] badPos) {
+	public static long kMerToLongReverse(final byte[] seq, final int start, final int k, final int[] badPos) {
 		long res = 0;
 		int c;
 		if (badPos != null) {

@@ -56,6 +56,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 	// Turned from KMerUniqueCounter to KMerUniqueCounterBits for potential method inlining.
 	protected KMerUniqueCounterBits uniqueCounter;
 	protected final CountsPerTaxid[] statsIndex;
+	protected final long readNoPerCPerStat[][];
 
 	private final int maxPaths;
 	private final SmallTaxTree taxTree;
@@ -74,15 +75,17 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 			ExecutionContext bundle, boolean withProbs, int maxKmerResCounts, SmallTaxTree taxTree, int maxPaths,
 			double maxReadTaxErrorCount) {
 		super(kmerStore.getK(), initialReadSize, maxQueueSize, bundle, withProbs, maxPaths);
+		int consumers = bundle.getThreads() <= 0 ? 1 : bundle.getThreads();
 		this.kmerStore = kmerStore;
 		this.statsIndex = new CountsPerTaxid[kmerStore.getNValues()];
+		this.readNoPerCPerStat = new long[consumers][kmerStore.getNValues()];
 		this.initialReadSize = initialReadSize;
 		this.maxKmerResCounts = maxKmerResCounts;
 		this.taxTree = taxTree;
 		this.maxReadTaxErrorCount = maxReadTaxErrorCount;
 		this.maxPaths = maxPaths;
 		if (taxTree != null) {
-			taxTree.initCountSize(bundle.getThreads() <= 0 ? 1 : bundle.getThreads());
+			taxTree.initCountSize(consumers);
 		}
 	}
 
@@ -212,7 +215,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 	}
 
 	// Made final for potential inlining by JVM
-	protected final boolean matchRead(MyReadEntry entry, int index, boolean reverse) {
+	protected final boolean matchRead(final MyReadEntry entry, final int index, final boolean reverse) {
 		boolean found = false;
 		int prints = 0;
 		int readTaxErrorCount = taxTree == null ? -1 : 0;
@@ -278,18 +281,14 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 				lastTaxid = taxIdNode;
 				if (taxIdNode != null) {
 					short vi = taxIdNode.getStoreIndex();
-					stats = statsIndex[vi];
-					if (stats == null) {
-						synchronized (statsIndex) {
-							if (statsIndex[vi] == null) {
-								statsIndex[vi] = new CountsPerTaxid(taxIdNode.getTaxId(), initialReadSize);
-							}
-							stats = statsIndex[vi];
-						}
-					}
+					stats = getCountsPerTaxid(taxIdNode, vi);
 					synchronized (stats) {
 						stats.kmers++;
 						found = true;
+						if (readNoPerCPerStat[index][vi] != entry.readNo) {
+							stats.reads1Kmer++;
+							readNoPerCPerStat[index][vi] = entry.readNo;
+						}
 					}
 					if (uniqueCounter != null) {
 						uniqueCounter.put(kmer, taxIdNode.getTaxId(), entry.indexPos[0]);
@@ -337,15 +336,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 				}
 				entry.classNode = node;
 				short vi = node.getStoreIndex();
-				stats = statsIndex[vi];
-				if (stats == null) {
-					synchronized (statsIndex) {
-						if (statsIndex[vi] == null) {
-							statsIndex[vi] = new CountsPerTaxid(node.getTaxId(), initialReadSize);
-						}
-						stats = statsIndex[vi];
-					}
-				}
+				stats = getCountsPerTaxid(node, vi);
 
 				synchronized (stats) {
 					stats.reads++;
@@ -357,8 +348,21 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 		return found;
 	}
 
+	private final CountsPerTaxid getCountsPerTaxid(final SmallTaxIdNode node, final short vi) {
+		CountsPerTaxid stats = statsIndex[vi];
+		if (stats == null) {
+			synchronized (statsIndex) {
+				if (statsIndex[vi] == null) {
+					statsIndex[vi] = new CountsPerTaxid(node.getTaxId(), initialReadSize);
+				}
+				stats = statsIndex[vi];
+			}
+		}
+		return stats;
+	}
+
 	// Made final for potential inlining by JVM
-	protected final void updateReadTaxid(SmallTaxIdNode node, MyReadEntry entry, int index) {
+	protected final void updateReadTaxid(final SmallTaxIdNode node, final MyReadEntry entry, final int index) {
 		taxTree.incCount(node, index, entry.readNo);
 
 		boolean found = false;
@@ -380,7 +384,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 		}
 	}
 
-	protected void printKrakenStyleOut(MyReadEntry entry, SmallTaxIdNode taxid, int contigLen, int state,
+	protected void printKrakenStyleOut(final MyReadEntry entry, final SmallTaxIdNode taxid, final int contigLen, final int state,
 			boolean reverse) {
 		entry.enablePrintBuffer();
 		if (state != 0) {
@@ -415,18 +419,18 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 			indexPos = new long[1];
 		}
 
-		public void printChar(char c) {
+		public void printChar(final char c) {
 			buffer[bufferPos++] = (byte) c;
 		}
 
-		public void printString(String s) {
+		public void printString(final String s) {
 			int len = s.length();
 			for (int i = 0; i < len; i++) {
 				buffer[bufferPos++] = (byte) s.charAt(i);
 			}
 		}
 
-		public void printBytes(byte[] bytes) {
+		public void printBytes(final byte[] bytes) {
 			for (int i = 0; i < bytes.length; i++) {
 				byte b = bytes[i];
 				if (b == 0) {
@@ -436,7 +440,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 			}
 		}
 
-		public void printInt(int value) {
+		public void printInt(final int value) {
 			bufferPos = ByteArrayUtil.intToByteArray(value, buffer, bufferPos);
 		}
 

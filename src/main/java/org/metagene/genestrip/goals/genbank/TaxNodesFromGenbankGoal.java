@@ -39,6 +39,7 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
+import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.StringLongDigitTrie;
 import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
@@ -69,7 +70,7 @@ public class TaxNodesFromGenbankGoal extends ObjectGoal<Set<TaxIdNode>, GSProjec
 			if (!SeqType.RNA.equals(configValue(GSConfigKey.SEQ_TYPE))) {
 				AbstractRefSeqFastaReader fastaReader = new AbstractRefSeqFastaReader(
 						intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxNodesGoal.get(), accessionMapGoal.get(),
-						intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID)) {
+						intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID), (Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK)) {
 					@Override
 					protected void dataLine() throws IOException {
 					}

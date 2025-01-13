@@ -31,6 +31,7 @@ public class CountsPerTaxid implements Serializable {
 
 	protected String taxid;
 	protected long reads; // Only classified if a read is ENTIRELY consistent with the kmers of a taxon (and/or its ancestors) in the DB
+	protected long reads1Kmer; // Reads with at least one k-mer belonging to this taxid
 	protected long readKmers; // Kmers from classified reads.
 	protected long uniqueKmers; // All unique kmers counted - even from unclassified reads.
 	protected long kmers; // All kmers counted - even from unclassified reads.
@@ -78,5 +79,9 @@ public class CountsPerTaxid implements Serializable {
 
 	public short[] getMaxKMerCounts() {
 		return maxKMerCounts;
+	}
+
+	public long getReads1Kmer() {
+		return reads1Kmer;
 	}
 }

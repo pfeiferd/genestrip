@@ -251,6 +251,10 @@ public class TaxTree {
 			node.parent = this;
 			subNodes.add(node);
 		}
+
+		public TaxIdNode getParent() {
+			return parent;
+		}
 	}
 
 	public static class TaxIdNodeTrie extends DigitTrie<TaxIdNode> {

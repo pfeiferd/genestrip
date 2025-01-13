@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.Set;
 
 import org.metagene.genestrip.fasta.AbstractFastaReader;
+import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.StringLongDigitTrie;
@@ -37,6 +38,7 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected final Set<TaxIdNode> taxNodes;
 	protected final AccessionMap accessionMap;
 	protected final int maxGenomesPerTaxId;
+	protected final Rank maxGenomesPerTaxIdRank;
 	protected final StringLongDigitTrie regionsPerTaxid;
 
 	protected boolean includeRegion;
@@ -45,7 +47,7 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected boolean ignoreMap;
 	protected long includedCounter;
 
-	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int maxGenomesPerTaxId) {
+	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank) {
 		super(bufferSize);
 		this.taxNodes = taxNodes;
 		this.accessionMap = accessionMap;
@@ -54,6 +56,7 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		includedCounter = 0;
 		regionsPerTaxid = new StringLongDigitTrie();
 		this.maxGenomesPerTaxId = maxGenomesPerTaxId;
+		this.maxGenomesPerTaxIdRank = maxGenomesPerTaxIdRank;
 	}
 	
 	public StringLongDigitTrie getRegionsPerTaxid() {
@@ -76,8 +79,15 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 			updateNodeFromInfoLine();
 		}
 		if (node != null && (taxNodes.isEmpty() || taxNodes.contains(node))) {
-			StringLong sl = regionsPerTaxid.inc(node.getTaxId());
-			includeRegion = sl.getLongValue() <= maxGenomesPerTaxId;
+			StringLong sl = null;
+			while (node != null) {
+				StringLong csl = regionsPerTaxid.inc(node.getTaxId());
+				if (maxGenomesPerTaxIdRank != null && maxGenomesPerTaxIdRank.equals(node.getRank())) {
+					sl = csl;
+				}
+				node = node.getParent();
+			}
+			includeRegion = sl != null && sl.getLongValue() <= maxGenomesPerTaxId;
 		}
 		else {
 			includeRegion = false;

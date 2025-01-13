@@ -143,7 +143,7 @@ public class MurmurCGATBloomFilter implements Serializable {
 		return containsViaHash(data);
 	}
 
-	protected boolean containsViaHash(long data) {
+	protected final boolean containsViaHash(final long data) {
 		for (int i = 0; i < hashes; i++) {
 			if (!bitVector.get(hash(data, i))) {
 				return false;
@@ -152,7 +152,7 @@ public class MurmurCGATBloomFilter implements Serializable {
 		return true;
 	}
 
-	public boolean containsLong(long data) {
+	public final boolean containsLong(final long data) {
 		return containsViaHash(data);
 	}
 
@@ -172,7 +172,7 @@ public class MurmurCGATBloomFilter implements Serializable {
 	private static final int M = 5;
 	private static final int N1 = 0x52dce729;
 
-	protected long hash(long data, int i) {
+	protected final long hash(final long data, final int i) {
 		long hash = hashFactors[i];
 
 		// Reverse byte inlined from Long.reverseBytes()

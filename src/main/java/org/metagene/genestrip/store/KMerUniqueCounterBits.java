@@ -58,7 +58,7 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 	}
 
 	@Override
-	public final synchronized void put(long kmer, String taxid, long index) {
+	public final synchronized void put(final long kmer, final String taxid, final long index) {
 		bitVector.set(index);
 		if (countsVector != null) {
 			countsVector.inc(index);

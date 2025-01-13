@@ -49,7 +49,7 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("Only the log levels `error`, `warn`, `info` and `trace` are used by Genestrip.")
 	LOG_LEVEL("logLevel", new LogLevelConfigParamInfo("info")),
 	@MDDescription("Affects the log level `trace`: Defines after how many reads per fastq file, information on the matching progress is logged. If less than 1, then no progress information is logged.")
-	LOG_PROGRESS_UPDATE_CYCLE("logProgressUpdateCycle", new LongConfigParamInfo(0, Integer.MAX_VALUE, 1000000), GSGoalKey.MATCH, GSGoalKey.MATCHLR, GSGoalKey.FILTER),
+	LOG_PROGRESS_UPDATE_CYCLE("logProgressUpdateCycle", new LongConfigParamInfo(0, Long.MAX_VALUE, 1000000), GSGoalKey.MATCH, GSGoalKey.MATCHLR, GSGoalKey.FILTER),
 	@MDDescription("The number of consumer threads *n* when processing data with respect to the goals `match`, `filter` and also so during the update phase of the `db` goal. "
 			+ "There is always one additional thread that reads and uncompresses a corresponding fastq or fasta file (so it is *n + 1* threads in total). "
 			+ "When negative, the number of available processors *- 1* is used as *n*. When 0, then the corresponding goals run in single-threaded mode.")
@@ -81,6 +81,8 @@ public enum GSConfigKey implements ConfigKey {
 			+ "Note, that this is an important parameter to control database size, because in some cases, there are millions of genomic entries for a tax id such as for `573` (which does not even account for entries of its descendants).")
 	MAX_GENOMES_PER_TAXID("maxGenomesPerTaxid", new IntConfigParamInfo(1, Integer.MAX_VALUE, Integer.MAX_VALUE),
 			GSGoalKey.DB),
+	@MDDescription("The rank for which to consider the parameter `maxGenomesPerTaxid`.")
+	MAX_GENOMES_PER_TAXID_RANK("maxGenomesPerTaxidRank", new RankConfigParamInfo(Rank.STRAIN)),
 	@MDDescription("If `true`, then only genomic accessions with the prefixes `AC`, `NC_`, `NZ_` will be considered when generating a database. "
 			+ "Otherwise, all genomic accessions will be considered. See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.")
 	COMPLETE_GENOMES_ONLY("completeGenomesOnly", new BooleanConfigParamInfo(false), GSGoalKey.DB),
@@ -165,10 +167,10 @@ public enum GSConfigKey implements ConfigKey {
 	KRAKEN_BIN("krakenBin", new StringConfigParamInfo("krakenuniq"), true),
 	KRAKEN_DB("krakenDB", new StringConfigParamInfo("krakenuniq"), true),
 	KRAKEN_EXEC_EXPR("krakenExecExpr", new StringConfigParamInfo("{0} -db {1} {2}"), true),
-	@MDDescription("Perform database update regarding least common ancestors only based on genomes as selected for the database generation (not all of respective RefSeq genomes).")
-	MIN_UPDATE("minUpdate", new BooleanConfigParamInfo(false), true),
+	@MDDescription("Perform database update regarding least common ancestors only based on genomes as selected for the database generation (not via all of respective RefSeq genomes).")
+	MIN_UPDATE("minUpdate", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
 	@MDDescription("Wether to delete the temporary database after the final database has been saved or not.")
-	REMOVE_TEMP_DB("removeTempDB", new BooleanConfigParamInfo(true), true);
+	REMOVE_TEMP_DB("removeTempDB", new BooleanConfigParamInfo(true), false, GSGoalKey.DB);
 
 	private final String name;
 	private final ConfigParamInfo<?> param;

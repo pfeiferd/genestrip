@@ -87,12 +87,12 @@ public class SmallTaxTree implements Serializable {
 	}
 
 	// Made final for potential inlining by JVM
-	public final void incCount(SmallTaxIdNode node, int index, long initKey) {
+	public final void incCount(final SmallTaxIdNode node, final int index, final long initKey) {
 		node.incCount(index, initKey, countSize);
 	}
 
 	// Made final for potential inlining by JVM
-	public final short sumCounts(SmallTaxIdNode node, int index, long initKey) {
+	public final short sumCounts(SmallTaxIdNode node, final int index, final long initKey) {
 		short res = 0;
 		while (node != null) {
 			if (node.counts != null && node.countsInitKeys != null && node.countsInitKeys[index] == initKey) {
@@ -108,7 +108,7 @@ public class SmallTaxTree implements Serializable {
 	}
 
 	// Made final for potential inlining by JVM
-	public final boolean isAncestorOf(SmallTaxIdNode node, SmallTaxIdNode ancestor) {
+	public final boolean isAncestorOf(SmallTaxIdNode node, final SmallTaxIdNode ancestor) {
 		while (node != null) {
 			if (node.equals(ancestor)) {
 				return true;
@@ -268,7 +268,7 @@ public class SmallTaxTree implements Serializable {
 			return subNodes;
 		}
 
-		private void incCount(int index, long initKey, int size) {
+		private void incCount(final int index, final long initKey, final int size) {
 			if (counts == null || countsInitKeys == null) {
 				synchronized (this) {
 					if (counts == null) {
