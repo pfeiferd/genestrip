@@ -41,6 +41,7 @@ import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.KMerSortedArray;
+import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.tax.TaxTree;
@@ -92,7 +93,9 @@ public class FillDBGoal extends ObjectGoal<Database, GSProject> {
 		try {
 			MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
 					taxNodesGoal.get(), accessionMapGoal.get(), store,
-					intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID), intConfigValue(GSConfigKey.MAX_DUST));
+					intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
+					(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
+					intConfigValue(GSConfigKey.MAX_DUST));
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
@@ -140,8 +143,8 @@ public class FillDBGoal extends ObjectGoal<Database, GSProject> {
 		private long tooManyCounter;
 
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
-				KMerSortedArray<String> store, int maxGenomesPerTaxId, int maxDust) {
-			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxDust);
+							 KMerSortedArray<String> store, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, int maxDust) {
+			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxDust);
 			this.store = store;
 		}
 

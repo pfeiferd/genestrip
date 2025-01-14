@@ -39,6 +39,7 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
+import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
 
@@ -68,7 +69,8 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 		try {
 			MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
 					taxNodesGoal.get(), accessionMapGoal.get(), intConfigValue(GSConfigKey.KMER_SIZE),
-					intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID));
+					intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
+					(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK));
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
@@ -99,8 +101,8 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 		private final int k;
 
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-				int maxGenomesPerTaxId) {
-			super(bufferSize, taxNodes, accessionMap, maxGenomesPerTaxId);
+				int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank) {
+			super(bufferSize, taxNodes, accessionMap, maxGenomesPerTaxId, maxGenomesPerTaxIdRank);
 			this.k = k;
 			counter = 0;
 		}

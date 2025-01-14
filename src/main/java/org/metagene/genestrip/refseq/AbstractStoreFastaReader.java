@@ -27,6 +27,7 @@ package org.metagene.genestrip.refseq;
 import java.io.IOException;
 import java.util.Set;
 
+import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATLongBuffer;
@@ -37,8 +38,8 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 	protected long dustCounter;
 	protected long totalKmerCounter;
 	
-	public AbstractStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, int maxDust) {
-		super(bufferSize, taxNodes, accessionMap, maxGenomesPerTaxId);
+	public AbstractStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, int maxDust) {
+		super(bufferSize, taxNodes, accessionMap, maxGenomesPerTaxId, maxGenomesPerTaxIdRank);
 		byteRingBuffer = k > 32 ? new CGATRingBuffer(k, maxDust) : new CGATLongBuffer(k, maxDust);
 		dustCounter = 0;
 	}
