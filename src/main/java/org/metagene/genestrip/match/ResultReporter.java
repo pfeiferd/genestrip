@@ -144,7 +144,7 @@ public class ResultReporter {
 		out.print(res.getTotalKMers());
 		out.print(";0;0;0;0;0;");
 		if (estimator != null) {
-			out.print("0;0;0;0;");
+			out.print("0;0;0;0;0;");
 		}
 		out.print("0;");
 		if (res.isWithMaxKMerCounts()) {
