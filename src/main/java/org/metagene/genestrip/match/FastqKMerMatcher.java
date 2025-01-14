@@ -161,6 +161,9 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 			if (taxTree != null) {
 				taxTree.resetCounts(this);
 			}
+			for (long[] a : readNoPerCPerStat) {
+				Arrays.fill(a, -1);
+			}
 			super.readFastq(inputStream);
 		} finally {
 			if (taxTree != null) {
