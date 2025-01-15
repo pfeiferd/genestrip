@@ -132,12 +132,10 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 				counter -= k - 1;
 			}
 			super.done();
-			if (getLogger().isInfoEnabled()) {
+			if (getLogger().isTraceEnabled()) {
 				List<StringLong> values = new ArrayList<StringLong>();
 				regionsPerTaxid.collect(values);
-				if (getLogger().isTraceEnabled()) {
-					getLogger().trace("Matching regions per taxid: " + values);
-				}
+				getLogger().trace("Included regions per taxid: " + values);
 			}
 		}
 	}

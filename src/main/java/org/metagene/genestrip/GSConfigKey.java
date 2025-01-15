@@ -81,8 +81,8 @@ public enum GSConfigKey implements ConfigKey {
 			+ "Note, that this is an important parameter to control database size, because in some cases, there are millions of genomic entries for a tax id such as for `573` (which does not even account for entries of its descendants).")
 	MAX_GENOMES_PER_TAXID("maxGenomesPerTaxid", new IntConfigParamInfo(1, Integer.MAX_VALUE, Integer.MAX_VALUE),
 			GSGoalKey.DB),
-	@MDDescription("The rank for which to consider the parameter `maxGenomesPerTaxid`.")
-	MAX_GENOMES_PER_TAXID_RANK("maxGenomesPerTaxidRank", new RankConfigParamInfo(Rank.STRAIN)),
+	@MDDescription("The rank for which to consider the parameter `maxGenomesPerTaxid`. If `null`, then maximum number of genomes is considered with respect to the direct tax id under which a genome is stored in the RefSeq.")
+	MAX_GENOMES_PER_TAXID_RANK("maxGenomesPerTaxidRank", new RankConfigParamInfo(null)),
 	@MDDescription("If `true`, then only genomic accessions with the prefixes `AC`, `NC_`, `NZ_` will be considered when generating a database. "
 			+ "Otherwise, all genomic accessions will be considered. See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.")
 	COMPLETE_GENOMES_ONLY("completeGenomesOnly", new BooleanConfigParamInfo(false), GSGoalKey.DB),

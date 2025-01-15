@@ -79,21 +79,33 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 			updateNodeFromInfoLine();
 		}
 		if (node != null && (taxNodes.isEmpty() || taxNodes.contains(node))) {
-			StringLong sl = null;
-
-			for (TaxIdNode n = node; n != null; n = n.getParent()) {
-				StringLong csl = regionsPerTaxid.inc(n.getTaxId());
-				if (maxGenomesPerTaxIdRank != null && maxGenomesPerTaxIdRank.equals(n.getRank())) {
-					sl = csl;
+			includeRegion = true;
+			if (maxGenomesPerTaxIdRank == null) {
+				StringLong sl = regionsPerTaxid.get(node.getTaxId());
+				if (sl.getLongValue() >= maxGenomesPerTaxId) {
+					includeRegion = false;
 				}
 			}
-			includeRegion = sl != null && sl.getLongValue() <= maxGenomesPerTaxId;
+			else {
+				for (TaxIdNode n = node; n != null; n = n.getParent()) {
+					if (maxGenomesPerTaxIdRank.equals(n.getRank())) {
+						StringLong sl = regionsPerTaxid.get(n.getTaxId());
+						if (sl.getLongValue() >= maxGenomesPerTaxId) {
+							includeRegion = false;
+						}
+						break;
+					}
+				}
+			}
+			if (includeRegion) {
+				for (TaxIdNode n = node; n != null; n = n.getParent()) {
+					regionsPerTaxid.inc(n.getTaxId());
+				}
+				includedCounter++;
+			}
 		}
 		else {
 			includeRegion = false;
-		}
-		if (includeRegion) {
-			includedCounter++;
 		}
 	}
 
