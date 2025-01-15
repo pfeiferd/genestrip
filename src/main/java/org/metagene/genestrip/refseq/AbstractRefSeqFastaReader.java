@@ -80,12 +80,12 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		}
 		if (node != null && (taxNodes.isEmpty() || taxNodes.contains(node))) {
 			StringLong sl = null;
-			while (node != null) {
-				StringLong csl = regionsPerTaxid.inc(node.getTaxId());
-				if (maxGenomesPerTaxIdRank != null && maxGenomesPerTaxIdRank.equals(node.getRank())) {
+
+			for (TaxIdNode n = node; n != null; n = n.getParent()) {
+				StringLong csl = regionsPerTaxid.inc(n.getTaxId());
+				if (maxGenomesPerTaxIdRank != null && maxGenomesPerTaxIdRank.equals(n.getRank())) {
 					sl = csl;
 				}
-				node = node.getParent();
 			}
 			includeRegion = sl != null && sl.getLongValue() <= maxGenomesPerTaxId;
 		}
