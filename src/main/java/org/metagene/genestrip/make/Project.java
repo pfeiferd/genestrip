@@ -124,11 +124,9 @@ public abstract class Project {
 	}
 
 	public boolean initConfigParam(ConfigKey key, Object value) {
-		if (value != null) {
-			if (key.getInfo().isValueInRange(value)) {
-				paramMap.put(key, value);
-				return true;
-			}
+		if (key.getInfo().isValueInRange(value)) {
+			paramMap.put(key, value);
+			return true;
 		}
 		return false;
 	}

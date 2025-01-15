@@ -396,6 +396,11 @@ public enum GSConfigKey implements ConfigKey {
 		}
 
 		@Override
+		public boolean isValueInRange(Object o) {
+			return o == null || o instanceof Rank;
+		}
+
+		@Override
 		protected Rank fromString(String s) {
 			return Rank.byName(s);
 		}
@@ -429,6 +434,11 @@ public enum GSConfigKey implements ConfigKey {
 		@Override
 		protected SeqType fromString(String s) {
 			return SeqType.byName(s);
+		}
+
+		@Override
+		public boolean isValueInRange(Object o) {
+			return o instanceof SeqType;
 		}
 
 		@Override
