@@ -82,7 +82,7 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 			includeRegion = true;
 			if (maxGenomesPerTaxIdRank == null) {
 				StringLong sl = regionsPerTaxid.get(node.getTaxId());
-				if (sl.getLongValue() >= maxGenomesPerTaxId) {
+				if (sl != null && sl.getLongValue() >= maxGenomesPerTaxId) {
 					includeRegion = false;
 				}
 			}
@@ -90,7 +90,7 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 				for (TaxIdNode n = node; n != null; n = n.getParent()) {
 					if (maxGenomesPerTaxIdRank.equals(n.getRank())) {
 						StringLong sl = regionsPerTaxid.get(n.getTaxId());
-						if (sl.getLongValue() >= maxGenomesPerTaxId) {
+						if (sl != null && sl.getLongValue() >= maxGenomesPerTaxId) {
 							includeRegion = false;
 						}
 						break;
