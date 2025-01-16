@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
+import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.util.GSLogFactory;
 
 public abstract class Project {
@@ -114,8 +115,10 @@ public abstract class Project {
 
 	protected void initConfigParam(ConfigKey key, Properties... propsArray) {
 		for (Properties properties : propsArray) {
-			if (initConfigParam(key, key.getInfo().fromString(properties.getProperty(key.getName())))) {
-				return;
+			if (properties.getProperty(key.getName()) != null) {
+				if (initConfigParam(key, key.getInfo().fromString(properties.getProperty(key.getName())))) {
+					return;
+				}
 			}
 		}
 		if (!initConfigParam(key, key.getInfo().defaultValue())) {
