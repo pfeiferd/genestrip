@@ -71,4 +71,9 @@ public class StreamingResourceListStream implements StreamingResourceStream {
 		}
 		return sum;
 	}
+
+	@Override
+	public String toString() {
+		return "StreamingResourceListStream:" + (list == null ? "null" : list.toString());
+	}
 }
