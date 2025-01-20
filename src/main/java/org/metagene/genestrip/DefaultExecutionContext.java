@@ -80,6 +80,8 @@ public class DefaultExecutionContext implements ExecutionContext {
 		
 	@Override
 	public void interruptAll() {
+		// Create a copy to avoid comodifaction problems in case of error situations:
+		List<Thread> executorThreads = new ArrayList<>(this.executorThreads);
 		for (Thread t : executorThreads) {
 			t.interrupt();
 		}
