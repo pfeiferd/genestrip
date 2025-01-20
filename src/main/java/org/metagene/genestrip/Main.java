@@ -186,7 +186,7 @@ public class Main {
 			e.printStackTrace();
 		} finally {
 			if (maker != null) {
-				maker.dumpAll();
+//				maker.dumpAll();
 			}
 		}
 	}
