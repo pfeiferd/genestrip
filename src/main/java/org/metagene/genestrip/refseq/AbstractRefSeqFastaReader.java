@@ -96,8 +96,8 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		if (node != null && (taxNodes.isEmpty() || taxNodes.contains(node))) {
 			includeRegion = true;
 			if (maxGenomesPerTaxIdRank == null) {
-				StringLong sl = regionsPerTaxid.get(node.getTaxId());
-				if (sl != null && sl.getLongValue() >= maxGenomesPerTaxId) {
+				StringLong2DigitTrie.StringLong2 sl = (StringLong2DigitTrie.StringLong2) regionsPerTaxid.get(node.getTaxId());
+				if (sl != null && (sl.getLongValue() >= maxGenomesPerTaxId || sl.longValue2 >= maxKmersPerTaxId)) {
 					includeRegion = false;
 				}
 			}
