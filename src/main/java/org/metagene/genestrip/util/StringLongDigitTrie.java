@@ -53,24 +53,22 @@ public class StringLongDigitTrie extends DigitTrie<StringLong> {
 	
 	@Override
 	protected StringLong createInGet(byte[] seq, int start, int end, Object createContext) {
-		StringLong stringLong = new StringLong();
-		stringLong.stringValue = new String(seq, start, end - start);
-
-		return stringLong;
+		return new StringLong(new String(seq, start, end - start));
 	}
 
 	@Override
 	protected StringLong createInGet(String digits, Object createContext) {
-		StringLong stringLong = new StringLong();
-		stringLong.stringValue = digits;
-
-		return stringLong;
+		return new StringLong(digits);
 	}
 
 	public static class StringLong implements Serializable, Comparable<StringLong> {
 		private static final long serialVersionUID = 1L;
 		private String stringValue;
 		private long longValue;
+
+		public StringLong(String stringValue) {
+			this.stringValue = stringValue;
+		}
 
 		public long getLongValue() {
 			return longValue;

@@ -131,23 +131,6 @@ public class SmallTaxTree implements Serializable {
 		return null;
 	}
 
-	public SmallTaxIdNode getRankedNode(String taxid, Rank rank) {
-		SmallTaxIdNode node = getNodeByTaxId(taxid);
-		while (node != null) {
-			if (node.getRank() == rank) {
-				return node;
-			}
-			if (node.getRank() == null) {
-				System.out.println("Node without rank: " + node);
-			}
-			if (node.getRank() == null || !node.getRank().isBelow(rank)) {
-				return null;
-			}
-			node = node.parent;
-		}
-		return null;
-	}
-
 	public List<String> sortTaxidsViaTree(List<String> taxids) {
 		if (taxIdComparator == null) {
 			taxIdComparator = new Comparator<String>() {

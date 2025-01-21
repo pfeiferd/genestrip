@@ -70,7 +70,8 @@ public class TaxNodesFromGenbankGoal extends ObjectGoal<Set<TaxIdNode>, GSProjec
 			if (!SeqType.RNA.equals(configValue(GSConfigKey.SEQ_TYPE))) {
 				AbstractRefSeqFastaReader fastaReader = new AbstractRefSeqFastaReader(
 						intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxNodesGoal.get(), accessionMapGoal.get(),
-						intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID), (Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK)) {
+						intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID), (Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
+						longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID)) {
 					@Override
 					protected void dataLine() throws IOException {
 					}

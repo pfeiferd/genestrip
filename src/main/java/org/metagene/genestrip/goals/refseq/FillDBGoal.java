@@ -95,6 +95,7 @@ public class FillDBGoal extends ObjectGoal<Database, GSProject> {
 					taxNodesGoal.get(), accessionMapGoal.get(), store,
 					intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
 					(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
+					longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
 					intConfigValue(GSConfigKey.MAX_DUST));
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
@@ -143,8 +144,8 @@ public class FillDBGoal extends ObjectGoal<Database, GSProject> {
 		private long tooManyCounter;
 
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
-							 KMerSortedArray<String> store, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, int maxDust) {
-			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxDust);
+							 KMerSortedArray<String> store, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust) {
+			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust);
 			this.store = store;
 		}
 

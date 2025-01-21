@@ -70,7 +70,8 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 			MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
 					taxNodesGoal.get(), accessionMapGoal.get(), intConfigValue(GSConfigKey.KMER_SIZE),
 					intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
-					(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK));
+					(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
+					longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID));
 
 			for (File fnaFile : fnaFilesGoal.getFiles()) {
 				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
@@ -101,8 +102,8 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 		private final int k;
 
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-				int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank) {
-			super(bufferSize, taxNodes, accessionMap, maxGenomesPerTaxId, maxGenomesPerTaxIdRank);
+				int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId) {
+			super(bufferSize, taxNodes, accessionMap, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId);
 			this.k = k;
 			counter = 0;
 		}

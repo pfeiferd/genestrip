@@ -103,23 +103,6 @@ public class TaxTree {
 		return null;
 	}
 
-	public TaxIdNode getRankedNode(String taxid, Rank rank) {
-		TaxIdNode node = getNodeByTaxId(taxid);
-		while (node != null) {
-			if (node.getRank() == rank) {
-				return node;
-			}
-			if (node.getRank() == null) {
-				System.out.println("Node without rank: " + node);
-			}
-			if (node.getRank() == null || !node.getRank().isBelow(rank)) {
-				return null;
-			}
-			node = node.parent;
-		}
-		return null;
-	}
-	
 	protected InputStream createNodesResource(File path) throws IOException {
 		return StreamProvider.getInputStreamForFile(new File(path, NODES_DMP));
 	}

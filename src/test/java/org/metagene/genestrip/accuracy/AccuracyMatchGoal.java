@@ -154,9 +154,9 @@ public class AccuracyMatchGoal extends MatchGoal {
 						taxIdCorrectCount++;
 						genusCorrectCount++;
 					} else {
-						TaxIdNode correctGenusTaxNode = taxTree.getRankedNode(correctTaxId, Rank.GENUS);
+						TaxIdNode correctGenusTaxNode = TaxIdsTxtGoal.getRankedNode(taxTree, correctTaxId, Rank.GENUS);
 						if (correctGenusTaxNode != null) {
-							if (correctGenusTaxNode == taxTree.getRankedNode(readTaxId, Rank.GENUS)) {
+							if (correctGenusTaxNode == TaxIdsTxtGoal.getRankedNode(taxTree, readTaxId, Rank.GENUS)) {
 								genusCorrectCount++;
 							} else {
 								genusIncorrectCount++;
@@ -165,7 +165,7 @@ public class AccuracyMatchGoal extends MatchGoal {
 					}
 
 					for (Rank rank : Rank.values()) {
-						TaxIdNode correctRankTaxNode = taxTree.getRankedNode(correctTaxId, rank);
+						TaxIdNode correctRankTaxNode = TaxIdsTxtGoal.getRankedNode(taxTree, correctTaxId, rank);
 						if (correctRankTaxNode != null) {
 							TaxIdNode node = taxTree.getNodeByTaxId(readTaxId);
 							if (correctRankTaxNode.equals(node)) {

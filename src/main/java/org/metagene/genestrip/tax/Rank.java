@@ -75,11 +75,10 @@ public enum Rank {
 		return i == -1 ? null : VALUES[i];
 	}
 
-	public boolean isBelowOrEqual(Rank rank) {
-		return this.ordinal() >= rank.ordinal();
-	}
-
 	public boolean isBelow(Rank rank) {
+		if (rank == null || NO_RANK.equals(this) || NO_RANK.equals(rank)) {
+			return false;
+		}
 		return this.ordinal() > rank.ordinal();
 	}	
 }

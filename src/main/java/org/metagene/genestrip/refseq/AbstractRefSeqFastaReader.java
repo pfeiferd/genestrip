@@ -38,25 +38,28 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected final Set<TaxIdNode> taxNodes;
 	protected final AccessionMap accessionMap;
 	protected final int maxGenomesPerTaxId;
+	protected final long maxKmersPerTaxId;
 	protected final Rank maxGenomesPerTaxIdRank;
-	protected final StringLongDigitTrie regionsPerTaxid;
+	protected final StringLong2DigitTrie regionsPerTaxid;
 
 	protected boolean includeRegion;
 	protected TaxIdNode node;
 
 	protected boolean ignoreMap;
 	protected long includedCounter;
+	protected long kmersInRegion;
 
-	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank) {
+	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId) {
 		super(bufferSize);
 		this.taxNodes = taxNodes;
 		this.accessionMap = accessionMap;
 		includeRegion = false;
 		ignoreMap = false;
 		includedCounter = 0;
-		regionsPerTaxid = new StringLongDigitTrie();
+		regionsPerTaxid = new StringLong2DigitTrie();
 		this.maxGenomesPerTaxId = maxGenomesPerTaxId;
 		this.maxGenomesPerTaxIdRank = maxGenomesPerTaxIdRank;
+		this.maxKmersPerTaxId = maxKmersPerTaxId;
 	}
 	
 	public StringLongDigitTrie getRegionsPerTaxid() {
@@ -73,8 +76,20 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		includeRegion = false;
 	}
 
+	protected void updateKMersPerNode() {
+		if (node != null && includeRegion) {
+			for (TaxIdNode n = node; n != null; n = n.getParent()) {
+				regionsPerTaxid.add2(n.getTaxId(), kmersInRegion);
+			}
+		}
+		kmersInRegion = 0;
+	}
+
 	@Override
 	protected void infoLine() throws IOException {
+		// Update kmers from previous region and node:
+		updateKMersPerNode();
+		// Handle new region:
 		if (!ignoreMap) {
 			updateNodeFromInfoLine();
 		}
@@ -89,8 +104,9 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 			else {
 				for (TaxIdNode n = node; n != null; n = n.getParent()) {
 					if (maxGenomesPerTaxIdRank.equals(n.getRank())) {
-						StringLong sl = regionsPerTaxid.get(n.getTaxId());
-						if (sl != null && sl.getLongValue() >= maxGenomesPerTaxId) {
+						StringLong2DigitTrie.StringLong2 sl =
+								(StringLong2DigitTrie.StringLong2) regionsPerTaxid.get(n.getTaxId());
+						if (sl != null && sl.getLongValue() >= maxGenomesPerTaxId || sl.longValue2 >= maxKmersPerTaxId) {
 							includeRegion = false;
 						}
 						break;
@@ -125,8 +141,28 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	@Override
 	protected void done() throws IOException {
 		super.done();
+		updateKMersPerNode();
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Number of included regions: " + includedCounter);
+		}
+	}
+
+	protected static class StringLong2DigitTrie extends StringLongDigitTrie {
+		public void add2(String key, long add) {
+			StringLong stringLong = get(key, this);
+			((StringLong2) stringLong).longValue2 += add;
+		}
+		@Override
+		protected StringLong2 createInGet(String digits, Object createContext) {
+			return new StringLong2(digits);
+		}
+
+		public static class StringLong2 extends StringLong {
+			private long longValue2;
+
+			public StringLong2(String digits) {
+				super(digits);
+			}
 		}
 	}
 }

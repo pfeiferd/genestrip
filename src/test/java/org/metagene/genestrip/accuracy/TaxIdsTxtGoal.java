@@ -83,7 +83,7 @@ public class TaxIdsTxtGoal extends FileListGoal<GSProject> {
 			if (!nodes.contains(node)) {
 				nodes.add(node);
 			}
-			TaxIdNode genusNode = taxTree.getRankedNode(taxid, Rank.SPECIES);
+			TaxIdNode genusNode = getRankedNode(taxTree, taxid, Rank.SPECIES);
 			if (genusNode != null) {
 				if (!nodes.contains(genusNode)) {
 					nodes.add(genusNode);
@@ -98,5 +98,22 @@ public class TaxIdsTxtGoal extends FileListGoal<GSProject> {
 				getLogger().warn("Missing node for taxid " + taxid);
 			}
 		}
+	}
+
+	public static TaxIdNode getRankedNode(TaxTree tree, String taxid, Rank rank) {
+		TaxIdNode node = tree.getNodeByTaxId(taxid);
+		while (node != null) {
+			if (node.getRank() == rank) {
+				return node;
+			}
+			if (node.getRank() == null) {
+				System.out.println("Node without rank: " + node);
+			}
+			if (node.getRank() == null || !node.getRank().isBelow(rank)) {
+				return null;
+			}
+			node = node.getParent();
+		}
+		return null;
 	}
 }

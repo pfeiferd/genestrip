@@ -78,9 +78,12 @@ public enum GSConfigKey implements ConfigKey {
 			+ "Typical values could be `genus`, `species` or `strain`, but  all values used for assigning ranks in the taxonomy are possible.")
 	RANK_COMPLETION_DEPTH("rankCompletionDepth", new RankConfigParamInfo(Rank.NO_RANK), GSGoalKey.DB),
 	@MDDescription("The maximum number of genomes per tax id from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) to be included in the database. "
-			+ "Note, that this is an important parameter to control database size, because in some cases, there are millions of genomic entries for a tax id such as for `573` (which does not even account for entries of its descendants).")
+			+ "Note, that this is an important parameter to control database size, because in some cases, there are thousands of genomic entries per tax id.")
 	MAX_GENOMES_PER_TAXID("maxGenomesPerTaxid", new IntConfigParamInfo(1, Integer.MAX_VALUE, Integer.MAX_VALUE),
 			GSGoalKey.DB),
+	@MDDescription("The maximum number of *k*-mers per tax id from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) at which adding more genomes for this tax id to the database stops. "
+			+ "Note, that this is an important parameter to control database size, because in some cases, there are thousands of genomic entries per tax id.")
+	MAX_KMERS_PER_TAXID("maxKMersPerTaxid", new LongConfigParamInfo(0, Long.MAX_VALUE, Long.MAX_VALUE)),
 	@MDDescription("The rank for which to consider the parameter `maxGenomesPerTaxid`. If `null`, then maximum number of genomes is considered with respect to the direct tax id under which a genome is stored in the RefSeq.")
 	MAX_GENOMES_PER_TAXID_RANK("maxGenomesPerTaxidRank", new RankConfigParamInfo(null)),
 	@MDDescription("If `true`, then only genomic accessions with the prefixes `AC`, `NC_`, `NZ_` will be considered when generating a database. "

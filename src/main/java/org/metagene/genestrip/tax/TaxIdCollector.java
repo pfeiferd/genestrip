@@ -88,20 +88,6 @@ public class TaxIdCollector {
 		return res;
 	}
 
-	public Set<TaxIdNode> restrictToMaxRank(Rank rank, Set<TaxIdNode> taxIds) {
-		if (rank == null) {
-			return taxIds;
-		}
-		Set<TaxIdNode> res = new HashSet<TaxTree.TaxIdNode>();
-
-		for (TaxIdNode node : taxIds) {
-			if (node.getRank() != null && node.getRank().isBelowOrEqual(rank)) {
-				res.add(node);
-			}
-		}
-		return res;
-	}
-
 	public Set<TaxIdNode> restrictToAncestor(TaxIdNode ancestor, Set<TaxIdNode> taxIds) {
 		Set<TaxIdNode> res = new HashSet<TaxTree.TaxIdNode>();
 
