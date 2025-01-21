@@ -163,11 +163,17 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 			return new StringLong2(new String(seq, start, end - start));
 		}
 
+
 		public static class StringLong2 extends StringLong {
 			private long longValue2;
 
 			public StringLong2(String digits) {
 				super(digits);
+			}
+
+			@Override
+			public String toString() {
+				return "SL:(taxid:" + stringValue + ", regions: " + longValue + ", kmers: " + longValue2 + ")";
 			}
 		}
 	}

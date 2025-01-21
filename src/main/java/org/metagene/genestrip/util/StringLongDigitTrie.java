@@ -63,8 +63,8 @@ public class StringLongDigitTrie extends DigitTrie<StringLong> {
 
 	public static class StringLong implements Serializable, Comparable<StringLong> {
 		private static final long serialVersionUID = 1L;
-		private String stringValue;
-		private long longValue;
+		protected String stringValue;
+		protected long longValue;
 
 		public StringLong(String stringValue) {
 			this.stringValue = stringValue;
