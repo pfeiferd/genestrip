@@ -152,9 +152,15 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 			StringLong stringLong = get(key, this);
 			((StringLong2) stringLong).longValue2 += add;
 		}
+
 		@Override
 		protected StringLong2 createInGet(String digits, Object createContext) {
 			return new StringLong2(digits);
+		}
+
+		@Override
+		protected StringLong createInGet(byte[] seq, int start, int end, Object createContext) {
+			return new StringLong2(new String(seq, start, end - start));
 		}
 
 		public static class StringLong2 extends StringLong {
