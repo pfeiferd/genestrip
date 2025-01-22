@@ -99,25 +99,24 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 
 	protected static class MyFastaReader extends AbstractRefSeqFastaReader {
 		private long counter;
-		private final int k;
 
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
 				int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId) {
-			super(bufferSize, taxNodes, accessionMap, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId);
-			this.k = k;
+			super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId);
 			counter = 0;
 		}
 
 		@Override
-		protected void infoLine() throws IOException {
+		protected void endRegion() {
+			super.endRegion();
 			if (includeRegion) {
 				counter -= k - 1;
 			}
-			super.infoLine();
 		}
 
 		@Override
-		protected void dataLine() throws IOException {
+		protected void dataLine() {
+			super.dataLine();
 			if (includeRegion) {
 				counter += size - 1;
 			}
@@ -128,10 +127,7 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 		}
 
 		@Override
-		protected void done() throws IOException {
-			if (includeRegion) {
-				counter -= k - 1;
-			}
+		protected void done() {
 			super.done();
 			if (getLogger().isTraceEnabled()) {
 				List<StringLong> values = new ArrayList<StringLong>();

@@ -30,4 +30,5 @@ public interface AccessionMap {
 	public void put(byte[] array, int start, int end, TaxIdNode node);
 	public TaxIdNode get(byte[] array, int start, int end);
 	public void optimize();
+	public int getEntriesForNode(TaxIdNode node);
 }

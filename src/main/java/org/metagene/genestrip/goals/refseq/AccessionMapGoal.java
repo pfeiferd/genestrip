@@ -76,10 +76,10 @@ public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
 
 			@Override
 			protected void handleEntry(byte[] target, int taxIdEnd, int accessionStart, int accessionEnd) {
-				// TODO: Only enter stuff that is actually needed -> requested taxids...
 				TaxIdNode node = taxTree.getNodeByTaxId(target, 0, taxIdEnd);
 				if (node != null) {
 					map.put(target, accessionStart, accessionEnd, node);
+					node.incRefSeqRegions();
 				}
 			}
 		};

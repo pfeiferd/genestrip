@@ -63,7 +63,7 @@ public class ResultReporter {
 		out.println("name;rank;taxid;stored kmers;");
 
 		out.print("TOTAL;");
-		out.print(Rank.SUPERKINGDOM);
+		out.print(Rank.NO_RANK);
 		out.print(';');
 		out.print("1;");
 		out.print(stats.getLong(null));

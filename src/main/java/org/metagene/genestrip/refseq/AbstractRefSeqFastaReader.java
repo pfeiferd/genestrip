@@ -41,6 +41,7 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected final long maxKmersPerTaxId;
 	protected final Rank maxGenomesPerTaxIdRank;
 	protected final StringLong2DigitTrie regionsPerTaxid;
+	protected final int k;
 
 	protected boolean includeRegion;
 	protected TaxIdNode node;
@@ -49,10 +50,11 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected long includedCounter;
 	protected long kmersInRegion;
 
-	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId) {
+	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId) {
 		super(bufferSize);
 		this.taxNodes = taxNodes;
 		this.accessionMap = accessionMap;
+		this.k = k;
 		includeRegion = false;
 		ignoreMap = false;
 		includedCounter = 0;
@@ -70,25 +72,27 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		this.ignoreMap = node != null;
 		this.node = node;
 	}
-	
-	@Override
-	protected void start() throws IOException {
-		includeRegion = false;
-	}
 
-	protected void updateKMersPerNode() {
-		if (node != null && includeRegion) {
-			for (TaxIdNode n = node; n != null; n = n.getParent()) {
-				regionsPerTaxid.add2(n.getTaxId(), kmersInRegion);
-			}
-		}
+	@Override
+	protected void startRegion() {
+		includeRegion = false;
 		kmersInRegion = 0;
 	}
 
 	@Override
-	protected void infoLine() throws IOException {
-		// Update kmers from previous region and node:
-		updateKMersPerNode();
+	protected void endRegion() {
+		if (includeRegion) {
+			kmersInRegion -= k - 1;
+			if (node != null) {
+				for (TaxIdNode n = node; n != null; n = n.getParent()) {
+					regionsPerTaxid.add2(n.getTaxId(), kmersInRegion);
+				}
+			}
+		}
+	}
+
+	@Override
+	protected void infoLine() {
 		// Handle new region:
 		if (!ignoreMap) {
 			updateNodeFromInfoLine();
@@ -125,6 +129,13 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		}
 	}
 
+	@Override
+	protected void dataLine() {
+		if (includeRegion) {
+			kmersInRegion += size - 1;
+		}
+	}
+
 	protected void updateNodeFromInfoLine() {
 		int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
 		if (pos >= 0) {
@@ -139,9 +150,8 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	}
 	
 	@Override
-	protected void done() throws IOException {
+	protected void done() {
 		super.done();
-		updateKMersPerNode();
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Number of included regions: " + includedCounter);
 		}

@@ -73,10 +73,6 @@ public enum GSConfigKey implements ConfigKey {
 	MAX_DOWNLOAD_TRIES("maxDownloadTries", new IntConfigParamInfo(1, 1024, 5), GSGoalKey.DB),
 	@MDDescription("Which type of sequence files to include from the RefSeq. RNA files from the RefSeq end with `rna.fna.gz`, whereas genomes end with `genomic.fna.gz`.")
 	SEQ_TYPE("seqType", new SeqTypeConfigParamInfo(SeqType.GENOMIC), GSGoalKey.DB),
-	@MDDescription("The rank up to which tax ids from `taxids.txt` will be completed by descendants of the taxonomy tree (the set rank included). "
-			+ "If not set, the completion will traverse down to the lowest possible levels of the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip). "
-			+ "Typical values could be `genus`, `species` or `strain`, but  all values used for assigning ranks in the taxonomy are possible.")
-	RANK_COMPLETION_DEPTH("rankCompletionDepth", new RankConfigParamInfo(Rank.NO_RANK), GSGoalKey.DB),
 	@MDDescription("The maximum number of genomes per tax id from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) to be included in the database. "
 			+ "Note, that this is an important parameter to control database size, because in some cases, there are thousands of genomic entries per tax id.")
 	MAX_GENOMES_PER_TAXID("maxGenomesPerTaxid", new IntConfigParamInfo(1, Integer.MAX_VALUE, Integer.MAX_VALUE),
@@ -89,13 +85,15 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("If `true`, then only genomic accessions with the prefixes `AC`, `NC_`, `NZ_` will be considered when generating a database. "
 			+ "Otherwise, all genomic accessions will be considered. See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.")
 	COMPLETE_GENOMES_ONLY("completeGenomesOnly", new BooleanConfigParamInfo(false), GSGoalKey.DB),
-	@MDDescription(" Determines whether Genestrip should try to lookup genomic fasta files from Genbank, "
-			+ "if the number of corresponding reference genomes from the RefSeq is below the given limit for a requested tax id. "
+	@MDDescription("Determines whether Genestrip should try to lookup genomic fasta files from Genbank, "
+			+ "if the number of corresponding reference genomes from the RefSeq is below the given limit for a requested tax id including its descendants. "
 			+ "E.g. `refSeqLimitForGenbankAccess=1` would imply that Genbank is consulted if not a single reference genome is found in the RefSeq for a requested tax id. "
 			+ "The default `refSeqLimitForGenbankAccess=0` essentially inactivates this feature. "
 			+ "In addition, Genbank access is also influenced by the keys `fastaQualities` and `maxFromGenBank` (see below).")
 	REQ_SEQ_LIMIT_FOR_GENBANK("refSeqLimitForGenbankAccess", new IntConfigParamInfo(0, Integer.MAX_VALUE, 0),
 			GSGoalKey.DB),
+	@MDDescription("The rank for which to check the limit `refSeqLimitForGenbankAccess`.")
+	REQ_SEQ_LIMIT_FOR_GENBANK_RANK("refSeqLimitForGenbankRank", new RankConfigParamInfo(Rank.SPECIES), GSGoalKey.DB),
 	@MDDescription("Determines the maximum number of fasta files used from Genbank per requested tax id. "
 			+ "If the corresponding number of matching files exceeds `maxFromGenBank`, then then best ones according to `fastaQualities` will be retained to still match this maximum.")
 	MAX_FROM_GENBANK("maxFromGenBank", new IntConfigParamInfo(-1, Integer.MAX_VALUE, 1), GSGoalKey.DB),

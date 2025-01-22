@@ -64,12 +64,28 @@ public class TaxNodesFromGenbankGoal extends ObjectGoal<Set<TaxIdNode>, GSProjec
 
 	@Override
 	protected void doMakeThis() {
-		try {
 			Set<TaxIdNode> missingTaxIds = new HashSet<TaxIdNode>();
 			// We only get Genomic data from genbank (so far) - so if just RNA is wanted, there is no need to access it.
 			if (!SeqType.RNA.equals(configValue(GSConfigKey.SEQ_TYPE))) {
+				AccessionMap accessionMap = accessionMapGoal.get();
+				int limit = intConfigValue(GSConfigKey.REQ_SEQ_LIMIT_FOR_GENBANK);
+				if (limit > 0) {
+					Rank checkRank = (Rank) configValue(GSConfigKey.REQ_SEQ_LIMIT_FOR_GENBANK_RANK);
+					if (checkRank != null) {
+						for (TaxIdNode node : taxNodesGoal.get()) {
+							if (checkRank.equals(node.getRank())) {
+								if (node.getRefSeqRegions() < limit) {
+									missingTaxIds.add(node);
+								}
+							}
+						}
+					}
+				}
+
+				/*
 				AbstractRefSeqFastaReader fastaReader = new AbstractRefSeqFastaReader(
 						intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxNodesGoal.get(), accessionMapGoal.get(),
+						intConfigValue(GSConfigKey.KMER_SIZE),
 						intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID), (Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
 						longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID)) {
 					@Override
@@ -92,10 +108,9 @@ public class TaxNodesFromGenbankGoal extends ObjectGoal<Set<TaxIdNode>, GSProjec
 						missingTaxIds.add(node);
 					}
 				}
+
+				 */
 			}
 			set(missingTaxIds);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
 	}
 }

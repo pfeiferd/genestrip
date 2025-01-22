@@ -199,6 +199,7 @@ public class TaxTree {
 		private List<TaxIdNode> subNodes;
 		private TaxIdNode parent;
 		private boolean required;
+		private int refSeqRegions;
 
 		public TaxIdNode(String taxId) {
 			this(taxId, null);
@@ -207,6 +208,16 @@ public class TaxTree {
 		public TaxIdNode(String taxId, Rank rank) {
 			super(taxId, rank);
 			subNodes = null;
+		}
+
+		public void incRefSeqRegions() {
+			for (TaxIdNode node = this; node != null; node = node.parent) {
+				node.refSeqRegions++;
+			}
+		}
+
+		public int getRefSeqRegions() {
+			return refSeqRegions;
 		}
 
 		public void markRequired() {

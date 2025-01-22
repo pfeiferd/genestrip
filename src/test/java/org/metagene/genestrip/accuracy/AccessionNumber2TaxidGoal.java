@@ -62,7 +62,7 @@ public class AccessionNumber2TaxidGoal extends ObjectGoal<Map<String, String>, G
 		Set<String> accNumbers = new HashSet<String>();
 		AbstractFastaReader fastaReader1 = new AbstractFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES)) {
 			@Override
-			protected void infoLine() throws IOException {
+			protected void infoLine() {
 				String acc = getAccessionNumberFromInfoLine(target, size);
 				if (acc != null) {
 					accNumbers.add(acc);
@@ -70,7 +70,7 @@ public class AccessionNumber2TaxidGoal extends ObjectGoal<Map<String, String>, G
 			}
 
 			@Override
-			protected void dataLine() throws IOException {
+			protected void dataLine() {
 			}
 		};
 		try {

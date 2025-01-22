@@ -87,7 +87,7 @@ public class FastaTransformGoal extends FileListGoal<GSProject> {
 			private boolean taxidFound;
 
 			@Override
-			protected void infoLine() throws IOException {
+			protected void infoLine() {
 				if (taxidFound) {
 					printAdditionalLines();
 				}
@@ -122,7 +122,7 @@ public class FastaTransformGoal extends FileListGoal<GSProject> {
 			}
 
 			@Override
-			protected void dataLine() throws IOException {
+			protected void dataLine() {
 				if (taxidFound) {
 					ByteArrayUtil.print(target, 0, size - 1, out);
 				}
@@ -130,7 +130,7 @@ public class FastaTransformGoal extends FileListGoal<GSProject> {
 			}
 
 			@Override
-			protected void done() throws IOException {
+			protected void done() {
 				printAdditionalLines();
 			}
 

@@ -39,26 +39,26 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 	protected long totalKmerCounter;
 	
 	public AbstractStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust) {
-		super(bufferSize, taxNodes, accessionMap, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId);
+		super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId);
 		byteRingBuffer = k > 32 ? new CGATRingBuffer(k, maxDust) : new CGATLongBuffer(k, maxDust);
 		dustCounter = 0;
 	}
-	
+
 	@Override
-	protected void infoLine() throws IOException {
-		super.infoLine();
+	protected void startRegion() {
+		super.startRegion();
 		byteRingBuffer.reset();
 	}
-	
+
 	@Override
-	protected void dataLine() throws IOException {
+	protected void dataLine() {
+		super.dataLine();
 		if (includeRegion) {
 			for (int i = 0; i < size - 1; i++) {
 				byteRingBuffer.put(CGAT.cgatToUpperCase(target[i]));
 				if (byteRingBuffer.isFilled()) {
 					 if (!byteRingBuffer.isDust()) {
 						 handleStore();
-						 kmersInRegion++;
 					 }
 					 else {
 						 dustCounter++;
@@ -70,7 +70,7 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 	}
 	
 	@Override
-	protected void done() throws IOException {
+	protected void done() {
 		super.done();
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Dust ratio: " + ((double) dustCounter) / totalKmerCounter);

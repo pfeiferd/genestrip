@@ -69,6 +69,7 @@ public abstract class AbstractFastaReader {
 		bufferedLineReader.setInputStream(inputStream);
 		
 		start();
+		boolean first = true;
 		for (size = bufferedLineReader.nextLine(target); size > 0; size = bufferedLineReader.nextLine(target)) {
 			if (size >= target.length - 1) {
 				throw new IllegalStateException("buffer is too small for data line in fastq file");
@@ -77,6 +78,11 @@ public abstract class AbstractFastaReader {
 				target[size] = 0;
 			}
 			if (target[0] == '>') {
+				if (!first) {
+					endRegion();
+				}
+				first = false;
+				startRegion();
 				infoLine();
 			}
 			else {
@@ -84,18 +90,27 @@ public abstract class AbstractFastaReader {
 				dataLine();
 			}
 		}
+		if (!first) {
+			endRegion();
+		}
 		done();
 		if (logger.isInfoEnabled()) {
 			logger.info("Total number of data lines: " + dataLines);
 		}
 	}
-	
-	protected void infoLine() throws IOException {
+
+	protected void startRegion() {
+	}
+
+	protected void endRegion() {
 	}
 	
-	protected abstract void dataLine() throws IOException;
+	protected void infoLine() {
+	}
 	
-	protected void done() throws IOException {};
+	protected abstract void dataLine();
 	
-	protected void start() throws IOException {};	
+	protected void done() {};
+	
+	protected void start() {};
 }

@@ -58,6 +58,16 @@ public class AccessionMapImpl implements AccessionMap {
 		return values[pos];
 	}
 
+	public int getEntriesForNode(TaxIdNode node) {
+		int counter = 0;
+		for (TaxIdNode n : values) {
+			if (n != node && n == node) {
+				counter++;
+			}
+		}
+		return counter;
+	}
+
 	protected int binaryKeySearch(int from, int to, byte[] array, int start, int end) {
 		byte[] midVal;
 		to--;

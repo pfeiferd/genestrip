@@ -254,17 +254,7 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 		}
 
 		@Override
-		protected void start() throws IOException {
-			if (minUpdate) {
-				super.start();
-			}
-			else {
-				includeRegion = true;
-			}
-		}
-
-		@Override
-		protected void infoLine() throws IOException {
+		protected void infoLine() {
 			if (minUpdate) {
 				super.infoLine();
 			}
@@ -272,7 +262,7 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 				if (!ignoreMap) {
 					updateNodeFromInfoLine();
 				}
-				byteRingBuffer.reset();
+				includeRegion = true;
 			}
 		}
 
