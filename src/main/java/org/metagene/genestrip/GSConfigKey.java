@@ -73,14 +73,14 @@ public enum GSConfigKey implements ConfigKey {
 	MAX_DOWNLOAD_TRIES("maxDownloadTries", new IntConfigParamInfo(1, 1024, 5), GSGoalKey.DB),
 	@MDDescription("Which type of sequence files to include from the RefSeq. RNA files from the RefSeq end with `rna.fna.gz`, whereas genomes end with `genomic.fna.gz`.")
 	SEQ_TYPE("seqType", new SeqTypeConfigParamInfo(SeqType.GENOMIC), GSGoalKey.DB),
-	@MDDescription("The maximum number of genomes per tax id from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) to be included in the database. "
+	@MDDescription("The maximum number of genomes per tax id to be included in the database. "
 			+ "Note, that this is an important parameter to control database size, because in some cases, there are thousands of genomic entries per tax id.")
 	MAX_GENOMES_PER_TAXID("maxGenomesPerTaxid", new IntConfigParamInfo(1, Integer.MAX_VALUE, Integer.MAX_VALUE),
 			GSGoalKey.DB),
-	@MDDescription("The maximum number of *k*-mers per tax id from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) at which adding more genomes for this tax id to the database stops. "
-			+ "Note, that this is an important parameter to control database size, because in some cases, there are thousands of genomic entries per tax id.")
+	@MDDescription("The limit for the number of *k*-mers per tax id at which adding more genomes for this tax id to the database stops. "
+			+ "Note, that this is an important parameter to control database size, because in some cases, there are many thousands *k*-mers per tax id.")
 	MAX_KMERS_PER_TAXID("maxKMersPerTaxid", new LongConfigParamInfo(0, Long.MAX_VALUE, Long.MAX_VALUE)),
-	@MDDescription("The rank for which to consider the parameter `maxGenomesPerTaxid`. If `null`, then maximum number of genomes is considered with respect to the direct tax id under which a genome is stored in the RefSeq.")
+	@MDDescription("The rank for which to consider the parameters `maxGenomesPerTaxid` and `maxKMersPerTaxid`. If `null`, then maximum number of genomes is considered with respect to the direct tax id under which a genome is stored.")
 	MAX_GENOMES_PER_TAXID_RANK("maxGenomesPerTaxidRank", new RankConfigParamInfo(null)),
 	@MDDescription("If `true`, then only genomic accessions with the prefixes `AC`, `NC_`, `NZ_` will be considered when generating a database. "
 			+ "Otherwise, all genomic accessions will be considered. See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.")

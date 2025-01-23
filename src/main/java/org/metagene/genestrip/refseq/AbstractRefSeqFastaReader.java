@@ -85,9 +85,10 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 			kmersInRegion -= k - 1;
 			if (node != null) {
 				for (TaxIdNode n = node; n != null; n = n.getParent()) {
-					regionsPerTaxid.add2(n.getTaxId(), kmersInRegion);
+					regionsPerTaxid.incAndAdd(n.getTaxId(), kmersInRegion);
 				}
 			}
+			includedCounter++;
 		}
 	}
 
@@ -116,12 +117,6 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 						break;
 					}
 				}
-			}
-			if (includeRegion) {
-				for (TaxIdNode n = node; n != null; n = n.getParent()) {
-					regionsPerTaxid.inc(n.getTaxId());
-				}
-				includedCounter++;
 			}
 		}
 		else {
@@ -158,9 +153,9 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	}
 
 	protected static class StringLong2DigitTrie extends StringLongDigitTrie {
-		public void add2(String key, long add) {
-			StringLong stringLong = get(key, this);
-			((StringLong2) stringLong).longValue2 += add;
+		public void incAndAdd(String key, long add) {
+			StringLong2 stringLong = (StringLong2) inc(key);
+			stringLong.longValue2 += add;
 		}
 
 		@Override
