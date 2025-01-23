@@ -71,12 +71,10 @@ public class TaxNodesFromGenbankGoal extends ObjectGoal<Set<TaxIdNode>, GSProjec
 				int limit = intConfigValue(GSConfigKey.REQ_SEQ_LIMIT_FOR_GENBANK);
 				if (limit > 0) {
 					Rank checkRank = (Rank) configValue(GSConfigKey.REQ_SEQ_LIMIT_FOR_GENBANK_RANK);
-					if (checkRank != null) {
-						for (TaxIdNode node : taxNodesGoal.get()) {
-							if (checkRank.equals(node.getRank())) {
-								if (node.getRefSeqRegions() < limit) {
-									missingTaxIds.add(node);
-								}
+					for (TaxIdNode node : taxNodesGoal.get()) {
+						if (checkRank == null || checkRank.equals(node.getRank())) {
+							if (node.getRefSeqRegions() < limit) {
+								missingTaxIds.add(node);
 							}
 						}
 					}
