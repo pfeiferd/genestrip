@@ -290,6 +290,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 						found = true;
 						if (readNoPerCPerStat[index][vi] != entry.readNo) {
 							stats.reads1Kmer++;
+							stats.reads1KmerBPs += entry.readSize;
 							readNoPerCPerStat[index][vi] = entry.readNo;
 						}
 					}
