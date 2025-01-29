@@ -131,7 +131,7 @@ public class ResultReporter {
 		if (estimator != null) {
 			out.print("db coverage;normalized kmers;exp. unique kmers;unique kmers / exp.;quality prediction;");
 		}
-		out.print("reads >= 1 kmer; normalized reads >= 1 kmer; reads >= 1 kmer bps; avg read >= 1 kmer len; normalized reads >= 1 kmer * avg len");
+		out.print("normalized reads; reads >= 1 kmer; normalized reads >= 1 kmer; reads >= 1 kmer bps; avg read >= 1 kmer len; normalized reads >= 1 kmer * avg len;");
 		if (res.isWithMaxKMerCounts()) {
 			out.print("max kmer counts;");
 		}
@@ -217,9 +217,13 @@ public class ResultReporter {
 						out.print(';');
 						 */
 					}
+					long statsKmers = storeStats.getLong(stats.getTaxid());
+					double nreads = ((double) stats.getReads()) / statsKmers;
+					out.print(DF.format(1000 * nreads));
+					out.print(';');
 					out.print(stats.getReads1Kmer());
 					out.print(';');
-					double n1 = ((double) stats.getReads1Kmer()) / storeStats.getLong(stats.getTaxid());
+					double n1 = ((double) stats.getReads1Kmer()) / statsKmers;
 					out.print(DF.format(n1));
 					out.print(';');
 					out.print(stats.getReads1KmerBPs());
