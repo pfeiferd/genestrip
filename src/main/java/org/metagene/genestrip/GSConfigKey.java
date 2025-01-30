@@ -73,6 +73,10 @@ public enum GSConfigKey implements ConfigKey {
 	MAX_DOWNLOAD_TRIES("maxDownloadTries", new IntConfigParamInfo(1, 1024, 5), GSGoalKey.DB),
 	@MDDescription("Which type of sequence files to include from the RefSeq. RNA files from the RefSeq end with `rna.fna.gz`, whereas genomes end with `genomic.fna.gz`.")
 	SEQ_TYPE("seqType", new SeqTypeConfigParamInfo(SeqType.GENOMIC), GSGoalKey.DB),
+	@MDDescription("The rank up to which tax ids from `taxids.txt` will be completed by descendants of the taxonomy tree (the set rank included). "
+			+ "If not set, the completion will traverse down to the lowest possible levels of the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip). "
+			+ "Typical values could be `species` or `strain`, but  all values used for assigning ranks in the taxonomy are possible.")
+	RANK_COMPLETION_DEPTH("rankCompletionDepth", null, GSGoalKey.DB),
 	@MDDescription("The maximum number of genomes per tax id to be included in the database. "
 			+ "Note, that this is an important parameter to control database size, because in some cases, there are thousands of genomic entries per tax id.")
 	MAX_GENOMES_PER_TAXID("maxGenomesPerTaxid", new IntConfigParamInfo(1, Integer.MAX_VALUE, Integer.MAX_VALUE),
