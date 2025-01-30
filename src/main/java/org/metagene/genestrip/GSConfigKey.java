@@ -76,7 +76,7 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("The rank up to which tax ids from `taxids.txt` will be completed by descendants of the taxonomy tree (the set rank included). "
 			+ "If not set, the completion will traverse down to the lowest possible levels of the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip). "
 			+ "Typical values could be `species` or `strain`, but  all values used for assigning ranks in the taxonomy are possible.")
-	RANK_COMPLETION_DEPTH("rankCompletionDepth", null, GSGoalKey.DB),
+	RANK_COMPLETION_DEPTH("rankCompletionDepth", new RankConfigParamInfo(null), GSGoalKey.DB),
 	@MDDescription("The maximum number of genomes per tax id to be included in the database. "
 			+ "Note, that this is an important parameter to control database size, because in some cases, there are thousands of genomic entries per tax id.")
 	MAX_GENOMES_PER_TAXID("maxGenomesPerTaxid", new IntConfigParamInfo(1, Integer.MAX_VALUE, Integer.MAX_VALUE),
