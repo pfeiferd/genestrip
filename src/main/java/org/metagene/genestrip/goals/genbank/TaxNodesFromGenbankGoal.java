@@ -24,8 +24,6 @@
  */
 package org.metagene.genestrip.goals.genbank;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -36,13 +34,10 @@ import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.goals.refseq.RefSeqFnaFilesDownloadGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.util.StringLongDigitTrie;
-import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
 
 public class TaxNodesFromGenbankGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
 	private final ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal;
@@ -79,35 +74,6 @@ public class TaxNodesFromGenbankGoal extends ObjectGoal<Set<TaxIdNode>, GSProjec
 						}
 					}
 				}
-
-				/*
-				AbstractRefSeqFastaReader fastaReader = new AbstractRefSeqFastaReader(
-						intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxNodesGoal.get(), accessionMapGoal.get(),
-						intConfigValue(GSConfigKey.KMER_SIZE),
-						intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID), (Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
-						longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID)) {
-					@Override
-					protected void dataLine() throws IOException {
-					}
-				};
-
-				for (File fnaFile : fnaFilesGoal.getFiles()) {
-					RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
-					if (categoriesGoal.get().contains(cat)) {
-						fastaReader.readFasta(fnaFile);
-					}
-				}
-				StringLongDigitTrie trie = fastaReader.getRegionsPerTaxid();
-				int limit = intConfigValue(GSConfigKey.REQ_SEQ_LIMIT_FOR_GENBANK);
-				for (TaxIdNode node : taxNodesGoal.get()) {
-					StringLong value = trie.get(node.getTaxId());
-					long regions = value == null ? 0 : value.getLongValue();
-					if (regions < limit) {
-						missingTaxIds.add(node);
-					}
-				}
-
-				 */
 			}
 			set(missingTaxIds);
 	}

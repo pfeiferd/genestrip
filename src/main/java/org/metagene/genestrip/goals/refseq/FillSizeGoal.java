@@ -98,32 +98,13 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 	}
 
 	protected static class MyFastaReader extends AbstractRefSeqFastaReader {
-		private long counter;
-
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
 				int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId) {
 			super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId);
-			counter = 0;
-		}
-
-		@Override
-		protected void endRegion() {
-			super.endRegion();
-			if (includeRegion) {
-				counter -= k - 1;
-			}
-		}
-
-		@Override
-		protected void dataLine() {
-			super.dataLine();
-			if (includeRegion) {
-				counter += size - 1;
-			}
 		}
 
 		public long getCounter() {
-			return counter;
+			return totalKmers;
 		}
 
 		@Override

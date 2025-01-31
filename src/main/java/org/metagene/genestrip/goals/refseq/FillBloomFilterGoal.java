@@ -100,7 +100,7 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 
 			set(filter);
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Bloom filter entries: " + filter.getEntries());
+				getLogger().info("Final Bloom filter entries: " + filter.getEntries());
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);

@@ -24,7 +24,6 @@
  */
 package org.metagene.genestrip.refseq;
 
-import java.io.IOException;
 import java.util.Set;
 
 import org.metagene.genestrip.fasta.AbstractFastaReader;
@@ -32,7 +31,6 @@ import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.StringLongDigitTrie;
-import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
 
 public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected final Set<TaxIdNode> taxNodes;
@@ -44,10 +42,13 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected final int k;
 
 	protected boolean includeRegion;
+	protected long kMersForNode;
+	protected boolean allowMoreKmers;
 	protected TaxIdNode node;
 
 	protected boolean ignoreMap;
 	protected long includedCounter;
+	protected long bpsInRegion;
 	protected long kmersInRegion;
 	protected long totalKmers;
 
@@ -79,12 +80,12 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected void startRegion() {
 		includeRegion = false;
 		kmersInRegion = 0;
+		bpsInRegion = 0;
 	}
 
 	@Override
 	protected void endRegion() {
 		if (includeRegion) {
-			kmersInRegion -= k - 1;
 			totalKmers += kmersInRegion;
 			if (node != null) {
 				for (TaxIdNode n = node; n != null; n = n.getParent()) {
@@ -105,6 +106,7 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 			includeRegion = true;
 			if (maxGenomesPerTaxIdRank == null) {
 				StringLong2DigitTrie.StringLong2 sl = (StringLong2DigitTrie.StringLong2) regionsPerTaxid.get(node.getTaxId());
+				kMersForNode = sl.longValue2;
 				if (sl != null && (sl.getLongValue() >= maxGenomesPerTaxId || sl.longValue2 >= maxKmersPerTaxId)) {
 					includeRegion = false;
 				}
@@ -114,7 +116,8 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 					if (maxGenomesPerTaxIdRank.equals(n.getRank())) {
 						StringLong2DigitTrie.StringLong2 sl =
 								(StringLong2DigitTrie.StringLong2) regionsPerTaxid.get(n.getTaxId());
-						if (sl != null && (sl.getLongValue() >= maxGenomesPerTaxId || sl.longValue2 >= maxKmersPerTaxId)) {
+						kMersForNode = sl.longValue2;
+						if (sl != null && (sl.getLongValue() >= maxGenomesPerTaxId || kMersForNode >= maxKmersPerTaxId)) {
 							includeRegion = false;
 						}
 						break;
@@ -130,7 +133,13 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	@Override
 	protected void dataLine() {
 		if (includeRegion) {
-			kmersInRegion += size - 1;
+			allowMoreKmers = kMersForNode + kmersInRegion < maxKmersPerTaxId;
+			if (allowMoreKmers) {
+				bpsInRegion += size - 1;
+				if (bpsInRegion >= k) {
+					kmersInRegion = bpsInRegion - k + 1;
+				}
+			}
 		}
 	}
 

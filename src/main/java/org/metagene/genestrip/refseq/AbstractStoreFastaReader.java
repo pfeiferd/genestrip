@@ -53,7 +53,7 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 	@Override
 	protected void dataLine() {
 		super.dataLine();
-		if (includeRegion) {
+		if (includeRegion && allowMoreKmers) {
 			for (int i = 0; i < size - 1; i++) {
 				byteRingBuffer.put(CGAT.cgatToUpperCase(target[i]));
 				if (byteRingBuffer.isFilled()) {

@@ -97,7 +97,10 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 			bundle.clearThrowableList();
 
 			BlockingQueue<FileAndNode> blockingQueue = null;
-			if (bundle.getThreads() > 0) {
+			// For minUpdate the fna files must be read in the same order as during the goals from before.
+			// Otherwise, the wrong k-mers will be compared to the ones from the DB.
+			// For !minUpdate multi-threading can be enabled.
+			if (!minUpdate && bundle.getThreads() > 0) {
 				blockingQueue = new ArrayBlockingQueue<FileAndNode>(intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE));
 				for (int i = 0; i < bundle.getThreads(); i++) {
 					bundle.execute(createFastaReaderRunnable(i, store, blockingQueue));
@@ -263,6 +266,16 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 					updateNodeFromInfoLine();
 				}
 				includeRegion = true;
+			}
+		}
+
+		@Override
+		protected void dataLine() {
+			if (minUpdate) {
+				super.dataLine();
+			}
+			else {
+				allowMoreKmers = true;
 			}
 		}
 
