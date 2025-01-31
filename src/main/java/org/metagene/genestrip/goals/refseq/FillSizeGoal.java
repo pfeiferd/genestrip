@@ -128,12 +128,12 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 
 		@Override
 		protected void done() {
-			super.done();
 			if (getLogger().isTraceEnabled()) {
 				List<StringLong> values = new ArrayList<StringLong>();
 				regionsPerTaxid.collect(values);
 				getLogger().trace("Included regions per taxid: " + values);
 			}
+			super.done();
 		}
 	}
 }

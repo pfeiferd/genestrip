@@ -122,5 +122,15 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 				filter.putLong(byteRingBuffer.getKMer());
 			}
 		}
+
+		@Override
+		protected void done() {
+			super.done();
+			if (getLogger().isInfoEnabled()) {
+				long entries = filter.getEntries();
+				getLogger().info("Total Bloom filter entries: " + entries);
+				getLogger().info("Resulting approx. DB Size in MB (without Bloom filter): " + (entries * 10) / (1024 * 1024) );
+			}
+		}
 	}
 }

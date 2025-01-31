@@ -49,6 +49,7 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected boolean ignoreMap;
 	protected long includedCounter;
 	protected long kmersInRegion;
+	protected long totalKmers;
 
 	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId) {
 		super(bufferSize);
@@ -58,6 +59,7 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		includeRegion = false;
 		ignoreMap = false;
 		includedCounter = 0;
+		totalKmers = 0;
 		regionsPerTaxid = new StringLong2DigitTrie();
 		this.maxGenomesPerTaxId = maxGenomesPerTaxId;
 		this.maxGenomesPerTaxIdRank = maxGenomesPerTaxIdRank;
@@ -83,6 +85,7 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected void endRegion() {
 		if (includeRegion) {
 			kmersInRegion -= k - 1;
+			totalKmers += kmersInRegion;
 			if (node != null) {
 				for (TaxIdNode n = node; n != null; n = n.getParent()) {
 					regionsPerTaxid.incAndAdd(n.getTaxId(), kmersInRegion);
@@ -149,6 +152,8 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		super.done();
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Number of included regions: " + includedCounter);
+			getLogger().info("Total included kmers: " + totalKmers);
+			getLogger().info("Resulting approx. DB Size in MB (without Bloom filter): " + (totalKmers * 10) / (1024 * 1024) );
 		}
 	}
 
