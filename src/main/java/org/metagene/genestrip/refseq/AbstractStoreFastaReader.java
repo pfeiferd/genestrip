@@ -52,23 +52,26 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 
 	@Override
 	protected void dataLine() {
-		super.dataLine();
-		if (includeRegion && allowMoreKmers) {
-			for (int i = 0; i < size - 1; i++) {
-				byteRingBuffer.put(CGAT.cgatToUpperCase(target[i]));
-				if (byteRingBuffer.isFilled()) {
-					 if (!byteRingBuffer.isDust()) {
-						 handleStore();
-					 }
-					 else {
-						 dustCounter++;
-					 }
-					 totalKmerCounter++;
+		if (includeRegion) {
+			if (isAllowMoreKmers()) {
+				for (int i = 0; i < size - 1; i++) {
+					byteRingBuffer.put(CGAT.cgatToUpperCase(target[i]));
+					if (byteRingBuffer.isFilled()) {
+						if (!byteRingBuffer.isDust()) {
+							if (handleStore()) {
+								kmersInRegion++;
+							}
+						}
+						else {
+							dustCounter++;
+						}
+						totalKmerCounter++;
+					}
 				}
 			}
 		}
 	}
-	
+
 	@Override
 	protected void done() {
 		super.done();
@@ -77,5 +80,5 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 		}
 	}
 	
-	protected abstract void handleStore();
+	protected abstract boolean handleStore();
 }

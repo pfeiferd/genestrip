@@ -117,9 +117,13 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 		}
 
 		@Override
-		protected void handleStore() {
+		protected boolean handleStore() {
 			if (!filter.containsLong(byteRingBuffer.getKMer())) {
 				filter.putLong(byteRingBuffer.getKMer());
+				return true;
+			}
+			else {
+				return false;
 			}
 		}
 

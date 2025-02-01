@@ -100,7 +100,7 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 			// For minUpdate the fna files must be read in the same order as during the goals from before.
 			// Otherwise, the wrong k-mers will be compared to the ones from the DB.
 			// For !minUpdate multi-threading can be enabled.
-			if (!minUpdate && bundle.getThreads() > 0) {
+			if (bundle.getThreads() > 0) {
 				blockingQueue = new ArrayBlockingQueue<FileAndNode>(intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE));
 				for (int i = 0; i < bundle.getThreads(); i++) {
 					bundle.execute(createFastaReaderRunnable(i, store, blockingQueue));
@@ -258,30 +258,29 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 
 		@Override
 		protected void infoLine() {
+			if (!ignoreMap) {
+				updateNodeFromInfoLine();
+			}
 			if (minUpdate) {
-				super.infoLine();
+				// This means we use all regions that overlap deal with our taxids.
+				// It might be more than what is in the DB but still less than the entire RefSeq.
+				if (node != null && (taxNodes.isEmpty() || taxNodes.contains(node))) {
+					includeRegion = true;
+				}
 			}
 			else {
-				if (!ignoreMap) {
-					updateNodeFromInfoLine();
-				}
 				includeRegion = true;
 			}
 		}
 
 		@Override
-		protected void dataLine() {
-			if (minUpdate) {
-				super.dataLine();
-			}
-			else {
-				allowMoreKmers = true;
-			}
+		public boolean isAllowMoreKmers() {
+			return true;
 		}
 
 		@Override
-		protected void handleStore() {
-			store.update(byteRingBuffer.getKMer(), provider);
+		protected boolean handleStore() {
+			return store.update(byteRingBuffer.getKMer(), provider);
 		}
 	}
 

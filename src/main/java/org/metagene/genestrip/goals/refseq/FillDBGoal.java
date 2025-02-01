@@ -150,18 +150,19 @@ public class FillDBGoal extends ObjectGoal<Database, GSProject> {
 		}
 
 		@Override
-		protected void handleStore() {
+		protected boolean handleStore() {
 			if (store.isFull()) {
 				tooManyCounter++;
 			} else {
 				if (node.getTaxId() != null) {
-					store.putLong(byteRingBuffer.getKMer(), node.getTaxId());
+					return store.putLong(byteRingBuffer.getKMer(), node.getTaxId());
 				} else {
 					if (getLogger().isWarnEnabled()) {
 						getLogger().warn("Tax id node without taxid: " + node.getName());
 					}
 				}
 			}
+			return false;
 		}
 	}
 }

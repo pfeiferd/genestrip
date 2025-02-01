@@ -43,12 +43,11 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 
 	protected boolean includeRegion;
 	protected long kMersForNode;
-	protected boolean allowMoreKmers;
 	protected TaxIdNode node;
 
 	protected boolean ignoreMap;
 	protected long includedCounter;
-	protected long bpsInRegion;
+	private long bpsInRegion;
 	protected long kmersInRegion;
 	protected long totalKmers;
 
@@ -138,14 +137,17 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	@Override
 	protected void dataLine() {
 		if (includeRegion) {
-			allowMoreKmers = kMersForNode + kmersInRegion < maxKmersPerTaxId;
-			if (allowMoreKmers) {
+			if (isAllowMoreKmers()) {
 				bpsInRegion += size - 1;
 				if (bpsInRegion >= k) {
 					kmersInRegion = bpsInRegion - k + 1;
 				}
 			}
 		}
+	}
+
+	public boolean isAllowMoreKmers() {
+		return kMersForNode + kmersInRegion < maxKmersPerTaxId;
 	}
 
 	protected void updateNodeFromInfoLine() {
