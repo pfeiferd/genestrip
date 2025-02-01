@@ -102,9 +102,6 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		if (!ignoreMap) {
 			updateNodeFromInfoLine();
 		}
-		if ("138948".equals(node.getTaxId())) {
-			System.out.print("stop");
-		}
 		if (node != null && (taxNodes.isEmpty() || taxNodes.contains(node))) {
 			includeRegion = true;
 			kMersForNode = 0;
