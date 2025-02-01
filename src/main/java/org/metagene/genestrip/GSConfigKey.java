@@ -81,8 +81,8 @@ public enum GSConfigKey implements ConfigKey {
 			+ "Note, that this is an important parameter to control database size, because in some cases, there are thousands of genomic entries per tax id.")
 	MAX_GENOMES_PER_TAXID("maxGenomesPerTaxid", new IntConfigParamInfo(1, Integer.MAX_VALUE, Integer.MAX_VALUE),
 			GSGoalKey.DB),
-	@MDDescription("The limit for the number of *k*-mers per tax id at which adding more genomes for this tax id to the database stops. "
-			+ "Note, that this is an important parameter to control database size, because in some cases, there are many thousands *k*-mers per tax id.")
+	@MDDescription("The limit for the number of *k*-mers per tax id at which adding more *k*-mers for this tax id to the database stops. "
+			+ "Note, that this is an important parameter to control database size, because in some cases, there are millions of *k*-mers per tax id.")
 	MAX_KMERS_PER_TAXID("maxKMersPerTaxid", new LongConfigParamInfo(0, Long.MAX_VALUE, Long.MAX_VALUE)),
 	@MDDescription("The rank for which to consider the parameters `maxGenomesPerTaxid` and `maxKMersPerTaxid`. If `null`, then maximum number of genomes is considered with respect to the direct tax id under which a genome is stored.")
 	MAX_GENOMES_PER_TAXID_RANK("maxGenomesPerTaxidRank", new RankConfigParamInfo(null)),
@@ -172,7 +172,7 @@ public enum GSConfigKey implements ConfigKey {
 	KRAKEN_BIN("krakenBin", new StringConfigParamInfo("krakenuniq"), true),
 	KRAKEN_DB("krakenDB", new StringConfigParamInfo("krakenuniq"), true),
 	KRAKEN_EXEC_EXPR("krakenExecExpr", new StringConfigParamInfo("{0} -db {1} {2}"), true),
-	@MDDescription("Perform database update regarding least common ancestors only based on genomes as selected for the database generation (not via all of respective RefSeq genomes).")
+	@MDDescription("Perform database update regarding least common ancestors only based on genomes of tax ids as selected for the database generation (and not via all of superkingdom's RefSeq genomes).")
 	MIN_UPDATE("minUpdate", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
 	@MDDescription("Wether to delete the temporary database after the final database has been saved or not.")
 	REMOVE_TEMP_DB("removeTempDB", new BooleanConfigParamInfo(true), false, GSGoalKey.DB);
