@@ -102,13 +102,19 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		if (!ignoreMap) {
 			updateNodeFromInfoLine();
 		}
+		if ("138948".equals(node.getTaxId())) {
+			System.out.print("stop");
+		}
 		if (node != null && (taxNodes.isEmpty() || taxNodes.contains(node))) {
 			includeRegion = true;
+			kMersForNode = 0;
 			if (maxGenomesPerTaxIdRank == null) {
 				StringLong2DigitTrie.StringLong2 sl = (StringLong2DigitTrie.StringLong2) regionsPerTaxid.get(node.getTaxId());
-				kMersForNode = sl.longValue2;
-				if (sl != null && (sl.getLongValue() >= maxGenomesPerTaxId || sl.longValue2 >= maxKmersPerTaxId)) {
-					includeRegion = false;
+				if (sl != null) {
+					kMersForNode = sl.longValue2;
+					if (kMersForNode >= maxKmersPerTaxId || sl.getLongValue() >= maxGenomesPerTaxId) {
+						includeRegion = false;
+					}
 				}
 			}
 			else {
@@ -116,9 +122,11 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 					if (maxGenomesPerTaxIdRank.equals(n.getRank())) {
 						StringLong2DigitTrie.StringLong2 sl =
 								(StringLong2DigitTrie.StringLong2) regionsPerTaxid.get(n.getTaxId());
-						kMersForNode = sl.longValue2;
-						if (sl != null && (sl.getLongValue() >= maxGenomesPerTaxId || kMersForNode >= maxKmersPerTaxId)) {
-							includeRegion = false;
+						if (sl != null) {
+							kMersForNode = sl.longValue2;
+							if (kMersForNode >= maxKmersPerTaxId || sl.getLongValue() >= maxGenomesPerTaxId) {
+								includeRegion = false;
+							}
 						}
 						break;
 					}
