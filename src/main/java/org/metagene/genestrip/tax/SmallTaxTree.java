@@ -235,6 +235,10 @@ public class SmallTaxTree implements Serializable {
 			}
 		}
 
+		public SmallTaxIdNode getParent() {
+			return parent;
+		}
+
 		public final short getStoreIndex() {
 			return storeIndex;
 		}

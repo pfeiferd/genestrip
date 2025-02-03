@@ -29,6 +29,7 @@ import org.metagene.genestrip.store.Database;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
+@Deprecated
 public class UniqueKMerEstimator {
 	private long totalKMers;
 	private final Object2LongMap<String> storeStats;

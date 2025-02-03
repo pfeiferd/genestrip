@@ -56,7 +56,7 @@ public class MatchGoal extends MultiFileGoal {
 	private final Map<String, MatchingResult> matchResults;
 
 	private FastqKMerMatcher matcher;
-	private Database wrapper;
+	private Database database;
 	private ResultReporter reporter;
 	private KMerUniqueCounter uniqueCounter;
 
@@ -91,18 +91,18 @@ public class MatchGoal extends MultiFileGoal {
 			}
 
 			if (matcher == null) {
-				wrapper = storeGoal.get();
-				wrapper.getKmerStore().setUseFilter(booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH));
+				database = storeGoal.get();
+				database.getKmerStore().setUseFilter(booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH));
 
-				SmallTaxTree taxTree = wrapper.getTaxTree();
-				matcher = createMatcher(wrapper.convertKMerStore(),
+				SmallTaxTree taxTree = database.getTaxTree();
+				matcher = createMatcher(database.convertKMerStore(),
 						(booleanConfigValue(GSConfigKey.CLASSIFY_READS) && !GSGoalKey.MATCHLR.equals(getKey()))
 								? taxTree
 								: null,
 						bundle, booleanConfigValue(GSConfigKey.WITH_PROBS));
-				reporter = new ResultReporter(taxTree, longConfigValue(GSConfigKey.NORMALIZED_KMERS_FACTOR));
+				reporter = new ResultReporter(taxTree);
 				uniqueCounter = booleanConfigValue(GSConfigKey.COUNT_UNIQUE_KMERS)
-						? new KMerUniqueCounterBits(wrapper.getKmerStore(),
+						? new KMerUniqueCounterBits(database.getKmerStore(),
 								intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS) > 0)
 						: null;
 			}
@@ -110,8 +110,9 @@ public class MatchGoal extends MultiFileGoal {
 				uniqueCounter.clear();
 			}
 			MatchingResult res = matcher.runMatcher(fastqs, filteredFile, krakenOutStyleFile, uniqueCounter);
+			res.extendResults(database);
 			storeResult(file, res);
-			writeOutputFile(file, res, wrapper);
+			writeOutputFile(file, res);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -138,9 +139,9 @@ public class MatchGoal extends MultiFileGoal {
 		}
 	}
 
-	protected void writeOutputFile(File file, MatchingResult result, Database wrapper) throws IOException {
+	protected void writeOutputFile(File file, MatchingResult result) throws IOException {
 		try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
-			reporter.printMatchResult(result, out, wrapper);
+			reporter.printMatchResult(result, out);
 		}
 	}
 
@@ -157,7 +158,7 @@ public class MatchGoal extends MultiFileGoal {
 		if (matcher != null) {
 			matcher.dump();
 			matcher = null;
-			wrapper = null;
+			database = null;
 			uniqueCounter = null;
 			reporter = null;
 		}

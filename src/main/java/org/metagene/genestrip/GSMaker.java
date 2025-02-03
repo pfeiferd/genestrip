@@ -436,7 +436,7 @@ public class GSMaker extends Maker<GSProject> {
 				getExecutionContext(getProject()), getGoal(GSGoalKey.SETUP), fastqDownloadsGoal) {
 			protected void writeOutputFile(File file, MatchingResult result, Database wrapper) throws IOException {
 				if (key == null || !key.isEmpty()) {
-					super.writeOutputFile(file, result, wrapper);
+					super.writeOutputFile(file, result);
 				}
 			}
 		};

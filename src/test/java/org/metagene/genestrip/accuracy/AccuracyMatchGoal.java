@@ -98,7 +98,7 @@ public class AccuracyMatchGoal extends MatchGoal {
 	}
 
 	@Override
-	protected void writeOutputFile(File file, MatchingResult result, Database wrapper) throws IOException {
+	protected void writeOutputFile(File file, MatchingResult result) throws IOException {
 		try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
 			if (!timing) {
 				accuracyCounts.printCounts(out);

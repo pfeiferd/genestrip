@@ -24,6 +24,10 @@
  */
 package org.metagene.genestrip.match;
 
+import org.metagene.genestrip.store.Database;
+import org.metagene.genestrip.tax.SmallTaxTree;
+import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
+
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Map;
@@ -44,6 +48,45 @@ public class MatchingResult implements Serializable {
 		this.totalReads = totalReads;
 		this.totalKMers = totalKMers;
 		this.totalMaxCounts = totalMaxCounts;
+	}
+
+	public void extendResults(Database database) {
+		SmallTaxTree tree = database.getTaxTree();
+		for (String key : taxid2Stats.keySet()) {
+			SmallTaxIdNode node = tree.getNodeByTaxId(key);
+			if (node == null) {
+				for (node = node.getParent(); node != null; node = node.getParent()) {
+					if (!taxid2Stats.containsKey(node.getTaxId())) {
+						taxid2Stats.put(node.getTaxId(), new CountsPerTaxid(node.getTaxId(), 0));
+					}
+				}
+			}
+		}
+		for (String key : taxid2Stats.keySet()) {
+			CountsPerTaxid stats = taxid2Stats.get(key);
+			if (stats != null) {
+				long dbKMers = database.getStats().getLong(key);
+				stats.setDbKMers(dbKMers);
+				if (dbKMers > 0) {
+					stats.setCoverage(((double) stats.getUniqueKMers()) / dbKMers);
+					stats.setExpUnique(getExpectedUniqueKMers(stats));
+					double nreads = ((double) stats.getReads()) / dbKMers;
+					stats.setNormalizedReads(nreads);
+					stats.addAccNormalizedReads(nreads);
+					stats.addAccReads(stats.getReads());
+					SmallTaxIdNode node = tree.getNodeByTaxId(key);
+					if (node != null) {
+						for (node = node.getParent(); node != null; node = node.getParent()) {
+							stats = taxid2Stats.get(node.getTaxId());
+							if (stats != null) {
+								stats.addAccNormalizedReads(nreads);
+								stats.addAccReads(stats.getReads());
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
 	public int getK() {
@@ -68,5 +111,9 @@ public class MatchingResult implements Serializable {
 
 	public boolean isWithMaxKMerCounts() {
 		return totalMaxCounts != null;
+	}
+
+	private double getExpectedUniqueKMers(CountsPerTaxid stats) {
+		return  (1 - Math.pow(1 - 1d / stats.getDbKMers(), stats.getKMers())) * stats.getDbKMers();
 	}
 }

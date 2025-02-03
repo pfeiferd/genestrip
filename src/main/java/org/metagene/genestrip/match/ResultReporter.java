@@ -52,11 +52,9 @@ public class ResultReporter {
 	private static final DecimalFormat DF = new DecimalFormat("0.0000", new DecimalFormatSymbols(Locale.US));
 
 	private final SmallTaxTree taxTree;
-	private final long normalizedKMersFactor;
 
-	public ResultReporter(SmallTaxTree taxTree, long normalizedKMersFactor) {
+	public ResultReporter(SmallTaxTree taxTree) {
 		this.taxTree = taxTree;
-		this.normalizedKMersFactor = normalizedKMersFactor;
 	}
 
 	public void printStoreInfo(Object2LongMap<String> stats, PrintStream out) {
@@ -89,6 +87,7 @@ public class ResultReporter {
 		}
 	}
 
+	/*
 	public static List<CountsPerTaxid> readResultCSV(InputStream in, int k) throws IOException {
 		Iterable<CSVRecord> records = FORMAT.parse(new InputStreamReader(in));
 
@@ -117,21 +116,13 @@ public class ResultReporter {
 
 		return res;
 	}
+	*/
 
-	public void printMatchResult(MatchingResult res, PrintStream out, Database wrapper) {
+	public void printMatchResult(MatchingResult res, PrintStream out) {
 		Map<String, CountsPerTaxid> taxid2Stats = res.getTaxid2Stats();
-		UniqueKMerEstimator estimator = wrapper == null ? null
-				: new UniqueKMerEstimator(wrapper, normalizedKMersFactor);
-		if (estimator != null) {
-			estimator.setTotalKMers(res.getTotalKMers());
-		}
 
-		out.print(
-				"name;rank;taxid;reads;kmers from reads;kmers;unique kmers;contigs;average contig length;max contig length;max contig desc.;");
-		if (estimator != null) {
-			out.print("db coverage;normalized kmers;exp. unique kmers;unique kmers / exp.;");
-		}
-		out.print("normalized reads; reads >= 1 kmer; normalized reads >= 1 kmer; reads >= 1 kmer bps; avg read >= 1 kmer len; normalized reads * avg len;");
+		out.print("name;rank;taxid;reads;kmers from reads;kmers;unique kmers;contigs;average contig length;max contig length;");
+		out.print("db coverage;exp. unique kmers;unique kmers / exp.;normalized reads;acc normalized reads;acc reads;reads bps;avg read len;reads >= 1 kmer;db kmers;max contig desc.;");
 		if (res.isWithMaxKMerCounts()) {
 			out.print("max kmer counts;");
 		}
@@ -142,11 +133,7 @@ public class ResultReporter {
 		out.print(res.getTotalReads());
 		out.print(";0;");
 		out.print(res.getTotalKMers());
-		out.print(";0;0;0;0;0;");
-		if (estimator != null) {
-			out.print("0;0;0;0;0;");
-		}
-		out.print("0;");
+		out.print(";0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;;");
 		if (res.isWithMaxKMerCounts()) {
 			short[] counts = res.getTotalMaxCounts();
 			if (counts != null) {
@@ -159,15 +146,12 @@ public class ResultReporter {
 		}
 		out.println();
 
-		Object2LongMap<String> storeStats = wrapper.getStats();
-
 		List<String> sortedTaxIds = new ArrayList<String>(taxid2Stats.keySet());
 		taxTree.sortTaxidsViaTree(sortedTaxIds);
 		for (String taxId : sortedTaxIds) {
 			CountsPerTaxid stats = taxid2Stats.get(taxId);
 			if (stats != null) {
 				SmallTaxIdNode taxNode = taxTree.getNodeByTaxId(taxId);
-				wrapper.getStats();
 				if (taxNode != null) {
 					out.print(taxNode.getName());
 					out.print(';');
@@ -189,45 +173,25 @@ public class ResultReporter {
 					out.print(';');
 					out.print(stats.getMaxContigLen() + res.getK() - 1);
 					out.print(';');
-					ByteArrayUtil.print(stats.maxContigDescriptor, out);
+					out.print(DF.format(stats.getCoverage()));
 					out.print(';');
-					if (estimator != null) {
-						double cov = estimator.getDBCoverage(stats);
-						out.print(DF.format(cov));
-						out.print(';');
-
-						double normalizedKMers = estimator.getNormalizedKMers(stats);
-						out.print(DF.format(normalizedKMers));
-						out.print(';');
-
-						double expUnique = estimator.getExpectedUniqueKMers(stats);
-						out.print(DF.format(expUnique));
-						out.print(';');
-
-						out.print(DF.format(stats.getUniqueKMers() / expUnique));
-						out.print(';');
-
-						/*
-						double cScore2 = estimator.getUniqueKMerCountMatchScore(stats);
-						out.print(DF.format(cScore2));
-						out.print(';');
-						 */
-					}
-					long statsKmers = storeStats.getLong(stats.getTaxid());
-					double nreads = ((double) stats.getReads()) / statsKmers;
-					out.print(DF.format(1000 * nreads));
+					out.print(DF.format(stats.getExpUnique()));
+					out.print(';');
+					out.print(DF.format(stats.getUniqueKMers() / stats.getExpUnique()));
+					out.print(';');
+					out.print(DF.format(stats.getNormalizedReads()));
+					out.print(';');
+					out.print(DF.format(stats.getAccNormalizedReads()));
+					out.print(';');
+					out.print(stats.getAccReads());
+					out.print(';');
+					out.print(stats.getReadsKmerBPs());
+					out.print(';');
+					out.print(DF.format(((double) stats.getReadsKmerBPs()) / stats.getReads()));
 					out.print(';');
 					out.print(stats.getReads1Kmer());
 					out.print(';');
-					double n1 = ((double) stats.getReads1Kmer()) / statsKmers;
-					out.print(DF.format(n1));
-					out.print(';');
-					out.print(stats.getReads1KmerBPs());
-					out.print(';');
-					double avg1 = ((double) stats.getReads1KmerBPs()) / stats.getReads1Kmer();
-					out.print(DF.format(avg1));
-					out.print(';');
-					out.print(DF.format(nreads * avg1));
+					ByteArrayUtil.print(stats.maxContigDescriptor, out);
 					out.print(';');
 					if (res.isWithMaxKMerCounts()) {
 						short[] counts = stats.getMaxKMerCounts();

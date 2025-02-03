@@ -53,8 +53,7 @@ public class DBInfoGoal extends FileListGoal<GSProject> {
 		try {
 			Database wrapper = storeGoal.get();
 			try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
-				new ResultReporter(wrapper.getTaxTree(), longConfigValue(GSConfigKey.NORMALIZED_KMERS_FACTOR))
-						.printStoreInfo(wrapper.getStats(), out);
+				new ResultReporter(wrapper.getTaxTree()).printStoreInfo(wrapper.getStats(), out);
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
