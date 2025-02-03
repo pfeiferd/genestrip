@@ -146,12 +146,13 @@ public enum GSConfigKey implements ConfigKey {
 			+ "Using the bloom filter tends to shorten matching time, if the most part of the reads cannot be classified because they contain *no* *k*-mers from the database. "
 			+ "Otherwise, using the bloom filter might increase matching time by up to 30%. It also requires more main memory.")
 	USE_BLOOM_FILTER_FOR_MATCH("useBloomFilterForMatch", new BooleanConfigParamInfo(true), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
-	@MDDescription("The absolute or relative maximum number of *k*-mers that do not have to be in the database for a read to be classified. "
+	@MDDescription("The absolute or relative maximum number of *k*-mers that do not need to be in the database for a read to be classified (read error count). "
 			+ "If the number is above `maxReadTaxErrorCount`, then the read will not be classified. "
 			+ "Otherwise the read will be classified in the same way as [done by Kraken](https://genomebiology.biomedcentral.com/articles/10.1186/gb-2014-15-3-r46/figures/1). "
 			+ "If `maxReadTaxErrorCount` is >= 1, then it is interpreted as an absolute number of *k*-mers. "
-			+ "Otherwise (and so, if >= 0 and < 1), it is interpreted as the ratio between the *k*-mers not in the database and all *k*-mers of the read.")
-	MAX_READ_TAX_ERROR_COUNT("maxReadTaxErrorCount", new DoubleConfigParamInfo(0, Double.MAX_VALUE, 0.5),
+			+ "Otherwise (and so, if >= 0 and < 1), it is interpreted as the ratio between the *k*-mers not in the database and all *k*-mers of the read."
+			+ "If `maxReadTaxErrorCount` < 0, then the read error count is disregarded, which means that even a single matching *k*-mer will lead to the read's classification.")
+	MAX_READ_TAX_ERROR_COUNT("maxReadTaxErrorCount", new DoubleConfigParamInfo(-1, Double.MAX_VALUE, -1),
 			GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 	@MDDescription("If > 0, the corresponding number of frequencies of the most frequent *k*-mers per tax id will be reported.")
 	MAX_KMER_RES_COUNTS("maxKMerResCounts", new IntConfigParamInfo(0, 65536, 0), GSGoalKey.MATCH, GSGoalKey.MATCHLR),

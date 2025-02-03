@@ -87,7 +87,7 @@ public abstract class ConfigParamInfo<V> {
 		public boolean isValueInRange(Object value) {
 			if (value instanceof Integer) {
 				Integer i = (Integer) value;
-				return i >= min || i <= max;
+				return i >= min && i <= max;
 			}
 			return false;
 		}
@@ -126,7 +126,7 @@ public abstract class ConfigParamInfo<V> {
 		public boolean isValueInRange(Object value) {
 			if (value instanceof Long) {
 				Long i = (Long) value;
-				return i >= min || i <= max;
+				return i >= min && i <= max;
 			}
 			return false;
 		}
@@ -165,7 +165,7 @@ public abstract class ConfigParamInfo<V> {
 		public boolean isValueInRange(Object value) {
 			if (value instanceof Double) {
 				Double d = (Double) value;
-				return d >= min || d <= max;
+				return d >= min && d <= max;
 			}
 			return false;
 		}
