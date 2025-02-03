@@ -132,6 +132,7 @@ public class FillBloomFilterGoal extends ObjectGoal<MurmurCGATBloomFilter, GSPro
 			super.done();
 			if (getLogger().isInfoEnabled()) {
 				long entries = filter.getEntries();
+				getLogger().info("Number of included regions: " + includedCounter);
 				getLogger().info("Total Bloom filter entries: " + entries);
 				getLogger().info("Resulting approx. DB Size in MB (without Bloom filter): " + (entries * 10) / (1024 * 1024) );
 			}

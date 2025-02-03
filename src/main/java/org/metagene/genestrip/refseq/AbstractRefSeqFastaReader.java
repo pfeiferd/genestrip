@@ -162,16 +162,6 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 			node = null;
 		}
 	}
-	
-	@Override
-	protected void done() {
-		super.done();
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Number of included regions: " + includedCounter);
-			getLogger().info("Total included kmers: " + totalKmers);
-			getLogger().info("Resulting approx. DB Size in MB (without Bloom filter): " + (totalKmers * 10) / (1024 * 1024) );
-		}
-	}
 
 	protected static class StringLong2DigitTrie extends StringLongDigitTrie {
 		public void incAndAdd(String key, long add) {
