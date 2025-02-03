@@ -109,12 +109,17 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 
 		@Override
 		protected void done() {
+			super.done();
 			if (getLogger().isTraceEnabled()) {
 				List<StringLong> values = new ArrayList<StringLong>();
 				regionsPerTaxid.collect(values);
 				getLogger().trace("Included regions per taxid: " + values);
 			}
-			super.done();
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("Number of included regions: " + includedCounter);
+				getLogger().info("Total included kmers: " + totalKmers);
+				getLogger().info("Resulting approx. DB Size in MB (without Bloom filter): " + (totalKmers * 10) / (1024 * 1024) );
+			}
 		}
 	}
 }
