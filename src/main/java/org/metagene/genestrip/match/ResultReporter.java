@@ -133,7 +133,9 @@ public class ResultReporter {
 		out.print(res.getTotalReads());
 		out.print(";0;");
 		out.print(res.getTotalKMers());
-		out.print(";0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;;");
+		out.print(";0;0;0;0;0;0;0;0;0;0;0;0;0;");
+		out.print(res.getDbKMers());
+		out.print(';');
 		if (res.isWithMaxKMerCounts()) {
 			short[] counts = res.getTotalMaxCounts();
 			if (counts != null) {
@@ -190,6 +192,8 @@ public class ResultReporter {
 					out.print(DF.format(((double) stats.getReadsKmerBPs()) / stats.getReads()));
 					out.print(';');
 					out.print(stats.getReads1Kmer());
+					out.print(';');
+					out.print(stats.getDbKMers());
 					out.print(';');
 					ByteArrayUtil.print(stats.maxContigDescriptor, out);
 					out.print(';');

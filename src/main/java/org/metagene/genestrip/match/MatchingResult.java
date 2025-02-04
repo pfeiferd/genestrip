@@ -40,6 +40,7 @@ public class MatchingResult implements Serializable {
 	private final long totalReads;
 	private final long totalKMers;
 	private final short[] totalMaxCounts;
+	private long dbKMers;
 
 	public MatchingResult(int k, Map<String, CountsPerTaxid> taxid2Stats, long totalReads, long totalKMers,
 			short[] totalMaxCounts) {
@@ -50,7 +51,13 @@ public class MatchingResult implements Serializable {
 		this.totalMaxCounts = totalMaxCounts;
 	}
 
+	public long getDbKMers() {
+		return dbKMers;
+	}
+
 	public void extendResults(Database database) {
+		dbKMers = database.getStats().getLong(null);
+
 		SmallTaxTree tree = database.getTaxTree();
 		for (String key : taxid2Stats.keySet()) {
 			SmallTaxIdNode node = tree.getNodeByTaxId(key);
@@ -70,17 +77,18 @@ public class MatchingResult implements Serializable {
 				if (dbKMers > 0) {
 					stats.setCoverage(((double) stats.getUniqueKMers()) / dbKMers);
 					stats.setExpUnique(getExpectedUniqueKMers(stats));
+					long reads = stats.getReads();
 					double nreads = ((double) stats.getReads()) / dbKMers;
 					stats.setNormalizedReads(nreads);
 					stats.addAccNormalizedReads(nreads);
-					stats.addAccReads(stats.getReads());
+					stats.addAccReads(reads);
 					SmallTaxIdNode node = tree.getNodeByTaxId(key);
 					if (node != null) {
 						for (node = node.getParent(); node != null; node = node.getParent()) {
 							stats = taxid2Stats.get(node.getTaxId());
 							if (stats != null) {
 								stats.addAccNormalizedReads(nreads);
-								stats.addAccReads(stats.getReads());
+								stats.addAccReads(reads);
 							}
 						}
 					}
