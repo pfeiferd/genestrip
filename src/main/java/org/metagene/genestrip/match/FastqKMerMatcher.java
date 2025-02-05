@@ -231,7 +231,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 		int contigLen = 0;
 		CountsPerTaxid stats = null;
 
-		ByteArrayUtil.println(entry.read, System.out);
+		//ByteArrayUtil.println(entry.read, System.out);
 		long kmer = -1;
 		for (int i = 0; i < max; i++) {
 			if (kmer == -1) {
@@ -249,6 +249,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 			}
 			if (kmer != -1) {
 				taxIdNode = kmerStore.getLong(kmer, entry.indexPos);
+				/*
 //				if (taxIdNode != null && "649756".equals(taxIdNode.getTaxId())) {
 					System.out.println("stop");
 					CGAT.longToKMerStraight(kmer, kmerHelp, 0, 31);
@@ -258,6 +259,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 					}
 					ByteArrayUtil.println(kmerHelp, System.out);
 //				}
+				 */
 				if (readTaxErrorCount != -1) {
 					if (taxIdNode == null) {
 						readTaxErrorCount++;
