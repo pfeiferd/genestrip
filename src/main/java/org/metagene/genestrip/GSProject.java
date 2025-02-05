@@ -254,12 +254,16 @@ public class GSProject extends Project {
 		if (baseName.startsWith(getName() + "_")) {
 			baseName = baseName.substring(getName().length() + 1);
 		}
-		if (!baseName.isEmpty()) {
-			baseName = "_" + baseName;
+		String infix = getOutputFileGoalPrefix(goal, key);
+		if (!infix.isEmpty()) {
+			if (!baseName.isEmpty()) {
+				baseName = infix + "_" + baseName;
+			}
+			else {
+				baseName = infix;
+			}
 		}
-
-		return new File(dir, (project == null ? "" : project) + getOutputFileGoalPrefix(goal, key) + baseName
-				+ type.getSuffix() + (gzip ? ".gz" : ""));
+		return new File(dir, (project == null ? "" : project) + baseName + type.getSuffix() + (gzip ? ".gz" : ""));
 	}
 
 	public String getFileBaseName(String projectFileName) {

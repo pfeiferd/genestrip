@@ -32,13 +32,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.metagene.genestrip.APITest;
-import org.metagene.genestrip.GSCommon;
-import org.metagene.genestrip.GSGoalKey;
-import org.metagene.genestrip.GSMaker;
-import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.*;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -50,8 +47,8 @@ import it.unimi.dsi.fastutil.objects.Object2LongMap;
 public class DBGoalTest {
 	@BeforeClass
 	public static void clearDB() throws IOException {
-		GSMaker maker = new GSMaker(createProject());
-
+		GSProject project = createProject();
+		GSMaker maker = new GSMaker(project);
 		maker.getGoal(GSGoalKey.CLEAR).make();
 		maker.dumpAll();
 	}
@@ -88,7 +85,7 @@ public class DBGoalTest {
 		GSProject project = createProject();
 
 		new Dengue1ProjectGoal(project).make();
-		
+
 		GSMaker maker = new GSMaker(project);
 
 		@SuppressWarnings("unchecked")
@@ -110,7 +107,21 @@ public class DBGoalTest {
 		assertEquals(totalKmers, totalKmers2);
 		long kmers3 = stats2.getLong("1");
 		assertEquals(totalKmers, kmers3);
-		
+	}
+
+	@Test
+	public void testKrakenOutput() throws IOException {
+		GSProject project = createProject();
+		project.initConfigParam(GSConfigKey.WRITED_KRAKEN_STYLE_OUT, true);
+
+		GSMaker maker = new GSMaker(project);
+		new Dengue1ProjectGoal(project).make();
+
+		maker.match(false, "test", new File(project.getFastqDir(), "test.fastq").toString());
+
+		File file1 = new File(project.getKrakenOutDir(), "test.out");
+		File file2 = new File(project.getKrakenOutDir(), "dengue1_match_test.out");
+		assertTrue(FileUtils.contentEquals(file1, file2));
 		// Clean up memory and threads.
 		maker.dumpAll();
 	}
@@ -123,6 +134,8 @@ public class DBGoalTest {
 			addFile(new File(project.getProjectDir(), "categories.txt"));
 			addFile(new File(project.getProjectDir(), "additional.txt"));
 			addFile(new File(project.getProjectDir(), "fasta/dengue1.fasta"));
+			addFile(new File(project.getProjectDir(), "fastq/test.fastq"));
+			addFile(new File(project.getProjectDir(), "krakenout/test.out"));
 		}
 
 		@Override
@@ -138,6 +151,9 @@ public class DBGoalTest {
 			}
 			if (!getProject().getFastaDir().exists()) {
 				getProject().getFastaDir().mkdir();
+			}
+			if (!getProject().getKrakenOutDir().exists()) {
+				getProject().getKrakenOutDir().mkdir();
 			}
 			if (!file.exists()) {
 				ClassLoader classLoader = getClass().getClassLoader();
