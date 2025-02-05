@@ -30,10 +30,13 @@ import org.junit.Test;
 
 import junit.framework.TestCase;
 
+import static org.metagene.genestrip.util.CGAT.longToKMerStraight;
+
 public class NextKMerTest extends TestCase {
 	@Test
 	public void testNextKMer() {
-		for (int k = 1; k < 33; k++) {
+		byte[] kmerBuffer = new byte[31];
+		for (int k = 1; k < kmerBuffer.length; k++) {
 			CGATRingBuffer buffer = new CGATRingBuffer(k, -1);
 
 			Random random = new Random(10);
@@ -49,11 +52,14 @@ public class NextKMerTest extends TestCase {
 						assertEquals(kmer, CGAT.nextKMerStraight(oldKMer, c, k));
 					}
 					oldKMer = kmer;
+					longToKMerStraight(kmer, kmerBuffer, 0, k);
+					String kmerStr = new String(kmerBuffer, 0, k);
+					assertEquals(kmerStr, buffer.toString());
 				}
 			}
 		}
 		
-		for (int k = 1; k < 33; k++) {
+		for (int k = 1; k < kmerBuffer.length; k++) {
 			CGATRingBuffer buffer = new CGATRingBuffer(k, -1);
 
 			Random random = new Random(10);
@@ -69,6 +75,10 @@ public class NextKMerTest extends TestCase {
 						assertEquals(kmer, CGAT.nextKMerReverse(oldKMer, c, k));
 					}
 					oldKMer = kmer;
+					longToKMerStraight(kmer, kmerBuffer, 0, k);
+					CGAT.reverse(kmerBuffer,0, k);
+					String kmerStr = new String(kmerBuffer, 0, k);
+					assertEquals(kmerStr, buffer.toString());
 				}
 			}
 		}

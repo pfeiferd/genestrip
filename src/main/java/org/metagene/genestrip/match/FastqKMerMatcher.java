@@ -217,6 +217,8 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 		}
 	}
 
+	private byte[] kmerHelp = new byte[31];
+
 	// Made final for potential inlining by JVM
 	protected final boolean matchRead(final MyReadEntry entry, final int index, final boolean reverse) {
 		boolean found = false;
@@ -229,6 +231,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 		int contigLen = 0;
 		CountsPerTaxid stats = null;
 
+		ByteArrayUtil.println(entry.read, System.out);
 		long kmer = -1;
 		for (int i = 0; i < max; i++) {
 			if (kmer == -1) {
@@ -238,14 +241,23 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 					i = entry.badPos[0];
 				}
 			} else {
-				kmer = reverse ? CGAT.nextKMerReverse(kmer, entry.read[i], k)
-						: CGAT.nextKMerStraight(kmer, entry.read[i], k);
+				kmer = reverse ? CGAT.nextKMerReverse(kmer, entry.read[i + k - 1], k)
+						: CGAT.nextKMerStraight(kmer, entry.read[i + k - 1], k);
 				if (kmer == -1) {
 					i += k - 1;
 				}
 			}
 			if (kmer != -1) {
 				taxIdNode = kmerStore.getLong(kmer, entry.indexPos);
+//				if (taxIdNode != null && "649756".equals(taxIdNode.getTaxId())) {
+					System.out.println("stop");
+					CGAT.longToKMerStraight(kmer, kmerHelp, 0, 31);
+					if (reverse) {
+						System.out.println("reverse");
+						CGAT.reverse(kmerHelp);
+					}
+					ByteArrayUtil.println(kmerHelp, System.out);
+//				}
 				if (readTaxErrorCount != -1) {
 					if (taxIdNode == null) {
 						readTaxErrorCount++;

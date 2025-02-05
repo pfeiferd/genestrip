@@ -165,8 +165,11 @@ public class CGAT {
 	}
 
 	public static void reverse(byte[] seq) {
-		int start = 0;
-		int end = seq.length - 1;
+		reverse(seq, 0, seq.length);
+	}
+
+	public static void reverse(byte[] seq, int start, int k) {
+		int end = k - 1;
 		byte h;
 		while (start < end) {
 			h = CGAT_COMPLEMENT[seq[start]];
