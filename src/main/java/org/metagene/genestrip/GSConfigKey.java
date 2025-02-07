@@ -92,8 +92,9 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("Determines whether Genestrip should try to lookup genomic fasta files from Genbank, "
 			+ "if the number of corresponding reference genomes from the RefSeq is below the given limit for a requested tax id including its descendants. "
 			+ "E.g. `refSeqLimitForGenbankAccess=1` would imply that Genbank is consulted if not a single reference genome is found in the RefSeq for a requested tax id. "
-			+ "The default `refSeqLimitForGenbankAccess=0` essentially inactivates this feature. "
-			+ "In addition, Genbank access is also influenced by the keys `fastaQualities` and `maxFromGenBank` (see below).")
+			+ "The default `refSeqLimitForGenbankAccess=0` essentially inactivates this feature."
+			+ "In addition, Genbank access is also influenced by the keys `fastaQualities` and `maxFromGenBank` (see below)."
+			+ "Note that `refSeqLimitForGenbankAccess` is disregarded if `refSeqDB=false`.")
 	REQ_SEQ_LIMIT_FOR_GENBANK("refSeqLimitForGenbankAccess", new IntConfigParamInfo(0, Integer.MAX_VALUE, 0),
 			GSGoalKey.DB),
 	@MDDescription("The rank for which to check the limit `refSeqLimitForGenbankAccess`. If `null`, then the limit applies to all requested tax ids and its descendants.")
@@ -173,7 +174,11 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("Perform database update regarding least common ancestors only based on genomes of tax ids as selected for the database generation (and not via all of superkingdom's RefSeq genomes).")
 	MIN_UPDATE("minUpdate", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
 	@MDDescription("Wether to delete the temporary database after the final database has been saved or not.")
-	REMOVE_TEMP_DB("removeTempDB", new BooleanConfigParamInfo(true), false, GSGoalKey.DB);
+	REMOVE_TEMP_DB("removeTempDB", new BooleanConfigParamInfo(true), false, GSGoalKey.DB),
+	@MDDescription("Whether only reference genomes are accepted or not. (Reference Genomes must be fetched from GenBank.)")
+	REF_GEN_ONLY("refGenOnly", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
+	@MDDescription("Whether the [RefSeq Release](https://ftp.ncbi.nlm.nih.gov/refseq/release/) should be used as the bases for filling the database.")
+	REF_SEQ_DB("refSeqDB", new BooleanConfigParamInfo(true), false, GSGoalKey.DB);
 
 	private final String name;
 	private final ConfigParamInfo<?> param;

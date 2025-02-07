@@ -220,7 +220,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		if (initSize) {
 			throw new IllegalStateException("Cant initlialize size twice.");
 		}
-		if (size <= 0) {
+		if (size < 0) {
 			throw new IllegalArgumentException("Expected insertions must be > 0.");
 		}
 		initSize = true;

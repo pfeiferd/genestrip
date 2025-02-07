@@ -59,17 +59,23 @@ public class TaxNodesFromGenbankGoal extends ObjectGoal<Set<TaxIdNode>, GSProjec
 
 	@Override
 	protected void doMakeThis() {
+			boolean refSeqDB = booleanConfigValue(GSConfigKey.REF_SEQ_DB);
 			Set<TaxIdNode> missingTaxIds = new HashSet<TaxIdNode>();
-			// We only get Genomic data from genbank (so far) - so if just RNA is wanted, there is no need to access it.
-			if (!SeqType.RNA.equals(configValue(GSConfigKey.SEQ_TYPE))) {
-				AccessionMap accessionMap = accessionMapGoal.get();
-				int limit = intConfigValue(GSConfigKey.REQ_SEQ_LIMIT_FOR_GENBANK);
-				if (limit > 0) {
-					Rank checkRank = (Rank) configValue(GSConfigKey.REQ_SEQ_LIMIT_FOR_GENBANK_RANK);
-					for (TaxIdNode node : taxNodesGoal.get()) {
-						if (checkRank == null || checkRank.equals(node.getRank())) {
-							if (node.getRefSeqRegions() < limit) {
-								missingTaxIds.add(node);
+			if (!refSeqDB) {
+				missingTaxIds.addAll(taxNodesGoal.get());
+			}
+			else {
+				// We only get Genomic data from genbank (so far) - so if just RNA is wanted, there is no need to access it.
+				if (!SeqType.RNA.equals(configValue(GSConfigKey.SEQ_TYPE))) {
+					AccessionMap accessionMap = accessionMapGoal.get();
+					int limit = intConfigValue(GSConfigKey.REQ_SEQ_LIMIT_FOR_GENBANK);
+					if (limit > 0) {
+						Rank checkRank = (Rank) configValue(GSConfigKey.REQ_SEQ_LIMIT_FOR_GENBANK_RANK);
+						for (TaxIdNode node : taxNodesGoal.get()) {
+							if (checkRank == null || checkRank.equals(node.getRank())) {
+								if (node.getRefSeqRegions() < limit) {
+									missingTaxIds.add(node);
+								}
 							}
 						}
 					}

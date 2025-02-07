@@ -72,7 +72,7 @@ public class MurmurCGATBloomFilter implements Serializable {
 	}
 		
 	public void ensureExpectedSize(long expectedInsertions, boolean enforceLarge) {
-		if (expectedInsertions <= 0) {
+		if (expectedInsertions < 0) {
 			throw new IllegalArgumentException("expected insertions must be > 0");
 		}
 		this.expectedInsertions = expectedInsertions;

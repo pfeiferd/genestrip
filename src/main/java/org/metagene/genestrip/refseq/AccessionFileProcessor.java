@@ -115,8 +115,8 @@ public abstract class AccessionFileProcessor {
 	protected abstract void handleEntry(byte[] target, int taxIdEnd, int accessionStart, int accessionEnd);
 
 	protected boolean containsCategory(byte[] outerArray, int start, int end, RefSeqCategory[] categories) {
-		for (RefSeqCategory cat : categories) {
-			if (ByteArrayUtil.indexOf(outerArray, start, end, cat.getDirectory()) != -1) {
+		for (int i = 0; i < categories.length; i++) {
+			if (ByteArrayUtil.indexOf(outerArray, start, end, categories[i].getDirectory()) != -1) {
 				return true;
 			}
 		}
@@ -124,8 +124,9 @@ public abstract class AccessionFileProcessor {
 	}
 
 	protected boolean isGenomicAccession(byte[] outerArray, int start) {
-		for (String prefix : completeOnly ? COMPLETE_GENOMIC_ACCESSION_PREFIXES : ALL_GENOMIC_ACCESSION_PREFIXES) {
-			if (ByteArrayUtil.startsWith(outerArray, start, prefix)) {
+		String[] prefixes = completeOnly ? COMPLETE_GENOMIC_ACCESSION_PREFIXES : ALL_GENOMIC_ACCESSION_PREFIXES;
+		for (int i = 0; i < prefixes.length; i++) {
+			if (ByteArrayUtil.startsWith(outerArray, start, prefixes[i])) {
 				return true;
 			}
 		}
@@ -133,8 +134,8 @@ public abstract class AccessionFileProcessor {
 	}
 
 	protected boolean isRNAAccession(byte[] outerArray, int start) {
-		for (String prefix : RNA_PREFIXES) {
-			if (ByteArrayUtil.startsWith(outerArray, start, prefix)) {
+		for (int i = 0; i < RNA_PREFIXES.length; i++) {
+			if (ByteArrayUtil.startsWith(outerArray, start, RNA_PREFIXES[i])) {
 				return true;
 			}
 		}
@@ -142,8 +143,8 @@ public abstract class AccessionFileProcessor {
 	}
 
 	protected boolean isMRNAAccession(byte[] outerArray, int start) {
-		for (String prefix : M_RNA_PREFIXES) {
-			if (ByteArrayUtil.startsWith(outerArray, start, prefix)) {
+		for (int i = 0; i < M_RNA_PREFIXES.length; i++) {
+			if (ByteArrayUtil.startsWith(outerArray, start, M_RNA_PREFIXES[i])) {
 				return true;
 			}
 		}

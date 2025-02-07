@@ -98,10 +98,13 @@ public class FillDBGoal extends ObjectGoal<Database, GSProject> {
 					longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
 					intConfigValue(GSConfigKey.MAX_DUST));
 
-			for (File fnaFile : fnaFilesGoal.getFiles()) {
-				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
-				if (categoriesGoal.get().contains(cat)) {
-					fastaReader.readFasta(fnaFile);
+			boolean refSeqDB = booleanConfigValue(GSConfigKey.REF_SEQ_DB);
+			if (refSeqDB) {
+				for (File fnaFile : fnaFilesGoal.getFiles()) {
+					RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
+					if (categoriesGoal.get().contains(cat)) {
+						fastaReader.readFasta(fnaFile);
+					}
 				}
 			}
 			Map<File, TaxIdNode> additionalMap = additionalGoal.get();

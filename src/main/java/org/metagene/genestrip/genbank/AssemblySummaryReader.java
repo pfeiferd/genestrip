@@ -46,6 +46,8 @@ public class AssemblySummaryReader {
 	public static final String ASSEMLY_SUM_REFSEQ = "assembly_summary_refseq.txt";
 	public static final String ASSEMLY_SUM_GENBANK = "assembly_summary_genbank.txt";
 
+	public static final String REFERENCE_GENOME_CAT = "reference genome";
+
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#')
 			.setDelimiter('\t').setRecordSeparator('\n').build();
 
@@ -73,6 +75,7 @@ public class AssemblySummaryReader {
 			for (CSVRecord record : parser) {
 				// Prevent inconsistent entries (they gotta have at least 20 columns)
 				if (record.size() >= 20) {
+					String refgen = record.get(4);
 					String taxid = record.get(5);
 					String latest = record.get(10);
 					String complete = record.get(11);
@@ -87,7 +90,7 @@ public class AssemblySummaryReader {
 								entry = new ArrayList<FTPEntryWithQuality>();
 								result.put(node, entry);
 							}
-							FTPEntryWithQuality ewq = new FTPEntryWithQuality(ftp, quality, null);
+							FTPEntryWithQuality ewq = new FTPEntryWithQuality(ftp, quality, null, REFERENCE_GENOME_CAT.equals(refgen));
 							entry.add(ewq);
 						}
 					}
@@ -138,8 +141,9 @@ public class AssemblySummaryReader {
 		private final String fileName;
 		private final FTPEntryQuality quality;
 		private final URL url;
+		private final boolean isReference;
 
-		public FTPEntryWithQuality(String ftpURL, FTPEntryQuality quality, URL url) {
+		public FTPEntryWithQuality(String ftpURL, FTPEntryQuality quality, URL url, boolean isReference) {
 			this.ftpURL = ftpURL;
 			this.quality = quality;
 			if (ftpURL != null) {
@@ -149,6 +153,11 @@ public class AssemblySummaryReader {
 				this.fileName = path.substring(path.lastIndexOf('/') + 1);
 			}
 			this.url = url;
+			this.isReference = isReference;
+		}
+
+		public boolean isReference() {
+			return isReference;
 		}
 
 		public String getFtpURL() {

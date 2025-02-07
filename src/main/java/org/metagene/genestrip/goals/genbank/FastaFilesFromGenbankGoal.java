@@ -58,6 +58,7 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<FT
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxidsFromGenbankGoal;
 	private final List<FTPEntryQuality> fastaQualities;
 	private final int maxFromGenbank;
+	private final boolean refGenOnly;
 
 	@SuppressWarnings("unchecked")
 	public FastaFilesFromGenbankGoal(GSProject project, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
@@ -68,6 +69,7 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<FT
 		this.taxidsFromGenbankGoal = taxidsFromGenbankGoal;
 		this.fastaQualities = (List<FTPEntryQuality>) configValue(GSConfigKey.FASTA_QUALITIES);
 		this.maxFromGenbank = intConfigValue(GSConfigKey.MAX_FROM_GENBANK);
+		this.refGenOnly = booleanConfigValue(GSConfigKey.REF_GEN_ONLY);
 	}
 
 	@Override
@@ -136,6 +138,9 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<FT
 	}
 
 	protected boolean isMatchingEntryForNode(FTPEntryWithQuality entry, TaxIdNode node) {
+		if (refGenOnly && !entry.isReference()) {
+			return false;
+		}
 		return fastaQualities.contains(entry.getQuality());
 	}
 
