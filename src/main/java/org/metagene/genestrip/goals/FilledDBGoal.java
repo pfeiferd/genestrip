@@ -44,14 +44,6 @@ public class FilledDBGoal extends ObjectGoal<Database, GSProject> {
 		this.fillDBGoal = fillDBGoal;
 		this.filledStoreGoal = filledStoreGoal;
 	}
-	
-	@Override
-	public boolean isWeakDependency(Goal<GSProject> toGoal) {
-		if (toGoal == fillDBGoal) {
-			return true;
-		}
-		return super.isWeakDependency(toGoal);
-	}
 
 	@Override
 	protected void doMakeThis() {

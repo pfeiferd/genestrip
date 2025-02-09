@@ -93,7 +93,7 @@ public abstract class Goal<P extends Project> {
 	}
 
 	public boolean isWeakDependency(Goal<P> toGoal) {
-		return false;
+		return toGoal instanceof ObjectGoal;
 	}
 
 	public abstract boolean isMade();

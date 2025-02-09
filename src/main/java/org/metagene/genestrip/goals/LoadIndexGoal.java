@@ -47,14 +47,6 @@ public class LoadIndexGoal extends ObjectGoal<MurmurCGATBloomFilter, GSProject> 
 		this.bloomIndex = bloomIndex;
 		this.dbFile = getProject().getDBPath() == null ? storeIndexGoal.getFile() : new File(getProject().getDBPath());
 	}
-	
-	@Override
-	public boolean isWeakDependency(Goal<GSProject> toGoal) {
-		if (toGoal == bloomIndex) {
-			return true;
-		}
-		return super.isWeakDependency(toGoal);
-	}
 
 	@Override
 	protected void doMakeThis() {

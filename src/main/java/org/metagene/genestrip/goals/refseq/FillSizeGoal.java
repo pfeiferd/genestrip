@@ -43,11 +43,7 @@ import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
 
-public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
-	private final ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal;
-	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
-	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-	private final ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal;
+public class FillSizeGoal extends FastaReaderGoal<Long> {
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 
 	@SafeVarargs
@@ -55,41 +51,20 @@ public class FillSizeGoal extends ObjectGoal<Long, GSProject> {
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
 			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, Goal<GSProject>... deps) {
-		super(project, GSGoalKey.FILLSIZE,
-				Goal.append(deps, categoriesGoal, taxNodesGoal, fnaFilesGoal, accessionMapGoal, additionalGoal));
-		this.categoriesGoal = categoriesGoal;
-		this.taxNodesGoal = taxNodesGoal;
-		this.fnaFilesGoal = fnaFilesGoal;
-		this.additionalGoal = additionalGoal;
+		super(project, GSGoalKey.FILLSIZE, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, deps);
 		this.accessionMapGoal = accessionMapGoal;
 	}
 
 	@Override
 	protected void doMakeThis() {
 		try {
+			boolean refSeqDB = booleanConfigValue(GSConfigKey.REF_SEQ_DB);
 			MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
-					taxNodesGoal.get(), accessionMapGoal.get(), intConfigValue(GSConfigKey.KMER_SIZE),
+					taxNodesGoal.get(), refSeqDB ? accessionMapGoal.get() : null, intConfigValue(GSConfigKey.KMER_SIZE),
 					intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
 					(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
 					longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID));
-
-			boolean refSeqDB = booleanConfigValue(GSConfigKey.REF_SEQ_DB);
-			if (refSeqDB) {
-				for (File fnaFile : fnaFilesGoal.getFiles()) {
-					RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
-					if (categoriesGoal.get().contains(cat)) {
-						fastaReader.readFasta(fnaFile);
-					}
-				}
-			}
-			Map<File, TaxIdNode> additionalMap = additionalGoal.get();
-			for (File additionalFasta : additionalMap.keySet()) {
-				TaxIdNode node = additionalMap.get(additionalFasta);
-				if (taxNodesGoal.get().contains(node)) {
-					fastaReader.ignoreAccessionMap(node);
-					fastaReader.readFasta(additionalFasta);
-				}
-			}
+			readFastas(fastaReader);
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Store size determined in kmers: " + fastaReader.getCounter());
 			}

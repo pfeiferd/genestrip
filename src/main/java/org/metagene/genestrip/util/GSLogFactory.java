@@ -183,8 +183,10 @@ public class GSLogFactory {
 			if (tLogOut == null) {
 				tLogOut = logOut;
 			}
-			writeNesting(tLogOut);
-			tLogOut.println(buffer);
+			synchronized (tLogOut) {
+				writeNesting(tLogOut);
+				tLogOut.println(buffer);
+			}
 		}
 	}
 }

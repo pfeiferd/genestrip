@@ -47,11 +47,7 @@ import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-public class FillDBGoal extends ObjectGoal<Database, GSProject> {
-	private final ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal;
-	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
-	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-	private final ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal;
+public class FillDBGoal extends FastaReaderGoal<Database> {
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 	private final ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal;
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
@@ -65,12 +61,7 @@ public class FillDBGoal extends ObjectGoal<Database, GSProject> {
 			ObjectGoal<AccessionMap, GSProject> accessionMapGoal,
 			ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal,
 			Goal<GSProject>... deps) {
-		super(project, GSGoalKey.FILL_DB, Goal.append(deps, categoriesGoal, taxNodesGoal, fnaFilesGoal,
-				accessionMapGoal, bloomFilterGoal, taxTreeGoal, additionalGoal));
-		this.categoriesGoal = categoriesGoal;
-		this.taxNodesGoal = taxNodesGoal;
-		this.fnaFilesGoal = fnaFilesGoal;
-		this.additionalGoal = additionalGoal;
+		super(project, GSGoalKey.FILL_DB, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, deps);
 		this.accessionMapGoal = accessionMapGoal;
 		this.bloomFilterGoal = bloomFilterGoal;
 		this.taxTreeGoal = taxTreeGoal;
@@ -91,30 +82,15 @@ public class FillDBGoal extends ObjectGoal<Database, GSProject> {
 				* (1 + doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP))));
 
 		try {
+			boolean refSeqDB = booleanConfigValue(GSConfigKey.REF_SEQ_DB);
+
 			MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
-					taxNodesGoal.get(), accessionMapGoal.get(), store,
+					taxNodesGoal.get(), refSeqDB ? accessionMapGoal.get() : null, store,
 					intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
 					(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
 					longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
 					intConfigValue(GSConfigKey.MAX_DUST));
-
-			boolean refSeqDB = booleanConfigValue(GSConfigKey.REF_SEQ_DB);
-			if (refSeqDB) {
-				for (File fnaFile : fnaFilesGoal.getFiles()) {
-					RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
-					if (categoriesGoal.get().contains(cat)) {
-						fastaReader.readFasta(fnaFile);
-					}
-				}
-			}
-			Map<File, TaxIdNode> additionalMap = additionalGoal.get();
-			for (File additionalFasta : additionalMap.keySet()) {
-				TaxIdNode node = additionalMap.get(additionalFasta);
-				if (taxNodesGoal.get().contains(node)) {
-					fastaReader.ignoreAccessionMap(node);
-					fastaReader.readFasta(additionalFasta);
-				}
-			}
+			readFastas(fastaReader);
 			if (getLogger().isWarnEnabled()) {
 				getLogger().warn("Not stored kmers: " + fastaReader.tooManyCounter);
 			}

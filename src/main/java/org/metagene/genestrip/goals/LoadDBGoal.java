@@ -48,14 +48,6 @@ public class LoadDBGoal extends ObjectGoal<Database, GSProject> {
 		this.dbGoal = dbGoal;
 		this.dbFile = getProject().getDBPath() == null ? updateStoreGoal.getFile() : new File(getProject().getDBPath());
 	}
-	
-	@Override
-	public boolean isWeakDependency(Goal<GSProject> toGoal) {
-		if (toGoal == dbGoal) {
-			return true;
-		}
-		return super.isWeakDependency(toGoal);
-	}
 
 	@Override
 	protected void doMakeThis() {

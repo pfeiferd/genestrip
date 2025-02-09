@@ -62,9 +62,9 @@ public enum GSConfigKey implements ConfigKey {
 //	TAX_HTTP_BASE_URL("taxHttpBaseURL", new StringConfigParamInfo("https://ftp.ncbi.nlm.nih.gov"), GSGoalKey.DB),
 //	TAX_FTP_BASE_URL("taxFTPBaseURL", new StringConfigParamInfo("ftp.ncbi.nih.gov"), GSGoalKey.DB),
 	@MDDescription("This [mirror](https://www.funet.fi/pub/mirrors/ftp.ncbi.nlm.nih.gov/refseq/) might be considered as an alternative. (No other mirror sites are known.)")
-	REF_SEQ_HTTP_BASE_URL("refseqHttpBaseURL", new StringConfigParamInfo("https://ftp.ncbi.nlm.nih.gov/refseq"),
+	REF_SEQ_HTTP_BASE_URL("refseq.httpBaseURL", new StringConfigParamInfo("https://ftp.ncbi.nlm.nih.gov/refseq"),
 			GSGoalKey.DB),
-	REF_SEQ_FTP_BASE_URL("refseqFTPBaseURL", new StringConfigParamInfo("ftp.ncbi.nih.gov"), GSGoalKey.DB),
+	REF_SEQ_FTP_BASE_URL("refseq.ftpBaseURL", new StringConfigParamInfo("ftp.ncbi.nih.gov"), GSGoalKey.DB),
 	@MDDescription("Use http(s) to download data from NCBI. If `false`, then Genestrip will do anonymous FTP instead (with login and password set to `anonymous`).")
 	USE_HTTP("useHttp", new BooleanConfigParamInfo(true), GSGoalKey.DB),
 	@MDDescription("If `true`, then a download of files from NCBI will not stop in case a file is missing on the server.")
@@ -77,6 +77,8 @@ public enum GSConfigKey implements ConfigKey {
 			+ "If not set, the completion will traverse down to the lowest possible levels of the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip). "
 			+ "Typical values could be `species` or `strain`, but  all values used for assigning ranks in the taxonomy are possible.")
 	RANK_COMPLETION_DEPTH("rankCompletionDepth", new RankConfigParamInfo(null), GSGoalKey.DB),
+
+	// Limit database size
 	@MDDescription("The maximum number of genomes per tax id to be included in the database. "
 			+ "Note, that this is an important parameter to control database size, because in some cases, there are thousands of genomic entries per tax id.")
 	MAX_GENOMES_PER_TAXID("maxGenomesPerTaxid", new IntConfigParamInfo(1, Integer.MAX_VALUE, Integer.MAX_VALUE),
@@ -85,29 +87,38 @@ public enum GSConfigKey implements ConfigKey {
 			+ "Note, that this is an important parameter to control database size, because in some cases, there are millions of *k*-mers per tax id.")
 	MAX_KMERS_PER_TAXID("maxKMersPerTaxid", new LongConfigParamInfo(0, Long.MAX_VALUE, Long.MAX_VALUE)),
 	@MDDescription("The rank for which to consider the parameters `maxGenomesPerTaxid` and `maxKMersPerTaxid`. If `null`, then maximum number of genomes is considered with respect to the direct tax id under which a genome is stored.")
-	MAX_GENOMES_PER_TAXID_RANK("maxGenomesPerTaxidRank", new RankConfigParamInfo(null)),
+	MAX_GENOMES_PER_TAXID_RANK("maxPerTaxidRank", new RankConfigParamInfo(null)),
+
+	// Refseq data selection
+	@MDDescription("Whether the [RefSeq Release](https://ftp.ncbi.nlm.nih.gov/refseq/release/) should be used as the bases for filling the database.")
+	REF_SEQ_DB("refseq.filldb", new BooleanConfigParamInfo(true), false, GSGoalKey.DB),
 	@MDDescription("If `true`, then only genomic accessions with the prefixes `AC`, `NC_`, `NZ_` will be considered when generating a database. "
 			+ "Otherwise, all genomic accessions will be considered. See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.")
-	COMPLETE_GENOMES_ONLY("completeGenomesOnly", new BooleanConfigParamInfo(false), GSGoalKey.DB),
+	COMPLETE_GENOMES_ONLY("refseq.completeGenomesOnly", new BooleanConfigParamInfo(false), GSGoalKey.DB),
 	@MDDescription("Determines whether Genestrip should try to lookup genomic fasta files from Genbank, "
 			+ "if the number of corresponding reference genomes from the RefSeq is below the given limit for a requested tax id including its descendants. "
-			+ "E.g. `refSeqLimitForGenbankAccess=1` would imply that Genbank is consulted if not a single reference genome is found in the RefSeq for a requested tax id. "
-			+ "The default `refSeqLimitForGenbankAccess=0` essentially inactivates this feature."
-			+ "In addition, Genbank access is also influenced by the keys `fastaQualities` and `maxFromGenBank` (see below)."
-			+ "Note that `refSeqLimitForGenbankAccess` is disregarded if `refSeqDB=false`.")
-	REQ_SEQ_LIMIT_FOR_GENBANK("refSeqLimitForGenbankAccess", new IntConfigParamInfo(0, Integer.MAX_VALUE, 0),
+			+ "E.g. `refSeq.limitForGenbankAccess=1` would imply that Genbank is consulted if not a single reference genome is found in the RefSeq for a requested tax id. "
+			+ "The default `refSeq.limitForGenbankAccess=0` essentially inactivates this feature."
+			+ "In addition, Genbank access is also influenced by the keys `genbank.fastaQualities`, `genbank.maxPerTaxid` and `genbank.referenceOnly` (see below)."
+			+ "Note that `refSeq.limitForGenbankAccess` is disregarded if `refseq.filldb=false`.")
+	REQ_SEQ_LIMIT_FOR_GENBANK("refSeq.limitForGenbankAccess", new IntConfigParamInfo(0, Integer.MAX_VALUE, 0),
 			GSGoalKey.DB),
 	@MDDescription("The rank for which to check the limit `refSeqLimitForGenbankAccess`. If `null`, then the limit applies to all requested tax ids and its descendants.")
-	REQ_SEQ_LIMIT_FOR_GENBANK_RANK("refSeqLimitForGenbankRank", new RankConfigParamInfo(Rank.SPECIES), GSGoalKey.DB),
+	REQ_SEQ_LIMIT_FOR_GENBANK_RANK("refSeq.limitForGenbankRank", new RankConfigParamInfo(Rank.SPECIES), GSGoalKey.DB),
 	@MDDescription("Determines the maximum number of fasta files used from Genbank per requested tax id. "
-			+ "If the corresponding number of matching files exceeds `maxFromGenBank`, then then best ones according to `fastaQualities` will be retained to still match this maximum.")
-	MAX_FROM_GENBANK("maxFromGenBank", new IntConfigParamInfo(-1, Integer.MAX_VALUE, 1), GSGoalKey.DB),
+			+ "If the corresponding number of matching files exceeds `genbank.maxFastasPerTaxid`, then then best ones according to `genbank.fastaQualities` will be retained while adhering to this maximum.")
+
+	// Genbank data selection
+	MAX_FROM_GENBANK("genbank.maxPerTaxid", new IntConfigParamInfo(-1, Integer.MAX_VALUE, 1), GSGoalKey.DB),
 	@MDDescription("Determines the allowed quality levels of fasta files from Genbank. "
 			+ "The values must be comma-separated. If a corresponding value is included in the list, "
 			+ "then a fasta file for a requested tax id on that quality level will be included, "
 			+ "otherwise not (while also respecting the conditions excerted via the keys `refSeqLimitForGenbankAccess` and `maxFromGenBank`). "
 			+ "The quality levels are based on Genbank's [Assembly Summary File](https://ftp.ncbi.nlm.nih.gov/genomes/genbank/assembly_summary_genbank.txt) (columns `version_status` and `assembly_level`).")
-	FASTA_QUALITIES("fastaQualities", new FastaQualitiesConfigInfo(), GSGoalKey.DB),
+	FASTA_QUALITIES("genbank.fastaQualities", new FastaQualitiesConfigInfo(Arrays.asList(
+			new FTPEntryQuality[] { FTPEntryQuality.COMPLETE_LATEST, FTPEntryQuality.CHROMOSOME_LATEST })), GSGoalKey.DB),
+	@MDDescription("Whether only reference genomes are accepted or not. (Reference Genomes must be fetched from GenBank.)")
+	REF_GEN_ONLY("genbank.referenceOnly", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
 
 	// Database generation
 	@MDDescription("The number of base pairs *k* for *k*-mers. "
@@ -127,6 +138,10 @@ public enum GSConfigKey implements ConfigKey {
 	TEMP_BLOOM_FILTER_FPP("tempBloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.001d), true, GSGoalKey.DB),
 	BLOOM_FILTER_FPP("bloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.00000000001d), true, GSGoalKey.DB),
 	FASTA_LINE_SIZE_BYTES("fastaLineSizeBytes", new IntConfigParamInfo(4096, 65536, 4096), true, GSGoalKey.DB),
+	@MDDescription("Perform database update regarding least common ancestors only based on genomes of tax ids as selected for the database generation (and not via all of superkingdom's RefSeq genomes).")
+	MIN_UPDATE("minUpdate", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
+	@MDDescription("Wether to delete the temporary database after the final database has been saved or not.")
+	REMOVE_TEMP_DB("removeTempDB", new BooleanConfigParamInfo(true), false, GSGoalKey.DB),
 
 	// Match
 	@MDDescription("Whether to do read classification in the style of Kraken and KrakenUniq. Matching is faster without "
@@ -170,15 +185,7 @@ public enum GSConfigKey implements ConfigKey {
 	// Kraken
 	KRAKEN_BIN("krakenBin", new StringConfigParamInfo("krakenuniq"), true),
 	KRAKEN_DB("krakenDB", new StringConfigParamInfo("krakenuniq"), true),
-	KRAKEN_EXEC_EXPR("krakenExecExpr", new StringConfigParamInfo("{0} -db {1} {2}"), true),
-	@MDDescription("Perform database update regarding least common ancestors only based on genomes of tax ids as selected for the database generation (and not via all of superkingdom's RefSeq genomes).")
-	MIN_UPDATE("minUpdate", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
-	@MDDescription("Wether to delete the temporary database after the final database has been saved or not.")
-	REMOVE_TEMP_DB("removeTempDB", new BooleanConfigParamInfo(true), false, GSGoalKey.DB),
-	@MDDescription("Whether only reference genomes are accepted or not. (Reference Genomes must be fetched from GenBank.)")
-	REF_GEN_ONLY("refGenOnly", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
-	@MDDescription("Whether the [RefSeq Release](https://ftp.ncbi.nlm.nih.gov/refseq/release/) should be used as the bases for filling the database.")
-	REF_SEQ_DB("refSeqDB", new BooleanConfigParamInfo(true), false, GSGoalKey.DB);
+	KRAKEN_EXEC_EXPR("krakenExecExpr", new StringConfigParamInfo("{0} -db {1} {2}"), true);
 
 	private final String name;
 	private final ConfigParamInfo<?> param;
@@ -321,9 +328,8 @@ public enum GSConfigKey implements ConfigKey {
 	}
 
 	public static class FastaQualitiesConfigInfo extends ListConfigParamInfo<FTPEntryQuality> {
-		public FastaQualitiesConfigInfo() {
-			super(Arrays.asList(
-					new FTPEntryQuality[] { FTPEntryQuality.COMPLETE_LATEST, FTPEntryQuality.CHROMOSOME_LATEST }));
+		public FastaQualitiesConfigInfo(List<FTPEntryQuality> defaults) {
+			super(defaults);
 		}
 
 		@Override
