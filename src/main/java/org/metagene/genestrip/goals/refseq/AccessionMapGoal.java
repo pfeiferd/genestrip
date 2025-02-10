@@ -50,10 +50,10 @@ public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
 	@SafeVarargs
 	public AccessionMapGoal(GSProject project, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
 			ObjectGoal<TaxTree, GSProject> taxTreeGoal, RefSeqCatalogDownloadGoal catalogGoal,
-			RefSeqFnaFilesDownloadGoal downloadGoal, ObjectGoal<Integer, GSProject> accessionMapSizeGoal,
+			ObjectGoal<Integer, GSProject> accessionMapSizeGoal,
 			Goal<GSProject>... deps) {
 		super(project, GSGoalKey.ACCMAP,
-				Goal.append(deps, categoriesGoal, catalogGoal, downloadGoal, accessionMapSizeGoal));
+				Goal.append(deps, categoriesGoal, catalogGoal, accessionMapSizeGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxTreeGoal = taxTreeGoal;
 		this.catalogGoal = catalogGoal;

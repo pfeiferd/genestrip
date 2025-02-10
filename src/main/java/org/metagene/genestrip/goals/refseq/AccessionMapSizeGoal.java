@@ -45,8 +45,8 @@ public class AccessionMapSizeGoal extends ObjectGoal<Integer, GSProject> {
 	@SafeVarargs
 	public AccessionMapSizeGoal(GSProject project, 
 			ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal, RefSeqCatalogDownloadGoal catalogGoal,
-			RefSeqFnaFilesDownloadGoal downloadGoal, Goal<GSProject>... deps) {
-		super(project, GSGoalKey.ACCMAPSIZE, Goal.append(deps, categoriesGoal, catalogGoal, downloadGoal));
+			Goal<GSProject>... deps) {
+		super(project, GSGoalKey.ACCMAPSIZE, Goal.append(deps, categoriesGoal, catalogGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.catalogGoal = catalogGoal;
 	}

@@ -260,11 +260,11 @@ public class GSMaker extends Maker<GSProject> {
 		registerGoal(refSeqFnaFilesGoal);
 
 		ObjectGoal<Integer, GSProject> accessMapSizeGoal = new AccessionMapSizeGoal(project, categoriesGoal,
-				refSeqCatalogGoal, refSeqFnaFilesGoal);
+				refSeqCatalogGoal);
 		registerGoal(accessMapSizeGoal);
 
 		ObjectGoal<AccessionMap, GSProject> accessCollGoal = new AccessionMapGoal(project, categoriesGoal, taxTreeGoal,
-				refSeqCatalogGoal, refSeqFnaFilesGoal, accessMapSizeGoal);
+				refSeqCatalogGoal, accessMapSizeGoal);
 		registerGoal(accessCollGoal);
 
 		// Genbank related additional fastas:
