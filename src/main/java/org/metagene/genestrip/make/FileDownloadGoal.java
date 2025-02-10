@@ -42,11 +42,15 @@ import java.util.Map;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
+import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.io.StreamProvider;
 
 public abstract class FileDownloadGoal<P extends Project> extends FileGoal<P> {
+	public static final String CHECK_SUM_OK_SUFFIX = ".md5ok";
+
 	private final Map<File, Boolean> checkSumOkMap;
 	private FTPClient ftpClient;
 
@@ -203,11 +207,37 @@ public abstract class FileDownloadGoal<P extends Project> extends FileGoal<P> {
 			if (check != null) {
 				return check;
 			}
+			if (isAllowCheckSumOkCacheFile()) {
+				if (checkSumOkCacheFile(file).exists()) {
+					return true;
+				}
+			}
 			computedCheckSum = computeMD5CheckSum(file);
 		}
 		boolean check = originalCheckSum.equals(computedCheckSum);
 		checkSumOkMap.put(file, check);
+		if (check && isAllowCheckSumOkCacheFile()) {
+			try {
+				FileUtils.touch(checkSumOkCacheFile(file));
+			} catch (IOException e) {
+				// Ignore on puropse.
+			}
+		}
 		return check;
+	}
+
+	protected boolean isAllowCheckSumOkCacheFile() {
+		return booleanConfigValue(GSConfigKey.CHECK_SUM_CACHE_FIlE);
+	}
+
+	protected File checkSumOkCacheFile(File file) {
+		return new File(file.getAbsolutePath() + CHECK_SUM_OK_SUFFIX);
+	}
+
+	@Override
+	protected void deleteFile(File file) {
+		super.deleteFile(file);
+		checkSumOkCacheFile(file).delete();
 	}
 
 	@Override

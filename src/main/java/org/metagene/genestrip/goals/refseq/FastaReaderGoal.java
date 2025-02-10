@@ -34,6 +34,7 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
     protected void readFastas(AbstractRefSeqFastaReader fastaReader) throws IOException {
         boolean refSeqDB = booleanConfigValue(GSConfigKey.REF_SEQ_DB);
         if (refSeqDB) {
+            fnaFilesGoal.make();
             for (File fnaFile : fnaFilesGoal.getFiles()) {
                 RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
                 if (categoriesGoal.get().contains(cat)) {
@@ -48,6 +49,16 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
                 fastaReader.ignoreAccessionMap(node);
                 fastaReader.readFasta(additionalFasta);
             }
+        }
+    }
+
+    @Override
+    public boolean isWeakDependency(Goal<GSProject> toGoal) {
+        if (toGoal == fnaFilesGoal) {
+            return true;
+        }
+        else {
+            return super.isWeakDependency(toGoal);
         }
     }
 }

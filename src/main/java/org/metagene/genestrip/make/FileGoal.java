@@ -95,7 +95,7 @@ public abstract class FileGoal<P extends Project> extends Goal<P> {
 					if (getLogger().isInfoEnabled()) {
 						getLogger().info("Deleting emtpy file " + file);
 					}
-					file.delete();
+					deleteFile(file);
 				}
 				if (!isMade(file)) {
 					if (getLogger().isInfoEnabled()) {
@@ -126,13 +126,17 @@ public abstract class FileGoal<P extends Project> extends Goal<P> {
 					if (file.isDirectory()) {
 						FileUtils.deleteDirectory(file);
 					} else {
-						file.delete();
+						deleteFile(file);
 					}
 				}
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	protected void deleteFile(File file) {
+		file.delete();
 	}
 	
 	protected List<File> getFilesToClean() {

@@ -42,18 +42,16 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 public class TaxNodesFromGenbankGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
 	private final ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
-	private final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 
 	@SafeVarargs
 	public TaxNodesFromGenbankGoal(GSProject project, 
 			ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
-			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, Goal<GSProject>... deps) {
-		super(project, GSGoalKey.TAXFROMGENBANK, Goal.append(deps, categoriesGoal, taxNodesGoal, fnaFilesGoal, accessionMapGoal));
+		super(project, GSGoalKey.TAXFROMGENBANK, Goal.append(deps, categoriesGoal, taxNodesGoal, accessionMapGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxNodesGoal = taxNodesGoal;
-		this.fnaFilesGoal = fnaFilesGoal;
 		this.accessionMapGoal = accessionMapGoal;
 	}
 

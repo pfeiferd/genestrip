@@ -269,7 +269,7 @@ public class GSMaker extends Maker<GSProject> {
 
 		// Genbank related additional fastas:
 		ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesFromGenBank = new TaxNodesFromGenbankGoal(project, categoriesGoal,
-				taxNodesGoal, refSeqFnaFilesGoal, accessCollGoal);
+				taxNodesGoal, accessCollGoal);
 		registerGoal(taxNodesFromGenBank);
 
 		FileGoal<GSProject> assemblyFileDownloadGoal = new AssemblyFileDownloadGoal(project, commonSetupGoal);
