@@ -72,7 +72,7 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 			ObjectGoal<AccessionMap, GSProject> accessionTrieGoal, ObjectGoal<Database, GSProject> filledStoreGoal,
 			Goal<GSProject>... deps) {
 		super(project, GSGoalKey.UPDATE_DB, Goal.append(deps, additionalGoal, categoriesGoal, taxTreeGoal, taxNodesGoal,
-				fnaFilesGoal, filledStoreGoal, accessionTrieGoal));
+				fnaFilesGoal, accessionTrieGoal, filledStoreGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxNodesGoal = taxNodesGoal;
 		this.taxTreeGoal = taxTreeGoal;

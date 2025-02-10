@@ -107,10 +107,11 @@ public enum GSConfigKey implements ConfigKey {
 			GSGoalKey.DB),
 	@MDDescription("The rank for which to check the limit `refSeqLimitForGenbankAccess`. If `null`, then the limit applies to all requested tax ids and its descendants.")
 	REQ_SEQ_LIMIT_FOR_GENBANK_RANK("refSeq.limitForGenbankRank", new RankConfigParamInfo(Rank.SPECIES), GSGoalKey.DB),
-	@MDDescription("Determines the maximum number of fasta files used from Genbank per requested tax id. "
-			+ "If the corresponding number of matching files exceeds `genbank.maxFastasPerTaxid`, then then best ones according to `genbank.fastaQualities` will be retained while adhering to this maximum.")
 
 	// Genbank data selection
+	@MDDescription("Determines the maximum number of fasta files used from Genbank per requested tax id. "
+			+ "If this value <= 0 then all fasta files will be used."
+			+ "Otherwise, if the corresponding number of matching files exceeds `genbank.maxFastasPerTaxid`, then then best ones according to `genbank.fastaQualities` will be retained while adhering to this maximum.")
 	MAX_FROM_GENBANK("genbank.maxPerTaxid", new IntConfigParamInfo(-1, Integer.MAX_VALUE, 1), GSGoalKey.DB),
 	@MDDescription("Determines the allowed quality levels of fasta files from Genbank. "
 			+ "The values must be comma-separated. If a corresponding value is included in the list, "

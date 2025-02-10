@@ -94,11 +94,14 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<FT
 					for (TaxIdNode node : entries.keySet()) {
 						sum += entries.get(node).size();
 					}
-					getLogger().info("Potentially relevant entries: " + sum);
+					if (getLogger().isInfoEnabled()) {
+						getLogger().info("Potentially relevant entries: " + sum);
+					}
 				}
+				int sum = 0;
 				for (TaxIdNode node : entries.keySet()) {
+					List<FTPEntryWithQuality> list = res.get(node);
 					for (FTPEntryWithQuality entry : entries.get(node)) {
-						List<FTPEntryWithQuality> list = res.get(node);
 						if (entry != null && isMatchingEntryForNode(entry, node)) {
 							if (list == null) {
 								list = new ArrayList<FTPEntryWithQuality>();
@@ -106,11 +109,15 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<FT
 							}
 							if (!list.contains(entry)) {
 								list.add(entry);
-								updateEntriesForNode(list, node);
+								sum++;
 							}
 						}
 					}					
 				}
+				if (getLogger().isInfoEnabled()) {
+					getLogger().info("Matching entries: " + sum);
+				}
+
 				// Reduce the number of entries to maxFromGenbank and keep the best ones in terms of quality.
 				for (TaxIdNode node : res.keySet()) {
 					List<FTPEntryWithQuality> list = res.get(node);
@@ -121,9 +128,12 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<FT
 						}
 					}
 				}
+				if (getLogger().isInfoEnabled()) {
+					getLogger().info("Short listed entries: " + sum);
+				}
 
 				if (getLogger().isInfoEnabled()) {
-					int sum = 0;
+					sum = 0;
 					for (TaxIdNode node : res.keySet()) {
 						sum += res.get(node).size();
 					}
@@ -142,9 +152,5 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<FT
 			return false;
 		}
 		return fastaQualities.contains(entry.getQuality());
-	}
-
-	// Just for potential override.
-	protected void updateEntriesForNode(List<FTPEntryWithQuality> currentEntries, TaxIdNode node) {
 	}
 }
