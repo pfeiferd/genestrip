@@ -25,7 +25,7 @@
 package org.metagene.genestrip.goals.genbank;
 
 import java.io.File;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 
 import org.metagene.genestrip.GSGoalKey;
@@ -36,14 +36,16 @@ import org.metagene.genestrip.make.Goal;
 
 public class AssemblyFileDownloadGoal extends GSFileDownloadGoal {
 	public static final String FTP_DIR_GENBANK = "/genomes/genbank";
+	public static final String FTP_DIR_REFSEQ = "/genomes/refseq";
 
 	private final List<File> files;
 
 	@SafeVarargs
 	public AssemblyFileDownloadGoal(GSProject project, Goal<GSProject>... deps) {
 		super(project, GSGoalKey.ASSEMBLYDOWNLOAD, deps);
-		files = Collections.singletonList(
-				new File(project.getCommon().getGenbankDir(), AssemblySummaryReader.ASSEMLY_SUM_GENBANK));
+		files = Arrays.asList(
+				new File(project.getCommon().getGenbankDir(), AssemblySummaryReader.ASSEMLY_SUM_GENBANK),
+				new File(project.getCommon().getRefSeqDir(), AssemblySummaryReader.ASSEMLY_SUM_REFSEQ));
 	}
 
 	@Override
@@ -58,6 +60,6 @@ public class AssemblyFileDownloadGoal extends GSFileDownloadGoal {
 
 	@Override
 	protected String getFTPDir(File file) {
-		return FTP_DIR_GENBANK;
+		return file.getName().endsWith(AssemblySummaryReader.ASSEMLY_SUM_GENBANK) ? FTP_DIR_GENBANK : FTP_DIR_REFSEQ;
 	}
 }

@@ -77,6 +77,7 @@ public class AssemblySummaryReader {
 				if (record.size() >= 20) {
 					String refgen = record.get(4);
 					String taxid = record.get(5);
+					String speciesTaxid = record.get(6);
 					String latest = record.get(10);
 					String complete = record.get(11);
 					String ftp = record.get(19);
@@ -185,36 +186,18 @@ public class AssemblySummaryReader {
 		}
 
 		public static FTPEntryQuality fromString(String complete, String latest) {
-			if ("Complete Genome".equals(complete)) {
-				if ("latest".equals(latest)) {
-					return COMPLETE_LATEST;
-				} else {
-					return COMPLETE;
-				}
-			} else if ("Chromosome".equals(complete)) {
-				if ("latest".equals(latest)) {
-					return CHROMOSOME_LATEST;
-				} else {
-					return CHROMOSOME;
-				}
-			} else if ("Scaffold".equals(complete)) {
-				if ("latest".equals(latest)) {
-					return SCAFFOLD_LATEST;
-				} else {
-					return SCAFFOLD;
-				}
-			} else if ("Contig".equals(complete)) {
-				if ("latest".equals(latest)) {
-					return CONTIG_LATEST;
-				} else {
-					return CONTIG;
-				}
-			} else {
-				if ("latest".equals(latest)) {
-					return LATEST;
-				} else {
-					return NONE;
-				}
+			boolean l = "latest".equals(latest);
+			switch (complete) {
+				case "Complete Genome":
+					return l ? COMPLETE_LATEST: COMPLETE;
+				case "Chromosome":
+					return l ? CHROMOSOME_LATEST: CHROMOSOME;
+				case "Scaffold":
+					return l ? SCAFFOLD_LATEST: SCAFFOLD;
+				case "Contig":
+					return l ? CONTIG_LATEST: CONTIG;
+				default:
+					return l ? LATEST: NONE;
 			}
 		}
 	}
