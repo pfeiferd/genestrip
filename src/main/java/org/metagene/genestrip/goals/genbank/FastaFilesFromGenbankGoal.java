@@ -128,9 +128,6 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<FT
 						}
 					}
 				}
-				if (getLogger().isInfoEnabled()) {
-					getLogger().info("Short listed entries: " + sum);
-				}
 
 				if (getLogger().isInfoEnabled()) {
 					sum = 0;
