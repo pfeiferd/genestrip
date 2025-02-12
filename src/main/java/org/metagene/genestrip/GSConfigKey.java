@@ -117,7 +117,8 @@ public enum GSConfigKey implements ConfigKey {
 			+ "The values must be comma-separated. If a corresponding value is included in the list, "
 			+ "then a fasta file for a requested tax id on that quality level will be included, "
 			+ "otherwise not (while also respecting the conditions excerted via the keys `refSeqLimitForGenbankAccess` and `maxFromGenBank`). "
-			+ "The quality levels are based on Genbank's [Assembly Summary File](https://ftp.ncbi.nlm.nih.gov/genomes/genbank/assembly_summary_genbank.txt) (columns `version_status` and `assembly_level`).")
+			+ "The quality levels are based on Genbank's [Assembly Summary File](https://ftp.ncbi.nlm.nih.gov/genomes/genbank/assembly_summary_genbank.txt) (columns `version_status` and `assembly_level`). "
+			+ "If the list is empty then no fasta files from Genbank will qualify.")
 	FASTA_QUALITIES("genbank.fastaQualities", new FastaQualitiesConfigInfo(Arrays.asList(
 			new FTPEntryQuality[] { FTPEntryQuality.COMPLETE_LATEST, FTPEntryQuality.CHROMOSOME_LATEST })), GSGoalKey.DB),
 	@MDDescription("Whether only reference genomes are accepted or not. (Reference Genomes must be fetched from GenBank.)")
@@ -347,7 +348,7 @@ public enum GSConfigKey implements ConfigKey {
 					}
 				}
 			}
-			return res.isEmpty() ? null : res;
+			return res;
 		}
 
 		@Override

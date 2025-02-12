@@ -65,11 +65,10 @@ public class AssemblySummaryReader {
 		this.assFileName = assFileName;
 	}
 
-	public Map<TaxIdNode, List<FTPEntryWithQuality>> getRelevantEntries(Set<TaxIdNode> filter,
-			List<FTPEntryQuality> minQualities, int[] totalEntries) throws IOException {
+	public Map<TaxIdNode, List<FTPEntryWithQuality>> getRelevantEntries(final Set<TaxIdNode> filter,
+			final List<FTPEntryQuality> fastaQualities, final boolean referenceOnly, final boolean useSpeciesTaxidForFiltering, final int[] totalEntries) throws IOException {
 		Map<TaxIdNode, List<FTPEntryWithQuality>> result = new HashMap<TaxIdNode, List<FTPEntryWithQuality>>();
 		int counter = 0;
-
 		try (CSVParser parser = FORMAT
 				.parse(new InputStreamReader(StreamProvider.getInputStreamForFile(new File(baseDir, assFileName))))) {
 			for (CSVRecord record : parser) {
@@ -82,52 +81,23 @@ public class AssemblySummaryReader {
 					String complete = record.get(11);
 					String ftp = record.get(19);
 
-					TaxIdNode node = taxTree.getNodeByTaxId(taxid);
+					TaxIdNode node = taxTree.getNodeByTaxId(useSpeciesTaxidForFiltering ? speciesTaxid : taxid);
 					if (node != null && (filter == null || filter.contains(node))) {
 						FTPEntryQuality quality = FTPEntryQuality.fromString(complete, latest);
-						if (!FTPEntryQuality.NONE.equals(quality)) {
-							List<FTPEntryWithQuality> entry = result.get(node);
-							if (entry == null) {
-								entry = new ArrayList<FTPEntryWithQuality>();
-								result.put(node, entry);
+						if (fastaQualities == null || fastaQualities.contains(quality)) {
+							boolean isRefGen = REFERENCE_GENOME_CAT.equals(refgen);
+							if (!referenceOnly || isRefGen) {
+								List<FTPEntryWithQuality> entry = result.get(node);
+								if (entry == null) {
+									entry = new ArrayList<FTPEntryWithQuality>();
+									result.put(node, entry);
+								}
+								FTPEntryWithQuality ewq = new FTPEntryWithQuality(taxid, ftp, quality, null, isRefGen, speciesTaxid);
+								entry.add(ewq);
 							}
-							FTPEntryWithQuality ewq = new FTPEntryWithQuality(ftp, quality, null, REFERENCE_GENOME_CAT.equals(refgen));
-							entry.add(ewq);
 						}
 					}
 					counter++;
-				}
-			}
-		}
-
-		if (minQualities != null) {
-			for (List<FTPEntryWithQuality> values : result.values()) {
-				boolean found = false;
-				// Try the qualities in given order:
-				for (FTPEntryQuality q : minQualities) {
-					for (FTPEntryWithQuality entry : values) {
-						if (!entry.getQuality().below(q)) {
-							// At least one entry matches the required quality q.
-							found = true;
-							break;
-						}
-					}
-					if (found) {
-						// Remove all entries that don't match the quality q
-						Iterator<FTPEntryWithQuality> it = values.iterator();
-						while (it.hasNext()) {
-							if (it.next().getQuality().below(q)) {
-								it.remove();
-							}
-						}
-
-						break;
-					}
-				}
-				// If not matches were found, then the required qualities are exhausted and we
-				// got to delete all entries.
-				if (!found) {
-					values.clear();
 				}
 			}
 		}
@@ -138,13 +108,16 @@ public class AssemblySummaryReader {
 	}
 
 	public static class FTPEntryWithQuality {
+		private final String taxid;
 		private final String ftpURL;
 		private final String fileName;
 		private final FTPEntryQuality quality;
 		private final URL url;
 		private final boolean isReference;
+		private	final String speciesTaxid;
 
-		public FTPEntryWithQuality(String ftpURL, FTPEntryQuality quality, URL url, boolean isReference) {
+		public FTPEntryWithQuality(String taxid, String ftpURL, FTPEntryQuality quality, URL url, boolean isReference, String speciesTaxid) {
+			this.taxid = taxid;
 			this.ftpURL = ftpURL;
 			this.quality = quality;
 			if (ftpURL != null) {
@@ -155,6 +128,15 @@ public class AssemblySummaryReader {
 			}
 			this.url = url;
 			this.isReference = isReference;
+			this.speciesTaxid = speciesTaxid;
+		}
+
+		public String getSpeciesTaxid() {
+			return speciesTaxid;
+		}
+
+		public String getTaxid() {
+			return taxid;
 		}
 
 		public boolean isReference() {
@@ -180,10 +162,6 @@ public class AssemblySummaryReader {
 
 	public enum FTPEntryQuality {
 		ADDITIONAL, COMPLETE_LATEST, COMPLETE, CHROMOSOME_LATEST, CHROMOSOME, SCAFFOLD_LATEST, SCAFFOLD, CONTIG_LATEST, CONTIG, LATEST, NONE;
-
-		public boolean below(FTPEntryQuality q) {
-			return this.ordinal() > q.ordinal();
-		}
 
 		public static FTPEntryQuality fromString(String complete, String latest) {
 			boolean l = "latest".equals(latest);

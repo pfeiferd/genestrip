@@ -74,13 +74,15 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<FT
 
 	@Override
 	protected void doMakeThis() {
-		try {
-			if (getLogger().isDebugEnabled()) {
-				getLogger().debug(
-						"Tax ids used for additional fasta downloads from genbank: " + taxidsFromGenbankGoal.get());
-			}
-			Map<TaxIdNode, List<FTPEntryWithQuality>> res = new HashMap<TaxIdNode, List<FTPEntryWithQuality>>();
-			if (!taxidsFromGenbankGoal.get().isEmpty()) {
+		if (taxidsFromGenbankGoal.get().isEmpty()) {
+			set(Collections.emptyMap());
+		}
+		else {
+			try {
+				if (getLogger().isDebugEnabled()) {
+					getLogger().debug(
+							"Tax ids used for additional fasta downloads from genbank: " + taxidsFromGenbankGoal.get());
+				}
 				// Optimization: Download the assembly summary file only if necessary.
 				assemblyGoal.make();
 
@@ -88,7 +90,7 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<FT
 						getProject().getCommon().getGenbankDir(), true, taxTreeGoal.get());
 				int[] nEntriesTotal = new int[1];
 				Map<TaxIdNode, List<FTPEntryWithQuality>> entries = assemblySummaryReader.getRelevantEntries(
-						taxidsFromGenbankGoal.get(), fastaQualities, nEntriesTotal);
+						taxidsFromGenbankGoal.get(), fastaQualities, refGenOnly, false, nEntriesTotal);
 				if (getLogger().isInfoEnabled()) {
 					int sum = 0;
 					for (TaxIdNode node : entries.keySet()) {
@@ -98,29 +100,10 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<FT
 						getLogger().info("Potentially relevant entries: " + sum);
 					}
 				}
-				int sum = 0;
-				for (TaxIdNode node : entries.keySet()) {
-					List<FTPEntryWithQuality> list = res.get(node);
-					for (FTPEntryWithQuality entry : entries.get(node)) {
-						if (entry != null && isMatchingEntryForNode(entry, node)) {
-							if (list == null) {
-								list = new ArrayList<FTPEntryWithQuality>();
-								res.put(node, list);
-							}
-							if (!list.contains(entry)) {
-								list.add(entry);
-								sum++;
-							}
-						}
-					}					
-				}
-				if (getLogger().isInfoEnabled()) {
-					getLogger().info("Matching entries: " + sum);
-				}
 
 				// Reduce the number of entries to maxFromGenbank and keep the best ones in terms of quality.
-				for (TaxIdNode node : res.keySet()) {
-					List<FTPEntryWithQuality> list = res.get(node);
+				for (TaxIdNode node : entries.keySet()) {
+					List<FTPEntryWithQuality> list = entries.get(node);
 					if (maxFromGenbank > 0 && list.size() > maxFromGenbank) {
 						Collections.sort(list, COMPARATOR);
 						while (list.size() > maxFromGenbank) {
@@ -130,24 +113,17 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<FT
 				}
 
 				if (getLogger().isInfoEnabled()) {
-					sum = 0;
-					for (TaxIdNode node : res.keySet()) {
-						sum += res.get(node).size();
+					int sum = 0;
+					for (TaxIdNode node : entries.keySet()) {
+						sum += entries.get(node).size();
 					}
 					getLogger().info("Entries selected for download: " + sum);
 					getLogger().info("Total number of entries in assembly summary file: " + nEntriesTotal[0]);
 				}
+				set(entries);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
 			}
-			set(res);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
 		}
-	}
-
-	protected boolean isMatchingEntryForNode(FTPEntryWithQuality entry, TaxIdNode node) {
-		if (refGenOnly && !entry.isReference()) {
-			return false;
-		}
-		return fastaQualities.contains(entry.getQuality());
 	}
 }
