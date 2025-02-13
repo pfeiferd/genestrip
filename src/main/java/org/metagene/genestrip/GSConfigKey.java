@@ -31,7 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.StringTokenizer;
 
-import org.metagene.genestrip.genbank.AssemblySummaryReader.FTPEntryQuality;
+import org.metagene.genestrip.genbank.AssemblySummaryReader.AssemblyQuality;
 import org.metagene.genestrip.goals.MDDescription;
 import org.metagene.genestrip.make.ConfigKey;
 import org.metagene.genestrip.make.ConfigParamInfo;
@@ -120,7 +120,7 @@ public enum GSConfigKey implements ConfigKey {
 			+ "The quality levels are based on Genbank's [Assembly Summary File](https://ftp.ncbi.nlm.nih.gov/genomes/genbank/assembly_summary_genbank.txt) (columns `version_status` and `assembly_level`). "
 			+ "If the list is empty then no fasta files from Genbank will qualify.")
 	FASTA_QUALITIES("genbank.fastaQualities", new FastaQualitiesConfigInfo(Arrays.asList(
-			new FTPEntryQuality[] { FTPEntryQuality.COMPLETE_LATEST, FTPEntryQuality.CHROMOSOME_LATEST })), GSGoalKey.DB),
+			new AssemblyQuality[] { AssemblyQuality.COMPLETE_LATEST, AssemblyQuality.CHROMOSOME_LATEST })), GSGoalKey.DB),
 	@MDDescription("Whether only reference genomes are accepted or not. (Reference Genomes must be fetched from GenBank.)")
 	REF_GEN_ONLY("genbank.referenceOnly", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
 
@@ -334,18 +334,18 @@ public enum GSConfigKey implements ConfigKey {
 		}
 	}
 
-	public static class FastaQualitiesConfigInfo extends ListConfigParamInfo<FTPEntryQuality> {
-		public FastaQualitiesConfigInfo(List<FTPEntryQuality> defaults) {
+	public static class FastaQualitiesConfigInfo extends ListConfigParamInfo<AssemblyQuality> {
+		public FastaQualitiesConfigInfo(List<AssemblyQuality> defaults) {
 			super(defaults);
 		}
 
 		@Override
-		protected List<FTPEntryQuality> fromString(String qs) {
-			List<FTPEntryQuality> res = new ArrayList<FTPEntryQuality>();
+		protected List<AssemblyQuality> fromString(String qs) {
+			List<AssemblyQuality> res = new ArrayList<AssemblyQuality>();
 			if (qs != null) {
 				StringTokenizer tokenizer = new StringTokenizer(qs, ",;");
 				while (tokenizer.hasMoreTokens()) {
-					FTPEntryQuality q = FTPEntryQuality.valueOf(tokenizer.nextToken().trim());
+					AssemblyQuality q = AssemblyQuality.valueOf(tokenizer.nextToken().trim());
 					if (q != null) {
 						res.add(q);
 					}
@@ -357,7 +357,7 @@ public enum GSConfigKey implements ConfigKey {
 		@Override
 		public String getMDRangeDescriptor() {
 			StringBuilder builder = new StringBuilder();
-			FTPEntryQuality[] types = FTPEntryQuality.values();
+			AssemblyQuality[] types = AssemblyQuality.values();
 			for (int i = 0; i < types.length; i++) {
 				if (i > 0) {
 					builder.append(", ");

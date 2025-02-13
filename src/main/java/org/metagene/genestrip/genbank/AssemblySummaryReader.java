@@ -30,7 +30,6 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,9 +64,9 @@ public class AssemblySummaryReader {
 		this.assFileName = assFileName;
 	}
 
-	public Map<TaxIdNode, List<FTPEntryWithQuality>> getRelevantEntries(final Set<TaxIdNode> filter,
-			final List<FTPEntryQuality> fastaQualities, final boolean referenceOnly, final boolean useSpeciesTaxidForFiltering, final int[] totalEntries) throws IOException {
-		Map<TaxIdNode, List<FTPEntryWithQuality>> result = new HashMap<TaxIdNode, List<FTPEntryWithQuality>>();
+	public Map<TaxIdNode, List<AssemblyEntry>> getRelevantEntries(final Set<TaxIdNode> filter,
+																  final List<AssemblyQuality> fastaQualities, final boolean referenceOnly, final boolean useSpeciesTaxidForFiltering, final int[] totalEntries) throws IOException {
+		Map<TaxIdNode, List<AssemblyEntry>> result = new HashMap<TaxIdNode, List<AssemblyEntry>>();
 		int counter = 0;
 		try (CSVParser parser = FORMAT
 				.parse(new InputStreamReader(StreamProvider.getInputStreamForFile(new File(baseDir, assFileName))))) {
@@ -83,16 +82,16 @@ public class AssemblySummaryReader {
 
 					TaxIdNode node = taxTree.getNodeByTaxId(useSpeciesTaxidForFiltering ? speciesTaxid : taxid);
 					if (node != null && (filter == null || filter.contains(node))) {
-						FTPEntryQuality quality = FTPEntryQuality.fromString(complete, latest);
+						AssemblyQuality quality = AssemblyQuality.fromString(complete, latest);
 						if (fastaQualities == null || fastaQualities.contains(quality)) {
 							boolean isRefGen = REFERENCE_GENOME_CAT.equals(refgen);
 							if (!referenceOnly || isRefGen) {
-								List<FTPEntryWithQuality> entry = result.get(node);
+								List<AssemblyEntry> entry = result.get(node);
 								if (entry == null) {
-									entry = new ArrayList<FTPEntryWithQuality>();
+									entry = new ArrayList<AssemblyEntry>();
 									result.put(node, entry);
 								}
-								FTPEntryWithQuality ewq = new FTPEntryWithQuality(taxid, ftp, quality, null, isRefGen, speciesTaxid);
+								AssemblyEntry ewq = new AssemblyEntry(taxid, ftp, quality, null, isRefGen, speciesTaxid);
 								entry.add(ewq);
 							}
 						}
@@ -107,16 +106,16 @@ public class AssemblySummaryReader {
 		return result;
 	}
 
-	public static class FTPEntryWithQuality {
+	public static class AssemblyEntry {
 		private final String taxid;
 		private final String ftpURL;
 		private final String fileName;
-		private final FTPEntryQuality quality;
+		private final AssemblyQuality quality;
 		private final URL url;
 		private final boolean isReference;
 		private	final String speciesTaxid;
 
-		public FTPEntryWithQuality(String taxid, String ftpURL, FTPEntryQuality quality, URL url, boolean isReference, String speciesTaxid) {
+		public AssemblyEntry(String taxid, String ftpURL, AssemblyQuality quality, URL url, boolean isReference, String speciesTaxid) {
 			this.taxid = taxid;
 			this.ftpURL = ftpURL;
 			this.quality = quality;
@@ -151,7 +150,7 @@ public class AssemblySummaryReader {
 			return url;
 		}
 
-		public FTPEntryQuality getQuality() {
+		public AssemblyQuality getQuality() {
 			return quality;
 		}
 
@@ -160,10 +159,10 @@ public class AssemblySummaryReader {
 		}
 	}
 
-	public enum FTPEntryQuality {
+	public enum AssemblyQuality {
 		ADDITIONAL, COMPLETE_LATEST, COMPLETE, CHROMOSOME_LATEST, CHROMOSOME, SCAFFOLD_LATEST, SCAFFOLD, CONTIG_LATEST, CONTIG, LATEST, NONE;
 
-		public static FTPEntryQuality fromString(String complete, String latest) {
+		public static AssemblyQuality fromString(String complete, String latest) {
 			boolean l = "latest".equals(latest);
 			switch (complete) {
 				case "Complete Genome":

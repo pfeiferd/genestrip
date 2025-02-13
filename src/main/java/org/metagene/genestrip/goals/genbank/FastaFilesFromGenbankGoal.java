@@ -25,10 +25,8 @@
 package org.metagene.genestrip.goals.genbank;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,17 +35,17 @@ import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.genbank.AssemblySummaryReader;
-import org.metagene.genestrip.genbank.AssemblySummaryReader.FTPEntryQuality;
-import org.metagene.genestrip.genbank.AssemblySummaryReader.FTPEntryWithQuality;
+import org.metagene.genestrip.genbank.AssemblySummaryReader.AssemblyQuality;
+import org.metagene.genestrip.genbank.AssemblySummaryReader.AssemblyEntry;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> {
-	private static final Comparator<FTPEntryWithQuality> COMPARATOR = new Comparator<FTPEntryWithQuality>() {
+public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<AssemblyEntry>>, GSProject> {
+	private static final Comparator<AssemblyEntry> COMPARATOR = new Comparator<AssemblyEntry>() {
 		@Override
-		public int compare(FTPEntryWithQuality o1, FTPEntryWithQuality o2) {
+		public int compare(AssemblyEntry o1, AssemblyEntry o2) {
 			// Lower quality first in resulting sort order...
 			return o2.getQuality().ordinal() - o1.getQuality().ordinal();
 		}
@@ -56,7 +54,7 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<FT
 	private final FileGoal<GSProject> assemblyGoal;
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxidsFromGenbankGoal;
-	private final List<FTPEntryQuality> fastaQualities;
+	private final List<AssemblyQuality> fastaQualities;
 	private final int maxFromGenbank;
 	private final boolean refGenOnly;
 
@@ -67,7 +65,7 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<FT
 		this.assemblyGoal = assemblyGoal;
 		this.taxTreeGoal = taxTreeGoal;
 		this.taxidsFromGenbankGoal = taxidsFromGenbankGoal;
-		this.fastaQualities = (List<FTPEntryQuality>) configValue(GSConfigKey.FASTA_QUALITIES);
+		this.fastaQualities = (List<AssemblyQuality>) configValue(GSConfigKey.FASTA_QUALITIES);
 		this.maxFromGenbank = intConfigValue(GSConfigKey.MAX_FROM_GENBANK);
 		this.refGenOnly = booleanConfigValue(GSConfigKey.REF_GEN_ONLY);
 	}
@@ -89,7 +87,7 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<FT
 				AssemblySummaryReader assemblySummaryReader = new AssemblySummaryReader(
 						getProject().getCommon().getGenbankDir(), true, taxTreeGoal.get());
 				int[] nEntriesTotal = new int[1];
-				Map<TaxIdNode, List<FTPEntryWithQuality>> entries = assemblySummaryReader.getRelevantEntries(
+				Map<TaxIdNode, List<AssemblyEntry>> entries = assemblySummaryReader.getRelevantEntries(
 						taxidsFromGenbankGoal.get(), fastaQualities, refGenOnly, false, nEntriesTotal);
 				if (getLogger().isInfoEnabled()) {
 					int sum = 0;
@@ -103,7 +101,7 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<FT
 
 				// Reduce the number of entries to maxFromGenbank and keep the best ones in terms of quality.
 				for (TaxIdNode node : entries.keySet()) {
-					List<FTPEntryWithQuality> list = entries.get(node);
+					List<AssemblyEntry> list = entries.get(node);
 					if (maxFromGenbank > 0 && list.size() > maxFromGenbank) {
 						Collections.sort(list, COMPARATOR);
 						while (list.size() > maxFromGenbank) {

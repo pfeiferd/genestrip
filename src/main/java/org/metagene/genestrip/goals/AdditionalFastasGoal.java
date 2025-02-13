@@ -36,7 +36,7 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.genbank.AssemblySummaryReader.FTPEntryWithQuality;
+import org.metagene.genestrip.genbank.AssemblySummaryReader.AssemblyEntry;
 import org.metagene.genestrip.goals.genbank.FastaFilesGenbankDownloadGoal;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.Goal;
@@ -49,12 +49,12 @@ public class AdditionalFastasGoal extends ObjectGoal<Map<File, TaxIdNode>, GSPro
 			.setDelimiter(' ').setRecordSeparator('\n').build();
 
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
-	private final ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fromGenbank;
+	private final ObjectGoal<Map<TaxIdNode, List<AssemblyEntry>>, GSProject> fromGenbank;
 	private final FastaFilesGenbankDownloadGoal fastaFilesGenbankDownloadGoal;
 
 	@SafeVarargs
 	public AdditionalFastasGoal(GSProject project, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
-			ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> fromGenbank,
+			ObjectGoal<Map<TaxIdNode, List<AssemblyEntry>>, GSProject> fromGenbank,
 			FastaFilesGenbankDownloadGoal fastaFilesGenbankDownloadGoal, Goal<GSProject>... dependencies) {
 		super(project, GSGoalKey.ADD_FASTAS, append(dependencies, taxTreeGoal, fromGenbank, fastaFilesGenbankDownloadGoal));
 		this.taxTreeGoal = taxTreeGoal;
@@ -93,7 +93,7 @@ public class AdditionalFastasGoal extends ObjectGoal<Map<File, TaxIdNode>, GSPro
 			}
 		}
 		for (TaxIdNode node : fromGenbank.get().keySet()) {
-			for (FTPEntryWithQuality entry : fromGenbank.get().get(node)) {
+			for (AssemblyEntry entry : fromGenbank.get().get(node)) {
 				File file = fastaFilesGenbankDownloadGoal.entryToFile(entry);
 				res.put(file, node);
 			}

@@ -37,14 +37,14 @@ import java.util.Map;
 
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.genbank.AssemblySummaryReader.FTPEntryWithQuality;
+import org.metagene.genestrip.genbank.AssemblySummaryReader.AssemblyEntry;
 import org.metagene.genestrip.goals.GSFileDownloadGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 public class FastaFilesGenbankDownloadGoal extends GSFileDownloadGoal {
-	private final ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> entryGoal;
+	private final ObjectGoal<Map<TaxIdNode, List<AssemblyEntry>>, GSProject> entryGoal;
 	private final int baseURLLen;
 
 	private List<File> files;
@@ -52,7 +52,7 @@ public class FastaFilesGenbankDownloadGoal extends GSFileDownloadGoal {
 
 	@SafeVarargs
 	public FastaFilesGenbankDownloadGoal(GSProject project,
-			ObjectGoal<Map<TaxIdNode, List<FTPEntryWithQuality>>, GSProject> entryGoal, Goal<GSProject>... deps) {
+										 ObjectGoal<Map<TaxIdNode, List<AssemblyEntry>>, GSProject> entryGoal, Goal<GSProject>... deps) {
 		super(project, GSGoalKey.FASTAGSENBANKDL, append(deps, entryGoal));
 		this.entryGoal = entryGoal;
 		baseURLLen = getHttpBaseURL().length();
@@ -68,8 +68,8 @@ public class FastaFilesGenbankDownloadGoal extends GSFileDownloadGoal {
 		if (files == null) {
 			files = new ArrayList<File>();
 			fileToDir = new HashMap<String, Object>();
-			for (List<FTPEntryWithQuality> list : entryGoal.get().values()) {
-				for (FTPEntryWithQuality entry : list) {
+			for (List<AssemblyEntry> list : entryGoal.get().values()) {
+				for (AssemblyEntry entry : list) {
 					File file = entryToFile(entry);
 					if (entry.getFtpURL() != null) {
 						String dir = getFtpDirFromURL(entry.getFtpURL());
@@ -104,7 +104,7 @@ public class FastaFilesGenbankDownloadGoal extends GSFileDownloadGoal {
 		return files;
 	}
 
-	public File entryToFile(FTPEntryWithQuality entry) {
+	public File entryToFile(AssemblyEntry entry) {
 		return new File(getFastaDir(), entry.getFileName());
 	}
 
