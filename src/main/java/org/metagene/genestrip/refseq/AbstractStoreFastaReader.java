@@ -24,7 +24,6 @@
  */
 package org.metagene.genestrip.refseq;
 
-import java.io.IOException;
 import java.util.Set;
 
 import org.metagene.genestrip.tax.Rank;
@@ -38,8 +37,8 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 	protected long dustCounter;
 	protected long totalKmerCounter;
 	
-	public AbstractStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust) {
-		super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId);
+	public AbstractStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize) {
+		super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, stepSize);
 		byteRingBuffer = k > 32 ? new CGATRingBuffer(k, maxDust) : new CGATLongBuffer(k, maxDust);
 		dustCounter = 0;
 	}
@@ -56,16 +55,16 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 			if (isAllowMoreKmers()) {
 				for (int i = 0; i < size - 1; i++) {
 					byteRingBuffer.put(CGAT.cgatToUpperCase(target[i]));
-					if (byteRingBuffer.isFilled()) {
-						if (!byteRingBuffer.isDust()) {
-							if (handleStore()) {
+					bpsInRegion++;
+					if (bpsInRegion % stepSize == 0) {
+						if (byteRingBuffer.isFilled()) {
+							if (byteRingBuffer.isDust()) {
+								dustCounter++;
+							} else if (handleStore()) {
 								kmersInRegion++;
 							}
+							totalKmerCounter++;
 						}
-						else {
-							dustCounter++;
-						}
-						totalKmerCounter++;
 					}
 				}
 			}

@@ -74,7 +74,8 @@ public class FillBloomFilterGoal extends FastaReaderGoal<MurmurCGATBloomFilter> 
 					intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
 					(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
 					longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
-					intConfigValue(GSConfigKey.MAX_DUST)));
+					intConfigValue(GSConfigKey.MAX_DUST),
+					intConfigValue(GSConfigKey.STEP_SIZE)));
 
 			set(filter);
 			if (getLogger().isInfoEnabled()) {
@@ -89,8 +90,8 @@ public class FillBloomFilterGoal extends FastaReaderGoal<MurmurCGATBloomFilter> 
 		private final MurmurCGATBloomFilter filter;
 
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
-							 MurmurCGATBloomFilter filter, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust) {
-			super(bufferSize, taxNodes, accessionMap, filter.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust);
+							 MurmurCGATBloomFilter filter, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize) {
+			super(bufferSize, taxNodes, accessionMap, filter.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize);
 			this.filter = filter;
 		}
 

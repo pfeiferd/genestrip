@@ -40,6 +40,7 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected final Rank maxGenomesPerTaxIdRank;
 	protected final StringLong2DigitTrie regionsPerTaxid;
 	protected final int k;
+	protected final int stepSize;
 
 	protected boolean includeRegion;
 	protected long kMersForNode;
@@ -47,15 +48,16 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 
 	protected boolean ignoreMap;
 	protected long includedCounter;
-	private long bpsInRegion;
+	protected long bpsInRegion;
 	protected long kmersInRegion;
 	protected long totalKmers;
 
-	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId) {
+	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int stepSize) {
 		super(bufferSize);
 		this.taxNodes = taxNodes;
 		this.accessionMap = accessionMap;
 		this.k = k;
+		this.stepSize = stepSize;
 		includeRegion = false;
 		ignoreMap = false;
 		includedCounter = 0;
@@ -140,7 +142,7 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 			if (isAllowMoreKmers()) {
 				bpsInRegion += size - 1;
 				if (bpsInRegion >= k) {
-					kmersInRegion = bpsInRegion - k + 1;
+					kmersInRegion = ((bpsInRegion - k + 1) / stepSize); // TODO not yet correct
 				}
 			}
 		}

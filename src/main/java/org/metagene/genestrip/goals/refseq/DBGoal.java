@@ -205,7 +205,8 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 				accessionTrieGoal.get(), store, intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
 				(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
 				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
-				intConfigValue(GSConfigKey.MAX_DUST));
+				intConfigValue(GSConfigKey.MAX_DUST),
+				intConfigValue(GSConfigKey.STEP_SIZE));
 	}
 
 	public void dump() {
@@ -223,8 +224,8 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 		private final UpdateValueProvider<String> provider;
 
 		public MyFastaReader(int bufferSize, TaxTree taxTree, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, KMerSortedArray<String> store,
-							 int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust) {
-			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust);
+							 int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize) {
+			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize);
 			this.store = store;
 			provider = new UpdateValueProvider<String>() {
 				// Caches for last results of getLeastCommonAncestor()

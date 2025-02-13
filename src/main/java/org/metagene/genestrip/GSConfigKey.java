@@ -146,6 +146,9 @@ public enum GSConfigKey implements ConfigKey {
 	MIN_UPDATE("minUpdate", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
 	@MDDescription("Wether to delete the temporary database after the final database has been saved or not.")
 	REMOVE_TEMP_DB("removeTempDB", new BooleanConfigParamInfo(true), false, GSGoalKey.DB),
+	@MDDescription("Stores *k*-mers in steps of `stepSize`. " +
+			"E.g. if `stepSize=2` then only every second *k*-mer from a genome is considered for entry into the database.")
+	STEP_SIZE("stepSize", new IntConfigParamInfo(1, Integer.MAX_VALUE, 1), GSGoalKey.DB),
 
 	// Match
 	@MDDescription("Whether to do read classification in the style of Kraken and KrakenUniq. Matching is faster without "

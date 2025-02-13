@@ -69,7 +69,7 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 
 	@Override
 	protected void doMakeThis() {
-		KMerSortedArray<String> store = new KMerSortedArray<String>(intConfigValue(GSConfigKey.KMER_SIZE),
+		KMerSortedArray<String> store = new KMerSortedArray<>(intConfigValue(GSConfigKey.KMER_SIZE),
 				doubleConfigValue(GSConfigKey.BLOOM_FILTER_FPP), null, false);
 		// We have to account for the missing entries in the bloom filter due to
 		// inherent FPP.
@@ -89,7 +89,8 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 					intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
 					(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
 					longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
-					intConfigValue(GSConfigKey.MAX_DUST));
+					intConfigValue(GSConfigKey.MAX_DUST),
+					intConfigValue(GSConfigKey.STEP_SIZE));
 			readFastas(fastaReader);
 			if (getLogger().isWarnEnabled()) {
 				getLogger().warn("Not stored kmers: " + fastaReader.tooManyCounter);
@@ -111,7 +112,7 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 					// smallNode.setStoreIndex(store.getIndexForValue(node.getTaxId()));
 				}
 			}
-			Database wrapper = new Database((KMerSortedArray<String>) store, smallTaxTree);
+			Database wrapper = new Database(store, smallTaxTree);
 			set(wrapper);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
@@ -123,8 +124,8 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 		private long tooManyCounter;
 
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
-							 KMerSortedArray<String> store, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust) {
-			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust);
+							 KMerSortedArray<String> store, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize) {
+			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize);
 			this.store = store;
 		}
 

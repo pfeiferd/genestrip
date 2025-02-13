@@ -7,7 +7,6 @@ import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
 import org.metagene.genestrip.refseq.RefSeqCategory;
-import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.tax.TaxTree;
 
 import java.io.File;
@@ -57,8 +56,6 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
         if (toGoal == fnaFilesGoal) {
             return true;
         }
-        else {
-            return super.isWeakDependency(toGoal);
-        }
+        return super.isWeakDependency(toGoal);
     }
 }
