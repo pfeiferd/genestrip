@@ -43,7 +43,12 @@ public class DBInfoGoal extends FileListGoal<GSProject> {
 
 	@SafeVarargs
 	public DBInfoGoal(GSProject project, ObjectGoal<Database, GSProject> storeGoal, Goal<GSProject>... deps) {
-		super(project, GSGoalKey.DBINFO, project.getDBInfoFile(),
+		this(false, project, storeGoal, deps);
+	}
+
+	@SafeVarargs
+	public DBInfoGoal(boolean temp, GSProject project, ObjectGoal<Database, GSProject> storeGoal, Goal<GSProject>... deps) {
+		super(project, temp ? GSGoalKey.TEMP_DBINFO : GSGoalKey.DBINFO, temp ? project.getTempDBInfoFile() : project.getDBInfoFile(),
 				Goal.append(deps, storeGoal));
 		this.storeGoal = storeGoal;
 	}

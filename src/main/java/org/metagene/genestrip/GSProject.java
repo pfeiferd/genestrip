@@ -340,6 +340,10 @@ public class GSProject extends Project {
 		return getOutputFile(GSGoalKey.DBINFO.getName(), FileType.CSV, false);
 	}
 
+	public File getTempDBInfoFile() {
+		return getOutputFile(GSGoalKey.TEMP_DBINFO.getName(), FileType.CSV, false);
+	}
+
 	public File getKrakenOutDir() {
 		return new File(getProjectDir(), "krakenout");
 	}

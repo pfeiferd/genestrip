@@ -43,6 +43,8 @@ public enum GSGoalKey implements GoalKey {
 	DB("db", true), 
 	@MDDescription("Write information about a project's database content to a CSV file.")
 	DBINFO("dbinfo", true),
+	@MDDescription("Write information about a project's temporary database content to a CSV file.")
+	TEMP_DBINFO("tempdbinfo", true),
 	@MDDescription("Generate fastq files from the database. A respective fastq file will contain all *k*-mers specifically associated with a "
 			+ "single tax id from the database where each *k*-mer is represented by a read consisting of *k* bases. Respective fastq files will be stored "
 			+ "in `<base dir>/projects/<project_name>/fastq` with the file name format `<project_name>_db2fastq_<taxid>.fastq.gz`. "

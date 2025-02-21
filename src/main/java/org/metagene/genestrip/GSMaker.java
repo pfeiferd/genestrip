@@ -324,8 +324,11 @@ public class GSMaker extends Maker<GSProject> {
 		FilledDBGoal filledDBGoal = new FilledDBGoal(project, fillDBGoal, storeTempDBGoal);
 		registerGoal(filledDBGoal);
 
+		Goal<GSProject> tempDbInfoGoal = new DBInfoGoal(project, filledDBGoal, projectSetupGoal);
+		registerGoal(tempDbInfoGoal);
+
 		DBGoal updateDBGoal = new DBGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, taxTreeGoal,
-				refSeqFnaFilesGoal, additionalFastasGoal, accessCollGoal, filledDBGoal, projectSetupGoal);
+				refSeqFnaFilesGoal, additionalFastasGoal, accessCollGoal, filledDBGoal, tempDbInfoGoal, projectSetupGoal);
 		registerGoal(updateDBGoal);
 
 		// We weed the storeTempDBGoal as a dependency here so that it does not get
