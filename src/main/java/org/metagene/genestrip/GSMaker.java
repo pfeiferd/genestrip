@@ -324,7 +324,7 @@ public class GSMaker extends Maker<GSProject> {
 		FilledDBGoal filledDBGoal = new FilledDBGoal(project, fillDBGoal, storeTempDBGoal);
 		registerGoal(filledDBGoal);
 
-		Goal<GSProject> tempDbInfoGoal = new DBInfoGoal(project, filledDBGoal, projectSetupGoal);
+		Goal<GSProject> tempDbInfoGoal = new DBInfoGoal(true, project, filledDBGoal, projectSetupGoal);
 		registerGoal(tempDbInfoGoal);
 
 		DBGoal updateDBGoal = new DBGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, taxTreeGoal,
