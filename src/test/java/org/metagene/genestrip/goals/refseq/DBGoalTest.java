@@ -152,6 +152,9 @@ public class DBGoalTest {
 			if (!getProject().getFastaDir().exists()) {
 				getProject().getFastaDir().mkdir();
 			}
+			if (!getProject().getFastqDir().exists()) {
+				getProject().getFastqDir().mkdir();
+			}
 			if (!getProject().getKrakenOutDir().exists()) {
 				getProject().getKrakenOutDir().mkdir();
 			}
