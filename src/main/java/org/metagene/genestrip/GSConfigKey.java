@@ -77,7 +77,7 @@ public enum GSConfigKey implements ConfigKey {
 			+ "If not set, the completion will traverse down to the lowest possible levels of the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip). "
 			+ "Typical values could be `species` or `strain`, but  all values used for assigning ranks in the taxonomy are possible.")
 	RANK_COMPLETION_DEPTH("rankCompletionDepth", new RankConfigParamInfo(null), GSGoalKey.DB),
-	@MDDescription("If true, then md5 checks may be skipped sum by creating and accessing a file named `<file>.md5ok` " +
+	@MDDescription("If true, then md5 check sums may be skipped by creating and accessing a file named `<file>.md5ok` " +
 			"that marks wether the md5 check sum of `<file>` was found to be ok after a previous download of `<file>`.")
 	CHECK_SUM_CACHE_FIlE("checkSumCacheFile", new BooleanConfigParamInfo(true), GSGoalKey.DB),
 	// Limit database size
@@ -92,7 +92,7 @@ public enum GSConfigKey implements ConfigKey {
 	MAX_GENOMES_PER_TAXID_RANK("maxPerTaxidRank", new RankConfigParamInfo(null)),
 
 	// Refseq data selection
-	@MDDescription("Whether the [RefSeq Release](https://ftp.ncbi.nlm.nih.gov/refseq/release/) should be used as the bases for filling the database.")
+	@MDDescription("Whether the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) should be used as the basis for filling the database.")
 	REF_SEQ_DB("refseq.filldb", new BooleanConfigParamInfo(true), false, GSGoalKey.DB),
 	@MDDescription("If `true`, then only genomic accessions with the prefixes `AC`, `NC_`, `NZ_` will be considered when generating a database. "
 			+ "Otherwise, all genomic accessions will be considered. See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.")
@@ -105,18 +105,18 @@ public enum GSConfigKey implements ConfigKey {
 			+ "Note that `refSeq.limitForGenbankAccess` is disregarded if `refseq.filldb=false`.")
 	REQ_SEQ_LIMIT_FOR_GENBANK("refSeq.limitForGenbankAccess", new IntConfigParamInfo(0, Integer.MAX_VALUE, 0),
 			GSGoalKey.DB),
-	@MDDescription("The rank for which to check the limit `refSeqLimitForGenbankAccess`. If `null`, then the limit applies to all requested tax ids and its descendants.")
+	@MDDescription("The rank for which to check the limit `refSeq.limitForGenbankAccess`. If `null`, then the limit applies to all requested tax ids and its descendants.")
 	REQ_SEQ_LIMIT_FOR_GENBANK_RANK("refSeq.limitForGenbankRank", new RankConfigParamInfo(Rank.SPECIES), GSGoalKey.DB),
 
 	// Genbank data selection
 	@MDDescription("Determines the maximum number of fasta files used from Genbank per requested tax id. "
-			+ "If this value <= 0 then all fasta files will be used."
+			+ "If this value is <= 0 then all fasta files will be used. "
 			+ "Otherwise, if the corresponding number of matching files exceeds `genbank.maxPerTaxid`, then  best ones according to `genbank.fastaQualities` will be retained while adhering to this maximum.")
 	MAX_FROM_GENBANK("genbank.maxPerTaxid", new IntConfigParamInfo(-1, Integer.MAX_VALUE, 1), GSGoalKey.DB),
 	@MDDescription("Determines the allowed quality levels of fasta files from Genbank. "
 			+ "The values must be comma-separated. If a corresponding value is included in the list, "
 			+ "then a fasta file for a requested tax id on that quality level will be included, "
-			+ "otherwise not (while also respecting the conditions excerted via the keys `refSeqLimitForGenbankAccess` and `maxFromGenBank`). "
+			+ "otherwise not (while also respecting the conditions exerted via the keys `refSeq.limitForGenbankAccess` and `genbank.maxPerTaxid`). "
 			+ "The quality levels are based on Genbank's [Assembly Summary File](https://ftp.ncbi.nlm.nih.gov/genomes/genbank/assembly_summary_genbank.txt) (columns `version_status` and `assembly_level`). "
 			+ "If the list is empty then no fasta files from Genbank will qualify.")
 	FASTA_QUALITIES("genbank.fastaQualities", new FastaQualitiesConfigInfo(Arrays.asList(
@@ -126,7 +126,7 @@ public enum GSConfigKey implements ConfigKey {
 
 	// Database generation
 	@MDDescription("The number of base pairs *k* for *k*-mers. "
-			+ "Changes to this values do *not* affect the memory usage of database. "
+			+ "Changes to this values do *not* affect the memory usage of a database. "
 			+ "A value > 32 will cause collisions, i.e. leads to false positives for the `match` goal.")
 	KMER_SIZE("kMerSize", new IntConfigParamInfo(15, 64, 31), GSGoalKey.DB),
 	@MDDescription("When generating a database via the goal `db`, any low-complexity *k*-mer with too many "
@@ -142,7 +142,7 @@ public enum GSConfigKey implements ConfigKey {
 	TEMP_BLOOM_FILTER_FPP("tempBloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.001d), true, GSGoalKey.DB),
 	BLOOM_FILTER_FPP("bloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.00000000001d), true, GSGoalKey.DB),
 	FASTA_LINE_SIZE_BYTES("fastaLineSizeBytes", new IntConfigParamInfo(4096, 65536, 4096), true, GSGoalKey.DB),
-	@MDDescription("Perform database update regarding least common ancestors only based on genomes of tax ids as selected for the database generation (and not via all of superkingdom's RefSeq genomes).")
+	@MDDescription("Perform database update regarding least common ancestors only based on genomes of tax ids as selected for the database generation (and not via all of a superkingdom's RefSeq genomes).")
 	MIN_UPDATE("minUpdate", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
 	@MDDescription("Wether to delete the temporary database after the final database has been saved or not.")
 	REMOVE_TEMP_DB("removeTempDB", new BooleanConfigParamInfo(true), false, GSGoalKey.DB),
@@ -170,7 +170,7 @@ public enum GSConfigKey implements ConfigKey {
 			+ "If the number is above `maxReadTaxErrorCount`, then the read will not be classified. "
 			+ "Otherwise the read will be classified in the same way as [done by Kraken](https://genomebiology.biomedcentral.com/articles/10.1186/gb-2014-15-3-r46/figures/1). "
 			+ "If `maxReadTaxErrorCount` is >= 1, then it is interpreted as an absolute number of *k*-mers. "
-			+ "Otherwise (and so, if >= 0 and < 1), it is interpreted as the ratio between the *k*-mers not in the database and all *k*-mers of the read."
+			+ "Otherwise (and so, if >= 0 and < 1), it is interpreted as the ratio between the *k*-mers not in the database and all *k*-mers of the read. "
 			+ "If `maxReadTaxErrorCount` < 0, then the read error count is disregarded, which means that even a single matching *k*-mer will lead to the read's classification.")
 	MAX_READ_TAX_ERROR_COUNT("maxReadTaxErrorCount", new DoubleConfigParamInfo(-1, Double.MAX_VALUE, -1),
 			GSGoalKey.MATCH, GSGoalKey.MATCHLR),
