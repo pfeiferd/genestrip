@@ -407,9 +407,20 @@ public class GSMaker extends Maker<GSProject> {
 		registerGoal(krakenResCountGoal);
 	}
 
+	public MatchingResult cleanMatch(boolean lr, String key, String... pathsOrURLs) {
+		return match(lr, true, key, pathsOrURLs);
+	}
+
 	public MatchingResult match(boolean lr, String key, String... pathsOrURLs) {
+		return match(lr, false, key, pathsOrURLs);
+	}
+
+	public MatchingResult match(boolean lr, boolean clean, String key, String... pathsOrURLs) {
 		MatchGoal matchGoal = createGoalChainForMatch(lr, key, pathsOrURLs);
 
+		if (clean) {
+			matchGoal.cleanThis();
+		}
 		matchGoal.make();
 		return matchGoal.getMatchResults().get(key);
 	}

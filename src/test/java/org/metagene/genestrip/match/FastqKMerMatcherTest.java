@@ -126,7 +126,7 @@ public class FastqKMerMatcherTest {
 					maxContigLen[previousPos] = contigLen;
 				}
 			}
-			matcher.matchRead(entry, i, false);
+			matcher.matchRead(entry, 0, false);
 
 			ByteArrayUtil.print(entry.read, System.out);
 			System.out.println();

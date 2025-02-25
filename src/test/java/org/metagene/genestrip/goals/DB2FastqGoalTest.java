@@ -73,9 +73,11 @@ public class DB2FastqGoalTest {
 		goal.cleanThis();
 		goal.make();
 
+
+
 		for (int i = 0; i < taxids.length; i++) {
 			File file = goal.getOutputFile(taxids[i]);
-			MatchingResult result = maker.match(false, taxids[i], file.toString());
+			MatchingResult result = maker.cleanMatch(false, taxids[i], file.toString());
 			Map<String, CountsPerTaxid> map = result.getTaxid2Stats();
 
 			assertEquals(kmers[i], map.get(taxids[i]).getKMers());
