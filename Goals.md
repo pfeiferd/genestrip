@@ -4,8 +4,9 @@
 |`showall`|X|Show user-related and most internal goals.|
 |`genall`|X|Generate the *k*-mer matching database and also the filtering database with respect to the given project.|
 |`clear`|X|Clear the folders `csv`, `db` and `krakenout`  of a project. This will delete all files the respective folders!|
-|`db`|X|Generate the database for k-mer matching respect to the given project.|
+|`db`|X|Generate the database for *k*-mer matching with respect to the given project.|
 |`dbinfo`|X|Write information about a project's database content to a CSV file.|
+|`tempdbinfo`||Write information about a project's temporary database content to a CSV file.|
 |`db2fastq`|X|Generate fastq files from the database. A respective fastq file will contain all *k*-mers specifically associated with a single tax id from the database where each *k*-mer is represented by a read consisting of *k* bases. Respective fastq files will be stored in `<base dir>/projects/<project_name>/fastq` with the file name format `<project_name>_db2fastq_<taxid>.fastq.gz`. The command line option `tx` serves at selecting the corresponding tax ids for the fastq files to be generated. If the option is omitted, then fastq files for *all* tax ids from the database will be generated.|
 |`index`|X|Generate a filtering database with respect to a given project.|
 |`match`|X|Analyze fastq files as given by the `-f` or `-m` option. The resulting CSV file(s) will be stored in `<base dir>/projects/<project_name>/csv` unless specified otherwise via the `-r` option.|
@@ -43,4 +44,4 @@
 |`fastqmaptransform`||Transform URLs of fastq files to be downloaded to local paths.|
 |`fastqdownload`||Download fastq files given via URLs as requested.|
 |`krakenres`||For internal use (to invoke kraken).|
-|`dbdownload`||Download and install a project's database from a URL.|
+|`dbdownload`||Download and install a project's database via a given URL.|

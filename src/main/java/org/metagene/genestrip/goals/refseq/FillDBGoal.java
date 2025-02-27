@@ -61,7 +61,7 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 			ObjectGoal<AccessionMap, GSProject> accessionMapGoal,
 			ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal,
 			Goal<GSProject>... deps) {
-		super(project, GSGoalKey.FILL_DB, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, deps);
+		super(project, GSGoalKey.FILL_DB, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, bloomFilterGoal));
 		this.accessionMapGoal = accessionMapGoal;
 		this.bloomFilterGoal = bloomFilterGoal;
 		this.taxTreeGoal = taxTreeGoal;

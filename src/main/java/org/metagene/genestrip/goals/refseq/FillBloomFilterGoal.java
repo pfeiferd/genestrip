@@ -50,7 +50,7 @@ public class FillBloomFilterGoal extends FastaReaderGoal<MurmurCGATBloomFilter> 
 			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
 			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
 			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, FillSizeGoal sizeGoal, Goal<GSProject>... deps) {
-		super(project, GSGoalKey.TEMPINDEX, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, deps);
+		super(project, GSGoalKey.TEMPINDEX, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, sizeGoal));
 		this.accessionMapGoal = accessionMapGoal;
 		this.sizeGoal = sizeGoal;
 	}
