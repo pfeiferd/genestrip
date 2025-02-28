@@ -50,7 +50,7 @@ public enum Rank {
 	
 	public static Rank getRankFromBytes(byte[] outerArray, int start, int end) {
 		for (Rank rank : Rank.VALUES) {
-			if (ByteArrayUtil.indexOf(outerArray, start, end, rank.getName()) != -1) {
+			if (ByteArrayUtil.equals(outerArray, start, end, rank.getName())) {
 				return rank;
 			}
 		}

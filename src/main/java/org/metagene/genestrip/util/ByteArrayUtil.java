@@ -36,6 +36,18 @@ public class ByteArrayUtil {
 		return -1;
 	}
 
+	public static boolean equals(byte[] array, int start, int end, String str) {
+		if (str.length() != end - start) {
+			return false;
+		}
+		for (int i = start, j = 0; i < end; i++,j++) {
+			if (array[i] != str.charAt(j)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	public static int indexOf(byte[] array, int start, int end, String str) {
 		int len = str.length();
 		for (int i = start; i <= end - len; i++) {
