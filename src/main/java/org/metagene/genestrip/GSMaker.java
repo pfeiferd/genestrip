@@ -34,21 +34,7 @@ import java.util.Set;
 
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
-import org.metagene.genestrip.goals.AdditionalDownloadsGoal;
-import org.metagene.genestrip.goals.AdditionalFastasGoal;
-import org.metagene.genestrip.goals.DB2FastqGoal;
-import org.metagene.genestrip.goals.DB2FastqTaxNodesGoal;
-import org.metagene.genestrip.goals.DBInfoGoal;
-import org.metagene.genestrip.goals.FastqDownloadsGoal;
-import org.metagene.genestrip.goals.FastqMapGoal;
-import org.metagene.genestrip.goals.FastqMapTransformGoal;
-import org.metagene.genestrip.goals.FilledDBGoal;
-import org.metagene.genestrip.goals.FilterGoal;
-import org.metagene.genestrip.goals.LoadDBGoal;
-import org.metagene.genestrip.goals.LoadIndexGoal;
-import org.metagene.genestrip.goals.MatchGoal;
-import org.metagene.genestrip.goals.TaxIdFileDownloadGoal;
-import org.metagene.genestrip.goals.TaxNodesGoal;
+import org.metagene.genestrip.goals.*;
 import org.metagene.genestrip.goals.genbank.AssemblyFileDownloadGoal;
 import org.metagene.genestrip.goals.genbank.FastaFilesFromGenbankGoal;
 import org.metagene.genestrip.goals.genbank.FastaFilesGenbankDownloadGoal;
@@ -77,7 +63,6 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.match.MatchingResult;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
-import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
@@ -391,16 +376,21 @@ public class GSMaker extends Maker<GSProject> {
 				getExecutionContext(project), projectSetupGoal, fastqDownloadsGoal);
 		registerGoal(filterGoal);
 
-		Goal<GSProject> matchGoal = new MatchGoal(project, GSGoalKey.MATCH, fastqMapTransfGoal, loadDBGoal,
-				getExecutionContext(project), projectSetupGoal, fastqDownloadsGoal);
+		ObjectGoal<Map<String, MatchingResult>, GSProject> matchResGoal = new MatchResultGoal(getProject(), GSGoalKey.MATCHRES, fastqMapTransfGoal, loadDBGoal,
+				getExecutionContext(getProject()), getGoal(GSGoalKey.SETUP), fastqDownloadsGoal);
+		registerGoal(matchResGoal);
+
+		Goal<GSProject> matchGoal = new MatchGoal(project, GSGoalKey.MATCH, matchResGoal, loadDBGoal, projectSetupGoal, fastqDownloadsGoal);
 		registerGoal(matchGoal);
 
-		Goal<GSProject> matchlrGoal = new MatchGoal(project, GSGoalKey.MATCHLR, fastqMapTransfGoal, loadDBGoal,
-				getExecutionContext(project), projectSetupGoal, fastqDownloadsGoal);
+		ObjectGoal<Map<String, MatchingResult>, GSProject> matchReslrGoal = new MatchResultGoal(getProject(), GSGoalKey.MATCHRESLR, fastqMapTransfGoal, loadDBGoal,
+				getExecutionContext(getProject()), getGoal(GSGoalKey.SETUP), fastqDownloadsGoal);
+		registerGoal(matchReslrGoal);
+
+		Goal<GSProject> matchlrGoal = new MatchGoal(project, GSGoalKey.MATCHLR, matchReslrGoal, loadDBGoal, projectSetupGoal, fastqDownloadsGoal);
 		registerGoal(matchlrGoal);
 
 		// Use kraken
-
 		KrakenResCountGoal krakenResCountGoal = new KrakenResCountGoal(project, fastqMapTransfGoal, taxNodesGoal,
 				projectSetupGoal, fastqDownloadsGoal);
 		registerGoal(krakenResCountGoal);
@@ -415,16 +405,19 @@ public class GSMaker extends Maker<GSProject> {
 	}
 
 	public MatchingResult match(boolean lr, boolean clean, String key, String... pathsOrURLs) {
-		MatchGoal matchGoal = createGoalChainForMatch(lr, key, pathsOrURLs);
+		MatchResultGoal matchResGoal = createGoalChainForMatchResult(lr, key, pathsOrURLs);
+		LoadDBGoal loadDBGoal = (LoadDBGoal) getGoal(GSGoalKey.LOAD_DB);
+		MatchGoal matchGoal = new MatchGoal(matchResGoal.getProject(), (lr ? GSGoalKey.MATCHLR : GSGoalKey.MATCH), matchResGoal, loadDBGoal);
 
-		if (clean) {
-			matchGoal.cleanThis();
-		}
 		matchGoal.make();
-		return matchGoal.getMatchResults().get(key);
+		return matchResGoal.get().get(key);
 	}
 
-	protected MatchGoal createGoalChainForMatch(boolean lr, String key, String... pathsOrURLs) {
+	public MatchingResult matchResult(boolean lr, String key, String... pathsOrURLs) {
+		return createGoalChainForMatchResult(lr, key, pathsOrURLs).get().get(key);
+	}
+
+	protected MatchResultGoal createGoalChainForMatchResult(boolean lr, String key, String... pathsOrURLs) {
 		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal = new FastqMapGoal(getProject(),
 				getGoal(GSGoalKey.SETUP)) {
 			@Override
@@ -445,14 +438,17 @@ public class GSMaker extends Maker<GSProject> {
 
 		LoadDBGoal loadDBGoal = (LoadDBGoal) getGoal(GSGoalKey.LOAD_DB);
 
-		return new MatchGoal(getProject(), (lr ? GSGoalKey.MATCHLR : GSGoalKey.MATCH), fastqMapTransfGoal, loadDBGoal,
-				getExecutionContext(getProject()), getGoal(GSGoalKey.SETUP), fastqDownloadsGoal) {
+		return new MatchResultGoal(getProject(), (lr ? GSGoalKey.MATCHRESLR : GSGoalKey.MATCHRES), fastqMapTransfGoal, loadDBGoal,
+				getExecutionContext(getProject()), getGoal(GSGoalKey.SETUP), fastqDownloadsGoal);
+/*		return new MatchResultGoal(getProject(), (lr ? GSGoalKey.MATCHRESLR : GSGoalKey.MATCHRES), fastqMapTransfGoal, loadDBGoal,
+				getExecutionContext(getProject()), getGoal(GSGoalKey.SETUP), fastqDownloadsGoal);
+/*		{
 			protected void writeOutputFile(File file, MatchingResult result, Database wrapper) throws IOException {
 				if (key == null || !key.isEmpty()) {
 					super.writeOutputFile(file, result);
 				}
 			}
-		};
+		};*/
 	}
 
 	protected FilterGoal createGoalChainForFilter(String key, String... pathsOrURLs) {
@@ -478,10 +474,6 @@ public class GSMaker extends Maker<GSProject> {
 
 		return new FilterGoal(getProject(), fastqMapTransfGoal, bloomIndexedGoal, getExecutionContext(getProject()),
 				getGoal(GSGoalKey.SETUP), fastqDownloadsGoal);
-	}
-
-	public void cleanMatch(String key, String... pathsOrURLs) {
-		createGoalChainForMatch(false, key, pathsOrURLs).cleanThis();
 	}
 
 	public void filter(String key, String... pathsOrURLs) {

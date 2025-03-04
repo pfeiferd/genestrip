@@ -33,7 +33,7 @@ import java.util.Map;
 import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.goals.MatchGoal;
+import org.metagene.genestrip.goals.MatchGoalOld;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.make.Goal;
@@ -50,7 +50,7 @@ import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
-public class AccuracyMatchGoal extends MatchGoal {
+public class AccuracyMatchGoal extends MatchGoalOld {
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 	private final AccuracyCounts accuracyCounts;
 	private long startMillis;

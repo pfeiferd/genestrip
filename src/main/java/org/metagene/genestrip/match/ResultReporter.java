@@ -49,15 +49,14 @@ public class ResultReporter {
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setDelimiter(';')
 			.setRecordSeparator('\n').build();
 
-	private static final DecimalFormat DF = new DecimalFormat("0.0000", new DecimalFormatSymbols(Locale.US));
+	private static final DecimalFormat DF = new DecimalFormat("0.00000000", new DecimalFormatSymbols(Locale.US));
 
-	private final SmallTaxTree taxTree;
-
-	public ResultReporter(SmallTaxTree taxTree) {
-		this.taxTree = taxTree;
+	public ResultReporter() {
 	}
 
-	public void printStoreInfo(Object2LongMap<String> stats, PrintStream out) {
+	public void printStoreInfo(Database database, PrintStream out) {
+		Object2LongMap<String> stats = database.getStats();
+
 		out.println("name;rank;taxid;stored kmers;");
 
 		out.print("TOTAL;");
@@ -68,6 +67,7 @@ public class ResultReporter {
 		out.println(';');
 
 		List<String> sortedTaxIds = new ArrayList<String>(stats.keySet());
+		SmallTaxTree taxTree = database.getTaxTree();
 		taxTree.sortTaxidsViaTree(sortedTaxIds);
 
 		for (String taxId : sortedTaxIds) {
@@ -118,11 +118,9 @@ public class ResultReporter {
 	}
 	*/
 
-	public void printMatchResult(MatchingResult res, PrintStream out) {
-		Map<String, CountsPerTaxid> taxid2Stats = res.getTaxid2Stats();
-
+	public void printMatchResult(MatchingResult res, SmallTaxTree taxTree, PrintStream out) {
 		out.print("name;rank;taxid;reads;kmers from reads;kmers;unique kmers;contigs;average contig length;max contig length;");
-		out.print("db coverage;exp. unique kmers;unique kmers / exp.;normalized reads;acc normalized reads;acc reads;reads bps;avg read len;reads >= 1 kmer;db kmers;max contig desc.;");
+		out.print("db coverage;exp. unique kmers;unique kmers / exp.;normalized reads;acc normalized reads;acc reads;reads bps;avg read len;reads >= 1 kmer;db kmers;parent tax id;max contig desc.;");
 		if (res.isWithMaxKMerCounts()) {
 			out.print("max kmer counts;");
 		}
@@ -135,7 +133,7 @@ public class ResultReporter {
 		out.print(res.getTotalKMers());
 		out.print(";0;0;0;0;0;0;0;0;0;0;0;0;0;");
 		out.print(res.getDbKMers());
-		out.print(';');
+		out.print(";1;");
 		if (res.isWithMaxKMerCounts()) {
 			short[] counts = res.getTotalMaxCounts();
 			if (counts != null) {
@@ -148,9 +146,11 @@ public class ResultReporter {
 		}
 		out.println();
 
-		List<String> sortedTaxIds = new ArrayList<String>(taxid2Stats.keySet());
-		taxTree.sortTaxidsViaTree(sortedTaxIds);
-		for (String taxId : sortedTaxIds) {
+		Map<String, CountsPerTaxid> taxid2Stats = res.getTaxid2Stats();
+		List<String> keys = new ArrayList<String>(taxid2Stats.keySet());
+		taxTree.sortTaxidsViaTree(keys);
+
+		for (String taxId : keys) {
 			CountsPerTaxid stats = taxid2Stats.get(taxId);
 			if (stats != null) {
 				SmallTaxIdNode taxNode = taxTree.getNodeByTaxId(taxId);

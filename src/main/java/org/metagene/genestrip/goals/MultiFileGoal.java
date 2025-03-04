@@ -40,24 +40,20 @@ import org.metagene.genestrip.make.ObjectGoal;
 public abstract class MultiFileGoal extends FileListGoal<GSProject> {
 	protected final ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal;
 	protected final Map<File, StreamingResourceStream> fileToFastqs;
-	protected final Map<File, String> fileToKeyMap;
 
 	@SafeVarargs
 	public MultiFileGoal(GSProject project, GoalKey key,
 			ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal, Goal<GSProject>... deps) {
 		super(project, key, (List<File>) null, append(deps, fastqMapGoal));
 		this.fastqMapGoal = fastqMapGoal;
-		fileToFastqs = new HashMap<File, StreamingResourceStream>();
-		fileToKeyMap = new HashMap<File, String>();
+		fileToFastqs = new HashMap<>();
 	}
 
-	protected File getSourceDir() {
-		return getProject().getFastqDir();
-	}
-
+	/*
 	public Map<File, String> getFileToKeyMap() {
 		return fileToKeyMap;
 	}
+	*/
 
 	@Override
 	protected void provideFiles() {
@@ -66,9 +62,11 @@ public abstract class MultiFileGoal extends FileListGoal<GSProject> {
 			File matchFile = getProject().getOutputFile(getKey().getName(), key, null, getFileType(), isUseGZip());
 			addFile(matchFile);
 			fileToFastqs.put(matchFile, keyToFastqs.get(key));
-			fileToKeyMap.put(matchFile, key);
+			enterFileAndKey(matchFile, key);
 		}
 	}
+
+	protected void enterFileAndKey(File file, String key) {}
 
 	protected boolean isUseGZip() {
 		return false;

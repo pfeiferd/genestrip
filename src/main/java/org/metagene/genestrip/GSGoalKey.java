@@ -53,6 +53,10 @@ public enum GSGoalKey implements GoalKey {
 	DB2FASTQ("db2fastq", true),
 	@MDDescription("Generate a filtering database with respect to a given project.")
 	INDEX("index", true),
+	@MDDescription("Analyze fastq files as given by the `-f` or `-m` option.")
+	MATCHRES("matchres", false),
+	@MDDescription("Same as `matchres` but without doing read classification.")
+	MATCHRESLR("matchreslr", false),
 	@MDDescription("Analyze fastq files as given by the `-f` or `-m` option. The resulting CSV file(s) will be stored in `<base dir>/projects/<project_name>/csv` unless specified otherwise via the `-r` option.")
 	MATCH("match", true),
 	@MDDescription("Same as `match` but without doing read classification. This corresponds to the configuration setting `classifyReads=false`.")

@@ -50,10 +50,12 @@ import org.metagene.genestrip.store.KMerUniqueCounterBits;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
-public class MatchGoal extends MultiFileGoal {
+@Deprecated
+public class MatchGoalOld extends MultiFileGoal {
 	private final ObjectGoal<Database, GSProject> storeGoal;
 	protected final ExecutionContext bundle;
 	private final Map<String, MatchingResult> matchResults;
+	private final Map<File, String> fileToKeyMap;
 
 	private FastqKMerMatcher matcher;
 	private Database database;
@@ -61,12 +63,18 @@ public class MatchGoal extends MultiFileGoal {
 	private KMerUniqueCounter uniqueCounter;
 
 	@SafeVarargs
-	public MatchGoal(GSProject project, GoalKey key, ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal,
-			ObjectGoal<Database, GSProject> storeGoal, ExecutionContext bundle, Goal<GSProject>... deps) {
+	public MatchGoalOld(GSProject project, GoalKey key, ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal,
+						ObjectGoal<Database, GSProject> storeGoal, ExecutionContext bundle, Goal<GSProject>... deps) {
 		super(project, key, fastqMapGoal, Goal.append(deps, storeGoal));
 		this.storeGoal = storeGoal;
 		this.bundle = bundle;
+		fileToKeyMap = new HashMap<File, String>();
 		matchResults = new HashMap<String, MatchingResult>();
+	}
+
+	@Override
+	protected void enterFileAndKey(File file, String key) {
+		fileToKeyMap.put(file, key);
 	}
 
 	@Override
@@ -100,7 +108,7 @@ public class MatchGoal extends MultiFileGoal {
 								? taxTree
 								: null,
 						bundle, booleanConfigValue(GSConfigKey.WITH_PROBS));
-				reporter = new ResultReporter(taxTree);
+				reporter = new ResultReporter();
 				uniqueCounter = booleanConfigValue(GSConfigKey.COUNT_UNIQUE_KMERS)
 						? new KMerUniqueCounterBits(database.getKmerStore(),
 								intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS) > 0)
@@ -141,7 +149,7 @@ public class MatchGoal extends MultiFileGoal {
 
 	protected void writeOutputFile(File file, MatchingResult result) throws IOException {
 		try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
-			reporter.printMatchResult(result, out);
+			reporter.printMatchResult(result, storeGoal.get().getTaxTree(), out);
 		}
 	}
 

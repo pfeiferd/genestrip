@@ -64,13 +64,11 @@ public class APITest {
 		// Get the fastq file to run a match on. (In this case, a small sample file
 		// provied as part of the release.)
 		File fastq = new File(getBaseDir(), "projects/human_virus/fastq/sample.fastq.gz");
-		// Delete a potential result that has previously been generated.
-		maker.cleanMatch(null, fastq.toString());
 		// An example on how to set configuration parameters programmatically:
 		project.initConfigParam(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH, false);
 		// Run the 'match' goal for the given file. This may trigger other goals such as
 		// the 'db' goal to first create the 'human_virus' database.
-		maker.match(false, null, fastq.toString());
+		maker.match(false, true, null, fastq.toString());
 
 		// Delete a potential result that has previously been generated.
 		maker.cleanFilter(null, fastq.toString());
