@@ -120,7 +120,7 @@ public class DBGoalTest {
 		maker.match(false, "test", new File(project.getFastqDir(), "test.fastq").toString());
 
 		File file1 = new File(project.getKrakenOutDir(), "test.out");
-		File file2 = new File(project.getKrakenOutDir(), "dengue1_match_test.out");
+		File file2 = new File(project.getKrakenOutDir(), "dengue1_matchres_test.out");
 		assertTrue(FileUtils.contentEquals(file1, file2));
 		// Clean up memory and threads.
 		maker.dumpAll();
