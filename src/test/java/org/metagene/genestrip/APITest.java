@@ -71,11 +71,10 @@ public class APITest {
 		maker.match(false, true, null, fastq.toString());
 
 		// Delete a potential result that has previously been generated.
-		maker.cleanFilter(null, fastq.toString());
 		// Run the 'filter' goal for the given file. This may trigger other goals such
 		// as the 'index' goal to
 		// first create the 'human_virus' filtering database.
-		maker.filter(null, fastq.toString());
+		maker.filter(true, null, fastq.toString());
 
 		// Clean up memory and threads.
 		maker.dumpAll();

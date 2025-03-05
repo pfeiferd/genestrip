@@ -67,7 +67,7 @@ public class MatchGoal extends FileListGoal<GSProject> {
 		try {
 			try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
 				MatchingResult result = matchResGoal.get().get(fileToKeyMap.get(file));
-				if (result == null) {
+				if (reporter == null) {
 					reporter = new ResultReporter();
 				}
 				reporter.printMatchResult(result, dbGoal.get().getTaxTree(), out);

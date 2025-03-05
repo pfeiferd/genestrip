@@ -408,7 +408,9 @@ public class GSMaker extends Maker<GSProject> {
 		MatchResultGoal matchResGoal = createGoalChainForMatchResult(lr, key, pathsOrURLs);
 		LoadDBGoal loadDBGoal = (LoadDBGoal) getGoal(GSGoalKey.LOAD_DB);
 		MatchGoal matchGoal = new MatchGoal(matchResGoal.getProject(), (lr ? GSGoalKey.MATCHLR : GSGoalKey.MATCH), matchResGoal, loadDBGoal);
-
+		if (clean) {
+			matchGoal.cleanThis();
+		}
 		matchGoal.make();
 		return matchResGoal.get().get(key);
 	}
@@ -476,11 +478,19 @@ public class GSMaker extends Maker<GSProject> {
 				getGoal(GSGoalKey.SETUP), fastqDownloadsGoal);
 	}
 
+	public void filter(boolean clean, String key, String... pathsOrURLs) {
+		FilterGoal filterGoal = createGoalChainForFilter(key, pathsOrURLs);
+		if (clean) {
+			filterGoal.cleanThis();
+		}
+		filterGoal.make();
+	}
+
 	public void filter(String key, String... pathsOrURLs) {
-		createGoalChainForFilter(key, pathsOrURLs).make();
+		filter(false, key, pathsOrURLs);
 	}
 
 	public void cleanFilter(String key, String... pathsOrURLs) {
-		createGoalChainForFilter(key, pathsOrURLs).cleanThis();
+		filter(true, key, pathsOrURLs);
 	}
 }
