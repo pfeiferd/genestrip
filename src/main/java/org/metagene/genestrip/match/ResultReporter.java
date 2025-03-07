@@ -24,9 +24,6 @@
  */
 package org.metagene.genestrip.match;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -36,7 +33,6 @@ import java.util.Locale;
 import java.util.Map;
 
 import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVRecord;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.SmallTaxTree;
@@ -120,7 +116,7 @@ public class ResultReporter {
 
 	public void printMatchResult(MatchingResult res, SmallTaxTree taxTree, PrintStream out) {
 		out.print("name;rank;taxid;reads;kmers from reads;kmers;unique kmers;contigs;average contig length;max contig length;");
-		out.print("db coverage;exp. unique kmers;unique kmers / exp.;normalized reads;acc normalized reads;acc reads;reads bps;avg read len;reads >= 1 kmer;db kmers;parent tax id;max contig desc.;");
+		out.print("db coverage;exp. unique kmers;unique kmers / exp.;reads bps;avg read len;reads >= 1 kmer;db kmers;parent tax id;max contig desc.;");
 		if (res.isWithMaxKMerCounts()) {
 			out.print("max kmer counts;");
 		}
@@ -177,25 +173,22 @@ public class ResultReporter {
 					out.print(';');
 					out.print(DF.format(stats.getCoverage()));
 					out.print(';');
-					out.print(DF.format(stats.getExpUnique()));
+					double exp = stats.getExpectedUniqueKMers();
+					out.print(DF.format(exp));
 					out.print(';');
-					out.print(DF.format(stats.getUniqueKMers() / stats.getExpUnique()));
+					out.print(DF.format(stats.getUniqueKMers() / exp));
 					out.print(';');
-					out.print(DF.format(stats.getNormalizedReads()));
+					out.print(stats.getReadsBPs());
 					out.print(';');
-					out.print(DF.format(stats.getAccNormalizedReads()));
-					out.print(';');
-					out.print(stats.getAccReads());
-					out.print(';');
-					out.print(stats.getReadsKmerBPs());
-					out.print(';');
-					out.print(DF.format(((double) stats.getReadsKmerBPs()) / stats.getReads()));
+					out.print(DF.format(stats.getAverageReadLength()));
 					out.print(';');
 					out.print(stats.getReads1Kmer());
 					out.print(';');
 					out.print(stats.getDbKMers());
 					out.print(';');
-					ByteArrayUtil.print(stats.maxContigDescriptor, out);
+					out.print(stats.getParentTaxId());
+					out.print(';');
+					ByteArrayUtil.print(stats.getMaxContigDescriptor(), out);
 					out.print(';');
 					if (res.isWithMaxKMerCounts()) {
 						short[] counts = stats.getMaxKMerCounts();

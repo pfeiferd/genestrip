@@ -59,6 +59,7 @@ public class MatchingResult implements Serializable {
 		dbKMers = database.getStats().getLong(null);
 
 		SmallTaxTree tree = database.getTaxTree();
+		// Add potentially missing parent nodes for report.
 		for (String key : taxid2Stats.keySet()) {
 			SmallTaxIdNode node = tree.getNodeByTaxId(key);
 			if (node == null) {
@@ -71,26 +72,19 @@ public class MatchingResult implements Serializable {
 		}
 		for (String key : taxid2Stats.keySet()) {
 			CountsPerTaxid stats = taxid2Stats.get(key);
-			if (stats != null) {
-				long dbKMers = database.getStats().getLong(key);
-				stats.setDbKMers(dbKMers);
-				if (dbKMers > 0) {
-					stats.setCoverage(((double) stats.getUniqueKMers()) / dbKMers);
-					stats.setExpUnique(getExpectedUniqueKMers(stats));
-					long reads = stats.getReads();
-					double nreads = ((double) stats.getReads()) / dbKMers;
-					stats.setNormalizedReads(nreads);
-					stats.addAccNormalizedReads(nreads);
-					stats.addAccReads(reads);
-					SmallTaxIdNode node = tree.getNodeByTaxId(key);
-					if (node != null) {
-						for (node = node.getParent(); node != null; node = node.getParent()) {
-							stats = taxid2Stats.get(node.getTaxId());
-							if (stats != null) {
-								stats.addAccNormalizedReads(nreads);
-								stats.addAccReads(reads);
-							}
-						}
+			long dbKMers = database.getStats().getLong(key);
+			SmallTaxIdNode node = tree.getNodeByTaxId(key);
+			stats.initExtendedValues(dbKMers);
+			if (node != null) {
+				boolean first = true;
+				for (node = node.getParent(); node != null; node = node.getParent()) {
+					if (first) {
+						first = false;
+						stats.setParentTaxId(node.getTaxId());
+					}
+					CountsPerTaxid stats2 = taxid2Stats.get(node.getTaxId());
+					if (stats2 != null) {
+						stats2.accumulateFrom(stats);
 					}
 				}
 			}
@@ -119,9 +113,5 @@ public class MatchingResult implements Serializable {
 
 	public boolean isWithMaxKMerCounts() {
 		return totalMaxCounts != null;
-	}
-
-	private double getExpectedUniqueKMers(CountsPerTaxid stats) {
-		return  (1 - Math.pow(1 - 1d / stats.getDbKMers(), stats.getKMers())) * stats.getDbKMers();
 	}
 }
