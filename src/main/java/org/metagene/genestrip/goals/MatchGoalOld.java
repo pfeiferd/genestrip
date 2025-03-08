@@ -118,7 +118,7 @@ public class MatchGoalOld extends MultiFileGoal {
 				uniqueCounter.clear();
 			}
 			MatchingResult res = matcher.runMatcher(fastqs, filteredFile, krakenOutStyleFile, uniqueCounter);
-			res.extendResults(database);
+			res.completeResults(database);
 			storeResult(file, res);
 			writeOutputFile(file, res);
 		} catch (IOException e) {

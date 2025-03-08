@@ -115,8 +115,8 @@ public class ResultReporter {
 	*/
 
 	public void printMatchResult(MatchingResult res, SmallTaxTree taxTree, PrintStream out) {
-		out.print("name;rank;taxid;reads;kmers from reads;kmers;unique kmers;contigs;average contig length;max contig length;");
-		out.print("db coverage;exp. unique kmers;unique kmers / exp.;reads bps;avg read len;reads >= 1 kmer;db kmers;parent tax id;max contig desc.;");
+		out.print("name;rank;taxid;reads;kmers from reads;kmers;unique kmers;contigs;average contig length;max contig length;normalized kmers;exp. unique kmers;unique kmers / exp.;");
+		out.print("db coverage;reads bps;avg read len;reads >= 1 kmer;db kmers;parent tax id;");
 		if (res.isWithMaxKMerCounts()) {
 			out.print("max kmer counts;");
 		}
@@ -178,11 +178,11 @@ public class ResultReporter {
 					out.print(';');
 					out.print(DF.format(stats.getUniqueKMers() / exp));
 					out.print(';');
-					out.print(stats.getReadsBPs());
+					out.print(stats.getReadBPs());
 					out.print(';');
 					out.print(DF.format(stats.getAverageReadLength()));
 					out.print(';');
-					out.print(stats.getReads1Kmer());
+					out.print(stats.getReads1KMer());
 					out.print(';');
 					out.print(stats.getDbKMers());
 					out.print(';');

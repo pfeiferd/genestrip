@@ -25,11 +25,14 @@
 package org.metagene.genestrip.match;
 
 import org.metagene.genestrip.store.Database;
+import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 public class MatchingResult implements Serializable {
@@ -37,28 +40,23 @@ public class MatchingResult implements Serializable {
 	
 	private final int k;
 	private final Map<String, CountsPerTaxid> taxid2Stats;
-	private final long totalReads;
-	private final long totalKMers;
-	private final short[] totalMaxCounts;
-	private long dbKMers;
+	private final CountsPerTaxid globalStats;
 
 	public MatchingResult(int k, Map<String, CountsPerTaxid> taxid2Stats, long totalReads, long totalKMers,
 			short[] totalMaxCounts) {
 		this.k = k;
+		globalStats =  new CountsPerTaxid(totalReads, totalKMers, totalMaxCounts);
 		this.taxid2Stats = taxid2Stats;
-		this.totalReads = totalReads;
-		this.totalKMers = totalKMers;
-		this.totalMaxCounts = totalMaxCounts;
 	}
 
-	public long getDbKMers() {
-		return dbKMers;
-	}
 
-	public void extendResults(Database database) {
-		dbKMers = database.getStats().getLong(null);
-
+	public void completeResults(Database database) {
 		SmallTaxTree tree = database.getTaxTree();
+
+		int pos = 0;
+		globalStats.completeValues(pos++, database.getStats().getLong(null), tree.getNodeByTaxId("1"));
+		taxid2Stats.put("1", globalStats);
+
 		// Add potentially missing parent nodes for report.
 		for (String key : taxid2Stats.keySet()) {
 			SmallTaxIdNode node = tree.getNodeByTaxId(key);
@@ -70,18 +68,16 @@ public class MatchingResult implements Serializable {
 				}
 			}
 		}
-		for (String key : taxid2Stats.keySet()) {
+
+		List<String> keys = new ArrayList<String>(taxid2Stats.keySet());
+		tree.sortTaxidsViaTree(keys);
+		for (String key : keys) {
 			CountsPerTaxid stats = taxid2Stats.get(key);
 			long dbKMers = database.getStats().getLong(key);
 			SmallTaxIdNode node = tree.getNodeByTaxId(key);
-			stats.initExtendedValues(dbKMers);
+			stats.completeValues(pos++, dbKMers, node);
 			if (node != null) {
-				boolean first = true;
 				for (node = node.getParent(); node != null; node = node.getParent()) {
-					if (first) {
-						first = false;
-						stats.setParentTaxId(node.getTaxId());
-					}
 					CountsPerTaxid stats2 = taxid2Stats.get(node.getTaxId());
 					if (stats2 != null) {
 						stats2.accumulateFrom(stats);
@@ -99,19 +95,11 @@ public class MatchingResult implements Serializable {
 		return Collections.unmodifiableMap(taxid2Stats);
 	}
 
-	public long getTotalKMers() {
-		return totalKMers;
-	}
-
-	public long getTotalReads() {
-		return totalReads;
-	}
-
-	public short[] getTotalMaxCounts() {
-		return totalMaxCounts;
-	}
-
 	public boolean isWithMaxKMerCounts() {
-		return totalMaxCounts != null;
+		return globalStats.maxKMerCounts != null;
+	}
+
+	public CountsPerTaxid getGlobalStats() {
+		return globalStats;
 	}
 }

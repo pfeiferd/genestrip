@@ -303,7 +303,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 						stats.kmers++;
 						found = true;
 						if (readNoPerCPerStat[index][vi] != entry.readNo) {
-							stats.reads1Kmer++;
+							stats.reads1KMer++;
 							readNoPerCPerStat[index][vi] = entry.readNo;
 						}
 					}
@@ -358,7 +358,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 				synchronized (stats) {
 					stats.reads++;
 					stats.readKmers += ties > 0 ? taxTree.sumCounts(node, index, entry.readNo) : entry.counts[0];
-					stats.readsBPs += entry.readSize;
+					stats.readBPs += entry.readSize;
 				}
 			}
 		}

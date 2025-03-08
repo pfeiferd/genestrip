@@ -103,7 +103,7 @@ public class MatchResultGoal extends ObjectGoal<Map<String, MatchingResult>, GSP
 					uniqueCounter.clear();
 				}
 				MatchingResult res = matcher.runMatcher(fastqs, filteredFile, krakenOutStyleFile, uniqueCounter);
-				res.extendResults(database);
+				res.completeResults(database);
 				matchResults.put(key, res);
 			}
 			set(matchResults);
