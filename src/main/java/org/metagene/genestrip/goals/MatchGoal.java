@@ -30,7 +30,6 @@ import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.*;
 import org.metagene.genestrip.match.MatchingResult;
 import org.metagene.genestrip.match.ResultReporter;
-import org.metagene.genestrip.store.Database;
 
 import java.io.File;
 import java.io.IOException;
@@ -41,16 +40,14 @@ import java.util.Map;
 
 public class MatchGoal extends FileListGoal<GSProject> {
 	private final ObjectGoal<Map<String, MatchingResult>, GSProject> matchResGoal;
-	private final ObjectGoal<Database, GSProject> dbGoal;
 	private final Map<File, String> fileToKeyMap;
 	private ResultReporter reporter;
 
 	@SafeVarargs
-	public MatchGoal(GSProject project, GoalKey key, ObjectGoal<Map<String, MatchingResult>, GSProject> matchResGoal, ObjectGoal<Database, GSProject> dbGoal, Goal<GSProject>... deps) {
-		super(project, key, (List<File>) null, append(deps, matchResGoal, dbGoal));
+	public MatchGoal(GSProject project, GoalKey key, ObjectGoal<Map<String, MatchingResult>, GSProject> matchResGoal, Goal<GSProject>... deps) {
+		super(project, key, (List<File>) null, append(deps, matchResGoal));
 		this.matchResGoal = matchResGoal;
-		this.dbGoal = dbGoal;
-		fileToKeyMap = new HashMap<File, String>();
+		fileToKeyMap = new HashMap<>();
 	}
 
 	@Override
@@ -70,7 +67,7 @@ public class MatchGoal extends FileListGoal<GSProject> {
 				if (reporter == null) {
 					reporter = new ResultReporter();
 				}
-				reporter.printMatchResult(result, dbGoal.get().getTaxTree(), out);
+				reporter.printMatchResult(result, out);
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);

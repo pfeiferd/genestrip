@@ -380,14 +380,14 @@ public class GSMaker extends Maker<GSProject> {
 				getExecutionContext(getProject()), getGoal(GSGoalKey.SETUP), fastqDownloadsGoal);
 		registerGoal(matchResGoal);
 
-		Goal<GSProject> matchGoal = new MatchGoal(project, GSGoalKey.MATCH, matchResGoal, loadDBGoal, projectSetupGoal, fastqDownloadsGoal);
+		Goal<GSProject> matchGoal = new MatchGoal(project, GSGoalKey.MATCH, matchResGoal, projectSetupGoal, fastqDownloadsGoal);
 		registerGoal(matchGoal);
 
 		ObjectGoal<Map<String, MatchingResult>, GSProject> matchReslrGoal = new MatchResultGoal(getProject(), GSGoalKey.MATCHRESLR, fastqMapTransfGoal, loadDBGoal,
 				getExecutionContext(getProject()), getGoal(GSGoalKey.SETUP), fastqDownloadsGoal);
 		registerGoal(matchReslrGoal);
 
-		Goal<GSProject> matchlrGoal = new MatchGoal(project, GSGoalKey.MATCHLR, matchReslrGoal, loadDBGoal, projectSetupGoal, fastqDownloadsGoal);
+		Goal<GSProject> matchlrGoal = new MatchGoal(project, GSGoalKey.MATCHLR, matchReslrGoal, projectSetupGoal, fastqDownloadsGoal);
 		registerGoal(matchlrGoal);
 
 		// Use kraken
@@ -407,7 +407,7 @@ public class GSMaker extends Maker<GSProject> {
 	public MatchingResult match(boolean lr, boolean clean, String key, String... pathsOrURLs) {
 		MatchResultGoal matchResGoal = createGoalChainForMatchResult(lr, key, pathsOrURLs);
 		LoadDBGoal loadDBGoal = (LoadDBGoal) getGoal(GSGoalKey.LOAD_DB);
-		MatchGoal matchGoal = new MatchGoal(matchResGoal.getProject(), (lr ? GSGoalKey.MATCHLR : GSGoalKey.MATCH), matchResGoal, loadDBGoal);
+		MatchGoal matchGoal = new MatchGoal(matchResGoal.getProject(), (lr ? GSGoalKey.MATCHLR : GSGoalKey.MATCH), matchResGoal);
 		if (clean) {
 			matchGoal.cleanThis();
 		}

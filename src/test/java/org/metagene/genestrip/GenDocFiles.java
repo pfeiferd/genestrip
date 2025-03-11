@@ -35,6 +35,7 @@ import org.metagene.genestrip.make.FileDownloadGoal;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.match.ResultReporter;
 
 // Rendered as a test because normally not needed - just for releases...
 public class GenDocFiles {
@@ -50,6 +51,13 @@ public class GenDocFiles {
 		File goalInfoFile = new File(APITest.getProjectDir(), "Goals.md");
 		try (PrintStream ps = new PrintStream(goalInfoFile)) {
 			GSGoalKey.printGoalInfo(ps);
+		} catch (FileNotFoundException e) {
+			throw new RuntimeException(e);
+		}
+
+		File csvColFile = new File(APITest.getProjectDir(), "CSVColumns.md");
+		try (PrintStream ps = new PrintStream(csvColFile)) {
+			ResultReporter.printMDColumnInfo(ps);
 		} catch (FileNotFoundException e) {
 			throw new RuntimeException(e);
 		}

@@ -149,7 +149,7 @@ public class MatchGoalOld extends MultiFileGoal {
 
 	protected void writeOutputFile(File file, MatchingResult result) throws IOException {
 		try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
-			reporter.printMatchResult(result, storeGoal.get().getTaxTree(), out);
+			reporter.printMatchResult(result, out);
 		}
 	}
 

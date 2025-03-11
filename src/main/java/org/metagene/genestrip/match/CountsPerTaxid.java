@@ -29,7 +29,7 @@ import org.metagene.genestrip.tax.SmallTaxTree;
 
 import java.io.Serializable;
 
-public class CountsPerTaxid implements Serializable {
+public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> {
     public enum ValueType {
         READS("reads"), KMERS("kmers"), READS_BPS("reads bps"), READS_1KMER("read >=1 kmer"), READS_KMERS("reads kmers");
 
@@ -104,6 +104,11 @@ public class CountsPerTaxid implements Serializable {
         this.maxKMerCounts = totalMaxCounts;
         maxContigDescriptor = new byte[0];
         extendedValues = new AccValues[ValueType.VALUES.length];
+    }
+
+    @Override
+    public int compareTo(CountsPerTaxid o) {
+        return o.pos - this.pos;
     }
 
     @MDCDescription(pos = 0, name = "pos", value = "Sort position of entry.")
