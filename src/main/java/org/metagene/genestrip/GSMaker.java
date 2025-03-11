@@ -411,8 +411,10 @@ public class GSMaker extends Maker<GSProject> {
 		if (clean) {
 			matchGoal.cleanThis();
 		}
+		// Store it here as it will be cleared via "allDependentsMade()" in matchGoal.make()...
+		MatchingResult res = matchResGoal.get().get(key);
 		matchGoal.make();
-		return matchResGoal.get().get(key);
+		return res;
 	}
 
 	public MatchingResult matchResult(boolean lr, String key, String... pathsOrURLs) {
