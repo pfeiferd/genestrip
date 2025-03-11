@@ -121,37 +121,39 @@ public class ResultReporter {
         List<MethodAndDescription> methodAndDescriptions = getSortedMethodAndDescriptions();
 
         for (MethodAndDescription methodAndDescription : methodAndDescriptions) {
-            out.print(methodAndDescription.getDescription().name());
-            out.print(';');
+            if (methodAndDescription.getDescription().pos() != 1001 || res.isWithMaxKMerCounts()) {
+                out.print(methodAndDescription.getDescription().name());
+                out.print(';');
+            }
         }
         out.println();
-        /*
-        if (res.isWithMaxKMerCounts()) {
-            out.print("max kmer counts;");
-        }
-         */
 
         List<CountsPerTaxid> values = new ArrayList<>(res.getTaxid2Stats().values());
         Collections.sort(values);
 
         for (CountsPerTaxid counts : values) {
             for (MethodAndDescription methodAndDescription : methodAndDescriptions) {
-                Method method = methodAndDescription.getMethod();
-                try {
-                    Object value = method.invoke(counts);
-                    if (value instanceof Double) {
-                        out.print(DF.format(((Double) value).doubleValue()));
-                    } else {
-                        out.print(value);
+                if (methodAndDescription.getDescription().pos() != 1001 || res.isWithMaxKMerCounts()) {
+                    Method method = methodAndDescription.getMethod();
+                    try {
+                        Object value = method.invoke(counts);
+                        if (value instanceof Double) {
+                            double v = ((Double) value).doubleValue();
+                            if (!Double.isNaN(v) && !Double.isInfinite(v)) {
+                                out.print(v);
+                            }
+                        } else {
+                            out.print(value);
+                        }
+                        out.print(';');
+                    } catch (IllegalAccessException e) {
+                        throw new RuntimeException(e);
+                    } catch (InvocationTargetException e) {
+                        throw new RuntimeException(e);
                     }
-                    out.print(';');
-                } catch (IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                } catch (InvocationTargetException e) {
-                    throw new RuntimeException(e);
                 }
             }
-            out.println(';');
+            out.println();
         }
         /*
         if (res.isWithMaxKMerCounts()) {

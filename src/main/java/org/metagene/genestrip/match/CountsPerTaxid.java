@@ -108,7 +108,7 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
 
     @Override
     public int compareTo(CountsPerTaxid o) {
-        return o.pos - this.pos;
+        return this.pos - o.pos;
     }
 
     @MDCDescription(pos = 0, name = "pos", value = "Sort position of entry.")
@@ -181,7 +181,7 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
 
     @MDCDescription(pos = 13, name = "avg. read length", value = "The average length of classified reads in base pairs.")
     public double getAverageReadLength() {
-        return (double) reads / readBPs;
+        return ((double) readBPs) / reads;
     }
 
     @MDCDescription(pos = 14, name = "db coverage", value="The ratio `unique kmers` / u<sub>t</sub>, , where *u<sub>t</sub>* = `db kmers`")
