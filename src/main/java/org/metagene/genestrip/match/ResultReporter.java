@@ -142,6 +142,16 @@ public class ResultReporter {
                             if (!Double.isNaN(v) && !Double.isInfinite(v)) {
                                 out.print(v);
                             }
+                        } else if (methodAndDescription.getDescription().pos() == 1001 && res.isWithMaxKMerCounts()) {
+                            short[] maxKMerCounts = counts.getMaxKMerCounts();
+                            if (maxKMerCounts != null) {
+                                for (int i = 0; i < maxKMerCounts.length; i++) {
+                                    if (i > 0) {
+                                        out.print(';');
+                                    }
+                                    out.print(maxKMerCounts[i]);
+                                }
+                            }
                         } else {
                             out.print(value);
                         }
@@ -155,21 +165,6 @@ public class ResultReporter {
             }
             out.println();
         }
-        /*
-        if (res.isWithMaxKMerCounts()) {
-            short[] counts = stats.getMaxKMerCounts();
-            if (counts != null) {
-                for (int i = 0; i < counts.length; i++) {
-                    if (i > 0) {
-                        out.print(';');
-                    }
-                    out.print(counts[i]);
-                }
-            }
-            out.print(';');
-        }
-        out.println();
-         */
     }
 
     private static class MethodAndDescription implements Comparable<MethodAndDescription> {
