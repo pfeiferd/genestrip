@@ -45,7 +45,7 @@ public class MatchingResult implements Serializable {
 	public MatchingResult(int k, Map<String, CountsPerTaxid> taxid2Stats, long totalReads, long totalKMers,
 			short[] totalMaxCounts) {
 		this.k = k;
-		globalStats =  new CountsPerTaxid("1", totalReads, totalKMers, totalMaxCounts);
+		globalStats =  new CountsPerTaxid(null, totalReads, totalKMers, totalMaxCounts);
 		this.taxid2Stats = taxid2Stats;
 	}
 
@@ -55,9 +55,9 @@ public class MatchingResult implements Serializable {
 
 		SmallTaxTree tree = database.getTaxTree();
 		// Add potentially missing parent nodes for report.
-		for (String key : taxid2Stats.keySet()) {
+		for (String key : new ArrayList<>(taxid2Stats.keySet())) {
 			SmallTaxIdNode node = tree.getNodeByTaxId(key);
-			if (node == null) {
+			if (node != null) {
 				for (node = node.getParent(); node != null; node = node.getParent()) {
 					if (!taxid2Stats.containsKey(node.getTaxId())) {
 						taxid2Stats.put(node.getTaxId(), new CountsPerTaxid(node.getTaxId(), 0));
@@ -72,7 +72,7 @@ public class MatchingResult implements Serializable {
 		int pos = 0;
 		for (String key : keys) {
 			CountsPerTaxid stats = taxid2Stats.get(key);
-			long dbKMers = database.getStats().getLong(globalStats.getTaxid().equals(key) ? null : key);
+			long dbKMers = database.getStats().getLong(key);
 			SmallTaxIdNode node = tree.getNodeByTaxId(key);
 			stats.completeValues(pos++, dbKMers, node);
 			if (node != null) {

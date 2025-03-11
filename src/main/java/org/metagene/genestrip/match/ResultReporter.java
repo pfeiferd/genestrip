@@ -37,9 +37,11 @@ import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
+import org.metagene.genestrip.util.ByteArrayUtil;
 
 public class ResultReporter {
     private static final DecimalFormat DF = new DecimalFormat("0.00000000", new DecimalFormatSymbols(Locale.US));
+    private static final CountsPerTaxid.ValueType[] VALUES = CountsPerTaxid.ValueType.values();
 
     public ResultReporter() {
     }
@@ -121,7 +123,28 @@ public class ResultReporter {
         List<MethodAndDescription> methodAndDescriptions = getSortedMethodAndDescriptions();
 
         for (MethodAndDescription methodAndDescription : methodAndDescriptions) {
-            if (methodAndDescription.getDescription().pos() != 1001 || res.isWithMaxKMerCounts()) {
+            MDCDescription description = methodAndDescription.getDescription();
+            if (description.pos() == 998) {
+                for (CountsPerTaxid.ValueType type : VALUES) {
+                    out.print(description.name());
+                    out.print(' ');
+                    out.print(type.getName());
+                    out.print(';');
+                }
+            }
+            else if (description.pos() == 999) {
+                for (CountsPerTaxid.ValueType type : VALUES) {
+                    out.print(description.name());
+                    out.print(' ');
+                    out.print(type.getName());
+                    out.print(';');
+                    out.print(description.name());
+                    out.print(" norm. ");
+                    out.print(type.getName());
+                    out.print(';');
+                }
+            }
+            else if (description.pos() != 1001 || res.isWithMaxKMerCounts()) {
                 out.print(methodAndDescription.getDescription().name());
                 out.print(';');
             }
@@ -130,10 +153,30 @@ public class ResultReporter {
 
         List<CountsPerTaxid> values = new ArrayList<>(res.getTaxid2Stats().values());
         Collections.sort(values);
-
         for (CountsPerTaxid counts : values) {
             for (MethodAndDescription methodAndDescription : methodAndDescriptions) {
-                if (methodAndDescription.getDescription().pos() != 1001 || res.isWithMaxKMerCounts()) {
+                MDCDescription description = methodAndDescription.getDescription();
+                if (description.pos() == 998) {
+                    for (CountsPerTaxid.ValueType type : VALUES) {
+                        out.print(counts.getNormalizedFor(type));
+                        out.print(';');
+                    }
+                }
+                else if (description.pos() == 999) {
+                    for (CountsPerTaxid.ValueType type : VALUES) {
+                        CountsPerTaxid.AccValues accValues = counts.getAccValuesFor(type);
+                        if (accValues != null) {
+                            out.print(accValues.getAccumulated());
+                            out.print(';');
+                            out.print(accValues.getAccumulatedNormalized());
+                            out.print(';');
+                        }
+                        else {
+                            out.print("0;0;");
+                        }
+                    }
+                }
+                else if (description.pos() != 1001 || res.isWithMaxKMerCounts()) {
                     Method method = methodAndDescription.getMethod();
                     try {
                         Object value = method.invoke(counts);
@@ -142,6 +185,9 @@ public class ResultReporter {
                             if (!Double.isNaN(v) && !Double.isInfinite(v)) {
                                 out.print(v);
                             }
+                        }
+                        else if (value instanceof byte[]) {
+                            ByteArrayUtil.print((byte[]) value, out);
                         } else if (methodAndDescription.getDescription().pos() == 1001 && res.isWithMaxKMerCounts()) {
                             short[] maxKMerCounts = counts.getMaxKMerCounts();
                             if (maxKMerCounts != null) {
@@ -153,7 +199,7 @@ public class ResultReporter {
                                 }
                             }
                         } else {
-                            out.print(value);
+                            out.print(value == null ? "" : value.toString());
                         }
                         out.print(';');
                     } catch (IllegalAccessException e) {

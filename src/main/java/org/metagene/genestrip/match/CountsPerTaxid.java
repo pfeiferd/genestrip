@@ -233,10 +233,12 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
         }
     }
 
+    @MDCDescription(pos = 998, name="norm.", value = "Normalized value for a respective value type.")
     public double getNormalizedFor(ValueType valueType) {
-        return ((double) getValueFor(valueType)) / dbKMers;
+        return dbKMers > 0 ? ((double) getValueFor(valueType)) / dbKMers : 0;
     }
 
+    @MDCDescription(pos = 999, name="acc.", value = "Accumulated value or accumulated normalized valued for a respective value type.")
     public AccValues getAccValuesFor(ValueType valueType) {
         return extendedValues[valueType.ordinal()];
     }
@@ -244,13 +246,17 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
     void completeValues(int pos, long dbKMers, SmallTaxTree.SmallTaxIdNode node) {
         this.pos = pos;
         this.dbKMers = dbKMers;
-        this.name = node.getName();
-        this.rank = node.getRank();
-        this.parentTaxId = node.getParent() != null ? node.getParent().getTaxId() : "";
-
-        for (int i = 0; i < ValueType.VALUES.length; i++) {
-            long value = getValueFor(ValueType.VALUES[i]);
-            extendedValues[i] = new AccValues(value, dbKMers);
+        if (node != null) {
+            this.name = node.getName();
+            this.rank = node.getRank();
+            this.parentTaxId = node.getParent() != null ? node.getParent().getTaxId() : "";
+            for (int i = 0; i < ValueType.VALUES.length; i++) {
+                long value = getValueFor(ValueType.VALUES[i]);
+                extendedValues[i] = new AccValues(value, dbKMers);
+            }
+        }
+        else {
+            this.name = "TOTAL";
         }
     }
 
