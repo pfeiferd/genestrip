@@ -73,16 +73,15 @@ public class DB2FastqGoalTest {
 		goal.cleanThis();
 		goal.make();
 
-
-
-		for (int i = 0; i < taxids.length; i++) {
+		int[] mapSizes = new int[] { 12, 12, 13, 13, 13, 13 };
+ 		for (int i = 0; i < taxids.length; i++) {
 			File file = goal.getOutputFile(taxids[i]);
 			MatchingResult result = maker.cleanMatch(false, taxids[i], file.toString());
 			Map<String, CountsPerTaxid> map = result.getTaxid2Stats();
 
 			assertEquals(kmers[i], map.get(taxids[i]).getKMers());
 			assertEquals(kmers[i], map.get(taxids[i]).getUniqueKMers());
-			assertEquals(1, map.size());
+			assertEquals(mapSizes[i], map.size());
 		}
 		maker.dumpAll();
 	}
