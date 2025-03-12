@@ -34,5 +34,5 @@ import java.lang.annotation.Target;
 public @interface MDCDescription {
 	int pos();
 	String name();
-	String value();
+	String desc();
 }

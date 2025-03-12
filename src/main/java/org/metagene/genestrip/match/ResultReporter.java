@@ -100,7 +100,7 @@ public class ResultReporter {
             ps.print(methodAndDescription.getDescription().name());
             ps.print('`');
             ps.print('|');
-            ps.print(methodAndDescription.getDescription().value());
+            ps.print(methodAndDescription.getDescription().desc());
             ps.print('|');
             ps.println();
         }
@@ -158,7 +158,10 @@ public class ResultReporter {
                 MDCDescription description = methodAndDescription.getDescription();
                 if (description.pos() == 998) {
                     for (CountsPerTaxid.ValueType type : VALUES) {
-                        out.print(counts.getNormalizedFor(type));
+                       double v = counts.getNormalizedFor(type);
+                        if (!Double.isNaN(v) && !Double.isInfinite(v) && counts.getPos() != 0) {
+                            out.print(v);
+                        }
                         out.print(';');
                     }
                 }
@@ -167,13 +170,12 @@ public class ResultReporter {
                         CountsPerTaxid.AccValues accValues = counts.getAccValuesFor(type);
                         if (accValues != null) {
                             out.print(accValues.getAccumulated());
-                            out.print(';');
+                        }
+                        out.print(';');
+                        if (accValues != null) {
                             out.print(accValues.getAccumulatedNormalized());
-                            out.print(';');
                         }
-                        else {
-                            out.print("0;0;");
-                        }
+                        out.print(';');
                     }
                 }
                 else if (description.pos() != 1001 || res.isWithMaxKMerCounts()) {
@@ -182,7 +184,7 @@ public class ResultReporter {
                         Object value = method.invoke(counts);
                         if (value instanceof Double) {
                             double v = ((Double) value).doubleValue();
-                            if (!Double.isNaN(v) && !Double.isInfinite(v)) {
+                            if (!Double.isNaN(v) && !Double.isInfinite(v) && counts.getPos() != 0) {
                                 out.print(v);
                             }
                         }
