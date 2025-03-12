@@ -24,7 +24,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.genestrip</groupId>
 	<artifactId>genestrip</artifactId>
-	<version>1.4.3</version>
+	<version>1.5</version>
 	<packaging>jar</packaging>
 
 	<properties>

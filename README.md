@@ -180,10 +180,9 @@ We cannot guarantee for any results returned by Genestrip. Use this software at 
 
 Despite of the these limitations, we tested the Genestrip in the following ways:
 * Critical code is covered by functional tests (using [JUnit](https://junit.org)).
-* Results have been evaluated based on [Kraken's accuracy datasets](https://ccb.jhu.edu/software/kraken/dl/accuracy.tgz) by including "HiSeq" and "MiSeq". For this purpose we generated Genestrip databases covering the organisms from respective datasets. Genestrip's accuracy results were comparable to those obtained via [Kraken](https://ccb.jhu.edu/software/kraken/).
-* We applied the human virus database from above to real-world fastq files, and Genestrip returned similar results and (unique) *k*-mer counts as [KrakenUniq](https://github.com/fbreitwieser/krakenuniq) for this case.
-* We applied Genestrip to 20 real-world fastq files based on human saliva samples. The findings matched the "general expectations" with regard to Herpes viruses and mouth bacteria such as Steptococcus mutans, Helicobacter pylori and others.
-* We correctly recovered Borrelia DNA in ticks from fastq files as given and presented in [this publication](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10328957/).
+* Results have been evaluated using various benchmark datasets.
+* We applied Genestrip to several real-world fastq files, 
+where the findings matched the expectations. For example, we correctly recovered bacteria in ticks from fastq files as described in [this publication](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10328957/).
 
 ### Filtering fastq files
 
