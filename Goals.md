@@ -9,6 +9,8 @@
 |`tempdbinfo`||Write information about a project's temporary database content to a CSV file.|
 |`db2fastq`|X|Generate fastq files from the database. A respective fastq file will contain all *k*-mers specifically associated with a single tax id from the database where each *k*-mer is represented by a read consisting of *k* bases. Respective fastq files will be stored in `<base dir>/projects/<project_name>/fastq` with the file name format `<project_name>_db2fastq_<taxid>.fastq.gz`. The command line option `tx` serves at selecting the corresponding tax ids for the fastq files to be generated. If the option is omitted, then fastq files for *all* tax ids from the database will be generated.|
 |`index`|X|Generate a filtering database with respect to a given project.|
+|`matchres`||Analyze fastq files as given by the `-f` or `-m` option.|
+|`matchreslr`||Same as `matchres` but without doing read classification.|
 |`match`|X|Analyze fastq files as given by the `-f` or `-m` option. The resulting CSV file(s) will be stored in `<base dir>/projects/<project_name>/csv` unless specified otherwise via the `-r` option.|
 |`matchlr`|X|Same as `match` but without doing read classification. This corresponds to the configuration setting `classifyReads=false`.|
 |`filter`|X|Filter fastq files as given by the `-f` or `-m` option. The resulting filtered fastq file(s) `filtered_...` will be stored under `<base dir>/projects/<project_name>/fastq/` unless specified otherwise via the `-r` option.|
