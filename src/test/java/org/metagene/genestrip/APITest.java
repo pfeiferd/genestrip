@@ -65,7 +65,8 @@ public class APITest {
 		// provied as part of the release.)
 		File fastq = new File(getBaseDir(), "projects/human_virus/fastq/sample.fastq.gz");
 		// An example on how to set configuration parameters programmatically:
-		project.initConfigParam(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH, false);
+		project.initConfigParam(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH, true);
+		//project.initConfigParam(GSConfigKey.MAX_KMER_RES_COUNTS, 35);
 		// Run the 'match' goal for the given file. This may trigger other goals such as
 		// the 'db' goal to first create the 'human_virus' database.
 		maker.match(false, true, null, fastq.toString());
