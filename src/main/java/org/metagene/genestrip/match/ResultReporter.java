@@ -95,12 +95,41 @@ public class ResultReporter {
         ps.println();
 
         for (MethodAndDescription methodAndDescription : getSortedMethodAndDescriptions()) {
+            MDCDescription description = methodAndDescription.getDescription();
             ps.print('|');
-            ps.print('`');
-            ps.print(methodAndDescription.getDescription().name());
-            ps.print('`');
+            if (description.pos() == 998) {
+                int i = 0;
+                for (CountsPerTaxid.ValueType type : VALUES) {
+                    if (i++ > 0) {
+                        ps.print(',');
+                    }
+                    ps.print('`');
+                    ps.print(description.name() + " " + type.getName());
+                    ps.print('`');
+                }
+            }
+            else if (description.pos() == 999) {
+                int i = 0;
+                for (CountsPerTaxid.ValueType type : VALUES) {
+                    if (i++ > 0) {
+                        ps.print(',');
+                    }
+                    ps.print('`');
+                    ps.print(description.name() + " " + type.getName());
+                    ps.print('`');
+                    ps.print(',');
+                    ps.print('`');
+                    ps.print(description.name() + " norm. " + type.getName());
+                    ps.print('`');
+                }
+            }
+            else {
+                ps.print('`');
+                ps.print(description.name());
+                ps.print('`');
+            }
             ps.print('|');
-            ps.print(methodAndDescription.getDescription().desc());
+            ps.print(description.desc());
             ps.print('|');
             ps.println();
         }
