@@ -173,7 +173,7 @@ public class ResultReporter {
                     out.print(';');
                 }
             }
-            else if (description.pos() != 1001 || res.isWithMaxKMerCounts()) {
+            else if (description.pos() != 2001 || res.isWithMaxKMerCounts()) {
                 out.print(methodAndDescription.getDescription().name());
                 out.print(';');
             }
@@ -207,7 +207,7 @@ public class ResultReporter {
                         out.print(';');
                     }
                 }
-                else if (description.pos() != 1001 || res.isWithMaxKMerCounts()) {
+                else if (description.pos() != 2001 || res.isWithMaxKMerCounts()) {
                     Method method = methodAndDescription.getMethod();
                     try {
                         Object value = method.invoke(counts);
@@ -219,7 +219,7 @@ public class ResultReporter {
                         }
                         else if (value instanceof byte[]) {
                             ByteArrayUtil.print((byte[]) value, out);
-                        } else if (methodAndDescription.getDescription().pos() == 1001 && res.isWithMaxKMerCounts()) {
+                        } else if (methodAndDescription.getDescription().pos() == 2001 && res.isWithMaxKMerCounts()) {
                             short[] maxKMerCounts = counts.getMaxKMerCounts();
                             if (maxKMerCounts != null) {
                                 for (int i = 0; i < maxKMerCounts.length; i++) {

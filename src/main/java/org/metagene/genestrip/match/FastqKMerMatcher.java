@@ -359,6 +359,9 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 					stats.reads++;
 					stats.readKmers += ties > 0 ? taxTree.sumCounts(node, index, entry.readNo) : entry.counts[0];
 					stats.readBPs += entry.readSize;
+					double err = ((double) readTaxErrorCount) / entry.readSize;
+					stats.errorSum += err;
+					stats.errorSquaredSum += err * err;
 				}
 			}
 		}
