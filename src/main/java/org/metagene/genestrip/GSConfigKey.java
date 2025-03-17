@@ -174,7 +174,7 @@ public enum GSConfigKey implements ConfigKey {
 			+ "If `maxReadTaxErrorCount` < 0, then the read error count is disregarded, which means that even a single matching *k*-mer will lead to the read's classification.")
 	MAX_READ_TAX_ERROR_COUNT("maxReadTaxErrorCount", new DoubleConfigParamInfo(-1, Double.MAX_VALUE, -1),
 			GSGoalKey.MATCH, GSGoalKey.MATCHLR),
-	@MDDescription("The absolute or relative maximum number of *k*-mers that do not need to be consistent with a read's destined class for the read to be classified (read error count). "
+	@MDDescription("The absolute or relative maximum number of *k*-mers that do not need to be consistent with a read's destined class for the read to be classified (read class error count). "
 			+ "If the number is above `maxReadClassErrorCount`, then the read will not be classified. "
 			+ "Otherwise the read will be classified in the same way as [done by Kraken](https://genomebiology.biomedcentral.com/articles/10.1186/gb-2014-15-3-r46/figures/1). "
 			+ "If `maxReadClassErrorCount` is >= 1, then it is interpreted as an absolute number of *k*-mers. "
