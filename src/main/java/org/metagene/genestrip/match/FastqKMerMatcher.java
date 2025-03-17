@@ -348,9 +348,6 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 				// solidify the LCA in a sense - so the counts from one the involved paths are included.
 				int readKmers = ties > 0 ? taxTree.sumCounts(entry.readTaxIdNode[0], index, entry.readNo) : entry.counts[0];
 				int classErrC = max - readKmers;
-				if (node.getTaxId().equals("41856")) {
-					System.out.print("stop");
-				}
 				if (maxReadClassErrorCount < 0 || (maxReadClassErrorCount >= 1 && classErrC <= maxReadClassErrorCount)
 						|| (classErrC <= maxReadClassErrorCount * max)) {
 					double err = ((double) readTaxErrorCount) / max;
