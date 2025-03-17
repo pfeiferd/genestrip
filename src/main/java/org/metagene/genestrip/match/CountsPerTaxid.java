@@ -74,14 +74,18 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
     protected String taxid;
     protected long reads;
     protected long reads1KMer;
-    protected long readBPs;
-    protected long readKmers;
+    protected long readsBPs;
+    protected long readsKmers;
     protected long uniqueKmers; // All unique kmers counted - even from unclassified reads.
     protected long kmers;
     protected int contigs;
     protected int maxContigLen;
     protected byte[] maxContigDescriptor;
     protected short[] maxKMerCounts;
+    protected double errorSum;
+    protected double errorSquaredSum;
+    protected double accErrorSum;
+    protected double accErrorSquaredSum;
 
     // To complete values
     private int pos;
@@ -138,8 +142,8 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
     }
 
     @MDCDescription(pos = 5, name="kmers from reads", desc ="The number of *k*-mers from classified reads which are consistent with the read's tax id.")
-    public long getReadKMers() {
-        return readKmers;
+    public long getReadsKMers() {
+        return readsKmers;
     }
 
     @MDCDescription(pos = 6, name="kmers", desc = "*All* matched *k*-mers which are specific to the tax id's genome (according to the database). The *k*-mers do not have to be in an accordingly classified read for this.")
@@ -174,14 +178,14 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
         return reads1KMer;
     }
 
-    @MDCDescription(pos = 12, name = "read bps", desc = "The total number of base pairs of reads classified with respect to the tax id.")
-    public long getReadBPs() {
-        return readBPs;
+    @MDCDescription(pos = 12, name = "reads bps", desc = "The total number of base pairs of reads classified with respect to the tax id.")
+    public long getReadsBPs() {
+        return readsBPs;
     }
 
     @MDCDescription(pos = 13, name = "avg. read length", desc = "The average length of classified reads in base pairs.")
     public double getAverageReadLength() {
-        return ((double) readBPs) / reads;
+        return ((double) readsBPs) / reads;
     }
 
     @MDCDescription(pos = 14, name = "db coverage", desc ="The ratio `unique kmers` / u<sub>t</sub>, , where *u<sub>t</sub>* = `db kmers`")
@@ -209,16 +213,14 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
         return parentTaxId;
     }
 
-    @MDCDescription(pos = 1000, name="max contig desc.", desc ="The descriptor of a read that holds a contiguous sequence of maximum length (according to the previous column).")
-    public byte[] getMaxContigDescriptor() {
-        return maxContigDescriptor;
+    @MDCDescription(pos = 22, name = "mean error", desc = "The avg. ratio of inconsistent *k*-mers per read length for reads classified with respect to the tax id.")
+    public double getMeanError() {
+        return errorSum / reads;
     }
 
-    @MDCDescription(pos = 1001, name="max kmer counts", desc = "The frequencies of the most frequent unique *k*-mers which are specific to the tax id's genome in descending order separated by `;`. " +
-            "This column is experimental and only added when the configuration property `matchWithKMerCounts` is set to `true`. " +
-            "The number of frequencies is determined via `maxKMerResCounts` (see also Section [Configuration parameters](#configuration-parameters)).")
-    public short[] getMaxKMerCounts() {
-        return maxKMerCounts;
+    @MDCDescription(pos = 23, name = "error std. dev.", desc = "The standard deviation of the `mean error`.")
+    public double getErrorStdDev() {
+        return Math.sqrt((errorSquaredSum  - errorSum * errorSum / reads) / (reads - 1));
     }
 
     public long getValueFor(ValueType valueType) {
@@ -226,11 +228,11 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
             case READS:
                 return reads;
             case READS_BPS:
-                return readBPs;
+                return readsBPs;
             case READS_1KMER:
                 return reads1KMer;
             case READS_KMERS:
-                return readKmers;
+                return readsKmers;
             case KMERS:
                 return kmers;
             default:
@@ -248,6 +250,31 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
         return extendedValues[valueType.ordinal()];
     }
 
+    @MDCDescription(pos = 1000, name="max contig desc.", desc ="The descriptor of a read that holds a contiguous sequence of maximum length (according to the previous column).")
+    public byte[] getMaxContigDescriptor() {
+        return maxContigDescriptor;
+    }
+
+    @MDCDescription(pos = 1001, name = "acc. mean error", desc = "The accumulated `mean error`.")
+    public double getAccMeanError() {
+        CountsPerTaxid.AccValues accValues = getAccValuesFor(ValueType.READS);
+        return accErrorSum / (accValues == null ? 0 : accValues.getAccumulated());
+    }
+
+    @MDCDescription(pos = 1002, name = "acc. error  std. dev.", desc = "The standard deviation of the `acc. mean error`.")
+    public double getAccErrorDev() {
+        CountsPerTaxid.AccValues accValues = getAccValuesFor(ValueType.READS);
+        long reads = accValues == null ? 0 : accValues.getAccumulated();
+        return Math.sqrt((accErrorSquaredSum  - (accErrorSum * accErrorSum) / reads) / (reads - 1));
+    }
+
+    @MDCDescription(pos = 2001, name="max kmer counts", desc = "The frequencies of the most frequent unique *k*-mers which are specific to the tax id's genome in descending order separated by `;`. " +
+            "This column is experimental and only added when the configuration property `matchWithKMerCounts` is set to `true`. " +
+            "The number of frequencies is determined via `maxKMerResCounts` (see also Section [Configuration parameters](#configuration-parameters)).")
+    public short[] getMaxKMerCounts() {
+        return maxKMerCounts;
+    }
+
     void completeValues(int pos, long dbKMers, SmallTaxTree.SmallTaxIdNode node) {
         this.pos = pos;
         this.dbKMers = dbKMers;
@@ -259,6 +286,8 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
                 long value = getValueFor(ValueType.VALUES[i]);
                 extendedValues[i] = new AccValues(value, dbKMers);
             }
+            accErrorSum = errorSum;
+            accErrorSquaredSum = errorSquaredSum;
         }
         else {
             this.name = "TOTAL";
@@ -269,5 +298,7 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
         for (int i = 0; i < ValueType.VALUES.length; i++) {
             extendedValues[i].accumulateFrom(other.extendedValues[i]);
         }
+        accErrorSum += other.accErrorSum;
+        accErrorSquaredSum += other.accErrorSquaredSum;
     }
 }
