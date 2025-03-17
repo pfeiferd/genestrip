@@ -84,7 +84,8 @@ public class AccuracyMatchGoal extends MatchGoalOld {
 				intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS),
 				booleanConfigValue(GSConfigKey.CLASSIFY_READS) ? taxTree : null,
 				intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS),
-				intConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT)) {
+				doubleConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT),
+				doubleConfigValue(GSConfigKey.MAX_READ_CLASS_ERROR_COUNT)) {
 			@Override
 			protected void afterMatch(MyReadEntry entry, boolean found) throws IOException {
 				super.afterMatch(entry, found);

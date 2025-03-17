@@ -61,6 +61,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 	private final int maxPaths;
 	private final SmallTaxTree taxTree;
 	protected final double maxReadTaxErrorCount;
+	protected final double maxReadClassErrorCount;
 	private OutputStream indexed;
 
 	// This should stay a box type for the line root.get(taxid.getTaxId(),
@@ -73,7 +74,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 
 	public FastqKMerMatcher(KMerSortedArray<SmallTaxIdNode> kmerStore, int initialReadSize, int maxQueueSize,
 			ExecutionContext bundle, boolean withProbs, int maxKmerResCounts, SmallTaxTree taxTree, int maxPaths,
-			double maxReadTaxErrorCount) {
+			double maxReadTaxErrorCount, double maxReadClassErrorCount) {
 		super(kmerStore.getK(), initialReadSize, maxQueueSize, bundle, withProbs, maxPaths);
 		int consumers = bundle.getThreads() <= 0 ? 1 : bundle.getThreads();
 		this.kmerStore = kmerStore;
@@ -83,6 +84,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 		this.maxKmerResCounts = maxKmerResCounts;
 		this.taxTree = taxTree;
 		this.maxReadTaxErrorCount = maxReadTaxErrorCount;
+		this.maxReadClassErrorCount = maxReadClassErrorCount;
 		this.maxPaths = maxPaths;
 		if (taxTree != null) {
 			taxTree.initCountSize(consumers);
@@ -249,17 +251,6 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 			}
 			if (kmer != -1) {
 				taxIdNode = kmerStore.getLong(kmer, entry.indexPos);
-				/*
-//				if (taxIdNode != null && "649756".equals(taxIdNode.getTaxId())) {
-					System.out.println("stop");
-					CGAT.longToKMerStraight(kmer, kmerHelp, 0, 31);
-					if (reverse) {
-						System.out.println("reverse");
-						CGAT.reverse(kmerHelp);
-					}
-					ByteArrayUtil.println(kmerHelp, System.out);
-//				}
-				 */
 				if (readTaxErrorCount != -1) {
 					if (taxIdNode == null) {
 						readTaxErrorCount++;
@@ -352,17 +343,30 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 					node = taxTree.getLeastCommonAncestor(node, entry.readTaxIdNode[i]);
 				}
 				entry.classNode = node;
-				short vi = node.getStoreIndex();
-				stats = getCountsPerTaxid(node, vi);
-
-				synchronized (stats) {
-					stats.reads++;
-					int readKmers = ties > 0 ? taxTree.sumCounts(node, index, entry.readNo) : entry.counts[0];
-					stats.readsKmers += readKmers;
-					stats.readsBPs += entry.readSize;
-					double err = ((double) (entry.readSize - readKmers)) / entry.readSize;
-					stats.errorSum += err;
-					stats.errorSquaredSum += err * err;
+				// For 'readKmers', I decided to count in the k-mers from 'entry.readTaxIdNode[0]' and not just 'node'.
+				// (They only differ in case of a tie anyways.) But if there is tie, then the k-mers from one of the tie's nodes
+				// solidify the LCA in a sense - so the counts from one the involved paths are included.
+				int readKmers = ties > 0 ? taxTree.sumCounts(entry.readTaxIdNode[0], index, entry.readNo) : entry.counts[0];
+				int classErrC = max - readKmers;
+				if (node.getTaxId().equals("41856")) {
+					System.out.print("stop");
+				}
+				if (maxReadClassErrorCount < 0 || (maxReadClassErrorCount >= 1 && classErrC <= maxReadClassErrorCount)
+						|| (classErrC <= maxReadClassErrorCount * max)) {
+					double err = ((double) readTaxErrorCount) / max;
+					double classErr = ((double) classErrC) / max;
+					entry.classNode = node;
+					short vi = node.getStoreIndex();
+					stats = getCountsPerTaxid(node, vi);
+					synchronized (stats) {
+						stats.reads++;
+						stats.readsKmers += readKmers;
+						stats.readsBPs += entry.readSize;
+						stats.errorSum += err;
+						stats.errorSquaredSum += err * err;
+						stats.classErrorSum += classErr;
+						stats.classErrorSquaredSum += classErr * classErr;
+					}
 				}
 			}
 		}

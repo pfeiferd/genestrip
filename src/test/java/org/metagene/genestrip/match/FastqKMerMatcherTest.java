@@ -280,7 +280,7 @@ public class FastqKMerMatcherTest {
 					node.setStoreIndex(kmerStore.getIndexForValue(value));
 					return node;
 				}
-			}), initialReadSize, maxQueueSize, bundle, false, 10, null, 4, 0);
+			}), initialReadSize, maxQueueSize, bundle, false, 10, null, 4, 0, 0);
 			orgKmerStore = kmerStore;
 			out = System.out;
 		}
@@ -310,7 +310,7 @@ public class FastqKMerMatcherTest {
 	protected static class MyFastqMatcher2 extends FastqKMerMatcher {
 		public MyFastqMatcher2(KMerSortedArray<SmallTaxIdNode> kmerStore, ExecutionContext bundle, SmallTaxTree tree,
 				double error) {
-			super(kmerStore, 1024, 100, bundle, false, 10, tree, 4, error);
+			super(kmerStore, 1024, 100, bundle, false, 10, tree, 4, error, -1);
 		}
 
 		@Override

@@ -84,8 +84,8 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
     protected short[] maxKMerCounts;
     protected double errorSum;
     protected double errorSquaredSum;
-    protected double accErrorSum;
-    protected double accErrorSquaredSum;
+    protected double classErrorSum;
+    protected double classErrorSquaredSum;
 
     // To complete values
     private int pos;
@@ -94,6 +94,10 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
     private long dbKMers;
     private String parentTaxId;
     private final AccValues[] extendedValues;
+    protected double accErrorSum;
+    protected double accErrorSquaredSum;
+    protected double accClassErrorSum;
+    protected double accClassErrorSquaredSum;
 
     public CountsPerTaxid(String taxid, int maxReadSizeBytes) {
         this.taxid = taxid;
@@ -213,14 +217,24 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
         return parentTaxId;
     }
 
-    @MDCDescription(pos = 22, name = "mean error", desc = "The avg. ratio of inconsistent *k*-mers per read length for reads classified with respect to the tax id.")
+    @MDCDescription(pos = 22, name = "mean error", desc = "The mean ratio of a classified read's *k*-mers that are not in the database per read's total *k*-mers.")
     public double getMeanError() {
         return errorSum / reads;
     }
 
-    @MDCDescription(pos = 23, name = "error std. dev.", desc = "The standard deviation of the `mean error`.")
+    @MDCDescription(pos = 23, name = "kmer error std. dev.", desc = "The standard deviation of the `mean error`.")
     public double getErrorStdDev() {
         return Math.sqrt((errorSquaredSum  - errorSum * errorSum / reads) / (reads - 1));
+    }
+
+    @MDCDescription(pos = 24, name = "mean class error", desc = "The mean ratio of a read's *k*-mers that are consistent with the read's class per read's total *k*-mers.")
+    public double getMeanClassError() {
+        return classErrorSum / reads;
+    }
+
+    @MDCDescription(pos = 25, name = "kmer error std. dev.", desc = "The standard deviation of the `mean class error`.")
+    public double getClassErrorStdDev() {
+        return Math.sqrt((classErrorSquaredSum  - classErrorSum * classErrorSum / reads) / (reads - 1));
     }
 
     public long getValueFor(ValueType valueType) {
@@ -261,11 +275,24 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
         return accErrorSum / (accValues == null ? 0 : accValues.getAccumulated());
     }
 
-    @MDCDescription(pos = 1002, name = "acc. error  std. dev.", desc = "The standard deviation of the `acc. mean error`.")
-    public double getAccErrorDev() {
+    @MDCDescription(pos = 1002, name = "acc. error std. dev.", desc = "The standard deviation of the `acc. mean error`.")
+    public double getAccErrorStdDev() {
         CountsPerTaxid.AccValues accValues = getAccValuesFor(ValueType.READS);
         long reads = accValues == null ? 0 : accValues.getAccumulated();
         return Math.sqrt((accErrorSquaredSum  - (accErrorSum * accErrorSum) / reads) / (reads - 1));
+    }
+
+    @MDCDescription(pos = 1003, name = "acc. class mean error", desc = "The accumulated `class mean error`.")
+    public double getAccClassMeanError() {
+        CountsPerTaxid.AccValues accValues = getAccValuesFor(ValueType.READS);
+        return accClassErrorSum / (accValues == null ? 0 : accValues.getAccumulated());
+    }
+
+    @MDCDescription(pos = 1004, name = "acc. class error std. dev.", desc = "The standard deviation of the `acc. class mean error`.")
+    public double getAccClassStdErrorDev() {
+        CountsPerTaxid.AccValues accValues = getAccValuesFor(ValueType.READS);
+        long reads = accValues == null ? 0 : accValues.getAccumulated();
+        return Math.sqrt((accClassErrorSquaredSum  - (accClassErrorSum * accClassErrorSum) / reads) / (reads - 1));
     }
 
     @MDCDescription(pos = 2001, name="max kmer counts", desc = "The frequencies of the most frequent unique *k*-mers which are specific to the tax id's genome in descending order separated by `;`. " +
@@ -288,6 +315,8 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
             }
             accErrorSum = errorSum;
             accErrorSquaredSum = errorSquaredSum;
+            accClassErrorSum = classErrorSum;
+            accClassErrorSquaredSum = classErrorSquaredSum;
         }
         else {
             this.name = "TOTAL";
@@ -300,5 +329,7 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
         }
         accErrorSum += other.accErrorSum;
         accErrorSquaredSum += other.accErrorSquaredSum;
+        accClassErrorSum += other.accClassErrorSum;
+        accClassErrorSquaredSum += other.accClassErrorSquaredSum;
     }
 }
