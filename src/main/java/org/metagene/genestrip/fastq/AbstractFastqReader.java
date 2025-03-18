@@ -36,6 +36,7 @@ import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.io.BufferedLineReader;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.GSLogFactory;
+import org.metagene.genestrip.util.SimpleBlockinqQueue;
 
 public abstract class AbstractFastqReader {
 	private static final byte[] LINE_3 = new byte[] { '+', '\n' };
@@ -67,13 +68,17 @@ public abstract class AbstractFastqReader {
 			readStructPool[i] = createReadEntry(initialSizeBytes, withProbs, config);
 		}
 		blockingQueue = consumerNumber == 0 ? null
-				: new ArrayBlockingQueue<>(maxQueueSize);
+				: createBlockingQueue(maxQueueSize);
 
 		if (blockingQueue != null) {
 			for (int i = 0; i < consumerNumber; i++) {
 				bundle.execute(createRunnable(i, config));
 			}
 		}
+	}
+
+	protected BlockingQueue<ReadEntry> createBlockingQueue(int maxQueueSize) {
+		return new SimpleBlockinqQueue<>(maxQueueSize);
 	}
 
 	// Made final for potential inlining by JVM
