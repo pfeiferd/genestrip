@@ -78,7 +78,8 @@ public abstract class AbstractFastqReader {
 	}
 
 	protected BlockingQueue<ReadEntry> createBlockingQueue(int maxQueueSize) {
-		return new SimpleBlockinqQueue<>(maxQueueSize);
+		//return new SimpleBlockinqQueue<>(maxQueueSize);
+		return new ArrayBlockingQueue<>(maxQueueSize);
 	}
 
 	// Made final for potential inlining by JVM
