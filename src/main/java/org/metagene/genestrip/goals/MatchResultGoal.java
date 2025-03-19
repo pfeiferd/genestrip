@@ -34,6 +34,7 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.match.FastqKMerMatcher;
+import org.metagene.genestrip.match.InlinedFastqKMerMatcher;
 import org.metagene.genestrip.match.MatchingResult;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.KMerSortedArray;
@@ -118,7 +119,7 @@ public class MatchResultGoal extends ObjectGoal<Map<String, MatchingResult>, GSP
 
 	protected FastqKMerMatcher createMatcher(KMerSortedArray<SmallTaxIdNode> store, SmallTaxTree taxTree,
 			ExecutionContext bundle, boolean withProbs) {
-		return new FastqKMerMatcher(store, intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
+		return new InlinedFastqKMerMatcher(store, intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
 				intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, withProbs, intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS),
 				taxTree, intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS),
 				doubleConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT),
