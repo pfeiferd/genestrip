@@ -255,7 +255,7 @@ public class SmallTaxTree implements Serializable {
 			return subNodes;
 		}
 
-		private void incCount(final int index, final long initKey, final int size) {
+		private final void incCount(final int index, final long initKey, final int size) {
 			if (counts == null || countsInitKeys == null) {
 				synchronized (this) {
 					if (counts == null) {
@@ -272,7 +272,7 @@ public class SmallTaxTree implements Serializable {
 			}
 		}
 
-		private void resetCounts() {
+		private final void resetCounts() {
 			if (countsInitKeys != null) {
 				for (int i = 0; i < countsInitKeys.length; i++) {
 					countsInitKeys[i] = -1;
@@ -285,7 +285,7 @@ public class SmallTaxTree implements Serializable {
 			}
 		}
 
-		private void initTrie(DigitTrie<SmallTaxIdNode> trie) {
+		private final void initTrie(DigitTrie<SmallTaxIdNode> trie) {
 			trie.set(taxId, this);
 			if (subNodes != null) {
 				for (int i = 0; i < subNodes.length; i++) {

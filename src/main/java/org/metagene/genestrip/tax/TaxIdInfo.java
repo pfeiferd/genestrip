@@ -29,7 +29,7 @@ import java.io.Serializable;
 public class TaxIdInfo implements Serializable, Comparable<TaxIdInfo> {
 	private static final long serialVersionUID = 1L;
 	
-	protected final String taxId;
+	public final String taxId;
 	protected String name;
 	protected short rank;
 	protected int position;

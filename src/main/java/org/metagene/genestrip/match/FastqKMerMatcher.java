@@ -51,22 +51,22 @@ import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 	protected final KMerSortedArray<SmallTaxIdNode> kmerStore;
-	private final int maxKmerResCounts;
+	protected final int maxKmerResCounts;
 
 	// Turned from KMerUniqueCounter to KMerUniqueCounterBits for potential method inlining.
 	protected KMerUniqueCounterBits uniqueCounter;
 	protected final CountsPerTaxid[] statsIndex;
 	protected final long readNoPerCPerStat[][];
 
-	private final int maxPaths;
-	private final SmallTaxTree taxTree;
+	protected final int maxPaths;
+	protected final SmallTaxTree taxTree;
 	protected final double maxReadTaxErrorCount;
 	protected final double maxReadClassErrorCount;
-	private OutputStream indexed;
+	protected OutputStream indexed;
 
 	// This should stay a box type for the line root.get(taxid.getTaxId(),
 	// maxReadSize);
-	private final Integer initialReadSize;
+	protected final Integer initialReadSize;
 
 	// A PrintStream is implicitly synchronized. So we don't need to worry about
 	// multi-threading when using it.
@@ -222,7 +222,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 	private byte[] kmerHelp = new byte[31];
 
 	// Made final for potential inlining by JVM
-	protected final boolean matchRead(final MyReadEntry entry, final int index, final boolean reverse) {
+	protected boolean matchRead(final MyReadEntry entry, final int index, final boolean reverse) {
 		boolean found = false;
 		int prints = 0;
 		int readTaxErrorCount = taxTree == null ? -1 : 0;
@@ -371,7 +371,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 		return found;
 	}
 
-	private final CountsPerTaxid getCountsPerTaxid(final SmallTaxIdNode node, final short vi) {
+	protected final CountsPerTaxid getCountsPerTaxid(final SmallTaxIdNode node, final short vi) {
 		CountsPerTaxid stats = statsIndex[vi];
 		if (stats == null) {
 			synchronized (statsIndex) {
