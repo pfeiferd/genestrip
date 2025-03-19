@@ -39,7 +39,7 @@ public class SimpleBlockinqQueue<T> implements BlockingQueue<T> {
             array[tail] = item;
             size++;
             tail++;
-
+            // Notify or notify all? There is only one consumer to profit from a just added item.
             lock.notify();
         }
     }
