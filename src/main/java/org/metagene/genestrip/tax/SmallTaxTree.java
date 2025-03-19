@@ -255,7 +255,7 @@ public class SmallTaxTree implements Serializable {
 			return subNodes;
 		}
 
-		private final void incCount(final int index, final long initKey, final int size) {
+		public final void incCount(final int index, final long initKey, final int size) {
 			if (counts == null || countsInitKeys == null) {
 				synchronized (this) {
 					if (counts == null) {

@@ -72,11 +72,13 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 	// multi-threading when using it.
 	protected PrintStream out;
 
+	protected int consumers;
+
 	public FastqKMerMatcher(KMerSortedArray<SmallTaxIdNode> kmerStore, int initialReadSize, int maxQueueSize,
 			ExecutionContext bundle, boolean withProbs, int maxKmerResCounts, SmallTaxTree taxTree, int maxPaths,
 			double maxReadTaxErrorCount, double maxReadClassErrorCount) {
 		super(kmerStore.getK(), initialReadSize, maxQueueSize, bundle, withProbs, maxPaths);
-		int consumers = bundle.getThreads() <= 0 ? 1 : bundle.getThreads();
+		consumers = bundle.getThreads() <= 0 ? 1 : bundle.getThreads();
 		this.kmerStore = kmerStore;
 		this.statsIndex = new CountsPerTaxid[kmerStore.getNValues()];
 		this.readNoPerCPerStat = new long[consumers][kmerStore.getNValues()];

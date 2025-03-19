@@ -457,6 +457,80 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		return indexMap[index];
 	}
 
+	// Made final for potential (automated) inlining by JVM
+	// Also inlined the sorted, largeKmers != null part for speed.
+	public final V getLongInlined(final long kmer, final long[] posStore) {
+		if (filter != null && useFilter && !filter.containsLong(kmer)) {
+			return null;
+		}
+		short index;
+		long pos = 0;
+		if (sorted) {
+			if (largeKmers != null) {
+				boolean finished = false;
+				long from = 0;
+				long to = entries;
+				long midVal;
+				to--;
+				while (from <= to) {
+					final long mid = (from + to) >>> 1;
+					midVal = largeKmers[(int) (mid >>> BigArrays.SEGMENT_SHIFT)][(int) (mid & BigArrays.SEGMENT_MASK)];
+					if (midVal < kmer) from = mid + 1;
+					else if (midVal > kmer) to = mid - 1;
+					else {
+						pos = mid;
+						finished = true;
+						break;
+					}
+				}
+				if (!finished) {
+					pos = -(from + 1);
+				}
+				if (pos < 0) {
+					return null;
+				}
+				index = largeValueIndexes[(int) (pos >>> BigArrays.SEGMENT_SHIFT)][(int) (pos & BigArrays.SEGMENT_MASK)];
+			} else {
+				pos = Arrays.binarySearch(kmers, 0, (int) entries, kmer);
+				if (pos < 0) {
+					return null;
+				}
+				index = valueIndexes[(int) pos];
+			}
+		} else {
+			if (largeKmers != null) {
+				pos = -1;
+				for (long i = 0; i < entries; i++) {
+					if (BigArrays.get(largeKmers, i) == kmer) {
+						pos = i;
+						break;
+					}
+				}
+				if (pos < 0) {
+					return null;
+				}
+				index = BigArrays.get(largeValueIndexes, pos);
+			} else {
+				pos = -1;
+				for (int i = 0; i < entries; i++) {
+					if (kmers[i] == kmer) {
+						pos = i;
+						break;
+					}
+				}
+				if (pos < 0) {
+					return null;
+				}
+				index = valueIndexes[(int) pos];
+			}
+		}
+		if (posStore != null) {
+			posStore[0] = pos;
+		}
+		return indexMap[index];
+	}
+
+
 	@Override
 	public void optimize() {
 		if (sorted) {

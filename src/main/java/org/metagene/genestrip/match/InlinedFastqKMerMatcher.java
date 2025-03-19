@@ -99,7 +99,7 @@ public class InlinedFastqKMerMatcher extends FastqKMerMatcher {
 				}
 			}
 			if (kmer != -1) {
-				taxIdNode = kmerStore.getLong(kmer, entry.indexPos);
+				taxIdNode = kmerStore.getLongInlined(kmer, entry.indexPos);
 				if (readTaxErrorCount != -1) {
 					if (taxIdNode == null) {
 						readTaxErrorCount++;
@@ -110,7 +110,7 @@ public class InlinedFastqKMerMatcher extends FastqKMerMatcher {
 							}
 						}
 					} else {
-						taxTree.incCount(taxIdNode, index, entry.readNo);
+						taxIdNode.incCount(index, entry.readNo, consumers);
 
 						boolean found1 = false;
 						for (int i1 = 0; i1 < entry.usedPaths; i1++) {
