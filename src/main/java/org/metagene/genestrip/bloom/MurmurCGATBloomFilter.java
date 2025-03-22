@@ -143,6 +143,47 @@ public class MurmurCGATBloomFilter implements Serializable {
 		return containsViaHash(data);
 	}
 
+	public final boolean containsViaHashInlined(final long data) {
+		for (int i = 0; i < hashes; i++) {
+			long hash = hashFactors[i];
+
+			// Reverse byte inlined from Long.reverseBytes()
+			long k1 = (data & 0x00ff00ff00ff00ffL) << 8 | (data >>> 8) & 0x00ff00ff00ff00ffL;
+			k1 = (k1 << 48) | ((k1 & 0xffff0000L) << 16) | ((k1 >>> 16) & 0xffff0000L) | (k1 >>> 48);
+
+			final int length = Long.BYTES;
+			// mix functions
+			k1 *= 0x87c37b91114253d5L;
+			// Rotate left inlined from Long.rotateLeft()
+			k1 = (k1 << 31) | (k1 >>> -31);
+			k1 *= C2;
+			hash ^= k1;
+			// Rotate left inlined from Long.rotateLeft()
+			hash = ((hash << 27) | (hash >>> -27)) * 5 + 0x52dce729;
+			// finalization
+			hash ^= length;
+
+			// Inlined from MurmurHash3.fmix64()
+			hash ^= (hash >>> 33);
+			hash *= 0xff51afd7ed558ccdL;
+			hash ^= (hash >>> 33);
+			hash *= 0xc4ceb9fe1a85ec53L;
+			hash ^= (hash >>> 33);
+			if (bitVector.largeBits != null) {
+				long arrayIndex = ((hash >>> 6) % bitVector.size);
+				if (((bitVector.largeBits[(int) (arrayIndex >>> 27)][(int) (arrayIndex & 134217727)] >> (hash & 0b111111)) & 1L) != 1) {
+					return false;
+				}
+			} else {
+				int arrayIndex = (int) ((hash >>> 6) % bitVector.size);
+				if ((((bitVector.bits[arrayIndex] >> (hash & 0b111111)) & 1L) != 1)) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
 	protected final boolean containsViaHash(final long data) {
 		for (int i = 0; i < hashes; i++) {
 			if (!bitVector.get(hash(data, i))) {

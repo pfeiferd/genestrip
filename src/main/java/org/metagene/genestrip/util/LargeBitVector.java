@@ -35,9 +35,10 @@ public class LargeBitVector implements Serializable {
 
 	public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
 
-	protected long size;
-	protected long[] bits;
-	protected long[][] largeBits;
+	// All made public for inlining (optimization):
+	public long size;
+	public long[] bits;
+	public long[][] largeBits;
 
 	public LargeBitVector(long initialSize) {
 		this(initialSize, false);
