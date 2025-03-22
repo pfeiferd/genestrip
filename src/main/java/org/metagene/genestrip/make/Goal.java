@@ -112,9 +112,6 @@ public abstract class Goal<P extends Project> {
 				}
 			}
 			GSLogFactory.decN();
-			// It is important to check "isMade()" again here because sometime the goal get
-			// automatically
-			// made via a dependent goal as there are "shortcuts".
 			makeThis();
 			endMake();
 			if (getLogger().isInfoEnabled()) {
@@ -144,6 +141,8 @@ public abstract class Goal<P extends Project> {
 	}
 
 	public final void makeThis() {
+		// It is important to check "isMade()" again here because sometimes the goal gets
+		// made automatically via a dependent goal as there are "shortcuts".
 		if (!isMade()) {
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Making this " + this);
