@@ -27,6 +27,7 @@ package org.metagene.genestrip.goals;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.FileType;
 import org.metagene.genestrip.io.StreamProvider;
+import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.make.*;
 import org.metagene.genestrip.match.MatchingResult;
 import org.metagene.genestrip.match.ResultReporter;
@@ -39,20 +40,22 @@ import java.util.List;
 import java.util.Map;
 
 public class MatchGoal extends FileListGoal<GSProject> {
+	private final ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal;
 	private final ObjectGoal<Map<String, MatchingResult>, GSProject> matchResGoal;
 	private final Map<File, String> fileToKeyMap;
 	private ResultReporter reporter;
 
 	@SafeVarargs
-	public MatchGoal(GSProject project, GoalKey key, ObjectGoal<Map<String, MatchingResult>, GSProject> matchResGoal, Goal<GSProject>... deps) {
-		super(project, key, (List<File>) null, append(deps, matchResGoal));
+	public MatchGoal(GSProject project, GoalKey key, ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal, ObjectGoal<Map<String, MatchingResult>, GSProject> matchResGoal, Goal<GSProject>... deps) {
+		super(project, key, (List<File>) null, append(deps, fastqMapGoal, matchResGoal));
+		this.fastqMapGoal = fastqMapGoal;
 		this.matchResGoal = matchResGoal;
 		fileToKeyMap = new HashMap<>();
 	}
 
 	@Override
 	protected void provideFiles() {
-		for (String key : matchResGoal.get().keySet()) {
+		for (String key : fastqMapGoal.get().keySet()) {
 			File matchFile = getProject().getOutputFile(getKey().getName(), key, null, FileType.CSV, false);
 			addFile(matchFile);
 			fileToKeyMap.put(matchFile, key);

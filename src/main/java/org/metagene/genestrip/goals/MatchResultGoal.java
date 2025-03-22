@@ -62,6 +62,10 @@ public class MatchResultGoal extends ObjectGoal<Map<String, MatchingResult>, GSP
 		this.bundle = bundle;
 	}
 
+	public ObjectGoal<Map<String, StreamingResourceStream>, GSProject> getFastqMapGoal() {
+		return fastqMapGoal;
+	}
+
 	@Override
 	protected void doMakeThis() {
 		FastqKMerMatcher matcher = null;
