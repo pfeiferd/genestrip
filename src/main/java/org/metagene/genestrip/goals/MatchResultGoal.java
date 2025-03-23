@@ -123,7 +123,7 @@ public class MatchResultGoal extends ObjectGoal<Map<String, MatchingResult>, GSP
 
 	protected FastqKMerMatcher createMatcher(KMerSortedArray<SmallTaxIdNode> store, SmallTaxTree taxTree,
 			ExecutionContext bundle, boolean withProbs) {
-		if (booleanConfigValue(GSConfigKey.USE_INLINE_MATCHER)) {
+		if (booleanConfigValue(GSConfigKey.USE_INLINED)) {
 			return new InlinedFastqKMerMatcher(store, intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
 					intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, withProbs, intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS),
 					taxTree, intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS),

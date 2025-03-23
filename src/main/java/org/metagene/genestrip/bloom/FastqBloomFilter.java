@@ -32,31 +32,44 @@ import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.fastq.AbstractLoggingFastqStreamer;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.io.StreamingResourceStream;
+import org.metagene.genestrip.util.CGAT;
 
 public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 	private final double positiveRatio;
 	private final int minPosCount;
 	private final MurmurCGATBloomFilter filter;
+	private final boolean inlined;
 
 	private OutputStream indexed;
 	private OutputStream notIndexed;
 
 	public FastqBloomFilter(MurmurCGATBloomFilter filter, int minPosCount, double positiveRatio, int initialReadSize,
-			int maxQueueSize, ExecutionContext bundle, boolean withProbs) {
+			int maxQueueSize, ExecutionContext bundle, boolean withProbs, boolean inlined) {
 		super(filter.getK(), initialReadSize, maxQueueSize, bundle, withProbs);
 		this.filter = filter;
 		this.minPosCount = minPosCount;
 		this.positiveRatio = positiveRatio;
+		this.inlined = inlined;
+	}
+
+	public void runFilter(StreamingResourceStream fastqs, File filteredFile, File restFile) throws IOException {
+		try (OutputStream lindexed = filteredFile != null ? StreamProvider.getOutputStreamForFile(filteredFile) : null;
+			 OutputStream lnotIndexed = restFile != null ? StreamProvider.getOutputStreamForFile(restFile) : null) {
+			indexed = lindexed;
+			notIndexed = lnotIndexed;
+			processFastqStreams(fastqs);
+		}
+		indexed = null;
+		notIndexed = null;
 	}
 
 	@Override
 	protected void nextEntry(ReadEntry readStruct, int index) throws IOException {
-		boolean res = false;
-		if (minPosCount > 0) {
-			res = isAcceptReadByAbs(readStruct, true) || isAcceptReadByAbs(readStruct, false);
-		} else {
-			res = isAcceptReadByRatio(readStruct, true) || isAcceptReadByRatio(readStruct, false);
-		}
+		MyReadEntry re = (MyReadEntry) readStruct;
+
+		boolean res = inlined ?
+				isAcceptReadInlined(re, true) || isAcceptReadInlined(re, false) :
+				isAcceptRead(re, true) || isAcceptRead(re, false);
 		if (res) {
 			if (indexed != null) {
 				rewriteInput(readStruct, indexed);
@@ -73,38 +86,39 @@ public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 		return new MyReadEntry(maxReadSizeBytes, withProbs);
 	}
 
-	public void runFilter(StreamingResourceStream fastqs, File filteredFile, File restFile) throws IOException {
-		try (OutputStream lindexed = filteredFile != null ? StreamProvider.getOutputStreamForFile(filteredFile) : null;
-				OutputStream lnotIndexed = restFile != null ? StreamProvider.getOutputStreamForFile(restFile) : null) {
-			indexed = lindexed;
-			notIndexed = lnotIndexed;
-			processFastqStreams(fastqs);
-		}
-		indexed = null;
-		notIndexed = null;
-	}
+	protected boolean isAcceptRead(final MyReadEntry entry, final boolean reverse) {
+		int max = entry.readSize - k + 1;
+		int posThreshold = (minPosCount > 0) ? minPosCount : (int) (max * positiveRatio);
+		int negThreshold = max - posThreshold;
 
-	protected boolean isAcceptReadByAbs(ReadEntry readStruct, boolean reverse) {
+		long kmer = -1;
 		int counter = 0;
 		int negCounter = 0;
-		int max = readStruct.readSize - k + 1;
-		int negThreshold = max - minPosCount;
-
-		MyReadEntry re = (MyReadEntry) readStruct;
-
 		for (int i = 0; i < max; i++) {
-			if (filter.contains(readStruct.read, i, re.badPos, reverse)) {
-				counter++;
-				if (counter >= minPosCount) {
-					return true;
+			if (kmer == -1) {
+				kmer = reverse ? CGAT.kMerToLongReverse(entry.read, i, k, entry.badPos)
+						: CGAT.kMerToLongStraight(entry.read, i, k, entry.badPos);
+				if (kmer == -1) {
+					i = entry.badPos[0];
 				}
 			} else {
-				if (re.badPos[0] >= 0) {
-					i += re.badPos[0];
+				kmer = reverse ? CGAT.nextKMerReverse(kmer, entry.read[i + k - 1], k)
+						: CGAT.nextKMerStraight(kmer, entry.read[i + k - 1], k);
+				if (kmer == -1) {
+					i += k - 1;
 				}
-				negCounter++;
-				if (negCounter > negThreshold) {
-					return false;
+			}
+			if (kmer != -1) {
+				if (filter.containsViaHash(kmer)) {
+					counter++;
+					if (counter >= posThreshold) {
+						return true;
+					}
+				} else {
+					negCounter++;
+					if (negCounter > negThreshold) {
+						return false;
+					}
 				}
 			}
 		}
@@ -112,28 +126,74 @@ public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 		return false;
 	}
 
-	protected boolean isAcceptReadByRatio(ReadEntry readStruct, boolean reverse) {
+	protected boolean isAcceptReadInlined(final MyReadEntry entry, final boolean reverse) {
+		int max = entry.readSize - k + 1;
+		int posThreshold = (minPosCount > 0) ? minPosCount : (int) (max * positiveRatio);
+		int negThreshold = max - posThreshold;
+
 		int counter = 0;
 		int negCounter = 0;
-		int max = readStruct.readSize - k + 1;
-		int posCounterThrehold = (int) (max * positiveRatio);
-		int negCounterThreshold = max - posCounterThrehold;
-
-		MyReadEntry re = (MyReadEntry) readStruct;
-
+		long kmer = -1;
 		for (int i = 0; i < max; i++) {
-			if (filter.contains(readStruct.read, i, re.badPos, reverse)) {
-				counter++;
-				if (counter >= posCounterThrehold) {
-					return true;
+			if (kmer == -1) {
+				int c;
+				kmer = 0;
+				if (reverse) {
+					for (int i1 = i + k - 1; i1 >= i; i1--) {
+						// Inlined: res = Long.rotateLeft(res, 2);
+						kmer = (kmer << 2) | (kmer >>> -2);
+						c = CGAT.CGAT_REVERSE_JUMP_TABLE[entry.read[i1]];
+						if (c == -1) {
+							kmer = -1;
+							i = i1;
+							break;
+						}
+						kmer += c;
+					}
+				} else {
+					int max1 = i + k;
+					for (int i1 = i; i1 < max1; i1++) {
+						// Inlined: res = Long.rotateLeft(res, 2);
+						kmer = (kmer << 2) | (kmer >>> -2);
+						c = CGAT.CGAT_JUMP_TABLE[entry.read[i1]];
+						if (c == -1) {
+							kmer = -1;
+							i = i1;
+							break;
+						}
+						kmer += c;
+					}
 				}
 			} else {
-				if (re.badPos[0] >= 0) {
-					i += re.badPos[0];
+				if (reverse) {
+					int c = CGAT.CGAT_REVERSE_JUMP_TABLE[entry.read[i + k - 1]];
+					if (c == -1) {
+						kmer = -1;
+						i += k - 1;
+					} else {
+						kmer = (kmer >>> 2) | (((long) c) << CGAT.SHIFT_FILTERS_REVERSE[k]);
+					}
+				} else {
+					int c = CGAT.CGAT_JUMP_TABLE[entry.read[i + k - 1]];
+					if (c == -1) {
+						kmer = -1;
+						i += k - 1;
+					} else {
+						kmer = ((kmer << 2) & CGAT.SHIFT_FILTERS_STRAIGHT[k]) | (long) c;
+					}
 				}
-				negCounter++;
-				if (negCounter > negCounterThreshold) {
-					return false;
+			}
+			if (kmer != -1) {
+				if (filter.containsViaHashInlined(kmer)) {
+					counter++;
+					if (counter >= posThreshold) {
+						return true;
+					}
+				} else {
+					negCounter++;
+					if (negCounter > negThreshold) {
+						return false;
+					}
 				}
 			}
 		}
