@@ -155,7 +155,7 @@ public class InlinedFastqKMerMatcher extends FastqKMerMatcher {
 				contigLen++;
 				lastTaxid = taxIdNode;
 				if (taxIdNode != null) {
-					short vi = taxIdNode.getStoreIndex();
+					short vi = taxIdNode.storeIndex;
 					stats = statsIndex[vi];
 					if (stats == null) {
 						synchronized (statsIndex) {
@@ -174,7 +174,7 @@ public class InlinedFastqKMerMatcher extends FastqKMerMatcher {
 						}
 					}
 					if (uniqueCounter != null) {
-						uniqueCounter.put(kmer, taxIdNode.taxId, entry.indexPos[0]);
+						uniqueCounter.putInlined(kmer, taxIdNode.taxId, entry.indexPos[0]);
 					}
 				} else {
 					stats = null;

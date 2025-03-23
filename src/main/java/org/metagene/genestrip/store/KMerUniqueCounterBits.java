@@ -65,6 +65,23 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 		}
 	}
 
+	public final synchronized void putInlined(final long kmer, final String taxid, final long index) {
+		if (bitVector.largeBits != null) {
+			long arrayIndex = ((index >>> 6) % bitVector.size);
+			bitVector.largeBits[(int) (arrayIndex >>> 27)][(int) (arrayIndex & 134217727)] = bitVector.largeBits[(int) (arrayIndex >>> 27)][(int) (arrayIndex & 134217727)] | (1L << (index & 0b111111));
+		} else {
+			int arrayIndex = (int) ((index >>> 6) % bitVector.size);
+			bitVector.bits[arrayIndex] = bitVector.bits[arrayIndex] | (1L << (index & 0b111111));
+		}
+		if (countsVector != null) {
+			if (countsVector.largeShorts != null) {
+				countsVector.largeShorts[(int) (index >>> 27)][(int) (index & 134217727)]++;
+			} else {
+				++countsVector.shorts[(int) index];
+			}
+		}
+	}
+
 	@Override
 	public Object2LongMap<String> getUniqueKmerCounts() {
 		Object2LongMap<String> res = new Object2LongLinkedOpenHashMap<String>();

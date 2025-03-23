@@ -56,15 +56,21 @@ public class FastqKMerMatcherTest {
 
 	@Test
 	public void testMatchRead() {
-		//testMatchReadHelp(true);
-		testMatchReadHelp(false);
+		testMatchReadHelp(true,false, false, false);
+		testMatchReadHelp(false,false, false, false);
+		testMatchReadHelp(true,false, true, false);
+		testMatchReadHelp(false,false, true, false);
+		testMatchReadHelp(true,false, false, true);
+		testMatchReadHelp(false,false, false, true);
+		testMatchReadHelp(true,false, true, true);
+		testMatchReadHelp(false,false, true, true);
 	}
 
-	protected void testMatchReadHelp(boolean bitMap) {
+	protected void testMatchReadHelp(boolean inlined, boolean bitMap, boolean large, boolean optimize) {
 		int readLength = 5;
 		int entries = 2000;
 
-		KMerSortedArray<String> store = new KMerSortedArray<>(1, 0.0001, Arrays.asList(TAXIDS), false);
+		KMerSortedArray<String> store = new KMerSortedArray<>(1, 0.0001, Arrays.asList(TAXIDS), large);
 		store.initSize(3);
 		byte[] read = new byte[] { 'C' };
 		store.put(read, 0, TAXIDS[0], false);
@@ -73,9 +79,15 @@ public class FastqKMerMatcherTest {
 		read[0] = 'A';
 		store.put(read, 0, TAXIDS[2], false);
 
+		if (optimize) {
+			store.optimize();
+		}
+
 		ExecutionContext bundle = new DefaultExecutionContext(0, 1000);
 
-		MyFastqMatcher matcher = new MyFastqMatcher(store, readLength * 10, 1, bundle);
+		FastqKMerMatcher matcher = inlined ?
+				new MyInlinedFastqMatcher(store, readLength * 10, 1, bundle) :
+				new MyFastqMatcher(store, readLength * 10, 1, bundle);
 		KMerUniqueCounter uniqueCounter = bitMap ? new KMerUniqueCounterMap() : new KMerUniqueCounterBits(store, true);
 
 		MyReadEntry entry = new MyReadEntry(2000, true, 4);
@@ -135,7 +147,7 @@ public class FastqKMerMatcherTest {
 
 			Object2LongMap<String> map = uniqueCounter.getUniqueKmerCounts();
 			for (int j = 0; j < TAXIDS.length; j++) {
-				CountsPerTaxid stats = matcher.getStats(TAXIDS[j]);
+				CountsPerTaxid stats = ((GetStats) matcher).getStats(TAXIDS[j]);
 				if (!used[j]) {
 					assertNull(stats);
 				} else {
@@ -151,6 +163,17 @@ public class FastqKMerMatcherTest {
 
 	@Test
 	public void testReadClassification() {
+		testReadClassificationHelp(true, true, true);
+		testReadClassificationHelp(false, true, true);
+		testReadClassificationHelp(true, false, true);
+		testReadClassificationHelp(false, false, true);
+		testReadClassificationHelp(true, true, false);
+		testReadClassificationHelp(false, true, false);
+		testReadClassificationHelp(true, false, false);
+		testReadClassificationHelp(false, false, false);
+	}
+
+	public void testReadClassificationHelp(boolean inlined, boolean large, boolean optimize) {
 		ClassLoader classLoader = getClass().getClassLoader();
 		File treePath = new File(classLoader.getResource("taxtree").getFile());
 		TaxTree tree = new TaxTree(treePath);
@@ -159,7 +182,7 @@ public class FastqKMerMatcherTest {
 		}
 		SmallTaxTree smallTree = tree.toSmallTaxTree();
 
-		KMerSortedArray<String> store = new KMerSortedArray<>(1, 0.0001, Arrays.asList(TAXIDS), false);
+		KMerSortedArray<String> store = new KMerSortedArray<>(1, 0.0001, Arrays.asList(TAXIDS), large);
 		store.initSize(3);
 		byte[] read = new byte[] { 'C' };
 		store.put(read, 0, TAXIDS[0], false);
@@ -167,12 +190,14 @@ public class FastqKMerMatcherTest {
 		store.put(read, 0, TAXIDS[1], false);
 		read[0] = 'A';
 		store.put(read, 0, TAXIDS[2], false);
-		store.optimize();
+		if (optimize) {
+			store.optimize();
+		}
 
 		Database db = new Database(store, smallTree);
 
 		ExecutionContext bundle = new DefaultExecutionContext(0, 1000);
-		MyFastqMatcher2 matcher = new MyFastqMatcher2(db.convertKMerStore(), bundle, smallTree, 0);
+		FastqKMerMatcher matcher = createMatcher2(inlined, db.convertKMerStore(), bundle, smallTree, 0);
 		matcher.initStats();
 
 		MyReadEntry entry = new MyReadEntry(10, true, 4);
@@ -249,6 +274,16 @@ public class FastqKMerMatcherTest {
 		assertEquals("1", entry.classNode.getTaxId());
 	}
 
+	private FastqKMerMatcher createMatcher2(boolean inlined, KMerSortedArray<SmallTaxIdNode> kmerStore, ExecutionContext bundle, SmallTaxTree tree,
+											double error) {
+		if (inlined) {
+			return new InlinedFastqKMerMatcher (kmerStore, 1024, 100, bundle, false, 10, tree, 4, error, -1);
+		}
+		else {
+			return new FastqKMerMatcher (kmerStore, 1024, 100, bundle, false, 10, tree, 4, error, -1);
+		}
+	}
+
 	private void fillInRead(String cgat, MyReadEntry entry) {
 		initEntry(entry);
 		for (int i = 0; i < cgat.length(); ++i) {
@@ -268,7 +303,11 @@ public class FastqKMerMatcherTest {
 		}
 	}
 
-	protected static class MyFastqMatcher extends FastqKMerMatcher {
+	private interface GetStats {
+		public CountsPerTaxid getStats(String taxid);
+	}
+
+	protected static class MyFastqMatcher extends FastqKMerMatcher implements GetStats {
 		private final KMerSortedArray<String> orgKmerStore;
 
 		public MyFastqMatcher(KMerSortedArray<String> kmerStore, int initialReadSize, int maxQueueSize,
@@ -286,25 +325,32 @@ public class FastqKMerMatcherTest {
 		}
 
 		@Override
-		public void initStats() {
-			super.initStats();
-		}
-
-		@Override
-		public void initUniqueCounter(KMerUniqueCounter uniqueCounter) {
-			super.initUniqueCounter(uniqueCounter);
-		}
-
 		public CountsPerTaxid getStats(String taxid) {
 			return statsIndex[orgKmerStore.getIndexForValue(taxid)];
 		}
+	}
 
-		/*
-		@Override
-		protected boolean matchRead(MyReadEntry entry, int index, boolean reverse) {
-			return super.matchRead(entry, index, reverse);
+	protected static class MyInlinedFastqMatcher extends InlinedFastqKMerMatcher implements GetStats {
+		private final KMerSortedArray<String> orgKmerStore;
+
+		public MyInlinedFastqMatcher(KMerSortedArray<String> kmerStore, int initialReadSize, int maxQueueSize,
+							  ExecutionContext bundle) {
+			super(new KMerSortedArray<>(kmerStore, new ValueConverter<String, SmallTaxIdNode>() {
+				@Override
+				public SmallTaxIdNode convertValue(String value) {
+					SmallTaxIdNode node = new SmallTaxIdNode(value);
+					node.setStoreIndex(kmerStore.getIndexForValue(value));
+					return node;
+				}
+			}), initialReadSize, maxQueueSize, bundle, false, 10, null, 4, 0, 0);
+			orgKmerStore = kmerStore;
+			out = System.out;
 		}
-		*/
+
+		@Override
+		public CountsPerTaxid getStats(String taxid) {
+			return statsIndex[orgKmerStore.getIndexForValue(taxid)];
+		}
 	}
 
 	protected static class MyFastqMatcher2 extends FastqKMerMatcher {
@@ -312,17 +358,12 @@ public class FastqKMerMatcherTest {
 				double error) {
 			super(kmerStore, 1024, 100, bundle, false, 10, tree, 4, error, -1);
 		}
+	}
 
-		@Override
-		public void initStats() {
-			super.initStats();
+	protected static class MyInlinedFastqMatcher2 extends InlinedFastqKMerMatcher {
+		public MyInlinedFastqMatcher2(KMerSortedArray<SmallTaxIdNode> kmerStore, ExecutionContext bundle, SmallTaxTree tree,
+							   double error) {
+			super(kmerStore, 1024, 100, bundle, false, 10, tree, 4, error, -1);
 		}
-
-		/*
-		@Override
-		protected boolean matchRead(MyReadEntry entry, int index, boolean reverse) {
-			return super.matchRead(entry, index, reverse);
-		}
-		*/
 	}
 }

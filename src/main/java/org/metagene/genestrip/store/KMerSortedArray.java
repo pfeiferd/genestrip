@@ -458,23 +458,22 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	}
 
 	// Made final for potential (automated) inlining by JVM
-	// Also inlined the sorted, largeKmers != null part for speed.
 	public final V getLongInlined(final long kmer, final long[] posStore) {
-		if (filter != null && useFilter && !filter.containsViaHashInlined(kmer)) {
+		if (filter != null && useFilter && !filter.containsLong(kmer)) {
 			return null;
 		}
 		short index;
 		if (sorted) {
 			if (largeKmers != null) {
-				long pos = 0;
+				long pos = -1;
 				boolean finished = false;
 				long from = 0;
-				long to = entries - 1;
+				long to = entries;
 				long midVal;
-				long mid;
+				to--;
 				while (from <= to) {
-					mid = (from + to) >>> 1;
-					midVal = largeKmers[(int) (mid >>> 27)][(int) (mid & 26)];
+					final long mid = (from + to) >>> 1;
+					midVal = largeKmers[(int) (mid >>> 27)][(int) (mid & 134217727)];
 					if (midVal < kmer) from = mid + 1;
 					else if (midVal > kmer) to = mid - 1;
 					else {
@@ -486,15 +485,15 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				if (!finished) {
 					pos = -(from + 1);
 				}
-				if (pos < 0) {
-					return null;
-				}
-				index = largeValueIndexes[(int) (pos >>> 27)][(int) (pos & 26)];
 				if (posStore != null) {
 					posStore[0] = pos;
 				}
+				if (pos < 0) {
+					return null;
+				}
+				index = largeValueIndexes[(int) (pos >>> 27)][(int) (pos & 134217727)];
 			} else {
-				int pos = 0;
+				int pos = -1;
 				int low = 0;
 				int high = (int) entries - 1;
 				boolean finished = false;
@@ -516,13 +515,13 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				if (!finished) {
 					pos = -(low + 1);// key not found.
 				}
+				if (posStore != null) {
+					posStore[0] = pos;
+				}
 				if (pos < 0) {
 					return null;
 				}
 				index = valueIndexes[pos];
-				if (posStore != null) {
-					posStore[0] = pos;
-				}
 			}
 		} else {
 			if (largeKmers != null) {
@@ -533,13 +532,13 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 						break;
 					}
 				}
+				if (posStore != null) {
+					posStore[0] = pos;
+				}
 				if (pos < 0) {
 					return null;
 				}
 				index = BigArrays.get(largeValueIndexes, pos);
-				if (posStore != null) {
-					posStore[0] = pos;
-				}
 			} else {
 				int pos = -1;
 				for (int i = 0; i < entries; i++) {
@@ -548,15 +547,17 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 						break;
 					}
 				}
+				if (posStore != null) {
+					posStore[0] = pos;
+				}
 				if (pos < 0) {
 					return null;
 				}
-				index = valueIndexes[pos];
+				index = valueIndexes[(int) pos];
 			}
 		}
 		return indexMap[index];
 	}
-
 
 	@Override
 	public void optimize() {

@@ -36,8 +36,10 @@ public class LargeShortVector implements Serializable {
 	public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
 
 	protected long size;
-	protected short[] shorts;
-	protected short[][] largeShorts;
+	// Made public for inlining
+	public short[] shorts;
+	// Made public for inlining
+	public short[][] largeShorts;
 
 	public LargeShortVector(long initialSize) {
 		this(initialSize, false);

@@ -176,11 +176,12 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 		}
 	}
 
-	protected void initStats() {
+	// Package private for testing purposes.
+	void initStats() {
 		Arrays.fill(statsIndex, null);
 	}
 
-	protected void initUniqueCounter(KMerUniqueCounter uniqueCounter) {
+	void initUniqueCounter(KMerUniqueCounter uniqueCounter) {
 		// Turned from KMerUniqueCounter to KMerUniqueCounterBits for potential method inlining.
 		this.uniqueCounter = (KMerUniqueCounterBits) uniqueCounter;
 		if (uniqueCounter != null) {

@@ -184,7 +184,8 @@ public class SmallTaxTree implements Serializable {
 		protected SmallTaxIdNode parent;
 		private short[] counts;
 		private long[] countsInitKeys;
-		private transient short storeIndex;
+		// Made public for inlining
+		public transient short storeIndex;
 
 		public SmallTaxIdNode(String taxId) {
 			this(taxId, null);
