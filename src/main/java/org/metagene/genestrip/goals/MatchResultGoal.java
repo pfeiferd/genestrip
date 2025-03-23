@@ -123,10 +123,20 @@ public class MatchResultGoal extends ObjectGoal<Map<String, MatchingResult>, GSP
 
 	protected FastqKMerMatcher createMatcher(KMerSortedArray<SmallTaxIdNode> store, SmallTaxTree taxTree,
 			ExecutionContext bundle, boolean withProbs) {
-		return new InlinedFastqKMerMatcher(store, intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
-				intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, withProbs, intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS),
-				taxTree, intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS),
-				doubleConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT),
-				doubleConfigValue(GSConfigKey.MAX_READ_CLASS_ERROR_COUNT));
+		if (booleanConfigValue(GSConfigKey.USE_INLINE_MATCHER)) {
+			return new InlinedFastqKMerMatcher(store, intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
+					intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, withProbs, intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS),
+					taxTree, intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS),
+					doubleConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT),
+					doubleConfigValue(GSConfigKey.MAX_READ_CLASS_ERROR_COUNT));
+
+		}
+		else {
+			return new FastqKMerMatcher(store, intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
+					intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, withProbs, intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS),
+					taxTree, intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS),
+					doubleConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT),
+					doubleConfigValue(GSConfigKey.MAX_READ_CLASS_ERROR_COUNT));
+		}
 	}
 }
