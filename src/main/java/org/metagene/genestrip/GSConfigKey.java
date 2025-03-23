@@ -184,7 +184,7 @@ public enum GSConfigKey implements ConfigKey {
 			GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 	@MDDescription("If > 0, the corresponding number of frequencies of the most frequent *k*-mers per tax id will be reported.")
 	MAX_KMER_RES_COUNTS("maxKMerResCounts", new IntConfigParamInfo(0, 65536, 0), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
-	@MDDescription("Wether to use an optimized version of the matcher with heavily inlined code.")
+	@MDDescription("If `true`, then an optimized version of the matcher with heavily inlined code is used.")
 	USE_INLINE_MATCHER("useInlineMatcher", new BooleanConfigParamInfo(true), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 	THREAD_QUEUE_SIZE("threadQueueSize", new IntConfigParamInfo(10, 10000, 1000), true),
 	INITIAL_READ_SIZE_BYTES("initialReadSizeBytes", new IntConfigParamInfo(256, 65536, 4096), true),
