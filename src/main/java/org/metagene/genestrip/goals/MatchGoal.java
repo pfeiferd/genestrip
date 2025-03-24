@@ -65,8 +65,8 @@ public class MatchGoal extends FileListGoal<GSProject> {
 	@Override
 	protected void makeFile(File file) {
 		try {
+			MatchingResult result = matchResGoal.get().get(fileToKeyMap.get(file));
 			try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
-				MatchingResult result = matchResGoal.get().get(fileToKeyMap.get(file));
 				if (reporter == null) {
 					reporter = new ResultReporter();
 				}
