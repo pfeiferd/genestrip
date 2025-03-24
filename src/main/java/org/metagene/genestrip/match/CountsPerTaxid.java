@@ -157,7 +157,7 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
 
     @MDCDescription(pos = 7, name="unique kmers", desc = "*All* unique *k*-mers, which are specific to the tax id's genome (according to the database). " +
             "Here, multiple occurrences of the same *k*-mer are only counted once. " +
-            "Genestrip always performs exact counting according to [KrakenUniq's exact counting](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1568-0#Sec8). (Genestrip implements an efficient in-memory storage method for related counts based on a bit vectors.)")
+            "Genestrip always performs exact counting according to [KrakenUniq's exact counting](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1568-0#Sec8). (Genestrip implements an efficient in-memory storage method for related counts based on a bit vector.)")
     public long getUniqueKMers() {
         return uniqueKmers;
     }
@@ -227,7 +227,7 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
         return Math.sqrt((errorSquaredSum  - errorSum * errorSum / reads) / (reads - 1));
     }
 
-    @MDCDescription(pos = 24, name = "mean class error", desc = "The mean ratio of a read's *k*-mers that are consistent with the read's class per read's total *k*-mers.")
+    @MDCDescription(pos = 24, name = "mean class error", desc = "The mean ratio of a read's *k*-mers that are not consistent with the read's class per read's total *k*-mers.")
     public double getMeanClassError() {
         return classErrorSum / reads;
     }
@@ -254,17 +254,17 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
         }
     }
 
-    @MDCDescription(pos = 998, name="norm.", desc = "Normalized value for a respective value type.")
+    @MDCDescription(pos = 998, name="norm.", desc = "Normalized value of a respective value type.")
     public double getNormalizedFor(ValueType valueType) {
         return ((double) getValueFor(valueType)) / dbKMers;
     }
 
-    @MDCDescription(pos = 999, name="acc.", desc = "Accumulated value or accumulated normalized valued for a respective value type.")
+    @MDCDescription(pos = 999, name="acc.", desc = "Accumulated value or accumulated normalized valued of a respective value type.")
     public AccValues getAccValuesFor(ValueType valueType) {
         return extendedValues[valueType.ordinal()];
     }
 
-    @MDCDescription(pos = 1000, name="max contig desc.", desc ="The descriptor of a read that holds a contiguous sequence of maximum length (according to the previous column).")
+    @MDCDescription(pos = 1000, name="max contig desc.", desc ="The descriptor of a read that holds a contiguous sequence of maximum length (according to the column `max contig length`).")
     public byte[] getMaxContigDescriptor() {
         return maxContigDescriptor;
     }

@@ -377,17 +377,17 @@ public class GSMaker extends Maker<GSProject> {
 		registerGoal(filterGoal);
 
 		ObjectGoal<Map<String, MatchingResult>, GSProject> matchResGoal = new MatchResultGoal(getProject(), GSGoalKey.MATCHRES, fastqMapTransfGoal, loadDBGoal,
-				getExecutionContext(getProject()), getGoal(GSGoalKey.SETUP), fastqDownloadsGoal);
+				getExecutionContext(getProject()), projectSetupGoal, fastqDownloadsGoal);
 		registerGoal(matchResGoal);
 
-		Goal<GSProject> matchGoal = new MatchGoal(project, GSGoalKey.MATCH, fastqMapTransfGoal, matchResGoal, projectSetupGoal, fastqDownloadsGoal);
+		Goal<GSProject> matchGoal = new MatchGoal(project, GSGoalKey.MATCH, fastqMapTransfGoal, matchResGoal, projectSetupGoal);
 		registerGoal(matchGoal);
 
 		ObjectGoal<Map<String, MatchingResult>, GSProject> matchReslrGoal = new MatchResultGoal(getProject(), GSGoalKey.MATCHRESLR, fastqMapTransfGoal, loadDBGoal,
-				getExecutionContext(getProject()), getGoal(GSGoalKey.SETUP), fastqDownloadsGoal);
+				getExecutionContext(getProject()), projectSetupGoal, fastqDownloadsGoal);
 		registerGoal(matchReslrGoal);
 
-		Goal<GSProject> matchlrGoal = new MatchGoal(project, GSGoalKey.MATCHLR, fastqMapTransfGoal, matchReslrGoal, projectSetupGoal, fastqDownloadsGoal);
+		Goal<GSProject> matchlrGoal = new MatchGoal(project, GSGoalKey.MATCHLR, fastqMapTransfGoal, matchReslrGoal, projectSetupGoal);
 		registerGoal(matchlrGoal);
 
 		// Use kraken
