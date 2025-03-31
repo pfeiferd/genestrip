@@ -281,7 +281,7 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 
 		@Override
 		protected boolean handleStore() {
-			return store.update(byteRingBuffer.getKMer(), provider);
+			return store.update(byteRingBuffer.getKMer(), byteRingBuffer.getReverseKMer(), provider);
 		}
 	}
 

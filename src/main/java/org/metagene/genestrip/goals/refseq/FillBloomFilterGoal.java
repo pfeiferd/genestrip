@@ -97,7 +97,8 @@ public class FillBloomFilterGoal extends FastaReaderGoal<MurmurCGATBloomFilter> 
 
 		@Override
 		protected boolean handleStore() {
-			if (!filter.containsLong(byteRingBuffer.getKMer())) {
+			if (!filter.containsLong(byteRingBuffer.getKMer()) &&
+					!filter.containsLong(byteRingBuffer.getReverseKMer())) {
 				filter.putLong(byteRingBuffer.getKMer());
 				return true;
 			}

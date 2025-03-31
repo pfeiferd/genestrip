@@ -265,7 +265,9 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	public boolean put(byte[] nseq, int start, V value, boolean reverse) {
 		long kmer = reverse ? CGAT.kMerToLongReverse(nseq, start, k, null)
 				: CGAT.kMerToLongStraight(nseq, start, k, null);
-		return putLong(kmer, value);
+		long reverseKmer = !reverse ? CGAT.kMerToLongReverse(nseq, start, k, null)
+				: CGAT.kMerToLongStraight(nseq, start, k, null);
+		return putLong(kmer, reverseKmer, value);
 	}
 
 	public boolean isFull() {
@@ -276,11 +278,11 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	 * @return true if put succeeded, false if (probably) some value is already
 	 *         stored under that kmer.
 	 */
-	public boolean putLong(long kmer, V value) {
+	public boolean putLong(final long kmer, final long reverseKmer, final V value) {
 		if (value == null) {
 			throw new NullPointerException("null is not allowed as a value.");
 		}
-		if (filter.containsLong(kmer)) {
+		if (filter.containsLong(kmer) || filter.containsLong(reverseKmer)) {
 			// Fail fast - we could check if the kmer is indeed stored, but it's way too
 			// slow because
 			// of linear search in the kmer array...
@@ -335,7 +337,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		return getLong(kmer, indexStore);
 	}
 
-	public boolean update(long kmer, UpdateValueProvider<V> provider) {
+	public boolean update(long kmer, long reverseKmer, UpdateValueProvider<V> provider) {
 		if (!sorted) {
 			throw new IllegalStateException("Updated only works when optimized.");
 		}
@@ -344,12 +346,18 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		if (largeKmers != null) {
 			pos = LongBigArrays.binarySearch(largeKmers, 0, entries, kmer);
 			if (pos < 0) {
-				return false;
+				pos = LongBigArrays.binarySearch(largeKmers, 0, entries, reverseKmer);
+				if (pos < 0) {
+					return false;
+				}
 			}
 		} else {
 			pos = Arrays.binarySearch(kmers, 0, (int) entries, kmer);
 			if (pos < 0) {
-				return false;
+				pos = Arrays.binarySearch(kmers, 0, (int) entries, reverseKmer);
+				if (pos < 0) {
+					return false;
+				}
 			}
 		}
 		// We only must synchronize, if two threads access the same kmer in the same

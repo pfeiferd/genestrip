@@ -24,12 +24,15 @@
  */
 package org.metagene.genestrip.util;
 
+import static org.metagene.genestrip.util.CGAT.*;
+
 public class CGATLongBuffer {
 	private final int seqMarks[];
 	protected final int size;
 	
 	protected int bpCounter;
 	private long kmer;
+	private long reverseKmer;
 	protected boolean filled;
 
 	private final int maxDust;
@@ -85,13 +88,15 @@ public class CGATLongBuffer {
 
 	public long put(byte c) {
 		// This is inlined: kmer = CGAT.nextKMerStraight(kmer, c, size);
-		int bp = CGAT.CGAT_JUMP_TABLE[c]; // Inlined.
+		// And also: reverseKmer = CGAT.nextKMerReverse(reverseKmer, c, size)
+		int bp = CGAT_JUMP_TABLE[c]; // Inlined.
 		if (bp == -1) {  // Inlined.
-			kmer = -1L;  // Inlined.
 			reset();
+			return -1L;
 		}
 		else {
-			kmer = ((kmer << 2) & CGAT.SHIFT_FILTERS_STRAIGHT[size]) | (long) bp;  // Inlined.
+			kmer = ((kmer << 2) & SHIFT_FILTERS_STRAIGHT[size]) | (long) bp;  // Inlined.
+			reverseKmer = (reverseKmer >>> 2) | (((long) CGAT_REVERSE_JUMP_TABLE[c]) << SHIFT_FILTERS_REVERSE[size]);
 			if (maxDust >= 0) {
 				if (c == lastChar) {
 					seqMarks[(bpCounter - seqCount + size) % size]++;
@@ -117,17 +122,22 @@ public class CGATLongBuffer {
 					seqMarks[(bpCounter + 1) % size] = oldCount - 1;
 				}
 			}
+			return kmer;
 		}
-		return kmer;
 	}
 	
 	public long getKMer() {
 		return filled ? kmer : -1;
 	}
 
+	public long getReverseKMer() {
+		return filled ? reverseKmer : -1;
+	}
+
 	public void reset() {
 		bpCounter = 0;
 		kmer = 0;
+		reverseKmer = 0;
 		filled = false;
 		seqCount = 0;
 		sumDust = maxDust >= 0 ? 0 : -1;
