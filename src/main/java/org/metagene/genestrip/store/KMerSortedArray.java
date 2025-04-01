@@ -265,9 +265,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	public boolean put(byte[] nseq, int start, V value, boolean reverse) {
 		long kmer = reverse ? CGAT.kMerToLongReverse(nseq, start, k, null)
 				: CGAT.kMerToLongStraight(nseq, start, k, null);
-		long reverseKmer = !reverse ? CGAT.kMerToLongReverse(nseq, start, k, null)
-				: CGAT.kMerToLongStraight(nseq, start, k, null);
-		return putLong(kmer, reverseKmer, value);
+		return putLong(kmer, -1, value);
 	}
 
 	public boolean isFull() {
