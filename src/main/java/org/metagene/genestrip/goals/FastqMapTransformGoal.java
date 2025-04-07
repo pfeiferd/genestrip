@@ -42,27 +42,30 @@ import org.metagene.genestrip.make.ObjectGoal;
 public class FastqMapTransformGoal extends ObjectGoal<Map<String, StreamingResourceStream>, GSProject> {
 	private final ObjectGoal<Map<String, StreamingResourceStream>, GSProject> inputGoal;
 
+	private final boolean fastqType;
+
 	@SafeVarargs
-	public FastqMapTransformGoal(GSProject project,
+	public FastqMapTransformGoal(GSProject project, boolean fastqType,
 			ObjectGoal<Map<String, StreamingResourceStream>, GSProject> inputGoal, Goal<GSProject>... deps) {
-		super(project, GSGoalKey.FASTQ_MAP_TRANSFORM, append(deps, inputGoal));
+		super(project, fastqType ? GSGoalKey.FASTQ_MAP_TRANSFORM : GSGoalKey.FASTA_MAP_TRANSFORM, append(deps, inputGoal));
 		this.inputGoal = inputGoal;
+		this.fastqType = fastqType;
 	}
 
 	@Override
 	protected void doMakeThis() {
-		if (getProject().isDownloadFastqs() || getProject().isDownloadFastqsToCommon()) {
+		if (!fastqType || getProject().isDownloadFastqs() || getProject().isDownloadFastqsToCommon()) {
 			// Linked hash map preserve order of keys as entered.
 			Map<String, StreamingResourceStream> map = new LinkedHashMap<String, StreamingResourceStream>();
-			if (getProject().isDownloadFastqs()) {
-				fillMap(map, getProject().getFastqDir());
+			if (!fastqType || getProject().isDownloadFastqsToCommon()) {
+				fillMap(map, fastqType ? getProject().getCommon().getFastqDir() : getProject().getCommon().getFastaDir());
 			}
-			if (getProject().isDownloadFastqsToCommon()) {
-				fillMap(map, getProject().getCommon().getFastqDir());
+			else if (!fastqType || getProject().isDownloadFastqs()) {
+				fillMap(map, fastqType ? getProject().getFastqDir() : getProject().getFastaDir());
 			}
 			set(map);
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Transformed fastq map: " + map);
+				getLogger().info("Transformed fastq / fasta map: " + map);
 			}
 		} else {
 			set(inputGoal.get());
@@ -76,7 +79,7 @@ public class FastqMapTransformGoal extends ObjectGoal<Map<String, StreamingResou
 				if (resource instanceof StreamingURLResource) {
 					StreamingURLResource urlRes = (StreamingURLResource) resource;
 
-					File file = getProject().getOutputFile(dir, null, null, key, null, FileType.FASTQ,
+					File file = getProject().getOutputFile(dir, null, null, key, null, fastqType ? FileType.FASTQ : FileType.FASTA,
 							!urlRes.isNoGZ());
 					resource = new StreamingFileResource(file);
 				}

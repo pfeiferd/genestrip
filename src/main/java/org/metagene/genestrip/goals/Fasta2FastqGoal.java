@@ -76,11 +76,12 @@ public class Fasta2FastqGoal extends FileListGoal<GSProject> {
         @Override
         protected void dataLine() {
             ByteArrayUtil.print(target, 0, size - 1, out);
-            dataSize += size;
+            dataSize += size - 1;
         }
 
         @Override
         protected void endRegion() {
+            out.println();
             out.println("+");
             for (int i = 0; i < dataSize; i++) {
                 out.print('~');

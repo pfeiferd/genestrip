@@ -53,9 +53,12 @@ public class FastqMapGoal extends ObjectGoal<Map<String, StreamingResourceStream
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#')
 			.setDelimiter(' ').setRecordSeparator('\n').build();
 
+	private boolean fastqType;
+
 	@SafeVarargs
-	public FastqMapGoal(GSProject project, Goal<GSProject>... deps) {
-		super(project, GSGoalKey.FASTQ_MAP, deps);
+	public FastqMapGoal(GSProject project, boolean fastqType, Goal<GSProject>... deps) {
+		super(project, fastqType ? GSGoalKey.FASTQ_MAP : GSGoalKey.FASTA_MAP, deps);
+		this.fastqType = fastqType;
 	}
 
 	@Override
@@ -65,7 +68,7 @@ public class FastqMapGoal extends ObjectGoal<Map<String, StreamingResourceStream
 				getProject().getFastqMapFile());
 		set(map);
 		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Derived fastq map: " + map);
+			getLogger().info("Derived fastq / fasta map: " + map);
 		}
 	}
 
@@ -81,7 +84,7 @@ public class FastqMapGoal extends ObjectGoal<Map<String, StreamingResourceStream
 				if (res != null) {
 					resources.getList().addAll(res);
 				} else if (getLogger().isWarnEnabled()) {
-					getLogger().warn("Missing fastq resource: " + pathOrURL);
+					getLogger().warn("Missing fastq or fasta resource: " + pathOrURL);
 				}
 			}
 			if (!resources.getList().isEmpty()) {
@@ -92,7 +95,7 @@ public class FastqMapGoal extends ObjectGoal<Map<String, StreamingResourceStream
 			}
 		}
 		if (mapFilePath != null) {
-			File csvFile = getProject().fastqFileFromPath(mapFilePath);
+			File csvFile = fastqType ? getProject().fastqFileFromPath(mapFilePath) : getProject().fastaFileFromPath(mapFilePath);
 			if (csvFile != null) {
 				try (CSVParser parser = FORMAT
 						.parse(new InputStreamReader(StreamProvider.getInputStreamForFile(csvFile)))) {
@@ -107,7 +110,7 @@ public class FastqMapGoal extends ObjectGoal<Map<String, StreamingResourceStream
 							}
 							ll.getList().addAll(resources);
 						} else if (getLogger().isWarnEnabled()) {
-							getLogger().warn("Missing fastq resource: " + record.get(1));
+							getLogger().warn("Missing fastq or fasta resource: " + record.get(1));
 						}
 					}
 				} catch (IOException e) {
@@ -133,7 +136,7 @@ public class FastqMapGoal extends ObjectGoal<Map<String, StreamingResourceStream
 		try {
 			return Collections.singletonList(new StreamingURLResource(new URL(pathOrURL)));
 		} catch (MalformedURLException e) {
-			List<File> fastqs = getProject().fastqFilesFromPath(pathOrURL);
+			List<File> fastqs = getProject().fastqFilesFromPath(pathOrURL, fastqType);
 			if (fastqs != null) {
 				List<StreamingResource> res = new ArrayList<StreamingResource>();
 				for (File file : fastqs) {

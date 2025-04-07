@@ -126,7 +126,7 @@ public class DBGoalTest {
 		maker.dumpAll();
 	}
 	
-	private static class Dengue1ProjectGoal extends FileListGoal<GSProject> {
+	public static class Dengue1ProjectGoal extends FileListGoal<GSProject> {
 		@SafeVarargs
 		public Dengue1ProjectGoal(GSProject project, Goal<GSProject>... dependencies) {
 			super(project, new DefaultGoalKey("dengue1"), (List<File>) null, dependencies);
@@ -136,6 +136,7 @@ public class DBGoalTest {
 			addFile(new File(project.getProjectDir(), "fasta/dengue1.fasta"));
 			addFile(new File(project.getProjectDir(), "fastq/test.fastq"));
 			addFile(new File(project.getProjectDir(), "krakenout/test.out"));
+			addFile(new File(project.getProjectDir(), "fasta/fasta2fastqtest.fasta"));
 		}
 
 		@Override

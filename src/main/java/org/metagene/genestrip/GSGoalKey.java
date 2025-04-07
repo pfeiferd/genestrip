@@ -59,10 +59,10 @@ public enum GSGoalKey implements GoalKey {
 	MATCHLR("matchlr", true),
 	@MDDescription("Filter fastq files as given by the `-f` or `-m` option. The resulting filtered fastq file(s) `filtered_...` will be stored under `<base dir>/projects/<project_name>/fastq/` unless specified otherwise via the `-r` option.")
 	FILTER("filter", true),
-	@MDDescription("Transform a fasta file or streaming resource to fastq file.")
-	FASTA2FASTQ("fasta2fastq", true),
 
 	// Non user Goals
+	@MDDescription("Transform a fasta file or streaming resource to fastq file.")
+	FASTA2FASTQ("fasta2fastq"),
 	@MDDescription("Analyze fastq files as given by the `-f` or `-m` option.")
 	MATCHRES("matchres"),
 	@MDDescription("Same as `matchres` but without doing read classification.")
@@ -106,9 +106,16 @@ public enum GSGoalKey implements GoalKey {
 	@MDDescription("Load the filtering database into memory.")
 	LOAD_INDEX("loadindex"),
 	@MDDescription("Determine tax ids for the goal `db2fast` from the command line argument.")
-	DB2FASTQ_TAXIDS("db2fastqtaxids"), @MDDescription("Determine the fastq mapping from command line arguments.")
-	FASTQ_MAP("fastqmap"), @MDDescription("Transform URLs of fastq files to be downloaded to local paths.")
-	FASTQ_MAP_TRANSFORM("fastqmaptransform"), @MDDescription("Download fastq files given via URLs as requested.")
+	DB2FASTQ_TAXIDS("db2fastqtaxids"),
+	@MDDescription("Determine the fastq mapping from command line arguments.")
+	FASTQ_MAP("fastqmap"),
+	@MDDescription("Transform URLs of fastq files to be downloaded to local paths.")
+	FASTQ_MAP_TRANSFORM("fastqmaptransform"),
+	@MDDescription("Determine the fasta mapping from command line arguments.")
+	FASTA_MAP("fastamap"),
+	@MDDescription("Transform URLs of fasta files to be downloaded to local paths.")
+	FASTA_MAP_TRANSFORM("fastamaptransform"),
+	@MDDescription("Download fastq files given via URLs as requested.")
 	FASTQ_DOWNLOAD("fastqdownload"),
 	@MDDescription("For internal use (to invoke kraken).")
 	KRAKENRES("krakenres"),

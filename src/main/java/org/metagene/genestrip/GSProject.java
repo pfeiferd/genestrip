@@ -408,17 +408,17 @@ public class GSProject extends Project {
 		return null;
 	}
 
-	public List<File> fastqFilesFromPath(String fastqFilePath) {
+	public List<File> fastqFilesFromPath(String fastqFilePath, boolean fastqType) {
 		if (fastqFilePath != null) {
 			File fastq = new File(fastqFilePath);
 			if (fastq.exists()) {
 				return Collections.singletonList(fastq);
 			}
-			fastq = new File(getFastqDir(), fastqFilePath);
+			fastq = new File(fastqType ? getFastqDir() : getFastaDir(), fastqFilePath);
 			if (fastq.exists()) {
 				return Collections.singletonList(fastq);
 			}
-			fastq = new File(getCommon().getFastqDir(), fastqFilePath);
+			fastq = new File(fastqType ? getCommon().getFastqDir() : getCommon().getFastaDir(), fastqFilePath);
 			if (fastq.exists()) {
 				return Collections.singletonList(fastq);
 			}
@@ -427,11 +427,11 @@ public class GSProject extends Project {
 			if (list != null) {
 				return list;
 			}
-			list = findFilesByGlobPattern(getFastqDir(), fastqFilePath);
+			list = findFilesByGlobPattern(fastqType ? getFastqDir() : getFastaDir(), fastqFilePath);
 			if (list != null) {
 				return list;
 			}
-			list = findFilesByGlobPattern(getCommon().getFastqDir(), fastqFilePath);
+			list = findFilesByGlobPattern(fastqType ? getCommon().getFastqDir() : getCommon().getFastaDir(), fastqFilePath);
 			if (list != null) {
 				return list;
 			}

@@ -360,12 +360,12 @@ public class GSMaker extends Maker<GSProject> {
 
 		// Use database and bloom filter
 
-		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal = new FastqMapGoal(project,
+		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal = new FastqMapGoal(project, true,
 				projectSetupGoal);
 		registerGoal(fastqMapGoal);
 
 		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapTransfGoal = new FastqMapTransformGoal(
-				project, fastqMapGoal, projectSetupGoal);
+				project, true, fastqMapGoal, projectSetupGoal);
 		registerGoal(fastqMapTransfGoal);
 
 		FastqDownloadsGoal fastqDownloadsGoal = new FastqDownloadsGoal(project, fastqMapGoal, fastqMapTransfGoal,
@@ -389,6 +389,17 @@ public class GSMaker extends Maker<GSProject> {
 
 		Goal<GSProject> matchlrGoal = new MatchGoal(project, GSGoalKey.MATCHLR, fastqMapTransfGoal, matchReslrGoal, projectSetupGoal);
 		registerGoal(matchlrGoal);
+
+		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastaMapGoal = new FastqMapGoal(project, false,
+				projectSetupGoal);
+		registerGoal(fastaMapGoal);
+
+		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastaMapTransfGoal = new FastqMapTransformGoal(
+				project, false, fastaMapGoal, projectSetupGoal);
+		registerGoal(fastaMapTransfGoal);
+
+		Goal<GSProject> fastq2fastaGoal = new Fasta2FastqGoal(project, GSGoalKey.FASTA2FASTQ, fastaMapTransfGoal, projectSetupGoal);
+		registerGoal(fastq2fastaGoal);
 
 		// Use kraken
 		KrakenResCountGoal krakenResCountGoal = new KrakenResCountGoal(project, fastqMapTransfGoal, taxNodesGoal,
@@ -422,7 +433,7 @@ public class GSMaker extends Maker<GSProject> {
 	}
 
 	protected MatchResultGoal createGoalChainForMatchResult(boolean lr, String key, String... pathsOrURLs) {
-		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal = new FastqMapGoal(getProject(),
+		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal = new FastqMapGoal(getProject(), true,
 				getGoal(GSGoalKey.SETUP)) {
 			@Override
 			protected void doMakeThis() {
@@ -435,7 +446,7 @@ public class GSMaker extends Maker<GSProject> {
 		};
 
 		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapTransfGoal = new FastqMapTransformGoal(
-				getProject(), fastqMapGoal, getGoal(GSGoalKey.SETUP));
+				getProject(), true, fastqMapGoal, getGoal(GSGoalKey.SETUP));
 
 		FastqDownloadsGoal fastqDownloadsGoal = new FastqDownloadsGoal(getProject(), fastqMapGoal, fastqMapTransfGoal,
 				getGoal(GSGoalKey.SETUP));
@@ -444,19 +455,10 @@ public class GSMaker extends Maker<GSProject> {
 
 		return new MatchResultGoal(getProject(), (lr ? GSGoalKey.MATCHRESLR : GSGoalKey.MATCHRES), fastqMapTransfGoal, loadDBGoal,
 				getExecutionContext(getProject()), getGoal(GSGoalKey.SETUP), fastqDownloadsGoal);
-/*		return new MatchResultGoal(getProject(), (lr ? GSGoalKey.MATCHRESLR : GSGoalKey.MATCHRES), fastqMapTransfGoal, loadDBGoal,
-				getExecutionContext(getProject()), getGoal(GSGoalKey.SETUP), fastqDownloadsGoal);
-/*		{
-			protected void writeOutputFile(File file, MatchingResult result, Database wrapper) throws IOException {
-				if (key == null || !key.isEmpty()) {
-					super.writeOutputFile(file, result);
-				}
-			}
-		};*/
 	}
 
 	protected FilterGoal createGoalChainForFilter(String key, String... pathsOrURLs) {
-		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal = new FastqMapGoal(getProject(),
+		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal = new FastqMapGoal(getProject(), true,
 				getGoal(GSGoalKey.SETUP)) {
 			@Override
 			protected void doMakeThis() {
@@ -469,7 +471,7 @@ public class GSMaker extends Maker<GSProject> {
 		};
 
 		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapTransfGoal = new FastqMapTransformGoal(
-				getProject(), fastqMapGoal, getGoal(GSGoalKey.SETUP));
+				getProject(), true, fastqMapGoal, getGoal(GSGoalKey.SETUP));
 
 		FastqDownloadsGoal fastqDownloadsGoal = new FastqDownloadsGoal(getProject(), fastqMapGoal, fastqMapTransfGoal,
 				getGoal(GSGoalKey.SETUP));
