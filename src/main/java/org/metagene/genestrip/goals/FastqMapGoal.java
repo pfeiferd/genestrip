@@ -134,7 +134,10 @@ public class FastqMapGoal extends ObjectGoal<Map<String, StreamingResourceStream
 
 	protected List<StreamingResource> getResources(String pathOrURL) {
 		try {
-			return Collections.singletonList(new StreamingURLResource(new URL(pathOrURL)));
+			URL url = new URL(pathOrURL);
+			String file = url.getFile();
+			boolean gzip = file.contains(".gz");
+			return Collections.singletonList(new StreamingURLResource(file, url, !gzip));
 		} catch (MalformedURLException e) {
 			List<File> fastqs = getProject().fastqFilesFromPath(pathOrURL, fastqType);
 			if (fastqs != null) {

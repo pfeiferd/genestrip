@@ -43,7 +43,7 @@ public class Fasta2FastqGoal extends FileListGoal<GSProject> {
         try {
             StreamingResourceStream fastas = fastaMapGoal.get().get(fileToKeyMap.get(file));
             try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
-                FastqWriter writer = new FastqWriter(out, getProject().intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES));
+                FastqWriter writer = new FastqWriter(out, 65535);
                 for (StreamingResource rs : fastas) {
                     writer.readFasta(rs.openStream().getInputStream());
                 }

@@ -117,6 +117,8 @@ public enum GSGoalKey implements GoalKey {
 	FASTA_MAP_TRANSFORM("fastamaptransform"),
 	@MDDescription("Download fastq files given via URLs as requested.")
 	FASTQ_DOWNLOAD("fastqdownload"),
+	@MDDescription("Download fasta files given via URLs as requested.")
+	FASTA_DOWNLOAD("fastadownload"),
 	@MDDescription("For internal use (to invoke kraken).")
 	KRAKENRES("krakenres"),
 	@MDDescription("Download and install a project's database via a given URL.")

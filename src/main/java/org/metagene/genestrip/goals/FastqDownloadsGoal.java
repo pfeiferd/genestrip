@@ -52,9 +52,9 @@ public class FastqDownloadsGoal extends GSFileDownloadGoal {
 	private final ObjectGoal<Map<String, StreamingResourceStream>, GSProject> transformGoal;
 
 	@SafeVarargs
-	public FastqDownloadsGoal(GSProject project, ObjectGoal<Map<String, StreamingResourceStream>, GSProject> mapGoal,
+	public FastqDownloadsGoal(GSProject project, boolean fastqType, ObjectGoal<Map<String, StreamingResourceStream>, GSProject> mapGoal,
 			ObjectGoal<Map<String, StreamingResourceStream>, GSProject> transformGoal, Goal<GSProject>... deps) {
-		super(project, GSGoalKey.FASTQ_DOWNLOAD, Goal.append(deps, mapGoal, transformGoal));
+		super(project, fastqType ? GSGoalKey.FASTQ_DOWNLOAD : GSGoalKey.FASTA_DOWNLOAD, Goal.append(deps, mapGoal, transformGoal));
 		fileToURL = new HashMap<File, URL>();
 		this.mapGoal = mapGoal;
 		this.transformGoal = transformGoal;

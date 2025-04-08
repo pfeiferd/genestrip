@@ -368,7 +368,7 @@ public class GSMaker extends Maker<GSProject> {
 				project, true, fastqMapGoal, projectSetupGoal);
 		registerGoal(fastqMapTransfGoal);
 
-		FastqDownloadsGoal fastqDownloadsGoal = new FastqDownloadsGoal(project, fastqMapGoal, fastqMapTransfGoal,
+		FastqDownloadsGoal fastqDownloadsGoal = new FastqDownloadsGoal(project, true, fastqMapGoal, fastqMapTransfGoal,
 				projectSetupGoal);
 		registerGoal(fastqDownloadsGoal);
 
@@ -398,7 +398,11 @@ public class GSMaker extends Maker<GSProject> {
 				project, false, fastaMapGoal, projectSetupGoal);
 		registerGoal(fastaMapTransfGoal);
 
-		Goal<GSProject> fastq2fastaGoal = new Fasta2FastqGoal(project, GSGoalKey.FASTA2FASTQ, fastaMapTransfGoal, projectSetupGoal);
+		FastqDownloadsGoal fastaDownloadsGoal = new FastqDownloadsGoal(project, false, fastaMapGoal, fastaMapTransfGoal,
+				projectSetupGoal);
+		registerGoal(fastaDownloadsGoal);
+
+		Goal<GSProject> fastq2fastaGoal = new Fasta2FastqGoal(project, GSGoalKey.FASTA2FASTQ, fastaMapTransfGoal, projectSetupGoal, fastaDownloadsGoal);
 		registerGoal(fastq2fastaGoal);
 
 		// Use kraken
@@ -448,7 +452,7 @@ public class GSMaker extends Maker<GSProject> {
 		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapTransfGoal = new FastqMapTransformGoal(
 				getProject(), true, fastqMapGoal, getGoal(GSGoalKey.SETUP));
 
-		FastqDownloadsGoal fastqDownloadsGoal = new FastqDownloadsGoal(getProject(), fastqMapGoal, fastqMapTransfGoal,
+		FastqDownloadsGoal fastqDownloadsGoal = new FastqDownloadsGoal(getProject(), true, fastqMapGoal, fastqMapTransfGoal,
 				getGoal(GSGoalKey.SETUP));
 
 		LoadDBGoal loadDBGoal = (LoadDBGoal) getGoal(GSGoalKey.LOAD_DB);
@@ -473,7 +477,7 @@ public class GSMaker extends Maker<GSProject> {
 		ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapTransfGoal = new FastqMapTransformGoal(
 				getProject(), true, fastqMapGoal, getGoal(GSGoalKey.SETUP));
 
-		FastqDownloadsGoal fastqDownloadsGoal = new FastqDownloadsGoal(getProject(), fastqMapGoal, fastqMapTransfGoal,
+		FastqDownloadsGoal fastqDownloadsGoal = new FastqDownloadsGoal(getProject(), true, fastqMapGoal, fastqMapTransfGoal,
 				getGoal(GSGoalKey.SETUP));
 
 		LoadIndexGoal bloomIndexedGoal = (LoadIndexGoal) getGoal(GSGoalKey.LOAD_INDEX);
