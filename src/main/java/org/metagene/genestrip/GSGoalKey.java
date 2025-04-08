@@ -119,7 +119,9 @@ public enum GSGoalKey implements GoalKey {
 	FASTQ_DOWNLOAD("fastqdownload"),
 	@MDDescription("Download fasta files given via URLs as requested.")
 	FASTA_DOWNLOAD("fastadownload"),
-	@MDDescription("For internal use (to invoke kraken).")
+	@MDDescription("For internal use (to invoke kraken and count results).")
+	KRAKENCOUNT("krakencount"),
+	@MDDescription("For internal use (to write kraken results to a file).")
 	KRAKENRES("krakenres"),
 	@MDDescription("Download and install a project's database via a given URL.")
 	DB_DOWNLOAD("dbdownload");
