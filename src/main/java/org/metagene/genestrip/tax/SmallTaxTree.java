@@ -169,7 +169,7 @@ public class SmallTaxTree implements Serializable {
 	}
 	*/
 
-	protected SmallTaxIdNode getRoot() {
+	public SmallTaxIdNode getRoot() {
 		return root;
 	}
 
