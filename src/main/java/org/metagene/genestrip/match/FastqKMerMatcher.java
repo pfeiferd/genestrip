@@ -203,10 +203,10 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 		}
 
 		boolean found = matchRead(myEntry, index, false);
-//		if (!found) {
-		boolean	found2 = matchRead(myEntry, index, true);
-//		}
-		afterMatch(myEntry, found || found2);
+		if (!found) {
+			found = matchRead(myEntry, index, true);
+		}
+		afterMatch(myEntry, found);
 	}
 
 	protected void afterMatch(MyReadEntry myEntry, boolean found) throws IOException {
