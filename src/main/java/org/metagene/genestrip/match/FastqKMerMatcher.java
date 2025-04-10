@@ -243,10 +243,12 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         //ByteArrayUtil.println(entry.read, System.out);
         long kmer = -1;
         long reverseKmer = -1;
+        int oldIndex = 0;
         for (int i = 0; i < max; i++) {
             if (kmer == -1) {
                 kmer = CGAT.kMerToLongReverse(entry.read, i, k, entry.badPos);
                 if (kmer == -1) {
+                    oldIndex = i;
                     i = entry.badPos[0];
                 } else {
                     reverseKmer = CGAT.kMerToLongStraight(entry.read, i, k, entry.badPos);
@@ -254,6 +256,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             } else {
                 kmer = CGAT.nextKMerReverse(kmer, entry.read[i + k - 1], k);
                 if (kmer == -1) {
+                    oldIndex = i;
                     i += k - 1;
                 } else {
                     reverseKmer = CGAT.nextKMerStraight(reverseKmer, entry.read[i + k - 1], k);
@@ -297,7 +300,12 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                     contigLen = 0;
                 }
             }
-            contigLen += taxIdNode == INVALID_NODE ? k : 1;
+            if (taxIdNode == INVALID_NODE) {
+                contigLen += i - oldIndex + 1;
+            }
+            else {
+                contigLen++;
+            }
             lastTaxid = taxIdNode;
             if (taxIdNode != null && taxIdNode != INVALID_NODE) {
                 short vi = taxIdNode.getStoreIndex();
