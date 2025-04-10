@@ -34,9 +34,10 @@ public class InlinedFastqKMerMatcher extends FastqKMerMatcher {
 	public InlinedFastqKMerMatcher(KMerSortedArray<SmallTaxIdNode> kmerStore, int initialReadSize, int maxQueueSize, ExecutionContext bundle, boolean withProbs, int maxKmerResCounts, SmallTaxTree taxTree, int maxPaths, double maxReadTaxErrorCount, double maxReadClassErrorCount) {
 		super(kmerStore, initialReadSize, maxQueueSize, bundle, withProbs, maxKmerResCounts, taxTree, maxPaths, maxReadTaxErrorCount, maxReadClassErrorCount);
 	}
-
+/*
 	// Manually inlined stuff via Intellij - seems to help a bit.
-	protected boolean matchRead(final MyReadEntry entry, final int index, final boolean reverse) {
+	protected boolean matchRead(final MyReadEntry entry, final int index, final boolean reverse);
+	{
 		boolean found = false;
 		int prints = 0;
 		int readTaxErrorCount = taxTree == null ? -1 : 0;
@@ -253,4 +254,5 @@ public class InlinedFastqKMerMatcher extends FastqKMerMatcher {
 
 		return found;
 	}
+ */
 }

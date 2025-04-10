@@ -204,13 +204,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             myEntry.counts[i] = 0;
         }
 
-        boolean found = matchRead(myEntry, index, false);
-		/*
-		if (!found) {
-			found = matchRead(myEntry, index, true);
-		}
-		 */
-        afterMatch(myEntry, found);
+        afterMatch(myEntry, matchRead(myEntry, index));
     }
 
     protected void afterMatch(MyReadEntry myEntry, boolean found) throws IOException {
@@ -229,7 +223,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
     private byte[] kmerHelp = new byte[31];
 
     // Made final for potential inlining by JVM
-    protected boolean matchRead(final MyReadEntry entry, final int index, final boolean reverse) {
+    protected final boolean matchRead(final MyReadEntry entry, final int index) {
         boolean found = false;
         int prints = 0;
         int readTaxErrorCount = taxTree == null ? -1 : 0;
@@ -240,26 +234,25 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         int contigLen = 0;
         CountsPerTaxid stats = null;
 
-        //ByteArrayUtil.println(entry.read, System.out);
         long kmer = -1;
         long reverseKmer = -1;
         int oldIndex = 0;
         for (int i = 0; i < max; i++) {
             if (kmer == -1) {
-                kmer = CGAT.kMerToLongReverse(entry.read, i, k, entry.badPos);
+                kmer = CGAT.kMerToLongStraight(entry.read, i, k, entry.badPos);
                 if (kmer == -1) {
                     oldIndex = i;
                     i = entry.badPos[0];
                 } else {
-                    reverseKmer = CGAT.kMerToLongStraight(entry.read, i, k, entry.badPos);
+                    reverseKmer = CGAT.kMerToLongReverse(entry.read, i, k, entry.badPos);
                 }
             } else {
-                kmer = CGAT.nextKMerReverse(kmer, entry.read[i + k - 1], k);
+                kmer = CGAT.nextKMerStraight(kmer, entry.read[i + k - 1], k);
                 if (kmer == -1) {
                     oldIndex = i;
                     i += k - 1;
                 } else {
-                    reverseKmer = CGAT.nextKMerStraight(reverseKmer, entry.read[i + k - 1], k);
+                    reverseKmer = CGAT.nextKMerReverse(reverseKmer, entry.read[i + k - 1], k);
                 }
             }
             taxIdNode = kmer == -1 ? INVALID_NODE : kmerStore.getLong(kmer, entry.indexPos);
@@ -282,7 +275,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             if (taxIdNode != lastTaxid) {
                 if (contigLen > 0) {
                     if (out != null) {
-                        printKrakenStyleOut(entry, lastTaxid, contigLen, prints++, reverse);
+                        printKrakenStyleOut(entry, lastTaxid, contigLen, prints++);
                     }
                     if (stats != null) {
                         synchronized (stats) {
@@ -328,7 +321,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         if (found) {
             if (contigLen > 0) {
                 if (out != null) {
-                    printKrakenStyleOut(entry, lastTaxid, contigLen, prints, reverse);
+                    printKrakenStyleOut(entry, lastTaxid, contigLen, prints);
                 }
                 if (stats != null) {
                     synchronized (stats) {
@@ -426,8 +419,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         }
     }
 
-    protected void printKrakenStyleOut(final MyReadEntry entry, final SmallTaxIdNode taxid, final int contigLen, final int state,
-                                       boolean reverse) {
+    protected void printKrakenStyleOut(final MyReadEntry entry, final SmallTaxIdNode taxid, final int contigLen, final int state) {
         entry.enablePrintBuffer();
         if (state != 0) {
             entry.printChar(' ');
