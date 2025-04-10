@@ -38,6 +38,7 @@ import java.util.Map;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.io.StreamProvider;
@@ -53,12 +54,14 @@ public class FastqMapGoal extends ObjectGoal<Map<String, StreamingResourceStream
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#')
 			.setDelimiter(' ').setRecordSeparator('\n').build();
 
-	private boolean fastqType;
+	private final boolean fastqType;
+	private final boolean alwaysAssumeGZIP;
 
 	@SafeVarargs
 	public FastqMapGoal(GSProject project, boolean fastqType, Goal<GSProject>... deps) {
 		super(project, fastqType ? GSGoalKey.FASTQ_MAP : GSGoalKey.FASTA_MAP, deps);
 		this.fastqType = fastqType;
+		this.alwaysAssumeGZIP = booleanConfigValue(GSConfigKey.ALWAYS_ASSUME_GZIP);
 	}
 
 	@Override
@@ -136,8 +139,8 @@ public class FastqMapGoal extends ObjectGoal<Map<String, StreamingResourceStream
 		try {
 			URL url = new URL(pathOrURL);
 			String file = url.getFile();
-			boolean gzip = file.contains(".gz");
-			return Collections.singletonList(new StreamingURLResource(file, url, !gzip));
+			return Collections.singletonList(new StreamingURLResource(file, url,
+					!(alwaysAssumeGZIP || StreamProvider.isGZIPFileName(file))));
 		} catch (MalformedURLException e) {
 			List<File> fastqs = getProject().fastqFilesFromPath(pathOrURL, fastqType);
 			if (fastqs != null) {
@@ -150,5 +153,4 @@ public class FastqMapGoal extends ObjectGoal<Map<String, StreamingResourceStream
 			return null;
 		}
 	}
-
 }

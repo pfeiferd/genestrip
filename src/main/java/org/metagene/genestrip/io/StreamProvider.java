@@ -76,8 +76,10 @@ public class StreamProvider {
 	}
 
 	public static boolean isGZIPFile(File file) {
-		String name = file.getName();
+		return isGZIPFileName(file.getName());
+	}
 
+	public static boolean isGZIPFileName(String name) {
 		return name.endsWith(".gz") || name.endsWith(".gzip");
 	}
 
