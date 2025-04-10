@@ -31,9 +31,10 @@ import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.util.CGAT;
 
 public class InlinedFastqKMerMatcher extends FastqKMerMatcher {
-	public InlinedFastqKMerMatcher(KMerSortedArray<SmallTaxIdNode> kmerStore, int initialReadSize, int maxQueueSize, ExecutionContext bundle, boolean withProbs, int maxKmerResCounts, SmallTaxTree taxTree, int maxPaths, double maxReadTaxErrorCount, double maxReadClassErrorCount) {
-		super(kmerStore, initialReadSize, maxQueueSize, bundle, withProbs, maxKmerResCounts, taxTree, maxPaths, maxReadTaxErrorCount, maxReadClassErrorCount);
+	public InlinedFastqKMerMatcher(KMerSortedArray<SmallTaxIdNode> kmerStore, int initialReadSize, int maxQueueSize, ExecutionContext bundle, boolean withProbs, int maxKmerResCounts, SmallTaxTree taxTree, int maxPaths, double maxReadTaxErrorCount, double maxReadClassErrorCount, boolean krakenStyleMatch) {
+		super(kmerStore, initialReadSize, maxQueueSize, bundle, withProbs, maxKmerResCounts, taxTree, maxPaths, maxReadTaxErrorCount, maxReadClassErrorCount, krakenStyleMatch);
 	}
+	// TODO
 /*
 	// Manually inlined stuff via Intellij - seems to help a bit.
 	protected boolean matchRead(final MyReadEntry entry, final int index, final boolean reverse);

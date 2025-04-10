@@ -277,10 +277,10 @@ public class FastqKMerMatcherTest {
 	private FastqKMerMatcher createMatcher2(boolean inlined, KMerSortedArray<SmallTaxIdNode> kmerStore, ExecutionContext bundle, SmallTaxTree tree,
 											double error) {
 		if (inlined) {
-			return new InlinedFastqKMerMatcher (kmerStore, 1024, 100, bundle, false, 10, tree, 4, error, -1);
+			return new InlinedFastqKMerMatcher (kmerStore, 1024, 100, bundle, false, 10, tree, 4, error, -1, false);
 		}
 		else {
-			return new FastqKMerMatcher (kmerStore, 1024, 100, bundle, false, 10, tree, 4, error, -1);
+			return new FastqKMerMatcher (kmerStore, 1024, 100, bundle, false, 10, tree, 4, error, -1, false);
 		}
 	}
 
@@ -319,7 +319,7 @@ public class FastqKMerMatcherTest {
 					node.setStoreIndex(kmerStore.getIndexForValue(value));
 					return node;
 				}
-			}), initialReadSize, maxQueueSize, bundle, false, 10, null, 4, 0, 0);
+			}), initialReadSize, maxQueueSize, bundle, false, 10, null, 4, 0, 0, false);
 			orgKmerStore = kmerStore;
 			out = System.out;
 		}
@@ -342,7 +342,7 @@ public class FastqKMerMatcherTest {
 					node.setStoreIndex(kmerStore.getIndexForValue(value));
 					return node;
 				}
-			}), initialReadSize, maxQueueSize, bundle, false, 10, null, 4, 0, 0);
+			}), initialReadSize, maxQueueSize, bundle, false, 10, null, 4, 0, 0, false);
 			orgKmerStore = kmerStore;
 			out = System.out;
 		}
@@ -356,14 +356,14 @@ public class FastqKMerMatcherTest {
 	protected static class MyFastqMatcher2 extends FastqKMerMatcher {
 		public MyFastqMatcher2(KMerSortedArray<SmallTaxIdNode> kmerStore, ExecutionContext bundle, SmallTaxTree tree,
 				double error) {
-			super(kmerStore, 1024, 100, bundle, false, 10, tree, 4, error, -1);
+			super(kmerStore, 1024, 100, bundle, false, 10, tree, 4, error, -1, false);
 		}
 	}
 
 	protected static class MyInlinedFastqMatcher2 extends InlinedFastqKMerMatcher {
 		public MyInlinedFastqMatcher2(KMerSortedArray<SmallTaxIdNode> kmerStore, ExecutionContext bundle, SmallTaxTree tree,
 							   double error) {
-			super(kmerStore, 1024, 100, bundle, false, 10, tree, 4, error, -1);
+			super(kmerStore, 1024, 100, bundle, false, 10, tree, 4, error, -1, false);
 		}
 	}
 }

@@ -186,6 +186,9 @@ public enum GSConfigKey implements ConfigKey {
 	MAX_KMER_RES_COUNTS("maxKMerResCounts", new IntConfigParamInfo(0, 65536, 0), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 	@MDDescription("If `true`, then an optimized version of the filter / matcher with heavily inlined code is used.")
 	USE_INLINED("useInlined", new BooleanConfigParamInfo(true), GSGoalKey.MATCH, GSGoalKey.MATCHLR, GSGoalKey.FILTER),
+	@MDDescription("If `true` (\"kraken style\"), then a read's *k*-mers are checked in straight order and via their reverse complement in one go. This done for each *k*-mer while iterating *once* " +
+	" over the read. If `false`, a read is first analyzed in straight order and if none of the read's *k*-mer are found in the database then the read's reverse complement is analyzed instead.")
+	KRAKEN_STYLE_MATCH("krakenStyleMatch", new BooleanConfigParamInfo(false), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 	THREAD_QUEUE_SIZE("threadQueueSize", new IntConfigParamInfo(10, 10000, 1000), true),
 	INITIAL_READ_SIZE_BYTES("initialReadSizeBytes", new IntConfigParamInfo(256, 65536, 4096), true),
 	MAX_CLASSIFICATION_PATHS("maxClassificationPaths", new IntConfigParamInfo(1, 128, 10), true),
