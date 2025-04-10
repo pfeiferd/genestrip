@@ -301,7 +301,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                 }
             }
             if (taxIdNode == INVALID_NODE) {
-                contigLen += i - oldIndex + 1;
+                contigLen += i >= max ? max - oldIndex : i - oldIndex + 1;
             }
             else {
                 contigLen++;
