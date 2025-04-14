@@ -46,7 +46,7 @@ public class ComprehensiveMatchTest extends DBGoalTest {
 
     @Override
     public void testUpdate() throws IOException {
-        // Just to avoid running the test from the superclass...
+        // Just to avoid running the test from the superclass ...
     }
 
     protected static GSProject createProject(String csvFile1) throws IOException {
