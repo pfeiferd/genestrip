@@ -310,7 +310,18 @@ public class GSMaker extends Maker<GSProject> {
         FilledDBGoal filledDBGoal = new FilledDBGoal(project, fillDBGoal, storeTempDBGoal);
         registerGoal(filledDBGoal);
 
-        Goal<GSProject> tempDbInfoGoal = new DBInfoGoal(true, project, filledDBGoal, projectSetupGoal);
+        Goal<GSProject> tempDbInfoGoal = new DBInfoGoal(true, project, filledDBGoal, projectSetupGoal) {
+            @Override
+            protected void dependentMade(Goal<GSProject> goal) {
+                super.dependentMade(goal);
+                if (booleanConfigValue(GSConfigKey.REMOVE_TEMP_DB)) {
+                    // Remove temp file if not required any more...
+                    if (GSGoalKey.DB.equals(goal.getKey())) {
+                        cleanThis();
+                    }
+                }
+            }
+        };
         registerGoal(tempDbInfoGoal);
 
         DBGoal updateDBGoal = new DBGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, taxTreeGoal,
