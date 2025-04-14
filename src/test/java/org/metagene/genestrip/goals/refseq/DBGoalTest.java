@@ -84,7 +84,7 @@ public class DBGoalTest {
 	public void testUpdate() throws IOException {
 		GSProject project = createProject();
 
-		new Dengue1ProjectGoal(project).make();
+		createProjectGoal(project).make();
 
 		GSMaker maker = new GSMaker(project);
 
@@ -109,13 +109,17 @@ public class DBGoalTest {
 		assertEquals(totalKmers, kmers3);
 	}
 
+	protected FileListGoal<GSProject> createProjectGoal(GSProject project) {
+		return new Dengue1ProjectGoal(project);
+	}
+
 	@Test
 	public void testKrakenOutput() throws IOException {
 		GSProject project = createProject();
 		project.initConfigParam(GSConfigKey.WRITED_KRAKEN_STYLE_OUT, true);
 
 		GSMaker maker = new GSMaker(project);
-		new Dengue1ProjectGoal(project).make();
+		createProjectGoal(project).make();
 
 		maker.match(false, "test", new File(project.getFastqDir(), "test.fastq").toString());
 
