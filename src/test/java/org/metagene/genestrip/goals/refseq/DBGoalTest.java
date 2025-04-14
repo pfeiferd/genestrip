@@ -45,7 +45,7 @@ import org.metagene.genestrip.store.Database;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 public class DBGoalTest {
-	//@BeforeClass
+	@BeforeClass
 	public static void clearDB() throws IOException {
 		GSProject project = createProject();
 		GSMaker maker = new GSMaker(project);
