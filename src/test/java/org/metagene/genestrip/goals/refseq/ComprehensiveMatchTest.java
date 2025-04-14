@@ -74,17 +74,20 @@ public class ComprehensiveMatchTest extends DBGoalTest {
         maker.getGoal(GSGoalKey.FASTA2FASTQ).make();
         maker.dumpAll();
 
-        project = createProject("viral_test_fastq.txt");
-        project.initConfigParam(GSConfigKey.WRITED_KRAKEN_STYLE_OUT, true);
-
-        createProjectGoal(project).make();
-
+        project = createProject(null);
         maker = new GSMaker(project);
         maker.getGoal(GSGoalKey.FASTA2FASTQ).make();
+        maker.getGoal(GSGoalKey.DB).make();
+        maker.dumpAll();
 
+        project = createProject("viral_test_fastq.txt");
+        project.initConfigParam(GSConfigKey.THREADS, 0);
+        project.initConfigParam(GSConfigKey.WRITED_KRAKEN_STYLE_OUT, true);
+        project.initConfigParam(GSConfigKey.KRAKEN_STYLE_MATCH, true);
+        maker = new GSMaker(project);
         maker.match(false, "test", new File(project.getFastqDir(), "viral_fasta2fastq_test.fastq.gz").toString());
         File file1 = new File(project.getKrakenOutDir(), "test.out");
-        File file2 = new File(project.getKrakenOutDir(), "viral_test.out");
+        File file2 = new File(project.getKrakenOutDir(), "viral_matchres_test.out");
         assertTrue(FileUtils.contentEquals(file1, file2));
         // Clean up memory and threads.
         maker.dumpAll();
