@@ -77,27 +77,27 @@ public class GSProject extends Project {
 	private boolean downloadFastqsToCommon;
 
 	public GSProject(GSCommon config, String name) {
-		this(config, name, null, null, null, null, null, true, null, null, null, null, false);
+		this(config, name, null, null, null, null, null, null, null, null, null, false);
 	}
 
 	public GSProject(GSCommon config, String name, boolean quiet) {
-		this(config, name, null, null, null, null, null, true, null, null, null, null, quiet);
+		this(config, name, null, null, null, null, null, null, null, null, null, quiet);
 	}
 
 	public GSProject(GSCommon config, String name, String key, String[] fastqFiles) {
-		this(config, name, key, fastqFiles, null, null, null, true, null, null, null, null, false);
+		this(config, name, key, fastqFiles, null, null, null, null, null, null, null, false);
 	}
 
 	public GSProject(GSCommon config, String name, String key, String[] fastqFiles, boolean quiet) {
-		this(config, name, key, fastqFiles, null, null, null, true, null, null, null, null, quiet);
+		this(config, name, key, fastqFiles, null, null, null, null, null, null, null, quiet);
 	}
 
 	public GSProject(GSCommon config, String name, String csvFile) {
-		this(config, name, null, null, csvFile, null, null, true, null, null, null, null, false);
+		this(config, name, null, null, csvFile, null, null, null, null, null, null, false);
 	}
 
 	public GSProject(GSCommon config, String name, String key, String[] fastqFiles, String csvFile, File csvDir,
-			File fastqResDir, boolean loadProps, String taxids, Properties commandLineProps, GSGoalKey forGoal,
+			File fastqResDir, String taxids, Properties commandLineProps, GSGoalKey forGoal,
 			String dbPath, boolean quietInit) {
 		super(name);
 		this.common = config;

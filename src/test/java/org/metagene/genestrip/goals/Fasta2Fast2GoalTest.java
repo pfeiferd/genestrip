@@ -41,7 +41,7 @@ public class Fasta2Fast2GoalTest extends DBGoalTest {
         File baseDir = APITest.getBaseDir();
 
         GSCommon config = new GSCommon(DBGoalTest.getBaseDir());
-        GSProject project = new GSProject(config, "dengue1", null, new String[] { "fasta2fastqtest.fasta" }, null, null, null, false, null,
+        GSProject project = new GSProject(config, "dengue1", null, new String[] { "fasta2fastqtest.fasta" }, null, null, null, null,
                 null, null, null, false);
 
         GSMaker maker = new GSMaker(project);

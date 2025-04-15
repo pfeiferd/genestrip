@@ -39,6 +39,22 @@ import java.util.List;
 import static org.junit.Assert.assertTrue;
 
 public class ComprehensiveMatchTest extends DBGoalTest {
+    // @BeforeClass
+    public static void clearDB() throws IOException {
+        GSProject project = createProject("viral", null);
+        GSMaker maker = new GSMaker(project);
+        maker.getGoal(GSGoalKey.CLEAR).make();
+        maker.dumpAll();
+    }
+
+    protected GSProject createTestProject(String csvFile1) throws IOException {
+        return createProject(getProjectName(), csvFile1);
+    }
+
+    protected String getProjectName() {
+        return "viral";
+    }
+
     @Override
     protected FileListGoal<GSProject> createProjectGoal(GSProject project) {
         return new ViralProjectGoal(project);
@@ -49,39 +65,23 @@ public class ComprehensiveMatchTest extends DBGoalTest {
         // Just to avoid running the test from the superclass ...
     }
 
-    protected static GSProject createProject(String csvFile1) throws IOException {
-        File baseDir = getBaseDir();
-
-        // Load the system configuration.
-        GSCommon config = new GSCommon(baseDir) {
-            @Override
-            public File getCommonDir() {
-                return new File(APITest.getBaseDir(), "common");
-            }
-        };
-
-        return new GSProject(config, "viral", null, null, csvFile1, null, null, false, null,
-                null, null, null, false);
-    }
-
-
     @Test
     public void testKrakenOutput() throws IOException {
-        GSProject project = createProject("viral_test_fasta.txt");
+        GSProject project = createTestProject("viral_test_fasta.txt");
         createProjectGoal(project).make();
 
         GSMaker maker = new GSMaker(project);
         maker.getGoal(GSGoalKey.FASTA2FASTQ).make();
         maker.dumpAll();
 
-        project = createProject(null);
+        project = createTestProject(null);
         maker = new GSMaker(project);
         maker.getGoal(GSGoalKey.FASTA2FASTQ).make();
         maker.getGoal(GSGoalKey.DB).make();
         maker.dumpAll();
 
         for (int i = 0; i <= 3; i++) {
-            project = createProject("viral_test_fastq.txt");
+            project = createTestProject("viral_test_fastq.txt");
             project.initConfigParam(GSConfigKey.THREADS, 0);
             project.initConfigParam(GSConfigKey.WRITED_KRAKEN_STYLE_OUT, true);
             project.initConfigParam(GSConfigKey.KRAKEN_STYLE_MATCH, (i & 1) == 1);
@@ -97,11 +97,10 @@ public class ComprehensiveMatchTest extends DBGoalTest {
         }
     }
 
-
-    public static class ViralProjectGoal extends FileListGoal<GSProject> {
+    public class ViralProjectGoal extends FileListGoal<GSProject> {
         @SafeVarargs
         public ViralProjectGoal(GSProject project, Goal<GSProject>... dependencies) {
-            super(project, new GoalKey.DefaultGoalKey("viral"), (List<File>) null, dependencies);
+            super(project, new GoalKey.DefaultGoalKey(getProjectName()), (List<File>) null, dependencies);
             addFile(new File(project.getProjectDir(), "taxids.txt"));
             addFile(new File(project.getProjectDir(), "categories.txt"));
             addFile(new File(project.getProjectDir(), "fasta/test.fasta.gz"));
@@ -139,7 +138,7 @@ public class ComprehensiveMatchTest extends DBGoalTest {
         }
 
         protected String getResFolderStr(String fileName) {
-            return "viral";
+            return getProjectName();
         }
     }
 }

@@ -45,15 +45,15 @@ import org.metagene.genestrip.store.Database;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 public class DBGoalTest {
-	// @BeforeClass
+	@BeforeClass
 	public static void clearDB() throws IOException {
-		GSProject project = createProject();
+		GSProject project = createProject("dengue1", null);
 		GSMaker maker = new GSMaker(project);
 		maker.getGoal(GSGoalKey.CLEAR).make();
 		maker.dumpAll();
 	}
 
-	protected static GSProject createProject() throws IOException {
+	protected static GSProject createProject(String name, String csvFile1) throws IOException {
 		File baseDir = getBaseDir();
 
 		// Load the system configuration.
@@ -64,7 +64,8 @@ public class DBGoalTest {
 			}
 		};
 
-		return new GSProject(config, "dengue1");
+		return new GSProject(config, name, null, null, csvFile1, null, null, null,
+				null, null, null, false);
 	}
 
 	protected static File getBaseDir() {
@@ -79,10 +80,10 @@ public class DBGoalTest {
 		String relPath = DBGoalTest.class.getProtectionDomain().getCodeSource().getLocation().getFile();
 		return new File(relPath).getParentFile();
 	}
-	
+
 	@Test
 	public void testUpdate() throws IOException {
-		GSProject project = createProject();
+		GSProject project = createProject("dengue1", null);
 
 		createProjectGoal(project).make();
 
@@ -115,7 +116,7 @@ public class DBGoalTest {
 
 	@Test
 	public void testKrakenOutput() throws IOException {
-		GSProject project = createProject();
+		GSProject project = createProject("dengue1", null);
 		project.initConfigParam(GSConfigKey.WRITED_KRAKEN_STYLE_OUT, true);
 
 		GSMaker maker = new GSMaker(project);

@@ -53,7 +53,7 @@ public class DB2FastqGoalTest {
 
 		// Create the 'human_virus' project (whose config files are part of the
 		// release).
-		GSProject project = new GSProject(config, "human_virus", null, null, null, null, null, false, "64320,12637+",
+		GSProject project = new GSProject(config, "human_virus", null, null, null, null, null, "64320,12637+",
 				null, null, null, false);
 		project.initConfigParam(GSConfigKey.WRITED_KRAKEN_STYLE_OUT, true);
 		// project.initConfigParam(GSConfigKey.THREADS, 0);
