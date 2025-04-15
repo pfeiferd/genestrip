@@ -62,5 +62,7 @@ public class Fasta2Fast2GoalTest extends DBGoalTest {
                 super.readFastq(inputStream);
             }
         }.readFastq(StreamProvider.getInputStreamForFile(goal.getFile()));
+
+        maker.dumpAll();
     }
 }
