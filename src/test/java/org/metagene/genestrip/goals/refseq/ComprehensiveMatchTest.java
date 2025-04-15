@@ -80,17 +80,21 @@ public class ComprehensiveMatchTest extends DBGoalTest {
         maker.getGoal(GSGoalKey.DB).make();
         maker.dumpAll();
 
-        project = createProject("viral_test_fastq.txt");
-        project.initConfigParam(GSConfigKey.THREADS, 0);
-        project.initConfigParam(GSConfigKey.WRITED_KRAKEN_STYLE_OUT, true);
-        project.initConfigParam(GSConfigKey.KRAKEN_STYLE_MATCH, true);
-        maker = new GSMaker(project);
-        maker.match(false, "test", new File(project.getFastqDir(), "viral_fasta2fastq_test.fastq.gz").toString());
-        File file1 = new File(project.getKrakenOutDir(), "test.out");
-        File file2 = new File(project.getKrakenOutDir(), "viral_matchres_test.out");
-        assertTrue(FileUtils.contentEquals(file1, file2));
-        // Clean up memory and threads.
-        maker.dumpAll();
+        for (int i = 0; i <= 3; i++) {
+            project = createProject("viral_test_fastq.txt");
+            project.initConfigParam(GSConfigKey.THREADS, 0);
+            project.initConfigParam(GSConfigKey.WRITED_KRAKEN_STYLE_OUT, true);
+            project.initConfigParam(GSConfigKey.KRAKEN_STYLE_MATCH, (i & 1) == 1);
+            project.initConfigParam(GSConfigKey.USE_INLINED, (i & 2) == 1);
+            maker = new GSMaker(project);
+            maker.match(false, "test", new File(project.getFastqDir(), "viral_fasta2fastq_test.fastq.gz").toString());
+            String ks = (i & 1) == 1 ? "ks" : "gs";
+            File file1 = new File(project.getKrakenOutDir(), "test_" + ks + ".out");
+            File file2 = new File(project.getKrakenOutDir(), "viral_matchres_test.out");
+            assertTrue(FileUtils.contentEquals(file1, file2));
+            // Clean up memory and threads.
+            maker.dumpAll();
+        }
     }
 
 
@@ -103,7 +107,8 @@ public class ComprehensiveMatchTest extends DBGoalTest {
             addFile(new File(project.getProjectDir(), "fasta/test.fasta.gz"));
             addFile(new File(project.getProjectDir(), "fastq/viral_test_fastq.txt"));
             addFile(new File(project.getProjectDir(), "fasta/viral_test_fasta.txt"));
-            addFile(new File(project.getProjectDir(), "krakenout/test.out"));
+            addFile(new File(project.getProjectDir(), "krakenout/test_ks.out"));
+            addFile(new File(project.getProjectDir(), "krakenout/test_gs.out"));
         }
 
         @Override
