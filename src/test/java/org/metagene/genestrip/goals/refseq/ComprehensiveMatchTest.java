@@ -133,9 +133,13 @@ public class ComprehensiveMatchTest extends DBGoalTest {
             }
             if (!file.exists()) {
                 ClassLoader classLoader = getClass().getClassLoader();
-                File orgFile = new File(classLoader.getResource("projects/viral/" + file.getName()).getFile());
+                File orgFile = new File(classLoader.getResource("projects/" + getResFolderStr(file.getName()) + "/" + file.getName()).getFile());
                 Files.copy(orgFile.toPath(), file.toPath());
             }
+        }
+
+        protected String getResFolderStr(String fileName) {
+            return "viral";
         }
     }
 }
