@@ -31,8 +31,6 @@ import org.metagene.genestrip.fastq.AbstractFastqReader;
 import org.metagene.genestrip.goals.refseq.DBGoalTest;
 import org.metagene.genestrip.io.StreamProvider;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -49,17 +47,15 @@ public class Fasta2Fast2GoalTest extends DBGoalTest {
 
     @Test
     public void testFasta2Fast2Goal() throws IOException {
-        File baseDir = APITest.getBaseDir();
-
         GSCommon config = new GSCommon(getBaseDir());
         GSProject project = new GSProject(config, "dengue1", null, new String[] { "fasta2fastqtest.fasta" }, null, null, null, null,
                 null, null, null, false);
 
-        GSMaker maker = new GSMaker(project);
+        createProjectGoal(project).make();
 
+        GSMaker maker = new GSMaker(project);
         Fasta2FastqGoal goal = (Fasta2FastqGoal) maker.getGoal(GSGoalKey.FASTA2FASTQ);
         goal.cleanThis();
-        createProjectGoal(project).make();
         goal.make();
 
         new AbstractFastqReader(31, project.intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES), 0, new DefaultExecutionContext(0, 1),

@@ -48,10 +48,11 @@ public abstract class FileGoal<P extends Project> extends Goal<P> {
 
 	public File getFile() {
 		List<File> files = getFiles();
-		if (getFiles().size() == 1) {
+		if (files.size() == 1) {
 			return files.get(0);
 		}
-		throw new IllegalStateException("There is more than one output file here.");
+
+		throw new IllegalStateException("There is zero or more than one output file here: " + files);
 	}
 
 	public boolean isAllowEmptyFiles() {
