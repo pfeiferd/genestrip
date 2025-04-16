@@ -479,7 +479,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             }
 
             int newLen = buffer.length;
-            while (bufferPos + additionalSize > buffer.length) {
+            while (bufferPos + additionalSize > newLen) {
                 newLen *= 2;
             }
             if (newLen > buffer.length) {
