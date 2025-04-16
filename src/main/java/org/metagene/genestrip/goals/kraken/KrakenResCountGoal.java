@@ -113,7 +113,7 @@ public class KrakenResCountGoal extends ObjectGoal<Map<String, List<KrakenResCou
                 stringConfigValue(GSConfigKey.KRAKEN_EXEC_EXPR)) {
             @Override
             protected void handleOutputStream(InputStream stream, OutputStream out) throws IOException {
-                KrakenResultProcessor parser = new KrakenResultProcessor(4096);
+                KrakenResultProcessor parser = new KrakenResultProcessor(65536);
 
                 parser.process(new BufferedInputStream(stream), new KrakenResultListener() {
                     private long lastLine = -1;
