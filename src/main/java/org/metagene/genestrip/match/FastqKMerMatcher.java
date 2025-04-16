@@ -35,10 +35,7 @@ import java.util.Map;
 
 import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.fastq.AbstractLoggingFastqStreamer;
-import org.metagene.genestrip.io.StreamProvider;
-import org.metagene.genestrip.io.StreamingResource;
-import org.metagene.genestrip.io.StreamingResourceListStream;
-import org.metagene.genestrip.io.StreamingResourceStream;
+import org.metagene.genestrip.io.*;
 import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerUniqueCounter;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
@@ -427,7 +424,6 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
     }
 
     protected void printKrakenStyleOut(final MyReadEntry entry, final SmallTaxIdNode taxid, final int contigLen, final int state) {
-        entry.enablePrintBuffer();
         if (state != 0) {
             entry.printChar(' ');
         }
@@ -464,27 +460,37 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         }
 
         public void printChar(final char c) {
+            growPrintBuffer(1);
             buffer[bufferPos++] = (byte) c;
         }
 
         public void printString(final String s) {
             int len = s.length();
+            growPrintBuffer(len);
             for (int i = 0; i < len; i++) {
                 buffer[bufferPos++] = (byte) s.charAt(i);
             }
         }
 
-        public void printBytes(final byte[] bytes) {
-            for (int i = 0; i < bytes.length; i++) {
-                byte b = bytes[i];
-                if (b == 0) {
-                    return;
-                }
-                buffer[bufferPos++] = b;
+        protected void growPrintBuffer(int additionalSize) {
+            if (buffer == null) {
+                buffer = new byte[additionalSize];
+                return;
+            }
+
+            int newLen = buffer.length;
+            while (bufferPos + additionalSize > buffer.length) {
+                newLen *= 2;
+            }
+            if (newLen > buffer.length) {
+                byte[] newBuffer = new byte[newLen];
+                System.arraycopy(buffer, 0, newBuffer, 0, bufferPos);
+                buffer = newBuffer;
             }
         }
 
         public void printInt(final int value) {
+            growPrintBuffer(11); // Decimal version of int hat 11 bytes max.
             bufferPos = ByteArrayUtil.intToByteArray(value, buffer, bufferPos);
         }
 
@@ -513,7 +519,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 
         public void enablePrintBuffer() {
             if (buffer == null) {
-                buffer = new byte[read.length + 2048]; // It has to be rather long in some cases...
+                buffer = new byte[read.length]; // It has to be rather long in some cases...
             }
         }
     }
