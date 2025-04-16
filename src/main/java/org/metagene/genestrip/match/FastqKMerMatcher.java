@@ -474,7 +474,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 
         protected void growPrintBuffer(int additionalSize) {
             if (buffer == null) {
-                buffer = new byte[additionalSize];
+                buffer = new byte[additionalSize + 1024];
                 return;
             }
 
@@ -516,11 +516,5 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             out.write(buffer, 0, bufferPos);
             out.println();
         }
-
-        public void enablePrintBuffer() {
-            if (buffer == null) {
-                buffer = new byte[read.length]; // It has to be rather long in some cases...
-            }
-        }
-    }
+   }
 }
