@@ -25,6 +25,7 @@
 package org.metagene.genestrip.goals.refseq;
 
 import org.apache.commons.io.FileUtils;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.metagene.genestrip.*;
@@ -41,6 +42,14 @@ import static org.junit.Assert.assertTrue;
 
 @Ignore
 public class ComprehensiveMatchTestV16 extends ComprehensiveMatchTest {
+    @BeforeClass()
+    public static void clearDB() throws IOException {
+        GSProject project = createProject("viral16", null);
+        GSMaker maker = new GSMaker(project);
+        maker.getGoal(GSGoalKey.CLEAR).make();
+        maker.dumpAll();
+    }
+
     protected String getProjectName() {
         return "viral16";
     }

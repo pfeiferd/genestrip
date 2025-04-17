@@ -25,6 +25,7 @@
 package org.metagene.genestrip.goals.refseq;
 
 import org.apache.commons.io.FileUtils;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.metagene.genestrip.*;
 import org.metagene.genestrip.make.FileListGoal;
@@ -39,7 +40,7 @@ import java.util.List;
 import static org.junit.Assert.assertTrue;
 
 public class ComprehensiveMatchTest extends DBGoalTest {
-    // @BeforeClass
+    @BeforeClass()
     public static void clearDB() throws IOException {
         GSProject project = createProject("viral", null);
         GSMaker maker = new GSMaker(project);
@@ -87,10 +88,12 @@ public class ComprehensiveMatchTest extends DBGoalTest {
             project.initConfigParam(GSConfigKey.KRAKEN_STYLE_MATCH, (i & 1) == 1);
             project.initConfigParam(GSConfigKey.USE_INLINED, (i & 2) == 1);
             maker = new GSMaker(project);
-            maker.match(false, "test", new File(project.getFastqDir(), "viral_fasta2fastq_test.fastq.gz").toString());
+            maker.match(false, "test", new File(project.getFastqDir(), getProjectName() +  "_fasta2fastq_test.fastq.gz").toString());
             String ks = (i & 1) == 1 ? "ks" : "gs";
             File file1 = new File(project.getKrakenOutDir(), "test_" + ks + ".out");
-            File file2 = new File(project.getKrakenOutDir(), "viral_matchres_test.out");
+            File file2 = new File(project.getKrakenOutDir(), getProjectName() + "_matchres_test.out");
+            System.out.println("file1: " + file1);
+            System.out.println("file2: " + file2);
             assertTrue(FileUtils.contentEquals(file1, file2));
             // Clean up memory and threads.
             maker.dumpAll();
