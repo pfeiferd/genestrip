@@ -33,7 +33,7 @@ import org.metagene.genestrip.make.Goal;
 
 public class APITest {
 	// Ensure database will be regenerated prior to test.
-	//@BeforeClass
+	@BeforeClass
 	public static void clearDB() throws IOException {
 		File baseDir = getBaseDir();
 
