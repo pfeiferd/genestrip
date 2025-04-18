@@ -9,11 +9,12 @@
 |`tempdbinfo`||Write information about a project's temporary database content to a CSV file.|
 |`db2fastq`|X|Generate fastq files from the database. A respective fastq file will contain all *k*-mers specifically associated with a single tax id from the database where each *k*-mer is represented by a read consisting of *k* bases. Respective fastq files will be stored in `<base dir>/projects/<project_name>/fastq` with the file name format `<project_name>_db2fastq_<taxid>.fastq.gz`. The command line option `tx` serves at selecting the corresponding tax ids for the fastq files to be generated. If the option is omitted, then fastq files for *all* tax ids from the database will be generated.|
 |`index`|X|Generate a filtering database with respect to a given project.|
-|`matchres`||Analyze fastq files as given by the `-f` or `-m` option.|
-|`matchreslr`||Same as `matchres` but without doing read classification.|
 |`match`|X|Analyze fastq files as given by the `-f` or `-m` option. The resulting CSV file(s) will be stored in `<base dir>/projects/<project_name>/csv` unless specified otherwise via the `-r` option.|
 |`matchlr`|X|Same as `match` but without doing read classification. This corresponds to the configuration setting `classifyReads=false`.|
 |`filter`|X|Filter fastq files as given by the `-f` or `-m` option. The resulting filtered fastq file(s) `filtered_...` will be stored under `<base dir>/projects/<project_name>/fastq/` unless specified otherwise via the `-r` option.|
+|`fasta2fastq`||Transform a fasta file or streaming resource to fastq file.|
+|`matchres`||Analyze fastq files as given by the `-f` or `-m` option.|
+|`matchreslr`||Same as `matchres` but without doing read classification.|
 |`commonsetup`||Create data folders in `<base dir>/common` including `common` itself.|
 |`setup`||Create data folders in `<base dir>/<project>`.|
 |`taxdownload`||Download the taxonomy.|
@@ -44,6 +45,10 @@
 |`db2fastqtaxids`||Determine tax ids for the goal `db2fast` from the command line argument.|
 |`fastqmap`||Determine the fastq mapping from command line arguments.|
 |`fastqmaptransform`||Transform URLs of fastq files to be downloaded to local paths.|
+|`fastamap`||Determine the fasta mapping from command line arguments.|
+|`fastamaptransform`||Transform URLs of fasta files to be downloaded to local paths.|
 |`fastqdownload`||Download fastq files given via URLs as requested.|
-|`krakenres`||For internal use (to invoke kraken).|
+|`fastadownload`||Download fasta files given via URLs as requested.|
+|`krakencount`||For internal use (to invoke kraken and count results).|
+|`krakenres`||For internal use (to write kraken results to a file).|
 |`dbdownload`||Download and install a project's database via a given URL.|

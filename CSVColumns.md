@@ -23,6 +23,7 @@
 |`kmer error std. dev.`|The standard deviation of the `mean error`.|
 |`mean class error`|The mean ratio of a read's *k*-mers that are not consistent with the read's class per read's total *k*-mers.|
 |`kmer error std. dev.`|The standard deviation of the `mean class error`.|
+|`contig len std. dev.`|The standard deviation of the `contig length`.|
 |`norm. reads`,`norm. kmers`,`norm. reads bps`,`norm. read >=1 kmer`,`norm. reads kmers`|Normalized value of a respective value type.|
 |`acc. reads`,`acc. norm. reads`,`acc. kmers`,`acc. norm. kmers`,`acc. reads bps`,`acc. norm. reads bps`,`acc. read >=1 kmer`,`acc. norm. read >=1 kmer`,`acc. reads kmers`,`acc. norm. reads kmers`|Accumulated value or accumulated normalized valued of a respective value type.|
 |`max contig desc.`|The descriptor of a read that holds a contiguous sequence of maximum length (according to the column `max contig length`).|
