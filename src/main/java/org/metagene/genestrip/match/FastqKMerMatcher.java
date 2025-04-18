@@ -330,6 +330,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                 if (stats != null) {
                     synchronized (stats) {
                         stats.contigs++;
+                        stats.contigLenSquaredSum += contigLen * contigLen;
                         if (contigLen > stats.maxContigLen) {
                             stats.maxContigLen = contigLen;
                             for (int j = 0; j < entry.readDescriptorSize; j++) {
