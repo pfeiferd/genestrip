@@ -40,6 +40,8 @@ import java.util.List;
 
 import static org.junit.Assert.assertTrue;
 
+// TODO: The files test_gs.out and test_ku.out must be generated (still missing) for this check.
+// (It has been tested manually though with great accuracy.)
 @Ignore
 public class ComprehensiveMatchTestV16 extends ComprehensiveMatchTest {
     @BeforeClass()
