@@ -79,7 +79,7 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
     protected long uniqueKmers; // All unique kmers counted - even from unclassified reads.
     protected long kmers;
     protected int contigs;
-    protected int contigLenSquaredSum;
+    protected long contigLenSquaredSum;
     protected int maxContigLen;
     protected byte[] maxContigDescriptor;
     protected short[] maxKMerCounts;
@@ -240,7 +240,7 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
 
     @MDCDescription(pos = 25, name = "contig len std. dev.", desc = "The standard deviation of the `contig length`.")
     public double getContigLenStdDev() {
-        return Math.sqrt((contigLenSquaredSum  - kmers * kmers / contigs) / (contigs - 1));
+        return Math.sqrt((contigLenSquaredSum  - ((double) kmers * kmers) / contigs) / (contigs - 1));
     }
 
     public long getValueFor(ValueType valueType) {
