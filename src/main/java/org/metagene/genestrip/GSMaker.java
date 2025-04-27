@@ -331,7 +331,9 @@ public class GSMaker extends Maker<GSProject> {
         // We weed the storeTempDBGoal and tempDbInfoGoal as an explicit dependency here so that associated intermediate files get
         // automatically deleted when final database got stored.
         StoreDBGoal storeDBGoal = new StoreDBGoal(project, GSGoalKey.DB, project.getDBFile(), updateDBGoal,
-                projectSetupGoal, storeTempDBGoal, tempDbInfoGoal);
+                projectSetupGoal,
+                // Keep these two dependencies:
+                storeTempDBGoal, tempDbInfoGoal);
         registerGoal(storeDBGoal);
 
         LoadDBGoal loadDBGoal = new LoadDBGoal(project, updateDBGoal, storeDBGoal);
