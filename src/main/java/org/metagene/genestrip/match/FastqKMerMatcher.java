@@ -221,14 +221,12 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
     }
 
     protected void afterMatch(MyReadEntry myEntry, boolean found) throws IOException {
-        if (found) {
-            if (indexed != null) {
-                rewriteInput(myEntry, indexed);
-            }
-            if (out != null) {
-                synchronized (out) {
-                    myEntry.flush(out);
-                }
+        if (found && indexed != null) {
+            rewriteInput(myEntry, indexed);
+        }
+        if (out != null) {
+            synchronized (out) {
+                myEntry.flush(out);
             }
         }
     }
@@ -332,11 +330,11 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                 stats = null;
             }
         }
+        if (contigLen > 0 && out != null) {
+            printKrakenStyleOut(entry, lastTaxid, contigLen, prints);
+        }
         if (found) {
             if (contigLen > 0) {
-                if (out != null) {
-                    printKrakenStyleOut(entry, lastTaxid, contigLen, prints);
-                }
                 if (stats != null) {
                     synchronized (stats) {
                         stats.contigs++;
