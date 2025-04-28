@@ -74,7 +74,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 
     protected int consumers;
 
-    protected AfterMatchCallback afterMatchCallback;
+    private AfterMatchCallback afterMatchCallback;
 
     public FastqKMerMatcher(KMerSortedArray<SmallTaxIdNode> kmerStore, int initialReadSize, int maxQueueSize,
                             ExecutionContext bundle, boolean withProbs, int maxKmerResCounts, SmallTaxTree taxTree, int maxPaths,

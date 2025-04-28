@@ -51,7 +51,8 @@ import java.util.Map;
 public class MatchResultGoal extends ObjectGoal<Map<String, MatchingResult>, GSProject> {
 	private final ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal;
 	private final ObjectGoal<Database, GSProject> storeGoal;
-	protected final ExecutionContext bundle;
+	private final ExecutionContext bundle;
+	private FastqKMerMatcher.AfterMatchCallback afterMatchCallback;
 
 	@SafeVarargs
 	public MatchResultGoal(GSProject project, GoalKey key, ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal,
@@ -99,6 +100,9 @@ public class MatchResultGoal extends ObjectGoal<Map<String, MatchingResult>, GSP
 									? taxTree
 									: null,
 							bundle, booleanConfigValue(GSConfigKey.WITH_PROBS));
+					if (afterMatchCallback != null) {
+						matcher.setAfterMatchCallback(afterMatchCallback);
+					}
 					uniqueCounter = booleanConfigValue(GSConfigKey.COUNT_UNIQUE_KMERS)
 							? new KMerUniqueCounterBits(database.getKmerStore(),
 							intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS) > 0)
@@ -139,5 +143,9 @@ public class MatchResultGoal extends ObjectGoal<Map<String, MatchingResult>, GSP
 					doubleConfigValue(GSConfigKey.MAX_READ_CLASS_ERROR_COUNT),
 					booleanConfigValue(GSConfigKey.KRAKEN_STYLE_MATCH));
 		}
+	}
+
+	public void setAfterMatchCallback(FastqKMerMatcher.AfterMatchCallback afterMatchCallback) {
+		this.afterMatchCallback = afterMatchCallback;
 	}
 }
