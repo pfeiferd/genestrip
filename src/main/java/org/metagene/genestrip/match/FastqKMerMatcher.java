@@ -74,6 +74,8 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 
     protected int consumers;
 
+    protected AfterMatchCallback afterMatchCallback;
+
     public FastqKMerMatcher(KMerSortedArray<SmallTaxIdNode> kmerStore, int initialReadSize, int maxQueueSize,
                             ExecutionContext bundle, boolean withProbs, int maxKmerResCounts, SmallTaxTree taxTree, int maxPaths,
                             double maxReadTaxErrorCount, double maxReadClassErrorCount, boolean krakenStyleMatch) {
@@ -209,6 +211,13 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         }
 
         afterMatch(myEntry, found);
+        if (afterMatchCallback != null) {
+            afterMatchCallback.afterMatch(myEntry, found);
+        }
+    }
+
+    public void setAfterMatchCallback(AfterMatchCallback afterMatchCallback) {
+        this.afterMatchCallback = afterMatchCallback;
     }
 
     protected void afterMatch(MyReadEntry myEntry, boolean found) throws IOException {
@@ -518,5 +527,9 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             out.write(buffer, 0, bufferPos);
             out.println();
         }
+   }
+
+   public interface AfterMatchCallback {
+        void afterMatch(MyReadEntry entry, boolean found);
    }
 }
