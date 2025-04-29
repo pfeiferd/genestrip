@@ -303,7 +303,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		return true;
 	}
 
-	protected short getAddValueIndex(V value) {
+	public short getAddValueIndex(V value) {
 		short sindex = valueMap.getOrDefault(value, (short) -1);
 		if (sindex == -1) {
 			if (nextValueIndex == MAX_VALUES) {

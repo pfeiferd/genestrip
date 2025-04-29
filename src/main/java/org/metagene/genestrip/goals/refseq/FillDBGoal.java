@@ -95,7 +95,6 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 			if (getLogger().isWarnEnabled()) {
 				getLogger().warn("Not stored kmers: " + fastaReader.tooManyCounter);
 			}
-			store.optimize();
 			TaxTree taxTree = taxTreeGoal.get();
 			Iterator<String> taxIt = store.getValues();
 			while (taxIt.hasNext()) {
@@ -112,10 +111,25 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 					// smallNode.setStoreIndex(store.getIndexForValue(node.getTaxId()));
 				}
 			}
+			ensureAllTreeNodesInDB(smallTaxTree.getRoot(), store);
+			store.optimize();
 			Database wrapper = new Database(store, smallTaxTree);
 			set(wrapper);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
+		}
+	}
+
+	protected void ensureAllTreeNodesInDB(SmallTaxIdNode node, KMerSortedArray<String> store) {
+		if (node == null || node.getTaxId() == null) {
+			return;
+		}
+		store.getAddValueIndex(node.getTaxId());
+		SmallTaxIdNode[] subnodes = node.getSubNodes();
+		if (subnodes != null) {
+			for (int i = 0; i < subnodes.length; i++) {
+				ensureAllTreeNodesInDB(subnodes[i], store);
+			}
 		}
 	}
 

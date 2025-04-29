@@ -379,15 +379,20 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                     double classErr = ((double) classErrC) / max;
                     entry.classNode = node;
                     short vi = node.getStoreIndex();
-                    stats = getCountsPerTaxid(node, vi);
-                    synchronized (stats) {
-                        stats.reads++;
-                        stats.readsKmers += readKmers;
-                        stats.readsBPs += entry.readSize;
-                        stats.errorSum += err;
-                        stats.errorSquaredSum += err * err;
-                        stats.classErrorSum += classErr;
-                        stats.classErrorSquaredSum += classErr * classErr;
+                    if (vi != -1) {
+                        stats = getCountsPerTaxid(node, vi);
+                        synchronized (stats) {
+                            stats.reads++;
+                            stats.readsKmers += readKmers;
+                            stats.readsBPs += entry.readSize;
+                            stats.errorSum += err;
+                            stats.errorSquaredSum += err * err;
+                            stats.classErrorSum += classErr;
+                            stats.classErrorSquaredSum += classErr * classErr;
+                        }
+                    }
+                    else if (getLogger().isWarnEnabled()) {
+                        getLogger().warn("Missing database entry for tax node: " + node);
                     }
                 }
             }
