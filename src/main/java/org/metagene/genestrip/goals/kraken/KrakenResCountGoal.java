@@ -147,7 +147,7 @@ public class KrakenResCountGoal extends ObjectGoal<Map<String, List<KrakenResCou
                 getLogger().info("Writing kraken out to: " + outFile.getAbsolutePath());
             }
             try (OutputStream out = new FileOutputStream(outFile)) {
-                krakenExecutor.execute(stringConfigValue(GSConfigKey.KRAKEN_DB), fastqs, null, out, System.err);
+                krakenExecutor.execute2(stringConfigValue(GSConfigKey.KRAKEN_DB), fastqs, null, out, System.err);
             }
 
             if (getLogger().isInfoEnabled()) {
