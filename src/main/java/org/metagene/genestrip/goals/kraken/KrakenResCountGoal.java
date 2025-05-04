@@ -157,7 +157,7 @@ public class KrakenResCountGoal extends ObjectGoal<Map<String, List<KrakenResCou
             List<KrakenResStats> list = new ArrayList<KrakenResStats>();
             countingTrie.collect(list);
             return list;
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
