@@ -24,13 +24,7 @@
  */
 package org.metagene.genestrip.goals.kraken;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.io.Serializable;
+import java.io.*;
 import java.util.*;
 
 import org.metagene.genestrip.GSConfigKey;
@@ -80,7 +74,7 @@ public class KrakenResCountGoal extends ObjectGoal<Map<String, List<KrakenResCou
                 for (StreamingResource s : fastqs) {
                     files.add(((StreamingFileResource) s).getFile());
                 }
-                countResults.put(key, computeStats(files));
+                countResults.put(key, computeStats(key, files));
             }
             set(countResults);
         } catch (IOException e) {
@@ -88,7 +82,7 @@ public class KrakenResCountGoal extends ObjectGoal<Map<String, List<KrakenResCou
         }
     }
 
-    protected List<KrakenResStats> computeStats(List<File> fastqs) throws IOException {
+    protected List<KrakenResStats> computeStats(String key, List<File> fastqs) throws IOException {
         DigitTrie<KrakenResStats> countingTrie = new DigitTrie<KrakenResStats>() {
             @Override
             protected KrakenResStats createInGet(String taxid, Object createContext) {
@@ -148,8 +142,13 @@ public class KrakenResCountGoal extends ObjectGoal<Map<String, List<KrakenResCou
             if (krakenExecutor.isWithFileForOutput()) {
                 throw new IOException("This goal does not work with an outfile as a parameter (like in krakenuniq)");
             }
-
-            krakenExecutor.execute(stringConfigValue(GSConfigKey.KRAKEN_DB), fastqs, null, null, System.err);
+            File outFile = getProject().getOutputFile(GSGoalKey.KRAKENCOUNT.name(), key, null, FileType.KRAKEN_OUT_RES, true);
+            if (getLogger().isInfoEnabled()) {
+                getLogger().info("Writing kraken out to: " + outFile.getAbsolutePath());
+            }
+            try (OutputStream out = new FileOutputStream(outFile)) {
+                krakenExecutor.execute(stringConfigValue(GSConfigKey.KRAKEN_DB), fastqs, null, out, System.err);
+            }
 
             if (getLogger().isInfoEnabled()) {
                 getLogger().info("Finished kraken");
