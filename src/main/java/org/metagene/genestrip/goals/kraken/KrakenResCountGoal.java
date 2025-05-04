@@ -142,13 +142,15 @@ public class KrakenResCountGoal extends ObjectGoal<Map<String, List<KrakenResCou
             if (krakenExecutor.isWithFileForOutput()) {
                 throw new IOException("This goal does not work with an outfile as a parameter (like in krakenuniq)");
             }
-            File outFile = getProject().getOutputFile(GSGoalKey.KRAKENCOUNT.name(), key, null, FileType.KRAKEN_OUT_RES, true);
+            /*
+            File outFile = getProject().getOutputFile(GSGoalKey.KRAKENCOUNT.getName(), key, null, FileType.KRAKEN_OUT_RES, true);
             if (getLogger().isInfoEnabled()) {
                 getLogger().info("Writing kraken out to: " + outFile.getAbsolutePath());
             }
             try (OutputStream out = new FileOutputStream(outFile)) {
-                krakenExecutor.execute2(stringConfigValue(GSConfigKey.KRAKEN_DB), fastqs, null, out, System.err);
-            }
+             */
+                krakenExecutor.execute2(stringConfigValue(GSConfigKey.KRAKEN_DB), fastqs, null, null, System.err);
+            //}
 
             if (getLogger().isInfoEnabled()) {
                 getLogger().info("Finished kraken");
