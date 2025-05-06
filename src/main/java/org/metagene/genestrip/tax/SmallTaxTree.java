@@ -178,7 +178,7 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		}
 
 		return new Iterator<SmallTaxIdNode>() {
-			private SmallTaxIdNode current = root;
+			private SmallTaxIdNode nextNode = root;
 			private List<Integer> posList = posL;
 
 			@Override
@@ -186,14 +186,22 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 				if (posL.size() == 0) {
 					throw new NoSuchElementException();
 				}
-				int pos = posList.get(posL.size() - 1);
-				if (current.subNodes != null && current.subNodes.length > pos + 1) {
-					posList.set(posL.size() - 1, pos + 1);
-				}
-				else {
+				SmallTaxIdNode res = nextNode;
+				int nextPos = posList.get(posL.size() - 1) + 1;
+				while (nextNode.subNodes == null || nextPos >= nextNode.subNodes.length) {
 					posList.remove(posL.size() - 1);
+					if (posL.isEmpty()) {
+						break;
+					}
+					nextPos = posList.get(posL.size() - 1) + 1;
+					nextNode = nextNode.parent;
 				}
-				return pos == -1 ? current : current.subNodes[pos];
+				if (!posL.isEmpty()) {
+					nextNode = nextNode.subNodes[nextPos];
+					posList.set(posL.size() - 1, nextPos);
+					posList.add(-1);
+				}
+				return res;
 			}
 
 			@Override

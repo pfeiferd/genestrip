@@ -43,6 +43,7 @@ import org.metagene.genestrip.make.GoalKey.DefaultGoalKey;
 import org.metagene.genestrip.store.Database;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
+import org.metagene.genestrip.tax.SmallTaxTree;
 
 public class DBGoalTest {
 	@BeforeClass
@@ -108,6 +109,13 @@ public class DBGoalTest {
 		assertEquals(totalKmers, totalKmers2);
 		long kmers3 = stats2.getLong("1");
 		assertEquals(totalKmers, kmers3);
+
+		int counter = 0;
+		for (SmallTaxTree.SmallTaxIdNode node : dbGoal.get().getTaxTree()) {
+			counter++;
+			System.out.println(node);
+		}
+		assertEquals(12, counter);
 	}
 
 	protected FileListGoal<GSProject> createProjectGoal(GSProject project) {
