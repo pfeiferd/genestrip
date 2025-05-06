@@ -28,14 +28,12 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.DigitTrie;
 
-public class SmallTaxTree implements Serializable {
+public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTaxIdNode> {
 	private static final long serialVersionUID = 1L;
 
 	private transient Comparator<String> taxIdComparator;
@@ -172,6 +170,39 @@ public class SmallTaxTree implements Serializable {
 	public SmallTaxIdNode getRoot() {
 		return root;
 	}
+
+	public Iterator<SmallTaxIdNode> iterator() {
+		List<Integer> posL = new ArrayList<>();
+		if (root != null) {
+			posL.add(-1);
+		}
+
+		return new Iterator<SmallTaxIdNode>() {
+			private SmallTaxIdNode current = root;
+			private List<Integer> posList = posL;
+
+			@Override
+			public SmallTaxIdNode next() {
+				if (posL.size() == 0) {
+					throw new NoSuchElementException();
+				}
+				int pos = posList.get(posL.size() - 1);
+				if (current.subNodes != null && current.subNodes.length > pos + 1) {
+					posList.set(posL.size() - 1, pos + 1);
+				}
+				else {
+					posList.remove(posL.size() - 1);
+				}
+				return pos == -1 ? current : current.subNodes[pos];
+			}
+
+			@Override
+			public boolean hasNext() {
+				return posL.size() != 0;
+			}
+		};
+	}
+
 
 	public SmallTaxIdNode getNodeByTaxId(String taxId) {
 		return taxIdNodeTrie.get(taxId);
