@@ -69,7 +69,12 @@ public class FilterGoal extends MultiFileGoal {
 					doubleConfigValue(GSConfigKey.POS_RATIO_FILTER),
 					intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES), intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE),
 					executorServiceBundle, booleanConfigValue(GSConfigKey.WITH_PROBS),
-					booleanConfigValue(GSConfigKey.USE_INLINED));
+					booleanConfigValue(GSConfigKey.USE_INLINED)) {
+				@Override
+				protected boolean isProgressBar() {
+					return booleanConfigValue(GSConfigKey.PROGRESS_BAR);
+				}
+			};
 			f.runFilter(resources, file, dumpFile);
 		} catch (IOException e) {
 			throw new RuntimeException(e);

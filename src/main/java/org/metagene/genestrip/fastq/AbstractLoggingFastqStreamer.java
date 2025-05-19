@@ -1,26 +1,26 @@
 /*
- * 
+ *
  * “Commons Clause” License Condition v1.0
- * 
- * The Software is provided to you by the Licensor under the License, 
+ *
+ * The Software is provided to you by the Licensor under the License,
  * as defined below, subject to the following condition.
- * 
- * Without limiting other conditions in the License, the grant of rights under the License 
+ *
+ * Without limiting other conditions in the License, the grant of rights under the License
  * will not include, and the License does not grant to you, the right to Sell the Software.
- * 
- * For purposes of the foregoing, “Sell” means practicing any or all of the rights granted 
- * to you under the License to provide to third parties, for a fee or other consideration 
- * (including without limitation fees for hosting or consulting/ support services related to 
- * the Software), a product or service whose value derives, entirely or substantially, from the 
- * functionality of the Software. Any license notice or attribution required by the License 
+ *
+ * For purposes of the foregoing, “Sell” means practicing any or all of the rights granted
+ * to you under the License to provide to third parties, for a fee or other consideration
+ * (including without limitation fees for hosting or consulting/ support services related to
+ * the Software), a product or service whose value derives, entirely or substantially, from the
+ * functionality of the Software. Any license notice or attribution required by the License
  * must also include this Commons Clause License Condition notice.
- * 
+ *
  * Software: genestrip
- * 
+ *
  * License: Apache 2.0
- * 
+ *
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
- * 
+ *
  */
 package org.metagene.genestrip.fastq;
 
@@ -29,154 +29,159 @@ import java.io.IOException;
 import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.io.StreamingResourceStream;
+import me.tongfei.progressbar.*;
+
 
 public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
-	private StreamingResource.StreamAccess byteCountAccess;
-	private int coveredCounter;
-	private int totalCount;
-	private StreamingResource currentFastq;
-	private long fastqsFileSize;
-	private long fastqStartTime;
-	private long fastqFileSize;
-	private long coveredFilesSize;
-	private long startTime;
-	protected long indexedC;
-	protected long totalReads;
-	protected long totalKMers;
-	private final long logUpdateCycle;
+    private StreamingResource.StreamAccess byteCountAccess;
+    private int coveredCounter;
+    private int totalCount;
+    private StreamingResource currentFastq;
+    private long fastqsFileSize;
+    private long fastqStartTime;
+    private long fastqFileSize;
+    private long coveredFilesSize;
+    private long startTime;
+    protected long indexedC;
+    protected long totalReads;
+    protected long totalKMers;
+    private final long logUpdateCycle;
 
-	public AbstractLoggingFastqStreamer(int k, int initialReadSize, int maxQueueSize, ExecutionContext bundle, boolean withProbs,
-			Object... config) {
-		super(k, initialReadSize, maxQueueSize, bundle, withProbs, config);
+    private ProgressBar progressBar;
 
-		this.logUpdateCycle = bundle.getLogUpdateCycle();
-	}
+    public AbstractLoggingFastqStreamer(int k, int initialReadSize, int maxQueueSize, ExecutionContext bundle, boolean withProbs,
+                                        Object... config) {
+        super(k, initialReadSize, maxQueueSize, bundle, withProbs, config);
 
-	protected void processFastqStreams(StreamingResourceStream fastqs) throws IOException {
-		if (logger.isInfoEnabled()) {
-			logger.info("Number of consumer threads: " + bundle.getThreads());
-		}
-		
-		startTime = System.currentTimeMillis();
-		totalCount = fastqs.size();
-		fastqsFileSize = fastqs.getTotalByteSize();
-		coveredFilesSize = 0;
-		coveredCounter = 0;
-		totalReads = 0;
-		for (StreamingResource fastq : fastqs) {
-			currentFastq = fastq;
-			try (StreamingResource.StreamAccess lbyteCountAccess = fastq.openStream()) {
-				byteCountAccess = lbyteCountAccess;
-				fastqFileSize = byteCountAccess.getSize();
-				if (fastqFileSize != -1 && fastqsFileSize == -1) {
-					if (coveredCounter == totalCount - 1) {
-						fastqsFileSize = coveredFilesSize + fastqFileSize;
-					}
-				}
-				fastqStartTime = System.currentTimeMillis();
-				readFastq(byteCountAccess.getInputStream());
-				totalReads += reads;
-				totalKMers += kMers;
-				coveredFilesSize += byteCountAccess.getBytesRead();
-			}
-			coveredCounter++;
-		}
-		allDone();
-	}
+        this.logUpdateCycle = bundle.getLogUpdateCycle();
+    }
 
-	@Override
-	protected void start() throws IOException {
-		indexedC = 0;
-		if (logger.isInfoEnabled()) {
-			logger.info("Processing fastq file (" + (coveredCounter + 1) + "/" + totalCount + "): " + currentFastq);
-		}
-		doLog();
-	}
+    protected void processFastqStreams(StreamingResourceStream fastqs) throws IOException {
+        if (logger.isInfoEnabled()) {
+            logger.info("Number of consumer threads: " + bundle.getThreads());
+        }
 
-	@Override
-	protected void updateWriteStats() {
-		indexedC++;
-	}
+        startTime = System.currentTimeMillis();
+        totalCount = fastqs.size();
+        fastqsFileSize = fastqs.getTotalByteSize();
+        coveredFilesSize = 0;
+        coveredCounter = 0;
+        totalReads = 0;
 
-	@Override
-	protected void log() {
-		if (logUpdateCycle > 0 && reads % logUpdateCycle == 0) {
-			doLog();
-		}
-	}
+        for (StreamingResource fastq : fastqs) {
+            currentFastq = fastq;
+            try (StreamingResource.StreamAccess lbyteCountAccess = fastq.openStream()) {
+                byteCountAccess = lbyteCountAccess;
+                fastqFileSize = byteCountAccess.getSize();
+                if (fastqFileSize != -1 && fastqsFileSize == -1) {
+                    if (coveredCounter == totalCount - 1) {
+                        fastqsFileSize = coveredFilesSize + fastqFileSize;
+                    }
+                }
+                fastqStartTime = System.currentTimeMillis();
+                try (ProgressBar pb = isProgressBar() ? new ProgressBarBuilder()
+                        .setTaskName("Processing files:")
+                        .setInitialMax(fastqFileSize)
+                        .setMaxRenderedLength(100)
+                        .setUnit(" bytes", 1)
+                        .setStyle(ProgressBarStyle.ASCII).build() : null) {
+                    progressBar = pb;
+                    readFastq(byteCountAccess.getInputStream());
+                }
+                logFastqDone();
+                totalReads += reads;
+                totalKMers += kMers;
+                coveredFilesSize += byteCountAccess.getBytesRead();
+            }
+            coveredCounter++;
+        }
+        allDone();
+    }
 
-	protected void doLog() {
-		if (logger.isTraceEnabled() || bundle.isRequiresProgress()) {
-			long bytesCovered = byteCountAccess.getBytesRead();
-			double ratio = fastqFileSize == -1 ? -1 : bytesCovered / (double) fastqFileSize;
-			long stopTime = System.currentTimeMillis();
-			long diff = (stopTime - fastqStartTime);
-			double totalTime = ratio == -1 ? -1 : diff / ratio;
-			if (bundle.isRequiresProgress()) {
-				bundle.setFastqProgress(currentFastq, bytesCovered, fastqFileSize, diff, (long) totalTime, ratio,
-						reads);
-			}
-			if (logger.isTraceEnabled()) {
-				double totalHours = totalTime == -1 ? -1 : totalTime / 1000 / 60 / 60;
-				logger.trace("Progress for fastq: " + currentFastq);
-				logger.trace("Elapsed hours: " + diff / 1000 / 60 / 60);
-				if (totalHours != -1 && !Double.isNaN(totalHours) && !Double.isInfinite(totalHours)) {
-					logger.trace("Estimated total hours: " + totalHours);
-				}
-			}
+    protected boolean isProgressBar() {
+        return true;
+    }
 
-			bytesCovered = (coveredFilesSize + byteCountAccess.getBytesRead());
-			ratio = fastqsFileSize == -1 ? -1 : bytesCovered / (double) fastqsFileSize;
-			diff = (stopTime - startTime);
-			totalTime = ratio == -1 ? -1 : diff / ratio;
-			if (bundle.isRequiresProgress()) {
-				bundle.setTotalProgress(bytesCovered, fastqsFileSize, diff, (long) totalTime, ratio, totalReads + reads,
-						coveredCounter, totalCount);
-			}
-			if (logger.isTraceEnabled()) {
-				double totalHours = totalTime == -1 ? -1 : totalTime / 1000 / 60 / 60;
-				logger.trace("Total progress: ");
-				logger.trace("Elapsed hours: " + diff / 1000 / 60 / 60);
-				if (totalHours != -1 && !Double.isNaN(totalHours) && !Double.isInfinite(totalHours)) {
-					logger.trace("Estimated total hours: " + totalHours);
-				}
-				logger.trace("Reads processed: " + (totalReads + reads));
-			}
-		}
-	}
+    @Override
+    protected void start() throws IOException {
+        indexedC = 0;
+        if (logger.isInfoEnabled()) {
+            logger.info("Processing fastq file (" + (coveredCounter + 1) + "/" + totalCount + "): " + currentFastq);
+        }
+        doLog();
+    }
 
-	public long getLogUpdateCycle() {
-		return logUpdateCycle;
-	}
+    @Override
+    protected void updateWriteStats() {
+        indexedC++;
+    }
 
-	@Override
-	protected void done() throws IOException {
-		if (logger.isInfoEnabled() || bundle.isRequiresProgress()) {
-			long bytesCovered = byteCountAccess.getBytesRead();
-			long totalTime = System.currentTimeMillis() - fastqStartTime;
-			bundle.setFastqProgress(currentFastq, bytesCovered, fastqFileSize, totalTime, totalTime, 1, reads);
-			if (logger.isInfoEnabled()) {
-				double totalHours = totalTime / 1000 / 60 / 60;
-				logger.info("Done with fastq: " + currentFastq);
-				logger.info("Hours: " + totalHours);
-				logger.info("Bytes: " + bytesCovered);
-				logger.info("Reads: " + reads);
-			}
-		}
-	}
+    @Override
+    protected void log() {
+        if (logUpdateCycle > 0 && reads % logUpdateCycle == 0) {
+            doLog();
+        }
+    }
 
-	protected void allDone() {
-		if (logger.isInfoEnabled() || bundle.isRequiresProgress()) {
-			long totalTime = (System.currentTimeMillis() - startTime);
-			bundle.setTotalProgress(coveredFilesSize, coveredFilesSize, totalTime, totalTime, 1, totalReads,
-					coveredCounter, totalCount);
-			if (logger.isInfoEnabled()) {
-				double totalHours = totalTime / 1000 / 60 / 60;
-				logger.info("All done with fastqs.");
-				logger.info("Total hours: " + totalHours);
-				logger.info("Total bytes: " + coveredFilesSize);
-				logger.info("Total reads: " + totalReads);
-			}
-		}
-	}
+    protected void doLog() {
+        long bytesCovered = byteCountAccess.getBytesRead();
+        if (progressBar != null) {
+            progressBar.stepTo(bytesCovered);
+        }
+        if (bundle.isRequiresProgress()) {
+            double ratio = fastqFileSize == -1 ? -1 : bytesCovered / (double) fastqFileSize;
+            long stopTime = System.currentTimeMillis();
+            long diff = (stopTime - fastqStartTime);
+            double totalTime = ratio == -1 ? -1 : diff / ratio;
+            bundle.setFastqProgress(currentFastq, bytesCovered, fastqFileSize, diff, (long) totalTime, ratio,
+                    reads);
+
+            bytesCovered = (coveredFilesSize + byteCountAccess.getBytesRead());
+            ratio = fastqsFileSize == -1 ? -1 : bytesCovered / (double) fastqsFileSize;
+            diff = (stopTime - startTime);
+            totalTime = ratio == -1 ? -1 : diff / ratio;
+            bundle.setTotalProgress(bytesCovered, fastqsFileSize, diff, (long) totalTime, ratio, totalReads + reads,
+                    coveredCounter, totalCount);
+        }
+    }
+
+    public long getLogUpdateCycle() {
+        return logUpdateCycle;
+    }
+
+    protected void done() throws IOException {
+        if (progressBar != null) {
+            progressBar.stepTo(progressBar.getMax());
+        }
+    }
+
+    protected void logFastqDone() {
+        if (logger.isInfoEnabled() || bundle.isRequiresProgress()) {
+            long bytesCovered = byteCountAccess.getBytesRead();
+            long totalTime = System.currentTimeMillis() - fastqStartTime;
+            bundle.setFastqProgress(currentFastq, bytesCovered, fastqFileSize, totalTime, totalTime, 1, reads);
+            if (logger.isInfoEnabled()) {
+                double totalHours = totalTime / 1000 / 60 / 60;
+                logger.info("Done with fastq: " + currentFastq);
+                logger.info("Hours: " + totalHours);
+                logger.info("Bytes: " + bytesCovered);
+                logger.info("Reads: " + reads);
+            }
+        }
+    }
+
+    protected void allDone() {
+        if (logger.isInfoEnabled() || bundle.isRequiresProgress()) {
+            long totalTime = (System.currentTimeMillis() - startTime);
+            bundle.setTotalProgress(coveredFilesSize, coveredFilesSize, totalTime, totalTime, 1, totalReads,
+                    coveredCounter, totalCount);
+            if (logger.isInfoEnabled()) {
+                double totalHours = totalTime / 1000 / 60 / 60;
+                logger.info("All done with fastqs.");
+                logger.info("Total hours: " + totalHours);
+                logger.info("Total bytes: " + coveredFilesSize);
+                logger.info("Total reads: " + totalReads);
+            }
+        }
+    }
 }

@@ -24,6 +24,10 @@
  */
 package org.metagene.genestrip.goals.refseq;
 
+import me.tongfei.progressbar.DelegatingProgressBarConsumer;
+import me.tongfei.progressbar.ProgressBar;
+import me.tongfei.progressbar.ProgressBarBuilder;
+import me.tongfei.progressbar.ProgressBarStyle;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.Goal;
@@ -35,6 +39,7 @@ import org.metagene.genestrip.tax.TaxTree;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -56,21 +61,43 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
 
     protected void readFastas(AbstractRefSeqFastaReader fastaReader) throws IOException {
         boolean refSeqDB = booleanConfigValue(GSConfigKey.REF_SEQ_DB);
+        int sumFiles = 0;
+        List<File> refSeqFiles = null;
         if (refSeqDB) {
             fnaFilesGoal.make();
-            for (File fnaFile : fnaFilesGoal.getFiles()) {
-                RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
-                if (categoriesGoal.get().contains(cat)) {
-                    fastaReader.readFasta(fnaFile);
-                }
-            }
+            refSeqFiles = fnaFilesGoal.getFiles();
+            sumFiles += refSeqFiles.size();
         }
         Map<File, TaxTree.TaxIdNode> additionalMap = additionalGoal.get();
-        for (File additionalFasta : additionalMap.keySet()) {
-            TaxTree.TaxIdNode node = additionalMap.get(additionalFasta);
-            if (taxNodesGoal.get().contains(node)) {
-                fastaReader.ignoreAccessionMap(node);
-                fastaReader.readFasta(additionalFasta);
+        sumFiles += additionalMap.size();
+        try (ProgressBar pb = booleanConfigValue(GSConfigKey.PROGRESS_BAR) ? new ProgressBarBuilder()
+                .setTaskName("Processing files:")
+                .setUpdateIntervalMillis(60000)
+                .setMaxRenderedLength(100)
+                .setUnit(" files", 1)
+                .setInitialMax(sumFiles)
+                .setConsumer(new DelegatingProgressBarConsumer(getLogger()::info))
+                .setStyle(ProgressBarStyle.ASCII).build() : null) {
+            if (refSeqFiles != null) {
+                for (File fnaFile : refSeqFiles) {
+                    RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
+                    if (categoriesGoal.get().contains(cat)) {
+                        fastaReader.readFasta(fnaFile);
+                        if (pb != null) {
+                            pb.step();
+                        }
+                    }
+                }
+            }
+            for (File additionalFasta : additionalMap.keySet()) {
+                TaxTree.TaxIdNode node = additionalMap.get(additionalFasta);
+                if (taxNodesGoal.get().contains(node)) {
+                    fastaReader.ignoreAccessionMap(node);
+                    fastaReader.readFasta(additionalFasta);
+                    if (pb != null) {
+                        pb.step();
+                    }
+                }
             }
         }
     }

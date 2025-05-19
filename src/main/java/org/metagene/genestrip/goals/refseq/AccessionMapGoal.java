@@ -82,6 +82,11 @@ public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
 					node.incRefSeqRegions();
 				}
 			}
+
+			@Override
+			protected boolean isProgressBar() {
+				return booleanConfigValue(GSConfigKey.PROGRESS_BAR);
+			}
 		};
 		processor.processCatalog(new StreamingFileResource(catalogGoal.getCatalogFile()));
 	}

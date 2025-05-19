@@ -54,6 +54,8 @@ public enum GSConfigKey implements ConfigKey {
 			+ "There is always one additional thread that reads and uncompresses a corresponding fastq or fasta file (so it is *n + 1* threads in total). "
 			+ "When negative, the number of available processors *- 1* is used as *n*. When 0, then the corresponding goals run in single-threaded mode.")
 	THREADS("threads", new IntConfigParamInfo(-1, 64, -1), GSGoalKey.DB, GSGoalKey.MATCH, GSGoalKey.MATCHLR, GSGoalKey.FILTER),
+	@MDDescription("Whether to show a progress bar on the command line for longer taking process steps.")
+	PROGRESS_BAR("progressBar", new BooleanConfigParamInfo(true), GSGoalKey.DB, GSGoalKey.MATCH, GSGoalKey.MATCHLR, GSGoalKey.FILTER),
 
 	// Genomic data download
 	@MDDescription("This base URL will be extended by `/pub/taxonomy/` in order to download the taxonomy file `taxdmp.zip` and by `/genomes/genbank` for files from Genbank.")

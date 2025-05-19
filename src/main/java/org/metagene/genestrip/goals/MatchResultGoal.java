@@ -133,7 +133,12 @@ public class MatchResultGoal extends ObjectGoal<Map<String, MatchingResult>, GSP
 					taxTree, intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS),
 					doubleConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT),
 					doubleConfigValue(GSConfigKey.MAX_READ_CLASS_ERROR_COUNT),
-					booleanConfigValue(GSConfigKey.KRAKEN_STYLE_MATCH));
+					booleanConfigValue(GSConfigKey.KRAKEN_STYLE_MATCH)) {
+				@Override
+				protected boolean isProgressBar() {
+					return booleanConfigValue(GSConfigKey.PROGRESS_BAR);
+				}
+			};
 		}
 		else {
 			return new FastqKMerMatcher(store, intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
@@ -141,7 +146,12 @@ public class MatchResultGoal extends ObjectGoal<Map<String, MatchingResult>, GSP
 					taxTree, intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS),
 					doubleConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT),
 					doubleConfigValue(GSConfigKey.MAX_READ_CLASS_ERROR_COUNT),
-					booleanConfigValue(GSConfigKey.KRAKEN_STYLE_MATCH));
+					booleanConfigValue(GSConfigKey.KRAKEN_STYLE_MATCH)) {
+				@Override
+				protected boolean isProgressBar() {
+					return booleanConfigValue(GSConfigKey.PROGRESS_BAR);
+				}
+			};
 		}
 	}
 
