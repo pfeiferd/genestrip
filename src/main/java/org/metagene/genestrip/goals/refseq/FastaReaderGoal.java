@@ -39,6 +39,7 @@ import org.metagene.genestrip.tax.TaxTree;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -76,6 +77,7 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
                 .setMaxRenderedLength(100)
                 .setUnit(" files", 1)
                 .setInitialMax(sumFiles)
+                .setSpeedUnit(ChronoUnit.MINUTES)
                 .setConsumer(new DelegatingProgressBarConsumer(getLogger()::info))
                 .setStyle(ProgressBarStyle.ASCII).build() : null) {
             if (refSeqFiles != null) {

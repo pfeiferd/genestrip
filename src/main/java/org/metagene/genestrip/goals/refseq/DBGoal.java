@@ -26,11 +26,17 @@ package org.metagene.genestrip.goals.refseq;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
+import me.tongfei.progressbar.DelegatingProgressBarConsumer;
+import me.tongfei.progressbar.ProgressBar;
+import me.tongfei.progressbar.ProgressBarBuilder;
+import me.tongfei.progressbar.ProgressBarStyle;
 import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
@@ -63,6 +69,7 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 	private Object[] syncs = new Object[256];
 
 	private boolean minUpdate;
+	private ProgressBar progressBar;
 
 	@SafeVarargs
 	public DBGoal(GSProject project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
@@ -96,6 +103,8 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 			}
 			bundle.clearThrowableList();
 
+
+
 			BlockingQueue<FileAndNode> blockingQueue = null;
 			// For minUpdate the fna files must be read in the same order as during the goals from before.
 			// Otherwise, the wrong k-mers will be compared to the ones from the DB.
@@ -107,45 +116,60 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 				}
 			}
 
-			doneCounter = 0;
-			for (File fnaFile : fnaFilesGoal.getFiles()) {
-				RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
-				if (categoriesGoal.get().contains(cat)) {
+			int sumFiles = 0;
+			List<File> refSeqFiles = fnaFilesGoal.getFiles();
+			sumFiles += refSeqFiles.size();
+			Map<File, TaxTree.TaxIdNode> additionalMap = additionalGoal.get();
+			sumFiles += additionalMap.size();
+			try (ProgressBar pb = booleanConfigValue(GSConfigKey.PROGRESS_BAR) ? new ProgressBarBuilder()
+					.setTaskName("Processing files:")
+					.setUpdateIntervalMillis(60000)
+					.setMaxRenderedLength(100)
+					.setUnit(" files", 1)
+					.setInitialMax(sumFiles)
+					.setSpeedUnit(ChronoUnit.MINUTES)
+					.setConsumer(new DelegatingProgressBarConsumer(getLogger()::info))
+					.setStyle(ProgressBarStyle.ASCII).build() : null) {
+				progressBar = pb;
+				doneCounter = 0;
+				for (File fnaFile : refSeqFiles) {
+					RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
+					if (categoriesGoal.get().contains(cat)) {
+						if (blockingQueue == null) {
+							fastaReader.readFasta(fnaFile);
+						} else {
+							try {
+								doneCounter++;
+								blockingQueue.put(new FileAndNode(fnaFile, null));
+							} catch (InterruptedException e) {
+								throw new RuntimeException(e);
+							}
+						}
+					}
+					checkAndLogConsumerThreadProblem();
+				}
+				for (File additionalFasta : additionalMap.keySet()) {
 					if (blockingQueue == null) {
-						fastaReader.readFasta(fnaFile);
+						fastaReader.ignoreAccessionMap(additionalMap.get(additionalFasta));
+						fastaReader.readFasta(additionalFasta);
 					} else {
 						try {
 							doneCounter++;
-							blockingQueue.put(new FileAndNode(fnaFile, null));
+							blockingQueue.put(new FileAndNode(additionalFasta, additionalMap.get(additionalFasta)));
 						} catch (InterruptedException e) {
 							throw new RuntimeException(e);
 						}
 					}
+					checkAndLogConsumerThreadProblem();
 				}
-				checkAndLogConsumerThreadProblem();
-			}
-			Map<File, TaxIdNode> additionalMap = additionalGoal.get();
-			for (File additionalFasta : additionalMap.keySet()) {
-				if (blockingQueue == null) {
-					fastaReader.ignoreAccessionMap(additionalMap.get(additionalFasta));
-					fastaReader.readFasta(additionalFasta);
-				} else {
+				// Gentle polling and waiting until all consumers are done.
+				while (doneCounter > 0) {
+					checkAndLogConsumerThreadProblem();
 					try {
-						doneCounter++;
-						blockingQueue.put(new FileAndNode(additionalFasta, additionalMap.get(additionalFasta)));
+						Thread.sleep(100);
 					} catch (InterruptedException e) {
-						throw new RuntimeException(e);
+						// Ignore.
 					}
-				}
-				checkAndLogConsumerThreadProblem();
-			}
-			// Gentle polling and waiting until all consumers are done.
-			while (doneCounter > 0) {
-				checkAndLogConsumerThreadProblem();
-				try {
-					Thread.sleep(100);
-				} catch (InterruptedException e) {
-					// Ignore.
 				}
 			}
 			store.fix();
@@ -185,6 +209,9 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 							FileAndNode fileAndNode = blockingQueue.take();
 							fastaReader.ignoreAccessionMap(fileAndNode.getNode());
 							fastaReader.readFasta(fileAndNode.getFile());
+							if (progressBar != null) {
+								progressBar.step();
+							}
 						} finally {
 							doneCounter--;
 						}
