@@ -71,15 +71,7 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
         }
         Map<File, TaxTree.TaxIdNode> additionalMap = additionalGoal.get();
         sumFiles += additionalMap.size();
-        try (ProgressBar pb = booleanConfigValue(GSConfigKey.PROGRESS_BAR) ? new ProgressBarBuilder()
-                .setTaskName("Processing files:")
-                .setUpdateIntervalMillis(60000)
-                .setMaxRenderedLength(100)
-                .setUnit(" files", 1)
-                .setInitialMax(sumFiles)
-                .setSpeedUnit(ChronoUnit.MINUTES)
-                .setConsumer(new DelegatingProgressBarConsumer(getLogger()::info))
-                .setStyle(ProgressBarStyle.ASCII).build() : null) {
+        try (ProgressBar pb = createProgressBar(sumFiles)) {
             if (refSeqFiles != null) {
                 for (File fnaFile : refSeqFiles) {
                     RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
@@ -102,6 +94,23 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
                 }
             }
         }
+    }
+
+    protected ProgressBar createProgressBar(int max) {
+        if (booleanConfigValue(GSConfigKey.PROGRESS_BAR)) {
+            ProgressBarBuilder builder = new ProgressBarBuilder()
+                    .setTaskName("Processing files:")
+                    .setUpdateIntervalMillis(60000)
+                    .setMaxRenderedLength(100)
+                    .setUnit(" files", 1)
+                    .setInitialMax(max)
+                    .setStyle(ProgressBarStyle.ASCII);
+            if (getLogger().isInfoEnabled()) {
+                builder.setConsumer(new DelegatingProgressBarConsumer(getLogger()::info));
+            }
+            return builder.build();
+        }
+        return null;
     }
 
     @Override
