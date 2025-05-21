@@ -38,6 +38,7 @@ import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.io.StreamingResource.StreamAccess;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.GSLogFactory;
+import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 public abstract class AccessionFileProcessor {
     private static int MAX_LINE_SIZE = 2048;
@@ -78,11 +79,7 @@ public abstract class AccessionFileProcessor {
             byte[] target = new byte[MAX_LINE_SIZE];
             int size;
             try (ProgressBar pb = isProgressBar() ?
-                    new ProgressBarBuilder().setTaskName("Reading entries:")
-                            .setInitialMax(totalCatSize)
-                            .setMaxRenderedLength(100)
-                            .setUnit(" bytes", 1)
-                            .setStyle(ProgressBarStyle.ASCII).build() : null) {
+                    GSProgressBarCreator.newGSProgressBar(getProgressBarTaskName(), byteCountAccess, null) : null) {
                 try (BufferedLineReader reader = new BufferedLineReader(byteCountAccess.getInputStream())) {
                     while ((size = reader.nextLine(target)) > 0) {
                         int pos1 = ByteArrayUtil.indexOf(target, 0, size, '\t');
@@ -95,9 +92,6 @@ public abstract class AccessionFileProcessor {
                                 handleEntry(target, pos1, pos2 + 1, pos3);
                             }
                         }
-                        if (pb != null) {
-                            pb.stepTo(byteCountAccess.getBytesRead());
-                        }
                    }
                 }
             }
@@ -108,6 +102,10 @@ public abstract class AccessionFileProcessor {
 
     protected boolean isProgressBar() {
         return true;
+    }
+
+    protected String getProgressBarTaskName() {
+        return ((GSLogFactory.GSLog) logger).getName();
     }
 
     protected void doProcessCatalog(InputStream inputStream) throws IOException {

@@ -24,17 +24,23 @@
  */
 package org.metagene.genestrip.goals;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InvalidClassException;
+import java.io.*;
 
+import me.tongfei.progressbar.DelegatingProgressBarConsumer;
+import me.tongfei.progressbar.ProgressBar;
+import me.tongfei.progressbar.ProgressBarBuilder;
+import me.tongfei.progressbar.ProgressBarStyle;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.io.StreamProvider;
+import org.metagene.genestrip.io.StreamingFileResource;
+import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.Database;
+import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 public class LoadDBGoal extends ObjectGoal<Database, GSProject> {
 	private final ObjectGoal<Database, GSProject> dbGoal;
@@ -52,8 +58,25 @@ public class LoadDBGoal extends ObjectGoal<Database, GSProject> {
 	@Override
 	protected void doMakeThis() {
 		try {
+			if (booleanConfigValue(GSConfigKey.PROGRESS_BAR)) {
+				try (StreamingResource.StreamAccess sa = new StreamingFileResource(dbFile, true).openStream()) {
+					try (ProgressBar pb = GSProgressBarCreator.newGSProgressBar(getKey().getName(), sa, null)) {
+						doLoadDB(sa.getInputStream());
+					}
+				}
+			}
+			else {
+				doLoadDB(StreamProvider.getInputStreamForFile(dbFile));
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected void doLoadDB(InputStream stream) {
+		try {
 			Database db = dbGoal.isMade() ? dbGoal.get()
-					: Database.load(dbFile, booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH));
+					: Database.load(stream, booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH));
 			set(db);
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);

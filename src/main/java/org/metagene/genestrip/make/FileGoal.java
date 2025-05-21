@@ -28,7 +28,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import me.tongfei.progressbar.DelegatingProgressBarConsumer;
+import me.tongfei.progressbar.ProgressBar;
+import me.tongfei.progressbar.ProgressBarBuilder;
+import me.tongfei.progressbar.ProgressBarStyle;
 import org.apache.commons.io.FileUtils;
+import org.metagene.genestrip.GSConfigKey;
 
 public abstract class FileGoal<P extends Project> extends Goal<P> {
 	private final boolean allowEmptyFiles;
@@ -90,28 +95,35 @@ public abstract class FileGoal<P extends Project> extends Goal<P> {
 			int counter = 0;
 			List<File> files = getFiles();
 			int max = files.size();
-			for (File file : files) {
-				counter++;
-				if (isBadEmpty(file)) {
-					if (getLogger().isInfoEnabled()) {
-						getLogger().info("Deleting emtpy file " + file);
+			try (ProgressBar pb = createProgressBar(max)) {
+				for (File file : files) {
+					counter++;
+					if (isBadEmpty(file)) {
+						if (getLogger().isInfoEnabled()) {
+							getLogger().info("Deleting emtpy file " + file);
+						}
+						deleteFile(file);
 					}
-					deleteFile(file);
-				}
-				if (!isMade(file)) {
-					if (getLogger().isInfoEnabled()) {
-						getLogger().info("Making file (" + counter + "/" + max + "):" + file);
+					if (!isMade(file)) {
+						if (getLogger().isInfoEnabled()) {
+							getLogger().info("Making file (" + counter + "/" + max + "):" + file);
+						}
+						makeFile(file);
+					} else {
+						if (getLogger().isInfoEnabled()) {
+							getLogger().info("Already made file (" + counter + "/" + max + "):" + file);
+						}
 					}
-					makeFile(file);
-				} else {
-					if (getLogger().isInfoEnabled()) {
-						getLogger().info("Already made file (" + counter + "/" + max + "):" + file);
-					}
+					pb.step();
 				}
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	protected ProgressBar createProgressBar(int max) {
+		return null;
 	}
 
 	protected abstract void makeFile(File file) throws IOException;

@@ -24,11 +24,16 @@
  */
 package org.metagene.genestrip.goals;
 
+import me.tongfei.progressbar.DelegatingProgressBarConsumer;
+import me.tongfei.progressbar.ProgressBar;
+import me.tongfei.progressbar.ProgressBarBuilder;
+import me.tongfei.progressbar.ProgressBarStyle;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.FileDownloadGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.GoalKey;
+import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 public abstract class GSFileDownloadGoal extends FileDownloadGoal<GSProject> {
 	@SafeVarargs
@@ -59,5 +64,12 @@ public abstract class GSFileDownloadGoal extends FileDownloadGoal<GSProject> {
 	@Override
 	protected int getMaxDownloadTries() {
 		return intConfigValue(GSConfigKey.MAX_DOWNLOAD_TRIES);
+	}
+
+	@Override
+	protected ProgressBar createProgressBar(int max) {
+		return booleanConfigValue(GSConfigKey.PROGRESS_BAR) ?
+				GSProgressBarCreator.newGSProgressBar(getKey().getName(), 60000, " files", null, getLogger()) :
+				null;
 	}
 }

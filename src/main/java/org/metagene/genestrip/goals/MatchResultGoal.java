@@ -138,7 +138,11 @@ public class MatchResultGoal extends ObjectGoal<Map<String, MatchingResult>, GSP
 				protected boolean isProgressBar() {
 					return booleanConfigValue(GSConfigKey.PROGRESS_BAR);
 				}
-			};
+
+				@Override
+				protected String getProgressBarTaskName() {
+					return getKey().getName();
+				}			};
 		}
 		else {
 			return new FastqKMerMatcher(store, intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
@@ -150,6 +154,11 @@ public class MatchResultGoal extends ObjectGoal<Map<String, MatchingResult>, GSP
 				@Override
 				protected boolean isProgressBar() {
 					return booleanConfigValue(GSConfigKey.PROGRESS_BAR);
+				}
+
+				@Override
+				protected String getProgressBarTaskName() {
+					return getKey().getName();
 				}
 			};
 		}

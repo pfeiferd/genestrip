@@ -24,13 +24,7 @@
  */
 package org.metagene.genestrip.store;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
+import java.io.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -82,7 +76,13 @@ public class Database implements Serializable {
 	}
 
 	public void save(File file) throws IOException {
-		try (ZipOutputStream zipOut = new ZipOutputStream(new FileOutputStream(file))) {
+		try (OutputStream out = new FileOutputStream(file)) {
+			save(out);
+		}
+	}
+
+	public void save(OutputStream os) throws IOException {
+		try (ZipOutputStream zipOut = new ZipOutputStream(os)) {
 			ZipEntry zipEntry = new ZipEntry(DB_FILE);
 			zipOut.putNextEntry(zipEntry);
 			ObjectOutputStream oOut = new ObjectOutputStream(zipOut);
@@ -97,9 +97,15 @@ public class Database implements Serializable {
 	}
 
 	public static Database load(File file, boolean withFilter) throws IOException, ClassNotFoundException {
+		try (InputStream is = new FileInputStream(file)) {
+			return load(is, withFilter);
+		}
+	}
+
+	public static Database load(InputStream is, boolean withFilter) throws IOException, ClassNotFoundException {
 		Database res = null;
 		MurmurCGATBloomFilter filter = null;
-		try (ZipInputStream zis = new ZipInputStream(new FileInputStream(file))) {
+		try (ZipInputStream zis = new ZipInputStream(is)) {
 			for (ZipEntry zipEntry = zis.getNextEntry(); zipEntry != null; zipEntry = zis.getNextEntry()) {
 				String entryName = zipEntry.getName();
 				if (entryName.equals(DB_FILE) && res == null) {
@@ -119,9 +125,16 @@ public class Database implements Serializable {
 		return res;
 	}
 
+	/* Should never be used - so remove it (?)
 	public static MurmurCGATBloomFilter loadFilter(File file) throws IOException, ClassNotFoundException {
+		try (InputStream is = new FileInputStream(file)) {
+			return loadFilter(is);
+		}
+	}
+
+	public static MurmurCGATBloomFilter loadFilter(InputStream is) throws IOException, ClassNotFoundException {
 		MurmurCGATBloomFilter filter = null;
-		try (ZipInputStream zis = new ZipInputStream(new FileInputStream(file))) {
+		try (ZipInputStream zis = new ZipInputStream(is)) {
 			for (ZipEntry zipEntry = zis.getNextEntry(); zipEntry != null; zipEntry = zis.getNextEntry()) {
 				String entryName = zipEntry.getName();
 				if (entryName.equals(INDEX_FILE) && filter == null) {
@@ -134,4 +147,5 @@ public class Database implements Serializable {
 		}
 		return filter;
 	}
+	 */
 }

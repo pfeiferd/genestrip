@@ -24,16 +24,23 @@
  */
 package org.metagene.genestrip.goals;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InvalidClassException;
+import java.io.*;
 
+import me.tongfei.progressbar.ProgressBar;
+import me.tongfei.progressbar.ProgressBarBuilder;
+import me.tongfei.progressbar.ProgressBarStyle;
+import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
+import org.metagene.genestrip.io.StreamProvider;
+import org.metagene.genestrip.io.StreamingFileResource;
+import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.store.Database;
+import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 public class LoadIndexGoal extends ObjectGoal<MurmurCGATBloomFilter, GSProject> {
 	private final ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomIndex;
@@ -51,8 +58,25 @@ public class LoadIndexGoal extends ObjectGoal<MurmurCGATBloomFilter, GSProject> 
 	@Override
 	protected void doMakeThis() {
 		try {
+			if (booleanConfigValue(GSConfigKey.PROGRESS_BAR)) {
+				try (StreamingResource.StreamAccess sa = new StreamingFileResource(dbFile, true).openStream()) {
+					try (ProgressBar pb = GSProgressBarCreator.newGSProgressBar(getKey().getName(), sa, null)) {
+						doLoadIndex(sa.getInputStream());
+					}
+				}
+			}
+			else {
+				doLoadIndex(StreamProvider.getInputStreamForFile(dbFile));
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected void doLoadIndex(InputStream stream) {
+		try {
 			MurmurCGATBloomFilter filter = bloomIndex.isMade() ? bloomIndex.get()
-					: MurmurCGATBloomFilter.load(dbFile);
+					: MurmurCGATBloomFilter.load(stream);
 			set(filter);
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);

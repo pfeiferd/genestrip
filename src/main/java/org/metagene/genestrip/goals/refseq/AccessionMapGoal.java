@@ -40,6 +40,7 @@ import org.metagene.genestrip.refseq.AccessionMapImpl;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.GSLogFactory;
 
 public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
@@ -86,6 +87,10 @@ public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
 			@Override
 			protected boolean isProgressBar() {
 				return booleanConfigValue(GSConfigKey.PROGRESS_BAR);
+			}
+
+			protected String getProgressBarTaskName() {
+				return getKey().getName();
 			}
 		};
 		processor.processCatalog(new StreamingFileResource(catalogGoal.getCatalogFile()));

@@ -24,12 +24,14 @@
  */
 package org.metagene.genestrip.io;
 
+import org.metagene.genestrip.util.progressbar.GSProgressUpdate;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 
 public interface StreamingResource {
-	interface StreamAccess extends Closeable {
+	interface StreamAccess extends Closeable, GSProgressUpdate {
 		public InputStream getInputStream() throws IOException;
 	
 		public long getBytesRead();
@@ -43,6 +45,19 @@ public interface StreamingResource {
 			InputStream is = getInputStream();
 			if (is != null) {
 				is.close();
+			}
+		}
+
+		@Override
+		default long current() {
+			return getBytesRead();
+		}
+
+		default long max() {
+			try {
+				return getSize();
+			} catch (IOException e) {
+				throw new RuntimeException(e);
 			}
 		}
 	}

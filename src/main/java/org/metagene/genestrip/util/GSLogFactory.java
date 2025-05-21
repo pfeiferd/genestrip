@@ -152,7 +152,6 @@ public class GSLogFactory {
 		public MySimpleLog(String name) {
 			super(name);
 		}
-
 	}
 
 	public class GSLog extends MySimpleLog {
@@ -171,6 +170,10 @@ public class GSLogFactory {
 		@Override
 		public void setLevel(int currentLogLevel) {
 			// Do nothing on purpose.
+		}
+
+		public String getName() {
+			return logName;
 		}
 
 		protected boolean isLevelEnabled(int logLevel) {

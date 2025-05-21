@@ -24,26 +24,37 @@
  */
 package org.metagene.genestrip.io;
 
+import me.tongfei.progressbar.ProgressBar;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
 public class ByteCountingFileInputStream extends FileInputStream {
+	private final ProgressBar progressBar;
 	private long readToMark;
 	private long bRead;
 
 	public ByteCountingFileInputStream(File file) throws FileNotFoundException {
+		this(file, null);
+	}
+
+	public ByteCountingFileInputStream(File file, ProgressBar progressBar) throws FileNotFoundException {
 		super(file);
 		bRead = 0;
 		readToMark = 0;
-	}
+        this.progressBar = progressBar;
+    }
 
 	@Override
 	public int read() throws IOException {
 		int res = super.read();
 		if (res != -1) {
 			bRead++;
+			if (progressBar != null) {
+				progressBar.stepTo(bRead);
+			}
 		}
 		return res;
 	}
@@ -52,6 +63,9 @@ public class ByteCountingFileInputStream extends FileInputStream {
 	public int read(byte[] b) throws IOException {
 		int res = super.read(b);
 		bRead += res;
+		if (progressBar != null) {
+			progressBar.stepTo(bRead);
+		}
 		return res;
 	}
 
@@ -59,6 +73,9 @@ public class ByteCountingFileInputStream extends FileInputStream {
 	public int read(byte[] b, int off, int len) throws IOException {
 		int res = super.read(b, off, len);
 		bRead += res;
+		if (progressBar != null) {
+			progressBar.stepTo(bRead);
+		}
 		return res;
 	}
 	
@@ -72,6 +89,9 @@ public class ByteCountingFileInputStream extends FileInputStream {
 	public synchronized void reset() throws IOException {
 		super.reset();
 		bRead = readToMark;
+		if (progressBar != null) {
+			progressBar.stepTo(bRead);
+		}
 	}
 	
 	public long getBytesRead() {

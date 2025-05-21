@@ -24,6 +24,8 @@
  */
 package org.metagene.genestrip.io;
 
+import me.tongfei.progressbar.ProgressBar;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -53,8 +55,7 @@ public class StreamingFileResource implements StreamingResource {
 		return getByteCountingInputStreamForFile(file, noGZ);
 	}
 
-	private static StreamAccess getByteCountingInputStreamForFile(File file, boolean noGZ)
-			throws IOException {
+	private static StreamAccess getByteCountingInputStreamForFile(File file, boolean noGZ) throws IOException {
 		final ByteCountingFileInputStream in = new ByteCountingFileInputStream(file);
 		InputStream[] res = new InputStream[1];
 		if (!noGZ && StreamProvider.isGZIPFile(file)) {
@@ -62,7 +63,7 @@ public class StreamingFileResource implements StreamingResource {
 		} else {
 			res[0] = new BufferedInputStream(in, StreamProvider.getBufferSize());
 		}
-		return new StreamingResource.StreamAccess() {
+		StreamingResource.StreamAccess result = new StreamingResource.StreamAccess() {
 			@Override
 			public long getBytesRead() {
 				return in.getBytesRead();
@@ -78,6 +79,7 @@ public class StreamingFileResource implements StreamingResource {
 				return Files.size(file.toPath());
 			}
 		};
+		return result;
 	}
 	
 	@Override

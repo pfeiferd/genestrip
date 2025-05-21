@@ -30,6 +30,8 @@ import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.io.StreamingResourceStream;
 import me.tongfei.progressbar.*;
+import org.metagene.genestrip.util.GSLogFactory;
+import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 
 public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
@@ -46,8 +48,6 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
     protected long totalReads;
     protected long totalKMers;
     private final long logUpdateCycle;
-
-    private ProgressBar progressBar;
 
     public AbstractLoggingFastqStreamer(int k, int initialReadSize, int maxQueueSize, ExecutionContext bundle, boolean withProbs,
                                         Object... config) {
@@ -79,13 +79,7 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
                     }
                 }
                 fastqStartTime = System.currentTimeMillis();
-                try (ProgressBar pb = isProgressBar() ? new ProgressBarBuilder()
-                        .setTaskName("Processing files:")
-                        .setInitialMax(fastqFileSize)
-                        .setMaxRenderedLength(100)
-                        .setUnit(" bytes", 1)
-                        .setStyle(ProgressBarStyle.ASCII).build() : null) {
-                    progressBar = pb;
+                try (ProgressBar pb = isProgressBar() ? GSProgressBarCreator.newGSProgressBar(getProgressBarTaskName(), byteCountAccess, null) : null) {
                     readFastq(byteCountAccess.getInputStream());
                 }
                 logFastqDone();
@@ -100,6 +94,10 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
 
     protected boolean isProgressBar() {
         return true;
+    }
+
+    protected String getProgressBarTaskName() {
+        return ((GSLogFactory.GSLog) logger).getName();
     }
 
     @Override
@@ -125,9 +123,6 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
 
     protected void doLog() {
         long bytesCovered = byteCountAccess.getBytesRead();
-        if (progressBar != null) {
-            progressBar.stepTo(bytesCovered);
-        }
         if (bundle.isRequiresProgress()) {
             double ratio = fastqFileSize == -1 ? -1 : bytesCovered / (double) fastqFileSize;
             long stopTime = System.currentTimeMillis();
@@ -147,12 +142,6 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
 
     public long getLogUpdateCycle() {
         return logUpdateCycle;
-    }
-
-    protected void done() throws IOException {
-        if (progressBar != null) {
-            progressBar.stepTo(progressBar.getMax());
-        }
     }
 
     protected void logFastqDone() {

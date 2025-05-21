@@ -53,6 +53,8 @@ import org.metagene.genestrip.store.KMerSortedArray.UpdateValueProvider;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.GSLogFactory;
+import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 public class DBGoal extends ObjectGoal<Database, GSProject> {
 	private final ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal;
@@ -102,8 +104,6 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 				syncs[i] = new Object();
 			}
 			bundle.clearThrowableList();
-
-
 
 			BlockingQueue<FileAndNode> blockingQueue = null;
 			// For minUpdate the fna files must be read in the same order as during the goals from before.
@@ -176,22 +176,10 @@ public class DBGoal extends ObjectGoal<Database, GSProject> {
 	}
 
 	protected ProgressBar createProgressBar(int max) {
-		if (booleanConfigValue(GSConfigKey.PROGRESS_BAR)) {
-			ProgressBarBuilder builder = new ProgressBarBuilder()
-					.setTaskName("Processing files:")
-					.setUpdateIntervalMillis(60000)
-					.setMaxRenderedLength(100)
-					.setUnit(" files", 1)
-					.setInitialMax(max)
-					.setStyle(ProgressBarStyle.ASCII);
-			if (getLogger().isInfoEnabled()) {
-				builder.setConsumer(new DelegatingProgressBarConsumer(getLogger()::info));
-			}
-			return builder.build();
-		}
-		return null;
+		return booleanConfigValue(GSConfigKey.PROGRESS_BAR) ?
+				GSProgressBarCreator.newGSProgressBar(getKey().getName(), 60000, " files", null, getLogger()) :
+				null;
 	}
-
 
 	protected void checkAndLogConsumerThreadProblem() {
 		if (!bundle.getThrowableList().isEmpty()) {

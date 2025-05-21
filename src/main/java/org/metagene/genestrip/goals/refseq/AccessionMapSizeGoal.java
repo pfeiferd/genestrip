@@ -73,6 +73,10 @@ public class AccessionMapSizeGoal extends ObjectGoal<Integer, GSProject> {
 				return booleanConfigValue(GSConfigKey.PROGRESS_BAR);
 			}
 
+			protected String getProgressBarTaskName() {
+				return getKey().getName();
+			}
+
 			@Override
 			protected void handleEntry(byte[] target, int taxIdEnd, int accessionStart, int accessionEnd) {
 				counter++;

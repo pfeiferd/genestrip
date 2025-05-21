@@ -165,7 +165,11 @@ public class MatchGoalOld extends MultiFileGoal {
 			protected boolean isProgressBar() {
 				return booleanConfigValue(GSConfigKey.PROGRESS_BAR);
 			}
-		};
+
+			@Override
+			protected String getProgressBarTaskName() {
+				return getKey().getName();
+			}		};
 	}
 
 	@Override
