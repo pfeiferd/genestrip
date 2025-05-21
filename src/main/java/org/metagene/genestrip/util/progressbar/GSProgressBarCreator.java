@@ -10,20 +10,20 @@ public class GSProgressBarCreator {
     private GSProgressBarCreator() {}
 
     public static ProgressBar newGSProgressBar(String task, GSProgressUpdate progressUpdate, Log log) {
-        return newGSProgressBar(task, 1000, " bytes", progressUpdate, log);
+        return newGSProgressBar(task, 0,1000, " bytes", progressUpdate, log);
     }
 
-    public static ProgressBar newGSProgressBar(String task, String unitName, Log log) {
-        return newGSProgressBar(task, 1000, unitName, null, log);
+    public static ProgressBar newGSProgressBar(String task, int max, String unitName, Log log) {
+        return newGSProgressBar(task, max, 1000, unitName, null, log);
     }
 
     public static ProgressBar newGSProgressBar(String task, String unitName, GSProgressUpdate progressUpdate, Log log) {
-        return newGSProgressBar(task, 1000, unitName, progressUpdate, log);
+        return newGSProgressBar(task, 0, 1000, unitName, progressUpdate, log);
     }
 
-    public static ProgressBar newGSProgressBar(String task, int updateIntervalMillis, String unitName, GSProgressUpdate progressUpdate, Log log) {
+    public static ProgressBar newGSProgressBar(String task, int max, int updateIntervalMillis, String unitName, GSProgressUpdate progressUpdate, Log log) {
         GSProgressBarRenderer renderer = new GSProgressBarRenderer(unitName, progressUpdate);
-        ProgressBarBuilder progressBarBuilder = new ProgressBarBuilder().
+        ProgressBarBuilder progressBarBuilder = new ProgressBarBuilder().setInitialMax(max).
                 setTaskName(task).setUpdateIntervalMillis(updateIntervalMillis).
                 setUnit(unitName, 1).setRenderer(renderer).setMaxRenderedLength(100).continuousUpdate();
         if (log != null && log.isInfoEnabled()) {
