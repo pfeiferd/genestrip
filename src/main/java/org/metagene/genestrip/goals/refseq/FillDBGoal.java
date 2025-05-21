@@ -92,7 +92,7 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 					intConfigValue(GSConfigKey.MAX_DUST),
 					intConfigValue(GSConfigKey.STEP_SIZE));
 			readFastas(fastaReader);
-			if (getLogger().isWarnEnabled()) {
+			if (getLogger().isWarnEnabled() && fastaReader.tooManyCounter > 0) {
 				getLogger().warn("Not stored kmers: " + fastaReader.tooManyCounter);
 			}
 			TaxTree taxTree = taxTreeGoal.get();
