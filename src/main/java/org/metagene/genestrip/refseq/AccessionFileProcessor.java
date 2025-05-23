@@ -53,15 +53,12 @@ public abstract class AccessionFileProcessor {
 
     protected final Log logger = GSLogFactory.getLog("accreader");
 
-    // private final long recordLogCycle = 1000 * 1000 * 10;
-    private final boolean completeOnly;
     private final RefSeqCategory[] categories;
     private final boolean dna;
     private final boolean rna;
     private final boolean mrna;
 
-    public AccessionFileProcessor(Collection<RefSeqCategory> categories, SeqType seqType, boolean completeOnly) {
-        this.completeOnly = completeOnly;
+    public AccessionFileProcessor(Collection<RefSeqCategory> categories, SeqType seqType) {
         // Converting to array makes iterator below way more efficient (less/no object
         // allocations) -
         // found via optimizer ...
@@ -108,9 +105,6 @@ public abstract class AccessionFileProcessor {
         return ((GSLogFactory.GSLog) logger).getName();
     }
 
-    protected void doProcessCatalog(InputStream inputStream) throws IOException {
-    }
-
     protected abstract void handleEntry(byte[] target, int taxIdEnd, int accessionStart, int accessionEnd);
 
     protected boolean containsCategory(byte[] outerArray, int start, int end, RefSeqCategory[] categories) {
@@ -123,16 +117,15 @@ public abstract class AccessionFileProcessor {
     }
 
     protected boolean isGenomicAccession(byte[] outerArray, int start) {
-        String[] prefixes = completeOnly ? COMPLETE_GENOMIC_ACCESSION_PREFIXES : ALL_GENOMIC_ACCESSION_PREFIXES;
-        for (int i = 0; i < prefixes.length; i++) {
-            if (ByteArrayUtil.startsWith(outerArray, start, prefixes[i])) {
+        for (int i = 0; i < ALL_GENOMIC_ACCESSION_PREFIXES.length; i++) {
+            if (ByteArrayUtil.startsWith(outerArray, start, ALL_GENOMIC_ACCESSION_PREFIXES[i])) {
                 return true;
             }
         }
         return false;
     }
 
-    protected boolean isRNAAccession(byte[] outerArray, int start) {
+    public static boolean isRNAAccession(byte[] outerArray, int start) {
         for (int i = 0; i < RNA_PREFIXES.length; i++) {
             if (ByteArrayUtil.startsWith(outerArray, start, RNA_PREFIXES[i])) {
                 return true;
@@ -141,7 +134,7 @@ public abstract class AccessionFileProcessor {
         return false;
     }
 
-    protected boolean isMRNAAccession(byte[] outerArray, int start) {
+    public static boolean isMRNAAccession(byte[] outerArray, int start) {
         for (int i = 0; i < M_RNA_PREFIXES.length; i++) {
             if (ByteArrayUtil.startsWith(outerArray, start, M_RNA_PREFIXES[i])) {
                 return true;

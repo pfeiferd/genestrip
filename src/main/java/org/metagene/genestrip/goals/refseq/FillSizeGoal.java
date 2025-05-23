@@ -64,7 +64,8 @@ public class FillSizeGoal extends FastaReaderGoal<Long> {
 					intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
 					(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
 					longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
-					intConfigValue(GSConfigKey.STEP_SIZE));
+					intConfigValue(GSConfigKey.STEP_SIZE),
+					booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY));
 			readFastas(fastaReader);
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Store size determined in kmers: " + fastaReader.getCounter());
@@ -78,8 +79,8 @@ public class FillSizeGoal extends FastaReaderGoal<Long> {
 
 	protected static class MyFastaReader extends AbstractRefSeqFastaReader {
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-				int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int stepSize) {
-			super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, stepSize);
+				int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int stepSize, boolean completeGenomesOnly) {
+			super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, stepSize, completeGenomesOnly);
 		}
 
 		public long getCounter() {

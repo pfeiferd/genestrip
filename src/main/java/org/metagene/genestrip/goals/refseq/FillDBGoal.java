@@ -90,7 +90,8 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 					(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
 					longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
 					intConfigValue(GSConfigKey.MAX_DUST),
-					intConfigValue(GSConfigKey.STEP_SIZE));
+					intConfigValue(GSConfigKey.STEP_SIZE),
+					booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY));
 			readFastas(fastaReader);
 			if (getLogger().isWarnEnabled() && fastaReader.tooManyCounter > 0) {
 				getLogger().warn("Not stored kmers: " + fastaReader.tooManyCounter);
@@ -138,8 +139,8 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 		private long tooManyCounter;
 
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
-							 KMerSortedArray<String> store, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize) {
-			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize);
+							 KMerSortedArray<String> store, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly) {
+			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly);
 			this.store = store;
 		}
 

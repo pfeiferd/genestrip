@@ -41,6 +41,7 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected final StringLong2DigitTrie regionsPerTaxid;
 	protected final int k;
 	protected final int stepSize;
+	private final boolean completeGenomesOnly;
 
 	protected boolean includeRegion;
 	protected long kMersForNode;
@@ -52,7 +53,8 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected long kmersInRegion;
 	protected long totalKmers;
 
-	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int stepSize) {
+
+	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int stepSize, boolean completeGenomesOnly) {
 		super(bufferSize);
 		this.taxNodes = taxNodes;
 		this.accessionMap = accessionMap;
@@ -66,6 +68,7 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		this.maxGenomesPerTaxId = maxGenomesPerTaxId;
 		this.maxGenomesPerTaxIdRank = maxGenomesPerTaxIdRank;
 		this.maxKmersPerTaxId = maxKmersPerTaxId;
+		this.completeGenomesOnly = completeGenomesOnly;
 	}
 	
 	public StringLongDigitTrie getRegionsPerTaxid() {
@@ -155,7 +158,7 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected void updateNodeFromInfoLine() {
 		int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
 		if (pos >= 0) {
-			node = accessionMap.get(target, 1, pos);
+			node = accessionMap.get(target, 1, pos, completeGenomesOnly);
 		}
 		else {
 			if (getLogger().isInfoEnabled()) {
