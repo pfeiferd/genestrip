@@ -337,7 +337,13 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 	public boolean update(long kmer, long reverseKmer, UpdateValueProvider<V> provider) {
 		if (!sorted) {
-			throw new IllegalStateException("Updated only works when optimized.");
+			throw new IllegalStateException("Update only works when optimized.");
+		}
+		if (filter != null &&
+				useFilter &&
+				!filter.containsLong(kmer) &&
+				!filter.containsLong(reverseKmer)) {
+			return false;
 		}
 
 		long pos;
