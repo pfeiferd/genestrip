@@ -55,7 +55,7 @@ public class AccessionMapSizeGoal extends ObjectGoal<Integer, GSProject> {
 	protected void doMakeThis() {
 		File catalogFile = catalogGoal.getCatalogFile();
 		AccessionFileProcessor processor = new AccessionFileProcessor(categoriesGoal.get(),
-				(SeqType) configValue(GSConfigKey.SEQ_TYPE), booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY)) {
+				(SeqType) configValue(GSConfigKey.SEQ_TYPE)) {
 			private int counter = 0;
 
 			@Override

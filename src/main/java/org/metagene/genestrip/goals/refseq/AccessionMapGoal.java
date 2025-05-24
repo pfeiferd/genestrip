@@ -64,7 +64,7 @@ public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
 	@Override
 	protected void doMakeThis() {
 		AccessionFileProcessor processor = new AccessionFileProcessor(categoriesGoal.get(),
-				(SeqType) configValue(GSConfigKey.SEQ_TYPE), booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY)) {
+				(SeqType) configValue(GSConfigKey.SEQ_TYPE)) {
 			private AccessionMap map = new AccessionMapImpl(accessionMapSizeGoal.get());
 			private TaxTree taxTree = taxTreeGoal.get();
 

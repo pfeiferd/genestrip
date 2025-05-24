@@ -114,7 +114,9 @@ public abstract class FileGoal<P extends Project> extends Goal<P> {
 							getLogger().info("Already made file (" + counter + "/" + max + "):" + file);
 						}
 					}
-					pb.step();
+					if (pb != null) {
+						pb.step();
+					}
 				}
 			}
 		} catch (IOException e) {
