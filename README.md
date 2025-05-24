@@ -46,7 +46,7 @@ Genestrip offers an efficient and sophisticated database generation process that
 
 ## Building and installing
 
-Genestrip is structured as a standard [Maven 2 or 3](https://maven.apache.org/) project and is compatible with the [JDK](https://jdk.java.net/) 1.8 or higher.[^1]
+Genestrip is structured as a standard [Maven 2 or 3](https://maven.apache.org/) project and is compatible with the [JDK](https://jdk.java.net/) 11 or higher.[^1]
 
 To build it, `cd` to the installation directory `genestrip`. Given a matching Maven and JDK installation, `mvn install` will compile, test and install the Genestrip program library. Afterwards a self-contained and executable `genestrip.jar` file will be stored under `./lib`. 
 
@@ -56,7 +56,7 @@ Here is the dependency:
 <dependency>
 	<groupId>org.genestrip</groupId>
 	<artifactId>genestrip</artifactId>
-	<version>1.7</version>
+	<version>1.8</version>
 </dependency>
 ```
 You may check for higher versions and update the dependency accordingly...
