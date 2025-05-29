@@ -36,9 +36,6 @@ public class MurmurCGATBloomFilter implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
-	// Just for optimizing synchronization during updates
-	private transient Object[] syncs;
-
 	protected final int k;
 	protected final double fpp;
 	protected final Random random;
@@ -58,24 +55,11 @@ public class MurmurCGATBloomFilter implements Serializable {
 		}
 		this.fpp = fpp;
 		this.k = k;
-		initSyncs();
 
 		random = new Random(42);
 
 		bitVector = new LargeBitVector(0);
 		entries = 0;
-	}
-
-	private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
-		ois.defaultReadObject();
-		initSyncs();
-	}
-
-	private void initSyncs() {
-		syncs = new Object[512];
-		for (int i = 0; i < syncs.length; i++) {
-			syncs[i] = new Object();
-		}
 	}
 
 	public void clear() {
@@ -135,16 +119,20 @@ public class MurmurCGATBloomFilter implements Serializable {
 		return (long) (-n * Math.log(p) / (Math.log(2) * Math.log(2)));
 	}
 
+	/**
+	 * Competing calls to putLong are multi-threading enabled.
+	 * @param data
+	 */
 	public void putLong(long data) {
 		putViaHash(data);
 	}
 
 	protected void putViaHash(long data) {
-		synchronized (syncs[(int) (data % syncs.length)]) {
+		synchronized (this) {
 			entries++;
-			for (int i = 0; i < hashes; i++) {
-				bitVector.set(hash(data, i));
-			}
+		}
+		for (int i = 0; i < hashes; i++) {
+			bitVector.set(hash(data, i));
 		}
 	}
 

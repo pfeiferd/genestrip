@@ -156,7 +156,7 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
                 checkAndLogConsumerThreadProblem();
             }
             // Gentle polling and waiting until all consumers are done.
-            while (doneCounter > 0) {
+            while (doneCounter > 0 && !dump) {
                 checkAndLogConsumerThreadProblem();
                 try {
                     Thread.sleep(100);

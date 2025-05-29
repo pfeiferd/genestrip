@@ -49,6 +49,8 @@ public class FillBloomFilterGoal extends FastaReaderGoal<MurmurCGATBloomFilter> 
 
 	private MurmurCGATBloomFilter filter;
 
+	private final boolean multiThreading;
+
 	@SafeVarargs
 	public FillBloomFilterGoal(GSProject project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
 							   ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
@@ -57,6 +59,7 @@ public class FillBloomFilterGoal extends FastaReaderGoal<MurmurCGATBloomFilter> 
 		super(project, GSGoalKey.TEMPINDEX, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, sizeGoal));
 		this.accessionMapGoal = accessionMapGoal;
 		this.sizeGoal = sizeGoal;
+		multiThreading = bundle.getThreads() > 0;
 	}
 	
 	@Override
@@ -98,7 +101,7 @@ public class FillBloomFilterGoal extends FastaReaderGoal<MurmurCGATBloomFilter> 
 				booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY));
 	}
 
-	protected static class MyFastaReader extends AbstractStoreFastaReader {
+	protected class MyFastaReader extends AbstractStoreFastaReader {
 		private final MurmurCGATBloomFilter filter;
 
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
@@ -111,12 +114,22 @@ public class FillBloomFilterGoal extends FastaReaderGoal<MurmurCGATBloomFilter> 
 		protected boolean handleStore() {
 			if (!filter.containsLong(byteRingBuffer.getKMer()) &&
 					!filter.containsLong(byteRingBuffer.getReverseKMer())) {
-				filter.putLong(byteRingBuffer.getKMer());
-				return true;
+				if (multiThreading) {
+					synchronized (filter) {
+						// This is a trick to enable more parallelism -
+						// check again after synchronized to avoid synchronized further outside...
+						if (!filter.containsLong(byteRingBuffer.getKMer()) &&
+								!filter.containsLong(byteRingBuffer.getReverseKMer())) {
+							filter.putLong(byteRingBuffer.getKMer());
+							return true;
+						}
+					}
+				}
+				else {
+					filter.putLong(byteRingBuffer.getKMer());
+				}
 			}
-			else {
-				return false;
-			}
+			return false;
 		}
 
 		@Override

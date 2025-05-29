@@ -311,8 +311,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				// of linear search in the kmer array...
 				return false;
 			}
-			index = entries;
-			entries++;
+			index = entries++;
 			sindex = getAddValueIndex(value);
 			filter.putLong(kmer);
 		}
@@ -393,7 +392,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		// for different pos values, but always the same object for the same pos value
 		// in a multi-threading scenario. This trick greatly decreases synchronization
 		// bottlenecks.
-		synchronized (syncs[(int) (pos % syncs.length)]) {
+		synchronized (syncs[(int) (pos % 512)]) {
 			short index;
 			if (largeKmers != null) {
 				index = BigArrays.get(largeValueIndexes, pos);
