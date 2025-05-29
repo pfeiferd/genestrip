@@ -51,8 +51,6 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 	public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
 
-	public static byte EXCLUDED_KMER_VIA_COUNT = Byte.MIN_VALUE;
-
 	private long[] kmers;
 	private short[] valueIndexes;
 
@@ -82,16 +80,16 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	private transient long kmersMoved;
 
 	public KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge) {
-		this(k, fpp, initialValues, enforceLarge, new MurmurCGATBloomFilter(k, fpp));
+		this(k, initialValues, enforceLarge, new MurmurCGATBloomFilter(k, fpp));
 	}
 
 	@SuppressWarnings("unchecked")
-	protected KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge,
+	protected KMerSortedArray(int k, List<V> initialValues, boolean enforceLarge,
 			MurmurCGATBloomFilter filter) {
 		this.k = k;
 		int s = initialValues == null ? 0 : initialValues.size();
 		indexMap = (V[]) new Serializable[MAX_VALUES];
-		valueMap = new Object2ShortOpenHashMap<V>(s);
+		valueMap = new Object2ShortOpenHashMap<>(s);
 		initSyncs();
 		nextValueIndex = 0;
 		this.enforceLarge = enforceLarge;
@@ -105,7 +103,6 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		this.kmerPersTaxid = null;
 		this.kmersMoved = 0;
 	}
-
 
 	private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
 		ois.defaultReadObject();
@@ -144,14 +141,14 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		useFilter = org.useFilter;
 
 		indexMap = (V[]) new Serializable[MAX_VALUES];
-		valueMap = new Object2ShortOpenHashMap<V>(org.valueMap.size());
+		valueMap = new Object2ShortOpenHashMap<>(org.valueMap.size());
 		syncs = new Object[512];
 		for (int i = 0; i < syncs.length; i++) {
 			syncs[i] = new Object();
 		}
 
 		if (org.kmerPersTaxid != null) {
-			kmerPersTaxid = new Object2LongOpenHashMap<V>();
+			kmerPersTaxid = new Object2LongOpenHashMap<>();
 		}
 
 		for (short s = 0; s < org.valueMap.size(); s++) {
@@ -209,7 +206,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			}
 		}
 
-		Object2LongMap<V> map = new Object2LongOpenHashMap<V>();
+		Object2LongMap<V> map = new Object2LongOpenHashMap<>();
 		for (int i = 0; i < countArray.length; i++) {
 			V value = indexMap[i];
 			if (value != null) {
@@ -587,7 +584,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				if (pos < 0) {
 					return null;
 				}
-				index = valueIndexes[(int) pos];
+				index = valueIndexes[pos];
 			}
 		}
 		return indexMap[index];
