@@ -24,10 +24,8 @@
  */
 package org.metagene.genestrip.goals.refseq;
 
-import me.tongfei.progressbar.DelegatingProgressBarConsumer;
 import me.tongfei.progressbar.ProgressBar;
-import me.tongfei.progressbar.ProgressBarBuilder;
-import me.tongfei.progressbar.ProgressBarStyle;
+import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.Goal;
@@ -36,15 +34,15 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.TaxTree;
-import org.metagene.genestrip.util.GSLogFactory;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 import java.io.File;
 import java.io.IOException;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
     protected final ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal;
@@ -52,16 +50,24 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
     protected final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
     protected final ObjectGoal<Map<File, TaxTree.TaxIdNode>, GSProject> additionalGoal;
 
-    public FastaReaderGoal(GSProject project, GoalKey key, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
+    private final ExecutionContext bundle;
+
+    private boolean dump;
+    private int doneCounter;
+    private ProgressBar progressBar;
+
+    public FastaReaderGoal(GSProject project, GoalKey key, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
                            ObjectGoal<Set<TaxTree.TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
                            ObjectGoal<Map<File, TaxTree.TaxIdNode>, GSProject> additionalGoal, Goal<GSProject>... dependencies) {
-        super(project, key, Goal.append(dependencies, taxNodesGoal, fnaFilesGoal, additionalGoal));
+        super(project, key, Goal.append(dependencies, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal));
         this.categoriesGoal = categoriesGoal;
         this.taxNodesGoal = taxNodesGoal;
         this.fnaFilesGoal = fnaFilesGoal;
         this.additionalGoal = additionalGoal;
+        this.bundle = bundle;
     }
 
+    /*
     protected void readFastas(AbstractRefSeqFastaReader fastaReader) throws IOException {
         boolean refSeqDB = booleanConfigValue(GSConfigKey.REF_SEQ_DB);
         int sumFiles = 0;
@@ -97,6 +103,70 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
             }
         }
     }
+     */
+
+    public void readFastas() throws IOException {
+        BlockingQueue<FileAndNode> blockingQueue = null;
+        // For minUpdate the fna files must be read in the same order as during the goals from before.
+        // Otherwise, the wrong k-mers will be compared to the ones from the DB.
+        // For !minUpdate multi-threading can be enabled.
+        if (bundle.getThreads() > 0) {
+            blockingQueue = new ArrayBlockingQueue<>(intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE));
+            for (int i = 0; i < bundle.getThreads(); i++) {
+                bundle.execute(createFastaReaderRunnable(i, blockingQueue));
+            }
+        }
+        AbstractRefSeqFastaReader fastaReader = createFastaReader();
+
+        int sumFiles = 0;
+        List<File> refSeqFiles = fnaFilesGoal.getFiles();
+        sumFiles += refSeqFiles.size();
+        Map<File, TaxTree.TaxIdNode> additionalMap = additionalGoal.get();
+        sumFiles += additionalMap.size();
+        try (ProgressBar pb = (progressBar = createProgressBar(sumFiles))) {
+            doneCounter = 0;
+            for (File fnaFile : refSeqFiles) {
+                RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
+                if (categoriesGoal.get().contains(cat)) {
+                    if (blockingQueue == null) {
+                        fastaReader.readFasta(fnaFile);
+                    } else {
+                        try {
+                            doneCounter++;
+                            blockingQueue.put(new DBGoal.FileAndNode(fnaFile, null));
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
+                checkAndLogConsumerThreadProblem();
+            }
+            for (File additionalFasta : additionalMap.keySet()) {
+                if (blockingQueue == null) {
+                    fastaReader.ignoreAccessionMap(additionalMap.get(additionalFasta));
+                    fastaReader.readFasta(additionalFasta);
+                } else {
+                    try {
+                        doneCounter++;
+                        blockingQueue.put(new DBGoal.FileAndNode(additionalFasta, additionalMap.get(additionalFasta)));
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                checkAndLogConsumerThreadProblem();
+            }
+            // Gentle polling and waiting until all consumers are done.
+            while (doneCounter > 0) {
+                checkAndLogConsumerThreadProblem();
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    // Ignore.
+                }
+            }
+        }
+        bundle.clearThrowableList();
+    }
 
     protected ProgressBar createProgressBar(int max) {
         return booleanConfigValue(GSConfigKey.PROGRESS_BAR) ?
@@ -104,11 +174,75 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
                 null;
     }
 
-    @Override
-    public boolean isWeakDependency(Goal<GSProject> toGoal) {
-        if (toGoal == fnaFilesGoal) {
-            return true;
+    protected void checkAndLogConsumerThreadProblem() {
+        if (!bundle.getThrowableList().isEmpty()) {
+            for (Throwable t : bundle.getThrowableList()) {
+                if (getLogger().isErrorEnabled()) {
+                    getLogger().error("Error in consumer thread: ", t);
+                }
+            }
+            bundle.clearThrowableList();
+            throw new RuntimeException("Error(s) in consumer thread(s).");
         }
-        return super.isWeakDependency(toGoal);
+    }
+
+    protected Runnable createFastaReaderRunnable(int i,
+                                                 BlockingQueue<DBGoal.FileAndNode> blockingQueue) {
+        AbstractRefSeqFastaReader fastaReader = createFastaReader();
+        return new Runnable() {
+            @Override
+            public void run() {
+                while (!dump) {
+                    try {
+                        try {
+                            DBGoal.FileAndNode fileAndNode = blockingQueue.take();
+                            fastaReader.ignoreAccessionMap(fileAndNode.getNode());
+                            fastaReader.readFasta(fileAndNode.getFile());
+                            if (progressBar != null) {
+                                progressBar.step();
+                            }
+                        } finally {
+                            doneCounter--;
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    } catch (InterruptedException e) {
+                        if (!dump) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
+            }
+        };
+    }
+
+    protected abstract AbstractRefSeqFastaReader createFastaReader();
+
+    public void dump() {
+        super.dump();
+        cleanUpThreads();
+    }
+
+    protected void cleanUpThreads() {
+        dump = true;
+        bundle.interruptAll();
+    }
+
+    protected static final class FileAndNode {
+        private final File file;
+        private final TaxTree.TaxIdNode node;
+
+        public FileAndNode(File file, TaxTree.TaxIdNode node) {
+            this.file = file;
+            this.node = node;
+        }
+
+        public File getFile() {
+            return file;
+        }
+
+        public TaxTree.TaxIdNode getNode() {
+            return node;
+        }
     }
 }

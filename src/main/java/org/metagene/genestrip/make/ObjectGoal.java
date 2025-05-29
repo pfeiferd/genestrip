@@ -37,7 +37,7 @@ public abstract class ObjectGoal<T, P extends Project> extends Goal<P> {
 		cleanThis();
 	}
 	
-	public final T get() {
+	public synchronized final T get() {
 		make();
 		return object;
 	}

@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
@@ -46,35 +47,49 @@ import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
 public class FillSizeGoal extends FastaReaderGoal<Long> {
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 
+	private final List<MyFastaReader> readers;
+
 	@SafeVarargs
-	public FillSizeGoal(GSProject project, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
-			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
-			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, Goal<GSProject>... deps) {
-		super(project, GSGoalKey.FILLSIZE, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, deps);
+	public FillSizeGoal(GSProject project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
+						ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+						ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
+						ObjectGoal<AccessionMap, GSProject> accessionMapGoal, Goal<GSProject>... deps) {
+		super(project, GSGoalKey.FILLSIZE, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, deps);
 		this.accessionMapGoal = accessionMapGoal;
+		readers = new ArrayList<>();
 	}
 
 	@Override
 	protected void doMakeThis() {
 		try {
-			boolean refSeqDB = booleanConfigValue(GSConfigKey.REF_SEQ_DB);
-			MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
-					taxNodesGoal.get(), refSeqDB ? accessionMapGoal.get() : null, intConfigValue(GSConfigKey.KMER_SIZE),
-					intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
-					(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
-					longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
-					intConfigValue(GSConfigKey.STEP_SIZE),
-					booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY));
-			readFastas(fastaReader);
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Store size determined in kmers: " + fastaReader.getCounter());
+			readFastas();
+			long counter = 0;
+			for (MyFastaReader reader : readers) {
+				counter += reader.getCounter();
 			}
-
-			set(fastaReader.getCounter());
+			set(counter);
+			if (getLogger().isWarnEnabled()) {
+				getLogger().warn("Estimated store size in kmers: " + counter);
+				getLogger().warn("Estimated DB Size in MB (without Bloom filter): " + (counter * 10) / (1024 * 1024) );
+			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
+		} finally {
+			cleanUpThreads();
 		}
+	}
+
+	@Override
+	protected AbstractRefSeqFastaReader createFastaReader() {
+		MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
+				taxNodesGoal.get(), booleanConfigValue(GSConfigKey.REF_SEQ_DB) ? accessionMapGoal.get() : null, intConfigValue(GSConfigKey.KMER_SIZE),
+				intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
+				(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
+				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
+				intConfigValue(GSConfigKey.STEP_SIZE),
+				booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY));
+		readers.add(fastaReader);
+		return fastaReader;
 	}
 
 	protected static class MyFastaReader extends AbstractRefSeqFastaReader {
@@ -91,7 +106,7 @@ public class FillSizeGoal extends FastaReaderGoal<Long> {
 		protected void done() {
 			super.done();
 			if (getLogger().isTraceEnabled()) {
-				List<StringLong> values = new ArrayList<StringLong>();
+				List<StringLong> values = new ArrayList<>();
 				regionsPerTaxid.collect(values);
 				getLogger().trace("Included regions per taxid: " + values);
 			}

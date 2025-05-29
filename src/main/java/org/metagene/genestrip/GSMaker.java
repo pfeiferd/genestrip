@@ -106,7 +106,7 @@ public class GSMaker extends Maker<GSProject> {
 
             @Override
             protected void doMakeThis() {
-                List<String> res = new ArrayList<String>();
+                List<String> res = new ArrayList<>();
                 for (GSGoalKey key : GSGoalKey.values()) {
                     if (!(getGoal(key) instanceof ObjectGoal<?, ?>)) {
                         res.add(key.getName());
@@ -125,7 +125,7 @@ public class GSMaker extends Maker<GSProject> {
 
             @Override
             protected void doMakeThis() {
-                List<String> res = new ArrayList<String>();
+                List<String> res = new ArrayList<>();
                 for (GSGoalKey key : GSGoalKey.values()) {
                     if (key.isForUser()) {
                         res.add(key.getName());
@@ -149,7 +149,7 @@ public class GSMaker extends Maker<GSProject> {
 
             @Override
             protected List<File> getFilesToClean() {
-                List<File> files = new ArrayList<File>(getFiles());
+                List<File> files = new ArrayList<>(getFiles());
                 files.remove(project.getCommon().getFastqDir());
                 files.remove(project.getCommon().getFastaDir());
                 return files;
@@ -200,7 +200,7 @@ public class GSMaker extends Maker<GSProject> {
                 commonSetupGoal) {
             @Override
             protected List<File> getFilesToClean() {
-                List<File> files = new ArrayList<File>(getFiles());
+                List<File> files = new ArrayList<>(getFiles());
                 files.remove(project.getFastaDir());
                 files.remove(project.getFastqDir());
                 return files;
@@ -280,15 +280,15 @@ public class GSMaker extends Maker<GSProject> {
 
         // Create database and bloom filter
 
-        FillSizeGoal fillSizeGoal = new FillSizeGoal(project, categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal,
+        FillSizeGoal fillSizeGoal = new FillSizeGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal,
                 additionalFastasGoal, accessCollGoal);
         registerGoal(fillSizeGoal);
 
-        ObjectGoal<MurmurCGATBloomFilter, GSProject> fillBloomGoal = new FillBloomFilterGoal(project, categoriesGoal,
+        ObjectGoal<MurmurCGATBloomFilter, GSProject> fillBloomGoal = new FillBloomFilterGoal(project, getExecutionContext(project), categoriesGoal,
                 taxNodesGoal, refSeqFnaFilesGoal, additionalFastasGoal, accessCollGoal, fillSizeGoal);
         registerGoal(fillBloomGoal);
 
-        FillDBGoal fillDBGoal = new FillDBGoal(project, categoriesGoal, taxNodesGoal, taxTreeGoal, refSeqFnaFilesGoal,
+        FillDBGoal fillDBGoal = new FillDBGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, taxTreeGoal, refSeqFnaFilesGoal,
                 additionalFastasGoal, accessCollGoal, fillBloomGoal, projectSetupGoal);
         registerGoal(fillDBGoal);
 
@@ -439,7 +439,6 @@ public class GSMaker extends Maker<GSProject> {
 
     public MatchingResult match(boolean lr, boolean clean, String key, String... pathsOrURLs) {
         MatchResultGoal matchResGoal = createGoalChainForMatchResult(lr, key, pathsOrURLs);
-        LoadDBGoal loadDBGoal = (LoadDBGoal) getGoal(GSGoalKey.LOAD_DB);
         MatchGoal matchGoal = new MatchGoal(matchResGoal.getProject(), (lr ? GSGoalKey.MATCHLR : GSGoalKey.MATCH), matchResGoal.getFastqMapGoal(), matchResGoal);
         if (clean) {
             matchGoal.cleanThis();

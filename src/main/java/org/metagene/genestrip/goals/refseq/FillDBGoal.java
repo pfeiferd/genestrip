@@ -26,16 +26,16 @@ package org.metagene.genestrip.goals.refseq;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
+import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
 import org.metagene.genestrip.refseq.AbstractStoreFastaReader;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
@@ -51,25 +51,29 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 	private final ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal;
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
+	private final List<MyFastaReader> readers;
+
+	private KMerSortedArray<String> store;
 
 	@SafeVarargs
-	public FillDBGoal(GSProject project, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
-			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
+	public FillDBGoal(GSProject project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
+					  ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
 					  ObjectGoal<TaxTree, GSProject> taxTreeGoal,
 					  RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
-			ObjectGoal<AccessionMap, GSProject> accessionMapGoal,
-			ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal,
-			Goal<GSProject>... deps) {
-		super(project, GSGoalKey.FILL_DB, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, bloomFilterGoal));
+					  ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
+					  ObjectGoal<AccessionMap, GSProject> accessionMapGoal,
+					  ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal,
+					  Goal<GSProject>... deps) {
+		super(project, GSGoalKey.FILL_DB, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, bloomFilterGoal));
 		this.accessionMapGoal = accessionMapGoal;
 		this.bloomFilterGoal = bloomFilterGoal;
 		this.taxTreeGoal = taxTreeGoal;
+		readers = new ArrayList<>();
 	}
 
 	@Override
 	protected void doMakeThis() {
-		KMerSortedArray<String> store = new KMerSortedArray<>(intConfigValue(GSConfigKey.KMER_SIZE),
+		store = new KMerSortedArray<>(intConfigValue(GSConfigKey.KMER_SIZE),
 				doubleConfigValue(GSConfigKey.BLOOM_FILTER_FPP), null, false);
 		// We have to account for the missing entries in the bloom filter due to
 		// inherent FPP.
@@ -82,19 +86,13 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 				* (1 + doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP))));
 
 		try {
-			boolean refSeqDB = booleanConfigValue(GSConfigKey.REF_SEQ_DB);
-
-			MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
-					taxNodesGoal.get(), refSeqDB ? accessionMapGoal.get() : null, store,
-					intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
-					(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
-					longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
-					intConfigValue(GSConfigKey.MAX_DUST),
-					intConfigValue(GSConfigKey.STEP_SIZE),
-					booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY));
-			readFastas(fastaReader);
-			if (getLogger().isWarnEnabled() && fastaReader.tooManyCounter > 0) {
-				getLogger().warn("Not stored kmers: " + fastaReader.tooManyCounter);
+			readFastas();
+			long tooManyCounter = 0;
+			for (MyFastaReader reader : readers) {
+				tooManyCounter += reader.tooManyCounter;
+			}
+			if (getLogger().isWarnEnabled() && tooManyCounter > 0) {
+				getLogger().warn("Not stored kmers: " + tooManyCounter);
 			}
 			TaxTree taxTree = taxTreeGoal.get();
 			Iterator<String> taxIt = store.getValues();
@@ -118,7 +116,24 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 			set(wrapper);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
+		} finally {
+			store = null;
+			cleanUpThreads();
 		}
+	}
+
+	@Override
+	protected AbstractRefSeqFastaReader createFastaReader() {
+		MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
+				taxNodesGoal.get(), booleanConfigValue(GSConfigKey.REF_SEQ_DB) ? accessionMapGoal.get() : null, store,
+				intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
+				(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
+				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
+				intConfigValue(GSConfigKey.MAX_DUST),
+				intConfigValue(GSConfigKey.STEP_SIZE),
+				booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY));
+		readers.add(fastaReader);
+		return fastaReader;
 	}
 
 	protected void ensureAllTreeNodesInDB(SmallTaxIdNode node, KMerSortedArray<String> store) {

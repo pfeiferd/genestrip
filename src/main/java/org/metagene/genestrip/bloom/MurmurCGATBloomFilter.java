@@ -35,7 +35,10 @@ public class MurmurCGATBloomFilter implements Serializable {
 	public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
 
 	private static final long serialVersionUID = 1L;
-	
+
+	// Just for optimizing synchronization during updates
+	private transient Object[] syncs;
+
 	protected final int k;
 	protected final double fpp;
 	protected final Random random;
@@ -55,11 +58,24 @@ public class MurmurCGATBloomFilter implements Serializable {
 		}
 		this.fpp = fpp;
 		this.k = k;
+		initSyncs();
 
 		random = new Random(42);
 
 		bitVector = new LargeBitVector(0);
 		entries = 0;
+	}
+
+	private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
+		ois.defaultReadObject();
+		initSyncs();
+	}
+
+	private void initSyncs() {
+		syncs = new Object[512];
+		for (int i = 0; i < syncs.length; i++) {
+			syncs[i] = new Object();
+		}
 	}
 
 	public void clear() {
@@ -124,9 +140,11 @@ public class MurmurCGATBloomFilter implements Serializable {
 	}
 
 	protected void putViaHash(long data) {
-		entries++;
-		for (int i = 0; i < hashes; i++) {
-			bitVector.set(hash(data, i));
+		synchronized (syncs[(int) (data % syncs.length)]) {
+			entries++;
+			for (int i = 0; i < hashes; i++) {
+				bitVector.set(hash(data, i));
+			}
 		}
 	}
 
@@ -236,7 +254,7 @@ public class MurmurCGATBloomFilter implements Serializable {
 		hash ^= (hash >>> 33);
 		return hash;
 	}
-	
+
 	public void save(File filterFile) throws IOException {
 		try (ObjectOutputStream oOut = new ObjectOutputStream(StreamProvider.getOutputStreamForFile(filterFile))) {
 			oOut.writeObject(this);			

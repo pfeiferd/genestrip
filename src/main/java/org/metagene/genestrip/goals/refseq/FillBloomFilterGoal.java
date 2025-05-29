@@ -29,12 +29,14 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
+import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
 import org.metagene.genestrip.refseq.AbstractStoreFastaReader;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
@@ -45,12 +47,14 @@ public class FillBloomFilterGoal extends FastaReaderGoal<MurmurCGATBloomFilter> 
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 	private final ObjectGoal<Long, GSProject> sizeGoal;
 
+	private MurmurCGATBloomFilter filter;
+
 	@SafeVarargs
-	public FillBloomFilterGoal(GSProject project, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
-			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-			ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
-			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, FillSizeGoal sizeGoal, Goal<GSProject>... deps) {
-		super(project, GSGoalKey.TEMPINDEX, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, sizeGoal));
+	public FillBloomFilterGoal(GSProject project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
+							   ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+							   ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
+							   ObjectGoal<AccessionMap, GSProject> accessionMapGoal, FillSizeGoal sizeGoal, Goal<GSProject>... deps) {
+		super(project, GSGoalKey.TEMPINDEX, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, sizeGoal));
 		this.accessionMapGoal = accessionMapGoal;
 		this.sizeGoal = sizeGoal;
 	}
@@ -64,27 +68,34 @@ public class FillBloomFilterGoal extends FastaReaderGoal<MurmurCGATBloomFilter> 
 	@Override
 	protected void doMakeThis() {
 		try {
-			MurmurCGATBloomFilter filter = new MurmurCGATBloomFilter(intConfigValue(GSConfigKey.KMER_SIZE),
+			filter = new MurmurCGATBloomFilter(intConfigValue(GSConfigKey.KMER_SIZE),
 					doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP));
 			filter.ensureExpectedSize(sizeGoal.get(), false);
-
-			boolean refSeqDB = booleanConfigValue(GSConfigKey.REF_SEQ_DB);
-			readFastas(new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
-					taxNodesGoal.get(), refSeqDB ? accessionMapGoal.get() : null, filter,
-					intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
-					(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
-					longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
-					intConfigValue(GSConfigKey.MAX_DUST),
-					intConfigValue(GSConfigKey.STEP_SIZE),
-					booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY)));
-
+			readFastas();
 			set(filter);
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Final Bloom filter entries: " + filter.getEntries());
+			if (getLogger().isWarnEnabled()) {
+				getLogger().warn("Final Bloom filter and store size in kmers: " + filter.getEntries());
+				getLogger().warn("Approx. DB Size in MB (without Bloom filter): " + (filter.getEntries() * 10) / (1024 * 1024));
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
+		} finally {
+			filter = null;
+			cleanUpThreads();
 		}
+	}
+
+	@Override
+	protected AbstractRefSeqFastaReader createFastaReader() {
+		return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
+				taxNodesGoal.get(),
+				booleanConfigValue(GSConfigKey.REF_SEQ_DB) ? accessionMapGoal.get() : null, filter,
+				intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
+				(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
+				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
+				intConfigValue(GSConfigKey.MAX_DUST),
+				intConfigValue(GSConfigKey.STEP_SIZE),
+				booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY));
 	}
 
 	protected static class MyFastaReader extends AbstractStoreFastaReader {

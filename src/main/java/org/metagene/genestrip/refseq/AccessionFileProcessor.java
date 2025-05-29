@@ -142,4 +142,14 @@ public abstract class AccessionFileProcessor {
         }
         return false;
     }
+
+    public static boolean isCompleteGenomicAccession(byte[] outerArray, int start) {
+        String[] prefixes = AccessionFileProcessor.COMPLETE_GENOMIC_ACCESSION_PREFIXES;
+        for (int i = 0; i < prefixes.length; i++) {
+            if (ByteArrayUtil.startsWith(outerArray, start, prefixes[i])) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

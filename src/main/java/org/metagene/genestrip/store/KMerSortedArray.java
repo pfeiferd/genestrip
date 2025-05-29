@@ -24,6 +24,8 @@
  */
 package org.metagene.genestrip.store;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -64,6 +66,9 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	private final V[] indexMap;
 	private final boolean enforceLarge;
 
+	// Just for optimizing synchronization during updates
+	private transient Object[] syncs;
+
 	protected long size;
 
 	private long entries;
@@ -87,11 +92,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		int s = initialValues == null ? 0 : initialValues.size();
 		indexMap = (V[]) new Serializable[MAX_VALUES];
 		valueMap = new Object2ShortOpenHashMap<V>(s);
-		// It is VERY important to start with one here because of a bug in the fastutil
-		// library.
-		// It seems to have to do with storing 0 as a key and deserializing
-		// Short2ObjectHashMap in this case.
-		// I did not want to dive into this - so this is a simple workaround:
+		initSyncs();
 		nextValueIndex = 0;
 		this.enforceLarge = enforceLarge;
 		if (initialValues != null) {
@@ -103,6 +104,19 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		this.useFilter = filter != null;
 		this.kmerPersTaxid = null;
 		this.kmersMoved = 0;
+	}
+
+
+	private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
+		ois.defaultReadObject();
+		initSyncs();
+	}
+
+	private void initSyncs() {
+		syncs = new Object[512];
+		for (int i = 0; i < syncs.length; i++) {
+			syncs[i] = new Object();
+		}
 	}
 
 	public long getKMersMoved() {
@@ -131,6 +145,10 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 		indexMap = (V[]) new Serializable[MAX_VALUES];
 		valueMap = new Object2ShortOpenHashMap<V>(org.valueMap.size());
+		syncs = new Object[512];
+		for (int i = 0; i < syncs.length; i++) {
+			syncs[i] = new Object();
+		}
 
 		if (org.kmerPersTaxid != null) {
 			kmerPersTaxid = new Object2LongOpenHashMap<V>();
@@ -280,26 +298,31 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		if (value == null) {
 			throw new NullPointerException("null is not allowed as a value.");
 		}
-		if (filter.containsLong(kmer) || filter.containsLong(reverseKmer)) {
-			// Fail fast - we could check if the kmer is indeed stored, but it's way too
-			// slow because
-			// of linear search in the kmer array...
-			return false;
-		}
 		sorted = false;
-		if (entries == size) {
-			throw new IllegalStateException("Capacity exceeded.");
+		long index;
+		short sindex;
+		synchronized (this) {
+			if (entries == size) {
+				throw new IllegalStateException("Capacity exceeded.");
+			}
+			if (filter.containsLong(kmer) || filter.containsLong(reverseKmer)) {
+				// Fail fast - we could check if the kmer is indeed stored, but it's way too
+				// slow because
+				// of linear search in the kmer array...
+				return false;
+			}
+			index = entries;
+			entries++;
+			sindex = getAddValueIndex(value);
+			filter.putLong(kmer);
 		}
-		short sindex = getAddValueIndex(value);
 		if (largeKmers != null) {
-			BigArrays.set(largeKmers, entries, kmer);
-			BigArrays.set(largeValueIndexes, entries, sindex);
+			BigArrays.set(largeKmers, index, kmer);
+			BigArrays.set(largeValueIndexes, index, sindex);
 		} else {
-			kmers[(int) entries] = kmer;
-			valueIndexes[(int) entries] = sindex;
+			kmers[(int) index] = kmer;
+			valueIndexes[(int) index] = sindex;
 		}
-		entries++;
-		filter.putLong(kmer);
 		return true;
 	}
 
@@ -370,7 +393,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		// for different pos values, but always the same object for the same pos value
 		// in a multi-threading scenario. This trick greatly decreases synchronization
 		// bottlenecks.
-		synchronized (provider.getSynchronizationObject(pos)) {
+		synchronized (syncs[(int) (pos % syncs.length)]) {
 			short index;
 			if (largeKmers != null) {
 				index = BigArrays.get(largeValueIndexes, pos);
@@ -666,8 +689,6 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 	public interface UpdateValueProvider<V extends Serializable> {
 		public V getUpdateValue(V oldValue);
-
-		public Object getSynchronizationObject(long position);
 	}
 
 	public interface ValueConverter<V, W extends Serializable> {

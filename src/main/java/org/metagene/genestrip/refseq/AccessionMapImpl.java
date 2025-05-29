@@ -53,7 +53,7 @@ public class AccessionMapImpl implements AccessionMap {
 			throw new IllegalStateException("Map must be optimized before get.");
 		}
 		if (completeGenomesOnly &&
-				!isCompleteGenomicAccession(array, start) &&
+				!AccessionFileProcessor.isCompleteGenomicAccession(array, start) &&
 				!AccessionFileProcessor.isMRNAAccession(array, start) &&
 				!AccessionFileProcessor.isRNAAccession(array, start)) {
 			return null;
@@ -150,15 +150,5 @@ public class AccessionMapImpl implements AccessionMap {
 		} else {
 			return key1.length - len;
 		}
-	}
-
-	protected boolean isCompleteGenomicAccession(byte[] outerArray, int start) {
-		String[] prefixes = AccessionFileProcessor.COMPLETE_GENOMIC_ACCESSION_PREFIXES;
-		for (int i = 0; i < prefixes.length; i++) {
-			if (ByteArrayUtil.startsWith(outerArray, start, prefixes[i])) {
-				return true;
-			}
-		}
-		return false;
 	}
 }
