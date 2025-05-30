@@ -100,7 +100,7 @@ public abstract class AbstractKMerStoreTest extends TestCase {
 				}
 			}
 			int v = i % KMerSortedArray.MAX_VALUES;
-			store.put(read, 0, v, false);
+			store.put(read, 0, v);
 			if (controlMap != null) {
 				controlMap.put(readAsList, v);
 			}
@@ -121,13 +121,13 @@ public abstract class AbstractKMerStoreTest extends TestCase {
 				ringBuffer.put(read[j]);
 			}
 
-			assertEquals(v, store.get(read, 0, false));
+			assertEquals(v, store.get(read, 0));
 
 			CGAT.reverse(read);
 			for (int j = 0; j < read.length; j++) {
 				ringBuffer.put(read[j]);
 			}
-			assertEquals(v, store.get(read, 0, true));
+			assertEquals(v, store.get(read, 0));
 		}
 
 		List<Byte> readAsList = new ArrayList<Byte>();
@@ -139,7 +139,7 @@ public abstract class AbstractKMerStoreTest extends TestCase {
 				ringBuffer.put(read[j]);
 			}
 			if (!controlMap.containsKey(readAsList)) {
-				assertNull(store.get(read, 0, false));
+				assertNull(store.get(read, 0));
 			}
 
 			CGAT.reverse(read);
@@ -149,7 +149,7 @@ public abstract class AbstractKMerStoreTest extends TestCase {
 				ringBuffer.put(read[j]);
 			}
 			if (!controlMap.containsKey(readAsList)) {
-				assertNull(store.get(read, 0, true));
+				assertNull(store.get(read, 0));
 			}
 		}
 	}

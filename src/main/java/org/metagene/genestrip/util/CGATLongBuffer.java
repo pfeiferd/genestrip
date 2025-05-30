@@ -134,6 +134,13 @@ public class CGATLongBuffer {
 		return filled ? reverseKmer : -1;
 	}
 
+	public long getStandardKMer() {
+		if (filled) {
+			return CGAT.standardKMer(kmer, reverseKmer);
+		}
+		return -1;
+	}
+
 	public void reset() {
 		bpCounter = 0;
 		kmer = 0;

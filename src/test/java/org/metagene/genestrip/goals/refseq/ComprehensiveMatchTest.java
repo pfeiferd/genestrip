@@ -81,16 +81,14 @@ public class ComprehensiveMatchTest extends DBGoalTest {
         maker.getGoal(GSGoalKey.DB).make();
         maker.dumpAll();
 
-        for (int i = 0; i <= 3; i++) {
+        for (int i = 0; i < 2; i++) {
             project = createTestProject("viral_test_fastq.txt");
             project.initConfigParam(GSConfigKey.THREADS, 0);
             project.initConfigParam(GSConfigKey.WRITED_KRAKEN_STYLE_OUT, true);
-            project.initConfigParam(GSConfigKey.KRAKEN_STYLE_MATCH, (i & 1) == 1);
-            project.initConfigParam(GSConfigKey.USE_INLINED, (i & 2) == 1);
+            project.initConfigParam(GSConfigKey.USE_INLINED, i == 0);
             maker = new GSMaker(project);
             maker.match(false, "test", new File(project.getFastqDir(), getProjectName() +  "_fasta2fastq_test.fastq.gz").toString());
-            String ks = (i & 1) == 1 ? "ks" : "gs";
-            File file1 = new File(project.getKrakenOutDir(), "test_" + ks + ".out");
+            File file1 = new File(project.getKrakenOutDir(), "test_ks.out");
             File file2 = new File(project.getKrakenOutDir(), getProjectName() + "_matchres_test.out");
             System.out.println("file1: " + file1);
             System.out.println("file2: " + file2);

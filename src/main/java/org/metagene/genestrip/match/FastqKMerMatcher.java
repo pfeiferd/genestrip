@@ -49,7 +49,6 @@ import it.unimi.dsi.fastutil.objects.Object2LongMap;
 public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
     private final static SmallTaxIdNode INVALID_NODE = new SmallTaxIdNode("INVALID");
 
-    protected final boolean krakenStyleMatch;
     protected final KMerSortedArray<SmallTaxIdNode> kmerStore;
     protected final int maxKmerResCounts;
 
@@ -78,7 +77,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 
     public FastqKMerMatcher(KMerSortedArray<SmallTaxIdNode> kmerStore, int initialReadSize, int maxQueueSize,
                             ExecutionContext bundle, boolean withProbs, int maxKmerResCounts, SmallTaxTree taxTree, int maxPaths,
-                            double maxReadTaxErrorCount, double maxReadClassErrorCount, boolean krakenStyleMatch) {
+                            double maxReadTaxErrorCount, double maxReadClassErrorCount) {
         super(kmerStore.getK(), initialReadSize, maxQueueSize, bundle, withProbs, maxPaths);
         consumers = bundle.getThreads() <= 0 ? 1 : bundle.getThreads();
         this.kmerStore = kmerStore;
@@ -93,7 +92,6 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         if (taxTree != null) {
             taxTree.initCountSize(consumers);
         }
-        this.krakenStyleMatch = krakenStyleMatch;
     }
 
     @Override
@@ -205,11 +203,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             myEntry.counts[i] = 0;
         }
 
-        boolean found =  matchRead(myEntry, index, false);
-        if (!found && !krakenStyleMatch) {
-            found = matchRead(myEntry, index, true);
-        }
-
+        boolean found =  matchRead(myEntry, index);
         afterMatch(myEntry, found);
         if (afterMatchCallback != null) {
             afterMatchCallback.afterMatch(myEntry, found);
@@ -234,7 +228,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
     private byte[] kmerHelp = new byte[31];
 
     // Made final for potential inlining by JVM
-    protected final boolean matchRead(final MyReadEntry entry, final int index, boolean reverse) {
+    protected final boolean matchRead(final MyReadEntry entry, final int index) {
         boolean found = false;
         int prints = 0;
         int readTaxErrorCount = taxTree == null ? -1 : 0;
@@ -250,26 +244,24 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         int oldIndex = 0;
         for (int i = 0; i < max; i++) {
             if (kmer == -1) {
-                kmer = reverse ? CGAT.kMerToLongReverse(entry.read, i, k, entry.badPos) : CGAT.kMerToLongStraight(entry.read, i, k, entry.badPos);
+                kmer = CGAT.kMerToLongStraight(entry.read, i, k, entry.badPos);
                 if (kmer == -1) {
                     oldIndex = i;
                     i = entry.badPos[0];
-                } else if (krakenStyleMatch) {
-                    reverseKmer = CGAT.kMerToLongReverse(entry.read, i, k, entry.badPos);
+                } else {
+                    reverseKmer = CGAT.kMerToLongReverse(entry.read, i, k, null);
                 }
             } else {
-                kmer = reverse ? CGAT.nextKMerReverse(reverseKmer, entry.read[i + k - 1], k) : CGAT.nextKMerStraight(kmer, entry.read[i + k - 1], k);
+                kmer = CGAT.nextKMerStraight(kmer, entry.read[i + k - 1], k);
                 if (kmer == -1) {
                     oldIndex = i;
                     i += k - 1;
-                } else if (krakenStyleMatch) {
+                } else {
                     reverseKmer = CGAT.nextKMerReverse(reverseKmer, entry.read[i + k - 1], k);
                 }
             }
-            taxIdNode = kmer == -1 ? INVALID_NODE : kmerStore.getLong(kmer, entry.indexPos);
-            if (taxIdNode == null && krakenStyleMatch) {
-                taxIdNode = kmerStore.getLong(reverseKmer, entry.indexPos);
-            }
+            taxIdNode = kmer == -1 ? INVALID_NODE :
+                    kmerStore.getLong(CGAT.standardKMer(kmer, reverseKmer), entry.indexPos);
             if (readTaxErrorCount != -1) {
                 if (taxIdNode == null || taxIdNode == INVALID_NODE) {
                     readTaxErrorCount++;
@@ -324,7 +316,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                     }
                 }
                 if (uniqueCounter != null) {
-                    uniqueCounter.put(kmer, taxIdNode.getTaxId(), entry.indexPos[0]);
+                    uniqueCounter.put(CGAT.standardKMer(kmer, reverseKmer), taxIdNode.getTaxId(), entry.indexPos[0]);
                 }
             } else {
                 stats = null;

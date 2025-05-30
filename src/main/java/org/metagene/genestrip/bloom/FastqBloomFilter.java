@@ -67,9 +67,7 @@ public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 	protected void nextEntry(ReadEntry readStruct, int index) throws IOException {
 		MyReadEntry re = (MyReadEntry) readStruct;
 
-		boolean res = inlined ?
-				isAcceptReadInlined(re, true) || isAcceptReadInlined(re, false) :
-				isAcceptRead(re, true) || isAcceptRead(re, false);
+		boolean res = isAcceptRead(re);
 		if (res) {
 			if (indexed != null) {
 				rewriteInput(readStruct, indexed);
@@ -86,30 +84,35 @@ public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 		return new MyReadEntry(maxReadSizeBytes, withProbs);
 	}
 
-	protected boolean isAcceptRead(final MyReadEntry entry, final boolean reverse) {
+	protected boolean isAcceptRead(final MyReadEntry entry) {
 		int max = entry.readSize - k + 1;
 		int posThreshold = (minPosCount > 0) ? minPosCount : (int) (max * positiveRatio);
 		int negThreshold = max - posThreshold;
 
 		long kmer = -1;
+		long reverseKmer = -1;
 		int counter = 0;
 		int negCounter = 0;
 		for (int i = 0; i < max; i++) {
 			if (kmer == -1) {
-				kmer = reverse ? CGAT.kMerToLongReverse(entry.read, i, k, entry.badPos)
-						: CGAT.kMerToLongStraight(entry.read, i, k, entry.badPos);
+				kmer = CGAT.kMerToLongStraight(entry.read, i, k, entry.badPos);
 				if (kmer == -1) {
 					i = entry.badPos[0];
 				}
+				else {
+					reverseKmer = CGAT.kMerToLongReverse(entry.read, i, k, null);
+				}
 			} else {
-				kmer = reverse ? CGAT.nextKMerReverse(kmer, entry.read[i + k - 1], k)
-						: CGAT.nextKMerStraight(kmer, entry.read[i + k - 1], k);
+				kmer = CGAT.nextKMerStraight(kmer, entry.read[i + k - 1], k);
 				if (kmer == -1) {
 					i += k - 1;
 				}
+				else {
+					reverseKmer = CGAT.nextKMerReverse(kmer, entry.read[i + k - 1], k);
+				}
 			}
 			if (kmer != -1) {
-				if (filter.containsViaHash(kmer)) {
+				if (filter.containsViaHash(CGAT.standardKMer(kmer, reverseKmer))) {
 					counter++;
 					if (counter >= posThreshold) {
 						return true;
@@ -126,80 +129,6 @@ public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 		return false;
 	}
 
-	protected boolean isAcceptReadInlined(final MyReadEntry entry, final boolean reverse) {
-		int max = entry.readSize - k + 1;
-		int posThreshold = (minPosCount > 0) ? minPosCount : (int) (max * positiveRatio);
-		int negThreshold = max - posThreshold;
-
-		int counter = 0;
-		int negCounter = 0;
-		long kmer = -1;
-		for (int i = 0; i < max; i++) {
-			if (kmer == -1) {
-				int c;
-				kmer = 0;
-				if (reverse) {
-					for (int i1 = i + k - 1; i1 >= i; i1--) {
-						// Inlined: res = Long.rotateLeft(res, 2);
-						kmer = (kmer << 2) | (kmer >>> -2);
-						c = CGAT.CGAT_REVERSE_JUMP_TABLE[entry.read[i1]];
-						if (c == -1) {
-							kmer = -1;
-							i = i1;
-							break;
-						}
-						kmer += c;
-					}
-				} else {
-					int max1 = i + k;
-					for (int i1 = i; i1 < max1; i1++) {
-						// Inlined: res = Long.rotateLeft(res, 2);
-						kmer = (kmer << 2) | (kmer >>> -2);
-						c = CGAT.CGAT_JUMP_TABLE[entry.read[i1]];
-						if (c == -1) {
-							kmer = -1;
-							i = i1;
-							break;
-						}
-						kmer += c;
-					}
-				}
-			} else {
-				if (reverse) {
-					int c = CGAT.CGAT_REVERSE_JUMP_TABLE[entry.read[i + k - 1]];
-					if (c == -1) {
-						kmer = -1;
-						i += k - 1;
-					} else {
-						kmer = (kmer >>> 2) | (((long) c) << CGAT.SHIFT_FILTERS_REVERSE[k]);
-					}
-				} else {
-					int c = CGAT.CGAT_JUMP_TABLE[entry.read[i + k - 1]];
-					if (c == -1) {
-						kmer = -1;
-						i += k - 1;
-					} else {
-						kmer = ((kmer << 2) & CGAT.SHIFT_FILTERS_STRAIGHT[k]) | (long) c;
-					}
-				}
-			}
-			if (kmer != -1) {
-				if (filter.containsViaHashInlined(kmer)) {
-					counter++;
-					if (counter >= posThreshold) {
-						return true;
-					}
-				} else {
-					negCounter++;
-					if (negCounter > negThreshold) {
-						return false;
-					}
-				}
-			}
-		}
-
-		return false;
-	}
 
 	protected static class MyReadEntry extends ReadEntry {
 		public final int[] badPos = new int[1];

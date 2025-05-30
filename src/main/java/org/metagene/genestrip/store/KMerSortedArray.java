@@ -272,15 +272,14 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	}
 
 	@Override
-	public boolean put(CGATRingBuffer buffer, V value, boolean reverse) {
-		throw new UnsupportedOperationException("Deprecated and almost removed.");
+	public boolean put(CGATRingBuffer buffer, V value) {
+		throw new UnsupportedOperationException("Deprecated and so not implemented.");
 	}
 
+
 	@Override
-	public boolean put(byte[] nseq, int start, V value, boolean reverse) {
-		long kmer = reverse ? CGAT.kMerToLongReverse(nseq, start, k, null)
-				: CGAT.kMerToLongStraight(nseq, start, k, null);
-		return putLong(kmer, -1, value);
+	public boolean put(byte[] nseq, int start, V value) {
+		return putLong(CGAT.kMerToLong(nseq, start, k, null), value);
 	}
 
 	public boolean isFull() {
@@ -291,7 +290,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	 * @return true if put succeeded, false if (probably) some value is already
 	 *         stored under that kmer.
 	 */
-	public boolean putLong(final long kmer, final long reverseKmer, final V value) {
+	public boolean putLong(final long kmer, final V value) {
 		if (value == null) {
 			throw new NullPointerException("null is not allowed as a value.");
 		}
@@ -302,7 +301,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			if (entries == size) {
 				throw new IllegalStateException("Capacity exceeded.");
 			}
-			if (filter.containsLong(kmer) || filter.containsLong(reverseKmer)) {
+			if (filter.containsLong(kmer)) {
 				// Fail fast - we could check if the kmer is indeed stored, but it's way too
 				// slow because
 				// of linear search in the kmer array...
@@ -337,31 +336,24 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	}
 
 	@Override
-	public V get(CGATRingBuffer buffer, boolean reverse) {
+	public V get(CGATRingBuffer buffer) {
 		throw new UnsupportedOperationException("Deprecated and almost removed.");
 	}
 
 	@Override
-	public V get(byte[] nseq, int start, boolean reverse) {
-		long kmer = reverse ? CGAT.kMerToLongReverse(nseq, start, k, null)
-				: CGAT.kMerToLongStraight(nseq, start, k, null);
-		return getLong(kmer, null);
+	public V get(byte[] nseq, int start) {
+		return getLong(CGAT.kMerToLong(nseq, start, k, null), null);
 	}
 
-	public V get(byte[] nseq, int start, boolean reverse, long[] indexStore) {
-		long kmer = reverse ? CGAT.kMerToLongReverse(nseq, start, k, null)
-				: CGAT.kMerToLongStraight(nseq, start, k, null);
-		return getLong(kmer, indexStore);
+	public V get(byte[] nseq, int start, long[] indexStore) {
+		return getLong(CGAT.kMerToLong(nseq, start, k, null), indexStore);
 	}
 
-	public boolean update(long kmer, long reverseKmer, UpdateValueProvider<V> provider) {
+	public boolean update(long kmer, UpdateValueProvider<V> provider) {
 		if (!sorted) {
 			throw new IllegalStateException("Update only works when optimized.");
 		}
-		if (filter != null &&
-				useFilter &&
-				!filter.containsLong(kmer) &&
-				!filter.containsLong(reverseKmer)) {
+		if (filter != null && useFilter && !filter.containsLong(kmer)) {
 			return false;
 		}
 
@@ -369,18 +361,12 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		if (largeKmers != null) {
 			pos = LongBigArrays.binarySearch(largeKmers, 0, entries, kmer);
 			if (pos < 0) {
-				pos = LongBigArrays.binarySearch(largeKmers, 0, entries, reverseKmer);
-				if (pos < 0) {
-					return false;
-				}
+				return false;
 			}
 		} else {
 			pos = Arrays.binarySearch(kmers, 0, (int) entries, kmer);
 			if (pos < 0) {
-				pos = Arrays.binarySearch(kmers, 0, (int) entries, reverseKmer);
-				if (pos < 0) {
-					return false;
-				}
+				return false;
 			}
 		}
 		// We only must synchronize, if two threads access the same kmer in the same

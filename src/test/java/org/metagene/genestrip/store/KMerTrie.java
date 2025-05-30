@@ -35,7 +35,7 @@ import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATRingBuffer;
 
 @Deprecated
-public class KMerTrie<V extends Serializable> implements Serializable, KMerStore<V> {
+public class KMerTrie<V extends Serializable> implements Serializable {
 	private static final InternalNullMarker NULL = new InternalNullMarker();
 
 	private static final long serialVersionUID = 1L;
@@ -128,18 +128,15 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 		return entries;
 	}
 	
-	@Override
 	public long getSize() {
 		// Unlimited size...
 		return Long.MAX_VALUE;
 	}
 	
-	@Override
 	public void initSize(long size) {
 		// Intentionally empty.
 	}
 	
-	@Override
 	public boolean put(CGATRingBuffer buffer, V value, boolean reverse) {
 		if (compressed) {
 			throw new IllegalStateException("Cant insert in compressed trie");
@@ -184,7 +181,6 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 		}
 	}
 
-	@Override
 	public boolean put(byte[] nseq, int start, V value, boolean reverse) {
 		if (compressed) {
 			throw new IllegalStateException("Cant insert in compressed trie");
@@ -236,12 +232,11 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 		collectValuesHelp(root, 0, new byte[len], visitor, reverse);
 	}
 	
-	@Override
-	public void visit(KMerStoreVisitor<V> visitor) {
+	public void visit(KMerStore.KMerStoreVisitor<V> visitor) {
 		visit(new KMerTrieVisitor<V>() {			
 			@Override
 			public void nextValue(KMerTrie<V> trie, byte[] kmer, V value) {
-				visitor.nextValue(KMerTrie.this, CGAT.kMerToLongStraight(kmer, 0, len, null), value);
+				visitor.nextValue(null, CGAT.kMerToLongStraight(kmer, 0, len, null), value);
 			}
 		}, false);
 	}
@@ -270,7 +265,6 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 	}
 
 	@SuppressWarnings("unchecked")
-	@Override
 	public V get(CGATRingBuffer buffer, boolean reverse) {
 		Object node = root;
 
@@ -311,7 +305,6 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 	}
 
 	@SuppressWarnings("unchecked")
-	@Override
 	public V get(byte[] nseq, int start, boolean reverse) {
 		Object node = root;
 
@@ -351,7 +344,6 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 		return node instanceof InternalNullMarker ? null : (V) node;
 	}
 
-	@Override
 	public void optimize() {
 		if (!compressed) {
 			compressHelp(root);
@@ -359,7 +351,6 @@ public class KMerTrie<V extends Serializable> implements Serializable, KMerStore
 		}
 	}
 
-	@Override
 	public boolean isOptimized() {
 		return compressed;
 	}

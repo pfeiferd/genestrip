@@ -90,9 +90,14 @@ public class CGAT {
 		return CGAT_COMPLEMENT[c];
 	}
 
+	public static long kMerToLong(byte[] seq, int start, int k, int[] badPos) {
+		long reverse = kMerToLongReverse(seq, start, k, badPos);
+		long straight = kMerToLongStraight(seq, start, k, badPos);
+		return standardKMer(reverse, straight);
+	}
 
-	public static long kMerToLong(byte[] seq, int start, int k, int[] badPos, boolean reverse) {
-		return reverse ? kMerToLongReverse(seq, start, k, badPos) : kMerToLongStraight(seq, start, k, badPos);
+	public static long standardKMer(long straight, long reverse) {
+		return straight > reverse ? straight : reverse;
 	}
 
 	public static long kMerToLongStraight(final byte[] seq, final int start, final int k, final int[] badPos) {
@@ -141,7 +146,7 @@ public class CGAT {
 		}
 		return (kmer >>> 2) | (((long) c) << SHIFT_FILTERS_REVERSE[k]);
 	}
-	
+
 	public static long kMerToLongReverse(final byte[] seq, final int start, final int k, final int[] badPos) {
 		long res = 0;
 		int c;

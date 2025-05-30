@@ -112,21 +112,20 @@ public class FillBloomFilterGoal extends FastaReaderGoal<MurmurCGATBloomFilter> 
 
 		@Override
 		protected boolean handleStore() {
-			if (!filter.containsLong(byteRingBuffer.getKMer()) &&
-					!filter.containsLong(byteRingBuffer.getReverseKMer())) {
+			long kmer = byteRingBuffer.getStandardKMer();
+			if (!filter.containsLong(kmer)) {
 				if (multiThreading) {
 					synchronized (filter) {
 						// This is a trick to enable more parallelism -
 						// check again after synchronized to avoid synchronized further outside...
-						if (!filter.containsLong(byteRingBuffer.getKMer()) &&
-								!filter.containsLong(byteRingBuffer.getReverseKMer())) {
-							filter.putLong(byteRingBuffer.getKMer());
+						if (!filter.containsLong(kmer)) {
+							filter.putLong(kmer);
 							return true;
 						}
 					}
 				}
 				else {
-					filter.putLong(byteRingBuffer.getKMer());
+					filter.putLong(kmer);
 				}
 			}
 			return false;

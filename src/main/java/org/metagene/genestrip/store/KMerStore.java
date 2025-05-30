@@ -43,16 +43,16 @@ public interface KMerStore<V extends Serializable> extends Serializable {
 	public long getSize();
 
 	@Deprecated
-	public boolean put(CGATRingBuffer buffer, V value, boolean reverse);
+	public boolean put(CGATRingBuffer buffer, V value);
 
 	@Deprecated
-	public boolean put(byte[] nseq, int start, V value, boolean reverse);
+	public boolean put(byte[] nseq, int start, V value);
 
 	@Deprecated
-	public V get(CGATRingBuffer buffer, boolean reverse);
+	public V get(CGATRingBuffer buffer);
 
 	@Deprecated
-	public V get(byte[] nseq, int start, boolean reverse);
+	public V get(byte[] nseq, int start);
 
 	public void visit(KMerStoreVisitor<V> visitor);
 

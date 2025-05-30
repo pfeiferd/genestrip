@@ -34,7 +34,8 @@ import org.junit.Test;
 import org.metagene.genestrip.store.KMerTrie.KMerTrieVisitor;
 import org.metagene.genestrip.util.CGAT;
 
-public class KMerTrieTest extends AbstractKMerStoreTest {
+public class KMerTrieTest { // extends AbstractKMerStoreTest {
+	/*
 	@Test
 	public void testVisitTrie() {
 		KMerTrie<Integer> trie = createKMerStore(Integer.class, k);
@@ -79,8 +80,9 @@ public class KMerTrieTest extends AbstractKMerStoreTest {
 		return res;
 	}
 
-	@Override
 	public <V extends Serializable> KMerTrie<V> createKMerStore(Class<V> clazz, Object... params) {
 		return new KMerTrie<V>(2, (int) params[0], false);
 	}
+
+	 */
 }

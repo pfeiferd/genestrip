@@ -165,7 +165,7 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 				tooManyCounter++;
 			} else {
 				if (node.getTaxId() != null) {
-					return store.putLong(byteRingBuffer.getKMer(), byteRingBuffer.getReverseKMer(), node.getTaxId());
+					return store.putLong(byteRingBuffer.getStandardKMer(), node.getTaxId());
 				} else {
 					if (getLogger().isWarnEnabled()) {
 						getLogger().warn("Tax id node without taxid: " + node.getName());

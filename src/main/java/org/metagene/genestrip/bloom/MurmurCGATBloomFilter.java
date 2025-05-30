@@ -136,9 +136,8 @@ public class MurmurCGATBloomFilter implements Serializable {
 		}
 	}
 
-	public final boolean contains(byte[] seq, int start, int[] badPos, boolean reverse) {
-		long data = reverse ? CGAT.kMerToLongReverse(seq, start, k, badPos)
-				: CGAT.kMerToLongStraight(seq, start, k, badPos);
+	public final boolean contains(byte[] seq, int start, int[] badPos) {
+		long data = CGAT.kMerToLong(seq, start, k, badPos);
 		if (data == -1 && badPos != null && badPos[0] == -1) {
 			return false;
 		}

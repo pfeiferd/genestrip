@@ -154,7 +154,7 @@ public class DBGoal extends FastaReaderGoal<Database> {
 
 		@Override
 		protected boolean handleStore() {
-			return store.update(byteRingBuffer.getKMer(), byteRingBuffer.getReverseKMer(), provider);
+			return store.update(byteRingBuffer.getStandardKMer(), provider);
 		}
 	}
 }
