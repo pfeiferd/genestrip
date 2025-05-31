@@ -297,15 +297,20 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		sorted = false;
 		long index;
 		short sindex;
+		if (filter.containsLong(kmer)) {
+			// Fail fast - we could check if the kmer is indeed stored, but it's way too
+			// slow because of linear search in the kmer array...
+			return false;
+		}
 		synchronized (this) {
+			// We must check here again for thread safety.
+			// It is still better to do it here (again) than not doing it outside to improve
+			// parallelism.
+			if (filter.containsLong(kmer)) {
+				return false;
+			}
 			if (entries == size) {
 				throw new IllegalStateException("Capacity exceeded.");
-			}
-			if (filter.containsLong(kmer)) {
-				// Fail fast - we could check if the kmer is indeed stored, but it's way too
-				// slow because
-				// of linear search in the kmer array...
-				return false;
 			}
 			index = entries++;
 			sindex = getAddValueIndex(value);
