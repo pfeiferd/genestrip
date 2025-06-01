@@ -84,7 +84,7 @@ public class ComprehensiveMatchTest extends DBGoalTest {
         for (int i = 0; i < 2; i++) {
             project = createTestProject("viral_test_fastq.txt");
             project.initConfigParam(GSConfigKey.THREADS, 0);
-            project.initConfigParam(GSConfigKey.WRITED_KRAKEN_STYLE_OUT, true);
+            project.initConfigParam(GSConfigKey.WRITE_KRAKEN_STYLE_OUT, true);
             project.initConfigParam(GSConfigKey.USE_INLINED, i == 0);
             maker = new GSMaker(project);
             maker.match(false, "test", new File(project.getFastqDir(), getProjectName() +  "_fasta2fastq_test.fastq.gz").toString());

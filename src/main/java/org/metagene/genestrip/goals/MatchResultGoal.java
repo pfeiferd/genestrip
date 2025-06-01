@@ -81,11 +81,11 @@ public class MatchResultGoal extends ObjectGoal<Map<String, MatchingResult>, GSP
 				File krakenOutStyleFile = null;
 				StreamingResourceStream fastqs = map.get(key);
 
-				if (booleanConfigValue(GSConfigKey.WRITED_FILTERED_FASTQ)) {
+				if (booleanConfigValue(GSConfigKey.WRITE_FILTERED_FASTQ)) {
 					filteredFile = getProject().getOutputFile(getKey().getName(), key, null, FileType.FASTQ_RES,
 							true);
 				}
-				if (booleanConfigValue(GSConfigKey.WRITED_KRAKEN_STYLE_OUT)) {
+				if (booleanConfigValue(GSConfigKey.WRITE_KRAKEN_STYLE_OUT)) {
 					krakenOutStyleFile = getProject().getOutputFile(getKey().getName(), key, null,
 							FileType.KRAKEN_OUT_RES, false);
 				}

@@ -125,7 +125,7 @@ public class DBGoalTest {
 	@Test
 	public void testKrakenOutput() throws IOException {
 		GSProject project = createProject("dengue1", null);
-		project.initConfigParam(GSConfigKey.WRITED_KRAKEN_STYLE_OUT, true);
+		project.initConfigParam(GSConfigKey.WRITE_KRAKEN_STYLE_OUT, true);
 
 		GSMaker maker = new GSMaker(project);
 		createProjectGoal(project).make();

@@ -166,10 +166,10 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("If `true`, the number of unique *k*-mers will be counted and reported. This requires less than 5% of additional main memory.")
 	COUNT_UNIQUE_KMERS("countUniqueKMers", new BooleanConfigParamInfo(true), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 	@MDDescription("If `true`, then the goal `match` writes filtered fastq files in the same way that the goal `filter` does. ")
-	WRITED_FILTERED_FASTQ("writeFilteredFastq", new BooleanConfigParamInfo(false), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
+	WRITE_FILTERED_FASTQ("writeFilteredFastq", new BooleanConfigParamInfo(false), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 	@MDDescription("If `true`, Genestrip will write output files with suffix `.out` in the [Kraken output format](https://ccb.jhu.edu/software/kraken/MANUAL.html#output-format) "
 			+ "under `<base dir>/projects/<project_name>/krakenout` covering all reads with at least one matching *k*-mer.")
-	WRITED_KRAKEN_STYLE_OUT("writeKrakenStyleOut", new BooleanConfigParamInfo(false), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
+	WRITE_KRAKEN_STYLE_OUT("writeKrakenStyleOut", new BooleanConfigParamInfo(false), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 	@MDDescription("If `true` a bloom filter will be loaded and used during fastq file analysis (i.e. matching). "
 			+ "Using the bloom filter tends to shorten matching time, if the most part of the reads cannot be classified because they contain *no* *k*-mers from the database. "
 			+ "Otherwise, using the bloom filter might increase matching time by up to 30%. It also requires more main memory.")

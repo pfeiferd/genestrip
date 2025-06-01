@@ -89,11 +89,11 @@ public class MatchGoalOld extends MultiFileGoal {
 			File krakenOutStyleFile = null;
 			StreamingResourceStream fastqs = fileToFastqs.get(file);
 
-			if (booleanConfigValue(GSConfigKey.WRITED_FILTERED_FASTQ)) {
+			if (booleanConfigValue(GSConfigKey.WRITE_FILTERED_FASTQ)) {
 				filteredFile = getProject().getOutputFile(null, null, file.getName(), FileType.FASTQ_RES,
 						true);
 			}
-			if (booleanConfigValue(GSConfigKey.WRITED_KRAKEN_STYLE_OUT)) {
+			if (booleanConfigValue(GSConfigKey.WRITE_KRAKEN_STYLE_OUT)) {
 				krakenOutStyleFile = getProject().getOutputFile(null, null, file.getName(),
 						FileType.KRAKEN_OUT_RES, false);
 			}

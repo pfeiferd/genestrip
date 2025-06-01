@@ -55,7 +55,7 @@ public class DB2FastqGoalTest {
 		// release).
 		GSProject project = new GSProject(config, "human_virus", null, null, null, null, null, "64320,12637+",
 				null, null, null, false);
-		project.initConfigParam(GSConfigKey.WRITED_KRAKEN_STYLE_OUT, true);
+		project.initConfigParam(GSConfigKey.WRITE_KRAKEN_STYLE_OUT, true);
 		// project.initConfigParam(GSConfigKey.THREADS, 0);
 		
 		GSMaker maker = new GSMaker(project);
