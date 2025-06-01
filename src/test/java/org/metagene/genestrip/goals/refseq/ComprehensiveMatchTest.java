@@ -40,7 +40,7 @@ import java.util.List;
 import static org.junit.Assert.assertTrue;
 
 public class ComprehensiveMatchTest extends DBGoalTest {
-    @BeforeClass()
+    //@BeforeClass()
     public static void clearDB() throws IOException {
         GSProject project = createProject("viral", null);
         GSMaker maker = new GSMaker(project);
@@ -108,7 +108,6 @@ public class ComprehensiveMatchTest extends DBGoalTest {
             addFile(new File(project.getProjectDir(), "fastq/viral_test_fastq.txt"));
             addFile(new File(project.getProjectDir(), "fasta/viral_test_fasta.txt"));
             addFile(new File(project.getProjectDir(), "krakenout/test_ks.out"));
-            addFile(new File(project.getProjectDir(), "krakenout/test_gs.out"));
         }
 
         @Override
