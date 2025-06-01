@@ -105,7 +105,7 @@ public abstract class AbstractKMerStoreTest extends TestCase {
 				controlMap.put(readAsList, v);
 			}
 			if (controlMap2 != null) {
-				controlMap2.put(CGAT.kMerToLongStraight(read, 0, k, null), v);
+				controlMap2.put(CGAT.kMerToLong(read, 0, k, null), v);
 			}
 		}
 	}
