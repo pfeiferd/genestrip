@@ -62,7 +62,7 @@ public class FilterGoal extends MultiFileGoal {
 		try {
 			GSProject project = getProject();
 			StreamingResourceStream resources = fileToFastqs.get(file);
-			File dumpFile = booleanConfigValue(GSConfigKey.WRITED_DUMPED_FASTQ)
+			File dumpFile = booleanConfigValue(GSConfigKey.WRITE_DUMPED_FASTQ)
 					? project.getOutputFile("dumped", file.getName(), FileType.FASTQ_RES)
 					: null;
 			f = new FastqBloomFilter(indexedGoal.get(), intConfigValue(GSConfigKey.MIN_POS_COUNT_FILTER),

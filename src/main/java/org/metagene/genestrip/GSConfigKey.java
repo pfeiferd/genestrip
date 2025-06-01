@@ -200,7 +200,7 @@ public enum GSConfigKey implements ConfigKey {
 
 	// Filter
 	@MDDescription("If `true`, then `filter` will also generate a fastq file `dumped_...` with all reads not written to the corresponding filtered fastq file.")
-	WRITED_DUMPED_FASTQ("writeDumpedFastq", new BooleanConfigParamInfo(false), GSGoalKey.FILTER),
+	WRITE_DUMPED_FASTQ("writeDumpedFastq", new BooleanConfigParamInfo(false), GSGoalKey.FILTER),
 	@MDDescription("The mininum number of a read's *k*-mers to be found in the bloom index such that the read is added to the filtered fastq file. If `minPosCountFilter=0`, then `posRatioFilter` becomes effective.")
 	MIN_POS_COUNT_FILTER("minPosCountFilter", new IntConfigParamInfo(0, 1024, 1), GSGoalKey.FILTER),
 	@MDDescription("Only effective if `minPosCountFilter=0`: The mininum ratio of a read's *k*-mers to be found in the bloom index such that the read is added to the filtered fastq file.")
