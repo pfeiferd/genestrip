@@ -24,9 +24,6 @@
  */
 package org.metagene.genestrip.match;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-
 import java.io.File;
 import java.util.Arrays;
 import java.util.Random;
@@ -49,6 +46,8 @@ import org.metagene.genestrip.util.CGAT;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
+import static org.junit.Assert.*;
+
 public class FastqKMerMatcherTest {
 	private static final String[] TAXIDS = new String[] { "1", "2", "3" };
 
@@ -67,16 +66,22 @@ public class FastqKMerMatcherTest {
 	}
 
 	protected void testMatchReadHelp(boolean inlined, boolean bitMap, boolean large, boolean optimize) {
-		int readLength = 5;
+		int readLength = 500;
 		int entries = 2000;
 
-		KMerSortedArray<String> store = new KMerSortedArray<>(1, 0.0001, Arrays.asList(TAXIDS), large);
+		// Three k-mers in the DB: CC, AA and AG which correspond to the reverse complements GG, TT, CT.
+		KMerSortedArray<String> store = new KMerSortedArray<>(2, 0.0001, Arrays.asList(TAXIDS), large);
 		store.initSize(3);
-		byte[] read = new byte[] { 'C' };
+		byte[] read = new byte[] { 'C', 'C' };
 		store.put(read, 0, TAXIDS[0]);
 		read[0] = 'G';
-		store.put(read, 0, TAXIDS[1]);
+		read[1] = 'G';
+		assertFalse(store.put(read, 0, TAXIDS[1]));
+		read[0] = 'T';
+		read[1] = 'T';
+		assertTrue(store.put(read, 0, TAXIDS[1]));
 		read[0] = 'A';
+		read[1] = 'G';
 		store.put(read, 0, TAXIDS[2]);
 
 		if (optimize) {
@@ -111,39 +116,59 @@ public class FastqKMerMatcherTest {
 			entry.bufferPos = 0;
 			contigLen = 0;
 
+			int t = -1;
+			int lastT = -1;
+			read = entry.read;
 			for (int j = 0; j < readLength; j++) {
-				int pos = random.nextInt(4);
-				entry.read[j] = CGAT.DECODE_TABLE[pos];
-				if (pos != 3) {
-					counters[pos]++;
-					used[pos] = true;
-				}
+				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
 				if (j > 0) {
-					if (pos != previousPos) {
-						if (previousPos != 3) {
-							contigs[previousPos]++;
-							if (contigLen > maxContigLen[previousPos]) {
-								maxContigLen[previousPos] = contigLen;
-							}
+					lastT = t;
+					if ((read[j - 1] == 'C' && read[j] == 'C') || (read[j - 1] == 'G' && read[j] == 'G')) {
+						counters[0]++;
+						used[0] = true;
+						t = 0;
+					}
+					else if ((read[j - 1] == 'A' && read[j] == 'A') || (read[j - 1] == 'T' && read[j] == 'T')) {
+						counters[1]++;
+						used[1] = true;
+						t = 1;
+					}
+					else if ((read[j - 1] == 'A' && read[j] == 'G') || (read[j - 1] == 'C' && read[j] == 'T')) {
+						counters[2]++;
+						used[2] = true;
+						t = 2;
+					}
+					else {
+						t = -1;
+					}
+					if (lastT != t && lastT != -1) {
+						contigs[lastT]++;
+						if (contigLen > maxContigLen[lastT]) {
+							maxContigLen[lastT] = contigLen;
 						}
 						contigLen = 0;
 					}
 				}
-				contigLen++;
-				previousPos = pos;
-			}
-			if (previousPos != 3) {
-				contigs[previousPos]++;
-				if (contigLen > maxContigLen[previousPos]) {
-					maxContigLen[previousPos] = contigLen;
+				if (t != -1) {
+					contigLen++;
 				}
 			}
-			matcher.matchRead(entry, 0);
+			if (t != -1) {
+				contigs[t]++;
+				if (contigLen > maxContigLen[t]) {
+					maxContigLen[t] = contigLen;
+				}
+			}
 
+			/*
 			ByteArrayUtil.print(entry.read, System.out);
 			System.out.println();
+			 */
+			matcher.matchRead(entry, 0);
+			/*
 			System.out.write(entry.buffer, 0, entry.bufferPos);
 			System.out.println();
+			 */
 
 			Object2LongMap<String> map = uniqueCounter.getUniqueKmerCounts();
 			for (int j = 0; j < TAXIDS.length; j++) {
@@ -152,8 +177,8 @@ public class FastqKMerMatcherTest {
 					assertNull(stats);
 				} else {
 					assertEquals(counters[j], stats.getKMers());
-					assertEquals(used[j] ? 1 : 0, uniqueCounter.getUniqueKmerCount(TAXIDS[j]));
-					assertEquals(used[j] ? 1 : 0, map.getLong(TAXIDS[j]));
+					assertEquals(1, uniqueCounter.getUniqueKmerCount(TAXIDS[j]));
+					assertEquals(1, map.getLong(TAXIDS[j]));
 					assertEquals(contigs[j], stats.getContigs());
 					assertEquals(maxContigLen[j], stats.getMaxContigLen());
 				}
@@ -182,17 +207,16 @@ public class FastqKMerMatcherTest {
 		}
 		SmallTaxTree smallTree = tree.toSmallTaxTree();
 
-		KMerSortedArray<String> store = new KMerSortedArray<>(1, 0.0001, Arrays.asList(TAXIDS), large);
+		KMerSortedArray<String> store = new KMerSortedArray<>(2, 0.0001, Arrays.asList(TAXIDS), large);
 		store.initSize(3);
-		byte[] read = new byte[] { 'C' };
+		byte[] read = new byte[] { 'C', 'C' };
 		store.put(read, 0, TAXIDS[0]);
-		read[0] = 'G';
-		store.put(read, 0, TAXIDS[1]);
-		read[0] = 'A';
+		read[0] = 'C';
+		read[1] = 'T';
+		assertTrue(store.put(read, 0, TAXIDS[1]));
+		read[0] = 'C';
+		read[1] = 'G';
 		store.put(read, 0, TAXIDS[2]);
-		if (optimize) {
-			store.optimize();
-		}
 
 		Database db = new Database(store, smallTree);
 
@@ -203,66 +227,58 @@ public class FastqKMerMatcherTest {
 		MyReadEntry entry = new MyReadEntry(10, true, 4);
 		entry.readSize = 4;
 
-		fillInRead("TTTT", entry);
-		matcher.matchRead(entry, 0);
-		assertNull(entry.classNode);
-		fillInRead("CCCT", entry);
-		matcher.matchRead(entry, 0);
-		assertNull(entry.classNode);
 		fillInRead("CCCC", entry);
 		matcher.matchRead(entry, 0);
 		assertEquals("1", entry.classNode.getTaxId());
+		fillInRead("GAGAGA", entry);
+		matcher.matchRead(entry, 0);
+		assertNull(entry.classNode);
 		fillInRead("CCCG", entry);
 		matcher.matchRead(entry, 0);
-		assertEquals("2", entry.classNode.getTaxId());
-		fillInRead("CGGG", entry);
-		matcher.matchRead(entry, 0);
-		assertEquals("2", entry.classNode.getTaxId());
-		fillInRead("CAAA", entry);
-		matcher.matchRead(entry, 0);
 		assertEquals("3", entry.classNode.getTaxId());
-		fillInRead("GCAG", entry);
+		fillInRead("AGGGG", entry);
 		matcher.matchRead(entry, 0);
 		assertEquals("2", entry.classNode.getTaxId());
-		fillInRead("ACAG", entry);
+		fillInRead("CCCCCCT", entry);
 		matcher.matchRead(entry, 0);
-		assertEquals("3", entry.classNode.getTaxId());
-		fillInRead("GCAA", entry);
-		matcher.matchRead(entry, 0);
-		assertEquals("3", entry.classNode.getTaxId());
-		fillInRead("CCAG", entry);
-		matcher.matchRead(entry, 0);
-		assertEquals("1", entry.classNode.getTaxId());
+		assertEquals("2", entry.classNode.getTaxId());
 
 		matcher = new MyFastqMatcher2(db.convertKMerStore(), bundle, smallTree, 1);
 		matcher.initStats();
-		fillInRead("CCCT", entry);
+		fillInRead("CTCCT", entry);
 		matcher.matchRead(entry, 0);
-		assertEquals("1", entry.classNode.getTaxId());
-		fillInRead("TCCT", entry);
+		assertEquals("2", entry.classNode.getTaxId());
+		fillInRead("CTCTCCT", entry);
+		matcher.matchRead(entry, 0);
+		assertNull(entry.classNode);
+		fillInRead("TAGGGG", entry);
+		matcher.matchRead(entry, 0);
+		assertEquals("2", entry.classNode.getTaxId());
+		fillInRead("TAGGGGT", entry);
 		matcher.matchRead(entry, 0);
 		assertNull(entry.classNode);
 
+		// Three k-mers in the DB: CC, CT and CG which correspond to the reverse complements GG, AG, CG.
 		matcher = new MyFastqMatcher2(db.convertKMerStore(), bundle, smallTree, 0.5);
 		matcher.initStats();
-		fillInRead("CCCT", entry);
+		fillInRead("CCA", entry);
 		matcher.matchRead(entry, 0);
 		assertEquals("1", entry.classNode.getTaxId());
-		fillInRead("TCCT", entry);
-		matcher.matchRead(entry, 0);
-		assertEquals("1", entry.classNode.getTaxId());
-		fillInRead("TTCT", entry);
+		fillInRead("CCAA", entry);
 		matcher.matchRead(entry, 0);
 		assertNull(entry.classNode);
 
 		matcher = new MyFastqMatcher2(db.convertKMerStore(), bundle, smallTree, 0.1);
 		matcher.initStats();
-		fillInRead("CCCT", entry);
-		matcher.matchRead(entry, 0);
-		assertNull(entry.classNode);
-		fillInRead("CCCC", entry);
+		fillInRead("CC", entry);
 		matcher.matchRead(entry, 0);
 		assertEquals("1", entry.classNode.getTaxId());
+		fillInRead("CCA", entry);
+		matcher.matchRead(entry, 0);
+		assertNull(entry.classNode);
+		fillInRead("CCAA", entry);
+		matcher.matchRead(entry, 0);
+		assertNull(entry.classNode);
 
 		matcher = new MyFastqMatcher2(db.convertKMerStore(), bundle, smallTree, 0.99);
 		matcher.initStats();
@@ -271,7 +287,7 @@ public class FastqKMerMatcherTest {
 		assertNull(entry.classNode);
 		fillInRead("CTTT", entry);
 		matcher.matchRead(entry, 0);
-		assertEquals("1", entry.classNode.getTaxId());
+		assertEquals("2", entry.classNode.getTaxId());
 	}
 
 	private FastqKMerMatcher createMatcher2(boolean inlined, KMerSortedArray<SmallTaxIdNode> kmerStore, ExecutionContext bundle, SmallTaxTree tree,
@@ -291,6 +307,7 @@ public class FastqKMerMatcherTest {
 		}
 		entry.read[cgat.length()] = 0;
 		entry.readNo++;
+		entry.readSize = cgat.length();
 	}
 
 	private void initEntry(MyReadEntry myEntry) {
