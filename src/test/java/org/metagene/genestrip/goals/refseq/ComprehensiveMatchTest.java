@@ -40,7 +40,7 @@ import java.util.List;
 import static org.junit.Assert.assertTrue;
 
 public class ComprehensiveMatchTest extends DBGoalTest {
-    //@BeforeClass()
+    @BeforeClass()
     public static void clearDB() throws IOException {
         GSProject project = createProject("viral", null);
         GSMaker maker = new GSMaker(project);

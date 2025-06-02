@@ -59,7 +59,7 @@ public class LoadIndexGoal extends ObjectGoal<MurmurCGATBloomFilter, GSProject> 
 	protected void doMakeThis() {
 		try {
 			if (booleanConfigValue(GSConfigKey.PROGRESS_BAR)) {
-				try (StreamingResource.StreamAccess sa = new StreamingFileResource(dbFile, true).openStream()) {
+				try (StreamingResource.StreamAccess sa = new StreamingFileResource(dbFile, false).openStream()) {
 					try (ProgressBar pb = GSProgressBarCreator.newGSProgressBar(getKey().getName(), sa, null)) {
 						doLoadIndex(sa.getInputStream());
 					}
