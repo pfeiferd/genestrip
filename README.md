@@ -262,7 +262,7 @@ If the glob pattern matches a file from one of the above directories, then *all*
 
 If `<path_or_URL_to_fastq_file>` is a URL then the fastq file will be streamed or downloaded depending on the command line options `-l` or `-ll` (see Section [Reading, streaming and downloading fastq files](#reading-streaming-and-downloading-fastq-files)).
 
-Fastq files and fasta file may be g-zipped or not. Genestrip will automatically recognize g-zipped files via the suffixes `.gz` and `.gzip`.
+Fastq files and fasta files may be g-zipped or not. Genestrip will automatically recognize g-zipped files via the suffixes `.gz` and `.gzip`.
 
 Some named goals are for internal purposes only. In principle, they could be run directly by users but rather serve the generation process of databases or they exist for experimental reasons.
 
