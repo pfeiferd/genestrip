@@ -47,10 +47,10 @@ public class StoreDBGoal extends FileListGoal<GSProject> {
 	@Override
 	protected void makeFile(File storeFile) {
 		try {
-			dbGoal.get().save(storeFile);
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("File saved " + storeFile + " along with index.");
+			if (getLogger().isWarnEnabled()) {
+				getLogger().warn("Saving database " + storeFile + " along with index ...");
 			}
+			dbGoal.get().save(storeFile);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

@@ -107,10 +107,12 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 				SmallTaxIdNode smallNode = smallTaxTree.getNodeByTaxId(node.getTaxId());
 				if (smallNode != null) {
 					smallNode.setRequested(true);
-					// smallNode.setStoreIndex(store.getIndexForValue(node.getTaxId()));
 				}
 			}
 			ensureAllTreeNodesInDB(smallTaxTree.getRoot(), store);
+			if (getLogger().isWarnEnabled()) {
+				getLogger().warn("Sorting kmers ...");
+			}
 			store.optimize();
 			Database wrapper = new Database(store, smallTaxTree);
 			set(wrapper);
