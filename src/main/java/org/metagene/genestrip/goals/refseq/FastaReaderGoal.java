@@ -34,10 +34,12 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.TaxTree;
+import org.metagene.genestrip.util.StringLongDigitTrie;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -66,44 +68,6 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
         this.additionalGoal = additionalGoal;
         this.bundle = bundle;
     }
-
-    /*
-    protected void readFastas(AbstractRefSeqFastaReader fastaReader) throws IOException {
-        boolean refSeqDB = booleanConfigValue(GSConfigKey.REF_SEQ_DB);
-        int sumFiles = 0;
-        List<File> refSeqFiles = null;
-        if (refSeqDB) {
-            fnaFilesGoal.make();
-            refSeqFiles = fnaFilesGoal.getFiles();
-            sumFiles += refSeqFiles.size();
-        }
-        Map<File, TaxTree.TaxIdNode> additionalMap = additionalGoal.get();
-        sumFiles += additionalMap.size();
-        try (ProgressBar pb = createProgressBar(sumFiles)) {
-            if (refSeqFiles != null) {
-                for (File fnaFile : refSeqFiles) {
-                    RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
-                    if (categoriesGoal.get().contains(cat)) {
-                        fastaReader.readFasta(fnaFile);
-                        if (pb != null) {
-                            pb.step();
-                        }
-                    }
-                }
-            }
-            for (File additionalFasta : additionalMap.keySet()) {
-                TaxTree.TaxIdNode node = additionalMap.get(additionalFasta);
-                if (taxNodesGoal.get().contains(node)) {
-                    fastaReader.ignoreAccessionMap(node);
-                    fastaReader.readFasta(additionalFasta);
-                    if (pb != null) {
-                        pb.step();
-                    }
-                }
-            }
-        }
-    }
-     */
 
     public void readFastas() throws IOException {
         BlockingQueue<FileAndNode> blockingQueue = null;
@@ -167,6 +131,12 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
             }
         }
         bundle.clearThrowableList();
+        if (getLogger().isInfoEnabled()) {
+            List<StringLongDigitTrie.StringLong> list = new ArrayList<>();
+            regionsPerTaxid.collect(list);
+            getLogger().info("Regions ber taxid:");
+            getLogger().info(list);
+        }
     }
 
     protected ProgressBar createProgressBar(int max) {

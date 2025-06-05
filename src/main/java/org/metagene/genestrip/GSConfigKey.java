@@ -48,21 +48,21 @@ public enum GSConfigKey implements ConfigKey {
 	// General
 	@MDDescription("Only the log levels `error`, `warn`, `info` and `trace` are used by Genestrip.")
 	LOG_LEVEL("logLevel", new LogLevelConfigParamInfo("info")),
-	@MDDescription("Affects the log level `trace`: Defines after how many reads per fastq file, information on the matching progress is logged. If less than 1, then no progress information is logged.")
-	LOG_PROGRESS_UPDATE_CYCLE("logProgressUpdateCycle", new LongConfigParamInfo(0, Long.MAX_VALUE, 1000000), GSGoalKey.MATCH, GSGoalKey.MATCHLR, GSGoalKey.FILTER),
 	@MDDescription("The number of consumer threads *n* when processing data with respect to the goals `match`, `filter` and also so during the update phase of the `db` goal. "
 			+ "There is always one additional thread that reads and uncompresses a corresponding fastq or fasta file (so it is *n + 1* threads in total). "
 			+ "When negative, the number of available processors *- 1* is used as *n*. When 0, then the corresponding goals run in single-threaded mode.")
 	THREADS("threads", new IntConfigParamInfo(-1, 64, -1), GSGoalKey.DB, GSGoalKey.MATCH, GSGoalKey.MATCHLR, GSGoalKey.FILTER),
 	@MDDescription("Whether to show a progress bar on the command line for longer taking process steps.")
 	PROGRESS_BAR("progressBar", new BooleanConfigParamInfo(true), GSGoalKey.DB, GSGoalKey.MATCH, GSGoalKey.MATCHLR, GSGoalKey.FILTER),
+	@MDDescription("The number of base pairs *k* for *k*-mers. "
+			+ "Changes to this values do *not* affect the memory usage of a database. "
+			+ "A value > 32 will cause collisions, i.e. leads to false positives for the `match` goal.")
+	KMER_SIZE("kMerSize", new IntConfigParamInfo(15, 64, 31), GSGoalKey.DB, GSGoalKey.FILTER, GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 
 	// Genomic data download
 	@MDDescription("This base URL will be extended by `/pub/taxonomy/` in order to download the taxonomy file `taxdmp.zip` and by `/genomes/genbank` for files from Genbank.")
 	HTTP_BASE_URL("httpBaseURL", new StringConfigParamInfo("https://ftp.ncbi.nlm.nih.gov"), GSGoalKey.DB),
 	FTP_BASE_URL("ftpBaseURL", new StringConfigParamInfo("ftp.ncbi.nih.gov"), GSGoalKey.DB),
-//	TAX_HTTP_BASE_URL("taxHttpBaseURL", new StringConfigParamInfo("https://ftp.ncbi.nlm.nih.gov"), GSGoalKey.DB),
-//	TAX_FTP_BASE_URL("taxFTPBaseURL", new StringConfigParamInfo("ftp.ncbi.nih.gov"), GSGoalKey.DB),
 	@MDDescription("This [mirror](https://www.funet.fi/pub/mirrors/ftp.ncbi.nlm.nih.gov/refseq/) might be considered as an alternative. (No other mirror sites are known.)")
 	REF_SEQ_HTTP_BASE_URL("refseq.httpBaseURL", new StringConfigParamInfo("https://ftp.ncbi.nlm.nih.gov/refseq"),
 			GSGoalKey.DB),
@@ -82,6 +82,7 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("If true, then md5 check sums may be skipped by creating and accessing a file named `<file>.md5ok` " +
 			"that marks wether the md5 check sum of `<file>` was found to be ok after a previous download of `<file>`.")
 	CHECK_SUM_CACHE_FILE("checkSumCacheFile", new BooleanConfigParamInfo(true), GSGoalKey.DB),
+
 	// Limit database size
 	@MDDescription("The maximum number of genomes per tax id to be included in the database. "
 			+ "Note, that this is an important parameter to control database size, because in some cases, there are thousands of genomic entries per tax id.")
@@ -102,9 +103,6 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("If `true`, then only genomic accessions with the prefixes `AC`, `NC_`, `NZ_` will be considered when filling the database. "
 			+ "Otherwise, all genomic accessions will be considered. See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.")
 	COMPLETE_GENOMES_ONLY("refseq.completeGenomesOnly", new BooleanConfigParamInfo(false), GSGoalKey.FILL_DB),
-	@MDDescription("If `true`, then only genomic accessions with the prefixes `AC`, `NC_`, `NZ_` will be considered when updating the database. "
-			+ "Otherwise, all genomic accessions will be considered for the update phase. See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.")
-	UPDATE_WITH_COMPLETE_GENOMES_ONLY("refseq.updateWithCompleteGenomesOnly", new BooleanConfigParamInfo(false), GSGoalKey.UPDATE_DB),
 	@MDDescription("Determines whether Genestrip should try to lookup genomic fasta files from Genbank, "
 			+ "if the number of corresponding reference genomes from the RefSeq is below the given limit for a requested tax id including its descendants. "
 			+ "E.g. `refSeq.limitForGenbankAccess=1` would imply that Genbank is consulted if not a single reference genome is found in the RefSeq for a requested tax id. "
@@ -133,10 +131,6 @@ public enum GSConfigKey implements ConfigKey {
 	REF_GEN_ONLY("genbank.referenceOnly", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
 
 	// Database generation
-	@MDDescription("The number of base pairs *k* for *k*-mers. "
-			+ "Changes to this values do *not* affect the memory usage of a database. "
-			+ "A value > 32 will cause collisions, i.e. leads to false positives for the `match` goal.")
-	KMER_SIZE("kMerSize", new IntConfigParamInfo(15, 64, 31), GSGoalKey.DB),
 	@MDDescription("When generating a database via the goal `db`, any low-complexity *k*-mer with too many "
 			+ "repetitive sequences of base pairs may be omitted for storing. To do so, Genestrip employs a simple "
 			+ "[genetic dust-filter](https://pubmed.ncbi.nlm.nih.gov/16796549/) for *k*-mers: "
@@ -147,11 +141,14 @@ public enum GSConfigKey implements ConfigKey {
 			+ "For practical concerns `maxDust = 20` may be suitable. In this case, if *31*-mers were uniformly, randomly generated, "
 			+ "then about 0.2 % of them would be omitted. If `maxDust = -1`, then dust-filtering is inactive.")
 	MAX_DUST("maxDust", new IntConfigParamInfo(-1, Integer.MAX_VALUE, -1), GSGoalKey.DB),
-	TEMP_BLOOM_FILTER_FPP("tempBloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.001d), true, GSGoalKey.DB),
-	BLOOM_FILTER_FPP("bloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.00000000001d), true, GSGoalKey.DB),
+	TEMP_BLOOM_FILTER_FPP("tempBloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.001d), true, GSGoalKey.TEMPINDEX),
+	BLOOM_FILTER_FPP("bloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.00000000001d), true, GSGoalKey.FILL_DB),
 	FASTA_LINE_SIZE_BYTES("fastaLineSizeBytes", new IntConfigParamInfo(4096, 65536, 4096), true, GSGoalKey.DB),
-	@MDDescription("Perform database update regarding least common ancestors only based on genomes of tax ids as selected for the database generation (and not via all of a superkingdom's RefSeq genomes).")
-	MIN_UPDATE("minUpdate", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
+	@MDDescription("Perform database update regarding least common ancestors only based on genomes of tax ids as selected for the database generation (and not via all of a super-kingdom's RefSeq genomes).")
+	MIN_UPDATE("minUpdate", new BooleanConfigParamInfo(false), false, GSGoalKey.UPDATE_DB),
+	@MDDescription("If `true`, then only genomic accessions with the prefixes `AC`, `NC_`, `NZ_` will be considered when updating the database. "
+			+ "Otherwise, all genomic accessions will be considered for the update phase. See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.")
+	UPDATE_WITH_COMPLETE_GENOMES_ONLY("refseq.updateWithCompleteGenomesOnly", new BooleanConfigParamInfo(false), GSGoalKey.UPDATE_DB),
 	@MDDescription("Wether to delete the temporary database after the final database has been saved or not.")
 	REMOVE_TEMP_DB("removeTempDB", new BooleanConfigParamInfo(true), false, GSGoalKey.DB),
 	@MDDescription("Stores *k*-mers in steps of `stepSize`. " +
@@ -159,6 +156,8 @@ public enum GSConfigKey implements ConfigKey {
 	STEP_SIZE("stepSize", new IntConfigParamInfo(1, Integer.MAX_VALUE, 1), GSGoalKey.DB),
 
 	// Match
+	@MDDescription("Affects the log level `trace`: Defines after how many reads per fastq file, information on the matching progress is logged. If less than 1, then no progress information is logged.")
+	LOG_PROGRESS_UPDATE_CYCLE("logProgressUpdateCycle", new LongConfigParamInfo(0, Long.MAX_VALUE, 1000000), GSGoalKey.MATCH, GSGoalKey.MATCHLR, GSGoalKey.FILTER),
 	@MDDescription("Whether to do read classification in the style of Kraken and KrakenUniq. Matching is faster without "
 			+ "read classification and the columns `kmers`, `unique kmers` and `max contig length` in resulting CSV files are usually more conclusive anyways - "
 			+ "in particular with respect to long reads. When read classification is off, the columns `reads` and `kmers from reads` will be 0 in resulting CSV files.")
