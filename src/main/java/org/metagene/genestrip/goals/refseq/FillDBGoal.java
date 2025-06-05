@@ -123,7 +123,7 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 	}
 
 	@Override
-	protected AbstractRefSeqFastaReader createFastaReader() {
+	protected AbstractRefSeqFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
 		MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
 				taxNodesGoal.get(), booleanConfigValue(GSConfigKey.REF_SEQ_DB) ? accessionMapGoal.get() : null, store,
 				intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
@@ -131,7 +131,8 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
 				intConfigValue(GSConfigKey.MAX_DUST),
 				intConfigValue(GSConfigKey.STEP_SIZE),
-				booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY));
+				booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY),
+				regionsPerTaxid);
 		readers.add(fastaReader);
 		return fastaReader;
 	}
@@ -154,8 +155,8 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 		private long tooManyCounter;
 
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
-							 KMerSortedArray<String> store, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly) {
-			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly);
+							 KMerSortedArray<String> store, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid) {
+			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid);
 			this.store = store;
 		}
 

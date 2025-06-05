@@ -48,13 +48,14 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected TaxIdNode node;
 
 	protected boolean ignoreMap;
-	protected long includedCounter;
 	protected long bpsInRegion;
 	protected long kmersInRegion;
 	protected long totalKmers;
 
 
-	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int stepSize, boolean completeGenomesOnly) {
+	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId,
+									 Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId,
+									 int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid) {
 		super(bufferSize);
 		this.taxNodes = taxNodes;
 		this.accessionMap = accessionMap;
@@ -62,9 +63,8 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		this.stepSize = stepSize;
 		includeRegion = false;
 		ignoreMap = false;
-		includedCounter = 0;
 		totalKmers = 0;
-		regionsPerTaxid = new StringLong2DigitTrie();
+		this.regionsPerTaxid = regionsPerTaxid;
 		this.maxGenomesPerTaxId = maxGenomesPerTaxId;
 		this.maxGenomesPerTaxIdRank = maxGenomesPerTaxIdRank;
 		this.maxKmersPerTaxId = maxKmersPerTaxId;
@@ -96,7 +96,6 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 					regionsPerTaxid.incAndAdd(n.getTaxId(), kmersInRegion);
 				}
 			}
-			includedCounter++;
 		}
 	}
 
@@ -168,10 +167,9 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		}
 	}
 
-	protected static class StringLong2DigitTrie extends StringLongDigitTrie {
+	public static class StringLong2DigitTrie extends StringLongDigitTrie {
 		public void incAndAdd(String key, long add) {
-			StringLong2 stringLong = (StringLong2) inc(key);
-			stringLong.longValue2 += add;
+			((StringLong2) get(key, this)).incAndAdd(add);
 		}
 
 		@Override
@@ -190,6 +188,11 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 
 			public StringLong2(String digits) {
 				super(digits);
+			}
+
+			public synchronized void incAndAdd(long add) {
+				longValue++;
+				longValue2 += add;
 			}
 
 			@Override

@@ -80,22 +80,23 @@ public class FillSizeGoal extends FastaReaderGoal<Long> {
 	}
 
 	@Override
-	protected AbstractRefSeqFastaReader createFastaReader() {
+	protected AbstractRefSeqFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
 		MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
 				taxNodesGoal.get(), booleanConfigValue(GSConfigKey.REF_SEQ_DB) ? accessionMapGoal.get() : null, intConfigValue(GSConfigKey.KMER_SIZE),
 				intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
 				(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
 				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
 				intConfigValue(GSConfigKey.STEP_SIZE),
-				booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY));
+				booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY),
+				regionsPerTaxid);
 		readers.add(fastaReader);
 		return fastaReader;
 	}
 
 	protected static class MyFastaReader extends AbstractRefSeqFastaReader {
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-				int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int stepSize, boolean completeGenomesOnly) {
-			super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, stepSize, completeGenomesOnly);
+				int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid) {
+			super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, stepSize, completeGenomesOnly, regionsPerTaxid);
 		}
 
 		public long getCounter() {
@@ -109,11 +110,6 @@ public class FillSizeGoal extends FastaReaderGoal<Long> {
 				List<StringLong> values = new ArrayList<>();
 				regionsPerTaxid.collect(values);
 				getLogger().trace("Included regions per taxid: " + values);
-			}
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Number of included regions: " + includedCounter);
-				getLogger().info("Total included kmers: " + totalKmers);
-				getLogger().info("Resulting approx. DB Size in MB (without Bloom filter): " + (totalKmers * 10) / (1024 * 1024) );
 			}
 		}
 	}

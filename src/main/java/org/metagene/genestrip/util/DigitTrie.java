@@ -65,7 +65,11 @@ public class DigitTrie<V> implements Serializable {
 			return null;
 		}
 		if (node.value == null && createContext != null) {
-			node.value = createInGet(seq, start, end, createContext);
+			synchronized (node) {
+				if (node.value == null) {
+					node.value = createInGet(seq, start, end, createContext);
+				}
+			}
 		}
 
 		return node.value;
@@ -83,7 +87,11 @@ public class DigitTrie<V> implements Serializable {
 			}
 			if (node.children == null) {
 				if (create) {
-					node.children = new DigitTrie[range(pos)];
+					synchronized (node) {
+						if (node.children == null) {
+							node.children = new DigitTrie[range(pos)];
+						}
+					}
 				} else {
 					return null;
 				}
@@ -91,8 +99,13 @@ public class DigitTrie<V> implements Serializable {
 			child = node.children[index];
 			if (child == null) {
 				if (create) {
-					child = new DigitTrie<V>();
-					node.children[index] = child;
+					synchronized (node) {
+						child = node.children[index];
+						if (child == null) {
+							child = new DigitTrie<V>();
+							node.children[index] = child;
+						}
+					}
 				} else {
 					return null;
 				}

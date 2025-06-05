@@ -89,7 +89,7 @@ public class FillBloomFilterGoal extends FastaReaderGoal<MurmurCGATBloomFilter> 
 	}
 
 	@Override
-	protected AbstractRefSeqFastaReader createFastaReader() {
+	protected AbstractRefSeqFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
 		return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
 				taxNodesGoal.get(),
 				booleanConfigValue(GSConfigKey.REF_SEQ_DB) ? accessionMapGoal.get() : null, filter,
@@ -98,15 +98,16 @@ public class FillBloomFilterGoal extends FastaReaderGoal<MurmurCGATBloomFilter> 
 				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
 				intConfigValue(GSConfigKey.MAX_DUST),
 				intConfigValue(GSConfigKey.STEP_SIZE),
-				booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY));
+				booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY),
+				regionsPerTaxid);
 	}
 
 	protected class MyFastaReader extends AbstractStoreFastaReader {
 		private final MurmurCGATBloomFilter filter;
 
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
-							 MurmurCGATBloomFilter filter, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly) {
-			super(bufferSize, taxNodes, accessionMap, filter.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly);
+							 MurmurCGATBloomFilter filter, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid) {
+			super(bufferSize, taxNodes, accessionMap, filter.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid);
 			this.filter = filter;
 		}
 
@@ -136,7 +137,6 @@ public class FillBloomFilterGoal extends FastaReaderGoal<MurmurCGATBloomFilter> 
 			super.done();
 			if (getLogger().isInfoEnabled()) {
 				long entries = filter.getEntries();
-				getLogger().info("Number of included regions: " + includedCounter);
 				getLogger().info("Total Bloom filter entries: " + entries);
 				getLogger().info("Resulting approx. DB Size in MB (without Bloom filter): " + (entries * 10) / (1024 * 1024) );
 			}

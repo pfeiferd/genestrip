@@ -227,7 +227,7 @@ public abstract class FileDownloadGoal<P extends Project> extends FileGoal<P> {
 	}
 
 	protected boolean isAllowCheckSumOkCacheFile() {
-		return booleanConfigValue(GSConfigKey.CHECK_SUM_CACHE_FIlE);
+		return booleanConfigValue(GSConfigKey.CHECK_SUM_CACHE_FILE);
 	}
 
 	protected File checkSumOkCacheFile(File file) {

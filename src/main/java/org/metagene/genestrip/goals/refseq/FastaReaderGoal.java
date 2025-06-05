@@ -107,16 +107,17 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
 
     public void readFastas() throws IOException {
         BlockingQueue<FileAndNode> blockingQueue = null;
+        AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid = new AbstractRefSeqFastaReader.StringLong2DigitTrie();
         // For minUpdate the fna files must be read in the same order as during the goals from before.
         // Otherwise, the wrong k-mers will be compared to the ones from the DB.
         // For !minUpdate multi-threading can be enabled.
         if (bundle.getThreads() > 0) {
             blockingQueue = new ArrayBlockingQueue<>(intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE));
             for (int i = 0; i < bundle.getThreads(); i++) {
-                bundle.execute(createFastaReaderRunnable(i, blockingQueue));
+                bundle.execute(createFastaReaderRunnable(i, blockingQueue, regionsPerTaxid));
             }
         }
-        AbstractRefSeqFastaReader fastaReader = createFastaReader();
+        AbstractRefSeqFastaReader fastaReader = createFastaReader(regionsPerTaxid);
 
         int sumFiles = 0;
         List<File> refSeqFiles = fnaFilesGoal.getFiles();
@@ -187,8 +188,9 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
     }
 
     protected Runnable createFastaReaderRunnable(int i,
-                                                 BlockingQueue<DBGoal.FileAndNode> blockingQueue) {
-        AbstractRefSeqFastaReader fastaReader = createFastaReader();
+                                                 BlockingQueue<DBGoal.FileAndNode> blockingQueue,
+                                                 AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
+        AbstractRefSeqFastaReader fastaReader = createFastaReader(regionsPerTaxid);
         return new Runnable() {
             @Override
             public void run() {
@@ -216,7 +218,7 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
         };
     }
 
-    protected abstract AbstractRefSeqFastaReader createFastaReader();
+    protected abstract AbstractRefSeqFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid);
 
     public void dump() {
         super.dump();

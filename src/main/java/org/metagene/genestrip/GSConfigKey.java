@@ -81,7 +81,7 @@ public enum GSConfigKey implements ConfigKey {
 	RANK_COMPLETION_DEPTH("rankCompletionDepth", new RankConfigParamInfo(null), GSGoalKey.DB),
 	@MDDescription("If true, then md5 check sums may be skipped by creating and accessing a file named `<file>.md5ok` " +
 			"that marks wether the md5 check sum of `<file>` was found to be ok after a previous download of `<file>`.")
-	CHECK_SUM_CACHE_FIlE("checkSumCacheFile", new BooleanConfigParamInfo(true), GSGoalKey.DB),
+	CHECK_SUM_CACHE_FILE("checkSumCacheFile", new BooleanConfigParamInfo(true), GSGoalKey.DB),
 	// Limit database size
 	@MDDescription("The maximum number of genomes per tax id to be included in the database. "
 			+ "Note, that this is an important parameter to control database size, because in some cases, there are thousands of genomic entries per tax id.")
