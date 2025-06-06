@@ -233,7 +233,7 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
         return classErrorSum / reads;
     }
 
-    @MDCDescription(pos = 25, name = "kmer error std. dev.", desc = "The standard deviation of the `mean class error`.")
+    @MDCDescription(pos = 25, name = "class error std. dev.", desc = "The standard deviation of the `mean class error`.")
     public double getClassErrorStdDev() {
         return Math.sqrt((classErrorSquaredSum  - classErrorSum * classErrorSum / reads) / (reads - 1));
     }
