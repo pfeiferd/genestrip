@@ -131,11 +131,11 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
             }
         }
         bundle.clearThrowableList();
-        if (getLogger().isInfoEnabled()) {
+        if (getLogger().isWarnEnabled()) {
             List<StringLongDigitTrie.StringLong> list = new ArrayList<>();
             regionsPerTaxid.collect(list);
-            getLogger().info("Regions ber taxid:");
-            getLogger().info(list);
+            getLogger().warn("Regions ber taxid:");
+            getLogger().warn(list);
         }
     }
 
