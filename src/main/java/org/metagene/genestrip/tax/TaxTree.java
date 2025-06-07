@@ -93,6 +93,10 @@ public class TaxTree {
 	}
 
 	public TaxIdNode getLeastCommonAncestor(final TaxIdNode node1, final TaxIdNode node2) {
+		// Mild optimization
+		if (node1 == node2) {
+			return node1;
+		}
 		for (TaxIdNode res = node1; res != null; res = res.parent) {
 			for (TaxIdNode ancestor2 = node2; ancestor2 != null; ancestor2 = ancestor2.parent) {
 				if (res == ancestor2) {

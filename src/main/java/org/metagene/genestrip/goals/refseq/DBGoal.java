@@ -95,7 +95,7 @@ public class DBGoal extends FastaReaderGoal<Database> {
 				intConfigValue(GSConfigKey.MAX_DUST),
 				intConfigValue(GSConfigKey.STEP_SIZE),
 				booleanConfigValue(GSConfigKey.UPDATE_WITH_COMPLETE_GENOMES_ONLY),
-				regionsPerTaxid);
+				null);
 	}
 
 	protected class MyFastaReader extends AbstractStoreFastaReader {
@@ -146,6 +146,11 @@ public class DBGoal extends FastaReaderGoal<Database> {
 			else {
 				includeRegion = true;
 			}
+		}
+
+		@Override
+		protected void endRegion() {
+			// Intentionally empty.
 		}
 
 		@Override

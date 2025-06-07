@@ -393,7 +393,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			if (newValue == null) {
 				throw new NullPointerException("Null is not allowed as a value.");
 			}
-			if (newValue != oldValue && !newValue.equals(oldValue)) {
+			if (newValue != oldValue) {
 				// This is important in the multi-threading context:
 				synchronized (valueMap) {
 					index = getAddValueIndex(newValue);
