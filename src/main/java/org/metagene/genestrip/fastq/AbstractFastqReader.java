@@ -28,6 +28,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -87,14 +89,18 @@ public abstract class AbstractFastqReader {
 
 	// Made final for potential inlining by JVM
 	protected final void checkAndLogConsumerThreadProblem() {
-		if (bundle.hasThrowables()) {
-			for (Throwable t : bundle.getThrowableList()) {
-				if (getLogger().isErrorEnabled()) {
-					getLogger().error("Error in consumer thread: ", t);
+		synchronized (bundle) {
+			if (bundle.hasThrowables()) {
+				// To avoid co modification exception due to mo
+				List<Throwable> b = new ArrayList<>(bundle.getThrowableList());
+				for (Throwable t : b) {
+					if (getLogger().isErrorEnabled()) {
+						getLogger().error("Error in consumer thread: ", t);
+					}
 				}
+				bundle.clearThrowableList();
+				throw new RuntimeException("Error(s) in consumer thread(s).");
 			}
-			bundle.clearThrowableList();
-			throw new RuntimeException("Error(s) in consumer thread(s).");
 		}
 	}
 

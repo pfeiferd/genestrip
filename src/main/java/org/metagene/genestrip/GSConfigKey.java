@@ -95,7 +95,7 @@ public enum GSConfigKey implements ConfigKey {
 	MAX_GENOMES_PER_TAXID_RANK("maxPerTaxidRank", new RankConfigParamInfo(null)),
 	@MDDescription("If `true`, a fastq of fasta file which is downloaded via a URL is always assumed to be g-zipped. Otherwise, it will be considered g-zipped only if the" +
 			" file part of the URL ends with `.gz` or `.gzip`.")
-	ALWAYS_ASSUME_GZIP("alwaysAssumeGzip", new BooleanConfigParamInfo(false), GSGoalKey.FASTA_MAP, GSGoalKey.FASTQ_MAP),
+	ALWAYS_ASSUME_GZIP("alwaysAssumeGzip", new BooleanConfigParamInfo(true), GSGoalKey.FASTA_MAP, GSGoalKey.FASTQ_MAP),
 
 	// Refseq data selection
 	@MDDescription("Whether the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) should be used as the basis for filling the database.")
