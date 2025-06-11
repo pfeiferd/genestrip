@@ -135,10 +135,8 @@ There is a separate project [Genestrip-DB](https://github.com/pfeiferd/genestrip
 
 Genestrip's main purpose is to analyze reads from fastq files and count the contained *k*-mers per tax id according to a previously generated database. As an example, Genestrip comes with a small fastq-file `sample.fastq.gz` in `./data/projects/human_virus/fastq`. To start the matching process for it, run
 ```
-sh ./bin/genestrip.sh -f./data/projects/human_virus/fastq/sample.fastq.gz human_virus match
+sh ./bin/genestrip.sh human_virus match -f ./data/projects/human_virus/fastq/sample.fastq.gz
 ```
-**Beware: No blank between `-f` and the file path.**
-
 The resulting CSV file will be named `human_virus_match_sample.csv` under `./data/projects/human_virus/csv`. The same applies to your own projects under `./data/projects`.
 
 These are a few lines of its contents along with the header line:
@@ -188,7 +186,7 @@ where the findings matched the expectations. For example, we correctly recovered
 
 Genestrip can be used to *filter* fastq files via *k*-mers from a previously generated database. As an example, one may also use the fastq file `sample.fastq.gz` from `./data/projects/human_virus/fastq`. To start the filtering process, run
 ````
-sh ./bin/genestrip.sh -f./data/projects/human_virus/fastq/sample.fastq.gz human_virus filter
+sh ./bin/genestrip.sh human_virus filter -f ./data/projects/human_virus/fastq/sample.fastq.gz
 ````
 First, the command creates a filtering database file `human_virus_index.ser.gz`, if not yet present, under `./data/projects/<project_name>/db`. 
 
@@ -288,14 +286,14 @@ A comma-separated list of file paths or URLs or both may be put after `-f` witho
 Unless a key is given via `-k`, a resulting CSV-file will be named after the first file path or URL as given via `-f`.
 Otherwise the name of key will be used for it. E.g.:
 ```
-sh ./bin/genestrip.sh -k mykey -f./data/projects/human_virus/fastq/sample.fastq.gz human_virus match
+sh ./bin/genestrip.sh human_virus match -k mykey -f ./data/projects/human_virus/fastq/sample.fastq.gz
 ```
 will result in the CSV file `./data/projects/human_virus/csv/human_virus_match_mykey.csv`.
 
 In order to run the goals `match` or `matchlr` a project context is not strictly needed, when a database file is given via the option `-db`. 
 E.g., the following command works with an arbitrary project name (here `someprojectname`):
 ```
-sh ./bin/genestrip.sh -r . -k mysample -f./data/projects/human_virus/fastq/sample.fastq.gz -db ./data/projects/human_virus/db/human_virus_db.zip someprojectname match
+sh ./bin/genestrip.sh someprojectname match -r . -k mysample -f ./data/projects/human_virus/fastq/sample.fastq.gz -db ./data/projects/human_virus/db/human_virus_db.zip
 ```
 and produces the result file `./someprojectname_match_mysample.csv`.
 
