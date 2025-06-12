@@ -56,12 +56,12 @@ public class TaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
 		try {
 			TaxIdCollector taxIdCollector = new TaxIdCollector(taxTreeGoal.get());
 			Set<TaxIdNode> taxIdNodes = taxIdCollector.readFromFile(getProject().getTaxIdsFile());
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Requested tax ids: " + taxIdNodes);
+			if (getLogger().isDebugEnabled()) {
+				getLogger().debug("Requested tax ids: " + taxIdNodes);
 			}
 			taxIdNodes = taxIdCollector.withDescendants(taxIdNodes, (Rank) configValue(GSConfigKey.RANK_COMPLETION_DEPTH));
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Number of completed tax ids: " + taxIdNodes.size());
+			if (getLogger().isDebugEnabled()) {
+				getLogger().debug("Number of completed tax ids: " + taxIdNodes.size());
 			}
 			
 			set(taxIdNodes);

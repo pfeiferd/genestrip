@@ -48,8 +48,8 @@ public class StoreDBGoal extends FileListGoal<GSProject> {
 	protected void makeFile(File storeFile) {
 		try {
 			Database db = dbGoal.get();
-			if (getLogger().isWarnEnabled()) {
-				getLogger().warn("Saving database " + storeFile + " along with index ...");
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("Saving database " + storeFile + " along with index ...");
 			}
 			db.save(storeFile);
 		} catch (IOException e) {

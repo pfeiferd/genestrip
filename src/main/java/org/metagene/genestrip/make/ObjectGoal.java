@@ -43,8 +43,8 @@ public abstract class ObjectGoal<T, P extends Project> extends Goal<P> {
 	}
 
 	protected final void set(T object) {
-		if (getLogger().isDebugEnabled()) {
-			getLogger().debug("Setting " + this + " to " + (object == null ? null : logSetObject(object)));
+		if (getLogger().isTraceEnabled()) {
+			getLogger().trace("Setting " + this + " to " + (object == null ? null : logSetObject(object)));
 		}
 		this.object = object;
 	}

@@ -307,14 +307,14 @@ Genestrip supports three targets for each goal, namely `make`, `clean` and `clea
 
 ### Configuration parameters
 
-An optional configuration properties file `config.properties` or `Config.properties` may be put under `<base dir>`.
+An optional configuration properties file `config.properties` may be put under `<base dir>`.
 Entries per line should have the form
 ```
 <key>=<value>
 ```
 [**This is a list of all configuration parameters**](ConfigParams.md)
 
-An optional configuration properties file `config.properties` or `config.properties` may also be put under the project folder `<base dir>/projects/<project_name>`. Configuration entries from the project level override entries from the level `<base dir>`.
+An optional configuration properties file `config.properties` may also be put under the project folder `<base dir>/projects/<project_name>`. Configuration entries from the project level override entries from the level `<base dir>`.
 
 Moreover, configuration parameters may be set on the command line like this:
 ```

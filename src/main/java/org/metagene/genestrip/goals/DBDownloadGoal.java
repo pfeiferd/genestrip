@@ -142,9 +142,9 @@ public class DBDownloadGoal extends GSFileDownloadGoal {
 
 	@Override
 	public void additionalDownload(File file) throws IOException {
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("DB download for " + dbResource);
-			getLogger().info("Saving DB file " + file.toString());
+		if (getLogger().isDebugEnabled()) {
+			getLogger().debug("DB download for " + dbResource);
+			getLogger().debug("Saving DB file " + file.toString());
 		}
 		try (StreamingResource.StreamAccess lbyteCountAccess = dbResource.openStream()) {
 			try (ReadableByteChannel readableByteChannel = Channels.newChannel(lbyteCountAccess.getInputStream());
@@ -155,11 +155,11 @@ public class DBDownloadGoal extends GSFileDownloadGoal {
 		if (Thread.interrupted()) {
 			dumped = true;
 		}
-		if (getLogger().isInfoEnabled()) {
+		if (getLogger().isWarnEnabled()) {
 			if (dumped) {
-				getLogger().info("Interruption when saving DB file " + file.toString() + ". Saving canceled.");
+				getLogger().warn("Interruption when saving DB file " + file.toString() + ". Saving canceled.");
 			} else {
-				getLogger().info("Saved DB file " + file.toString());
+				getLogger().debug("Saved DB file " + file.toString());
 			}
 		}
 	}

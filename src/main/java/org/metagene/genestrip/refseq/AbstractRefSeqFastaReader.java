@@ -148,8 +148,8 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 			node = accessionMap.get(target, 1, pos, completeGenomesOnly);
 		}
 		else {
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Inconsistent info line: " + new String(target, 0, size - 1));
+			if (getLogger().isWarnEnabled()) {
+				getLogger().warn("Inconsistent info line: " + new String(target, 0, size - 1));
 			}
 			node = null;
 		}

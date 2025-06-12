@@ -46,7 +46,6 @@ import org.metagene.genestrip.util.GSLogFactory;
 
 public class GSProject extends Project {
 	public static final String CONFIG_PROPERTIES = "config.properties";
-	public static final String CONFIG_PROPERTIES_2 = "Config.properties";
 
 	public enum FileType {
 		FASTQ_RES(".fastq"), FASTQ(".fastq"), FASTA(".fasta"), CSV(".csv"), KRAKEN_OUT(".out"), KRAKEN_OUT_RES(".out"),
@@ -133,9 +132,6 @@ public class GSProject extends Project {
 	protected Properties loadConfigProperties(File dir, boolean quiet) {
 		Properties properties = new Properties();
 		File configFile = new File(dir, CONFIG_PROPERTIES);
-		if (!configFile.exists()) {
-			configFile = new File(dir, CONFIG_PROPERTIES_2);
-		}
 		if (!quiet && getLogger().isInfoEnabled()) {
 			getLogger().info("Loading config file '" + configFile + "'.");
 		}

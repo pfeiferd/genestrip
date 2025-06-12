@@ -106,9 +106,9 @@ public class FastqDownloadsGoal extends GSFileDownloadGoal {
 	public void additionalDownload(File file) throws IOException {
 		URL url = fileToURL.get(file);
 
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Fastq download for " + url.toExternalForm());
-			getLogger().info("Saving file " + file.toString());
+		if (getLogger().isDebugEnabled()) {
+			getLogger().debug("Fastq download for " + url.toExternalForm());
+			getLogger().debug("Saving file " + file.toString());
 		}
 		try (ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
 				FileOutputStream out = new FileOutputStream(file)) {

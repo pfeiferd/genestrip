@@ -71,9 +71,7 @@ public class AdditionalDownloadsGoal extends GSFileDownloadGoal {
 		if (files == null) {
 			files = new ArrayList<File>();
 			File additonalEntryFile = getProject().getAdditionalFile();
-//			getLogger().info("Addtional config file: " + additonalEntryFile);
 			if (additonalEntryFile.exists()) {
-//				getLogger().info("Additional config file exists");
 				List<String> forGlobalDownload = new ArrayList<String>();
 				try (CSVParser parser = FORMAT
 						.parse(new InputStreamReader(StreamProvider.getInputStreamForFile(additonalEntryFile)))) {
@@ -88,7 +86,9 @@ public class AdditionalDownloadsGoal extends GSFileDownloadGoal {
 							if (md5 != null) {
 								fileToMD5.put(file, md5);
 							}
-							getLogger().info("Additional file: " + file);
+							if (getLogger().isDebugEnabled()) {
+								getLogger().debug("Additional file: " + file);
+							}
 							files.add(file);
 						} else {
 							if (!new File(getProject().getFastaDir(), fileName).exists()) {
@@ -99,11 +99,8 @@ public class AdditionalDownloadsGoal extends GSFileDownloadGoal {
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
-//				getLogger().info("For common download: " + forGlobalDownload);
 				File downloadsFile = new File(getProject().getCommon().getFastaDir(), DOWNLOADS_NAME);
-//				getLogger().info("Downloads config file: " + downloadsFile);
 				if (downloadsFile.exists()) {
-//					getLogger().info("Download config file exists");
 					try (CSVParser parser = FORMAT
 							.parse(new InputStreamReader(StreamProvider.getInputStreamForFile(downloadsFile)))) {
 						for (CSVRecord record : parser) {
@@ -121,7 +118,10 @@ public class AdditionalDownloadsGoal extends GSFileDownloadGoal {
 											fileToMD5.put(file, md5);
 										}
 										files.add(file);
-										getLogger().info("Additional download file: " + file);
+
+										if (getLogger().isDebugEnabled()) {
+											getLogger().debug("Additional download file: " + file);
+										}
 									}
 								}
 							}
@@ -149,9 +149,9 @@ public class AdditionalDownloadsGoal extends GSFileDownloadGoal {
 	public void additionalDownload(File file) throws IOException {
 		URL url = fileToURL.get(file);
 
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Additional download for " + url.toExternalForm());
-			getLogger().info("Saving file " + file.toString());
+		if (getLogger().isDebugEnabled()) {
+			getLogger().debug("Additional download for " + url.toExternalForm());
+			getLogger().debug("Saving file " + file.toString());
 		}
 		try (ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
 				FileOutputStream out = new FileOutputStream(file)) {

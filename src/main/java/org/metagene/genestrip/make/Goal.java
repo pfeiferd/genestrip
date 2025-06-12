@@ -100,9 +100,9 @@ public abstract class Goal<P extends Project> {
 
 	public final void make() {
 		if (!isMade()) {
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Making " + this);
-				getLogger().info("Dependencies " + Arrays.toString(dependencies));
+			if (getLogger().isDebugEnabled()) {
+				getLogger().debug("Making " + this);
+				getLogger().debug("Dependencies " + Arrays.toString(dependencies));
 			}
 			startMake();
 			GSLogFactory.incN();
@@ -114,8 +114,8 @@ public abstract class Goal<P extends Project> {
 			GSLogFactory.decN();
 			makeThis();
 			endMake();
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Made " + this);
+			if (getLogger().isDebugEnabled()) {
+				getLogger().debug("Made " + this);
 			}
 		} else {
 			alreadyMade();
@@ -144,8 +144,8 @@ public abstract class Goal<P extends Project> {
 		// It is important to check "isMade()" again here because sometimes the goal gets
 		// made automatically via a dependent goal as there are "shortcuts".
 		if (!isMade()) {
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Making this " + this);
+			if (getLogger().isDebugEnabled()) {
+				getLogger().debug("Making this " + this);
 			}
 			logHeapInfo();
 			doMakeThis();
@@ -161,8 +161,8 @@ public abstract class Goal<P extends Project> {
 
 	public final void cleanThis() {
 		if (!isCleaned()) {
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Cleaning this " + this);
+			if (getLogger().isDebugEnabled()) {
+				getLogger().debug("Cleaning this " + this);
 			}
 			doCleanThis();
 		}
@@ -198,9 +198,9 @@ public abstract class Goal<P extends Project> {
 	}
 
 	public final void clean(boolean enforceTransitive) {
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Cleaning " + this);
-			getLogger().info("Dependencies " + Arrays.toString(dependencies));
+		if (getLogger().isDebugEnabled()) {
+			getLogger().debug("Cleaning " + this);
+			getLogger().debug("Dependencies " + Arrays.toString(dependencies));
 		}
 		for (Goal<P> dep : dependencies) {
 			if (enforceTransitive) {
@@ -210,8 +210,8 @@ public abstract class Goal<P extends Project> {
 			}
 		}
 		cleanThis();
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Cleaned " + this);
+		if (getLogger().isDebugEnabled()) {
+			getLogger().debug("Cleaned " + this);
 		}
 	}
 

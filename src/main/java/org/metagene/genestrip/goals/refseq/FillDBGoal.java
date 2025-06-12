@@ -110,8 +110,8 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 				}
 			}
 			ensureAllTreeNodesInDB(smallTaxTree.getRoot(), store);
-			if (getLogger().isWarnEnabled()) {
-				getLogger().warn("Sorting kmers ...");
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("Sorting kmers ...");
 			}
 			store.optimize();
 			Database wrapper = new Database(store, smallTaxTree);

@@ -81,8 +81,8 @@ public class DB2FastqTaxNodesGoal extends ObjectGoal<Set<SmallTaxIdNode>, GSProj
 		else {
 			taxIdNodes = storedNodes;
 		}
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Requested tax ids: " + taxIdNodes);
+		if (getLogger().isDebugEnabled()) {
+			getLogger().debug("Requested tax ids: " + taxIdNodes);
 		}
 		set(taxIdNodes);
 	}

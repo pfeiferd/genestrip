@@ -49,10 +49,11 @@ public class StoreIndexGoal extends FileListGoal<GSProject> {
 	@Override
 	protected void makeFile(File indexFile) {
 		try {
-			indexGoal.get().save(indexFile);
+			MurmurCGATBloomFilter index = indexGoal.get();
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Index file " + indexFile + " saved.");
+				getLogger().info("Saving index " + indexFile + " ...");
 			}
+			index.save(indexFile);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

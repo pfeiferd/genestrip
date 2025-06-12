@@ -50,8 +50,8 @@ public class GSProgressBarCreator {
         ProgressBarBuilder progressBarBuilder = new ProgressBarBuilder().setInitialMax(max).
                 setTaskName(task).setUpdateIntervalMillis(updateIntervalMillis).
                 setUnit(unitName, 1).setRenderer(renderer).setMaxRenderedLength(100).continuousUpdate();
-        if (log != null && log.isInfoEnabled()) {
-            progressBarBuilder.setConsumer(new DelegatingProgressBarConsumer(log::info));
+        if (log != null && log.isDebugEnabled()) {
+            progressBarBuilder.setConsumer(new DelegatingProgressBarConsumer(log::debug));
         }
         ProgressBar progressBar = progressBarBuilder.build();
         renderer.setProgressBar(progressBar);

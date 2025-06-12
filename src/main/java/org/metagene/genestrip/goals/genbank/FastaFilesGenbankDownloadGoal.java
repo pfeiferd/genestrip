@@ -97,8 +97,8 @@ public class FastaFilesGenbankDownloadGoal extends GSFileDownloadGoal {
 					}
 				}
 			}
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Number of Fasta files to download: " + files.size());
+			if (getLogger().isDebugEnabled()) {
+				getLogger().debug("Number of Fasta files to download: " + files.size());
 			}
 		}
 		return files;
@@ -133,9 +133,9 @@ public class FastaFilesGenbankDownloadGoal extends GSFileDownloadGoal {
 	public void additionalDownload(File file) throws IOException {
 		URL url = (URL) fileToDir.get(file.getName());
 
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Additional download for " + url.toExternalForm());
-			getLogger().info("Saving file " + file.toString());
+		if (getLogger().isDebugEnabled()) {
+			getLogger().debug("Additional download for " + url.toExternalForm());
+			getLogger().debug("Saving file " + file.toString());
 		}
 		try (ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
 				FileOutputStream out = new FileOutputStream(file)) {

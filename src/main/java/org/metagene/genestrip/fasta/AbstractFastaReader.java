@@ -48,14 +48,14 @@ public abstract class AbstractFastaReader {
 	}
 
 	public void readFasta(File file) throws IOException {
-		if (logger.isInfoEnabled()) {
-			logger.info("Reading fasta file " + file);
+		if (logger.isDebugEnabled()) {
+			logger.debug("Reading fasta file " + file);
 		}
 		try (InputStream inputStream = StreamProvider.getInputStreamForFile(file)) {
 			readFasta(inputStream);
 		}
-		if (logger.isInfoEnabled()) {
-			logger.info("Closed fasta file " + file);
+		if (logger.isDebugEnabled()) {
+			logger.debug("Closed fasta file " + file);
 		}
 	}
 	
@@ -94,8 +94,8 @@ public abstract class AbstractFastaReader {
 			endRegion();
 		}
 		done();
-		if (logger.isInfoEnabled()) {
-			logger.info("Total number of data lines: " + dataLines);
+		if (logger.isDebugEnabled()) {
+			logger.debug("Total number of data lines: " + dataLines);
 		}
 	}
 

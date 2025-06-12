@@ -61,8 +61,8 @@ public class FastQWriter {
 	}
 
 	public void done() {
-		if (getLogger().isInfoEnabled()) {
-			logger.info("Total added reads: " + added);
+		if (getLogger().isDebugEnabled()) {
+			logger.debug("Total added reads: " + added);
 		}
 	}
 

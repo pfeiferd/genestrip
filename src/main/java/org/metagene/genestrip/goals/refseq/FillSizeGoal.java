@@ -73,11 +73,11 @@ public class FillSizeGoal extends FastaReaderGoal<Long> {
 				totalKmerSum += reader.getTotalKmers();
 			}
 			set(counter);
-			if (getLogger().isWarnEnabled()) {
-				getLogger().warn("All included kmers with duplicates: " + counter);
-				getLogger().warn("Estimated DB size in MB (without Bloom filter, with duplicates): " + (counter * 10) / (1024 * 1024) );
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("All included kmers with duplicates: " + counter);
+				getLogger().info("Estimated DB size in MB (without Bloom filter, with duplicates): " + (counter * 10) / (1024 * 1024) );
 				if (intConfigValue(GSConfigKey.MAX_DUST) >= 0) {
-					getLogger().warn("Dust ratio: " + ((double) dustSum) / totalKmerSum);
+					getLogger().info("Dust ratio: " + ((double) dustSum) / totalKmerSum);
 				}
 			}
 		} catch (IOException e) {

@@ -89,14 +89,16 @@ public class FillBloomFilterGoal extends FastaReaderGoal<MurmurCGATBloomFilter> 
 
 	@Override
 	protected void afterReadFastas(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
-		if (getLogger().isWarnEnabled()) {
-			getLogger().warn("Final Bloom filter and store size in kmers: " + filter.getEntries());
-			getLogger().warn("Approx. DB Size in MB (without Bloom filter): " + (filter.getEntries() * 10) / (1024 * 1024));
-			getLogger().warn("Duplication factor: " + ((double) sizeGoal.get()) /  filter.getEntries());
+		if (getLogger().isInfoEnabled()) {
+			getLogger().info("Final Bloom filter and store size in kmers: " + filter.getEntries());
+			getLogger().info("Approx. DB Size in MB (without Bloom filter): " + (filter.getEntries() * 10) / (1024 * 1024));
+			getLogger().info("Duplication factor: " + ((double) sizeGoal.get()) /  filter.getEntries());
+		}
+		if (getLogger().isDebugEnabled()) {
 			List<StringLongDigitTrie.StringLong> list = new ArrayList<>();
 			regionsPerTaxid.collect(list);
-			getLogger().warn("Regions ber taxid:");
-			getLogger().warn(list);
+			getLogger().debug("Regions ber taxid:");
+			getLogger().debug(list);
 		}
 	}
 

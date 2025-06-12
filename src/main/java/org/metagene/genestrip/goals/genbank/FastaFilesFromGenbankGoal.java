@@ -89,14 +89,12 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<As
 				int[] nEntriesTotal = new int[1];
 				Map<TaxIdNode, List<AssemblyEntry>> entries = assemblySummaryReader.getRelevantEntries(
 						taxidsFromGenbankGoal.get(), fastaQualities, refGenOnly, false, nEntriesTotal);
-				if (getLogger().isInfoEnabled()) {
+				if (getLogger().isTraceEnabled()) {
 					int sum = 0;
 					for (TaxIdNode node : entries.keySet()) {
 						sum += entries.get(node).size();
 					}
-					if (getLogger().isInfoEnabled()) {
-						getLogger().info("Potentially relevant entries: " + sum);
-					}
+					getLogger().trace("Potentially relevant entries: " + sum);
 				}
 
 				// Reduce the number of entries to maxFromGenbank and keep the best ones in terms of quality.
@@ -110,13 +108,13 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<As
 					}
 				}
 
-				if (getLogger().isInfoEnabled()) {
+				if (getLogger().isTraceEnabled()) {
 					int sum = 0;
 					for (TaxIdNode node : entries.keySet()) {
 						sum += entries.get(node).size();
 					}
-					getLogger().info("Entries selected for download: " + sum);
-					getLogger().info("Total number of entries in assembly summary file: " + nEntriesTotal[0]);
+					getLogger().trace("Entries selected for download: " + sum);
+					getLogger().trace("Total number of entries in assembly summary file: " + nEntriesTotal[0]);
 				}
 				set(entries);
 			} catch (IOException e) {

@@ -76,8 +76,8 @@ public class CategoriesGoal extends ObjectGoal<Set<RefSeqCategory>, GSProject> {
 			}
 		}
 
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Categories for store: " + res);
+		if (getLogger().isDebugEnabled()) {
+			getLogger().debug("Categories for store: " + res);
 		}
 
 		return res;

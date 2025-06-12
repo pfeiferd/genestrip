@@ -83,7 +83,7 @@ public class TaxIdFileDownloadGoal extends GSFileDownloadGoal {
 
 		if (zipFile.exists() && zipFile.length() == 0) {
 			if (getLogger().isInfoEnabled()) {
-				getLogger().info("File delete " + zipFile.toString());
+				getLogger().info("Deleting file " + zipFile.toString());
 			}
 			zipFile.delete();
 		}
@@ -95,16 +95,16 @@ public class TaxIdFileDownloadGoal extends GSFileDownloadGoal {
 			}
 		}
 
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("File extract " + zipFile.toString());
+		if (getLogger().isDebugEnabled()) {
+			getLogger().debug("Extracting file " + zipFile.toString());
 		}
 		try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile))) {
 			byte[] buffer = new byte[1024];
 			for (ZipEntry zipEntry = zis.getNextEntry(); zipEntry != null; zipEntry = zis.getNextEntry()) {
 				String entryName = zipEntry.getName();
 				if (entryName.equals(file.getName())) {
-					if (getLogger().isInfoEnabled()) {
-						getLogger().info("File save " + file.toString());
+					if (getLogger().isDebugEnabled()) {
+						getLogger().debug("Saving file " + file.toString());
 					}
 					try (OutputStream out = StreamProvider.getOutputStreamForFile(file)) {
 						int len;
@@ -118,15 +118,4 @@ public class TaxIdFileDownloadGoal extends GSFileDownloadGoal {
 			zis.closeEntry();
 		}
 	}
-/*  TODO: Not needed anymore: (?)
-	@Override
-	protected String getHttpBaseURL() {
-		return stringConfigValue(GSConfigKey.TAX_HTTP_BASE_URL);
-	}
-
-	@Override
-	protected String getFTPBaseURL() {
-		return stringConfigValue(GSConfigKey.TAX_FTP_BASE_URL);
-	}
-*/
 }

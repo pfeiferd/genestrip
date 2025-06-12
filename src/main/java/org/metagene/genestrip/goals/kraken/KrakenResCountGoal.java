@@ -152,8 +152,8 @@ public class KrakenResCountGoal extends ObjectGoal<Map<String, List<KrakenResCou
                 krakenExecutor.execute2(stringConfigValue(GSConfigKey.KRAKEN_DB), fastqs, null, null, System.err);
             //}
 
-            if (getLogger().isInfoEnabled()) {
-                getLogger().info("Finished kraken");
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug("Finished kraken");
             }
 
             List<KrakenResStats> list = new ArrayList<KrakenResStats>();

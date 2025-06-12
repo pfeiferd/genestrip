@@ -76,8 +76,8 @@ public abstract class FileGoal<P extends Project> extends Goal<P> {
 	
 	@Override
 	protected void alreadyMade() {
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Already made files " + getFiles());
+		if (getLogger().isDebugEnabled()) {
+			getLogger().debug("Already made files " + getFiles());
 		}
 	}
 
@@ -105,13 +105,13 @@ public abstract class FileGoal<P extends Project> extends Goal<P> {
 						deleteFile(file);
 					}
 					if (!isMade(file)) {
-						if (getLogger().isInfoEnabled()) {
-							getLogger().info("Making file (" + counter + "/" + max + "):" + file);
+						if (getLogger().isDebugEnabled()) {
+							getLogger().debug("Making file (" + counter + "/" + max + "):" + file);
 						}
 						makeFile(file);
 					} else {
-						if (getLogger().isInfoEnabled()) {
-							getLogger().info("Already made file (" + counter + "/" + max + "):" + file);
+						if (getLogger().isDebugEnabled()) {
+							getLogger().debug("Already made file (" + counter + "/" + max + "):" + file);
 						}
 					}
 					if (pb != null) {

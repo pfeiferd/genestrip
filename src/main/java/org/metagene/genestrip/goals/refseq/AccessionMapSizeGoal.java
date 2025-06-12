@@ -63,8 +63,8 @@ public class AccessionMapSizeGoal extends ObjectGoal<Integer, GSProject> {
 				super.processCatalog(catalogFile);
 				set(counter);
 
-				if (getLogger().isInfoEnabled()) {
-					getLogger().info("Map size determined: " + counter);
+				if (getLogger().isDebugEnabled()) {
+					getLogger().debug("Map size determined: " + counter);
 				}
 			}
 

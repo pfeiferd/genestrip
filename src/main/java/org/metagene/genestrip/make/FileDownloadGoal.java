@@ -75,8 +75,8 @@ public abstract class FileDownloadGoal<P extends Project> extends FileGoal<P> {
 	}
 
 	protected void connectLoginAndConfigure(FTPClient ftpClient) throws IOException {
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("FTP Connect " + getFTPBaseURL());
+		if (getLogger().isDebugEnabled()) {
+			getLogger().debug("FTP Connect " + getFTPBaseURL());
 		}
 		ftpClient.connect(getFTPBaseURL());
 		login(ftpClient);
@@ -84,8 +84,8 @@ public abstract class FileDownloadGoal<P extends Project> extends FileGoal<P> {
 	}
 
 	protected void login(FTPClient ftpClient) throws IOException {
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("FTP Login " + getLogin());
+		if (getLogger().isDebugEnabled()) {
+			getLogger().debug("FTP Login " + getLogin());
 		}
 		ftpClient.login(getLogin(), getPassword());
 	}
@@ -102,9 +102,9 @@ public abstract class FileDownloadGoal<P extends Project> extends FileGoal<P> {
 		if (!ftpClient.isConnected()) {
 			connectLoginAndConfigure(ftpClient);
 		}
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Saving file " + file.toString());
-			getLogger().info("FTP download " + buildFTPURL(file));
+		if (getLogger().isDebugEnabled()) {
+			getLogger().debug("Saving file " + file.toString());
+			getLogger().debug("FTP download " + buildFTPURL(file));
 		}
 		try (OutputStream out = StreamProvider.getOutputStreamForFile(file, true)) {
 			ftpClient.changeWorkingDirectory(getFTPDir(file));
@@ -117,9 +117,9 @@ public abstract class FileDownloadGoal<P extends Project> extends FileGoal<P> {
 
 	protected void httpDownload(File file) throws IOException {
 		String url = buildHttpURL(file);
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("HTTP download " + url);
-			getLogger().info("Saving file " + file.toString());
+		if (getLogger().isDebugEnabled()) {
+			getLogger().debug("HTTP download " + url);
+			getLogger().debug("Saving file " + file.toString());
 		}
 		if (getMD5CheckSum(file) != null) {
 			try {
@@ -131,8 +131,8 @@ public abstract class FileDownloadGoal<P extends Project> extends FileGoal<P> {
 				}
 				// Gotta do it here since result will be cached:
 				boolean res = isCheckSumOk(file, Hex.encodeHexString(messageDigest.digest()));
-				if (getLogger().isInfoEnabled()) {
-					getLogger().info((res ? "OK" : "Wrong") + " MD5 check sum for file: " + file);
+				if (getLogger().isDebugEnabled()) {
+					getLogger().debug((res ? "OK" : "Wrong") + " MD5 check sum for file: " + file);
 				}
 			} catch (NoSuchAlgorithmException e) {
 				throw new RuntimeException(e);
@@ -147,8 +147,8 @@ public abstract class FileDownloadGoal<P extends Project> extends FileGoal<P> {
 
 	protected String computeMD5CheckSum(File file) {
 		String res = null;
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Computing MD5 check sum for file: " + file);
+		if (getLogger().isDebugEnabled()) {
+			getLogger().debug("Computing MD5 check sum for file: " + file);
 		}
 		try (InputStream is = Files.newInputStream(file.toPath())) {
 			res = DigestUtils.md5Hex(is);
@@ -270,14 +270,16 @@ public abstract class FileDownloadGoal<P extends Project> extends FileGoal<P> {
 			if (!isIgnoreMissingFiles()) {
 				throw e;
 			}
-			if (checkSumWrong) {
-				getLogger().warn("Bad check sum for downloaded file " + file.getCanonicalPath());
-			} else if (isAdditionalFile(file)) {
-				getLogger().warn("Missing file for download " + file.getCanonicalPath());
-			} else if (isUseHttp()) {
-				getLogger().warn("Missing file for download " + buildHttpURL(file));
-			} else {
-				getLogger().warn("Missing file for download " + buildFTPURL(file));
+			else if (getLogger().isWarnEnabled()) {
+				if (checkSumWrong) {
+					getLogger().warn("Bad check sum for downloaded file " + file.getCanonicalPath());
+				} else if (isAdditionalFile(file)) {
+					getLogger().warn("Missing file for download " + file.getCanonicalPath());
+				} else if (isUseHttp()) {
+					getLogger().warn("Missing file for download " + buildHttpURL(file));
+				} else {
+					getLogger().warn("Missing file for download " + buildFTPURL(file));
+				}
 			}
 		}
 	}
