@@ -26,6 +26,8 @@ package org.metagene.genestrip.goals.refseq;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -42,6 +44,7 @@ import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.StringLongDigitTrie;
 
 public class FillBloomFilterGoal extends FastaReaderGoal<MurmurCGATBloomFilter> {
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
@@ -76,10 +79,6 @@ public class FillBloomFilterGoal extends FastaReaderGoal<MurmurCGATBloomFilter> 
 			filter.ensureExpectedSize(sizeGoal.get(), false);
 			readFastas();
 			set(filter);
-			if (getLogger().isWarnEnabled()) {
-				getLogger().warn("Final Bloom filter and store size in kmers: " + filter.getEntries());
-				getLogger().warn("Approx. DB Size in MB (without Bloom filter): " + (filter.getEntries() * 10) / (1024 * 1024));
-			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {
@@ -89,7 +88,20 @@ public class FillBloomFilterGoal extends FastaReaderGoal<MurmurCGATBloomFilter> 
 	}
 
 	@Override
-	protected AbstractRefSeqFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
+	protected void afterReadFastas(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
+		if (getLogger().isWarnEnabled()) {
+			getLogger().warn("Final Bloom filter and store size in kmers: " + filter.getEntries());
+			getLogger().warn("Approx. DB Size in MB (without Bloom filter): " + (filter.getEntries() * 10) / (1024 * 1024));
+			getLogger().warn("Duplication factor: " + ((double) sizeGoal.get()) /  filter.getEntries());
+			List<StringLongDigitTrie.StringLong> list = new ArrayList<>();
+			regionsPerTaxid.collect(list);
+			getLogger().warn("Regions ber taxid:");
+			getLogger().warn(list);
+		}
+	}
+
+	@Override
+	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
 		return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
 				taxNodesGoal.get(),
 				booleanConfigValue(GSConfigKey.REF_SEQ_DB) ? accessionMapGoal.get() : null, filter,
@@ -130,16 +142,6 @@ public class FillBloomFilterGoal extends FastaReaderGoal<MurmurCGATBloomFilter> 
 				}
 			}
 			return false;
-		}
-
-		@Override
-		protected void done() {
-			super.done();
-			if (getLogger().isInfoEnabled()) {
-				long entries = filter.getEntries();
-				getLogger().info("Total Bloom filter entries: " + entries);
-				getLogger().info("Resulting approx. DB Size in MB (without Bloom filter): " + (entries * 10) / (1024 * 1024) );
-			}
 		}
 	}
 }

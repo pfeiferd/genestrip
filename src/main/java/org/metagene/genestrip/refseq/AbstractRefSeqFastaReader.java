@@ -50,7 +50,7 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected boolean ignoreMap;
 	protected long bpsInRegion;
 	protected long kmersInRegion;
-	protected long totalKmers;
+	protected long includedKmers;
 
 
 	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId,
@@ -63,7 +63,7 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		this.stepSize = stepSize;
 		includeRegion = false;
 		ignoreMap = false;
-		totalKmers = 0;
+		includedKmers = 0;
 		this.regionsPerTaxid = regionsPerTaxid;
 		this.maxGenomesPerTaxId = maxGenomesPerTaxId;
 		this.maxGenomesPerTaxIdRank = maxGenomesPerTaxIdRank;
@@ -90,7 +90,7 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	@Override
 	protected void endRegion() {
 		if (includeRegion) {
-			totalKmers += kmersInRegion;
+			includedKmers += kmersInRegion;
 			if (node != null) {
 				for (TaxIdNode n = node; n != null; n = n.getParent()) {
 					regionsPerTaxid.incAndAdd(n.getTaxId(), kmersInRegion);
@@ -135,18 +135,6 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		}
 		else {
 			includeRegion = false;
-		}
-	}
-
-	@Override
-	protected void dataLine() {
-		if (includeRegion) {
-			if (isAllowMoreKmers()) {
-				bpsInRegion += size - 1;
-				if (bpsInRegion >= k) {
-					kmersInRegion = ((bpsInRegion - k + 1) / stepSize); // TODO not yet correct
-				}
-			}
 		}
 	}
 

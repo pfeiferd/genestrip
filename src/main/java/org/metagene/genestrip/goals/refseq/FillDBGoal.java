@@ -80,7 +80,7 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 		// This works really well, so we can allow for a low FPP for the bloom filter
 		// itself and save memory during db construction.
 		// It is a very conservative estimate too, since collisions occur in the process
-		// of filling (as opposed to the FPP formula considers a filled
+		// of filling (as opposed to the FPP formula that considers a filled
 		// bloom filter).
 		store.initSize((long) (bloomFilterGoal.get().getEntries()
 				* (1 + doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP))));
@@ -125,7 +125,7 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 	}
 
 	@Override
-	protected AbstractRefSeqFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
+	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
 		MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
 				taxNodesGoal.get(), booleanConfigValue(GSConfigKey.REF_SEQ_DB) ? accessionMapGoal.get() : null, store,
 				intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),

@@ -38,11 +38,11 @@ import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
+import org.metagene.genestrip.refseq.AbstractStoreFastaReader;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
 
 public class FillSizeGoal extends FastaReaderGoal<Long> {
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
@@ -64,13 +64,21 @@ public class FillSizeGoal extends FastaReaderGoal<Long> {
 		try {
 			readFastas();
 			long counter = 0;
+			long dustSum = 0;
+			long totalKmerSum = 0;
+
 			for (MyFastaReader reader : readers) {
-				counter += reader.getCounter();
+				counter += reader.getIncludedKmers();
+				dustSum += reader.getDustCounter();
+				totalKmerSum += reader.getTotalKmers();
 			}
 			set(counter);
 			if (getLogger().isWarnEnabled()) {
-				getLogger().warn("Estimated store size in kmers: " + counter);
-				getLogger().warn("Estimated DB Size in MB (without Bloom filter): " + (counter * 10) / (1024 * 1024) );
+				getLogger().warn("All included kmers with duplicates: " + counter);
+				getLogger().warn("Estimated DB size in MB (without Bloom filter, with duplicates): " + (counter * 10) / (1024 * 1024) );
+				if (intConfigValue(GSConfigKey.MAX_DUST) >= 0) {
+					getLogger().warn("Dust ratio: " + ((double) dustSum) / totalKmerSum);
+				}
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
@@ -80,12 +88,13 @@ public class FillSizeGoal extends FastaReaderGoal<Long> {
 	}
 
 	@Override
-	protected AbstractRefSeqFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
+	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
 		MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
 				taxNodesGoal.get(), booleanConfigValue(GSConfigKey.REF_SEQ_DB) ? accessionMapGoal.get() : null, intConfigValue(GSConfigKey.KMER_SIZE),
 				intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
 				(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
 				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
+				intConfigValue(GSConfigKey.MAX_DUST),
 				intConfigValue(GSConfigKey.STEP_SIZE),
 				booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY),
 				regionsPerTaxid);
@@ -93,24 +102,42 @@ public class FillSizeGoal extends FastaReaderGoal<Long> {
 		return fastaReader;
 	}
 
-	protected static class MyFastaReader extends AbstractRefSeqFastaReader {
+	protected static class MyFastaReader extends AbstractStoreFastaReader {
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-				int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid) {
-			super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, stepSize, completeGenomesOnly, regionsPerTaxid);
+				int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid) {
+			super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId,
+					maxDust, stepSize, completeGenomesOnly, regionsPerTaxid);
 		}
 
-		public long getCounter() {
+		public long getIncludedKmers() {
+			return includedKmers;
+		}
+
+		public long getTotalKmers() {
 			return totalKmers;
 		}
 
+		public long getDustCounter() {
+			return dustCounter;
+		}
+
 		@Override
-		protected void done() {
-			super.done();
-			if (getLogger().isTraceEnabled()) {
-				List<StringLong> values = new ArrayList<>();
-				regionsPerTaxid.collect(values);
-				getLogger().trace("Included regions per taxid: " + values);
+		protected boolean handleStore() {
+			return true;
+		}
+
+	/* This would be faster but the estimate in kmers is a little less accurate:
+	@Override
+	protected void dataLine() {
+		if (includeRegion) {
+			if (isAllowMoreKmers()) {
+				bpsInRegion += size - 1;
+				if (bpsInRegion >= k) {
+					kmersInRegion = ((bpsInRegion - k + 1) / stepSize); // TODO not yet correct
+				}
 			}
 		}
+	}
+	 */
 	}
 }

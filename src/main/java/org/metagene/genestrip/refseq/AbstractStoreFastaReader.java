@@ -35,7 +35,7 @@ import org.metagene.genestrip.util.CGATRingBuffer;
 public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader {
 	protected final CGATLongBuffer byteRingBuffer;
 	protected long dustCounter;
-	protected long totalKmerCounter;
+	protected long totalKmers;
 	
 	public AbstractStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank,
 									long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid) {
@@ -64,7 +64,7 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 							} else if (handleStore()) {
 								kmersInRegion++;
 							}
-							totalKmerCounter++;
+							totalKmers++;
 						}
 					}
 				}
@@ -72,13 +72,5 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 		}
 	}
 
-	@Override
-	protected void done() {
-		super.done();
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Dust ratio: " + ((double) dustCounter) / totalKmerCounter);
-		}
-	}
-	
 	protected abstract boolean handleStore();
 }

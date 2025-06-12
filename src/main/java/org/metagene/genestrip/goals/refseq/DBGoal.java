@@ -76,9 +76,6 @@ public class DBGoal extends FastaReaderGoal<Database> {
 			readFastas();
 			store.fix();
 			set(new Database(store, wrapper.getTaxTree()));
-			if (getLogger().isTraceEnabled()) {
-				getLogger().trace("KMers moved: " + store.getKMersMoved());
-			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {
@@ -87,7 +84,14 @@ public class DBGoal extends FastaReaderGoal<Database> {
 		}
 	}
 
-	protected AbstractRefSeqFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
+	@Override
+	protected void afterReadFastas(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
+		if (getLogger().isInfoEnabled()) {
+			getLogger().info("KMers moved via update: " + store.getKMersMoved());
+		}
+	}
+
+	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
 		return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxTreeGoal.get(), taxNodesGoal.get(),
 				accessionTrieGoal.get(), store, intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
 				(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),

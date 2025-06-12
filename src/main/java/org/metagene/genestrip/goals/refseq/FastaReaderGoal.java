@@ -32,6 +32,7 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
+import org.metagene.genestrip.refseq.AbstractStoreFastaReader;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.util.StringLongDigitTrie;
@@ -131,12 +132,10 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
             }
         }
         bundle.clearThrowableList();
-        if (getLogger().isWarnEnabled()) {
-            List<StringLongDigitTrie.StringLong> list = new ArrayList<>();
-            regionsPerTaxid.collect(list);
-            getLogger().warn("Regions ber taxid:");
-            getLogger().warn(list);
-        }
+        afterReadFastas(regionsPerTaxid);
+    }
+
+    protected void afterReadFastas(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
     }
 
     protected ProgressBar createProgressBar(int max) {
@@ -188,7 +187,7 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
         };
     }
 
-    protected abstract AbstractRefSeqFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid);
+    protected abstract AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid);
 
     public void dump() {
         super.dump();
