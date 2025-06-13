@@ -80,6 +80,11 @@ public class CGATRingBufferTest extends TestCase {
 					}
 
 					assertEquals(buffer.getMaxDust() >= 0 ? sumDust : -1, buffer.getDustValue());
+					/*
+					if (sumDust > buffer.getMaxDust()) {
+						System.out.println("Dust value: " + sumDust + " " + buffer.toString());
+					}
+					 */
 					assertEquals(sumDust > buffer.getMaxDust() && buffer.getMaxDust() >= 0, buffer.isDust());
 					if (buffer.isDust()) {
 						dustCount++;
@@ -109,6 +114,41 @@ public class CGATRingBufferTest extends TestCase {
 			}
 		}
 		System.out.println("Dust ratio: " + ((double) dustCount) / totalCount);
+	}
+
+	public void testSomeKmerStrings() {
+		CGATRingBuffer buffer = new CGATRingBuffer(31, 1000);
+		fill(buffer, "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC");
+		assertEquals(fib(31), buffer.getDustValue());
+		fill(buffer, "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
+		assertEquals(fib(31), buffer.getDustValue());
+		fill(buffer, "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTA");
+		assertEquals(fib(30), buffer.getDustValue());
+		fill(buffer, "ATTTTTTTTTTTTTTTTTTTTTTTTTTTTTA");
+		assertEquals(fib(29), buffer.getDustValue());
+		fill(buffer, "TTTTTTTTTTTTTTTTTCCCCCCCCCCCCCC");
+		assertEquals(fib(17) + fib(14), buffer.getDustValue());
+		fill(buffer, "AAAATTTTTTTTTTTTTCCCCCCCCCCCCCC");
+		assertEquals(fib(4) + fib(13) + fib(14), buffer.getDustValue());
+		fill(buffer, "ACACACACACACACACACACACACACACACA");
+		assertEquals(0, buffer.getDustValue());
+	}
+
+	public int fib(int n) {
+		int f1 = 0, f2 = 1;
+		int h;
+		for (int i = 0; i < n; i++) {
+			h = f2;
+			f2 = f1 + f2;
+			f1 = h;
+		}
+		return f1;
+	}
+
+	protected void fill(CGATRingBuffer buffer, String kmer) {
+		for (int i = 0; i < kmer.length(); i++) {
+			buffer.put((byte) kmer.charAt(i));
+		}
 	}
 
 	@Test

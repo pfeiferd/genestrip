@@ -138,8 +138,8 @@ public enum GSConfigKey implements ConfigKey {
 			+ "Given a *k*-mer with *n* repeating base pairs of repeat length *k(1), ... k(n)* with *k(i) > 1*, "
 			+ "then *d = fib(k(1)) + ... + fib(k(n))*, where *fib(k(i))* is the Fibonacci number of *k(i)*. "
 			+ "E.g., for the *8*-mer `TTTCGGTC`, we have *n = 2* with *k(1) = 3*, *k(2) = 2* and *d = fib(3) + fib(2) = 2 + 1 = 3*. "
-			+ "For practical concerns `maxDust = 20` may be suitable. In this case, if *31*-mers were uniformly, randomly generated, "
-			+ "then about 2 % of them would be omitted. If `maxDust = -1`, then dust-filtering is inactive.")
+			+ "For practical concerns `maxDust = 200` may be suitable. In this case, if *31*-mers were uniformly, randomly generated, "
+			+ "then less than 0.0001 % of them would be dropped. If `maxDust = -1`, then dust-filtering is inactive.")
 	MAX_DUST("maxDust", new IntConfigParamInfo(-1, Integer.MAX_VALUE, -1), GSGoalKey.DB),
 	TEMP_BLOOM_FILTER_FPP("tempBloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.001d), true, GSGoalKey.TEMPINDEX),
 	BLOOM_FILTER_FPP("bloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.00000000001d), true, GSGoalKey.FILL_DB),
