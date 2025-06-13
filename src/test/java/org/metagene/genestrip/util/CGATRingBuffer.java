@@ -36,11 +36,7 @@ public class CGATRingBuffer extends CGATLongBuffer {
 		this(size, -1);
 	}
 
-	protected int maxSize() {
-		return Integer.MAX_VALUE;
-	}
-	
-	public long put(byte c) {
+	public long putForTest(byte c) {
 		data[bpCounter] = c;
 		return super.put(c);
 	}
@@ -49,8 +45,7 @@ public class CGATRingBuffer extends CGATLongBuffer {
 		return data[(bpCounter + index) % data.length];
 	}
 	
-	@Override
-	public long getKMer() {
+	public long getKMerForTest() {
 		if (!filled) {
 			return -1;
 		}

@@ -30,7 +30,6 @@ import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATLongBuffer;
-import org.metagene.genestrip.util.CGATRingBuffer;
 
 public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader {
 	protected final CGATLongBuffer byteRingBuffer;
@@ -40,7 +39,7 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 	public AbstractStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank,
 									long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid) {
 		super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, stepSize, completeGenomesOnly, regionsPerTaxid);
-		byteRingBuffer = k > 32 ? new CGATRingBuffer(k, maxDust) : new CGATLongBuffer(k, maxDust);
+		byteRingBuffer = new CGATLongBuffer(k, maxDust);
 		dustCounter = 0;
 	}
 

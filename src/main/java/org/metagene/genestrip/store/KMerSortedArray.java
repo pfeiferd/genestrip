@@ -33,7 +33,7 @@ import java.util.List;
 
 import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
 import org.metagene.genestrip.util.CGAT;
-import org.metagene.genestrip.util.CGATRingBuffer;
+import org.metagene.genestrip.util.CGATLongBuffer;
 
 import it.unimi.dsi.fastutil.BigArrays;
 import it.unimi.dsi.fastutil.BigSwapper;
@@ -272,7 +272,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	}
 
 	@Override
-	public boolean put(CGATRingBuffer buffer, V value) {
+	public boolean put(CGATLongBuffer buffer, V value) {
 		throw new UnsupportedOperationException("Deprecated and so not implemented.");
 	}
 
@@ -341,7 +341,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	}
 
 	@Override
-	public V get(CGATRingBuffer buffer) {
+	public V get(CGATLongBuffer buffer) {
 		throw new UnsupportedOperationException("Deprecated and almost removed.");
 	}
 

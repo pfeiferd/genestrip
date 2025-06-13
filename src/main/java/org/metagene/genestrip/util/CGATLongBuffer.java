@@ -47,7 +47,7 @@ public class CGATLongBuffer {
 	}
 
 	public CGATLongBuffer(int size, int maxDust) {
-		if (size > maxSize()) {
+		if (size > 32) {
 			throw new IllegalArgumentException("size must be <= 32");
 		}
 		if (maxDust > Short.MAX_VALUE) {
@@ -81,12 +81,8 @@ public class CGATLongBuffer {
 			dustFunction[i] = dustFunction[i - 1] + dustFunction[i - 2];
 		}
 	}
-		
-	protected int maxSize() {
-		return 32;
-	}
 
-	public long put(byte c) {
+	public final long put(byte c) {
 		// This is inlined: kmer = CGAT.nextKMerStraight(kmer, c, size);
 		// And also: reverseKmer = CGAT.nextKMerReverse(reverseKmer, c, size)
 		int bp = CGAT_JUMP_TABLE[c]; // Inlined.
@@ -126,22 +122,22 @@ public class CGATLongBuffer {
 		}
 	}
 	
-	public long getKMer() {
+	public final long getKMer() {
 		return filled ? kmer : -1;
 	}
 
-	public long getReverseKMer() {
+	public final long getReverseKMer() {
 		return filled ? reverseKmer : -1;
 	}
 
-	public long getStandardKMer() {
+	public final long getStandardKMer() {
 		if (filled) {
 			return CGAT.standardKMer(kmer, reverseKmer);
 		}
 		return -1;
 	}
 
-	public void reset() {
+	public final void reset() {
 		bpCounter = 0;
 		kmer = 0;
 		reverseKmer = 0;
@@ -156,23 +152,23 @@ public class CGATLongBuffer {
 		}
 	}
 
-	public boolean isFilled() {
+	public final boolean isFilled() {
 		return filled;
 	}
 
-	public int getSize() {
+	public final int getSize() {
 		return size;
 	}
 
-	public boolean isDust() {
+	public final boolean isDust() {
 		return sumDust > maxDust;
 	}
 
-	public int getDustValue() {
+	public final int getDustValue() {
 		return sumDust;
 	}
 	
-	public int getMaxDust() {
+	public final int getMaxDust() {
 		return maxDust;
 	}
 }

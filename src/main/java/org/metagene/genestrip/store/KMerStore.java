@@ -31,7 +31,7 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 import org.metagene.genestrip.io.StreamProvider;
-import org.metagene.genestrip.util.CGATRingBuffer;
+import org.metagene.genestrip.util.CGATLongBuffer;
 
 public interface KMerStore<V extends Serializable> extends Serializable {
 	public void initSize(long size);
@@ -43,13 +43,13 @@ public interface KMerStore<V extends Serializable> extends Serializable {
 	public long getSize();
 
 	@Deprecated
-	public boolean put(CGATRingBuffer buffer, V value);
+	public boolean put(CGATLongBuffer buffer, V value);
 
 	@Deprecated
 	public boolean put(byte[] nseq, int start, V value);
 
 	@Deprecated
-	public V get(CGATRingBuffer buffer);
+	public V get(CGATLongBuffer buffer);
 
 	@Deprecated
 	public V get(byte[] nseq, int start);

@@ -37,7 +37,7 @@ public class NextKMerTest extends TestCase {
 	public void testNextKMer() {
 		byte[] kmerBuffer = new byte[31];
 		for (int k = 1; k < kmerBuffer.length; k++) {
-			CGATRingBuffer buffer = new CGATRingBuffer(k, -1);
+			CGATLongBuffer buffer = new CGATLongBuffer(k, -1);
 
 			Random random = new Random(10);
 			long oldKMer = -1;
@@ -47,7 +47,7 @@ public class NextKMerTest extends TestCase {
 				buffer.put(c);
 
 				if (buffer.isFilled()) {
-					long kmer = kMerToLongStraight(buffer);
+					long kmer = buffer.getKMer();
 					if (oldKMer != -1) {
 						assertEquals(kmer, CGAT.nextKMerStraight(oldKMer, c, k));
 					}
@@ -60,7 +60,7 @@ public class NextKMerTest extends TestCase {
 		}
 		
 		for (int k = 1; k < kmerBuffer.length; k++) {
-			CGATRingBuffer buffer = new CGATRingBuffer(k, -1);
+			CGATLongBuffer buffer = new CGATLongBuffer(k, -1);
 
 			Random random = new Random(10);
 			long oldKMer = -1;
@@ -70,7 +70,7 @@ public class NextKMerTest extends TestCase {
 				buffer.put(c);
 
 				if (buffer.isFilled()) {
-					long kmer = kMerToLongReverse(buffer);
+					long kmer = buffer.getReverseKMer();
 					if (oldKMer != -1) {
 						assertEquals(kmer, CGAT.nextKMerReverse(oldKMer, c, k));
 					}

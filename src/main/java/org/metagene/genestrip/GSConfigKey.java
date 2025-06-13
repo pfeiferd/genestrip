@@ -55,9 +55,8 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("Whether to show a progress bar on the command line for longer taking process steps.")
 	PROGRESS_BAR("progressBar", new BooleanConfigParamInfo(true), GSGoalKey.DB, GSGoalKey.MATCH, GSGoalKey.MATCHLR, GSGoalKey.FILTER),
 	@MDDescription("The number of base pairs *k* for *k*-mers. "
-			+ "Changes to this values do *not* affect the memory usage of a database. "
-			+ "A value > 32 will cause collisions, i.e. leads to false positives for the `match` goal.")
-	KMER_SIZE("kMerSize", new IntConfigParamInfo(15, 64, 31), GSGoalKey.DB, GSGoalKey.FILTER, GSGoalKey.MATCH, GSGoalKey.MATCHLR),
+			+ "Changes to this values do *not* affect the memory usage of a database.")
+	KMER_SIZE("kMerSize", new IntConfigParamInfo(15, 32, 31), GSGoalKey.DB, GSGoalKey.FILTER, GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 
 	// Genomic data download
 	@MDDescription("This base URL will be extended by `/pub/taxonomy/` in order to download the taxonomy file `taxdmp.zip` and by `/genomes/genbank` for files from Genbank.")

@@ -30,7 +30,7 @@ import org.junit.Test;
 
 import junit.framework.TestCase;
 
-public class CGATRingBufferTest extends TestCase {
+public class CGATLongBufferTest extends TestCase {
 	@Test
 	public void testDust() {
 		CGATRingBuffer buffer = new CGATRingBuffer(31, 20);
@@ -51,13 +51,13 @@ public class CGATRingBufferTest extends TestCase {
 		int totalCount = 0;
 
 		for (int j = 0; j < 1000; j++) {
-			buffer.put((byte) 'N');
+			buffer.putForTest((byte) 'N');
 			assertEquals(0, buffer.getDustValue());
 			for (int k = 0; k < 100000; k++) {
 				assertEquals(k >= buffer.getSize(), buffer.isFilled());
 				
 				byte c = CGAT.DECODE_TABLE[random.nextInt(4)];
-				buffer.put(c);
+				buffer.putForTest(c);
 
 				if (buffer.isFilled()) {
 					totalCount++;
@@ -117,7 +117,7 @@ public class CGATRingBufferTest extends TestCase {
 	}
 
 	public void testSomeKmerStrings() {
-		CGATRingBuffer buffer = new CGATRingBuffer(31, 1000);
+		CGATLongBuffer buffer = new CGATLongBuffer(31, 1000);
 		fill(buffer, "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC");
 		assertEquals(fib(31), buffer.getDustValue());
 		fill(buffer, "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
@@ -145,7 +145,7 @@ public class CGATRingBufferTest extends TestCase {
 		return f1;
 	}
 
-	protected void fill(CGATRingBuffer buffer, String kmer) {
+	protected void fill(CGATLongBuffer buffer, String kmer) {
 		for (int i = 0; i < kmer.length(); i++) {
 			buffer.put((byte) kmer.charAt(i));
 		}
@@ -153,27 +153,24 @@ public class CGATRingBufferTest extends TestCase {
 
 	@Test
 	public void testGetKMer() {
-		CGATRingBuffer buffer = new CGATRingBuffer(31, 25);
 		CGATLongBuffer longBuffer = new CGATLongBuffer(31, 25);
+		CGATRingBuffer ringBuffer = new CGATRingBuffer(31, 25);
 
 		Random random = new Random(10);
 
 		for (int i = 0; i < 1000; i++) {
-			buffer.put((byte) 'N');
 			longBuffer.put((byte) 'N');
+			ringBuffer.putForTest((byte) 'N');
 			for (int j = 0; j < 1000; j++) {
-				if (j < buffer.getSize()) {
-					assertFalse(buffer.isFilled());
-					assertEquals(-1, buffer.getKMer());
-
+				if (j < longBuffer.getSize()) {
 					assertFalse(longBuffer.isFilled());
 					assertEquals(-1, longBuffer.getKMer());
 				}
 				byte c = CGAT.DECODE_TABLE[random.nextInt(4)];
-				buffer.put(c);
 				longBuffer.put(c);
+				ringBuffer.putForTest(c);
 
-				assertEquals(longBuffer.getKMer(), buffer.getKMer());
+				assertEquals(longBuffer.getKMer(), ringBuffer.getKMerForTest());
 			}
 		}
 	}
