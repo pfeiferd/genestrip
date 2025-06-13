@@ -76,14 +76,13 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 		store = new KMerSortedArray<>(intConfigValue(GSConfigKey.KMER_SIZE),
 				doubleConfigValue(GSConfigKey.BLOOM_FILTER_FPP), null, false);
 		// We have to account for the missing entries in the bloom filter due to
-		// inherent FPP.
-		// This works really well, so we can allow for a low FPP for the bloom filter
-		// itself and save memory during db construction.
-		// It is a very conservative estimate too, since collisions occur in the process
+		// inherent FPP. The formula from below works really well,
+		// so we can allow for a low FPP for the bloom filter from 'bloomFilterGoal'
+		// and save memory during db construction.
+		// It is a conservative estimate too, since collisions occur in the process
 		// of filling (as opposed to the FPP formula that considers a filled
 		// bloom filter).
-		store.initSize((long) (bloomFilterGoal.get().getEntries()
-				* (1 + doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP))));
+		store.initSize((long) (bloomFilterGoal.get().getEntries() / (1 - doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP))));
 
 		try {
 			readFastas();
