@@ -32,10 +32,15 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import me.tongfei.progressbar.ProgressBar;
+import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.io.BufferedLineReader;
 import org.metagene.genestrip.io.StreamProvider;
+import org.metagene.genestrip.io.StreamingFileResource;
+import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.DigitTrie;
+import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 public class TaxTree {
 	private static int MAX_LINE_SIZE = 4096;
@@ -62,15 +67,32 @@ public class TaxTree {
 	private final TaxIdNode root;
 	private final TaxIdNodeTrie taxIdNodeTrie;
 
-	public TaxTree(File path) {
+	public TaxTree(File path, boolean progressBar) {
 		try {
 			taxIdNodeTrie = new TaxIdNodeTrie();
-			try (InputStream is = createNodesResource(path)) {
-				root = readNodesFromStream(is);
+			File nodesFile = new File(path, NODES_DMP);
+			File namesFile = new File(path, NAMES_DMP);
+			if (progressBar) {
+				try (StreamingResource.StreamAccess sa = new StreamingFileResource(nodesFile, true).openStream()) {
+					try (ProgressBar pb = GSProgressBarCreator.newGSProgressBar("taxnodes", sa, null)) {
+						root = readNodesFromStream(sa.getInputStream());
+					}
+				}
+				try (StreamingResource.StreamAccess sa = new StreamingFileResource(namesFile, true).openStream()) {
+					try (ProgressBar pb = GSProgressBarCreator.newGSProgressBar("taxnames", sa, null)) {
+						readNamesFromStream(sa.getInputStream());
+					}
+				}
 			}
-			try (InputStream is = createNamesResource(path)) {
-				readNamesFromStream(is);
+			else {
+				try (InputStream is = StreamProvider.getInputStreamForFile(nodesFile)) {
+					root = readNodesFromStream(is);
+				}
+				try (InputStream is = StreamProvider.getInputStreamForFile(namesFile)) {
+					readNamesFromStream(is);
+				}
 			}
+
 			initPositions(0, root);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
@@ -107,12 +129,12 @@ public class TaxTree {
 		return null;
 	}
 
-	protected InputStream createNodesResource(File path) throws IOException {
-		return StreamProvider.getInputStreamForFile(new File(path, NODES_DMP));
+	protected StreamingResource createNodesResource(File path) {
+		return new StreamingFileResource(new File(path, NODES_DMP));
 	}
 
-	protected InputStream createNamesResource(File path) throws IOException {
-		return StreamProvider.getInputStreamForFile(new File(path, NAMES_DMP));
+	protected StreamingResource createNamesResource(File path) {
+		return new StreamingFileResource(new File(path, NAMES_DMP));
 	}
 
 	protected void readNamesFromStream(InputStream stream) throws IOException {

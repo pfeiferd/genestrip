@@ -171,7 +171,7 @@ public class GSMaker extends Maker<GSProject> {
                 taxDBGoal) {
             @Override
             protected void doMakeThis() {
-                set(new TaxTree(getProject().getCommon().getCommonDir()));
+                set(new TaxTree(getProject().getCommon().getCommonDir(), false /*booleanConfigValue(GSConfigKey.PROGRESS_BAR)*/));
             }
         };
         registerGoal(taxTreeGoal);
