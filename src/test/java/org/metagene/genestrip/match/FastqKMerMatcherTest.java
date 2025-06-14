@@ -201,7 +201,7 @@ public class FastqKMerMatcherTest {
 	public void testReadClassificationHelp(boolean inlined, boolean large, boolean optimize) {
 		ClassLoader classLoader = getClass().getClassLoader();
 		File treePath = new File(classLoader.getResource("taxtree").getFile());
-		TaxTree tree = new TaxTree(treePath);
+		TaxTree tree = new TaxTree(treePath, false);
 		for (String tax : TAXIDS) {
 			tree.getNodeByTaxId(tax).markRequired();
 		}

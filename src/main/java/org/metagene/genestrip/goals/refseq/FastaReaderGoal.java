@@ -140,7 +140,7 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
 
     protected ProgressBar createProgressBar(int max) {
         return booleanConfigValue(GSConfigKey.PROGRESS_BAR) ?
-                GSProgressBarCreator.newGSProgressBar(getKey().getName(), max, 60000, " files", null, getLogger()) :
+                GSProgressBarCreator.newGSProgressBar(getKey().getName(), max, 60000, " files", null, getLogger(), false) :
                 null;
     }
 

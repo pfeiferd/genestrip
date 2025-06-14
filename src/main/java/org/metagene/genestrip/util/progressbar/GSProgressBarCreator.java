@@ -34,19 +34,23 @@ public class GSProgressBarCreator {
     private GSProgressBarCreator() {}
 
     public static ProgressBar newGSProgressBar(String task, GSProgressUpdate progressUpdate, Log log) {
-        return newGSProgressBar(task, 0,1000, " bytes", progressUpdate, log);
+        return newGSProgressBar(task, 0,1000, " bytes", progressUpdate, log, false);
+    }
+
+    public static ProgressBar newGSProgressBar(String task, GSProgressUpdate progressUpdate, Log log, boolean doneWorkaround) {
+        return newGSProgressBar(task, 0,1000, " bytes", progressUpdate, log, doneWorkaround);
     }
 
     public static ProgressBar newGSProgressBar(String task, int max, String unitName, Log log) {
-        return newGSProgressBar(task, max, 1000, unitName, null, log);
+        return newGSProgressBar(task, max, 1000, unitName, null, log, false);
     }
 
     public static ProgressBar newGSProgressBar(String task, String unitName, GSProgressUpdate progressUpdate, Log log) {
-        return newGSProgressBar(task, 0, 1000, unitName, progressUpdate, log);
+        return newGSProgressBar(task, 0, 1000, unitName, progressUpdate, log, false);
     }
 
-    public static ProgressBar newGSProgressBar(String task, int max, int updateIntervalMillis, String unitName, GSProgressUpdate progressUpdate, Log log) {
-        GSProgressBarRenderer renderer = new GSProgressBarRenderer(unitName, progressUpdate);
+    public static ProgressBar newGSProgressBar(String task, int max, int updateIntervalMillis, String unitName, GSProgressUpdate progressUpdate, Log log, boolean doneWorkaround) {
+        GSProgressBarRenderer renderer = new GSProgressBarRenderer(unitName, progressUpdate, doneWorkaround);
         ProgressBarBuilder progressBarBuilder = new ProgressBarBuilder().setInitialMax(max).
                 setTaskName(task).setUpdateIntervalMillis(updateIntervalMillis).
                 setUnit(unitName, 1).setRenderer(renderer).setMaxRenderedLength(100).continuousUpdate();
@@ -60,11 +64,13 @@ public class GSProgressBarCreator {
 
     private static class GSProgressBarRenderer extends DefaultProgressBarRenderer {
         private final GSProgressUpdate progressUpdate;
+        private final boolean doneWorkaround;
         private ProgressBar progressBar;
 
-        protected GSProgressBarRenderer(String unitName, GSProgressUpdate progressUpdateProvider) {
+        protected GSProgressBarRenderer(String unitName, GSProgressUpdate progressUpdateProvider, boolean doneWorkaround) {
             super(ProgressBarStyle.ASCII, unitName, 1, false, null, null, true, GSProgressBarRenderer::linearEta);
             this.progressUpdate = progressUpdateProvider;
+            this.doneWorkaround = doneWorkaround;
         }
 
         public void setProgressBar(ProgressBar progressBar) {
@@ -74,7 +80,7 @@ public class GSProgressBarCreator {
         @Override
         public String render(ProgressState progress, int maxLength) {
             if (progressUpdate != null) {
-                progressBar.maxHint(!progress.isAlive() ? progressUpdate.current() : progressUpdate.max());
+                progressBar.maxHint(!progress.isAlive() && doneWorkaround ? progressUpdate.current() : progressUpdate.max());
                 progressBar.stepTo(progressUpdate.current());
             }
             return super.render(progress, maxLength);

@@ -33,7 +33,6 @@ import java.util.Comparator;
 import java.util.List;
 
 import me.tongfei.progressbar.ProgressBar;
-import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.io.BufferedLineReader;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.io.StreamingFileResource;
@@ -43,7 +42,7 @@ import org.metagene.genestrip.util.DigitTrie;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 public class TaxTree {
-	private static int MAX_LINE_SIZE = 4096;
+	private static final int MAX_LINE_SIZE = 4096;
 
 	public static final Comparator<TaxIdNode> NODE_COMPARATOR = new Comparator<TaxIdNode>() {
 		@Override
@@ -74,12 +73,12 @@ public class TaxTree {
 			File namesFile = new File(path, NAMES_DMP);
 			if (progressBar) {
 				try (StreamingResource.StreamAccess sa = new StreamingFileResource(nodesFile, true).openStream()) {
-					try (ProgressBar pb = GSProgressBarCreator.newGSProgressBar("taxnodes", sa, null)) {
+					try (ProgressBar pb = GSProgressBarCreator.newGSProgressBar("taxnodes", sa, null, true)) {
 						root = readNodesFromStream(sa.getInputStream());
 					}
 				}
 				try (StreamingResource.StreamAccess sa = new StreamingFileResource(namesFile, true).openStream()) {
-					try (ProgressBar pb = GSProgressBarCreator.newGSProgressBar("taxnames", sa, null)) {
+					try (ProgressBar pb = GSProgressBarCreator.newGSProgressBar("taxnames", sa, null, true)) {
 						readNamesFromStream(sa.getInputStream());
 					}
 				}
@@ -127,14 +126,6 @@ public class TaxTree {
 			}
 		}
 		return null;
-	}
-
-	protected StreamingResource createNodesResource(File path) {
-		return new StreamingFileResource(new File(path, NODES_DMP));
-	}
-
-	protected StreamingResource createNamesResource(File path) {
-		return new StreamingFileResource(new File(path, NAMES_DMP));
 	}
 
 	protected void readNamesFromStream(InputStream stream) throws IOException {
@@ -266,7 +257,7 @@ public class TaxTree {
 		
 		private void addSubNode(TaxIdNode node) {
 			if (subNodes == null) {
-				subNodes = new ArrayList<TaxIdNode>();
+				subNodes = new ArrayList<>();
 			}
 			node.parent = this;
 			subNodes.add(node);
