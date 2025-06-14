@@ -74,7 +74,7 @@ public class GSProgressBarCreator {
         @Override
         public String render(ProgressState progress, int maxLength) {
             if (progressUpdate != null) {
-                progressBar.maxHint(progressUpdate.max());
+                progressBar.maxHint(!progress.isAlive() ? progressUpdate.current() : progressUpdate.max());
                 progressBar.stepTo(progressUpdate.current());
             }
             return super.render(progress, maxLength);
