@@ -49,7 +49,7 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 public class FillDBGoal extends FastaReaderGoal<Database> {
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
-	private final ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal;
+	private final ObjectGoal<Long, GSProject> bloomFilterGoal;
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 	private final List<MyFastaReader> readers;
 
@@ -62,7 +62,7 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 					  RefSeqFnaFilesDownloadGoal fnaFilesGoal,
 					  ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
 					  ObjectGoal<AccessionMap, GSProject> accessionMapGoal,
-					  ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomFilterGoal,
+					  ObjectGoal<Long, GSProject> bloomFilterGoal,
 					  Goal<GSProject>... deps) {
 		super(project, GSGoalKey.FILL_DB, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, bloomFilterGoal));
 		this.accessionMapGoal = accessionMapGoal;
@@ -82,7 +82,7 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 		// It is a conservative estimate too, since collisions occur in the process
 		// of filling (as opposed to the FPP formula that considers a filled
 		// bloom filter).
-		store.initSize((long) (bloomFilterGoal.get().getEntries() / (1 - doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP))));
+		store.initSize((long) (bloomFilterGoal.get() / (1 - doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP))));
 
 		try {
 			readFastas();
@@ -92,6 +92,11 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 			}
 			if (getLogger().isWarnEnabled() && tooManyCounter > 0) {
 				getLogger().warn("Not stored kmers: " + tooManyCounter);
+			}
+			long unused = store.getSize() - store.getEntries();
+			if (getLogger().isInfoEnabled() && unused > 0) {
+				getLogger().info("Unused kmers spots: " + unused +
+						" (corresponds to " + ((100d * unused) / store.getSize()) + "%)");
 			}
 			TaxTree taxTree = taxTreeGoal.get();
 			Iterator<String> taxIt = store.getValues();

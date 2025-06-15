@@ -46,7 +46,7 @@ import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.StringLongDigitTrie;
 
-public class FillBloomFilterGoal extends FastaReaderGoal<MurmurCGATBloomFilter> {
+public class FillBloomFilterGoal extends FastaReaderGoal<Long> {
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 	private final ObjectGoal<Long, GSProject> sizeGoal;
 
@@ -78,11 +78,12 @@ public class FillBloomFilterGoal extends FastaReaderGoal<MurmurCGATBloomFilter> 
 					doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP));
 			filter.ensureExpectedSize(sizeGoal.get(), false);
 			readFastas();
-			set(filter);
+			set(filter.getEntries());
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {
 			filter = null;
+			System.gc(); // Time to run GC after freeing up the bloom filter's memory.
 			cleanUpThreads();
 		}
 	}

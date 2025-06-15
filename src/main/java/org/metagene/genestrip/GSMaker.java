@@ -284,7 +284,7 @@ public class GSMaker extends Maker<GSProject> {
                 additionalFastasGoal, accessCollGoal);
         registerGoal(fillSizeGoal);
 
-        ObjectGoal<MurmurCGATBloomFilter, GSProject> fillBloomGoal = new FillBloomFilterGoal(project, getExecutionContext(project), categoriesGoal,
+        ObjectGoal<Long, GSProject> fillBloomGoal = new FillBloomFilterGoal(project, getExecutionContext(project), categoriesGoal,
                 taxNodesGoal, refSeqFnaFilesGoal, additionalFastasGoal, accessCollGoal, fillSizeGoal);
         registerGoal(fillBloomGoal);
 
