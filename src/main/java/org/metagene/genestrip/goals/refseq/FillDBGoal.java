@@ -82,7 +82,12 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 		// It is a conservative estimate too, since collisions occur in the process
 		// of filling (as opposed to the FPP formula that considers a filled
 		// bloom filter).
-		store.initSize((long) (bloomFilterGoal.get() / (1 - doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP))));
+		long size = (long) (bloomFilterGoal.get() / (1 - doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP)));
+		if (getLogger().isInfoEnabled()) {
+			getLogger().info("Store size in kmers: " + size);
+			getLogger().info("DB Size in MB (without Bloom filter): " + (size * 10) / (1024 * 1024));
+		}
+		store.initSize(size);
 
 		try {
 			readFastas();
@@ -96,7 +101,7 @@ public class FillDBGoal extends FastaReaderGoal<Database> {
 			long unused = store.getSize() - store.getEntries();
 			if (getLogger().isInfoEnabled() && unused > 0) {
 				getLogger().info("Unused kmers spots: " + unused +
-						" (corresponds to " + ((100d * unused) / store.getSize()) + "%)");
+						" (corresponds to " + ((100d * unused) / store.getSize()) + " %)");
 			}
 			TaxTree taxTree = taxTreeGoal.get();
 			Iterator<String> taxIt = store.getValues();

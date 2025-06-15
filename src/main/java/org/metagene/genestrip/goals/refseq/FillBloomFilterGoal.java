@@ -91,8 +91,7 @@ public class FillBloomFilterGoal extends FastaReaderGoal<Long> {
 	@Override
 	protected void afterReadFastas(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
 		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Final Bloom filter and store size in kmers: " + filter.getEntries());
-			getLogger().info("Approx. DB Size in MB (without Bloom filter): " + (filter.getEntries() * 10) / (1024 * 1024));
+			getLogger().info("Bloom filter size in kmers: " + filter.getEntries());
 			getLogger().info("Duplication factor: " + ((double) sizeGoal.get()) /  filter.getEntries());
 		}
 		if (getLogger().isDebugEnabled()) {
