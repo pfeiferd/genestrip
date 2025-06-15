@@ -58,7 +58,7 @@ public class LoadDBGoal extends ObjectGoal<Database, GSProject> {
 	@Override
 	protected void doMakeThis() {
 		try {
-			if (booleanConfigValue(GSConfigKey.PROGRESS_BAR)) {
+			if (booleanConfigValue(GSConfigKey.PROGRESS_BAR) && !dbGoal.isMade()) {
 				try (StreamingResource.StreamAccess sa = new StreamingFileResource(dbFile, true).openStream()) {
 					try (ProgressBar pb = GSProgressBarCreator.newGSProgressBar(getKey().getName(), sa, null)) {
 						doLoadDB(sa.getInputStream());
