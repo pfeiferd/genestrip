@@ -42,7 +42,7 @@ import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.GSLogFactory;
 
-public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> {
+public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> implements Goal.LogHeapInfo {
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 	private final RefSeqCatalogDownloadGoal catalogGoal;
 	private final ObjectGoal<Integer, GSProject> accessionMapSizeGoal;

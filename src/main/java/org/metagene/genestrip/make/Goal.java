@@ -122,12 +122,18 @@ public abstract class Goal<P extends Project> {
 		}
 	}
 
-	private void logHeapInfo() {
-		if (getLogger().isTraceEnabled()) {
+	protected void logHeapInfo() {
+		if ((this instanceof LogHeapInfo && getLogger().isInfoEnabled())) {
 			long total = Runtime.getRuntime().totalMemory();
 			long free = Runtime.getRuntime().freeMemory();
-			getLogger().trace("Total heap size: " + (total / 1024 / 1024) + " MB");
-			getLogger().trace("Used heap size: " + ((total - free) / 1024 / 1024) + " MB");
+			getLogger().info("Total heap size: " + (total / 1024 / 1024) + " MB");
+			getLogger().info("Used heap size: " + ((total - free) / 1024 / 1024) + " MB");
+		}
+		else if (getLogger().isDebugEnabled()) {
+			long total = Runtime.getRuntime().totalMemory();
+			long free = Runtime.getRuntime().freeMemory();
+			getLogger().debug("Total heap size: " + (total / 1024 / 1024) + " MB");
+			getLogger().debug("Used heap size: " + ((total - free) / 1024 / 1024) + " MB");
 		}
 	}
 
@@ -147,7 +153,7 @@ public abstract class Goal<P extends Project> {
 			if (getLogger().isDebugEnabled()) {
 				getLogger().debug("Making this " + this);
 			}
-			logHeapInfo();
+			// logHeapInfo();
 			doMakeThis();
 			logHeapInfo();
 			for (Goal<P> dep : dependencies) {
@@ -247,4 +253,7 @@ public abstract class Goal<P extends Project> {
 	protected String stringConfigValue(ConfigKey key) {
 		return project.stringConfigValue(key);
 	}
+
+	// A marker interface regarding logging of memory on info level
+	public interface LogHeapInfo {}
 }

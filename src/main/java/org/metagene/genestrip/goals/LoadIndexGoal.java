@@ -42,7 +42,7 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
-public class LoadIndexGoal extends ObjectGoal<MurmurCGATBloomFilter, GSProject> {
+public class LoadIndexGoal extends ObjectGoal<MurmurCGATBloomFilter, GSProject> implements Goal.LogHeapInfo {
 	private final ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomIndex;
 	private final File dbFile;
 

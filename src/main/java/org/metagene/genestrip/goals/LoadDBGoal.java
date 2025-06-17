@@ -42,7 +42,7 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
-public class LoadDBGoal extends ObjectGoal<Database, GSProject> {
+public class LoadDBGoal extends ObjectGoal<Database, GSProject> implements Goal.LogHeapInfo {
 	private final ObjectGoal<Database, GSProject> dbGoal;
 	private final File dbFile;
 

@@ -47,7 +47,7 @@ import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-public class FillDBGoal extends FastaReaderGoal<Database> {
+public class FillDBGoal extends FastaReaderGoal<Database>  implements Goal.LogHeapInfo {
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 	private final ObjectGoal<Long, GSProject> bloomFilterGoal;
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
