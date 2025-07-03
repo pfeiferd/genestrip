@@ -54,6 +54,8 @@ public enum GSConfigKey implements ConfigKey {
 	THREADS("threads", new IntConfigParamInfo(-1, 64, -1), GSGoalKey.DB, GSGoalKey.MATCH, GSGoalKey.MATCHLR, GSGoalKey.FILTER),
 	@MDDescription("Whether to show a progress bar on the command line for longer taking process steps.")
 	PROGRESS_BAR("progressBar", new BooleanConfigParamInfo(true), GSGoalKey.DB, GSGoalKey.MATCH, GSGoalKey.MATCHLR, GSGoalKey.FILTER),
+	@MDDescription("Update period in ms for progress bar (if shown).")
+	PROGRESS_BAR_UPDATE("progressBarUpdateMs", new IntConfigParamInfo(100, Integer.MAX_VALUE, 1000), GSGoalKey.DB, GSGoalKey.MATCH, GSGoalKey.MATCHLR, GSGoalKey.FILTER),
 	@MDDescription("The number of base pairs *k* for *k*-mers. "
 			+ "Changes to this values do *not* affect the memory usage of a database.")
 	KMER_SIZE("kMerSize", new IntConfigParamInfo(15, 32, 31), GSGoalKey.DB, GSGoalKey.FILTER, GSGoalKey.MATCH, GSGoalKey.MATCHLR),

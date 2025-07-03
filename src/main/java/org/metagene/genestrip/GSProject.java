@@ -43,6 +43,7 @@ import org.metagene.genestrip.make.ConfigKey;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.Project;
 import org.metagene.genestrip.util.GSLogFactory;
+import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 public class GSProject extends Project {
 	public static final String CONFIG_PROPERTIES = "config.properties";
@@ -127,6 +128,7 @@ public class GSProject extends Project {
 		if (!quietInit) {
 			logParamMap();
 		}
+		GSProgressBarCreator.setGlobalUpdateInterval(intConfigValue(GSConfigKey.PROGRESS_BAR_UPDATE));
 	}
 
 	protected Properties loadConfigProperties(File dir, boolean quiet) {

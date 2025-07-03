@@ -31,22 +31,32 @@ import java.time.Duration;
 import java.util.Optional;
 
 public class GSProgressBarCreator {
+    private static int globalUpdateInterval = 1000;
+
+    public static void setGlobalUpdateInterval(int globalUpdateInterval) {
+        GSProgressBarCreator.globalUpdateInterval = globalUpdateInterval;
+    }
+
+    public static int getGlobalUpdateInterval() {
+        return globalUpdateInterval;
+    }
+
     private GSProgressBarCreator() {}
 
     public static ProgressBar newGSProgressBar(String task, GSProgressUpdate progressUpdate, Log log) {
-        return newGSProgressBar(task, 0,1000, " bytes", progressUpdate, log, false);
+        return newGSProgressBar(task, 0,globalUpdateInterval, " bytes", progressUpdate, log, false);
     }
 
     public static ProgressBar newGSProgressBar(String task, GSProgressUpdate progressUpdate, Log log, boolean doneWorkaround) {
-        return newGSProgressBar(task, 0,1000, " bytes", progressUpdate, log, doneWorkaround);
+        return newGSProgressBar(task, 0,globalUpdateInterval, " bytes", progressUpdate, log, doneWorkaround);
     }
 
     public static ProgressBar newGSProgressBar(String task, int max, String unitName, Log log) {
-        return newGSProgressBar(task, max, 1000, unitName, null, log, false);
+        return newGSProgressBar(task, max, globalUpdateInterval, unitName, null, log, false);
     }
 
     public static ProgressBar newGSProgressBar(String task, String unitName, GSProgressUpdate progressUpdate, Log log) {
-        return newGSProgressBar(task, 0, 1000, unitName, progressUpdate, log, false);
+        return newGSProgressBar(task, 0, globalUpdateInterval, unitName, progressUpdate, log, false);
     }
 
     public static ProgressBar newGSProgressBar(String task, int max, int updateIntervalMillis, String unitName, GSProgressUpdate progressUpdate, Log log, boolean doneWorkaround) {
