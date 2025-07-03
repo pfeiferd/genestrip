@@ -38,6 +38,7 @@ import org.metagene.genestrip.genbank.AssemblySummaryReader;
 import org.metagene.genestrip.genbank.AssemblySummaryReader.AssemblyQuality;
 import org.metagene.genestrip.genbank.AssemblySummaryReader.AssemblyEntry;
 import org.metagene.genestrip.make.FileGoal;
+import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
@@ -68,6 +69,13 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<As
 		this.fastaQualities = (List<AssemblyQuality>) configValue(GSConfigKey.FASTA_QUALITIES);
 		this.maxFromGenbank = intConfigValue(GSConfigKey.MAX_FROM_GENBANK);
 		this.refGenOnly = booleanConfigValue(GSConfigKey.REF_GEN_ONLY);
+	}
+
+	public boolean isWeakDependency(Goal<GSProject> toGoal) {
+		if (toGoal == assemblyGoal) {
+			return true;
+		}
+		return super.isWeakDependency(toGoal);
 	}
 
 	@Override
