@@ -25,6 +25,7 @@
 package org.metagene.genestrip.make;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
 
@@ -139,7 +140,11 @@ public abstract class FileGoal<P extends Project> extends Goal<P> {
 						getLogger().info("Deleting file " + file);
 					}
 					if (file.isDirectory()) {
-						FileUtils.deleteDirectory(file);
+						try {
+							FileUtils.deleteDirectory(file);
+						} catch (FileNotFoundException e) {
+							// Ignore on purpose. Happens on my Mac for unknown detail reasons.
+						}
 					} else {
 						deleteFile(file);
 					}
