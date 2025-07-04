@@ -33,11 +33,18 @@ public enum Rank {
 	TRIBE("tribe"), GENUS("genus"), SUBGENUS("subgenus"), SPECIES_GROUP("species group"), SPECIES("species"), VARIETAS("varietas"),
 	SUBSPECIES("subspecies"), SEROGROUP("serogroup"), BIOTYPE("biotype"), STRAIN("strain"), SEROTYPE("serotype"),
 	GENOTYPE("genotype"), FORMA("forma"), FORMA_SPECIALIS("forma specialis"), ISOLATE("isolate"),
+	// "clade" is not a specific rank it is just a collection of related taxons (could be on any level apparently).
+	CLADE("clade"),
+	// "no rank" is sort of a wild card in the taxonomic tree for both intermediate nodes or leaf notes - typically under in lower ranks.
 	NO_RANK("no rank");
 
 	private static Rank[] VALUES = Rank.values();
 
 	private String name;
+
+	public boolean isIndeterminate() {
+		return NO_RANK.equals(this) || CLADE.equals(this);
+	}
 
 	public static Rank byName(String name) {
 		for (Rank r : VALUES) {
@@ -76,9 +83,20 @@ public enum Rank {
 	}
 
 	public boolean isBelow(Rank rank) {
-		if (rank == null || NO_RANK.equals(this) || NO_RANK.equals(rank)) {
+		if (!isComparableTo(rank)) {
 			return false;
 		}
 		return this.ordinal() > rank.ordinal();
-	}	
+	}
+
+	public boolean isAbove(Rank rank) {
+		if (!isComparableTo(rank)) {
+			return false;
+		}
+		return this.ordinal() < rank.ordinal();
+	}
+
+	public boolean isComparableTo(Rank rank) {
+		return !isIndeterminate() && rank != null && !rank.isIndeterminate();
+	}
 }
