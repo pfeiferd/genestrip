@@ -27,7 +27,7 @@ package org.metagene.genestrip.tax;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
 public enum Rank {
-	SUPERKINGDOM("superkingdom"), /* ACELLULAR_ROOT("acellular root"), REALM("realm"), */ KINGDOM("kingdom"), PHYLUM("phylum"), SUBPHYLUM("subphylum"),
+	CELLULAR_ROOT("cellular root"), ACELLULAR_ROOT("acellular root"), SUPERKINGDOM("superkingdom"), DOMAIN("domain"), REALM("realm"), KINGDOM("kingdom"), PHYLUM("phylum"), SUBPHYLUM("subphylum"),
 	SUPERCLASS("superclass"), CLASS("class"), SUBCLASS("subclass"), SUPERORDER("superorder"), ORDER("order"),
 	SUBORDER("suborder"), SUPERFAMILY("superfamily"), FAMILY("family"), SUBFAMILY("subfamily"),
 	TRIBE("tribe"), GENUS("genus"), SUBGENUS("subgenus"), SPECIES_GROUP("species group"), SPECIES("species"), VARIETAS("varietas"),
