@@ -47,6 +47,7 @@ public abstract class AbstractFastqReader {
 
 	protected long reads;
 	protected long kMers;
+	protected long readBPs;
 
 	private final BufferedLineReader bufferedLineReaderFastQ;
 	private final ReadEntry[] readStructPool;
@@ -155,6 +156,7 @@ public abstract class AbstractFastqReader {
 		start();
 		reads = 0;
 		kMers = 0;
+		readBPs = 0;
 		bufferedLineReaderFastQ.setInputStream(inputStream);
 
 		ReadEntry readStruct = nextFreeReadStruct();
@@ -214,7 +216,10 @@ public abstract class AbstractFastqReader {
 			readStruct.readNo = reads;
 
 			reads++;
-			kMers += readStruct.readSize - k + 1;
+			if (readStruct.readSize > k) {
+				kMers += readStruct.readSize - k + 1;
+			}
+			readBPs += readStruct.readSize;
 			if (blockingQueue == null) {
 				nextEntry(readStruct, 0);
 				if (dump) {

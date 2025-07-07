@@ -213,7 +213,7 @@ public class ResultReporter {
                         Object value = method.invoke(counts);
                         if (value instanceof Double) {
                             double v = ((Double) value).doubleValue();
-                            if (!Double.isNaN(v) && !Double.isInfinite(v) && counts.getPos() != 0) {
+                            if (!Double.isNaN(v) && !Double.isInfinite(v) && (counts.getPos() != 0 || description.pos() == 13)) {
                                 out.print(v);
                             }
                         }

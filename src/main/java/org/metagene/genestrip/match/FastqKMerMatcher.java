@@ -156,7 +156,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             }
         }
 
-        return new MatchingResult(kmerStore.getK(), taxid2Stats, totalReads, totalKMers,
+        return new MatchingResult(kmerStore.getK(), taxid2Stats, totalReads, totalKMers, totalBPs,
                 countMap == null ? null : countMap.get(null));
     }
 

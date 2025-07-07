@@ -106,10 +106,11 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
         extendedValues = new AccValues[ValueType.VALUES.length];
     }
 
-    public CountsPerTaxid(String taxid, long totalReads, long totalKmers, short[] totalMaxCounts) {
+    public CountsPerTaxid(String taxid, long totalReads, long totalKmers, long totalBPs, short[] totalMaxCounts) {
         this.taxid = taxid;
         this.reads = totalReads;
         this.kmers = totalKmers;
+        this.readsBPs = totalBPs;
         this.maxKMerCounts = totalMaxCounts;
         maxContigDescriptor = new byte[0];
         extendedValues = new AccValues[ValueType.VALUES.length];
