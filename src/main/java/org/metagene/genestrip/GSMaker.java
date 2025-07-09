@@ -249,13 +249,13 @@ public class GSMaker extends Maker<GSProject> {
                 refSeqCatalogGoal);
         registerGoal(accessMapSizeGoal);
 
-        ObjectGoal<AccessionMap, GSProject> accessCollGoal = new AccessionMapGoal(project, categoriesGoal, taxTreeGoal,
+        ObjectGoal<AccessionMap, GSProject> accessionMapGoal = new AccessionMapGoal(project, categoriesGoal, taxTreeGoal,
                 refSeqCatalogGoal, accessMapSizeGoal);
-        registerGoal(accessCollGoal);
+        registerGoal(accessionMapGoal);
 
         // Genbank related additional fastas:
         ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesFromGenBank = new TaxNodesFromGenbankGoal(project, categoriesGoal,
-                taxNodesGoal, accessCollGoal);
+                taxNodesGoal, accessionMapGoal);
         registerGoal(taxNodesFromGenBank);
 
         FileGoal<GSProject> assemblyFileDownloadGoal = new AssemblyFileDownloadGoal(project, commonSetupGoal);
@@ -281,15 +281,15 @@ public class GSMaker extends Maker<GSProject> {
         // Create database and bloom filter
 
         FillSizeGoal fillSizeGoal = new FillSizeGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal,
-                additionalFastasGoal, accessCollGoal);
+                additionalFastasGoal, accessionMapGoal);
         registerGoal(fillSizeGoal);
 
         ObjectGoal<Long, GSProject> fillBloomGoal = new FillBloomFilterGoal(project, getExecutionContext(project), categoriesGoal,
-                taxNodesGoal, refSeqFnaFilesGoal, additionalFastasGoal, accessCollGoal, fillSizeGoal);
+                taxNodesGoal, refSeqFnaFilesGoal, additionalFastasGoal, accessionMapGoal, fillSizeGoal);
         registerGoal(fillBloomGoal);
 
         FillDBGoal fillDBGoal = new FillDBGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, taxTreeGoal, refSeqFnaFilesGoal,
-                additionalFastasGoal, accessCollGoal, fillBloomGoal, projectSetupGoal);
+                additionalFastasGoal, accessionMapGoal, fillBloomGoal, projectSetupGoal);
         registerGoal(fillDBGoal);
 
         StoreDBGoal storeTempDBGoal = new StoreDBGoal(project, GSGoalKey.TEMPDB,
@@ -325,7 +325,7 @@ public class GSMaker extends Maker<GSProject> {
         registerGoal(tempDbInfoGoal);
 
         DBGoal updateDBGoal = new DBGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, taxTreeGoal,
-                refSeqFnaFilesGoal, additionalFastasGoal, accessCollGoal, filledDBGoal, tempDbInfoGoal, projectSetupGoal);
+                refSeqFnaFilesGoal, additionalFastasGoal, accessionMapGoal, filledDBGoal, tempDbInfoGoal, projectSetupGoal);
         registerGoal(updateDBGoal);
 
         // We weed the storeTempDBGoal and tempDbInfoGoal as an explicit dependency here so that associated intermediate files get

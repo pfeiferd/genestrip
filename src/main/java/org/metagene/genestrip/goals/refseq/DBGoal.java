@@ -47,7 +47,7 @@ import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 public class DBGoal extends FastaReaderGoal<Database> {
-	private final ObjectGoal<AccessionMap, GSProject> accessionTrieGoal;
+	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
 	private final ObjectGoal<Database, GSProject> filledStoreGoal;
 	private final boolean minUpdate;
@@ -59,15 +59,20 @@ public class DBGoal extends FastaReaderGoal<Database> {
 				  ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
 				  ObjectGoal<TaxTree, GSProject> taxTreeGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
 				  ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
-			ObjectGoal<AccessionMap, GSProject> accessionTrieGoal, ObjectGoal<Database, GSProject> filledStoreGoal,
+			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, ObjectGoal<Database, GSProject> filledStoreGoal,
 			Goal<GSProject>... deps) {
-		super(project, GSGoalKey.UPDATE_DB, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, taxTreeGoal, accessionTrieGoal, filledStoreGoal));
+		super(project, GSGoalKey.UPDATE_DB, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, taxTreeGoal, accessionMapGoal, filledStoreGoal));
 		this.taxTreeGoal = taxTreeGoal;
-		this.accessionTrieGoal = accessionTrieGoal;
+		this.accessionMapGoal = accessionMapGoal;
 		this.filledStoreGoal = filledStoreGoal;
 		minUpdate = project.booleanConfigValue(GSConfigKey.MIN_UPDATE);
 	}
-	
+
+	@Override
+	protected boolean isIncludeRefSeqFna() {
+		return true;
+	}
+
 	@Override
 	protected void doMakeThis() {       
 		try {
@@ -93,7 +98,7 @@ public class DBGoal extends FastaReaderGoal<Database> {
 
 	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
 		return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxTreeGoal.get(), taxNodesGoal.get(),
-				accessionTrieGoal.get(), store, intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
+				accessionMapGoal.get(), store, intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
 				(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
 				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
 				intConfigValue(GSConfigKey.MAX_DUST),

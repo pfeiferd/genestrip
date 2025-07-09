@@ -40,10 +40,7 @@ import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -85,7 +82,7 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
         AbstractRefSeqFastaReader fastaReader = createFastaReader(regionsPerTaxid);
 
         int sumFiles = 0;
-        List<File> refSeqFiles = fnaFilesGoal.getFiles();
+        List<File> refSeqFiles = isIncludeRefSeqFna() ? fnaFilesGoal.getFiles() : Collections.emptyList();
         sumFiles += refSeqFiles.size();
         Map<File, TaxTree.TaxIdNode> additionalMap = additionalGoal.get();
         sumFiles += additionalMap.size();
@@ -133,6 +130,10 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
         }
         bundle.clearThrowableList();
         afterReadFastas(regionsPerTaxid);
+    }
+
+    protected boolean isIncludeRefSeqFna() {
+        return booleanConfigValue(GSConfigKey.REF_SEQ_DB);
     }
 
     protected void afterReadFastas(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {

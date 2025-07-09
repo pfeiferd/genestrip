@@ -59,7 +59,7 @@ public class FillBloomFilterGoal extends FastaReaderGoal<Long> implements Goal.L
 							   ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
 							   ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
 							   ObjectGoal<AccessionMap, GSProject> accessionMapGoal, FillSizeGoal sizeGoal, Goal<GSProject>... deps) {
-		super(project, GSGoalKey.TEMPINDEX, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, sizeGoal));
+		super(project, GSGoalKey.TEMPINDEX, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, accessionMapGoal, sizeGoal));
 		this.accessionMapGoal = accessionMapGoal;
 		this.sizeGoal = sizeGoal;
 		multiThreading = bundle.getThreads() > 0;
@@ -107,7 +107,7 @@ public class FillBloomFilterGoal extends FastaReaderGoal<Long> implements Goal.L
 	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
 		return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
 				taxNodesGoal.get(),
-				booleanConfigValue(GSConfigKey.REF_SEQ_DB) ? accessionMapGoal.get() : null, filter,
+				isIncludeRefSeqFna() ? accessionMapGoal.get() : null, filter,
 				intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
 				(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
 				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
