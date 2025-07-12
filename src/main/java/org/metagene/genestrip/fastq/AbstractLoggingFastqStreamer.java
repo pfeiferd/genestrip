@@ -25,6 +25,9 @@
 package org.metagene.genestrip.fastq;
 
 import java.io.IOException;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 
 import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.io.StreamingResource;
@@ -35,6 +38,8 @@ import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 
 public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
+    private static final DecimalFormat DF = new DecimalFormat("0.0", new DecimalFormatSymbols(Locale.US));
+
     private StreamingResource.StreamAccess byteCountAccess;
     private int coveredCounter;
     private int totalCount;
@@ -152,9 +157,9 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
             long totalTime = System.currentTimeMillis() - fastqStartTime;
             bundle.setFastqProgress(currentFastq, bytesCovered, fastqFileSize, totalTime, totalTime, 1, reads);
             if (logger.isInfoEnabled()) {
-                double totalHours = totalTime / 1000 / 60 / 60;
+                double totalHours = ((double) totalTime) / 1000 / 60 / 60;
                 logger.info("Done with fastq: " + currentFastq);
-                logger.info("Hours: " + totalHours);
+                logger.info("Hours: " + DF.format(totalHours));
                 logger.info("Bytes: " + bytesCovered);
                 logger.info("Reads: " + reads);
             }
@@ -167,9 +172,9 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
             bundle.setTotalProgress(coveredFilesSize, coveredFilesSize, totalTime, totalTime, 1, totalReads,
                     coveredCounter, totalCount);
             if (logger.isInfoEnabled()) {
-                double totalHours = totalTime / 1000 / 60 / 60;
+                double totalHours = ((double) totalTime) / 1000 / 60 / 60;
                 logger.info("All done with fastqs.");
-                logger.info("Total hours: " + totalHours);
+                logger.info("Total hours: " + DF.format(totalHours));
                 logger.info("Total bytes: " + coveredFilesSize);
                 logger.info("Total reads: " + totalReads);
             }
