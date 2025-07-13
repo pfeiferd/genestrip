@@ -24,126 +24,12 @@
  */
 package org.metagene.genestrip.bloom;
 
-import java.io.*;
-import java.util.Random;
-
-import org.metagene.genestrip.io.StreamProvider;
-import org.metagene.genestrip.util.CGAT;
-import org.metagene.genestrip.util.LargeBitVector;
-
-public class MurmurCGATBloomFilter implements Serializable {
-	public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
-
-	private static final long serialVersionUID = 1L;
-
-	protected final int k;
-	protected final double fpp;
-	protected final Random random;
-
-	protected long expectedInsertions;
-	protected LargeBitVector bitVector;
-	protected int hashes;
-	protected long[] hashFactors;
-	protected long entries;
-
-	public MurmurCGATBloomFilter(int k, double fpp) {
-		if (k <= 0) {
-			throw new IllegalArgumentException("k-mer length k must be > 0");
-		}
-		if (fpp <= 0 || fpp >= 1) {
-			throw new IllegalArgumentException("fpp must be a probability");
-		}
-		this.fpp = fpp;
-		this.k = k;
-
-		random = new Random(42);
-
-		bitVector = new LargeBitVector(0);
-		entries = 0;
+public class MurmurKMerBloomFilter extends AbstractKMerBloomFilter {
+	public MurmurKMerBloomFilter(int k, double fpp) {
+		super(k, fpp);
 	}
 
-	public void clear() {
-		bitVector.clear();
-		entries = 0;
-	}
-		
-	public void ensureExpectedSize(long expectedInsertions, boolean enforceLarge) {
-		if (expectedInsertions < 0) {
-			throw new IllegalArgumentException("expected insertions must be > 0");
-		}
-		this.expectedInsertions = expectedInsertions;
-
-		long bits = optimalNumOfBits(expectedInsertions, fpp);
-		if (bitVector.ensureCapacity(bits, enforceLarge)) {
-			hashes = optimalNumOfHashFunctions(expectedInsertions, bits);
-			hashFactors = new long[hashes];
-			for (int i = 0; i < hashFactors.length; i++) {
-				hashFactors[i] = random.nextLong();
-			}
-		}
-	}
-
-	public long getExpectedInsertions() {
-		return expectedInsertions;
-	}
-
-	public int getK() {
-		return k;
-	}
-
-	public int getHashes() {
-		return hashes;
-	}
-
-	public double getFpp() {
-		return fpp;
-	}
-
-	public long getBitSize() {
-		return bitVector.getBitSize();
-	}
-	
-	public boolean isLarge() {
-		return bitVector.isLarge();
-	}
-	
-	public long getEntries() {
-		return entries;
-	}
-
-	protected int optimalNumOfHashFunctions(long n, long m) {
-		return Math.max(1, (int) Math.round((double) m / n * Math.log(2)));
-	}
-
-	protected long optimalNumOfBits(long n, double p) {
-		return (long) (-n * Math.log(p) / (Math.log(2) * Math.log(2)));
-	}
-
-	/**
-	 * Competing calls to putLong are multi-threading enabled.
-	 * @param data
-	 */
-	public void putLong(long data) {
-		putViaHash(data);
-	}
-
-	protected void putViaHash(long data) {
-		synchronized (this) {
-			entries++;
-		}
-		for (int i = 0; i < hashes; i++) {
-			bitVector.set(hash(data, i));
-		}
-	}
-
-	public final boolean contains(byte[] seq, int start, int[] badPos) {
-		long data = CGAT.kMerToLong(seq, start, k, badPos);
-		if (data == -1 && badPos != null && badPos[0] == -1) {
-			return false;
-		}
-		return containsViaHash(data);
-	}
-
+	/*
 	public final boolean containsViaHashInlined(final long data) {
 		for (int i = 0; i < hashes; i++) {
 			long hash = hashFactors[i];
@@ -184,19 +70,7 @@ public class MurmurCGATBloomFilter implements Serializable {
 		}
 		return true;
 	}
-
-	protected final boolean containsViaHash(final long data) {
-		for (int i = 0; i < hashes; i++) {
-			if (!bitVector.get(hash(data, i))) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	public final boolean containsLong(final long data) {
-		return containsViaHash(data);
-	}
+	 */
 
 	/*
 	 * The following code was copied from
@@ -239,24 +113,7 @@ public class MurmurCGATBloomFilter implements Serializable {
 		hash ^= (hash >>> 33);
 		hash *= 0xc4ceb9fe1a85ec53L;
 		hash ^= (hash >>> 33);
-		return hash;
-	}
 
-	public void save(File filterFile) throws IOException {
-		try (ObjectOutputStream oOut = new ObjectOutputStream(StreamProvider.getOutputStreamForFile(filterFile))) {
-			oOut.writeObject(this);			
-		}
-	}
-
-	public static MurmurCGATBloomFilter load(InputStream is) throws IOException, ClassNotFoundException {
-		try (ObjectInputStream oOut = new ObjectInputStream(is)) {
-			return (MurmurCGATBloomFilter) oOut.readObject();
-		}
-	}
-
-	public static MurmurCGATBloomFilter load(File filterFile) throws IOException, ClassNotFoundException {
-		try (InputStream is = StreamProvider.getInputStreamForFile(filterFile)) {
-			return load(is);
-		}
+		return hash ^ data;
 	}
 }

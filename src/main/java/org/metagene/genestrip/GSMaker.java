@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.metagene.genestrip.GSProject.FileType;
-import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
 import org.metagene.genestrip.goals.*;
 import org.metagene.genestrip.goals.genbank.AssemblyFileDownloadGoal;
 import org.metagene.genestrip.goals.genbank.FastaFilesFromGenbankGoal;

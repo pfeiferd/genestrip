@@ -29,7 +29,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
-import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
+import org.metagene.genestrip.bloom.AbstractKMerBloomFilter;
 import org.metagene.genestrip.store.KMerSortedArray.ValueConverter;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
@@ -104,7 +104,7 @@ public class Database implements Serializable {
 
 	public static Database load(InputStream is, boolean withFilter) throws IOException, ClassNotFoundException {
 		Database res = null;
-		MurmurCGATBloomFilter filter = null;
+		AbstractKMerBloomFilter filter = null;
 		try (ZipInputStream zis = new ZipInputStream(is)) {
 			for (ZipEntry zipEntry = zis.getNextEntry(); zipEntry != null; zipEntry = zis.getNextEntry()) {
 				String entryName = zipEntry.getName();
@@ -114,7 +114,7 @@ public class Database implements Serializable {
 					zis.closeEntry();
 				} else if (entryName.equals(INDEX_FILE) && withFilter && filter == null) {
 					ObjectInputStream oOut = new ObjectInputStream(zis);
-					filter = (MurmurCGATBloomFilter) oOut.readObject();
+					filter = (AbstractKMerBloomFilter) oOut.readObject();
 					zis.closeEntry();
 				}
 			}

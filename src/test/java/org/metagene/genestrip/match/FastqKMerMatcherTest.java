@@ -70,7 +70,7 @@ public class FastqKMerMatcherTest {
 		int entries = 2000;
 
 		// Three k-mers in the DB: CC, AA and AG which correspond to the reverse complements GG, TT, CT.
-		KMerSortedArray<String> store = new KMerSortedArray<>(2, 0.0001, Arrays.asList(TAXIDS), large);
+		KMerSortedArray<String> store = new KMerSortedArray<>(2, 0.0001, Arrays.asList(TAXIDS), large, true);
 		store.initSize(3);
 		byte[] read = new byte[] { 'C', 'C' };
 		store.put(read, 0, TAXIDS[0]);
@@ -207,7 +207,7 @@ public class FastqKMerMatcherTest {
 		}
 		SmallTaxTree smallTree = tree.toSmallTaxTree();
 
-		KMerSortedArray<String> store = new KMerSortedArray<>(2, 0.0001, Arrays.asList(TAXIDS), large);
+		KMerSortedArray<String> store = new KMerSortedArray<>(2, 0.0001, Arrays.asList(TAXIDS), large, true);
 		store.initSize(3);
 		byte[] read = new byte[] { 'C', 'C' };
 		store.put(read, 0, TAXIDS[0]);

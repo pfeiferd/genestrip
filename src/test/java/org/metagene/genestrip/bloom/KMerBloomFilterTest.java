@@ -35,7 +35,7 @@ import org.metagene.genestrip.store.KMerTrie;
 import org.metagene.genestrip.store.KMerTrie.KMerTrieVisitor;
 import org.metagene.genestrip.util.CGAT;
 
-public class CGATBloomFilterTest {
+public class KMerBloomFilterTest {
 	protected Random random = new Random(42);
 	protected int k = 31;
 	protected int size = 5 * 1000 * 100;
@@ -43,7 +43,7 @@ public class CGATBloomFilterTest {
 
 	@Test
 	public void testPutContains() {
-		MurmurCGATBloomFilter filter = createFilter(k, size, fpp);
+		AbstractKMerBloomFilter filter = createFilter(k, size, fpp);
 
 		byte[] reverseRead = new byte[k];
 		List<byte[]> reads = new ArrayList<byte[]>();
@@ -87,7 +87,7 @@ public class CGATBloomFilterTest {
 
 	@Test
 	public void testPutGetViaTrie() {
-		MurmurCGATBloomFilter filter = createFilter(k, size, fpp);
+		AbstractKMerBloomFilter filter = createFilter(k, size, fpp);
 		KMerTrie<Integer> trie = new KMerTrie<Integer>(2, k, false);
 
 		byte[] read = new byte[trie.getK()];
@@ -130,8 +130,8 @@ public class CGATBloomFilterTest {
 	}
 
 
-	protected MurmurCGATBloomFilter createFilter(int k, long size, double fpp) {
-		MurmurCGATBloomFilter res = new MurmurCGATBloomFilter(k, fpp);
+	protected AbstractKMerBloomFilter createFilter(int k, long size, double fpp) {
+		AbstractKMerBloomFilter res = new MurmurKMerBloomFilter(k, fpp);
 		res.clear();
 		res.ensureExpectedSize(size, isTestLarge());
 		return res;

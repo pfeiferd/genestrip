@@ -27,7 +27,9 @@ package org.metagene.genestrip.goals.refseq;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
+import org.metagene.genestrip.bloom.AbstractKMerBloomFilter;
+import org.metagene.genestrip.bloom.MurmurKMerBloomFilter;
+import org.metagene.genestrip.bloom.XORKMerBloomFilter;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.Database;
@@ -36,7 +38,7 @@ import org.metagene.genestrip.store.KMerSortedArray.KMerSortedArrayVisitor;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
-public class BloomIndexGoal extends ObjectGoal<MurmurCGATBloomFilter, GSProject> {
+public class BloomIndexGoal extends ObjectGoal<AbstractKMerBloomFilter, GSProject> {
 	private final ObjectGoal<Database, GSProject> filledStoreGoal;
 
 	@SafeVarargs
@@ -69,7 +71,10 @@ public class BloomIndexGoal extends ObjectGoal<MurmurCGATBloomFilter, GSProject>
 			getLogger().info("Bloom filter size: " + counter[0] + " entries.");
 		}
 
-		MurmurCGATBloomFilter filter = new MurmurCGATBloomFilter(intConfigValue(GSConfigKey.KMER_SIZE),
+		AbstractKMerBloomFilter filter = booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH) ?
+				new XORKMerBloomFilter(intConfigValue(GSConfigKey.KMER_SIZE),
+						doubleConfigValue(GSConfigKey.BLOOM_FILTER_FPP)) :
+				new MurmurKMerBloomFilter(intConfigValue(GSConfigKey.KMER_SIZE),
 				doubleConfigValue(GSConfigKey.BLOOM_FILTER_FPP));
 		filter.ensureExpectedSize(counter[0], false);
 

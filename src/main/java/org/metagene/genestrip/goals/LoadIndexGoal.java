@@ -27,27 +27,24 @@ package org.metagene.genestrip.goals;
 import java.io.*;
 
 import me.tongfei.progressbar.ProgressBar;
-import me.tongfei.progressbar.ProgressBarBuilder;
-import me.tongfei.progressbar.ProgressBarStyle;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
+import org.metagene.genestrip.bloom.AbstractKMerBloomFilter;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.io.StreamingFileResource;
 import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
-public class LoadIndexGoal extends ObjectGoal<MurmurCGATBloomFilter, GSProject> implements Goal.LogHeapInfo {
-	private final ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomIndex;
+public class LoadIndexGoal extends ObjectGoal<AbstractKMerBloomFilter, GSProject> implements Goal.LogHeapInfo {
+	private final ObjectGoal<AbstractKMerBloomFilter, GSProject> bloomIndex;
 	private final File dbFile;
 
 	@SafeVarargs
-	public LoadIndexGoal(GSProject project, ObjectGoal<MurmurCGATBloomFilter, GSProject> bloomIndex,
+	public LoadIndexGoal(GSProject project, ObjectGoal<AbstractKMerBloomFilter, GSProject> bloomIndex,
 			FileGoal<GSProject> storeIndexGoal, Goal<GSProject>... dependencies) {
 		super(project, GSGoalKey.LOAD_INDEX,
 				project.getDBPath() == null ? append(dependencies, bloomIndex, storeIndexGoal) : dependencies);
@@ -75,8 +72,8 @@ public class LoadIndexGoal extends ObjectGoal<MurmurCGATBloomFilter, GSProject> 
 
 	protected void doLoadIndex(InputStream stream) {
 		try {
-			MurmurCGATBloomFilter filter = bloomIndex.isMade() ? bloomIndex.get()
-					: MurmurCGATBloomFilter.load(stream);
+			AbstractKMerBloomFilter filter = bloomIndex.isMade() ? bloomIndex.get()
+					: AbstractKMerBloomFilter.load(stream);
 			set(filter);
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);

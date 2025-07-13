@@ -32,7 +32,6 @@ import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
@@ -74,7 +73,7 @@ public class FillDBGoal extends FastaReaderGoal<Database>  implements Goal.LogHe
 	@Override
 	protected void doMakeThis() {
 		store = new KMerSortedArray<>(intConfigValue(GSConfigKey.KMER_SIZE),
-				doubleConfigValue(GSConfigKey.BLOOM_FILTER_FPP), null, false);
+				doubleConfigValue(GSConfigKey.BLOOM_FILTER_FPP), null, false, booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH));
 		// We have to account for the missing entries in the bloom filter due to
 		// inherent FPP. The formula from below works really well,
 		// so we can allow for a low FPP for the bloom filter from 'bloomFilterGoal'

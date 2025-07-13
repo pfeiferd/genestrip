@@ -31,7 +31,9 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import org.metagene.genestrip.bloom.MurmurCGATBloomFilter;
+import org.metagene.genestrip.bloom.AbstractKMerBloomFilter;
+import org.metagene.genestrip.bloom.MurmurKMerBloomFilter;
+import org.metagene.genestrip.bloom.XORKMerBloomFilter;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATLongBuffer;
 
@@ -73,19 +75,19 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	private boolean sorted;
 	private boolean initSize;
 	private short nextValueIndex;
-	private transient MurmurCGATBloomFilter filter;
+	private transient AbstractKMerBloomFilter filter;
 	private boolean useFilter;
 	private Object2LongMap<V> kmerPersTaxid;
 
 	private transient long kmersMoved;
 
-	public KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge) {
-		this(k, initialValues, enforceLarge, new MurmurCGATBloomFilter(k, fpp));
+	public KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge, boolean xor) {
+		this(k, initialValues, enforceLarge, xor ? new XORKMerBloomFilter(k, fpp) : new MurmurKMerBloomFilter(k, fpp));
 	}
 
 	@SuppressWarnings("unchecked")
 	protected KMerSortedArray(int k, List<V> initialValues, boolean enforceLarge,
-			MurmurCGATBloomFilter filter) {
+			AbstractKMerBloomFilter filter) {
 		this.k = k;
 		int s = initialValues == null ? 0 : initialValues.size();
 		indexMap = (V[]) new Serializable[MAX_VALUES];
@@ -178,11 +180,11 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		};
 	}
 
-	public MurmurCGATBloomFilter getFilter() {
+	public AbstractKMerBloomFilter getFilter() {
 		return filter;
 	}
 
-	public void setFilter(MurmurCGATBloomFilter filter) {
+	public void setFilter(AbstractKMerBloomFilter filter) {
 		this.filter = filter;
 	}
 

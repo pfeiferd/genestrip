@@ -24,7 +24,7 @@
  */
 package org.metagene.genestrip.bloom;
 
-public class LargeCGATBloomFilterTest extends CGATBloomFilterTest {
+public class LargeKMerBloomFilterTest extends KMerBloomFilterTest {
 	@Override
 	protected boolean isTestLarge() {
 		return true;
