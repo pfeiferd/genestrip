@@ -24,6 +24,7 @@
  */
 package org.metagene.genestrip.goals;
 
+import me.tongfei.progressbar.ProgressBar;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.fasta.AbstractFastaReader;
@@ -35,6 +36,7 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.util.ByteArrayUtil;
+import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 import java.io.*;
 import java.util.HashMap;
@@ -69,12 +71,20 @@ public class Fasta2FastqGoal extends FileListGoal<GSProject> {
             try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
                 FastqWriter writer = new FastqWriter(out, 65535);
                 for (StreamingResource rs : fastas) {
-                    writer.readFasta(rs.openStream().getInputStream());
+                    try (StreamingResource.StreamAccess byteCountAccess = rs.openStream()) {
+                        try (ProgressBar pb = isProgressBar() ? GSProgressBarCreator.newGSProgressBar(getKey().getName(), byteCountAccess, null) : null) {
+                            writer.readFasta(byteCountAccess.getInputStream());
+                        }
+                    }
                 }
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    protected boolean isProgressBar() {
+        return getProject().booleanConfigValue(GSConfigKey.PROGRESS_BAR);
     }
 
     protected static class FastqWriter extends AbstractFastaReader {
