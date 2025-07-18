@@ -72,7 +72,7 @@ public class Fasta2FastqGoal extends FileListGoal<GSProject> {
                 FastqWriter writer = new FastqWriter(out, 65535);
                 for (StreamingResource rs : fastas) {
                     try (StreamingResource.StreamAccess byteCountAccess = rs.openStream()) {
-                        try (ProgressBar pb = isProgressBar() ? GSProgressBarCreator.newGSProgressBar(getKey().getName(), byteCountAccess, null) : null) {
+                        try (ProgressBar pb = isProgressBar() ? GSProgressBarCreator.newGSProgressBar(getKey().getName(), byteCountAccess, null, true) : null) {
                             writer.readFasta(byteCountAccess.getInputStream());
                         }
                     }
