@@ -34,16 +34,24 @@ public enum Rank {
 	SUBSPECIES("subspecies"), SEROGROUP("serogroup"), BIOTYPE("biotype"), STRAIN("strain"), SEROTYPE("serotype"),
 	GENOTYPE("genotype"), FORMA("forma"), FORMA_SPECIALIS("forma specialis"), ISOLATE("isolate"),
 	// "clade" is not a specific rank it is just a collection of related taxons (could be on any level apparently).
-	CLADE("clade"),
+	CLADE("clade", -1),
 	// "no rank" is sort of a wild card in the taxonomic tree for both intermediate nodes or leaf notes - typically under in lower ranks.
-	NO_RANK("no rank");
+	NO_RANK("no rank", -1),
+	// Recently (newly found ranks) to be added here to preserve order via ordinal from further up.
+	SUBKINGDOM("subkingdom", KINGDOM.ordinal() + 10),
+	SECTION("section", GENUS.ordinal() + 10);
+
+	public static final int INDETERMINATE_LEVEL = -1;
 
 	private static Rank[] VALUES = Rank.values();
 
-	private String name;
+	private final String name;
+	// The level allows for adding new ranks without messing up then rank encoding via ordinals
+	// for already stored databases.
+	private final int level;
 
 	public boolean isIndeterminate() {
-		return NO_RANK.equals(this) || CLADE.equals(this);
+		return level == INDETERMINATE_LEVEL;
 	}
 
 	public static Rank byName(String name) {
@@ -66,6 +74,16 @@ public enum Rank {
 	
 	private Rank(String name) {
 		this.name = name;
+		this.level = ordinal() * 20;
+	}
+
+	private Rank(String name, int level) {
+		this.name = name;
+		this.level = level;
+	}
+
+	public int getLevel() {
+		return level;
 	}
 
 	public String getName() {
@@ -86,14 +104,14 @@ public enum Rank {
 		if (!isComparableTo(rank)) {
 			return false;
 		}
-		return this.ordinal() > rank.ordinal();
+		return this.level > rank.level;
 	}
 
 	public boolean isAbove(Rank rank) {
 		if (!isComparableTo(rank)) {
 			return false;
 		}
-		return this.ordinal() < rank.ordinal();
+		return this.level < rank.level;
 	}
 
 	public boolean isComparableTo(Rank rank) {
