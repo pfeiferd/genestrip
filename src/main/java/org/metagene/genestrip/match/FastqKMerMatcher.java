@@ -70,6 +70,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
     // A PrintStream is implicitly synchronized. So we don't need to worry about
     // multi-threading when using it.
     protected PrintStream out;
+    protected final boolean writeAll;
 
     protected int consumers;
 
@@ -77,7 +78,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 
     public FastqKMerMatcher(KMerSortedArray<SmallTaxIdNode> kmerStore, int initialReadSize, int maxQueueSize,
                             ExecutionContext bundle, boolean withProbs, int maxKmerResCounts, SmallTaxTree taxTree, int maxPaths,
-                            double maxReadTaxErrorCount, double maxReadClassErrorCount) {
+                            double maxReadTaxErrorCount, double maxReadClassErrorCount, boolean writeAll) {
         super(kmerStore.getK(), initialReadSize, maxQueueSize, bundle, withProbs, maxPaths);
         consumers = bundle.getThreads() <= 0 ? 1 : bundle.getThreads();
         this.kmerStore = kmerStore;
@@ -89,6 +90,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         this.maxReadTaxErrorCount = maxReadTaxErrorCount;
         this.maxReadClassErrorCount = maxReadClassErrorCount;
         this.maxPaths = maxPaths;
+        this.writeAll = writeAll;
         if (taxTree != null) {
             taxTree.initCountSize(consumers);
         }
@@ -219,8 +221,10 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             rewriteInput(myEntry, indexed);
         }
         if (out != null) {
-            synchronized (out) {
-                myEntry.flush(out);
+            if (writeAll || myEntry.classNode != null) {
+                synchronized (out) {
+                    myEntry.flush(out);
+                }
             }
         }
     }

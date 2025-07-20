@@ -132,7 +132,8 @@ public class MatchResultGoal extends ObjectGoal<Map<String, MatchingResult>, GSP
 					intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, withProbs, intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS),
 					taxTree, intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS),
 					doubleConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT),
-					doubleConfigValue(GSConfigKey.MAX_READ_CLASS_ERROR_COUNT)) {
+					doubleConfigValue(GSConfigKey.MAX_READ_CLASS_ERROR_COUNT),
+					booleanConfigValue(GSConfigKey.WRITE_ALL)) {
 				@Override
 				protected boolean isProgressBar() {
 					return booleanConfigValue(GSConfigKey.PROGRESS_BAR);
@@ -148,7 +149,8 @@ public class MatchResultGoal extends ObjectGoal<Map<String, MatchingResult>, GSP
 					intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, withProbs, intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS),
 					taxTree, intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS),
 					doubleConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT),
-					doubleConfigValue(GSConfigKey.MAX_READ_CLASS_ERROR_COUNT)) {
+					doubleConfigValue(GSConfigKey.MAX_READ_CLASS_ERROR_COUNT),
+					booleanConfigValue(GSConfigKey.WRITE_ALL)) {
 				@Override
 				protected boolean isProgressBar() {
 					return booleanConfigValue(GSConfigKey.PROGRESS_BAR);
