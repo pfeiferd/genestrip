@@ -318,7 +318,7 @@ An optional configuration properties file `config.properties` may also be put un
 
 Moreover, configuration parameters may be set on the command line like this:
 ```
--C<key>=<value>
+-C <key>=<value>
 ```
 They have the highest priority.
 
