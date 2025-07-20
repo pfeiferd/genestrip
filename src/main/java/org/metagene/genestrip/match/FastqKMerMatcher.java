@@ -513,7 +513,8 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             } else {
                 out.print("C\t");
             }
-            ByteArrayUtil.print(readDescriptor, 1, readDescriptor.length, out);
+            int index = ByteArrayUtil.indexOf(readDescriptor, 1, readDescriptor.length, ' ');
+            ByteArrayUtil.print(readDescriptor, 1, index == -1 ? readDescriptor.length : index, out);
             out.print('\t');
             if (classNode == null) {
                 out.print('0');
