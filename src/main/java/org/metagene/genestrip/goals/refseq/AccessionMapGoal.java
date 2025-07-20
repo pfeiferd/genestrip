@@ -24,6 +24,7 @@
  */
 package org.metagene.genestrip.goals.refseq;
 
+import java.util.List;
 import java.util.Set;
 
 import org.metagene.genestrip.GSConfigKey;
@@ -64,7 +65,7 @@ public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> implem
 	@Override
 	protected void doMakeThis() {
 		AccessionFileProcessor processor = new AccessionFileProcessor(categoriesGoal.get(),
-				(SeqType) configValue(GSConfigKey.SEQ_TYPE)) {
+				(SeqType) configValue(GSConfigKey.SEQ_TYPE), (List<GSConfigKey.RefSeqStatus>) configValue(GSConfigKey.RES_SEQ_STATUS)) {
 			private AccessionMap map = new AccessionMapImpl(accessionMapSizeGoal.get());
 			private TaxTree taxTree = taxTreeGoal.get();
 

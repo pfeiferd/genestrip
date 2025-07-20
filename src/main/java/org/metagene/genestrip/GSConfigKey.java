@@ -114,6 +114,8 @@ public enum GSConfigKey implements ConfigKey {
 			GSGoalKey.DB),
 	@MDDescription("The rank for which to check the limit `refSeq.limitForGenbankAccess`. If `null`, then the limit applies to all requested tax ids and its descendants.")
 	REQ_SEQ_LIMIT_FOR_GENBANK_RANK("refSeq.limitForGenbankRank", new RankConfigParamInfo(Rank.SPECIES), GSGoalKey.DB),
+	@MDDescription("The refseq status values restrict the considered genomic accessions with respect to the given values. By default all values are allowed / included.")
+	RES_SEQ_STATUS("refseq.status", new RefSeqStatusConfigInfo(Arrays.asList(RefSeqStatus.values())), GSGoalKey.DB),
 
 	// Genbank data selection
 	@MDDescription("Determines the maximum number of fasta files used from Genbank per requested tax id. "
@@ -356,6 +358,20 @@ public enum GSConfigKey implements ConfigKey {
 		}
 	}
 
+	public static enum RefSeqStatus {
+		NA("na"), UNKNOWN("UNKNOWN"), REVIEWED("REVIEWED"), VALIDATED("REVIEWED"), PROVISIONAL("REVIEWED"), PREDICTED("REVIEWED"), INFERRED("REVIEWED"), MODEL("REVIEWED");
+
+		private final String name;
+
+		private RefSeqStatus(String name) {
+			this.name = name;
+		}
+
+		public String getName() {
+			return name;
+		}
+	}
+
 	public static class FastaQualitiesConfigInfo extends ListConfigParamInfo<AssemblyQuality> {
 		public FastaQualitiesConfigInfo(List<AssemblyQuality> defaults) {
 			super(defaults);
@@ -395,7 +411,6 @@ public enum GSConfigKey implements ConfigKey {
 		public String getTypeDescriptor() {
 			return "list of nominals";
 		}
-
 	}
 
 	public static class LogLevelConfigParamInfo extends StringConfigParamInfo {
@@ -502,6 +517,47 @@ public enum GSConfigKey implements ConfigKey {
 		@Override
 		public String getTypeDescriptor() {
 			return "nominal";
+		}
+	}
+
+	public static class RefSeqStatusConfigInfo extends ListConfigParamInfo<RefSeqStatus> {
+		public RefSeqStatusConfigInfo(List<RefSeqStatus> defaults) {
+			super(defaults);
+		}
+
+		@Override
+		protected List<RefSeqStatus> fromString(String qs) {
+			List<RefSeqStatus> res = new ArrayList<RefSeqStatus>();
+			if (qs != null) {
+				StringTokenizer tokenizer = new StringTokenizer(qs, ",;");
+				while (tokenizer.hasMoreTokens()) {
+					RefSeqStatus q = RefSeqStatus.valueOf(tokenizer.nextToken().trim());
+					if (q != null) {
+						res.add(q);
+					}
+				}
+			}
+			return res;
+		}
+
+		@Override
+		public String getMDRangeDescriptor() {
+			StringBuilder builder = new StringBuilder();
+			RefSeqStatus[] types = RefSeqStatus.values();
+			for (int i = 0; i < types.length; i++) {
+				if (i > 0) {
+					builder.append(", ");
+				}
+				builder.append('`');
+				builder.append(types[i].name());
+				builder.append('`');
+			}
+			return builder.toString();
+		}
+
+		@Override
+		public String getTypeDescriptor() {
+			return "list of nominals";
 		}
 	}
 }

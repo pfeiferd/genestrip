@@ -27,11 +27,13 @@ package org.metagene.genestrip.refseq;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.List;
 
 import me.tongfei.progressbar.ProgressBar;
 import me.tongfei.progressbar.ProgressBarBuilder;
 import me.tongfei.progressbar.ProgressBarStyle;
 import org.apache.commons.logging.Log;
+import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSConfigKey.SeqType;
 import org.metagene.genestrip.io.BufferedLineReader;
 import org.metagene.genestrip.io.StreamingResource;
@@ -54,11 +56,12 @@ public abstract class AccessionFileProcessor {
     protected final Log logger = GSLogFactory.getLog("accreader");
 
     private final RefSeqCategory[] categories;
+    private final GSConfigKey.RefSeqStatus[] statuses;
     private final boolean dna;
     private final boolean rna;
     private final boolean mrna;
 
-    public AccessionFileProcessor(Collection<RefSeqCategory> categories, SeqType seqType) {
+    public AccessionFileProcessor(Collection<RefSeqCategory> categories, SeqType seqType, List<GSConfigKey.RefSeqStatus> statuses) {
         // Converting to array makes iterator below way more efficient (less/no object
         // allocations) -
         // found via optimizer ...
@@ -66,6 +69,7 @@ public abstract class AccessionFileProcessor {
         dna = SeqType.GENOMIC.equals(seqType) || SeqType.ALL.equals(seqType);
         rna = SeqType.RNA.equals(seqType) || SeqType.ALL.equals(seqType) || SeqType.ALL_RNA.equals(seqType);
         mrna = SeqType.M_RNA.equals(seqType) || SeqType.ALL.equals(seqType) || SeqType.ALL_RNA.equals(seqType);
+        this.statuses = statuses.toArray(new GSConfigKey.RefSeqStatus[statuses.size()]);
     }
 
     public void processCatalog(StreamingResource catalogFile) {
@@ -83,10 +87,13 @@ public abstract class AccessionFileProcessor {
                         int pos2 = ByteArrayUtil.indexOf(target, pos1 + 1, size, '\t');
                         int pos3 = ByteArrayUtil.indexOf(target, pos2 + 1, size, '\t');
                         int pos4 = ByteArrayUtil.indexOf(target, pos3 + 1, size, '\t');
+                        int pos5 = ByteArrayUtil.indexOf(target, pos4 + 1, size, '\t');
                         if ((dna && isGenomicAccession(target, pos2 + 1)) || (rna && isRNAAccession(target, pos2 + 1))
                                 || (mrna && isMRNAAccession(target, pos2 + 1))) {
                             if (containsCategory(target, pos3 + 1, pos4, categories)) {
-                                handleEntry(target, pos1, pos2 + 1, pos3);
+                                if (containsStatus(target, pos4 + 1, pos5, statuses)) {
+                                    handleEntry(target, pos1, pos2 + 1, pos3);
+                                }
                             }
                         }
                    }
@@ -110,6 +117,15 @@ public abstract class AccessionFileProcessor {
     protected boolean containsCategory(byte[] outerArray, int start, int end, RefSeqCategory[] categories) {
         for (int i = 0; i < categories.length; i++) {
             if (ByteArrayUtil.indexOf(outerArray, start, end, categories[i].getDirectory()) != -1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    protected boolean containsStatus(byte[] outerArray, int start, int end, GSConfigKey.RefSeqStatus[] status) {
+        for (int i = 0; i < status.length; i++) {
+            if (ByteArrayUtil.indexOf(outerArray, start, end, status[i].getName()) != -1) {
                 return true;
             }
         }
