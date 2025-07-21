@@ -66,7 +66,7 @@ public class ExtractGoal extends Goal<GSProject> {
 		try {
 			Map<String, StreamingResourceStream> map = fastqMapGoal.get();
 			String filter = stringConfigValue(GSConfigKey.EXTRACT_KEY);
-			if (filter == null) {
+			if (filter == null || filter.isEmpty()) {
 				if (getLogger().isDebugEnabled()) {
 					getLogger().error("Missing extract key in config entry " + GSConfigKey.EXTRACT_KEY + ".");
 				}

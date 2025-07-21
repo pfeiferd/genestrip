@@ -60,7 +60,7 @@ public enum GSConfigKey implements ConfigKey {
 			+ "Changes to this values do *not* affect the memory usage of a database.")
 	KMER_SIZE("kMerSize", new IntConfigParamInfo(15, 32, 31), GSGoalKey.DB, GSGoalKey.FILTER, GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 	@MDDescription("Extract key for read descriptors. The beginning of a descriptor must match this key after the '@' for the read to be written.")
-	EXTRACT_KEY("extractKey", new StringConfigParamInfo(null), GSGoalKey.EXTRACT),
+	EXTRACT_KEY("extractKey", new StringConfigParamInfo(""), GSGoalKey.EXTRACT),
 
 	// Genomic data download
 	@MDDescription("This base URL will be extended by `/pub/taxonomy/` in order to download the taxonomy file `taxdmp.zip` and by `/genomes/genbank` for files from Genbank.")
