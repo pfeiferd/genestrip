@@ -25,6 +25,7 @@
 package org.metagene.genestrip.goals;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.metagene.genestrip.GSConfigKey;
@@ -55,11 +56,15 @@ public class TaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
 	protected void doMakeThis() {
 		try {
 			TaxIdCollector taxIdCollector = new TaxIdCollector(taxTreeGoal.get());
-			Set<TaxIdNode> taxIdNodes = taxIdCollector.readFromFile(getProject().getTaxIdsFile());
+			Set<TaxIdNode> excludes = new HashSet<TaxIdNode>();
+			Set<TaxIdNode> taxIdNodes = taxIdCollector.readFromFile(getProject().getTaxIdsFile(), excludes);
 			if (getLogger().isDebugEnabled()) {
 				getLogger().debug("Requested tax ids: " + taxIdNodes);
+				getLogger().debug("Excluded tax ids: " + excludes);
 			}
 			taxIdNodes = taxIdCollector.withDescendants(taxIdNodes, (Rank) configValue(GSConfigKey.RANK_COMPLETION_DEPTH));
+			excludes = taxIdCollector.withDescendants(excludes, null);
+			taxIdNodes.removeAll(excludes);
 			if (getLogger().isDebugEnabled()) {
 				getLogger().debug("Number of completed tax ids: " + taxIdNodes.size());
 			}

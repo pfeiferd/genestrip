@@ -44,7 +44,7 @@ public class TaxIdCollector {
 		this.taxTree = taxTree;
 	}
 
-	public Set<TaxIdNode> readFromFile(File file) throws IOException {
+	public Set<TaxIdNode> readFromFile(File file, Set<TaxIdNode> excludes) throws IOException {
 		Set<TaxIdNode> res = new HashSet<TaxIdNode>();
 
 		try (InputStream stream = StreamProvider.getInputStreamForFile(file);
@@ -67,9 +67,17 @@ public class TaxIdCollector {
 						taxId = line.trim();
 					}
 					if (!taxId.isEmpty()) {
-						TaxIdNode node = taxTree.getNodeByTaxId(taxId);
-						if (node != null) {
-							res.add(node);
+						if (taxId.startsWith("-")) {
+							TaxIdNode node = taxTree.getNodeByTaxId(taxId.substring(1));
+							if (node != null) {
+								excludes.add(node);
+							}
+						}
+						else {
+							TaxIdNode node = taxTree.getNodeByTaxId(taxId);
+							if (node != null) {
+								res.add(node);
+							}
 						}
 					}
 				}

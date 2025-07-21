@@ -62,7 +62,7 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
         this.logUpdateCycle = bundle.getLogUpdateCycle();
     }
 
-    protected void processFastqStreams(StreamingResourceStream fastqs) throws IOException {
+    public void processFastqStreams(StreamingResourceStream fastqs) throws IOException {
         if (logger.isInfoEnabled()) {
             logger.info("Number of consumer threads: " + bundle.getThreads());
         }

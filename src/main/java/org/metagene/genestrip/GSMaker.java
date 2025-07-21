@@ -381,6 +381,9 @@ public class GSMaker extends Maker<GSProject> {
                 project, true, fastqMapGoal, projectSetupGoal);
         registerGoal(fastqMapTransfGoal);
 
+        Goal<GSProject> extractGoal = new ExtractGoal(project, fastqMapTransfGoal, getExecutionContext(project));
+        registerGoal(extractGoal);
+
         FastqDownloadsGoal fastqDownloadsGoal = new FastqDownloadsGoal(project, true, fastqMapGoal, fastqMapTransfGoal,
                 projectSetupGoal);
         registerGoal(fastqDownloadsGoal);
