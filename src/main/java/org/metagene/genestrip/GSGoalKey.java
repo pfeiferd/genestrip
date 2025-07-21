@@ -59,7 +59,7 @@ public enum GSGoalKey implements GoalKey {
 	MATCHLR("matchlr", true),
 	@MDDescription("Filter fastq files as given by the `-f` or `-m` option. The resulting filtered fastq file(s) `filtered_...` will be stored under `<base dir>/projects/<project_name>/fastq/` unless specified otherwise via the `-r` option.")
 	FILTER("filter", true),
-	@MDDescription("Extract reads from fastq files based on matching descriptors.")
+	@MDDescription("Extract reads from fastq files based on matching descriptors. See also config key `extractKey`.")
 	EXTRACT("extract", true),
 
 	// Non user Goals
