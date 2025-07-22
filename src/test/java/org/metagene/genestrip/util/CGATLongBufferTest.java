@@ -58,7 +58,7 @@ public class CGATLongBufferTest extends TestCase {
 
 	@Test
 	public void testDust() {
-		CGATRingBuffer buffer = new CGATRingBuffer(31, 200);
+		CGATRingBuffer buffer = new CGATRingBuffer(31, 500);
 		int count = buffer.getSize();
 		int[] fib = new int[count];
 		if (count > 0) {
@@ -114,7 +114,7 @@ public class CGATLongBufferTest extends TestCase {
 					assertEquals(sumDust > buffer.getMaxDust() && buffer.getMaxDust() >= 0, buffer.isDust());
 					if (buffer.isDust()) {
 						dustCount++;
-//						System.out.println(j + ": " + buffer + " " + sumDust);
+						System.out.println(j + ": " + buffer + " " + sumDust);
 					}
 
 					// This just ensures that the dust measure is (really) symmetrical:
@@ -145,7 +145,12 @@ public class CGATLongBufferTest extends TestCase {
 	}
 
 	public void testSomeShortKmerStrings() {
-		CGATLongBuffer buffer = new CGATLongBuffer(4, 1000);
+		// From system documentation:
+		CGATLongBuffer buffer = new CGATLongBuffer(8, 1000);
+		fill(buffer, "TTTCGCGA");
+		assertEquals(3, buffer.getDustValue());
+
+		buffer = new CGATLongBuffer(4, 1000);
 		fill(buffer, "ACAT");
 		assertEquals(fib(2), buffer.getDustValue());
 		fill(buffer, "AAAT");

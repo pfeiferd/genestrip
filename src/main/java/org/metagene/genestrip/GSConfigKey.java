@@ -140,11 +140,13 @@ public enum GSConfigKey implements ConfigKey {
 			+ "repetitive sequences of base pairs may be omitted for storing. To do so, Genestrip employs a simple "
 			+ "[genetic dust-filter](https://pubmed.ncbi.nlm.nih.gov/16796549/) for *k*-mers: "
 			+ "It assigns a dust value *d* to each *k*-mer, and if *d* >  `maxDust`, then the *k*-mer will not be stored. "
-			+ "Given a *k*-mer with *n* repeating base pairs of repeat length *k(1), ... k(n)* with *k(i) > 1*, "
+			+ "Let *k(i)* be length of a *k*-mer's *i*-th substring s<sub>i</sub> of maximum length such that *s<sub>i</sub>(j) = s<sub>i</sub>(j-2)* holds for all bases in *s*. "
+			+ "Given a *k*-mer with *n* such non-overlapping substrings and their lengths *k(1), ..., k(n)*, "
 			+ "then *d = fib(k(1)) + ... + fib(k(n))*, where *fib(k(i))* is the Fibonacci number of *k(i)*. "
-			+ "E.g., for the *8*-mer `TTTCGGTC`, we have *n = 2* with *k(1) = 3*, *k(2) = 2* and *d = fib(3) + fib(2) = 2 + 1 = 3*. "
-			+ "For practical concerns `maxDust = 200` may be suitable. In this case, if *31*-mers were uniformly, randomly generated, "
-			+ "then less than 0.0001 % of them would be dropped. If `maxDust = -1`, then dust-filtering is inactive.")
+			+ "(The Fibonachi numbers are *fib(1) = 0*, *fib(2) = 1*, *fib(n) = fib(n-1) + fib(n-2)*.) "
+			+ "E.g., for the *8*-mer `TTTCGCGA`, we have *n = 3* with *k(1) = 3* for `TTT`, *k(2) = 4* for `CGCG` and *k(3) = 1* for `A` which gives *d = fib(3) + fib(4) + fib(1) = 1 + 2 + 0 = 3*. "
+			+ "For practical concerns `maxDust = 500` may be suitable. In this case, if *31*-mers were uniformly, randomly generated, "
+			+ "then less than 0.00002 % of them would be dropped. If `maxDust = -1`, then dust-filtering is inactive.")
 	MAX_DUST("maxDust", new IntConfigParamInfo(-1, Integer.MAX_VALUE, -1), GSGoalKey.DB),
 	TEMP_BLOOM_FILTER_FPP("tempBloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.001d), true, GSGoalKey.TEMPINDEX),
 	BLOOM_FILTER_FPP("bloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.00000000001d), true, GSGoalKey.FILL_DB),
