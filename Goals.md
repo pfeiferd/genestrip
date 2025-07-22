@@ -12,6 +12,7 @@
 |`match`|X|Analyze fastq files as given by the `-f` or `-m` option. The resulting CSV file(s) will be stored in `<base dir>/projects/<project_name>/csv` unless specified otherwise via the `-r` option.|
 |`matchlr`|X|Same as `match` but without doing read classification. This corresponds to the configuration setting `classifyReads=false`.|
 |`filter`|X|Filter fastq files as given by the `-f` or `-m` option. The resulting filtered fastq file(s) `filtered_...` will be stored under `<base dir>/projects/<project_name>/fastq/` unless specified otherwise via the `-r` option.|
+|`extract`|X|Extract reads from fastq files based on matching descriptors. See also config key `extractKey`.|
 |`fasta2fastq`||Transform a fasta file or streaming resource to fastq file.|
 |`matchres`||Analyze fastq files as given by the `-f` or `-m` option.|
 |`matchreslr`||Same as `matchres` but without doing read classification.|
