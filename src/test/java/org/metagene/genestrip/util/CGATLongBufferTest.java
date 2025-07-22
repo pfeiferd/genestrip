@@ -31,9 +31,34 @@ import org.junit.Test;
 import junit.framework.TestCase;
 
 public class CGATLongBufferTest extends TestCase {
+	public void testHighDustKMers() {
+		CGATLongBuffer buffer = new CGATLongBuffer(31, 500);
+
+		int v = 832040;
+		fill(buffer, 'A', 'C');
+		assertEquals(v, buffer.getDustValue());
+		fill(buffer, 'C', 'C');
+		assertEquals(v, buffer.getDustValue());
+		fill(buffer, 'G', 'C');
+		assertEquals(v, buffer.getDustValue());
+		fill(buffer, 'T', 'T');
+	}
+
+	protected void fill(CGATLongBuffer buffer, char a, char b) {
+		for (int i = 0; i < buffer.getSize(); i+=2) {
+			buffer.put((byte) a);
+			buffer.put((byte) b);
+		}
+		if (buffer.getSize() % 2 == 1) {
+			buffer.put((byte) a);
+		}
+	}
+
+
+
 	@Test
 	public void testDust() {
-		CGATRingBuffer buffer = new CGATRingBuffer(31, 20);
+		CGATRingBuffer buffer = new CGATRingBuffer(31, 200);
 		int count = buffer.getSize();
 		int[] fib = new int[count];
 		if (count > 0) {
@@ -45,6 +70,7 @@ public class CGATLongBufferTest extends TestCase {
 		for (int i = 2; i < fib.length; i++) {
 			fib[i] = fib[i - 1] + fib[i - 2];
 		}
+		fib[0] = 0;
 
 		Random random = new Random(10);
 		int dustCount = 0;
@@ -64,21 +90,21 @@ public class CGATLongBufferTest extends TestCase {
 					
 					int n = 0;
 					int sumDust = 0;
-					int last = buffer.get(0);
-					for (int i = 1; i < buffer.getSize(); i++) {
+					int beforeLast = -1;
+					int last = -1;
+					for (int i = 0; i < buffer.getSize(); i++) {
 						byte d = buffer.get(i);
-						if (d == last) {
+						if (d == beforeLast) {
 							n++;
-						} else if (n > 0) {
+						} else {
 							sumDust += fib[n];
 							n = 0;
 						}
+						beforeLast = last;
 						last = d;
 					}
-					if (n > 0) {
-						sumDust += fib[n];
-					}
-
+					sumDust += fib[n];
+//					System.out.println(k + ": " + buffer);
 					assertEquals(buffer.getMaxDust() >= 0 ? sumDust : -1, buffer.getDustValue());
 					/*
 					if (sumDust > buffer.getMaxDust()) {
@@ -95,15 +121,17 @@ public class CGATLongBufferTest extends TestCase {
 					int sumDust1 = sumDust;
 					n = 0;
 					sumDust = 0;
+					beforeLast = -1;
 					last = buffer.get(buffer.getSize() - 1);
 					for (int i = buffer.getSize() - 2; i >= 0; i--) {
 						byte d = buffer.get(i);
-						if (d == last) {
+						if (d == beforeLast) {
 							n++;
 						} else if (n > 0) {
 							sumDust += fib[n];
 							n = 0;
 						}
+						beforeLast = last;
 						last = d;
 					}
 					if (n > 0) {
@@ -116,22 +144,46 @@ public class CGATLongBufferTest extends TestCase {
 		System.out.println("Dust ratio: " + ((double) dustCount) / totalCount);
 	}
 
+	public void testSomeShortKmerStrings() {
+		CGATLongBuffer buffer = new CGATLongBuffer(4, 1000);
+		fill(buffer, "ACAT");
+		assertEquals(fib(2), buffer.getDustValue());
+		fill(buffer, "AAAT");
+		assertEquals(fib(2), buffer.getDustValue());
+		fill(buffer, "AAAA");
+		assertEquals(fib(3), buffer.getDustValue());
+		fill(buffer, "ACAA");
+		assertEquals(fib(2), buffer.getDustValue());
+
+		buffer = new CGATLongBuffer(5, 1000);
+		fill(buffer, "ACATA");
+		assertEquals(2* fib(2), buffer.getDustValue());
+		fill(buffer, "AAAAA");
+		assertEquals(fib(4), buffer.getDustValue());
+		fill(buffer, "AATAA");
+		assertEquals(fib(2), buffer.getDustValue());
+		fill(buffer, "TATAT");
+		assertEquals(fib(4), buffer.getDustValue());
+	}
+
 	public void testSomeKmerStrings() {
 		CGATLongBuffer buffer = new CGATLongBuffer(31, 1000);
-		fill(buffer, "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC");
-		assertEquals(fib(31), buffer.getDustValue());
-		fill(buffer, "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
-		assertEquals(fib(31), buffer.getDustValue());
-		fill(buffer, "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTA");
-		assertEquals(fib(30), buffer.getDustValue());
-		fill(buffer, "ATTTTTTTTTTTTTTTTTTTTTTTTTTTTTA");
-		assertEquals(fib(29), buffer.getDustValue());
-		fill(buffer, "TTTTTTTTTTTTTTTTTCCCCCCCCCCCCCC");
-		assertEquals(fib(17) + fib(14), buffer.getDustValue());
-		fill(buffer, "AAAATTTTTTTTTTTTTCCCCCCCCCCCCCC");
-		assertEquals(fib(4) + fib(13) + fib(14), buffer.getDustValue());
 		fill(buffer, "ACACACACACACACACACACACACACACACA");
-		assertEquals(0, buffer.getDustValue());
+		assertEquals(fib(30), buffer.getDustValue());
+		fill(buffer, "ATACACACACACACACACACACACACACACA");
+		assertEquals(fib(1) + fib(28), buffer.getDustValue());
+		fill(buffer, "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC");
+		assertEquals(fib(30), buffer.getDustValue());
+		fill(buffer, "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
+		assertEquals(fib(30), buffer.getDustValue());
+		fill(buffer, "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTA");
+		assertEquals(fib(29), buffer.getDustValue());
+		fill(buffer, "ATTTTTTTTTTTTTTTTTTTTTTTTTTTTTA");
+		assertEquals(fib(28), buffer.getDustValue());
+		fill(buffer, "TTTTTTTTTTTTTTTTTCCCCCCCCCCCCCC");
+		assertEquals(fib(16) + fib(13), buffer.getDustValue());
+		fill(buffer, "AAAATTTTTTTTTTTTTCCCCCCCCCCCCCC");
+		assertEquals(fib(3) + fib(12) + fib(13), buffer.getDustValue());
 	}
 
 	public int fib(int n) {
@@ -146,6 +198,7 @@ public class CGATLongBufferTest extends TestCase {
 	}
 
 	protected void fill(CGATLongBuffer buffer, String kmer) {
+		buffer.reset();
 		for (int i = 0; i < kmer.length(); i++) {
 			buffer.put((byte) kmer.charAt(i));
 		}

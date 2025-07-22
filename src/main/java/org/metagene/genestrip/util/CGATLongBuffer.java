@@ -39,6 +39,7 @@ public class CGATLongBuffer {
 	private final int[] dustFunction;
 
 	private byte lastChar;
+	private byte befLastChar;
 	private int sumDust;
 	private int seqCount;
 
@@ -94,15 +95,16 @@ public class CGATLongBuffer {
 			kmer = ((kmer << 2) & SHIFT_FILTERS_STRAIGHT[size]) | (long) bp;  // Inlined.
 			reverseKmer = (reverseKmer >>> 2) | (((long) CGAT_REVERSE_JUMP_TABLE[c]) << SHIFT_FILTERS_REVERSE[size]);
 			if (maxDust >= 0) {
-				if (c == lastChar) {
-					seqMarks[(bpCounter - seqCount + size) % size]++;
+				if (c == befLastChar) {
+					seqMarks[(bpCounter - 1 - seqCount + size) % size]++;
 					sumDust += dustFunction[seqCount];
-					if (seqCount < size - 1) {
+					if (seqCount < size - 2) {
 						seqCount++;						
 					}
 				} else {
 					seqCount = 0;
 				}
+				befLastChar = lastChar;
 				lastChar = c;
 			}
 			bpCounter++;
@@ -143,6 +145,8 @@ public class CGATLongBuffer {
 		reverseKmer = 0;
 		filled = false;
 		seqCount = 0;
+		lastChar = -1;
+		befLastChar = -1;
 		sumDust = maxDust >= 0 ? 0 : -1;
 		
 		if (seqMarks != null) {
