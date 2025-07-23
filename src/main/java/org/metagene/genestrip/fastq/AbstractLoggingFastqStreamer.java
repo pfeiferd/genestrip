@@ -85,6 +85,7 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
                     }
                 }
                 fastqStartTime = System.currentTimeMillis();
+                logFastqStart();
                 try (ProgressBar pb = isProgressBar() ? GSProgressBarCreator.newGSProgressBar(getProgressBarTaskName(), byteCountAccess, null) : null) {
                     readFastq(byteCountAccess.getInputStream());
                 }
@@ -110,10 +111,6 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
     @Override
     protected void start() throws IOException {
         indexedC = 0;
-        if (logger.isInfoEnabled()) {
-            logger.info("Processing fastq file (" + (coveredCounter + 1) + "/" + totalCount + "): " + currentFastq);
-        }
-        doLog();
     }
 
     @Override
@@ -149,6 +146,13 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
 
     public long getLogUpdateCycle() {
         return logUpdateCycle;
+    }
+
+    protected void logFastqStart() {
+        if (logger.isInfoEnabled()) {
+            logger.info("Processing fastq file (" + (coveredCounter + 1) + "/" + totalCount + "): " + currentFastq);
+        }
+        doLog();
     }
 
     protected void logFastqDone() {
