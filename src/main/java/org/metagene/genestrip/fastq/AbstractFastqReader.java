@@ -30,7 +30,6 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 import org.apache.commons.logging.Log;
@@ -234,7 +233,7 @@ public abstract class AbstractFastqReader {
 			}
 			checkAndLogConsumerThreadProblem();
 			readStruct = nextFreeReadStruct();
-			log();
+			updateProgress();
 		}
 // This newer approach caused the threads to hang at the end of the reading process.
 // I can't be bothered to find out why, so I use the older (ugly) polling approach which works well...		
@@ -284,7 +283,7 @@ public abstract class AbstractFastqReader {
 		done();
 	}
 
-	protected void log() {
+	protected void updateProgress() {
 	}
 
 	private ReadEntry nextFreeReadStruct() {
