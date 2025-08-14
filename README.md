@@ -65,7 +65,7 @@ You may check for higher versions and update the dependency accordingly...
 
 The Maven command `mvn -P winexe package` creates a self-contained Windows executable `bin/genestrip.exe` along with a reduced JRE under `lib/jre`. 
 You need a [JDK](https://jdk.java.net/) 11 installation or higher on Windows for this command to succeed.
-Moreover it creates a Zip folder `target/genestrip-${version}-windows-x64.zip` that contains the same files with less than 40 MB of disk space.
+Moreover, it creates a Zip folder `target/genestrip-${version}-windows-x64.zip` that contains the same files with less than 40 MB of disk space.
 
 When extracted Genestrip can be executed via `bin\genestrip.exe` (on a Windows x86, 64 bit architecture). It will search for the above JRE for 
 execution under the relative location `..\lib\jre`. So the folders `bin` and `lib` should be kept together accordingly. **These few files is all it takes to run Genestrip under Windows!** There is no additional JRE necessary.
@@ -74,7 +74,11 @@ For convenience, the ready-made Zip folder `genestrip-${version}-windows-x64.zip
 
 ### Runnning the JUnit tests
 
-The Maven command `mvn -P prerelease install` runs all the JUnit tests for Genestrip and more. It will take time...
+The Maven command `mvn -P prerelease install` runs all the JUnit tests for 
+Genestrip and more. It will take time...
+
+Note that the test `org.metagene.genestrip.goals.refseq.ComprehensiveMatchTest` may fail: It compares analysis output with expected output, but the analysis output 
+heavily depends on the (current, downloaded) version of the NCBI taxonomy and the downloaded RefSeq release.
 
 [^1]: Counter to common belief, Java can well be used for such high performance applications when using its programming facilities the right way.
 
