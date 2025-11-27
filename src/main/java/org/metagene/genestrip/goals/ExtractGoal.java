@@ -92,6 +92,16 @@ public class ExtractGoal extends Goal<GSProject> {
 									readStruct.print(psRef[0]);
 								}
 							}
+
+							@Override
+							protected boolean isProgressBar() {
+								return booleanConfigValue(GSConfigKey.PROGRESS_BAR);
+							}
+
+							@Override
+							protected String getProgressBarTaskName() {
+								return getKey().getName();
+							}
 						};
 					}
 					psRef[0] = new PrintStream(ps);
