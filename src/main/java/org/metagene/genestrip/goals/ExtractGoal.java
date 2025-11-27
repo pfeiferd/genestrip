@@ -73,38 +73,40 @@ public class ExtractGoal extends Goal<GSProject> {
 				return;
 			}
 
+			PrintStream[] psRef = new PrintStream[1];
 			for (String key : map.keySet()) {
-				File filteredFile = null;
 				StreamingResourceStream fastqs = map.get(key);
+				if (matcher == null) {
+					matcher = new AbstractLoggingFastqStreamer(intConfigValue(GSConfigKey.KMER_SIZE), intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
+							intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, true) {
+						@Override
+						protected void nextEntry(ReadEntry readStruct, int threadIndex) throws IOException {
+							if (ByteArrayUtil.startsWith(readStruct.readDescriptor, 1, filter)) {
+								readStruct.print(psRef[0]);
+							}
+						}
 
-				if (booleanConfigValue(GSConfigKey.WRITE_FILTERED_FASTQ)) {
-					filteredFile = getProject().getOutputFile(getKey().getName(), key, null, FileType.FASTQ_RES,
-							true);
+						@Override
+						protected boolean isProgressBar() {
+							return booleanConfigValue(GSConfigKey.PROGRESS_BAR);
+						}
+
+						@Override
+						protected String getProgressBarTaskName() {
+							return getKey().getName();
+						}
+					};
 				}
-				PrintStream[] psRef = new PrintStream[1];
-				try (PrintStream ps = filteredFile == null ? System.out : new PrintStream(filteredFile)) {
-					if (matcher == null) {
-						matcher = new AbstractLoggingFastqStreamer(intConfigValue(GSConfigKey.KMER_SIZE), intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
-								intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, true) {
-							@Override
-							protected void nextEntry(ReadEntry readStruct, int threadIndex) throws IOException {
-								if (ByteArrayUtil.startsWith(readStruct.readDescriptor, 1, filter)) {
-									readStruct.print(psRef[0]);
-								}
-							}
-
-							@Override
-							protected boolean isProgressBar() {
-								return booleanConfigValue(GSConfigKey.PROGRESS_BAR);
-							}
-
-							@Override
-							protected String getProgressBarTaskName() {
-								return getKey().getName();
-							}
-						};
+				if (booleanConfigValue(GSConfigKey.WRITE_FILTERED_FASTQ)) {
+					File filteredFile = getProject().getOutputFile(getKey().getName(), key, null, FileType.FASTQ_RES,
+							false);
+					try (PrintStream ps = new PrintStream(filteredFile)) {
+						psRef[0] = ps;
+						matcher.processFastqStreams(fastqs);
 					}
-					psRef[0] = new PrintStream(ps);
+				}
+				else {
+					psRef[0] = System.out;
 					matcher.processFastqStreams(fastqs);
 				}
 			}
