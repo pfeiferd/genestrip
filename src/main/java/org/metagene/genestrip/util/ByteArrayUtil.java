@@ -137,7 +137,6 @@ public class ByteArrayUtil {
 			data[pos++] = '0';
 			return pos;
 		}
-
 		if (value < 0) {
 			data[pos++] = '-';
 		}

@@ -119,15 +119,16 @@ public class FillBloomFilterGoal extends FastaReaderGoal<Long> implements Goal.L
                 intConfigValue(GSConfigKey.MAX_DUST),
                 intConfigValue(GSConfigKey.STEP_SIZE),
                 booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY),
-                regionsPerTaxid);
+                regionsPerTaxid,
+                booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES));
     }
 
     protected class MyFastaReader extends AbstractStoreFastaReader {
         private final AbstractKMerBloomFilter filter;
 
         public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
-                             AbstractKMerBloomFilter filter, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid) {
-            super(bufferSize, taxNodes, accessionMap, filter.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid);
+                             AbstractKMerBloomFilter filter, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
+            super(bufferSize, taxNodes, accessionMap, filter.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases);
             this.filter = filter;
         }
 

@@ -45,6 +45,7 @@ import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.ByteArrayUtil;
 
 public class FillDBGoal extends FastaReaderGoal<Database>  implements Goal.LogHeapInfo {
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
@@ -103,6 +104,7 @@ public class FillDBGoal extends FastaReaderGoal<Database>  implements Goal.LogHe
 						" (corresponds to " + ((100d * unused) / store.getSize()) + " %)");
 			}
 			TaxTree taxTree = taxTreeGoal.get();
+			taxTree.reinitPositions();
 			Iterator<String> taxIt = store.getValues();
 			while (taxIt.hasNext()) {
 				TaxIdNode node = taxTree.getNodeByTaxId(taxIt.next());
@@ -134,6 +136,9 @@ public class FillDBGoal extends FastaReaderGoal<Database>  implements Goal.LogHe
 
 	@Override
 	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
+		TaxTree taxTree = taxTreeGoal.get();
+		boolean idNodes = booleanConfigValue(GSConfigKey.ID_NODES);
+		boolean fileNodes = booleanConfigValue(GSConfigKey.FILE_NODES);
 		MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
 				taxNodesGoal.get(), isIncludeRefSeqFna() ? accessionMapGoal.get() : null, store,
 				intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
@@ -142,7 +147,28 @@ public class FillDBGoal extends FastaReaderGoal<Database>  implements Goal.LogHe
 				intConfigValue(GSConfigKey.MAX_DUST),
 				intConfigValue(GSConfigKey.STEP_SIZE),
 				booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY),
-				regionsPerTaxid);
+				regionsPerTaxid,
+				booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES)) {
+			@Override
+			protected TaxIdNode reworkNode() {
+				TaxIdNode res = node;
+				if (fileNodes && file != null) {
+					if (!Rank.FILE.equals(res.getRank())) {
+						res = taxTree.fileNode(res, file.getName());
+					}
+				}
+				if (idNodes) {
+					if (!Rank.ID.equals(res.getRank())) {
+						int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
+						if (pos < 0) {
+							pos = size;
+						}
+						res = taxTree.idNode(res, target, 1, pos);
+					}
+				}
+				return res;
+			}
+		};
 		readers.add(fastaReader);
 		return fastaReader;
 	}
@@ -165,8 +191,8 @@ public class FillDBGoal extends FastaReaderGoal<Database>  implements Goal.LogHe
 		private long tooManyCounter;
 
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
-							 KMerSortedArray<String> store, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid) {
-			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid);
+							 KMerSortedArray<String> store, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
+			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases);
 			this.store = store;
 		}
 

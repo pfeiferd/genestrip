@@ -45,6 +45,7 @@ import org.metagene.genestrip.store.KMerSortedArray.UpdateValueProvider;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.ByteArrayUtil;
 
 public class DBGoal extends FastaReaderGoal<Database> {
 	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
@@ -97,6 +98,9 @@ public class DBGoal extends FastaReaderGoal<Database> {
 	}
 
 	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
+		boolean idNodes = booleanConfigValue(GSConfigKey.ID_NODES);
+		boolean fileNodes = booleanConfigValue(GSConfigKey.FILE_NODES);
+
 		return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxTreeGoal.get(), taxNodesGoal.get(),
 				accessionMapGoal.get(), store, intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
 				(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
@@ -104,7 +108,34 @@ public class DBGoal extends FastaReaderGoal<Database> {
 				intConfigValue(GSConfigKey.MAX_DUST),
 				intConfigValue(GSConfigKey.STEP_SIZE),
 				booleanConfigValue(GSConfigKey.UPDATE_WITH_COMPLETE_GENOMES_ONLY),
-				null);
+				null,
+				booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES)) {
+			@Override
+			protected TaxIdNode reworkNode() {
+				TaxIdNode res = node;
+				if (fileNodes && file != null) {
+					if (!Rank.FILE.equals(res.getRank())) {
+						TaxIdNode c = res.getChildWithName(file.getName());
+						if (c != null) {
+							res = c;
+						}
+					}
+				}
+				if (idNodes) {
+					if (!Rank.ID.equals(res.getRank())) {
+						int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
+						if (pos < 0) {
+							pos = size;
+						}
+						TaxIdNode c = res.getChildWithName(target, 1, pos);
+						if (c != null) {
+							res = c;
+						}
+					}
+				}
+				return res;
+			}
+		};
 	}
 
 	protected class MyFastaReader extends AbstractStoreFastaReader {
@@ -112,8 +143,8 @@ public class DBGoal extends FastaReaderGoal<Database> {
 		private final UpdateValueProvider<String> provider;
 
 		public MyFastaReader(int bufferSize, TaxTree taxTree, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, KMerSortedArray<String> store,
-							 int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid) {
-			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid);
+							 int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
+			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases);
 			this.store = store;
 			provider = new UpdateValueProvider<String>() {
 				// Caches for last results of getLeastCommonAncestor()
@@ -142,18 +173,26 @@ public class DBGoal extends FastaReaderGoal<Database> {
 
 		@Override
 		protected void infoLine() {
-			if (!ignoreMap) {
+			if (ignoreMap) {
+				node = mappedNode;
+			}
+			else {
 				updateNodeFromInfoLine();
 			}
+
 			if (minUpdate) {
 				// This means we use all regions that overlap deal with our taxids.
 				// It might be more than what is in the DB but still less than the entire RefSeq.
 				if (node != null && (taxNodes.isEmpty() || taxNodes.contains(node))) {
 					includeRegion = true;
+					node = reworkNode();
 				}
 			}
 			else {
 				includeRegion = true;
+				if (node != null) {
+					node = reworkNode();
+				}
 			}
 		}
 

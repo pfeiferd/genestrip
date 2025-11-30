@@ -97,16 +97,17 @@ public class FillSizeGoal extends FastaReaderGoal<Long> {
 				intConfigValue(GSConfigKey.MAX_DUST),
 				intConfigValue(GSConfigKey.STEP_SIZE),
 				booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY),
-				regionsPerTaxid);
+				regionsPerTaxid,
+				booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES));
 		readers.add(fastaReader);
 		return fastaReader;
 	}
 
 	protected static class MyFastaReader extends AbstractStoreFastaReader {
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-				int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid) {
+				int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
 			super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId,
-					maxDust, stepSize, completeGenomesOnly, regionsPerTaxid);
+					maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases);
 		}
 
 		public long getIncludedKmers() {

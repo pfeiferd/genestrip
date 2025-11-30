@@ -41,7 +41,6 @@ import org.metagene.genestrip.refseq.AccessionMapImpl;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.util.GSLogFactory;
 
 public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> implements Goal.LogHeapInfo {
 	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
@@ -66,8 +65,8 @@ public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> implem
 	protected void doMakeThis() {
 		AccessionFileProcessor processor = new AccessionFileProcessor(categoriesGoal.get(),
 				(SeqType) configValue(GSConfigKey.SEQ_TYPE), (List<GSConfigKey.RefSeqStatus>) configValue(GSConfigKey.RES_SEQ_STATUS)) {
-			private AccessionMap map = new AccessionMapImpl(accessionMapSizeGoal.get());
 			private TaxTree taxTree = taxTreeGoal.get();
+			private AccessionMap map = new AccessionMapImpl(accessionMapSizeGoal.get());
 
 			@Override
 			public void processCatalog(StreamingResource catalogFile) {

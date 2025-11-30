@@ -75,6 +75,25 @@ public class DigitTrie<V> implements Serializable {
 		return node.value;
 	}
 
+	public V get(String digits, Object createContext) {
+		if (digits == null) {
+			return null;
+		}
+		DigitTrie<V> node = getNode(digits, createContext != null);
+		if (node == null) {
+			return null;
+		}
+		if (node.value == null && createContext != null) {
+			synchronized (node) {
+				if (node.value == null) {
+					node.value = createInGet(digits, createContext);
+				}
+			}
+		}
+
+		return node.value;
+	}
+
 	@SuppressWarnings("unchecked")
 	private DigitTrie<V> getNode(byte[] seq, int start, int end, boolean create) {
 		int index, pos;
@@ -113,7 +132,46 @@ public class DigitTrie<V> implements Serializable {
 		}
 		return node;
 	}
-	
+
+	@SuppressWarnings("unchecked")
+	private DigitTrie<V> getNode(String digits, boolean create) {
+		int index;
+		int end = digits.length();
+		DigitTrie<V> node = this, child;
+		for (int i = 0; i < end; i++, node = child) {
+			index = mapToIndex((byte) digits.charAt(i), i);
+			if (index < 0 || index >= range(i)) {
+				return null;
+			}
+			if (node.children == null) {
+				if (create) {
+					synchronized (node) {
+						if (node.children == null) {
+							node.children = new DigitTrie[range(i)];
+						}
+					}
+				} else {
+					return null;
+				}
+			}
+			child = node.children[index];
+			if (child == null) {
+				if (create) {
+					synchronized (node) {
+						child = node.children[index];
+						if (child == null) {
+							child = new DigitTrie<V>();
+							node.children[index] = child;
+						}
+					}
+				} else {
+					return null;
+				}
+			}
+		}
+		return node;
+	}
+
 	protected int mapToIndex(byte bite, int pos) {
 		return bite - '0';
 	}
@@ -128,51 +186,6 @@ public class DigitTrie<V> implements Serializable {
 
 	public V get(String digits) {
 		return get(digits, null);
-	}
-
-	public V get(String digits, Object createContext) {
-		if (digits == null) {
-			return null;
-		}
-		DigitTrie<V> node = getNode(digits, createContext != null);
-		if (node == null) {
-			return null;
-		}
-		if (node.value == null && createContext != null) {
-			node.value = createInGet(digits, createContext);
-		}
-
-		return node.value;
-	}
-
-	@SuppressWarnings("unchecked")
-	private DigitTrie<V> getNode(String digits, boolean create) {
-		int index;
-		int end = digits.length();
-		DigitTrie<V> node = this, child;
-		for (int i = 0; i < end; i++, node = child) {
-			index = mapToIndex((byte) digits.charAt(i), i);
-			if (index < 0 || index >= range(i)) {
-				return null;
-			}
-			if (node.children == null) {
-				if (create) {
-					node.children = new DigitTrie[range(i)];
-				} else {
-					return null;
-				}
-			}
-			child = node.children[index];
-			if (child == null) {
-				if (create) {
-					child = new DigitTrie<V>();
-					node.children[index] = child;
-				} else {
-					return null;
-				}
-			}
-		}
-		return node;
 	}
 
 	protected V createInGet(String digits, Object createContext) {

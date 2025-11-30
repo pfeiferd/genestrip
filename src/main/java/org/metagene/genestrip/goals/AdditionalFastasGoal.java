@@ -64,12 +64,12 @@ public class AdditionalFastasGoal extends ObjectGoal<Map<File, TaxIdNode>, GSPro
 
 	@Override
 	protected void doMakeThis() {
+		TaxTree taxTree = taxTreeGoal.get();
 		Map<File, TaxIdNode> res = new HashMap<File, TaxTree.TaxIdNode>();
 		File additonalEntryFile = getProject().getAdditionalFile();
 		if (additonalEntryFile.exists()) {
 			try (CSVParser parser = FORMAT
 					.parse(new InputStreamReader(StreamProvider.getInputStreamForFile(additonalEntryFile)))) {
-				TaxTree taxTree = taxTreeGoal.get();
 				for (CSVRecord record : parser) {
 					String taxid = record.get(0);
 					String fastaFilePath = record.get(1);
@@ -98,6 +98,7 @@ public class AdditionalFastasGoal extends ObjectGoal<Map<File, TaxIdNode>, GSPro
 				res.put(file, node);
 			}
 		}
+		taxTree.reinitPositions();
 
 		set(res);
 	}

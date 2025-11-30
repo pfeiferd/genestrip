@@ -24,6 +24,8 @@
  */
 package org.metagene.genestrip.refseq;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Set;
 
 import org.metagene.genestrip.fasta.AbstractFastaReader;
@@ -45,7 +47,9 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 
 	protected boolean includeRegion;
 	protected long kMersForNode;
+	protected TaxIdNode mappedNode;
 	protected TaxIdNode node;
+	protected File file;
 
 	protected boolean ignoreMap;
 	protected long bpsInRegion;
@@ -70,14 +74,19 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		this.maxKmersPerTaxId = maxKmersPerTaxId;
 		this.completeGenomesOnly = completeGenomesOnly;
 	}
-	
+
+	public void readFasta(File file) throws IOException {
+		this.file = file;
+		super.readFasta(file);
+	}
+
 	public StringLongDigitTrie getRegionsPerTaxid() {
 		return regionsPerTaxid;
 	}
 
 	public void ignoreAccessionMap(TaxIdNode node) {
 		this.ignoreMap = node != null;
-		this.node = node;
+		this.mappedNode = node;
 	}
 
 	@Override
@@ -102,10 +111,14 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	@Override
 	protected void infoLine() {
 		// Handle new region:
-		if (!ignoreMap) {
+		if (ignoreMap) {
+			node = mappedNode;
+		}
+		else {
 			updateNodeFromInfoLine();
 		}
 		if (node != null && (taxNodes.isEmpty() || taxNodes.contains(node))) {
+			node = reworkNode();
 			includeRegion = true;
 			kMersForNode = 0;
 			if (maxGenomesPerTaxIdRank == null) {
@@ -155,6 +168,10 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		}
 	}
 
+	protected TaxIdNode reworkNode() {
+		return node;
+	}
+
 	public static class StringLong2DigitTrie extends StringLongDigitTrie {
 		public void incAndAdd(String key, long add) {
 			((StringLong2) get(key, this)).incAndAdd(add);
@@ -169,7 +186,6 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		protected StringLong createInGet(byte[] seq, int start, int end, Object createContext) {
 			return new StringLong2(new String(seq, start, end - start));
 		}
-
 
 		public static class StringLong2 extends StringLong {
 			private long longValue2;

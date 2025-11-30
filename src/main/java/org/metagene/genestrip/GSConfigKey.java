@@ -162,6 +162,12 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("Stores *k*-mers in steps of `stepSize`. " +
 			"E.g. if `stepSize=2` then only every second *k*-mer from a genome is considered for entry into the database.")
 	STEP_SIZE("stepSize", new IntConfigParamInfo(1, Integer.MAX_VALUE, 1), GSGoalKey.DB),
+	@MDDescription("Whether to add artificial nodes in the tax tree to represent ids after '>' from fasta info lines for *k*-mers. BEWARE: This may cause a database build to fail as only up to 32767 tax ids are allowed.")
+	ID_NODES("idNodes", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
+	@MDDescription("Whether to add artificial nodes in the tax tree to represent fasta files for *k*-mers.")
+	FILE_NODES("fileNodes", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
+	@MDDescription("Whether to accept lowercase bases for *k*-mers.")
+	ENABLE_LOWERCASE_BASES("lowerCaseBases", new BooleanConfigParamInfo(true), false, GSGoalKey.DB),
 
 	// Match
 	@MDDescription("Affects the log level `trace`: Defines after how many reads per fastq file, information on the matching progress is logged. If less than 1, then no progress information is logged.")

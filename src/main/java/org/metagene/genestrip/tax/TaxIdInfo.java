@@ -28,7 +28,9 @@ import java.io.Serializable;
 
 public class TaxIdInfo implements Serializable, Comparable<TaxIdInfo> {
 	private static final long serialVersionUID = 1L;
-	
+
+	public static String ARTIFICIAL_PREFIX = "00";
+
 	public final String taxId;
 	protected String name;
 	protected short rank;
@@ -67,5 +69,9 @@ public class TaxIdInfo implements Serializable, Comparable<TaxIdInfo> {
 	@Override
 	public String toString() {
 		return "Node: " + taxId;
+	}
+
+	public boolean isArtificialTaxIdInfo() {
+		return taxId.charAt(0) == '0' && taxId.charAt(1) == '0';
 	}
 }

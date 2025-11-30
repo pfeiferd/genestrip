@@ -35,12 +35,16 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 	protected final CGATLongBuffer byteRingBuffer;
 	protected long dustCounter;
 	protected long totalKmers;
-	
+
+	private boolean enableLowerCaseBases;
+
 	public AbstractStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank,
-									long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid) {
+									long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid,
+									boolean enableLowerCaseBases) {
 		super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, stepSize, completeGenomesOnly, regionsPerTaxid);
 		byteRingBuffer = new CGATLongBuffer(k, maxDust);
 		dustCounter = 0;
+		this.enableLowerCaseBases = enableLowerCaseBases;
 	}
 
 	@Override
@@ -54,7 +58,7 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 		if (includeRegion) {
 			if (isAllowMoreKmers()) {
 				for (int i = 0; i < size - 1; i++) {
-					byteRingBuffer.put(CGAT.cgatToUpperCase(target[i]));
+					byteRingBuffer.put(enableLowerCaseBases ? CGAT.cgatToUpperCase(target[i]) : target[i]);
 					bpsInRegion++;
 					if (bpsInRegion % stepSize == 0) {
 						if (byteRingBuffer.isFilled()) {

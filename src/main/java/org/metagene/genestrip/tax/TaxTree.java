@@ -44,6 +44,13 @@ import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 public class TaxTree {
 	private static final int MAX_LINE_SIZE = 4096;
 
+	private int nextArtCounter = 1;
+	private byte[] nextArtBuffer = new byte[128];
+	{
+		nextArtBuffer[0] = '0';
+		nextArtBuffer[1] = '0';
+	}
+
 	public static final Comparator<TaxIdNode> NODE_COMPARATOR = new Comparator<TaxIdNode>() {
 		@Override
 		public int compare(TaxIdNode a, TaxIdNode b) {
@@ -180,6 +187,47 @@ public class TaxTree {
 		return res;
 	}
 
+	public TaxIdNode fileNode(TaxIdNode node, String name) {
+		TaxIdNode substitute = node.getChildWithName(name);
+		if (substitute == null) {
+			synchronized (node) {
+				substitute = node.getChildWithName(name);
+				if (substitute == null) {
+					substitute = taxIdNodeTrie.get(nextArtificialTaxId(), true);
+					substitute.rank = (short) Rank.FILE.ordinal();
+					substitute.name = name;
+					node.addSubNode(substitute);
+				}
+			}
+		}
+		return substitute;
+	}
+
+	public TaxIdNode idNode(TaxIdNode node, byte[] array, int start, int end) {
+		TaxIdNode substitute = node.getChildWithName(array, start, end);
+		if (substitute == null) {
+			synchronized (node) {
+				substitute = node.getChildWithName(array, start, end);
+				if (substitute == null) {
+					substitute = taxIdNodeTrie.get(nextArtificialTaxId(), true);
+					substitute.rank = (short) Rank.ID.ordinal();
+					substitute.name = new String(array, start, end - start);
+					node.addSubNode(substitute);
+				}
+			}
+		}
+		return substitute;
+	}
+
+	private synchronized String nextArtificialTaxId() {
+		int len = ByteArrayUtil.intToByteArray(nextArtCounter++, nextArtBuffer, 2);
+		return new String(nextArtBuffer, 0, len);
+	}
+
+	public void reinitPositions() {
+		initPositions(0, root);
+	}
+
 	protected int initPositions(int counter, TaxIdNode taxIdNode) {
 		taxIdNode.position = counter;
 		List<TaxIdNode> subNodes = taxIdNode.subNodes;
@@ -227,6 +275,32 @@ public class TaxTree {
 			subNodes = null;
 		}
 
+		public TaxIdNode getChildWithName(String name) {
+			if (subNodes == null) {
+				return null;
+			}
+			for (int i = 0; i < subNodes.size(); i++) {
+				TaxIdNode child = subNodes.get(i);
+				if (child.name.equals(name)) {
+					return child;
+				}
+			}
+			return null;
+		}
+
+		public TaxIdNode getChildWithName(byte[] array, int start, int end) {
+			if (subNodes == null) {
+				return null;
+			}
+			for (int i = 0; i < subNodes.size(); i++) {
+				TaxIdNode child = subNodes.get(i);
+				if (ByteArrayUtil.equals(array, start, end, child.name)) {
+					return child;
+				}
+			}
+			return null;
+		}
+
 		public void incRefSeqRegions() {
 			for (TaxIdNode node = this; node != null; node = node.parent) {
 				node.refSeqRegions++;
@@ -272,6 +346,11 @@ public class TaxTree {
 		@Override
 		protected TaxIdNode createInGet(byte[] seq, int start, int end, Object createContext) {
 			return new TaxIdNode(new String(seq, start, end - start), null);
+		}
+
+		@Override
+		protected TaxIdNode createInGet(String digits, Object createContext) {
+			return new TaxIdNode(digits, null);
 		}
 	}
 }

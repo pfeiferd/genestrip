@@ -39,7 +39,10 @@ public enum Rank {
 	NO_RANK("no rank", -1),
 	// Recently (newly found ranks) to be added here to preserve order via ordinal from further up.
 	SUBKINGDOM("subkingdom", KINGDOM.ordinal() + 10),
-	SECTION("section", GENUS.ordinal() + 10);
+	SECTION("section", GENUS.ordinal() + 10),
+	// Additional, artificial ranks for tracking where k-mers originate from:
+	FILE("FILE", -1),
+	ID("ID", -1),;
 
 	public static final int INDETERMINATE_LEVEL = -1;
 

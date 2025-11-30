@@ -31,7 +31,6 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import it.unimi.dsi.fastutil.BigArrays;
 import it.unimi.dsi.fastutil.BigSwapper;
 import it.unimi.dsi.fastutil.longs.LongComparator;
-import org.metagene.genestrip.util.ByteArrayUtil;
 
 public class AccessionMapImpl implements AccessionMap {
 	private final byte[][] keys;
@@ -64,6 +63,7 @@ public class AccessionMapImpl implements AccessionMap {
 		}
 		return values[pos];
 	}
+
 
 	public int getEntriesForNode(TaxIdNode node) {
 		int counter = 0;
