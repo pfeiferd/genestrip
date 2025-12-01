@@ -126,7 +126,9 @@ public enum GSGoalKey implements GoalKey {
 	@MDDescription("For internal use (to write kraken results to a file).")
 	KRAKENRES("krakenres"),
 	@MDDescription("Download and install a project's database via a given URL.")
-	DB_DOWNLOAD("dbdownload");
+	DB_DOWNLOAD("dbdownload"),
+	@MDDescription("Check whether the stored RefSeq release is equal to the current release on the download server.")
+	CHECK_REFSEQ_RNUM("checkrefseqrnum");
 
 	private final boolean forUser;
 	private final String name;
