@@ -40,20 +40,7 @@ import org.metagene.genestrip.goals.genbank.FastaFilesGenbankDownloadGoal;
 import org.metagene.genestrip.goals.genbank.TaxNodesFromGenbankGoal;
 import org.metagene.genestrip.goals.kraken.KrakenResCountGoal;
 import org.metagene.genestrip.goals.kraken.KrakenResFileGoal;
-import org.metagene.genestrip.goals.refseq.AccessionMapGoal;
-import org.metagene.genestrip.goals.refseq.AccessionMapSizeGoal;
-import org.metagene.genestrip.goals.refseq.BloomIndexGoal;
-import org.metagene.genestrip.goals.refseq.CategoriesGoal;
-import org.metagene.genestrip.goals.refseq.CheckSumMapGoal;
-import org.metagene.genestrip.goals.refseq.DBGoal;
-import org.metagene.genestrip.goals.refseq.FillBloomFilterGoal;
-import org.metagene.genestrip.goals.refseq.FillDBGoal;
-import org.metagene.genestrip.goals.refseq.FillSizeGoal;
-import org.metagene.genestrip.goals.refseq.RefSeqCatalogDownloadGoal;
-import org.metagene.genestrip.goals.refseq.RefSeqFnaFilesDownloadGoal;
-import org.metagene.genestrip.goals.refseq.RefSeqRNumDownloadGoal;
-import org.metagene.genestrip.goals.refseq.StoreDBGoal;
-import org.metagene.genestrip.goals.refseq.StoreIndexGoal;
+import org.metagene.genestrip.goals.refseq.*;
 import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.FileListGoal;
@@ -240,8 +227,11 @@ public class GSMaker extends Maker<GSProject> {
         ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal = new CategoriesGoal(project, projectSetupGoal);
         registerGoal(categoriesGoal);
 
+        ObjectGoal<Boolean, GSProject> checkRefSeqRNumGoal = new CheckRefSeqRNumGoal(project, releaseNumberGoal);
+        registerGoal(checkRefSeqRNumGoal);
+
         RefSeqFnaFilesDownloadGoal refSeqFnaFilesGoal = new RefSeqFnaFilesDownloadGoal(project, categoriesGoal,
-                refSeqCatalogGoal, checkSumMapGoal);
+                refSeqCatalogGoal, checkSumMapGoal, checkRefSeqRNumGoal);
         registerGoal(refSeqFnaFilesGoal);
 
         ObjectGoal<Integer, GSProject> accessMapSizeGoal = new AccessionMapSizeGoal(project, categoriesGoal,

@@ -52,6 +52,7 @@ public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
 
 	private final ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal;
 	private final RefSeqCatalogDownloadGoal catalogDLGoal;
+	private final ObjectGoal<Boolean, GSProject> checkReleaseNGoal;
 	private List<File> files;
 	private Map<File, RefSeqCategory> file2Cat;
 	private ObjectGoal<Map<String, String>, GSProject> checkSumGoal;
@@ -59,13 +60,31 @@ public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
 	@SafeVarargs
 	public RefSeqFnaFilesDownloadGoal(GSProject project, 
 			ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal, RefSeqCatalogDownloadGoal catalogDLGoal,
-			ObjectGoal<Map<String, String>, GSProject> checkSumGoal,
+			ObjectGoal<Map<String, String>, GSProject> checkSumGoal, ObjectGoal<Boolean, GSProject> checkReleaseNGoal,
 			Goal<GSProject>... deps) {
-		super(project, GSGoalKey.REFSEQFNA, Goal.append(deps, categoriesGoal, catalogDLGoal, checkSumGoal));
+		super(project, GSGoalKey.REFSEQFNA, Goal.append(deps, categoriesGoal, catalogDLGoal, checkSumGoal, checkReleaseNGoal));
 
 		this.categoriesGoal = categoriesGoal;
 		this.catalogDLGoal = catalogDLGoal;
 		this.checkSumGoal = checkSumGoal;
+		this.checkReleaseNGoal = checkReleaseNGoal;
+	}
+
+	@Override
+	public boolean isMade() {
+		checkReleaseNGoal.get();
+		return super.isMade();
+	}
+
+	@Override
+	protected void makeFile(File file) throws IOException {
+		if (!checkReleaseNGoal.get()) {
+			if (getLogger().isWarnEnabled()) {
+				getLogger().warn("MD5 check will likely fail as you are working with an outdated RefSeq release.");
+			}
+		}
+
+		super.makeFile(file);
 	}
 
 	public RefSeqCategory getCategoryForFile(File file) {

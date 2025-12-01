@@ -182,6 +182,7 @@ public abstract class FileDownloadGoal<P extends Project> extends FileGoal<P> {
 
 	@Override
 	protected void startMake() {
+		super.startMake();
 		if (!isUseHttp()) {
 			ftpClient = createFTPClient();
 		}
