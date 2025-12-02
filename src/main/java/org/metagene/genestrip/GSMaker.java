@@ -227,7 +227,7 @@ public class GSMaker extends Maker<GSProject> {
         ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal = new CategoriesGoal(project, projectSetupGoal);
         registerGoal(categoriesGoal);
 
-        ObjectGoal<Boolean, GSProject> checkRefSeqRNumGoal = new CheckRefSeqRNumGoal(project, releaseNumberGoal);
+        ObjectGoal<CheckRefSeqRNumGoal.Result, GSProject> checkRefSeqRNumGoal = new CheckRefSeqRNumGoal(project, releaseNumberGoal);
         registerGoal(checkRefSeqRNumGoal);
 
         RefSeqFnaFilesDownloadGoal refSeqFnaFilesGoal = new RefSeqFnaFilesDownloadGoal(project, categoriesGoal,

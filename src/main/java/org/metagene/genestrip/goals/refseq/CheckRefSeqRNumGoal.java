@@ -11,7 +11,9 @@ import java.io.*;
 import java.net.URL;
 import java.nio.file.Files;
 
-public class CheckRefSeqRNumGoal extends ObjectGoal<Boolean, GSProject> {
+public class CheckRefSeqRNumGoal extends ObjectGoal<CheckRefSeqRNumGoal.Result, GSProject> {
+    public enum Result { CURRENT, OUTDATED, UNKNOWN }
+
     private final FileGoal<GSProject> releaseNumberGoal;
 
     public CheckRefSeqRNumGoal(GSProject project, FileGoal<GSProject> releaseNumberGoal, Goal<GSProject>... deps) {
@@ -28,7 +30,7 @@ public class CheckRefSeqRNumGoal extends ObjectGoal<Boolean, GSProject> {
                 for (int c = inputStream.read(); c != -1; c = inputStream.read()) {
                     out.write(c);
                 }
-                String currentReleaseNumber = new String(out.toByteArray()).trim();
+                String currentReleaseNumber = out.toString().trim();
                 byte[] encoded = Files.readAllBytes(releaseNumberGoal.getFile().toPath());
                 String releaseNumber = new String(encoded).trim();
 
@@ -38,14 +40,14 @@ public class CheckRefSeqRNumGoal extends ObjectGoal<Boolean, GSProject> {
                         getLogger().warn("You are working with an outdated RefSeq release. Your release: " + releaseNumber + ". Current release: " + currentReleaseNumber);
                     }
                 }
-                set(equal);
+                set(equal ? Result.CURRENT : Result.OUTDATED);
             }
         }
         catch (IOException e) {
+            set(Result.UNKNOWN);
             if (getLogger().isErrorEnabled()) {
                 getLogger().error("The current RefSeq release could not be determined.", e);
             }
-            set(false);
         }
     }
 
