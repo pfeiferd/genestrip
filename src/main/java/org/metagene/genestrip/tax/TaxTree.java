@@ -45,11 +45,6 @@ public class TaxTree {
 	private static final int MAX_LINE_SIZE = 4096;
 
 	private int nextArtCounter = 1;
-	private byte[] nextArtBuffer = new byte[128];
-	{
-		nextArtBuffer[0] = '0';
-		nextArtBuffer[1] = '0';
-	}
 
 	public static final Comparator<TaxIdNode> NODE_COMPARATOR = new Comparator<TaxIdNode>() {
 		@Override
@@ -187,13 +182,13 @@ public class TaxTree {
 		return res;
 	}
 
-	public TaxIdNode fileNode(TaxIdNode node, String name) {
+	public TaxIdNode fileNode(TaxIdNode node, String name, IDStringGenerator idStringGenerator) {
 		TaxIdNode substitute = node.getChildWithName(name);
 		if (substitute == null) {
 			synchronized (node) {
 				substitute = node.getChildWithName(name);
 				if (substitute == null) {
-					substitute = taxIdNodeTrie.get(nextArtificialTaxId(), true);
+					substitute = taxIdNodeTrie.get(idStringGenerator.generateID(nextArtCounter++), true);
 					substitute.rank = (short) Rank.FILE.ordinal();
 					substitute.name = name;
 					node.addSubNode(substitute);
@@ -203,13 +198,13 @@ public class TaxTree {
 		return substitute;
 	}
 
-	public TaxIdNode idNode(TaxIdNode node, byte[] array, int start, int end) {
+	public TaxIdNode idNode(TaxIdNode node, byte[] array, int start, int end, IDStringGenerator idStringGenerator) {
 		TaxIdNode substitute = node.getChildWithName(array, start, end);
 		if (substitute == null) {
 			synchronized (node) {
 				substitute = node.getChildWithName(array, start, end);
 				if (substitute == null) {
-					substitute = taxIdNodeTrie.get(nextArtificialTaxId(), true);
+					substitute = taxIdNodeTrie.get(idStringGenerator.generateID(nextArtCounter++), true);
 					substitute.rank = (short) Rank.ID.ordinal();
 					substitute.name = new String(array, start, end - start);
 					node.addSubNode(substitute);
@@ -217,11 +212,6 @@ public class TaxTree {
 			}
 		}
 		return substitute;
-	}
-
-	private synchronized String nextArtificialTaxId() {
-		int len = ByteArrayUtil.intToByteArray(nextArtCounter++, nextArtBuffer, 2);
-		return new String(nextArtBuffer, 0, len);
 	}
 
 	public void reinitPositions() {
@@ -352,5 +342,9 @@ public class TaxTree {
 		protected TaxIdNode createInGet(String digits, Object createContext) {
 			return new TaxIdNode(digits, null);
 		}
+	}
+
+	public interface IDStringGenerator {
+		public String generateID(int counter);
 	}
 }

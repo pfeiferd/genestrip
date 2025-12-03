@@ -139,6 +139,19 @@ public class FillDBGoal extends FastaReaderGoal<Database>  implements Goal.LogHe
 		TaxTree taxTree = taxTreeGoal.get();
 		boolean idNodes = booleanConfigValue(GSConfigKey.ID_NODES);
 		boolean fileNodes = booleanConfigValue(GSConfigKey.FILE_NODES);
+
+		byte[] idBuffer = new byte[128];
+		idBuffer[0] = '0';
+		idBuffer[1] = '0';
+
+		TaxTree.IDStringGenerator idStringGenerator = new TaxTree.IDStringGenerator() {
+			@Override
+			public String generateID(int counter) {
+				int len = ByteArrayUtil.intToByteArray(counter, idBuffer, 2);
+				return new String(idBuffer, 0, len);
+			}
+		};
+
 		MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
 				taxNodesGoal.get(), isIncludeRefSeqFna() ? accessionMapGoal.get() : null, store,
 				intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
@@ -154,7 +167,7 @@ public class FillDBGoal extends FastaReaderGoal<Database>  implements Goal.LogHe
 				TaxIdNode res = node;
 				if (fileNodes && file != null) {
 					if (!Rank.FILE.equals(res.getRank())) {
-						res = taxTree.fileNode(res, file.getName());
+						res = taxTree.fileNode(res, file.getName(), idStringGenerator);
 					}
 				}
 				if (idNodes) {
@@ -163,7 +176,7 @@ public class FillDBGoal extends FastaReaderGoal<Database>  implements Goal.LogHe
 						if (pos < 0) {
 							pos = size;
 						}
-						res = taxTree.idNode(res, target, 1, pos);
+						res = taxTree.idNode(res, target, 1, pos, idStringGenerator);
 					}
 				}
 				return res;
