@@ -583,6 +583,10 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		return indexMap[index];
 	}
 
+	public short indexAtPosition(long pos) {
+		return largeKmers != null ? BigArrays.get(largeValueIndexes, pos) : valueIndexes[(int) pos];
+	}
+
 	@Override
 	public void optimize() {
 		if (sorted) {

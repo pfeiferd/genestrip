@@ -90,7 +90,11 @@ public class Main {
 		project.setDownloadFastqs(download);
 		project.setDownloadFastqsToCommon(downloadToCommon);
 
-		maker = new GSMaker(project);
+		maker = createMaker(project);
+	}
+
+	protected GSMaker createMaker(GSProject project) {
+		return new GSMaker(project);
 	}
 
 	public String getTarget() {
