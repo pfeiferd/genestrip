@@ -147,6 +147,7 @@ public class FillBloomFilterGoal extends FastaReaderGoal<Long> implements Goal.L
                     }
                 } else {
                     filter.putLong(kmer);
+                    return true;
                 }
             }
             return false;
