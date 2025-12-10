@@ -180,7 +180,7 @@ public class GSMaker extends Maker<GSProject> {
         // Create or clear project directories
 
         List<File> projectDirs = Arrays.asList(project.getFastaDir(), project.getFastqDir(), project.getDBDir(),
-                project.getKrakenOutDir(), project.getResultsDir(), project.getLogDir());
+                project.getKrakenOutDir(), project.getResultsDir(), project.getLogDir(), project.getTxtDir());
 
         Goal<GSProject> projectSetupGoal = new FileListGoal<GSProject>(project, GSGoalKey.SETUP, projectDirs,
                 commonSetupGoal) {

@@ -50,7 +50,7 @@ public class GSProject extends Project {
 
 	public enum FileType {
 		FASTQ_RES(".fastq"), FASTQ(".fastq"), FASTA(".fasta"), CSV(".csv"), KRAKEN_OUT(".out"), KRAKEN_OUT_RES(".out"),
-		SER(".ser"), DB(".zip"), FILTER(".ser"), LOG(".log");
+		SER(".ser"), DB(".zip"), FILTER(".ser"), LOG(".log"), TXT(".txt");
 
 		private final String suffix;
 
@@ -221,6 +221,8 @@ public class GSProject extends Project {
 			return getDBDir();
 		case LOG:
 			return getLogDir();
+		case TXT:
+			return getTxtDir();
 		default:
 			throw new IllegalArgumentException("Illegal FileType: " + type);
 		}
@@ -364,6 +366,10 @@ public class GSProject extends Project {
 
 	public File getLogDir() {
 		return new File(getProjectDir(), "log");
+	}
+
+	public File getTxtDir() {
+		return new File(getProjectDir(), "txt");
 	}
 
 	public File getFilterFile(Goal<GSProject> goal) {
