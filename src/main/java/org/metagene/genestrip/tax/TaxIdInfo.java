@@ -53,6 +53,10 @@ public class TaxIdInfo implements Serializable, Comparable<TaxIdInfo> {
 		return Rank.byOrdinal(rank);
 	}
 
+	public final int getRankOrdinal() {
+		return rank;
+	}
+
 	public String getName() {
 		return name;
 	}

@@ -58,6 +58,11 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		root.initTrie(taxIdNodeTrie);
 	}
 
+	public void reinit() {
+		root.initPositions(0);
+		root.initTrie(taxIdNodeTrie);
+	}
+
 	public void initCountSize(int countSize) {
 		if (countSize <= 0) {
 			throw new IllegalArgumentException("Initialization size must by >= 0.");
@@ -264,7 +269,17 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 				}
 			}
 		}
-		
+
+		private int initPositions(int counter) {
+			position = counter;
+			if (subNodes != null) {
+				for (int i = 0; i < subNodes.length; i++) {
+					counter = subNodes[i].initPositions(counter + 1);
+				}
+			}
+			return counter;
+		}
+
 		public boolean isRequested() {
 			return position < 0;
 		}
@@ -293,6 +308,10 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		
 		public SmallTaxIdNode[] getSubNodes() {
 			return subNodes;
+		}
+
+		public void setSubNodes(SmallTaxIdNode[] subNodes) {
+			this.subNodes = subNodes;
 		}
 
 		public final void incCount(final int index, final long initKey, final int size) {
