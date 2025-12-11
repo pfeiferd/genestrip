@@ -94,7 +94,7 @@ public class TaxTree {
 				}
 			}
 
-			initPositions(0, root);
+			root.initPositions(0);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -215,20 +215,7 @@ public class TaxTree {
 	}
 
 	public void reinitPositions() {
-		initPositions(0, root);
-	}
-
-	protected int initPositions(int counter, TaxIdNode taxIdNode) {
-		taxIdNode.position = counter;
-		List<TaxIdNode> subNodes = taxIdNode.subNodes;
-		if (subNodes != null) {
-			// Not using iterator for more efficiency (less object burn)
-			int size = subNodes.size();
-			for (int i = 0; i < size; i++) {
-				counter = initPositions(counter + 1, subNodes.get(i));
-			}
-		}
-		return counter;
+		root.initPositions(0);
 	}
 
 	public static List<TaxIdNode> sortNodes(List<TaxIdNode> taxids) {
@@ -276,6 +263,18 @@ public class TaxTree {
 				}
 			}
 			return null;
+		}
+
+		protected int initPositions(int counter) {
+			position = counter;
+			if (subNodes != null) {
+				// Not using iterator for more efficiency (less object burn)
+				int size = subNodes.size();
+				for (int i = 0; i < size; i++) {
+					counter = subNodes.get(i).initPositions(counter + 1);
+				}
+			}
+			return counter;
 		}
 
 		public TaxIdNode getChildWithName(byte[] array, int start, int end) {
