@@ -25,8 +25,10 @@
 package org.metagene.genestrip.goals;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
+import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.Goal;
@@ -64,9 +66,9 @@ public class DB2FastqTaxNodesGoal extends ObjectGoal<Set<SmallTaxIdNode>, GSProj
 			}
 		}
 
-		String encodedTaxIds = getProject().getTaxids();
-		if (encodedTaxIds != null) {
-			String[] taxids = encodedTaxIds.split(",");
+		List<String> taxidList = (List<String>)getProject().configValue(GSConfigKey.TAX_IDS);
+		if (taxidList != null && !taxidList.isEmpty()) {
+			String[] taxids = taxidList.toArray(new String[taxidList.size()]);
 			boolean[] withDescs = new boolean[taxids.length];
 			for (int i = 0; i < taxids.length; i++) {
 				if (taxids[i].endsWith("+")) {

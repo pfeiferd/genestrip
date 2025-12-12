@@ -116,6 +116,9 @@ public class GSProject extends Project {
 
 		properties = new Properties[3];
 		properties[0] = commandLineProps == null ? new Properties() : commandLineProps;
+		if (taxids != null) {
+			properties[0].setProperty(GSConfigKey.TAX_IDS.getName(), taxids);
+		}
 		properties[1] = loadConfigProperties(getProjectDir(), quietInit);
 		properties[2] = loadConfigProperties(getCommon().getBaseDir(), quietInit);
 
@@ -180,10 +183,6 @@ public class GSProject extends Project {
 
 	public String getFastqMapFile() {
 		return fastqMapFile;
-	}
-
-	public String getTaxids() {
-		return taxids;
 	}
 
 	public boolean isDownloadFastqs() {

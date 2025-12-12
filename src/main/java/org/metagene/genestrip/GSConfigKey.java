@@ -26,10 +26,7 @@ package org.metagene.genestrip;
 
 import java.io.PrintStream;
 import java.lang.annotation.Annotation;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.StringTokenizer;
+import java.util.*;
 
 import org.metagene.genestrip.genbank.AssemblySummaryReader.AssemblyQuality;
 import org.metagene.genestrip.goals.MDDescription;
@@ -222,6 +219,24 @@ public enum GSConfigKey implements ConfigKey {
 	POS_RATIO_FILTER("posRatioFilter", new DoubleConfigParamInfo(0, 1, 0.2), GSGoalKey.FILTER),
 	@MDDescription("Whether to process bp probabilities and potentially write them to filtered fastq files. (Takes slightly more memory if `true`.)")
 	WITH_PROBS("withProbs", new BooleanConfigParamInfo(false),  GSGoalKey.FILTER, GSGoalKey.MATCH, GSGoalKey.MATCHLR),
+
+	// DB 2 Fastq Goal
+	TAX_IDS("taxids", new ListConfigParamInfo<String>(Collections.emptyList()) {
+		@Override
+		protected List<String> fromString(String s) {
+			List<String> res = new ArrayList<>();
+			if (s != null && !s.isEmpty()) {
+				String[] ss = s.split(",");
+				for (int i = 0; i < ss.length; i++) {
+					String t = ss[i].trim();
+					if (!t.isEmpty()) {
+						res.add(t);
+					}
+				}
+			}
+			return res;
+		}
+	}, GSGoalKey.DB2FASTQ_TAXIDS, GSGoalKey.DB2FASTQ),
 
 	// Kraken
 	KRAKEN_BIN("krakenBin", new StringConfigParamInfo("krakenuniq"), true),

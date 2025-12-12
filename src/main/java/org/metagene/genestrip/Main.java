@@ -159,7 +159,7 @@ public class Main {
         options.addOption(resFolder);
 
         Option tax = Option.builder("tx").hasArg().argName("taxids").desc(
-                        "List of tax ids separated by ',' (but no blanks) for the goal 'db2fastq'. A tax id may have the suffix '+', which means that taxonomic descendants from the project's database will be included.")
+                        "List of tax ids separated by ',' (but no blanks) for the goal 'db2fastq'. A tax id may have the suffix '+', which means that taxonomic descendants from the project's database will be included. It can alternatively be set via the configuration parameter 'taxid' .")
                 .build();
         options.addOption(tax);
 
@@ -179,7 +179,7 @@ public class Main {
         options.addOption(db);
 
         Option propsOption = Option.builder("C").hasArgs().valueSeparator('=').argName("key>=<value")
-                .desc("To set Genestrip configuration paramaters via the command line.").build();
+                .desc("To set Genestrip configuration parameters via the command line.").build();
         options.addOption(propsOption);
 
         return options;
