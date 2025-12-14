@@ -58,9 +58,18 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		root.initTrie(taxIdNodeTrie);
 	}
 
-	public void reinit() {
+	public SmallTaxIdNode setSubNodes(String taxId, SmallTaxIdNode[] subNodes) {
+		SmallTaxIdNode node = taxIdNodeTrie.get(taxId);
+		if (node != null) {
+			node.setSubNodes(subNodes);
+			node.initTrie(taxIdNodeTrie);
+		}
+
+		return node;
+	}
+
+	public void reinitPositions() {
 		root.initPositions(0);
-		root.initTrie(taxIdNodeTrie);
 	}
 
 	public void initCountSize(int countSize) {
@@ -230,6 +239,7 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		private long[] countsInitKeys;
 		// Made public for inlining
 		public transient short storeIndex;
+		private boolean requested;
 
 		public SmallTaxIdNode(String taxId) {
 			this(taxId, null);
@@ -281,13 +291,11 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		}
 
 		public boolean isRequested() {
-			return position < 0;
+			return requested;
 		}
 		
 		public void setRequested(boolean value) {
-			if (isRequested() != value) {
-				position = -position - 1;
-			}
+			requested = value;
 		}
 
 		public SmallTaxIdNode getParent() {
@@ -302,15 +310,11 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 			this.storeIndex = storeIndex;
 		}
 
-		public int getPosition() {
-			return position < 0 ? -position - 1 : position;
-		}
-		
 		public SmallTaxIdNode[] getSubNodes() {
 			return subNodes;
 		}
 
-		public void setSubNodes(SmallTaxIdNode[] subNodes) {
+		private void setSubNodes(SmallTaxIdNode[] subNodes) {
 			this.subNodes = subNodes;
 		}
 
@@ -358,6 +362,7 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 			out.writeUTF(taxId);
 			out.writeUTF(name);
 			out.writeInt(position);
+			out.writeBoolean(requested);
 			if (subNodes != null) {
 				out.writeShort(subNodes.length);
 				for (int i = 0; i < subNodes.length; i++) {
@@ -374,6 +379,7 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 			SmallTaxIdNode node = new SmallTaxIdNode(taxId, Rank.byOrdinal(rank));
 			node.name = in.readUTF();
 			node.position = in.readInt();
+			node.requested = in.readBoolean();
 			int size = in.readShort();
 			if (size > 0) {
 				node.subNodes = new SmallTaxIdNode[size];

@@ -98,7 +98,7 @@ public class AdditionalFastasGoal extends ObjectGoal<Map<File, TaxIdNode>, GSPro
 				res.put(file, node);
 			}
 		}
-		taxTree.reinitPositions();
+		// taxTree.reinitPositions();
 
 		set(res);
 	}

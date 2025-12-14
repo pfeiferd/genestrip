@@ -91,6 +91,10 @@ public class FillDBGoal extends FastaReaderGoal<Database>  implements Goal.LogHe
 
 		try {
 			readFastas();
+			TaxTree taxTree = taxTreeGoal.get();
+			// New nodes might have been added as file or id nodes. We must therefore reestablish
+			// pre-order positions:
+			taxTree.reinitPositions();
 			long tooManyCounter = 0;
 			for (MyFastaReader reader : readers) {
 				tooManyCounter += reader.tooManyCounter;
@@ -103,16 +107,7 @@ public class FillDBGoal extends FastaReaderGoal<Database>  implements Goal.LogHe
 				getLogger().info("Unused kmers spots: " + unused +
 						" (corresponds to " + ((100d * unused) / store.getSize()) + " %)");
 			}
-			TaxTree taxTree = taxTreeGoal.get();
-			taxTree.reinitPositions();
-			Iterator<String> taxIt = store.getValues();
-			while (taxIt.hasNext()) {
-				TaxIdNode node = taxTree.getNodeByTaxId(taxIt.next());
-				if (node != null) {
-					node.markRequired();
-				}
-			}
-			SmallTaxTree smallTaxTree = taxTreeGoal.get().toSmallTaxTree();
+			SmallTaxTree smallTaxTree = taxTree.toSmallTaxTree();
 			for (TaxIdNode node : taxNodesGoal.get()) {
 				SmallTaxIdNode smallNode = smallTaxTree.getNodeByTaxId(node.getTaxId());
 				if (smallNode != null) {
@@ -164,6 +159,7 @@ public class FillDBGoal extends FastaReaderGoal<Database>  implements Goal.LogHe
 				booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES)) {
 			@Override
 			protected TaxIdNode reworkNode() {
+				node.markRequired();
 				TaxIdNode res = node;
 				if (fileNodes && file != null) {
 					if (!Rank.FILE.equals(res.getRank())) {
@@ -179,6 +175,7 @@ public class FillDBGoal extends FastaReaderGoal<Database>  implements Goal.LogHe
 						res = taxTree.idNode(res, target, 1, pos, idStringGenerator);
 					}
 				}
+				res.markRequired();
 				return res;
 			}
 		};
