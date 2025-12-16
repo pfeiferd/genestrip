@@ -67,7 +67,7 @@ public abstract class AbstractKMerBloomFilter implements Serializable {
 		entries = 0;
 	}
 
-	public void ensureExpectedSize(long expectedInsertions, boolean enforceLarge) {
+	public long ensureExpectedSize(long expectedInsertions, boolean enforceLarge) {
 		if (expectedInsertions < 0) {
 			throw new IllegalArgumentException("expected insertions must be > 0");
 		}
@@ -81,6 +81,7 @@ public abstract class AbstractKMerBloomFilter implements Serializable {
 				hashFactors[i] = random.nextLong();
 			}
 		}
+		return bits;
 	}
 
 	public long getExpectedInsertions() {
