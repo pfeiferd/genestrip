@@ -113,7 +113,7 @@ public abstract class AbstractKMerBloomFilter implements Serializable {
 	}
 
 	protected int optimalNumOfHashFunctions(long n, long m) {
-		return Math.max(1, (int) Math.round((double) m / n * Math.log(2)));
+		return Math.max(1, (int) Math.round(((double) m) / n * Math.log(2)));
 	}
 
 	protected long optimalNumOfBits(long n, double p) {
