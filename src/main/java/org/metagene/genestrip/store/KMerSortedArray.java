@@ -297,7 +297,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			throw new NullPointerException("null is not allowed as a value.");
 		}
 		sorted = false;
-		long index;
+		long pos;
 		short sindex;
 		if (filter.containsLong(kmer)) {
 			// Fail fast - we could check if the kmer is indeed stored, but it's way too
@@ -314,17 +314,16 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			if (entries == size) {
 				throw new IllegalStateException("Capacity exceeded.");
 			}
-			index = entries++;
+			pos = entries++;
 			sindex = getAddValueIndex(value);
 			filter.putLong(kmer);
 		}
 		if (largeKmers != null) {
-			BigArrays.set(largeKmers, index, kmer);
-			BigArrays.set(largeValueIndexes, index, sindex);
+			BigArrays.set(largeKmers, pos, kmer);
 		} else {
-			kmers[(int) index] = kmer;
-			valueIndexes[(int) index] = sindex;
+			kmers[(int) pos] = kmer;
 		}
+		setIndexAtPosition(pos, sindex);
 		return true;
 	}
 
@@ -401,14 +400,18 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 					index = getAddValueIndex(newValue);
 					kmersMoved++;
 				}
-				if (largeKmers != null) {
-					BigArrays.set(largeValueIndexes, pos, index);
-				} else {
-					valueIndexes[(int) pos] = index;
-				}
+				setIndexAtPosition(kmer, index);
 				return true;
 			}
 			return false;
+		}
+	}
+
+	public void setIndexAtPosition(long pos, short index) {
+		if (largeKmers != null) {
+			BigArrays.set(largeValueIndexes, pos, index);
+		} else {
+			valueIndexes[(int) pos] = index;
 		}
 	}
 

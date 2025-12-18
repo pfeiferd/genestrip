@@ -234,18 +234,19 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		private static final long serialVersionUID = 1L;
 
 		private SmallTaxIdNode[] subNodes;
-		protected SmallTaxIdNode parent;
-		private short[] counts;
-		private long[] countsInitKeys;
+		private boolean requested;
+
+		protected transient SmallTaxIdNode parent;
+		private transient short[] counts;
+		private transient long[] countsInitKeys;
 		// Made public for inlining
 		public transient short storeIndex;
-		private boolean requested;
 
 		public SmallTaxIdNode(String taxId) {
 			this(taxId, null);
 		}
 
-		private SmallTaxIdNode(String taxId, Rank rank) {
+		public SmallTaxIdNode(String taxId, Rank rank) {
 			super(taxId, rank);
 			subNodes = null;
 			storeIndex = -1;
@@ -314,7 +315,7 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 			return subNodes;
 		}
 
-		private void setSubNodes(SmallTaxIdNode[] subNodes) {
+		public void setSubNodes(SmallTaxIdNode[] subNodes) {
 			this.subNodes = subNodes;
 		}
 
