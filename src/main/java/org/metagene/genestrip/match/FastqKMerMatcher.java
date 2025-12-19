@@ -47,7 +47,7 @@ import org.metagene.genestrip.util.CGAT;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
-    private final static SmallTaxIdNode INVALID_NODE = new SmallTaxIdNode("INVALID");
+    private final static SmallTaxIdNode INVALID_NODE = new SmallTaxIdNode("INVALID", null, null);
 
     protected final KMerSortedArray<SmallTaxIdNode> kmerStore;
     protected final int maxKmerResCounts;

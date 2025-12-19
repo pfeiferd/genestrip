@@ -70,26 +70,42 @@ public enum GSGoalKey implements GoalKey {
 	@MDDescription("Same as `matchres` but without doing read classification.")
 	MATCHRESLR("matchreslr"),
 	@MDDescription("Create data folders in `<base dir>/common` including `common` itself.")
-	COMMON_SETUP("commonsetup"), @MDDescription("Create data folders in `<base dir>/<project>`.")
-	SETUP("setup"), @MDDescription("Download the taxonomy.")
-	TAXDOWNLOAD("taxdownload"), @MDDescription("Load the taxonomy into memory.")
-	TAXTREE("taxtree"), @MDDescription("Compute the taxids for the project's database.")
-	TAXNODES("taxnodes"), @MDDescription("Download the RefSeq release number.")
-	REFSEQRELEASE("refseqrelease"), @MDDescription("Download the RefSeq release catalog files.")
-	REFSEQCAT("refseqcat"), @MDDescription("Load MD5 checksums for RefSeq files into memory")
+	COMMON_SETUP("commonsetup"),
+	@MDDescription("Create data folders in `<base dir>/<project>`.")
+	SETUP("setup"),
+	@MDDescription("Download the taxonomy.")
+	TAXDOWNLOAD("taxdownload"),
+	@MDDescription("Load the taxonomy into memory.")
+	TAXTREE("taxtree"),
+	@MDDescription("Compute the taxids for the project's database.")
+	TAXNODES("taxnodes"),
+	@MDDescription("Download the RefSeq release number.")
+	REFSEQRELEASE("refseqrelease"),
+	@MDDescription("Download the RefSeq release catalog files.")
+	REFSEQCAT("refseqcat"),
+	@MDDescription("Load MD5 checksums for RefSeq files into memory")
 	CHECKSUMMAP("checksummap"),
 	@MDDescription("Load the RefSeq category names as requested for the project's database.")
-	CATEGORIES("categories"), @MDDescription("Download the genomic files from RefSeq for the requested categories.")
-	REFSEQFNA("refseqfna"), @MDDescription("Compute the number of RefSeq accession entries to be kept in memory.")
-	ACCMAPSIZE("accmapsize"), @MDDescription("Load the required RefSeq accession entries into memory.")
+	CATEGORIES("categories"),
+	@MDDescription("Download the genomic files from RefSeq for the requested categories.")
+	REFSEQFNA("refseqfna"),
+	@MDDescription("Compute the number of RefSeq accession entries to be kept in memory.")
+	ACCMAPSIZE("accmapsize"),
+	@MDDescription("Load the required RefSeq accession entries into memory.")
 	ACCMAP("accmap"),
 	@MDDescription("Determine for tax ids for which additional fasta files from Genbank should be downloaded.")
-	TAXFROMGENBANK("taxfromgenbank"), @MDDescription("Download Genbank's assembly catalog file.")
-	ASSEMBLYDOWNLOAD("assemblydownload"), @MDDescription("Determine the fasta files to be downloaded from Genbank.")
-	FASTAGSENBANK("fastasgenbank"), @MDDescription("Download the requested fasta files from Genbank.")
-	FASTAGSENBANKDL("fastasgenbankdl"), @MDDescription("Download additionally requested fasta files.")
-	ADD_DOWNLOADS("adddownloads"), @MDDescription("Associate additional fasta files with tax ids in memory.")
-	ADD_FASTAS("addfastas"), @MDDescription("Precompute the number of *k*-mers for the project's database.")
+	TAXFROMGENBANK("taxfromgenbank"),
+	@MDDescription("Download Genbank's assembly catalog file.")
+	ASSEMBLYDOWNLOAD("assemblydownload"),
+	@MDDescription("Determine the fasta files to be downloaded from Genbank.")
+	FASTAGSENBANK("fastasgenbank"),
+	@MDDescription("Download the requested fasta files from Genbank.")
+	FASTAGSENBANKDL("fastasgenbankdl"),
+	@MDDescription("Download additionally requested fasta files.")
+	ADD_DOWNLOADS("adddownloads"),
+	@MDDescription("Associate additional fasta files with tax ids in memory.")
+	ADD_FASTAS("addfastas"),
+	@MDDescription("Precompute the number of *k*-mers for the project's database.")
 	FILLSIZE("fillsize"), 
 	@MDDescription("Fill the temporary bloom index with *k*-mers.")
 	TEMPINDEX("tempindex"), 
