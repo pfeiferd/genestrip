@@ -242,12 +242,9 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		// Made public for inlining
 		public transient short storeIndex;
 
-		public SmallTaxIdNode(String taxId) {
-			this(taxId, null);
-		}
-
-		public SmallTaxIdNode(String taxId, Rank rank) {
+		public SmallTaxIdNode(String taxId, String name, Rank rank) {
 			super(taxId, rank);
+			this.name = name;
 			subNodes = null;
 			storeIndex = -1;
 		}
@@ -377,8 +374,8 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		private static SmallTaxIdNode readTree(ObjectInputStream in) throws IOException, ClassNotFoundException {
 			short rank = in.readShort();
 			String taxId = in.readUTF();
-			SmallTaxIdNode node = new SmallTaxIdNode(taxId, Rank.byOrdinal(rank));
-			node.name = in.readUTF();
+			String name = in.readUTF();
+			SmallTaxIdNode node = new SmallTaxIdNode(taxId, name, Rank.byOrdinal(rank));
 			node.position = in.readInt();
 			node.requested = in.readBoolean();
 			int size = in.readShort();

@@ -332,7 +332,7 @@ public class FastqKMerMatcherTest {
 			super(new KMerSortedArray<>(kmerStore, new ValueConverter<String, SmallTaxIdNode>() {
 				@Override
 				public SmallTaxIdNode convertValue(String value) {
-					SmallTaxIdNode node = new SmallTaxIdNode(value);
+					SmallTaxIdNode node = new SmallTaxIdNode(value, null, null);
 					node.setStoreIndex(kmerStore.getIndexForValue(value));
 					return node;
 				}
@@ -355,7 +355,7 @@ public class FastqKMerMatcherTest {
 			super(new KMerSortedArray<>(kmerStore, new ValueConverter<String, SmallTaxIdNode>() {
 				@Override
 				public SmallTaxIdNode convertValue(String value) {
-					SmallTaxIdNode node = new SmallTaxIdNode(value);
+					SmallTaxIdNode node = new SmallTaxIdNode(value, null, null);
 					node.setStoreIndex(kmerStore.getIndexForValue(value));
 					return node;
 				}

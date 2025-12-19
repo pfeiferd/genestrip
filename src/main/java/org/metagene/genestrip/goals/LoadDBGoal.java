@@ -38,6 +38,7 @@ import org.metagene.genestrip.io.StreamingFileResource;
 import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
@@ -47,9 +48,9 @@ public class LoadDBGoal extends ObjectGoal<Database, GSProject> implements Goal.
 	private final File dbFile;
 
 	@SafeVarargs
-	public LoadDBGoal(GSProject project, ObjectGoal<Database, GSProject> dbGoal, FileGoal<GSProject> updateStoreGoal,
-			Goal<GSProject>... dependencies) {
-		super(project, GSGoalKey.LOAD_DB,
+	public LoadDBGoal(GSProject project, GoalKey key, ObjectGoal<Database, GSProject> dbGoal, FileGoal<GSProject> updateStoreGoal,
+					  Goal<GSProject>... dependencies) {
+		super(project, key,
 				project.getDBPath() == null ? append(dependencies, dbGoal, updateStoreGoal) : dependencies);
 		this.dbGoal = dbGoal;
 		this.dbFile = getProject().getDBPath() == null ? updateStoreGoal.getFile() : new File(getProject().getDBPath());

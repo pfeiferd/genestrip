@@ -325,7 +325,7 @@ public class GSMaker extends Maker<GSProject> {
                 storeTempDBGoal, tempDbInfoGoal);
         registerGoal(storeDBGoal);
 
-        LoadDBGoal loadDBGoal = new LoadDBGoal(project, updateDBGoal, storeDBGoal);
+        LoadDBGoal loadDBGoal = new LoadDBGoal(project, GSGoalKey.LOAD_DB, updateDBGoal, storeDBGoal);
         registerGoal(loadDBGoal);
 
         BloomIndexGoal bloomIndexGoal = new BloomIndexGoal(project, loadDBGoal, projectSetupGoal);
