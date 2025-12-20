@@ -49,9 +49,9 @@ public class ResultReporter {
     public void printStoreInfo(Database database, PrintStream out) {
         Object2LongMap<String> stats = database.getStats();
 
-        out.println("name;rank;taxid;stored kmers;");
+        out.println("level;name;rank;taxid;stored kmers;");
 
-        out.print("TOTAL;");
+        out.print("0;TOTAL;");
         out.print(Rank.NO_RANK);
         out.print(';');
         out.print("1;");
@@ -66,6 +66,8 @@ public class ResultReporter {
             if (taxId != null) {
                 SmallTaxIdNode taxNode = taxTree.getNodeByTaxId(taxId);
                 if (taxNode != null) {
+                    out.print(taxNode.getLevel());
+                    out.print(';');
                     out.print(taxNode.getName());
                     out.print(';');
                     out.print(taxNode.getRank());

@@ -28,6 +28,7 @@ import me.tongfei.progressbar.ProgressBar;
 import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.fastq.AbstractFastqReader;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -35,6 +36,7 @@ import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
 import org.metagene.genestrip.refseq.AbstractStoreFastaReader;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.TaxTree;
+import org.metagene.genestrip.util.SimpleBlockinqQueue;
 import org.metagene.genestrip.util.StringLongDigitTrie;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
@@ -74,7 +76,7 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
         // Otherwise, the wrong k-mers will be compared to the ones from the DB.
         // For !minUpdate multi-threading can be enabled.
         if (bundle.getThreads() > 0) {
-            blockingQueue = new ArrayBlockingQueue<>(intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE));
+            blockingQueue = createBlockingQueue(intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE));
             for (int i = 0; i < bundle.getThreads(); i++) {
                 bundle.execute(createFastaReaderRunnable(i, blockingQueue, regionsPerTaxid));
             }
@@ -130,6 +132,14 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
         }
         bundle.clearThrowableList();
         afterReadFastas(regionsPerTaxid);
+    }
+
+    protected BlockingQueue<FileAndNode> createBlockingQueue(int maxQueueSize) {
+        // This simple blocking queue gives about 5% to 10% performance boost (on my Mac)
+        // over the ArrayBlockingQueue. Also, it does not cause any memory churn
+        // (unlike ArrayBlockingQueue).
+        //return new SimpleBlockinqQueue<>(maxQueueSize);
+        return new ArrayBlockingQueue<>(maxQueueSize);
     }
 
     protected boolean isIncludeRefSeqFna() {

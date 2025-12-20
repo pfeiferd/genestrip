@@ -45,7 +45,7 @@ public class MatchingResult implements Serializable {
 	public MatchingResult(int k, Map<String, CountsPerTaxid> taxid2Stats, long totalReads, long totalKMers, long totalBPs,
 			short[] totalMaxCounts) {
 		this.k = k;
-		globalStats =  new CountsPerTaxid(null, totalReads, totalKMers, totalBPs, totalMaxCounts);
+		globalStats =  new CountsPerTaxid(0, null, totalReads, totalKMers, totalBPs, totalMaxCounts);
 		this.taxid2Stats = taxid2Stats;
 	}
 
@@ -60,7 +60,7 @@ public class MatchingResult implements Serializable {
 			if (node != null) {
 				for (node = node.getParent(); node != null; node = node.getParent()) {
 					if (!taxid2Stats.containsKey(node.getTaxId())) {
-						taxid2Stats.put(node.getTaxId(), new CountsPerTaxid(node.getTaxId(), 0));
+						taxid2Stats.put(node.getTaxId(), new CountsPerTaxid(node.getLevel(), node.getTaxId(), 0));
 					}
 				}
 			}

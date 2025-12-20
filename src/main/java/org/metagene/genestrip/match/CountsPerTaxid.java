@@ -71,6 +71,7 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
 
     private static final long serialVersionUID = 1L;
 
+    protected int level;
     protected String taxid;
     protected long reads;
     protected long reads1KMer;
@@ -100,13 +101,13 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
     protected double accClassErrorSum;
     protected double accClassErrorSquaredSum;
 
-    public CountsPerTaxid(String taxid, int maxReadSizeBytes) {
+    public CountsPerTaxid(int level, String taxid, int maxReadSizeBytes) {
         this.taxid = taxid;
         maxContigDescriptor = new byte[maxReadSizeBytes];
         extendedValues = new AccValues[ValueType.VALUES.length];
     }
 
-    public CountsPerTaxid(String taxid, long totalReads, long totalKmers, long totalBPs, short[] totalMaxCounts) {
+    public CountsPerTaxid(int level, String taxid, long totalReads, long totalKmers, long totalBPs, short[] totalMaxCounts) {
         this.taxid = taxid;
         this.reads = totalReads;
         this.kmers = totalKmers;
@@ -119,6 +120,11 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
     @Override
     public int compareTo(CountsPerTaxid o) {
         return this.pos - o.pos;
+    }
+
+    @MDCDescription(pos = -1, name = "level", desc = "Depth in the taxonomy tree, where the root is zero.")
+    public int getLevel() {
+        return level;
     }
 
     @MDCDescription(pos = 0, name = "pos", desc = "Sort position of entry.")

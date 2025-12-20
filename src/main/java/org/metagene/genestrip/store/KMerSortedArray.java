@@ -400,7 +400,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 					index = getAddValueIndex(newValue);
 					kmersMoved++;
 				}
-				setIndexAtPosition(kmer, index);
+				setIndexAtPosition(pos, index);
 				return true;
 			}
 			return false;

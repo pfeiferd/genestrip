@@ -403,7 +403,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         if (stats == null) {
             synchronized (statsIndex) {
                 if (statsIndex[vi] == null) {
-                    statsIndex[vi] = new CountsPerTaxid(node.getTaxId(), initialReadSize);
+                    statsIndex[vi] = new CountsPerTaxid(node.getLevel(), node.getTaxId(), initialReadSize);
                 }
                 stats = statsIndex[vi];
             }
