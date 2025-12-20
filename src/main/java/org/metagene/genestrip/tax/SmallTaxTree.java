@@ -281,9 +281,8 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		// Only need in dbinfo - so, may be inefficient instead of field wasting some memory.
 		public int getLevel() {
 			int level = 0;
-			while (parent != null) {
+			for (SmallTaxIdNode current = parent; current != null; current = current.parent) {
 				level++;
-				parent = parent.parent;
 			}
 			return level;
 		}
