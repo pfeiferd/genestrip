@@ -135,11 +135,9 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
     }
 
     protected BlockingQueue<FileAndNode> createBlockingQueue(int maxQueueSize) {
-        // This simple blocking queue gives about 5% to 10% performance boost (on my Mac)
-        // over the ArrayBlockingQueue. Also, it does not cause any memory churn
-        // (unlike ArrayBlockingQueue).
-        //return new SimpleBlockinqQueue<>(maxQueueSize);
-        return new ArrayBlockingQueue<>(maxQueueSize);
+        // This simple blocking queue performs better than ArrayBlockingQueue.
+        return new SimpleBlockinqQueue<>(maxQueueSize);
+        //return new ArrayBlockingQueue<>(maxQueueSize);
     }
 
     protected boolean isIncludeRefSeqFna() {

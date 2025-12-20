@@ -245,6 +245,7 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		public SmallTaxIdNode(String taxId, String name, Rank rank) {
 			super(taxId, rank);
 			this.name = name;
+			this.parent = parent;
 			subNodes = null;
 			storeIndex = -1;
 		}
@@ -323,6 +324,9 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 
 		public void setSubNodes(SmallTaxIdNode[] subNodes) {
 			this.subNodes = subNodes;
+			for (SmallTaxIdNode subNode : subNodes) {
+				subNode.parent = this;
+			}
 		}
 
 		public final void incCount(final int index, final long initKey, final int size) {
