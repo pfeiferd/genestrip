@@ -88,7 +88,7 @@ public class FastqKMerMatcherTest {
 			store.optimize();
 		}
 
-		ExecutionContext bundle = new DefaultExecutionContext(0, 1000);
+		ExecutionContext bundle = new DefaultExecutionContext(null, 0, 1000);
 
 		FastqKMerMatcher matcher = inlined ?
 				new MyInlinedFastqMatcher(store, readLength * 10, 1, bundle) :
@@ -220,7 +220,7 @@ public class FastqKMerMatcherTest {
 
 		Database db = new Database(store, smallTree);
 
-		ExecutionContext bundle = new DefaultExecutionContext(0, 1000);
+		ExecutionContext bundle = new DefaultExecutionContext(null, 0, 1000);
 		FastqKMerMatcher matcher = createMatcher2(inlined, db.convertKMerStore(), bundle, smallTree, 0);
 		matcher.initStats();
 

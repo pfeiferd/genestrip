@@ -42,7 +42,7 @@ public class FastqReaderTest {
 
 	protected void testSingleThreadFastqReaderProbs(boolean withProbs) throws IOException {
 		int[] calls = new int[1];
-		AbstractFastqReader fastqReader = new AbstractFastqReader(2, 3, 0, new DefaultExecutionContext(0, 1),
+		AbstractFastqReader fastqReader = new AbstractFastqReader(2, 3, 0, new DefaultExecutionContext(null, 0, 1),
 				withProbs) {
 			@Override
 			protected void nextEntry(ReadEntry readStruct, int threadIndex) throws IOException {

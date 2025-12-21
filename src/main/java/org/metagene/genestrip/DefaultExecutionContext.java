@@ -35,6 +35,7 @@ import java.util.concurrent.ThreadFactory;
 import org.metagene.genestrip.io.StreamingResource;
 
 public class DefaultExecutionContext implements ExecutionContext {
+	private final Thread mainThread;
 	private final String threadBaseName;
 	private final int consumers;
 	private boolean hasThrowables;
@@ -44,11 +45,12 @@ public class DefaultExecutionContext implements ExecutionContext {
 	private final List<Thread> executorThreads;
 	private final long logUpdateCycle;
 
-	public DefaultExecutionContext(int consumers, long logUpdateCycle) {
-		this(consumers, logUpdateCycle, "Executor Thread");
+	public DefaultExecutionContext(Thread mainTread, int consumers, long logUpdateCycle) {
+		this(mainTread, consumers, logUpdateCycle, "Executor Thread");
 	}
 	
-	public DefaultExecutionContext(int consumers, long logUpdateCycle, String threadBaseName) {
+	public DefaultExecutionContext(Thread mainTread, int consumers, long logUpdateCycle, String threadBaseName) {
+		this.mainThread = mainTread;
 		this.threadBaseName = threadBaseName;
 		this.consumers = consumers < 0 ? (Runtime.getRuntime().availableProcessors() - 1) : consumers;
 		this.throwablesInThreads = Collections.synchronizedList(new ArrayList<Throwable>());
@@ -84,6 +86,9 @@ public class DefaultExecutionContext implements ExecutionContext {
 		List<Thread> executorThreads = new ArrayList<>(this.executorThreads);
 		for (Thread t : executorThreads) {
 			t.interrupt();
+		}
+		if (mainThread != null) {
+			mainThread.interrupt();
 		}
 	}
 
@@ -131,6 +136,7 @@ public class DefaultExecutionContext implements ExecutionContext {
 					public void uncaughtException(Thread t, Throwable e) {
 						throwablesInThreads.add(e);
 						hasThrowables = true;
+						interruptAll();
 					}
 				});
 				executorThreads.add(t);

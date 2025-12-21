@@ -68,16 +68,20 @@ public class GSMaker extends Maker<GSProject> {
         }
     }
 
-    protected ExecutionContext createExecutionContext(GSProject project) {
-        return new DefaultExecutionContext(project.intConfigValue(GSConfigKey.THREADS),
+    protected ExecutionContext createExecutionContext(Thread mainThread, GSProject project) {
+        return new DefaultExecutionContext(mainThread, project.intConfigValue(GSConfigKey.THREADS),
                 project.longConfigValue(GSConfigKey.LOG_PROGRESS_UPDATE_CYCLE));
     }
 
     protected ExecutionContext getExecutionContext(GSProject project) {
         if (executionContext == null) {
-            executionContext = createExecutionContext(project);
+            executionContext = createExecutionContext(getMainThread(), project);
         }
         return executionContext;
+    }
+
+    protected Thread getMainThread() {
+        return Thread.currentThread();
     }
 
     protected void createGoals() {

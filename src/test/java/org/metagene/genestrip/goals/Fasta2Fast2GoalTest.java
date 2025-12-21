@@ -58,7 +58,7 @@ public class Fasta2Fast2GoalTest extends DBGoalTest {
         goal.cleanThis();
         goal.make();
 
-        new AbstractFastqReader(31, project.intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES), 0, new DefaultExecutionContext(0, 1),
+        new AbstractFastqReader(31, project.intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES), 0, new DefaultExecutionContext(null, 0, 1),
                 true) {
             @Override
             protected void nextEntry(ReadEntry readStruct, int threadIndex) throws IOException {
