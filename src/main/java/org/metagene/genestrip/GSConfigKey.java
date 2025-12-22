@@ -221,6 +221,7 @@ public enum GSConfigKey implements ConfigKey {
 	WITH_PROBS("withProbs", new BooleanConfigParamInfo(false),  GSGoalKey.FILTER, GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 
 	// DB 2 Fastq Goal
+	@MDDescription("List of tax ids separated by `,`. A tax id may have the suffix `+`, which means that taxonomic descendants from the project's database will be included. This list can alternatively be set via the command line parameter `-tx`.")
 	TAX_IDS("taxids", new ListConfigParamInfo<String>(Collections.emptyList()) {
 		@Override
 		protected List<String> fromString(String s) {
@@ -235,6 +236,11 @@ public enum GSConfigKey implements ConfigKey {
 				}
 			}
 			return res;
+		}
+
+		@Override
+		public String getTypeDescriptor() {
+			return "list of Strings";
 		}
 	}, GSGoalKey.DB2FASTQ_TAXIDS, GSGoalKey.DB2FASTQ),
 
