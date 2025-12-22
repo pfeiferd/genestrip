@@ -53,3 +53,4 @@
 |`krakencount`||For internal use (to invoke kraken and count results).|
 |`krakenres`||For internal use (to write kraken results to a file).|
 |`dbdownload`||Download and install a project's database via a given URL.|
+|`checkrefseqrnum`||Check whether the downloaded RefSeq release is equal to the current release on the download server.|

@@ -143,7 +143,7 @@ public enum GSGoalKey implements GoalKey {
 	KRAKENRES("krakenres"),
 	@MDDescription("Download and install a project's database via a given URL.")
 	DB_DOWNLOAD("dbdownload"),
-	@MDDescription("Check whether the stored RefSeq release is equal to the current release on the download server.")
+	@MDDescription("Check whether the downloaded RefSeq release is equal to the current release on the download server.")
 	CHECK_REFSEQ_RNUM("checkrefseqrnum");
 
 	private final boolean forUser;
