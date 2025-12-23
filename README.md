@@ -243,7 +243,9 @@ usage: genestrip [options] <project> [<goal1> <goal2>...]
                             blanks) for the goal 'db2fastq'. A tax id may
                             have the suffix '+', which means that
                             taxonomic descendants from the project's
-                            database will be included.
+                            database will be included. It can
+                            alternatively be set via the configuration
+                            parameter 'taxid'.
  -v                         Print version.                            
 ```
 
