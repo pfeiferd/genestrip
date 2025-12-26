@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.GSProject.FileType;
+import org.metagene.genestrip.GSProject.GSFileType;
 import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
@@ -72,5 +72,5 @@ public abstract class MultiFileGoal extends FileListGoal<GSProject> {
 		return false;
 	}
 
-	protected abstract FileType getFileType();
+	protected abstract GSFileType getFileType();
 }

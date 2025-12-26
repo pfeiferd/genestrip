@@ -55,7 +55,7 @@ public class KMerFastqGenerator {
 		fastQWriter.start();
 		kmerStore.visit(new KMerSortedArrayVisitor<String>() {
 			@Override
-			public void nextValue(KMerSortedArray<String> trie, long kmer, short index, long i) {
+			public void nextValue(KMerSortedArray<String> trie, long kmer, int index, long i) {
 				String idFromDB = kmerStore.getValueForIndex(index);
 				if (idFromDB.equals(taxid)) {
 					fillData(kmer);

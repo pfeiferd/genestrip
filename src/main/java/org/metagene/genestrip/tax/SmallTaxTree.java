@@ -240,7 +240,7 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		private transient short[] counts;
 		private transient long[] countsInitKeys;
 		// Made public for inlining
-		public transient short storeIndex;
+		public transient int storeIndex;
 
 		public SmallTaxIdNode(String taxId, String name, Rank rank) {
 			super(taxId, rank);
@@ -310,11 +310,11 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 			return parent;
 		}
 
-		public final short getStoreIndex() {
+		public final int getStoreIndex() {
 			return storeIndex;
 		}
 
-		public void setStoreIndex(short storeIndex) {
+		public void setStoreIndex(int storeIndex) {
 			this.storeIndex = storeIndex;
 		}
 

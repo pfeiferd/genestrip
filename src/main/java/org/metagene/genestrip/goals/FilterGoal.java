@@ -32,7 +32,7 @@ import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.GSProject.FileType;
+import org.metagene.genestrip.GSProject.GSFileType;
 import org.metagene.genestrip.bloom.FastqBloomFilter;
 import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.make.Goal;
@@ -52,8 +52,8 @@ public class FilterGoal extends MultiFileGoal {
 	}
 
 	@Override
-	protected FileType getFileType() {
-		return FileType.FASTQ_RES;
+	protected GSFileType getFileType() {
+		return GSFileType.FASTQ_RES;
 	}
 
 	@Override
@@ -63,7 +63,7 @@ public class FilterGoal extends MultiFileGoal {
 			GSProject project = getProject();
 			StreamingResourceStream resources = fileToFastqs.get(file);
 			File dumpFile = booleanConfigValue(GSConfigKey.WRITE_DUMPED_FASTQ)
-					? project.getOutputFile("dumped", file.getName(), FileType.FASTQ_RES)
+					? project.getOutputFile("dumped", file.getName(), GSFileType.FASTQ_RES)
 					: null;
 			f = new FastqBloomFilter(indexedGoal.get(), intConfigValue(GSConfigKey.MIN_POS_COUNT_FILTER),
 					doubleConfigValue(GSConfigKey.POS_RATIO_FILTER),

@@ -29,7 +29,7 @@ import java.io.IOException;
 
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.GSProject.FileType;
+import org.metagene.genestrip.GSProject.GSFileType;
 import org.metagene.genestrip.bloom.AbstractKMerBloomFilter;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
@@ -41,7 +41,7 @@ public class StoreIndexGoal extends FileListGoal<GSProject> {
 	@SafeVarargs
 	public StoreIndexGoal(GSProject project, ObjectGoal<AbstractKMerBloomFilter, GSProject> indexGoal,
 			Goal<GSProject>... deps) {
-		super(project, GSGoalKey.INDEX, project.getOutputFile(GSGoalKey.INDEX.getName(), FileType.FILTER, true),
+		super(project, GSGoalKey.INDEX, project.getOutputFile(GSGoalKey.INDEX.getName(), GSFileType.FILTER, true),
 				Goal.append(deps, indexGoal));
 		this.indexGoal = indexGoal;
 	}

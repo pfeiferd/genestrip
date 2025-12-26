@@ -24,25 +24,15 @@
  */
 package org.metagene.genestrip.goals.kraken;
 
-import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.GSProject.FileType;
-import org.metagene.genestrip.goals.MultiFileGoal;
+import org.metagene.genestrip.GSProject.GSFileType;
 import org.metagene.genestrip.io.StreamProvider;
-import org.metagene.genestrip.io.StreamingFileResource;
-import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.io.StreamingResourceStream;
-import org.metagene.genestrip.kraken.KrakenExecutor;
-import org.metagene.genestrip.kraken.KrakenResultListener;
-import org.metagene.genestrip.kraken.KrakenResultProcessor;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.match.MatchingResult;
-import org.metagene.genestrip.match.ResultReporter;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.util.DigitTrie;
 
 import java.io.*;
 import java.util.*;
@@ -67,7 +57,7 @@ public class KrakenResFileGoal extends FileListGoal<GSProject> {
 	@Override
 	protected void provideFiles() {
 		for (String key : fastqMapGoal.get().keySet()) {
-			File resFile = getProject().getOutputFile(getKey().getName(), key, null, FileType.KRAKEN_OUT_RES, false);
+			File resFile = getProject().getOutputFile(getKey().getName(), key, null, GSFileType.KRAKEN_OUT_RES, false);
 			addFile(resFile);
 			fileToKeyMap.put(resFile, key);
 		}

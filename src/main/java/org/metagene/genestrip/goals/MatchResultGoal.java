@@ -28,7 +28,7 @@ import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.GSProject.FileType;
+import org.metagene.genestrip.GSProject.GSFileType;
 import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.GoalKey;
@@ -82,12 +82,12 @@ public class MatchResultGoal extends ObjectGoal<Map<String, MatchingResult>, GSP
 				StreamingResourceStream fastqs = map.get(key);
 
 				if (booleanConfigValue(GSConfigKey.WRITE_FILTERED_FASTQ)) {
-					filteredFile = getProject().getOutputFile(getKey().getName(), key, null, FileType.FASTQ_RES,
+					filteredFile = getProject().getOutputFile(getKey().getName(), key, null, GSFileType.FASTQ_RES,
 							true);
 				}
 				if (booleanConfigValue(GSConfigKey.WRITE_KRAKEN_STYLE_OUT)) {
 					krakenOutStyleFile = getProject().getOutputFile(getKey().getName(), key, null,
-							FileType.KRAKEN_OUT_RES, false);
+							GSFileType.KRAKEN_OUT_RES, false);
 				}
 
 				if (matcher == null) {

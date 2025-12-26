@@ -30,7 +30,7 @@ import java.util.Map;
 
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.GSProject.FileType;
+import org.metagene.genestrip.GSProject.GSFileType;
 import org.metagene.genestrip.io.StreamingFileResource;
 import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.io.StreamingResourceListStream;
@@ -79,7 +79,7 @@ public class FastqMapTransformGoal extends ObjectGoal<Map<String, StreamingResou
 				if (resource instanceof StreamingURLResource) {
 					StreamingURLResource urlRes = (StreamingURLResource) resource;
 
-					File file = getProject().getOutputFile(dir, null, null, key, null, fastqType ? FileType.FASTQ : FileType.FASTA,
+					File file = getProject().getOutputFile(dir, null, null, key, null, fastqType ? GSFileType.FASTQ : GSFileType.FASTA,
 							!urlRes.isNoGZ());
 					resource = new StreamingFileResource(file);
 				}

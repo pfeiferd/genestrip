@@ -1,26 +1,26 @@
 /*
- * 
+ *
  * “Commons Clause” License Condition v1.0
- * 
- * The Software is provided to you by the Licensor under the License, 
+ *
+ * The Software is provided to you by the Licensor under the License,
  * as defined below, subject to the following condition.
- * 
- * Without limiting other conditions in the License, the grant of rights under the License 
+ *
+ * Without limiting other conditions in the License, the grant of rights under the License
  * will not include, and the License does not grant to you, the right to Sell the Software.
- * 
- * For purposes of the foregoing, “Sell” means practicing any or all of the rights granted 
- * to you under the License to provide to third parties, for a fee or other consideration 
- * (including without limitation fees for hosting or consulting/ support services related to 
- * the Software), a product or service whose value derives, entirely or substantially, from the 
- * functionality of the Software. Any license notice or attribution required by the License 
+ *
+ * For purposes of the foregoing, “Sell” means practicing any or all of the rights granted
+ * to you under the License to provide to third parties, for a fee or other consideration
+ * (including without limitation fees for hosting or consulting/ support services related to
+ * the Software), a product or service whose value derives, entirely or substantially, from the
+ * functionality of the Software. Any license notice or attribution required by the License
  * must also include this Commons Clause License Condition notice.
- * 
+ *
  * Software: genestrip
- * 
+ *
  * License: Apache 2.0
- * 
+ *
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
- * 
+ *
  */
 package org.metagene.genestrip;
 
@@ -46,427 +46,426 @@ import org.metagene.genestrip.util.GSLogFactory;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 public class GSProject extends Project {
-	public static final String CONFIG_PROPERTIES = "config.properties";
+    public static final String CONFIG_PROPERTIES = "config.properties";
 
-	public enum FileType {
-		FASTQ_RES(".fastq"), FASTQ(".fastq"), FASTA(".fasta"), CSV(".csv"), KRAKEN_OUT(".out"), KRAKEN_OUT_RES(".out"),
-		SER(".ser"), DB(".zip"), FILTER(".ser"), LOG(".log"), TXT(".txt");
+    public interface FileType {
+        public String getSuffix();
+    }
 
-		private final String suffix;
+    public enum GSFileType implements FileType {
+        FASTQ_RES(".fastq"), FASTQ(".fastq"), FASTA(".fasta"), CSV(".csv"), KRAKEN_OUT(".out"), KRAKEN_OUT_RES(".out"),
+        SER(".ser"), DB(".zip"), FILTER(".ser"), LOG(".log");
 
-		private FileType(String suffix) {
-			this.suffix = suffix;
-		}
+        private final String suffix;
 
-		public String getSuffix() {
-			return suffix;
-		}
-	}
+        private GSFileType(String suffix) {
+            this.suffix = suffix;
+        }
 
-	private final GSCommon common;
-	private final String key;
-	private final String[] fastqResources;
-	private final String fastqMapFile;
-	private final File csvDir;
-	private final File fastqResDir;
-	private final Properties[] properties;
-	private final String taxids;
-	private final String dbPath;
+        @Override
+        public String getSuffix() {
+            return suffix;
+        }
+    }
 
-	private boolean downloadFastqs;
-	private boolean downloadFastqsToCommon;
+    private final GSCommon common;
+    private final String key;
+    private final String[] fastqResources;
+    private final String fastqMapFile;
+    private final File csvDir;
+    private final File fastqResDir;
+    private final Properties[] properties;
+    private final String taxids;
+    private final String dbPath;
 
-	public GSProject(GSCommon config, String name) {
-		this(config, name, null, null, null, null, null, null, null, null, null, false);
-	}
+    private boolean downloadFastqs;
+    private boolean downloadFastqsToCommon;
 
-	public GSProject(GSCommon config, String name, boolean quiet) {
-		this(config, name, null, null, null, null, null, null, null, null, null, quiet);
-	}
+    public GSProject(GSCommon config, String name) {
+        this(config, name, null, null, null, null, null, null, null, null, null, false);
+    }
 
-	public GSProject(GSCommon config, String name, String key, String[] fastqFiles) {
-		this(config, name, key, fastqFiles, null, null, null, null, null, null, null, false);
-	}
+    public GSProject(GSCommon config, String name, boolean quiet) {
+        this(config, name, null, null, null, null, null, null, null, null, null, quiet);
+    }
 
-	public GSProject(GSCommon config, String name, String key, String[] fastqFiles, boolean quiet) {
-		this(config, name, key, fastqFiles, null, null, null, null, null, null, null, quiet);
-	}
+    public GSProject(GSCommon config, String name, String key, String[] fastqFiles) {
+        this(config, name, key, fastqFiles, null, null, null, null, null, null, null, false);
+    }
 
-	public GSProject(GSCommon config, String name, String csvFile) {
-		this(config, name, null, null, csvFile, null, null, null, null, null, null, false);
-	}
+    public GSProject(GSCommon config, String name, String key, String[] fastqFiles, boolean quiet) {
+        this(config, name, key, fastqFiles, null, null, null, null, null, null, null, quiet);
+    }
 
-	public GSProject(GSCommon config, String name, String key, String[] fastqFiles, String csvFile, File csvDir,
-			File fastqResDir, String taxids, Properties commandLineProps, GSGoalKey forGoal,
-			String dbPath, boolean quietInit) {
-		super(name);
-		this.common = config;
-		this.fastqResDir = fastqResDir;
-		this.key = key;
-		this.fastqResources = fastqFiles;
-		this.fastqMapFile = csvFile;
-		this.csvDir = csvDir != null ? csvDir : new File(getProjectDir(), "csv");
-		this.taxids = taxids;
-		this.dbPath = dbPath;
+    public GSProject(GSCommon config, String name, String csvFile) {
+        this(config, name, null, null, csvFile, null, null, null, null, null, null, false);
+    }
 
-		if (commandLineProps != null) {
-			initConfigParams(commandLineProps); // Gotta do this here already, e.g. to impact logging early on.
-			configureLogger();
-		}
+    public GSProject(GSCommon config, String name, String key, String[] fastqFiles, String csvFile, File csvDir,
+                     File fastqResDir, String taxids, Properties commandLineProps, GSGoalKey forGoal,
+                     String dbPath, boolean quietInit) {
+        super(name);
+        this.common = config;
+        this.fastqResDir = fastqResDir;
+        this.key = key;
+        this.fastqResources = fastqFiles;
+        this.fastqMapFile = csvFile;
+        this.csvDir = csvDir != null ? csvDir : new File(getProjectDir(), "csv");
+        this.taxids = taxids;
+        this.dbPath = dbPath;
 
-		properties = new Properties[3];
-		properties[0] = commandLineProps == null ? new Properties() : commandLineProps;
-		if (taxids != null) {
-			properties[0].setProperty(GSConfigKey.TAX_IDS.getName(), taxids);
-		}
-		properties[1] = loadConfigProperties(getProjectDir(), quietInit);
-		properties[2] = loadConfigProperties(getCommon().getBaseDir(), quietInit);
+        if (commandLineProps != null) {
+            initConfigParams(commandLineProps); // Gotta do this here already, e.g. to impact logging early on.
+            configureLogger();
+        }
 
-		initConfigParams(properties);
-		configureLogger();
+        properties = new Properties[3];
+        properties[0] = commandLineProps == null ? new Properties() : commandLineProps;
+        if (taxids != null) {
+            properties[0].setProperty(GSConfigKey.TAX_IDS.getName(), taxids);
+        }
+        properties[1] = loadConfigProperties(getProjectDir(), quietInit);
+        properties[2] = loadConfigProperties(getCommon().getBaseDir(), quietInit);
 
-		for (Properties props : properties) {
-			checkConfigProperties(props, forGoal);
-		}
-		if (!quietInit) {
-			logParamMap();
-		}
-		GSProgressBarCreator.setGlobalUpdateInterval(intConfigValue(GSConfigKey.PROGRESS_BAR_UPDATE));
-	}
+        initConfigParams(properties);
+        configureLogger();
 
-	protected Properties loadConfigProperties(File dir, boolean quiet) {
-		Properties properties = new Properties();
-		File configFile = new File(dir, CONFIG_PROPERTIES);
-		if (!quiet && getLogger().isInfoEnabled()) {
-			getLogger().info("Loading config file '" + configFile + "'.");
-		}
-		try (InputStream is = new FileInputStream(configFile)) {
-			properties.load(is);
-		} catch (IOException e) {
-			if (!quiet && getLogger().isWarnEnabled()) {
-				getLogger().warn("Could not read config file '" + configFile + "'.");
-			}
-		}
-		return properties;
-	}
+        for (Properties props : properties) {
+            checkConfigProperties(props, forGoal);
+        }
+        if (!quietInit) {
+            logParamMap();
+        }
+        GSProgressBarCreator.setGlobalUpdateInterval(intConfigValue(GSConfigKey.PROGRESS_BAR_UPDATE));
+    }
 
-	protected void configureLogger() {
-		GSLogFactory.getInstance().setLogLevel(stringConfigValue(GSConfigKey.LOG_LEVEL));
-	}
+    protected Properties loadConfigProperties(File dir, boolean quiet) {
+        Properties properties = new Properties();
+        File configFile = new File(dir, CONFIG_PROPERTIES);
+        if (!quiet && getLogger().isInfoEnabled()) {
+            getLogger().info("Loading config file '" + configFile + "'.");
+        }
+        try (InputStream is = new FileInputStream(configFile)) {
+            properties.load(is);
+        } catch (IOException e) {
+            if (!quiet && getLogger().isWarnEnabled()) {
+                getLogger().warn("Could not read config file '" + configFile + "'.");
+            }
+        }
+        return properties;
+    }
 
-	@Override
-	protected ConfigKey[] getConfigKeys() {
-		return GSConfigKey.values();
-	}
+    protected void configureLogger() {
+        GSLogFactory.getInstance().setLogLevel(stringConfigValue(GSConfigKey.LOG_LEVEL));
+    }
 
-	public String getKey() {
-		return key;
-	}
+    @Override
+    protected ConfigKey[] getConfigKeys() {
+        return GSConfigKey.values();
+    }
 
-	public String getDBPath() {
-		return dbPath;
-	}
+    public String getKey() {
+        return key;
+    }
 
-	public String[] getFastqResources() {
-		return fastqResources;
-	}
-	
-	// For override...
-	public StreamingResourceStream getExtraResources() {
-		return null;
-	}
-	
-	// For override...
-	public String getExtraResourcesKey() {
-		return null;
-	}
+    public String getDBPath() {
+        return dbPath;
+    }
 
-	public String getFastqMapFile() {
-		return fastqMapFile;
-	}
+    public String[] getFastqResources() {
+        return fastqResources;
+    }
 
-	public boolean isDownloadFastqs() {
-		return downloadFastqs;
-	}
+    // For override...
+    public StreamingResourceStream getExtraResources() {
+        return null;
+    }
 
-	public boolean isDownloadFastqsToCommon() {
-		return downloadFastqsToCommon;
-	}
+    // For override...
+    public String getExtraResourcesKey() {
+        return null;
+    }
 
-	public void setDownloadFastqs(boolean downloadFastqs) {
-		this.downloadFastqs = downloadFastqs;
-	}
+    public String getFastqMapFile() {
+        return fastqMapFile;
+    }
 
-	public void setDownloadFastqsToCommon(boolean downloadFastqsToCommon) {
-		this.downloadFastqsToCommon = downloadFastqsToCommon;
-	}
+    public boolean isDownloadFastqs() {
+        return downloadFastqs;
+    }
 
-	public File getDirForType(FileType type) {
-		switch (type) {
-		case FASTQ_RES:
-			return getFastqResDir();
-		case FASTQ:
-			return getFastqDir();
-		case FASTA:
-			return getFastaDir();
-		case CSV:
-			return getResultsDir();
-		case KRAKEN_OUT:
-		case KRAKEN_OUT_RES:
-			return getKrakenOutDir();
-		case SER:
-		case DB:
-		case FILTER:
-			return getDBDir();
-		case LOG:
-			return getLogDir();
-		case TXT:
-			return getTxtDir();
-		default:
-			throw new IllegalArgumentException("Illegal FileType: " + type);
-		}
-	}
+    public boolean isDownloadFastqsToCommon() {
+        return downloadFastqsToCommon;
+    }
 
-	public File getOutputFile(String goal, FileType type) {
-		return getOutputFile(goal, type, true);
-	}
+    public void setDownloadFastqs(boolean downloadFastqs) {
+        this.downloadFastqs = downloadFastqs;
+    }
 
-	public File getOutputFile(String goal, FileType type, boolean gzip) {
-		return getOutputFile(goal, null, null, type, gzip);
-	}
+    public void setDownloadFastqsToCommon(boolean downloadFastqsToCommon) {
+        this.downloadFastqsToCommon = downloadFastqsToCommon;
+    }
 
-	public File getOutputFile(String goal, String baseFile, FileType type) {
-		return getOutputFile(goal, null, baseFile, type, true);
-	}
+    public File getDirForType(FileType type) {
+        if (type instanceof GSFileType) {
+            GSFileType gsFileType = (GSFileType) type;
+            switch (gsFileType) {
+                case FASTQ_RES:
+                    return getFastqResDir();
+                case FASTQ:
+                    return getFastqDir();
+                case FASTA:
+                    return getFastaDir();
+                case CSV:
+                    return getResultsDir();
+                case KRAKEN_OUT:
+                case KRAKEN_OUT_RES:
+                    return getKrakenOutDir();
+                case SER:
+                case DB:
+                case FILTER:
+                    return getDBDir();
+                case LOG:
+                    return getLogDir();
+            }
+        }
+        throw new IllegalArgumentException("Illegal FileType: " + type);
+    }
 
-	public File getOutputFile(String goal, String key, String baseFile, FileType type, boolean gzip) {
-		return getOutputFile(getDirForType(type), goal, key, baseFile, type, gzip);
-	}
+    public File getOutputFile(String goal, FileType type) {
+        return getOutputFile(goal, type, true);
+    }
 
-	public File getOutputFile(File dir, String goal, String key, String baseFile, FileType type, boolean gzip) {
-		return getOutputFile(dir, getOutputFilePrefix(goal), goal, key, baseFile, type, gzip);
-	}
+    public File getOutputFile(String goal, FileType type, boolean gzip) {
+        return getOutputFile(goal, null, null, type, gzip);
+    }
 
-	public File getOutputFile(File dir, String project, String goal, String key, String baseFile, FileType type,
-			boolean gzip) {
-		String baseName = baseFile == null ? "" : getFileBaseName(baseFile);
-		if (baseName.startsWith(getName() + "_")) {
-			baseName = baseName.substring(getName().length() + 1);
-		}
-		String infix = getOutputFileGoalPrefix(goal, key);
-		if (!infix.isEmpty()) {
-			if (!baseName.isEmpty()) {
-				baseName = infix + "_" + baseName;
-			}
-			else {
-				baseName = infix;
-			}
-		}
-		return new File(dir, (project == null ? "" : project) + baseName + type.getSuffix() + (gzip ? ".gz" : ""));
-	}
+    public File getOutputFile(String goal, String baseFile, FileType type) {
+        return getOutputFile(goal, null, baseFile, type, true);
+    }
 
-	public String getFileBaseName(String projectFileName) {
-		String baseName = projectFileName;
-		if (baseName.endsWith(".gz")) {
-			baseName = baseName.substring(0, baseName.length() - 3);
-		} else if (baseName.endsWith(".gzip")) {
-			baseName = baseName.substring(0, baseName.length() - 5);
-		}
-		for (FileType ft : FileType.values()) {
-			String suffix = ft.getSuffix();
-			if (baseName.endsWith(suffix)) {
-				baseName = baseName.substring(0, baseName.length() - suffix.length());
-			}
-		}
-		return baseName;
-	}
+    public File getOutputFile(String goal, String key, String baseFile, FileType type, boolean gzip) {
+        return getOutputFile(getDirForType(type), goal, key, baseFile, type, gzip);
+    }
 
-	protected String getOutputFilePrefix(String goal) {
-		return getName() + "_";
-	}
+    public File getOutputFile(File dir, String goal, String key, String baseFile, FileType type, boolean gzip) {
+        return getOutputFile(dir, getOutputFilePrefix(goal), goal, key, baseFile, type, gzip);
+    }
 
-	protected String getOutputFileGoalPrefix(String goal, String key) {
-		if (key != null) {
-			try {
-				key = URLEncoder.encode(key, "UTF-8");
-				if (key.length() > 256) {
-					key = key.substring(0, 256);
-				}
-			} catch (UnsupportedEncodingException e) {
-				throw new RuntimeException(e);
-			}
-		}
-		if (goal == null) {
-			return key == null ? "" : key;
-		} else {
-			return key == null ? goal : goal + "_" + key;
-		}
-	}
+    public File getOutputFile(File dir, String project, String goal, String key, String baseFile, FileType type,
+                              boolean gzip) {
+        String baseName = baseFile == null ? "" : getFileBaseName(baseFile);
+        if (baseName.startsWith(getName() + "_")) {
+            baseName = baseName.substring(getName().length() + 1);
+        }
+        String infix = getOutputFileGoalPrefix(goal, key);
+        if (!infix.isEmpty()) {
+            if (!baseName.isEmpty()) {
+                baseName = infix + "_" + baseName;
+            } else {
+                baseName = infix;
+            }
+        }
+        return new File(dir, (project == null ? "" : project) + baseName + type.getSuffix() + (gzip ? ".gz" : ""));
+    }
 
-	public GSCommon getCommon() {
-		return common;
-	}
+    public String getFileBaseName(String projectFileName) {
+        String baseName = projectFileName;
+        if (baseName.endsWith(".gz")) {
+            baseName = baseName.substring(0, baseName.length() - 3);
+        } else if (baseName.endsWith(".gzip")) {
+            baseName = baseName.substring(0, baseName.length() - 5);
+        }
+        for (GSFileType ft : GSFileType.values()) {
+            String suffix = ft.getSuffix();
+            if (baseName.endsWith(suffix)) {
+                baseName = baseName.substring(0, baseName.length() - suffix.length());
+            }
+        }
+        return baseName;
+    }
 
-	public File getProjectsDir() {
-		return new File(getCommon().getBaseDir(), "projects");
-	}
+    protected String getOutputFilePrefix(String goal) {
+        return getName() + "_";
+    }
 
-	public File getProjectDir() {
-		return new File(getProjectsDir(), getName());
-	}
+    protected String getOutputFileGoalPrefix(String goal, String key) {
+        if (key != null) {
+            try {
+                key = URLEncoder.encode(key, "UTF-8");
+                if (key.length() > 256) {
+                    key = key.substring(0, 256);
+                }
+            } catch (UnsupportedEncodingException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        if (goal == null) {
+            return key == null ? "" : key;
+        } else {
+            return key == null ? goal : goal + "_" + key;
+        }
+    }
 
-	public File getFastaDir() {
-		return new File(getProjectDir(), "fasta");
-	}
+    public GSCommon getCommon() {
+        return common;
+    }
 
-	public File getFastqDir() {
-		return new File(getProjectDir(), "fastq");
-	}
+    public File getProjectsDir() {
+        return new File(getCommon().getBaseDir(), "projects");
+    }
 
-	public File getFastqResDir() {
-		return fastqResDir == null ? getFastqDir() : fastqResDir;
-	}
+    public File getProjectDir() {
+        return new File(getProjectsDir(), getName());
+    }
 
-	public File getDBDir() {
-		return new File(getProjectDir(), "db");
-	}
+    public File getFastaDir() {
+        return new File(getProjectDir(), "fasta");
+    }
 
-	public File getDBFile() {
-		return getOutputFile(GSGoalKey.DB.getName(), FileType.DB, false);
-	}
+    public File getFastqDir() {
+        return new File(getProjectDir(), "fastq");
+    }
 
-	public File getDBInfoFile() {
-		return getOutputFile(GSGoalKey.DBINFO.getName(), FileType.CSV, false);
-	}
+    public File getFastqResDir() {
+        return fastqResDir == null ? getFastqDir() : fastqResDir;
+    }
 
-	public File getTempDBInfoFile() {
-		return getOutputFile(GSGoalKey.TEMP_DBINFO.getName(), FileType.CSV, false);
-	}
+    public File getDBDir() {
+        return new File(getProjectDir(), "db");
+    }
 
-	public File getKrakenOutDir() {
-		return new File(getProjectDir(), "krakenout");
-	}
+    public File getDBFile() {
+        return getOutputFile(GSGoalKey.DB.getName(), GSFileType.DB, false);
+    }
 
-	public File getTaxIdsFile() {
-		return new File(getProjectDir(), "taxids.txt");
-	}
+    public File getDBInfoFile() {
+        return getOutputFile(GSGoalKey.DBINFO.getName(), GSFileType.CSV, false);
+    }
 
-	public File getAdditionalFile() {
-		return new File(getProjectDir(), "additional.txt");
-	}
+    public File getTempDBInfoFile() {
+        return getOutputFile(GSGoalKey.TEMP_DBINFO.getName(), GSFileType.CSV, false);
+    }
 
-	public File getCategoriesFile() {
-		return new File(getProjectDir(), "categories.txt");
-	}
+    public File getKrakenOutDir() {
+        return new File(getProjectDir(), "krakenout");
+    }
 
-	public File getResultsDir() {
-		return csvDir;
-	}
+    public File getTaxIdsFile() {
+        return new File(getProjectDir(), "taxids.txt");
+    }
 
-	public File getLogDir() {
-		return new File(getProjectDir(), "log");
-	}
+    public File getAdditionalFile() {
+        return new File(getProjectDir(), "additional.txt");
+    }
 
-	public File getTxtDir() {
-		return new File(getProjectDir(), "txt");
-	}
+    public File getCategoriesFile() {
+        return new File(getProjectDir(), "categories.txt");
+    }
 
-	public File getFilterFile(Goal<GSProject> goal) {
-		return getOutputFile(goal.getKey().getName(), FileType.FILTER);
-	}
+    public File getResultsDir() {
+        return csvDir;
+    }
 
-	public File fastaFileFromPath(String fastaFilePath) {
-		if (fastaFilePath != null) {
-			File fasta = new File(fastaFilePath);
-			if (fasta.exists()) {
-				return fasta;
-			}
-			fasta = new File(getFastaDir(), fastaFilePath);
-			if (fasta.exists()) {
-				return fasta;
-			}
-			fasta = new File(getCommon().getFastaDir(), fastaFilePath);
-			if (fasta.exists()) {
-				return fasta;
-			}
-		}
-		return null;
-	}
+    public File getLogDir() {
+        return new File(getProjectDir(), "log");
+    }
 
-	public File fastqFileFromPath(String fastqFilePath) {
-		if (fastqFilePath != null) {
-			File fastq = new File(fastqFilePath);
-			if (fastq.exists()) {
-				return fastq;
-			}
-			fastq = new File(getFastqDir(), fastqFilePath);
-			if (fastq.exists()) {
-				return fastq;
-			}
-			fastq = new File(getCommon().getFastqDir(), fastqFilePath);
-			if (fastq.exists()) {
-				return fastq;
-			}
-		}
-		return null;
-	}
+    public File getFilterFile(Goal<GSProject> goal) {
+        return getOutputFile(goal.getKey().getName(), GSFileType.FILTER);
+    }
 
-	public List<File> fastqFilesFromPath(String fastqFilePath, boolean fastqType) {
-		if (fastqFilePath != null) {
-			File fastq = new File(fastqFilePath);
-			if (fastq.exists()) {
-				return Collections.singletonList(fastq);
-			}
-			fastq = new File(fastqType ? getFastqDir() : getFastaDir(), fastqFilePath);
-			if (fastq.exists()) {
-				return Collections.singletonList(fastq);
-			}
-			fastq = new File(fastqType ? getCommon().getFastqDir() : getCommon().getFastaDir(), fastqFilePath);
-			if (fastq.exists()) {
-				return Collections.singletonList(fastq);
-			}
-			List<File> list = null;
-			list = findFilesByGlobPattern(null, fastqFilePath);
-			if (list != null) {
-				return list;
-			}
-			list = findFilesByGlobPattern(fastqType ? getFastqDir() : getFastaDir(), fastqFilePath);
-			if (list != null) {
-				return list;
-			}
-			list = findFilesByGlobPattern(fastqType ? getCommon().getFastqDir() : getCommon().getFastaDir(), fastqFilePath);
-			if (list != null) {
-				return list;
-			}
-		}
-		return null;
-	}
+    public File fastaFileFromPath(String fastaFilePath) {
+        if (fastaFilePath != null) {
+            File fasta = new File(fastaFilePath);
+            if (fasta.exists()) {
+                return fasta;
+            }
+            fasta = new File(getFastaDir(), fastaFilePath);
+            if (fasta.exists()) {
+                return fasta;
+            }
+            fasta = new File(getCommon().getFastaDir(), fastaFilePath);
+            if (fasta.exists()) {
+                return fasta;
+            }
+        }
+        return null;
+    }
 
-	protected List<File> findFilesByGlobPattern(File rootDir, String pattern) {
-		List<File> res = null;
-		File dir;
-		if (rootDir == null) {
-			dir = new File(pattern).getParentFile();
-		}
-		else {
-			dir = new File(rootDir, pattern).getParentFile();
-		}
-		if (dir != null) {
-			File[] files = dir.listFiles();
-			if (files != null && files.length > 0) {
-				pattern = new File(pattern).getName();
-				PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
-				for (File file : files) {
-					Path path = file.toPath();
-					if (matcher.matches(path.getFileName())) {
-						if (res == null) {
-							res = new ArrayList<File>();
-						}
-						res.add(file);
-					}
-				}
-			}
-		}
-		return res;
-	}
+    public File fastqFileFromPath(String fastqFilePath) {
+        if (fastqFilePath != null) {
+            File fastq = new File(fastqFilePath);
+            if (fastq.exists()) {
+                return fastq;
+            }
+            fastq = new File(getFastqDir(), fastqFilePath);
+            if (fastq.exists()) {
+                return fastq;
+            }
+            fastq = new File(getCommon().getFastqDir(), fastqFilePath);
+            if (fastq.exists()) {
+                return fastq;
+            }
+        }
+        return null;
+    }
+
+    public List<File> fastqFilesFromPath(String fastqFilePath, boolean fastqType) {
+        if (fastqFilePath != null) {
+            File fastq = new File(fastqFilePath);
+            if (fastq.exists()) {
+                return Collections.singletonList(fastq);
+            }
+            fastq = new File(fastqType ? getFastqDir() : getFastaDir(), fastqFilePath);
+            if (fastq.exists()) {
+                return Collections.singletonList(fastq);
+            }
+            fastq = new File(fastqType ? getCommon().getFastqDir() : getCommon().getFastaDir(), fastqFilePath);
+            if (fastq.exists()) {
+                return Collections.singletonList(fastq);
+            }
+            List<File> list = null;
+            list = findFilesByGlobPattern(null, fastqFilePath);
+            if (list != null) {
+                return list;
+            }
+            list = findFilesByGlobPattern(fastqType ? getFastqDir() : getFastaDir(), fastqFilePath);
+            if (list != null) {
+                return list;
+            }
+            list = findFilesByGlobPattern(fastqType ? getCommon().getFastqDir() : getCommon().getFastaDir(), fastqFilePath);
+            if (list != null) {
+                return list;
+            }
+        }
+        return null;
+    }
+
+    protected List<File> findFilesByGlobPattern(File rootDir, String pattern) {
+        List<File> res = null;
+        File dir;
+        if (rootDir == null) {
+            dir = new File(pattern).getParentFile();
+        } else {
+            dir = new File(rootDir, pattern).getParentFile();
+        }
+        if (dir != null) {
+            File[] files = dir.listFiles();
+            if (files != null && files.length > 0) {
+                pattern = new File(pattern).getName();
+                PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
+                for (File file : files) {
+                    Path path = file.toPath();
+                    if (matcher.matches(path.getFileName())) {
+                        if (res == null) {
+                            res = new ArrayList<File>();
+                        }
+                        res.add(file);
+                    }
+                }
+            }
+        }
+        return res;
+    }
 }

@@ -47,7 +47,7 @@ import it.unimi.dsi.fastutil.objects.Object2ShortMap;
 import it.unimi.dsi.fastutil.objects.Object2ShortOpenHashMap;
 
 public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
-	public static final int MAX_VALUES = Short.MAX_VALUE;
+	public static final int MAX_VALUES = Short.MAX_VALUE - Short.MIN_VALUE;
 
 	private static final long serialVersionUID = 1L;
 
@@ -62,7 +62,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	private final int k;
 	private final Object2ShortMap<V> valueMap;
 	// For efficiency and synchronization problems this was turned into an array of
-	// lenth Short.MAX_VALUE. Only 250kb in size...
+	// lenth Short.MAX_VALUE. Only 0.5 MB in size...
 	private final V[] indexMap;
 	private final boolean enforceLarge;
 
@@ -93,7 +93,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		indexMap = (V[]) new Serializable[MAX_VALUES];
 		valueMap = new Object2ShortOpenHashMap<>(s);
 		initSyncs();
-		nextValueIndex = 0;
+		nextValueIndex = Short.MIN_VALUE;
 		this.enforceLarge = enforceLarge;
 		if (initialValues != null) {
 			for (V v : initialValues) {
@@ -166,7 +166,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 	public Iterator<V> getValues() {
 		return new Iterator<V>() {
-			private int i = 0;
+			private int i = Short.MIN_VALUE;
 
 			@Override
 			public boolean hasNext() {
@@ -175,7 +175,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 			@Override
 			public V next() {
-				return indexMap[i++];
+				return indexMap[i++ - Short.MIN_VALUE];
 			}
 		};
 	}
@@ -204,7 +204,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			}
 		} else {
 			for (int i = 0; i < entries; i++) {
-				countArray[valueIndexes[i]]++;
+				countArray[valueIndexes[i] - Short.MIN_VALUE]++;
 			}
 		}
 
@@ -221,15 +221,16 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	}
 
 	public int getNValues() {
-		return nextValueIndex;
+		return nextValueIndex - Short.MIN_VALUE;
 	}
 
-	public V getValueForIndex(short index) {
-		return indexMap[index];
+	public V getValueForIndex(int index) {
+		return indexMap[index - Short.MIN_VALUE];
 	}
 
-	public short getIndexForValue(V value) {
-		return valueMap.getOrDefault(value, (short) -1);
+	public int getIndexForValue(V value) {
+		short s = valueMap.getOrDefault(value, Short.MAX_VALUE);
+		return s == Short.MAX_VALUE ? -1 : (s - Short.MIN_VALUE);
 	}
 
 	@Override
@@ -298,7 +299,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		}
 		sorted = false;
 		long pos;
-		short sindex;
+		int sindex;
 		if (filter.containsLong(kmer)) {
 			// Fail fast - we could check if the kmer is indeed stored, but it's way too
 			// slow because of linear search in the kmer array...
@@ -327,18 +328,18 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		return true;
 	}
 
-	public short getAddValueIndex(V value) {
-		short sindex = valueMap.getOrDefault(value, (short) -1);
-		if (sindex == -1) {
-			if (nextValueIndex == MAX_VALUES) {
+	public int getAddValueIndex(V value) {
+		short sindex = valueMap.getOrDefault(value, Short.MAX_VALUE);
+		if (sindex == Short.MAX_VALUE) {
+			if (nextValueIndex == Short.MAX_VALUE) {
 				throw new IllegalStateException("Too many different values - only " + MAX_VALUES + " are possible.");
 			}
 			valueMap.put(value, nextValueIndex);
-			indexMap[nextValueIndex] = value;
+			indexMap[nextValueIndex - Short.MIN_VALUE] = value;
 			sindex = nextValueIndex;
 			nextValueIndex++;
 		}
-		return sindex;
+		return sindex - Short.MIN_VALUE;
 	}
 
 	@Override
@@ -382,11 +383,11 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		// in a multi-threading scenario. This trick greatly decreases synchronization
 		// bottlenecks.
 		synchronized (syncs[(int) (pos % 512)]) {
-			short index;
+			int index;
 			if (largeKmers != null) {
-				index = BigArrays.get(largeValueIndexes, pos);
+				index = BigArrays.get(largeValueIndexes, pos) - Short.MIN_VALUE;
 			} else {
-				index = valueIndexes[(int) pos];
+				index = valueIndexes[(int) pos] - Short.MIN_VALUE;
 			}
 
 			V oldValue = indexMap[index];
@@ -407,11 +408,11 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		}
 	}
 
-	public void setIndexAtPosition(long pos, short index) {
+	public void setIndexAtPosition(long pos, int index) {
 		if (largeKmers != null) {
-			BigArrays.set(largeValueIndexes, pos, index);
+			BigArrays.set(largeValueIndexes, pos, (short) (index + Short.MIN_VALUE));
 		} else {
-			valueIndexes[(int) pos] = index;
+			valueIndexes[(int) pos] = (short) (index + Short.MIN_VALUE);
 		}
 	}
 
@@ -481,7 +482,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		if (posStore != null) {
 			posStore[0] = pos;
 		}
-		return indexMap[index];
+		return indexMap[index - Short.MIN_VALUE];
 	}
 
 	// Made final for potential (automated) inlining by JVM
@@ -583,11 +584,11 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				index = valueIndexes[pos];
 			}
 		}
-		return indexMap[index];
+		return indexMap[index - Short.MIN_VALUE];
 	}
 
-	public short indexAtPosition(long pos) {
-		return largeKmers != null ? BigArrays.get(largeValueIndexes, pos) : valueIndexes[(int) pos];
+	public int indexAtPosition(long pos) {
+		return (largeKmers != null ? BigArrays.get(largeValueIndexes, pos) : valueIndexes[(int) pos]) - Short.MIN_VALUE;
 	}
 
 	@Override
@@ -659,28 +660,28 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				kmer = kmers[(int) i];
 				sindex = valueIndexes[(int) i];
 			}
-			value = indexMap[sindex];
+			value = indexMap[sindex - Short.MIN_VALUE];
 			visitor.nextValue(this, kmer, value);
 		}
 	}
 
 	public void visit(KMerSortedArrayVisitor<V> visitor) {
 		long kmer;
-		short sindex;
+		int sindex;
 		for (long i = 0; i < entries; i++) {
 			if (largeKmers != null) {
 				kmer = BigArrays.get(largeKmers, i);
 				sindex = BigArrays.get(largeValueIndexes, i);
 			} else {
 				kmer = kmers[(int) i];
-				sindex = valueIndexes[(int) i];
+				sindex = valueIndexes[(int) i] - Short.MIN_VALUE;
 			}
 			visitor.nextValue(this, kmer, sindex, i);
 		}
 	}
 
 	public interface KMerSortedArrayVisitor<V extends Serializable> {
-		public void nextValue(KMerSortedArray<V> trie, long kmer, short index, long i);
+		public void nextValue(KMerSortedArray<V> trie, long kmer, int index, long i);
 	}
 
 	public interface UpdateValueProvider<V extends Serializable> {

@@ -28,14 +28,11 @@ import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.GSProject.FileType;
+import org.metagene.genestrip.GSProject.GSFileType;
 import org.metagene.genestrip.fastq.AbstractLoggingFastqStreamer;
 import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.make.Goal;
-import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
-import org.metagene.genestrip.match.FastqKMerMatcher;
-import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
 import java.io.File;
@@ -98,7 +95,7 @@ public class ExtractGoal extends Goal<GSProject> {
 					};
 				}
 				if (booleanConfigValue(GSConfigKey.WRITE_FILTERED_FASTQ)) {
-					File filteredFile = getProject().getOutputFile(getKey().getName(), key, null, FileType.FASTQ_RES,
+					File filteredFile = getProject().getOutputFile(getKey().getName(), key, null, GSFileType.FASTQ_RES,
 							false);
 					try (PrintStream ps = new PrintStream(filteredFile)) {
 						psRef[0] = ps;

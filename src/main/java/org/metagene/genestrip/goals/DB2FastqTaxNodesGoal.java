@@ -25,6 +25,7 @@
 package org.metagene.genestrip.goals;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -56,12 +57,13 @@ public class DB2FastqTaxNodesGoal extends ObjectGoal<Set<SmallTaxIdNode>, GSProj
 		SmallTaxTree taxTree = storeGoal.get().getTaxTree();
 
 		Set<SmallTaxIdNode> storedNodes = new HashSet<SmallTaxIdNode>();
-		for (short j = 0; j < store.getNValues(); j++) {
-			String storeId = store.getValueForIndex(j);
+		Iterator<String> it = store.getValues();
+		while (it.hasNext()) {
+			String storeId = it.next();
 			if (storeId != null) {
 				SmallTaxIdNode node = taxTree.getNodeByTaxId(storeId);
 				if (node != null) {
-					storedNodes.add(node);						
+					storedNodes.add(node);
 				}
 			}
 		}

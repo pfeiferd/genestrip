@@ -309,7 +309,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             }
             lastTaxid = taxIdNode;
             if (taxIdNode != null && taxIdNode != INVALID_NODE) {
-                short vi = taxIdNode.getStoreIndex();
+                int vi = taxIdNode.getStoreIndex();
                 stats = getCountsPerTaxid(taxIdNode, vi);
                 synchronized (stats) {
                     stats.kmers++;
@@ -375,8 +375,8 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                     double err = ((double) readTaxErrorCount) / max;
                     double classErr = ((double) classErrC) / max;
                     entry.classNode = node;
-                    short vi = node.getStoreIndex();
-                    if (vi != -1) {
+                    int vi = node.getStoreIndex();
+                    if (vi >= 0) {
                         stats = getCountsPerTaxid(node, vi);
                         synchronized (stats) {
                             stats.reads++;
@@ -398,7 +398,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         return found;
     }
 
-    protected final CountsPerTaxid getCountsPerTaxid(final SmallTaxIdNode node, final short vi) {
+    protected final CountsPerTaxid getCountsPerTaxid(final SmallTaxIdNode node, final int vi) {
         CountsPerTaxid stats = statsIndex[vi];
         if (stats == null) {
             synchronized (statsIndex) {

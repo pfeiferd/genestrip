@@ -56,7 +56,7 @@ public class BloomIndexGoal extends ObjectGoal<AbstractKMerBloomFilter, GSProjec
 		long[] counter = new long[1];
 		store.visit(new KMerSortedArrayVisitor<String>() {
 			@Override
-			public void nextValue(KMerSortedArray<String> trie, long kmer, short index, long i) {
+			public void nextValue(KMerSortedArray<String> trie, long kmer, int index, long i) {
 				String taxid = store.getValueForIndex(index);
 				if (taxid != null) {
 					SmallTaxIdNode node = taxTree.getNodeByTaxId(taxid);
@@ -80,7 +80,7 @@ public class BloomIndexGoal extends ObjectGoal<AbstractKMerBloomFilter, GSProjec
 
 		store.visit(new KMerSortedArrayVisitor<String>() {
 			@Override
-			public void nextValue(KMerSortedArray<String> trie, long kmer, short index, long i) {
+			public void nextValue(KMerSortedArray<String> trie, long kmer, int index, long i) {
 				String taxid = store.getValueForIndex(index);
 				if (taxid != null) {
 					SmallTaxIdNode node = taxTree.getNodeByTaxId(taxid);

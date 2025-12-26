@@ -25,7 +25,7 @@
 package org.metagene.genestrip.goals;
 
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.GSProject.FileType;
+import org.metagene.genestrip.GSProject.GSFileType;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.make.*;
@@ -56,7 +56,7 @@ public class MatchGoal extends FileListGoal<GSProject> {
     @Override
     protected void provideFiles() {
         for (String key : fastqMapGoal.get().keySet()) {
-            File matchFile = getProject().getOutputFile(getKey().getName(), key, null, FileType.CSV, false);
+            File matchFile = getProject().getOutputFile(getKey().getName(), key, null, GSFileType.CSV, false);
             addFile(matchFile);
             fileToKeyMap.put(matchFile, key);
         }

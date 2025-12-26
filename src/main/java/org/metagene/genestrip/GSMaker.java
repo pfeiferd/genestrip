@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.metagene.genestrip.GSProject.FileType;
+import org.metagene.genestrip.GSProject.GSFileType;
 import org.metagene.genestrip.goals.*;
 import org.metagene.genestrip.goals.genbank.AssemblyFileDownloadGoal;
 import org.metagene.genestrip.goals.genbank.FastaFilesFromGenbankGoal;
@@ -182,9 +182,8 @@ public class GSMaker extends Maker<GSProject> {
         registerGoal(checkSumMapGoal);
 
         // Create or clear project directories
-
         List<File> projectDirs = Arrays.asList(project.getFastaDir(), project.getFastqDir(), project.getDBDir(),
-                project.getKrakenOutDir(), project.getResultsDir(), project.getLogDir(), project.getTxtDir());
+                project.getKrakenOutDir(), project.getResultsDir(), project.getLogDir());
 
         Goal<GSProject> projectSetupGoal = new FileListGoal<GSProject>(project, GSGoalKey.SETUP, projectDirs,
                 commonSetupGoal) {
@@ -286,7 +285,7 @@ public class GSMaker extends Maker<GSProject> {
         registerGoal(fillDBGoal);
 
         StoreDBGoal storeTempDBGoal = new StoreDBGoal(project, GSGoalKey.TEMPDB,
-                project.getOutputFile(GSGoalKey.TEMPDB.getName(), FileType.DB, false), fillDBGoal, projectSetupGoal) {
+                project.getOutputFile(GSGoalKey.TEMPDB.getName(), GSFileType.DB, false), fillDBGoal, projectSetupGoal) {
             @Override
             protected void dependentMade(Goal<GSProject> goal) {
                 super.dependentMade(goal);

@@ -57,7 +57,7 @@ public class Fasta2FastqGoal extends FileListGoal<GSProject> {
     @Override
     protected void provideFiles() {
         for (String key : fastaMapGoal.get().keySet()) {
-            File fastqFile = getProject().getOutputFile(getKey().getName(), key, null, GSProject.FileType.FASTQ, true);
+            File fastqFile = getProject().getOutputFile(getKey().getName(), key, null, GSProject.GSFileType.FASTQ, true);
             addFile(fastqFile);
             fileToKeyMap.put(fastqFile, key);
         }

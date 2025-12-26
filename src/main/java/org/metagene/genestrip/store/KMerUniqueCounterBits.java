@@ -88,7 +88,7 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 		long[] valueCounter = new long[store.getNValues()];
 		store.visit(new KMerSortedArrayVisitor<String>() {
 			@Override
-			public void nextValue(KMerSortedArray<String> trie, long kmer, short index, long i) {
+			public void nextValue(KMerSortedArray<String> trie, long kmer, int index, long i) {
 				if (bitVector.get(i)) {
 					valueCounter[index]++;
 				}
@@ -110,7 +110,7 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 		
 		store.visit(new KMerSortedArrayVisitor<String>() {
 			@Override
-			public void nextValue(KMerSortedArray<String> trie, long kmer, short index, long i) {
+			public void nextValue(KMerSortedArray<String> trie, long kmer, int index, long i) {
 				if (bitVector.get(i)) {
 					String taxid = store.getValueForIndex(index);
 					if (taxid != null) {						
@@ -144,14 +144,14 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 
 	@Override
 	public int getUniqueKmerCount(String taxid) {
-		final short sindex = store.getIndexForValue(taxid);
+		final int sindex = store.getIndexForValue(taxid);
 		if (sindex < 0) {
 			return 0;
 		}
 		int[] count = new int[1];
 		store.visit(new KMerSortedArrayVisitor<String>() {
 			@Override
-			public void nextValue(KMerSortedArray<String> trie, long kmer, short index, long i) {
+			public void nextValue(KMerSortedArray<String> trie, long kmer, int index, long i) {
 				if (index == sindex && bitVector.get(i)) {
 					count[0]++;
 				}
@@ -162,13 +162,13 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 	}
 
 	public void getMaxCounts(String taxid, short[] target) {
-		final short sindex = store.getIndexForValue(taxid);
+		final int sindex = store.getIndexForValue(taxid);
 		if (sindex < 0) {
 			return;
 		}
 		store.visit(new KMerSortedArrayVisitor<String>() {
 			@Override
-			public void nextValue(KMerSortedArray<String> trie, long kmer, short index, long i) {
+			public void nextValue(KMerSortedArray<String> trie, long kmer, int index, long i) {
 				if (index == sindex && bitVector.get(i)) {
 					updateMaxCounts(countsVector.get(i), target);
 				}

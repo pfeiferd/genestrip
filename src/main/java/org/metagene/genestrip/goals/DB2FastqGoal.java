@@ -33,7 +33,7 @@ import java.util.Set;
 
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.GSProject.FileType;
+import org.metagene.genestrip.GSProject.GSFileType;
 import org.metagene.genestrip.fastqgen.KMerFastqGenerator;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
@@ -65,7 +65,7 @@ public class DB2FastqGoal extends FileListGoal<GSProject> {
 	}
 
 	protected File getOutputFile(String taxid) {
-		return getProject().getOutputFile(getKey().getName(), taxid, null, FileType.FASTQ_RES, true);
+		return getProject().getOutputFile(getKey().getName(), taxid, null, GSFileType.FASTQ_RES, true);
 	}
 
 	@Override

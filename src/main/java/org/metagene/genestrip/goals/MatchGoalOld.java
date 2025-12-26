@@ -34,7 +34,7 @@ import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.GSProject.FileType;
+import org.metagene.genestrip.GSProject.GSFileType;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.make.Goal;
@@ -78,8 +78,8 @@ public class MatchGoalOld extends MultiFileGoal {
 	}
 
 	@Override
-	protected FileType getFileType() {
-		return FileType.CSV;
+	protected GSFileType getFileType() {
+		return GSFileType.CSV;
 	}
 
 	@Override
@@ -90,12 +90,12 @@ public class MatchGoalOld extends MultiFileGoal {
 			StreamingResourceStream fastqs = fileToFastqs.get(file);
 
 			if (booleanConfigValue(GSConfigKey.WRITE_FILTERED_FASTQ)) {
-				filteredFile = getProject().getOutputFile(null, null, file.getName(), FileType.FASTQ_RES,
+				filteredFile = getProject().getOutputFile(null, null, file.getName(), GSFileType.FASTQ_RES,
 						true);
 			}
 			if (booleanConfigValue(GSConfigKey.WRITE_KRAKEN_STYLE_OUT)) {
 				krakenOutStyleFile = getProject().getOutputFile(null, null, file.getName(),
-						FileType.KRAKEN_OUT_RES, false);
+						GSFileType.KRAKEN_OUT_RES, false);
 			}
 
 			if (matcher == null) {
