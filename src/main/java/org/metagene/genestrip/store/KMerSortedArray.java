@@ -225,7 +225,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	}
 
 	public V getValueForIndex(int index) {
-		return indexMap[index - Short.MIN_VALUE];
+		return indexMap[index];
 	}
 
 	public int getIndexForValue(V value) {

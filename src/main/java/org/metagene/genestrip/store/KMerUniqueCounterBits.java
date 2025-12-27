@@ -95,7 +95,7 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 			}
 		});
 		for (short i = 0; i < valueCounter.length; i++) {
-			String taxid = store.getValueForIndex((short)i);
+			String taxid = store.getValueForIndex(i);
 			res.put(taxid, valueCounter[i]);
 		}
 
