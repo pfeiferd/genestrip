@@ -39,14 +39,14 @@ import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.tax.TaxTree;
 
-public class TaxIdFileDownloadGoal extends GSFileDownloadGoal {
+public class TaxIdFileDownloadGoal<P extends GSProject> extends GSFileDownloadGoal<P> {
 	public static final String TAX_DMP_ZIP = "taxdmp.zip";
 	public static final String FTP_DIR = "/pub/taxonomy";
 
 	private final List<File> files;
 
 	@SafeVarargs
-	public TaxIdFileDownloadGoal(GSProject project, Goal<GSProject>... deps) {
+	public TaxIdFileDownloadGoal(P project, Goal<P>... deps) {
 		super(project, GSGoalKey.TAXDOWNLOAD, deps);
 		files = new ArrayList<File>();
 		files.add(new File(getProject().getCommon().getCommonDir(), TaxTree.NODES_DMP));

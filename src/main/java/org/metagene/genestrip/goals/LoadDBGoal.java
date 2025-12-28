@@ -43,13 +43,13 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
-public class LoadDBGoal extends ObjectGoal<Database, GSProject> implements Goal.LogHeapInfo {
-	private final ObjectGoal<Database, GSProject> dbGoal;
+public class LoadDBGoal<P extends GSProject> extends ObjectGoal<Database, P> implements Goal.LogHeapInfo {
+	private final ObjectGoal<Database, P> dbGoal;
 	private final File dbFile;
 
 	@SafeVarargs
-	public LoadDBGoal(GSProject project, GoalKey key, ObjectGoal<Database, GSProject> dbGoal, FileGoal<GSProject> updateStoreGoal,
-					  Goal<GSProject>... dependencies) {
+	public LoadDBGoal(P project, GoalKey key, ObjectGoal<Database, P> dbGoal, FileGoal<P> updateStoreGoal,
+					  Goal<P>... dependencies) {
 		super(project, key,
 				project.getDBPath() == null ? append(dependencies, dbGoal, updateStoreGoal) : dependencies);
 		this.dbGoal = dbGoal;

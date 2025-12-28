@@ -40,13 +40,13 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Map;
 
-public class ExtractGoal extends Goal<GSProject> {
-	private final ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal;
+public class ExtractGoal<P extends GSProject> extends Goal<P> {
+	private final ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal;
 	private final ExecutionContext bundle;
 
 	@SafeVarargs
-	public ExtractGoal(GSProject project, ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal,
-					   ExecutionContext bundle, Goal<GSProject>... deps) {
+	public ExtractGoal(P project, ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal,
+					   ExecutionContext bundle, Goal<P>... deps) {
 		super(project, GSGoalKey.EXTRACT, Goal.append(deps, fastqMapGoal));
 		this.fastqMapGoal = fastqMapGoal;
 		this.bundle = bundle;

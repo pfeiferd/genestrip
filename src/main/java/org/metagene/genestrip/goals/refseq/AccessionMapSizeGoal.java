@@ -39,14 +39,14 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.AccessionFileProcessor;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 
-public class AccessionMapSizeGoal extends ObjectGoal<Integer, GSProject> {
-	private final ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal;
+public class AccessionMapSizeGoal<P extends GSProject> extends ObjectGoal<Integer, P> {
+	private final ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal;
 	private final RefSeqCatalogDownloadGoal catalogGoal;
 
 	@SafeVarargs
-	public AccessionMapSizeGoal(GSProject project, 
-			ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal, RefSeqCatalogDownloadGoal catalogGoal,
-			Goal<GSProject>... deps) {
+	public AccessionMapSizeGoal(P project,
+			ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal, RefSeqCatalogDownloadGoal catalogGoal,
+			Goal<P>... deps) {
 		super(project, GSGoalKey.ACCMAPSIZE, Goal.append(deps, categoriesGoal, catalogGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.catalogGoal = catalogGoal;

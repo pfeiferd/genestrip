@@ -35,9 +35,9 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
-public abstract class GSFileDownloadGoal extends FileDownloadGoal<GSProject> {
+public abstract class GSFileDownloadGoal<P extends GSProject> extends FileDownloadGoal<P> {
 	@SafeVarargs
-	public GSFileDownloadGoal(GSProject project, GoalKey key, Goal<GSProject>... deps) {
+	public GSFileDownloadGoal(P project, GoalKey key, Goal<P>... deps) {
 		super(project, key, deps);
 	}
 

@@ -50,7 +50,7 @@ import org.metagene.genestrip.io.StreamingURLResource;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 
-public class FastqMapGoal extends ObjectGoal<Map<String, StreamingResourceStream>, GSProject> {
+public class FastqMapGoal<P extends GSProject> extends ObjectGoal<Map<String, StreamingResourceStream>, P> {
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#')
 			.setDelimiter(' ').setRecordSeparator('\n').build();
 
@@ -58,7 +58,7 @@ public class FastqMapGoal extends ObjectGoal<Map<String, StreamingResourceStream
 	private final boolean alwaysAssumeGZIP;
 
 	@SafeVarargs
-	public FastqMapGoal(GSProject project, boolean fastqType, Goal<GSProject>... deps) {
+	public FastqMapGoal(P project, boolean fastqType, Goal<P>... deps) {
 		super(project, fastqType ? GSGoalKey.FASTQ_MAP : GSGoalKey.FASTA_MAP, deps);
 		this.fastqType = fastqType;
 		this.alwaysAssumeGZIP = booleanConfigValue(GSConfigKey.ALWAYS_ASSUME_GZIP);

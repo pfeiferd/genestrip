@@ -36,12 +36,12 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
-public class CheckSumMapGoal extends ObjectGoal<Map<String, String>, GSProject> {
+public class CheckSumMapGoal<P extends GSProject> extends ObjectGoal<Map<String, String>, P> {
 	private final RefSeqCatalogDownloadGoal catalogGoal;
 
 	@SafeVarargs
-	public CheckSumMapGoal(GSProject project, RefSeqCatalogDownloadGoal catalogGoal,
-			Goal<GSProject>... deps) {
+	public CheckSumMapGoal(P project, RefSeqCatalogDownloadGoal catalogGoal,
+			Goal<P>... deps) {
 		super(project, GSGoalKey.CHECKSUMMAP, Goal.append(deps, catalogGoal));
 		this.catalogGoal = catalogGoal;
 	}

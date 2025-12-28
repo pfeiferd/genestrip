@@ -45,7 +45,7 @@ public class GoalsTest {
 		GSCommon config = new GSCommon(baseDir);
 		File fastq = new File(APITest.getBaseDir(), "projects/human_virus/fastq/sample.fastq.gz");
 		GSProject project = new GSProject(config, "human_virus", null, new String[] { fastq.getCanonicalPath() });
-		GSMaker maker = new GSMaker(project);
+		GSMaker<GSProject> maker = new GSMaker(project);
 		for (Goal<GSProject> goal : maker.getGoals()) {
 			GoalKey key = goal.getKey();
 			if (!GSGoalKey.KRAKENRES.equals(key) && !GSGoalKey.KRAKENCOUNT.equals(key)) {

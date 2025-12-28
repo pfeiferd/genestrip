@@ -32,13 +32,13 @@ import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.Goal;
 
-public class RefSeqRNumDownloadGoal extends RefSeqDownloadGoal {
+public class RefSeqRNumDownloadGoal<P extends GSProject> extends RefSeqDownloadGoal<P> {
 	public static final String RELEASE_NUMBER_FILE_NAME = "RELEASE_NUMBER";
 	
 	private final List<File> files;
 	
 	@SafeVarargs
-	public RefSeqRNumDownloadGoal(GSProject project, Goal<GSProject>... deps) {
+	public RefSeqRNumDownloadGoal(P project, Goal<P>... deps) {
 		super(project, GSGoalKey.REFSEQRELEASE, deps);
 		
 		files = Collections.singletonList(new File(project.getCommon().getRefSeqDir(), RELEASE_NUMBER_FILE_NAME));

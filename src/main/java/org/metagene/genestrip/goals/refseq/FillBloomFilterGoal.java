@@ -48,19 +48,19 @@ import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.StringLongDigitTrie;
 
-public class FillBloomFilterGoal extends FastaReaderGoal<Long> implements Goal.LogHeapInfo {
-    private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
-    private final ObjectGoal<Long, GSProject> sizeGoal;
+public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Long, P> implements Goal.LogHeapInfo {
+    private final ObjectGoal<AccessionMap, P> accessionMapGoal;
+    private final ObjectGoal<Long, P> sizeGoal;
 
     private AbstractKMerBloomFilter filter;
 
     private final boolean multiThreading;
 
     @SafeVarargs
-    public FillBloomFilterGoal(GSProject project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
-                               ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-                               ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
-                               ObjectGoal<AccessionMap, GSProject> accessionMapGoal, FillSizeGoal sizeGoal, Goal<GSProject>... deps) {
+    public FillBloomFilterGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
+                               ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+                               ObjectGoal<Map<File, TaxIdNode>, P> additionalGoal,
+                               ObjectGoal<AccessionMap, P> accessionMapGoal, FillSizeGoal sizeGoal, Goal<P>... deps) {
         super(project, GSGoalKey.TEMPINDEX, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, accessionMapGoal, sizeGoal));
         this.accessionMapGoal = accessionMapGoal;
         this.sizeGoal = sizeGoal;

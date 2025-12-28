@@ -45,15 +45,15 @@ import org.metagene.genestrip.io.StreamingURLResource;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 
-public class FastqDownloadsGoal extends GSFileDownloadGoal {
+public class FastqDownloadsGoal<P extends GSProject> extends GSFileDownloadGoal<P> {
 	private List<File> files;
 	private final Map<File, URL> fileToURL;
-	private final ObjectGoal<Map<String, StreamingResourceStream>, GSProject> mapGoal;
-	private final ObjectGoal<Map<String, StreamingResourceStream>, GSProject> transformGoal;
+	private final ObjectGoal<Map<String, StreamingResourceStream>, P> mapGoal;
+	private final ObjectGoal<Map<String, StreamingResourceStream>, P> transformGoal;
 
 	@SafeVarargs
-	public FastqDownloadsGoal(GSProject project, boolean fastqType, ObjectGoal<Map<String, StreamingResourceStream>, GSProject> mapGoal,
-			ObjectGoal<Map<String, StreamingResourceStream>, GSProject> transformGoal, Goal<GSProject>... deps) {
+	public FastqDownloadsGoal(P project, boolean fastqType, ObjectGoal<Map<String, StreamingResourceStream>, P> mapGoal,
+			ObjectGoal<Map<String, StreamingResourceStream>, P> transformGoal, Goal<P>... deps) {
 		super(project, fastqType ? GSGoalKey.FASTQ_DOWNLOAD : GSGoalKey.FASTA_DOWNLOAD, Goal.append(deps, mapGoal, transformGoal));
 		fileToURL = new HashMap<File, URL>();
 		this.mapGoal = mapGoal;

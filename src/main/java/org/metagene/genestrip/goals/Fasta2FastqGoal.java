@@ -43,11 +43,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Fasta2FastqGoal extends FileListGoal<GSProject> {
-    private final ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastaMapGoal;
+public class Fasta2FastqGoal<P extends GSProject> extends FileListGoal<P> {
+    private final ObjectGoal<Map<String, StreamingResourceStream>, P> fastaMapGoal;
     private final Map<File, String> fileToKeyMap;
 
-    public Fasta2FastqGoal(GSProject project, GoalKey key, ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastaMapGoal, Goal<GSProject>... deps) {
+    public Fasta2FastqGoal(P project, GoalKey key, ObjectGoal<Map<String, StreamingResourceStream>, P> fastaMapGoal, Goal<P>... deps) {
         super(project, key, (List<File>) null, append(deps, fastaMapGoal));
 
         this.fastaMapGoal = fastaMapGoal;

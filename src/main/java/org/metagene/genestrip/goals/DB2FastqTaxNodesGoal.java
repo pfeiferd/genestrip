@@ -40,12 +40,12 @@ import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
-public class DB2FastqTaxNodesGoal extends ObjectGoal<Set<SmallTaxIdNode>, GSProject> {
-	private final ObjectGoal<Database, GSProject> storeGoal;
+public class DB2FastqTaxNodesGoal<P extends GSProject> extends ObjectGoal<Set<SmallTaxIdNode>, P> {
+	private final ObjectGoal<Database, P> storeGoal;
 
 	@SafeVarargs
-	public DB2FastqTaxNodesGoal(GSProject project,
-			ObjectGoal<Database, GSProject> storeGoal, Goal<GSProject>... deps) {
+	public DB2FastqTaxNodesGoal(P project,
+			ObjectGoal<Database, P> storeGoal, Goal<P>... deps) {
 		super(project, GSGoalKey.DB2FASTQ_TAXIDS, Goal.append(deps, storeGoal));
 		this.storeGoal = storeGoal;
 	}

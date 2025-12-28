@@ -54,10 +54,10 @@ import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-public class GSMaker extends Maker<GSProject> {
+public class GSMaker<P extends GSProject> extends Maker<P> {
     private ExecutionContext executionContext;
 
-    public GSMaker(GSProject project) {
+    public GSMaker(P project) {
         super(project);
     }
 
@@ -68,12 +68,12 @@ public class GSMaker extends Maker<GSProject> {
         }
     }
 
-    protected ExecutionContext createExecutionContext(Thread mainThread, GSProject project) {
+    protected ExecutionContext createExecutionContext(Thread mainThread, P project) {
         return new DefaultExecutionContext(mainThread, project.intConfigValue(GSConfigKey.THREADS),
                 project.longConfigValue(GSConfigKey.LOG_PROGRESS_UPDATE_CYCLE));
     }
 
-    protected ExecutionContext getExecutionContext(GSProject project) {
+    protected ExecutionContext getExecutionContext(P project) {
         if (executionContext == null) {
             executionContext = createExecutionContext(getMainThread(), project);
         }
@@ -85,10 +85,10 @@ public class GSMaker extends Maker<GSProject> {
     }
 
     protected void createGoals() {
-        GSProject project = getProject();
+        P project = getProject();
         // Show goals...
 
-        Goal<GSProject> showAllGoals = new Goal<GSProject>(project, GSGoalKey.SHOWALL) {
+        Goal<P> showAllGoals = new Goal<P>(project, GSGoalKey.SHOWALL) {
             @Override
             public boolean isMade() {
                 return false;
@@ -107,7 +107,7 @@ public class GSMaker extends Maker<GSProject> {
         };
         registerGoal(showAllGoals);
 
-        Goal<GSProject> showGoals = new Goal<GSProject>(project, GSGoalKey.SHOW) {
+        Goal<P> showGoals = new Goal<P>(project, GSGoalKey.SHOW) {
             @Override
             public boolean isMade() {
                 return false;
@@ -128,7 +128,7 @@ public class GSMaker extends Maker<GSProject> {
 
         // Common setup
 
-        Goal<GSProject> commonSetupGoal = new FileListGoal<GSProject>(project, GSGoalKey.COMMON_SETUP,
+        Goal<P> commonSetupGoal = new FileListGoal<P>(project, GSGoalKey.COMMON_SETUP,
                 Arrays.asList(project.getCommon().getCommonDir(), project.getCommon().getRefSeqDir(),
                         project.getCommon().getGenbankDir(), project.getCommon().getFastqDir(),
                         project.getCommon().getFastaDir())) {
@@ -154,10 +154,10 @@ public class GSMaker extends Maker<GSProject> {
 
         // Taxonomy
 
-        Goal<GSProject> taxDBGoal = new TaxIdFileDownloadGoal(project, commonSetupGoal);
+        Goal<P> taxDBGoal = new TaxIdFileDownloadGoal(project, commonSetupGoal);
         registerGoal(taxDBGoal);
 
-        ObjectGoal<TaxTree, GSProject> taxTreeGoal = new ObjectGoal<TaxTree, GSProject>(project, GSGoalKey.TAXTREE,
+        ObjectGoal<TaxTree, P> taxTreeGoal = new ObjectGoal<TaxTree, P>(project, GSGoalKey.TAXTREE,
                 taxDBGoal) {
             @Override
             protected void doMakeThis() {
@@ -166,12 +166,12 @@ public class GSMaker extends Maker<GSProject> {
         };
         registerGoal(taxTreeGoal);
 
-        ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal = new TaxNodesGoal(project, taxTreeGoal);
+        ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal = new TaxNodesGoal(project, taxTreeGoal);
         registerGoal(taxNodesGoal);
 
         // General stuff from RefSeq
 
-        FileGoal<GSProject> releaseNumberGoal = new RefSeqRNumDownloadGoal(project, commonSetupGoal);
+        FileGoal<P> releaseNumberGoal = new RefSeqRNumDownloadGoal(project, commonSetupGoal);
         registerGoal(releaseNumberGoal);
 
         RefSeqCatalogDownloadGoal refSeqCatalogGoal = new RefSeqCatalogDownloadGoal(project, releaseNumberGoal,
@@ -185,7 +185,7 @@ public class GSMaker extends Maker<GSProject> {
         List<File> projectDirs = Arrays.asList(project.getFastaDir(), project.getFastqDir(), project.getDBDir(),
                 project.getKrakenOutDir(), project.getResultsDir(), project.getLogDir());
 
-        Goal<GSProject> projectSetupGoal = new FileListGoal<GSProject>(project, GSGoalKey.SETUP, projectDirs,
+        Goal<P> projectSetupGoal = new FileListGoal<P>(project, GSGoalKey.SETUP, projectDirs,
                 commonSetupGoal) {
             @Override
             protected List<File> getFilesToClean() {
@@ -207,7 +207,7 @@ public class GSMaker extends Maker<GSProject> {
         };
         registerGoal(projectSetupGoal);
 
-        Goal<GSProject> clearGoal = new FileListGoal<GSProject>(project, GSGoalKey.CLEAR, Arrays
+        Goal<P> clearGoal = new FileListGoal<P>(project, GSGoalKey.CLEAR, Arrays
                 .asList(project.getDBDir(), project.getKrakenOutDir(), project.getResultsDir(), project.getLogDir())) {
             @Override
             public boolean isMade() {
@@ -227,67 +227,67 @@ public class GSMaker extends Maker<GSProject> {
 
         // Download genomic data for project
 
-        ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal = new CategoriesGoal(project, projectSetupGoal);
+        ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal = new CategoriesGoal(project, projectSetupGoal);
         registerGoal(categoriesGoal);
 
-        ObjectGoal<CheckRefSeqRNumGoal.Result, GSProject> checkRefSeqRNumGoal = new CheckRefSeqRNumGoal(project, releaseNumberGoal);
+        ObjectGoal<CheckRefSeqRNumGoal.Result, P> checkRefSeqRNumGoal = new CheckRefSeqRNumGoal(project, releaseNumberGoal);
         registerGoal(checkRefSeqRNumGoal);
 
         RefSeqFnaFilesDownloadGoal refSeqFnaFilesGoal = new RefSeqFnaFilesDownloadGoal(project, categoriesGoal,
                 refSeqCatalogGoal, checkSumMapGoal, checkRefSeqRNumGoal);
         registerGoal(refSeqFnaFilesGoal);
 
-        ObjectGoal<Integer, GSProject> accessMapSizeGoal = new AccessionMapSizeGoal(project, categoriesGoal,
+        ObjectGoal<Integer, P> accessMapSizeGoal = new AccessionMapSizeGoal(project, categoriesGoal,
                 refSeqCatalogGoal);
         registerGoal(accessMapSizeGoal);
 
-        ObjectGoal<AccessionMap, GSProject> accessionMapGoal = new AccessionMapGoal(project, categoriesGoal, taxTreeGoal,
+        ObjectGoal<AccessionMap, P> accessionMapGoal = new AccessionMapGoal(project, categoriesGoal, taxTreeGoal,
                 refSeqCatalogGoal, accessMapSizeGoal);
         registerGoal(accessionMapGoal);
 
         // Genbank related additional fastas:
-        ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesFromGenBank = new TaxNodesFromGenbankGoal(project, categoriesGoal,
+        ObjectGoal<Set<TaxIdNode>, P> taxNodesFromGenBank = new TaxNodesFromGenbankGoal(project, categoriesGoal,
                 taxNodesGoal, accessionMapGoal);
         registerGoal(taxNodesFromGenBank);
 
-        FileGoal<GSProject> assemblyFileDownloadGoal = new AssemblyFileDownloadGoal(project, commonSetupGoal);
+        FileGoal<P> assemblyFileDownloadGoal = new AssemblyFileDownloadGoal(project, commonSetupGoal);
         registerGoal(assemblyFileDownloadGoal);
 
-        FastaFilesFromGenbankGoal fastaFilesFromGenbankGoal = new FastaFilesFromGenbankGoal(project, taxTreeGoal,
+        FastaFilesFromGenbankGoal<P> fastaFilesFromGenbankGoal = new FastaFilesFromGenbankGoal(project, taxTreeGoal,
                 assemblyFileDownloadGoal, taxNodesFromGenBank);
         registerGoal(fastaFilesFromGenbankGoal);
 
-        FastaFilesGenbankDownloadGoal fastaFilesGenbankDownloadGoal = new FastaFilesGenbankDownloadGoal(project,
+        FastaFilesGenbankDownloadGoal<P> fastaFilesGenbankDownloadGoal = new FastaFilesGenbankDownloadGoal(project,
                 fastaFilesFromGenbankGoal);
         registerGoal(fastaFilesGenbankDownloadGoal);
         // end of Genbank stuff.
 
-        AdditionalDownloadsGoal additionalDownloadsGoal = new AdditionalDownloadsGoal(project, projectSetupGoal);
+        AdditionalDownloadsGoal<P> additionalDownloadsGoal = new AdditionalDownloadsGoal(project, projectSetupGoal);
         registerGoal(additionalDownloadsGoal);
 
-        ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalFastasGoal = new AdditionalFastasGoal(project,
+        ObjectGoal<Map<File, TaxIdNode>, P> additionalFastasGoal = new AdditionalFastasGoal(project,
                 taxTreeGoal, fastaFilesFromGenbankGoal, fastaFilesGenbankDownloadGoal, projectSetupGoal,
                 additionalDownloadsGoal);
         registerGoal(additionalFastasGoal);
 
         // Create database and bloom filter
 
-        FillSizeGoal fillSizeGoal = new FillSizeGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal,
+        FillSizeGoal<P> fillSizeGoal = new FillSizeGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal,
                 additionalFastasGoal, accessionMapGoal);
         registerGoal(fillSizeGoal);
 
-        ObjectGoal<Long, GSProject> fillBloomGoal = new FillBloomFilterGoal(project, getExecutionContext(project), categoriesGoal,
+        ObjectGoal<Long, P> fillBloomGoal = new FillBloomFilterGoal(project, getExecutionContext(project), categoriesGoal,
                 taxNodesGoal, refSeqFnaFilesGoal, additionalFastasGoal, accessionMapGoal, fillSizeGoal);
         registerGoal(fillBloomGoal);
 
-        FillDBGoal fillDBGoal = new FillDBGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, taxTreeGoal, refSeqFnaFilesGoal,
+        FillDBGoal<P> fillDBGoal = new FillDBGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, taxTreeGoal, refSeqFnaFilesGoal,
                 additionalFastasGoal, accessionMapGoal, fillBloomGoal, projectSetupGoal);
         registerGoal(fillDBGoal);
 
-        StoreDBGoal storeTempDBGoal = new StoreDBGoal(project, GSGoalKey.TEMPDB,
+        StoreDBGoal<P> storeTempDBGoal = new StoreDBGoal<P>(project, GSGoalKey.TEMPDB,
                 project.getOutputFile(GSGoalKey.TEMPDB.getName(), GSFileType.DB, false), fillDBGoal, projectSetupGoal) {
             @Override
-            protected void dependentMade(Goal<GSProject> goal) {
+            protected void dependentMade(Goal<P> goal) {
                 super.dependentMade(goal);
                 if (booleanConfigValue(GSConfigKey.REMOVE_TEMP_DB)) {
                     // Remove temp file if not required any more...
@@ -299,12 +299,12 @@ public class GSMaker extends Maker<GSProject> {
         };
         registerGoal(storeTempDBGoal);
 
-        FilledDBGoal filledDBGoal = new FilledDBGoal(project, fillDBGoal, storeTempDBGoal);
+        FilledDBGoal<P> filledDBGoal = new FilledDBGoal(project, fillDBGoal, storeTempDBGoal);
         registerGoal(filledDBGoal);
 
-        Goal<GSProject> tempDbInfoGoal = new DBInfoGoal(true, project, filledDBGoal, projectSetupGoal) {
+        Goal<P> tempDbInfoGoal = new DBInfoGoal<P>(true, project, filledDBGoal, projectSetupGoal) {
             @Override
-            protected void dependentMade(Goal<GSProject> goal) {
+            protected void dependentMade(Goal<P> goal) {
                 super.dependentMade(goal);
                 if (booleanConfigValue(GSConfigKey.REMOVE_TEMP_DB)) {
                     // Remove temp file if not required any more...
@@ -316,36 +316,36 @@ public class GSMaker extends Maker<GSProject> {
         };
         registerGoal(tempDbInfoGoal);
 
-        DBGoal updateDBGoal = new DBGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, taxTreeGoal,
+        DBGoal<P> updateDBGoal = new DBGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, taxTreeGoal,
                 refSeqFnaFilesGoal, additionalFastasGoal, accessionMapGoal, filledDBGoal, tempDbInfoGoal, projectSetupGoal);
         registerGoal(updateDBGoal);
 
         // We weed the storeTempDBGoal and tempDbInfoGoal as an explicit dependency here so that associated intermediate files get
         // automatically deleted when final database got stored.
-        StoreDBGoal storeDBGoal = new StoreDBGoal(project, GSGoalKey.DB, project.getDBFile(), updateDBGoal,
+        StoreDBGoal<P> storeDBGoal = new StoreDBGoal(project, GSGoalKey.DB, project.getDBFile(), updateDBGoal,
                 projectSetupGoal,
                 // Keep these two dependencies:
                 storeTempDBGoal, tempDbInfoGoal);
         registerGoal(storeDBGoal);
 
-        LoadDBGoal loadDBGoal = new LoadDBGoal(project, GSGoalKey.LOAD_DB, updateDBGoal, storeDBGoal);
+        LoadDBGoal<P> loadDBGoal = new LoadDBGoal(project, GSGoalKey.LOAD_DB, updateDBGoal, storeDBGoal);
         registerGoal(loadDBGoal);
 
-        BloomIndexGoal bloomIndexGoal = new BloomIndexGoal(project, loadDBGoal, projectSetupGoal);
+        BloomIndexGoal<P> bloomIndexGoal = new BloomIndexGoal(project, loadDBGoal, projectSetupGoal);
         registerGoal(bloomIndexGoal);
 
-        StoreIndexGoal storeIndexGoal = new StoreIndexGoal(project, bloomIndexGoal, projectSetupGoal);
+        StoreIndexGoal<P> storeIndexGoal = new StoreIndexGoal(project, bloomIndexGoal, projectSetupGoal);
         registerGoal(storeIndexGoal);
 
-        LoadIndexGoal bloomIndexedGoal = new LoadIndexGoal(project, bloomIndexGoal, storeIndexGoal, projectSetupGoal);
+        LoadIndexGoal<P> bloomIndexedGoal = new LoadIndexGoal(project, bloomIndexGoal, storeIndexGoal, projectSetupGoal);
         registerGoal(bloomIndexedGoal);
 
         // Manage the database
 
-        Goal<GSProject> dbInfoGoal = new DBInfoGoal(project, loadDBGoal, projectSetupGoal);
+        Goal<P> dbInfoGoal = new DBInfoGoal(project, loadDBGoal, projectSetupGoal);
         registerGoal(dbInfoGoal);
 
-        Goal<GSProject> all = new Goal<GSProject>(project, GSGoalKey.GENALL, dbInfoGoal, storeIndexGoal) {
+        Goal<P> all = new Goal<P>(project, GSGoalKey.GENALL, dbInfoGoal, storeIndexGoal) {
             @Override
             public boolean isMade() {
                 return false;
@@ -357,65 +357,65 @@ public class GSMaker extends Maker<GSProject> {
         };
         registerDefaultGoal(all);
 
-        ObjectGoal<Set<SmallTaxIdNode>, GSProject> db2fastqTaxNodesGoal = new DB2FastqTaxNodesGoal(project, loadDBGoal,
+        ObjectGoal<Set<SmallTaxIdNode>, P> db2fastqTaxNodesGoal = new DB2FastqTaxNodesGoal(project, loadDBGoal,
                 projectSetupGoal);
         registerGoal(db2fastqTaxNodesGoal);
 
-        Goal<GSProject> db2fastqGoal = new DB2FastqGoal(project, db2fastqTaxNodesGoal, loadDBGoal, projectSetupGoal);
+        Goal<P> db2fastqGoal = new DB2FastqGoal(project, db2fastqTaxNodesGoal, loadDBGoal, projectSetupGoal);
         registerGoal(db2fastqGoal);
 
         // Use database and bloom filter
 
-        ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal = new FastqMapGoal(project, true,
+        ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal = new FastqMapGoal(project, true,
                 projectSetupGoal);
         registerGoal(fastqMapGoal);
 
-        ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapTransfGoal = new FastqMapTransformGoal(
+        ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapTransfGoal = new FastqMapTransformGoal(
                 project, true, fastqMapGoal, projectSetupGoal);
         registerGoal(fastqMapTransfGoal);
 
-        Goal<GSProject> extractGoal = new ExtractGoal(project, fastqMapTransfGoal, getExecutionContext(project));
+        Goal<P> extractGoal = new ExtractGoal(project, fastqMapTransfGoal, getExecutionContext(project));
         registerGoal(extractGoal);
 
-        FastqDownloadsGoal fastqDownloadsGoal = new FastqDownloadsGoal(project, true, fastqMapGoal, fastqMapTransfGoal,
+        FastqDownloadsGoal<P> fastqDownloadsGoal = new FastqDownloadsGoal(project, true, fastqMapGoal, fastqMapTransfGoal,
                 projectSetupGoal);
         registerGoal(fastqDownloadsGoal);
 
-        Goal<GSProject> filterGoal = new FilterGoal(project, fastqMapTransfGoal, bloomIndexedGoal,
+        Goal<P> filterGoal = new FilterGoal(project, fastqMapTransfGoal, bloomIndexedGoal,
                 getExecutionContext(project), projectSetupGoal, fastqDownloadsGoal);
         registerGoal(filterGoal);
 
-        ObjectGoal<Map<String, MatchingResult>, GSProject> matchResGoal = new MatchResultGoal(getProject(), GSGoalKey.MATCHRES, fastqMapTransfGoal, loadDBGoal,
+        ObjectGoal<Map<String, MatchingResult>, P> matchResGoal = new MatchResultGoal(getProject(), GSGoalKey.MATCHRES, fastqMapTransfGoal, loadDBGoal,
                 getExecutionContext(getProject()), projectSetupGoal, fastqDownloadsGoal);
         registerGoal(matchResGoal);
 
-        Goal<GSProject> matchGoal = new MatchGoal(project, GSGoalKey.MATCH, fastqMapTransfGoal, matchResGoal, projectSetupGoal);
+        Goal<P> matchGoal = new MatchGoal(project, GSGoalKey.MATCH, fastqMapTransfGoal, matchResGoal, projectSetupGoal);
         registerGoal(matchGoal);
 
-        ObjectGoal<Map<String, MatchingResult>, GSProject> matchReslrGoal = new MatchResultGoal(getProject(), GSGoalKey.MATCHRESLR, fastqMapTransfGoal, loadDBGoal,
+        ObjectGoal<Map<String, MatchingResult>, P> matchReslrGoal = new MatchResultGoal(getProject(), GSGoalKey.MATCHRESLR, fastqMapTransfGoal, loadDBGoal,
                 getExecutionContext(getProject()), projectSetupGoal, fastqDownloadsGoal);
         registerGoal(matchReslrGoal);
 
-        Goal<GSProject> matchlrGoal = new MatchGoal(project, GSGoalKey.MATCHLR, fastqMapTransfGoal, matchReslrGoal, projectSetupGoal);
+        Goal<P> matchlrGoal = new MatchGoal(project, GSGoalKey.MATCHLR, fastqMapTransfGoal, matchReslrGoal, projectSetupGoal);
         registerGoal(matchlrGoal);
 
-        ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastaMapGoal = new FastqMapGoal(project, false,
+        ObjectGoal<Map<String, StreamingResourceStream>, P> fastaMapGoal = new FastqMapGoal(project, false,
                 projectSetupGoal);
         registerGoal(fastaMapGoal);
 
-        ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastaMapTransfGoal = new FastqMapTransformGoal(
+        ObjectGoal<Map<String, StreamingResourceStream>, P> fastaMapTransfGoal = new FastqMapTransformGoal(
                 project, false, fastaMapGoal, projectSetupGoal);
         registerGoal(fastaMapTransfGoal);
 
-        FastqDownloadsGoal fastaDownloadsGoal = new FastqDownloadsGoal(project, false, fastaMapGoal, fastaMapTransfGoal,
+        FastqDownloadsGoal<P> fastaDownloadsGoal = new FastqDownloadsGoal(project, false, fastaMapGoal, fastaMapTransfGoal,
                 projectSetupGoal);
         registerGoal(fastaDownloadsGoal);
 
-        Goal<GSProject> fastq2fastaGoal = new Fasta2FastqGoal(project, GSGoalKey.FASTA2FASTQ, fastaMapTransfGoal, projectSetupGoal, fastaDownloadsGoal);
+        Goal<P> fastq2fastaGoal = new Fasta2FastqGoal(project, GSGoalKey.FASTA2FASTQ, fastaMapTransfGoal, projectSetupGoal, fastaDownloadsGoal);
         registerGoal(fastq2fastaGoal);
 
         // Use kraken
-        KrakenResCountGoal krakenResCountGoal = new KrakenResCountGoal(project, fastqMapTransfGoal, taxNodesGoal,
+        KrakenResCountGoal<P> krakenResCountGoal = new KrakenResCountGoal(project, fastqMapTransfGoal, taxNodesGoal,
                 projectSetupGoal, fastqDownloadsGoal);
         registerGoal(krakenResCountGoal);
 
@@ -433,8 +433,8 @@ public class GSMaker extends Maker<GSProject> {
     }
 
     public MatchingResult match(boolean lr, boolean clean, String key, String... pathsOrURLs) {
-        MatchResultGoal matchResGoal = createGoalChainForMatchResult(lr, key, pathsOrURLs);
-        MatchGoal matchGoal = new MatchGoal(matchResGoal.getProject(), (lr ? GSGoalKey.MATCHLR : GSGoalKey.MATCH), matchResGoal.getFastqMapGoal(), matchResGoal);
+        MatchResultGoal<P> matchResGoal = createGoalChainForMatchResult(lr, key, pathsOrURLs);
+        MatchGoal<P> matchGoal = new MatchGoal(matchResGoal.getProject(), (lr ? GSGoalKey.MATCHLR : GSGoalKey.MATCH), matchResGoal.getFastqMapGoal(), matchResGoal);
         if (clean) {
             matchGoal.cleanThis();
         }
@@ -448,8 +448,8 @@ public class GSMaker extends Maker<GSProject> {
         return createGoalChainForMatchResult(lr, key, pathsOrURLs).get().get(key);
     }
 
-    protected MatchResultGoal createGoalChainForMatchResult(boolean lr, String key, String... pathsOrURLs) {
-        ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal = new FastqMapGoal(getProject(), true,
+    protected MatchResultGoal<P> createGoalChainForMatchResult(boolean lr, String key, String... pathsOrURLs) {
+        ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal = new FastqMapGoal(getProject(), true,
                 getGoal(GSGoalKey.SETUP)) {
             @Override
             protected void doMakeThis() {
@@ -461,20 +461,20 @@ public class GSMaker extends Maker<GSProject> {
             }
         };
 
-        ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapTransfGoal = new FastqMapTransformGoal(
+        ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapTransfGoal = new FastqMapTransformGoal(
                 getProject(), true, fastqMapGoal, getGoal(GSGoalKey.SETUP));
 
-        FastqDownloadsGoal fastqDownloadsGoal = new FastqDownloadsGoal(getProject(), true, fastqMapGoal, fastqMapTransfGoal,
+        FastqDownloadsGoal<P> fastqDownloadsGoal = new FastqDownloadsGoal(getProject(), true, fastqMapGoal, fastqMapTransfGoal,
                 getGoal(GSGoalKey.SETUP));
 
-        LoadDBGoal loadDBGoal = (LoadDBGoal) getGoal(GSGoalKey.LOAD_DB);
+        LoadDBGoal<P> loadDBGoal = (LoadDBGoal) getGoal(GSGoalKey.LOAD_DB);
 
-        return new MatchResultGoal(getProject(), (lr ? GSGoalKey.MATCHRESLR : GSGoalKey.MATCHRES), fastqMapTransfGoal, loadDBGoal,
+        return new MatchResultGoal<P>(getProject(), (lr ? GSGoalKey.MATCHRESLR : GSGoalKey.MATCHRES), fastqMapTransfGoal, loadDBGoal,
                 getExecutionContext(getProject()), getGoal(GSGoalKey.SETUP), fastqDownloadsGoal);
     }
 
-    protected FilterGoal createGoalChainForFilter(String key, String... pathsOrURLs) {
-        ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal = new FastqMapGoal(getProject(), true,
+    protected FilterGoal<P> createGoalChainForFilter(String key, String... pathsOrURLs) {
+        ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal = new FastqMapGoal(getProject(), true,
                 getGoal(GSGoalKey.SETUP)) {
             @Override
             protected void doMakeThis() {
@@ -486,20 +486,20 @@ public class GSMaker extends Maker<GSProject> {
             }
         };
 
-        ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapTransfGoal = new FastqMapTransformGoal(
+        ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapTransfGoal = new FastqMapTransformGoal(
                 getProject(), true, fastqMapGoal, getGoal(GSGoalKey.SETUP));
 
-        FastqDownloadsGoal fastqDownloadsGoal = new FastqDownloadsGoal(getProject(), true, fastqMapGoal, fastqMapTransfGoal,
+        FastqDownloadsGoal<P> fastqDownloadsGoal = new FastqDownloadsGoal(getProject(), true, fastqMapGoal, fastqMapTransfGoal,
                 getGoal(GSGoalKey.SETUP));
 
-        LoadIndexGoal bloomIndexedGoal = (LoadIndexGoal) getGoal(GSGoalKey.LOAD_INDEX);
+        LoadIndexGoal<P> bloomIndexedGoal = (LoadIndexGoal) getGoal(GSGoalKey.LOAD_INDEX);
 
-        return new FilterGoal(getProject(), fastqMapTransfGoal, bloomIndexedGoal, getExecutionContext(getProject()),
+        return new FilterGoal<P>(getProject(), fastqMapTransfGoal, bloomIndexedGoal, getExecutionContext(getProject()),
                 getGoal(GSGoalKey.SETUP), fastqDownloadsGoal);
     }
 
     public void filter(boolean clean, String key, String... pathsOrURLs) {
-        FilterGoal filterGoal = createGoalChainForFilter(key, pathsOrURLs);
+        FilterGoal<P> filterGoal = createGoalChainForFilter(key, pathsOrURLs);
         if (clean) {
             filterGoal.cleanThis();
         }

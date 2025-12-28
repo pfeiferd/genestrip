@@ -44,18 +44,18 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-public class AdditionalFastasGoal extends ObjectGoal<Map<File, TaxIdNode>, GSProject> {
+public class AdditionalFastasGoal<P extends GSProject> extends ObjectGoal<Map<File, TaxIdNode>, P> {
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#')
 			.setDelimiter(' ').setRecordSeparator('\n').build();
 
-	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
-	private final ObjectGoal<Map<TaxIdNode, List<AssemblyEntry>>, GSProject> fromGenbank;
+	private final ObjectGoal<TaxTree, P> taxTreeGoal;
+	private final ObjectGoal<Map<TaxIdNode, List<AssemblyEntry>>, P> fromGenbank;
 	private final FastaFilesGenbankDownloadGoal fastaFilesGenbankDownloadGoal;
 
 	@SafeVarargs
-	public AdditionalFastasGoal(GSProject project, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
-			ObjectGoal<Map<TaxIdNode, List<AssemblyEntry>>, GSProject> fromGenbank,
-			FastaFilesGenbankDownloadGoal fastaFilesGenbankDownloadGoal, Goal<GSProject>... dependencies) {
+	public AdditionalFastasGoal(P project, ObjectGoal<TaxTree, P> taxTreeGoal,
+			ObjectGoal<Map<TaxIdNode, List<AssemblyEntry>>, P> fromGenbank,
+			FastaFilesGenbankDownloadGoal fastaFilesGenbankDownloadGoal, Goal<P>... dependencies) {
 		super(project, GSGoalKey.ADD_FASTAS, append(dependencies, taxTreeGoal, fromGenbank, fastaFilesGenbankDownloadGoal));
 		this.taxTreeGoal = taxTreeGoal;
 		this.fromGenbank = fromGenbank;

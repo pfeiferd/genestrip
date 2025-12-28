@@ -48,22 +48,22 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class MatchResultGoal extends ObjectGoal<Map<String, MatchingResult>, GSProject> {
-	private final ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal;
-	private final ObjectGoal<Database, GSProject> storeGoal;
+public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String, MatchingResult>, P> {
+	private final ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal;
+	private final ObjectGoal<Database, P> storeGoal;
 	private final ExecutionContext bundle;
 	private FastqKMerMatcher.AfterMatchCallback afterMatchCallback;
 
 	@SafeVarargs
-	public MatchResultGoal(GSProject project, GoalKey key, ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal,
-                           ObjectGoal<Database, GSProject> storeGoal, ExecutionContext bundle, Goal<GSProject>... deps) {
+	public MatchResultGoal(P project, GoalKey key, ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal,
+                           ObjectGoal<Database, P> storeGoal, ExecutionContext bundle, Goal<P>... deps) {
 		super(project, key, Goal.append(deps, fastqMapGoal, storeGoal));
 		this.fastqMapGoal = fastqMapGoal;
 		this.storeGoal = storeGoal;
 		this.bundle = bundle;
 	}
 
-	public ObjectGoal<Map<String, StreamingResourceStream>, GSProject> getFastqMapGoal() {
+	public ObjectGoal<Map<String, StreamingResourceStream>, P> getFastqMapGoal() {
 		return fastqMapGoal;
 	}
 

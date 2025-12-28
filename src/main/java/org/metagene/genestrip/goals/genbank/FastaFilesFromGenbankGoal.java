@@ -43,7 +43,7 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<AssemblyEntry>>, GSProject> {
+public class FastaFilesFromGenbankGoal<P extends GSProject> extends ObjectGoal<Map<TaxIdNode, List<AssemblyEntry>>, P> {
 	private static final Comparator<AssemblyEntry> COMPARATOR = new Comparator<AssemblyEntry>() {
 		@Override
 		public int compare(AssemblyEntry o1, AssemblyEntry o2) {
@@ -52,16 +52,16 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<As
 		}
 	};
 	
-	private final FileGoal<GSProject> assemblyGoal;
-	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
-	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxidsFromGenbankGoal;
+	private final FileGoal<P> assemblyGoal;
+	private final ObjectGoal<TaxTree, P> taxTreeGoal;
+	private final ObjectGoal<Set<TaxIdNode>, P> taxidsFromGenbankGoal;
 	private final List<AssemblyQuality> fastaQualities;
 	private final int maxFromGenbank;
 	private final boolean refGenOnly;
 
 	@SuppressWarnings("unchecked")
-	public FastaFilesFromGenbankGoal(GSProject project, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
-			FileGoal<GSProject> assemblyGoal, ObjectGoal<Set<TaxIdNode>, GSProject> taxidsFromGenbankGoal) {
+	public FastaFilesFromGenbankGoal(P project, ObjectGoal<TaxTree, P> taxTreeGoal,
+			FileGoal<P> assemblyGoal, ObjectGoal<Set<TaxIdNode>, P> taxidsFromGenbankGoal) {
 		super(project, GSGoalKey.FASTAGSENBANK, taxTreeGoal, taxidsFromGenbankGoal, assemblyGoal);
 		this.assemblyGoal = assemblyGoal;
 		this.taxTreeGoal = taxTreeGoal;
@@ -71,7 +71,7 @@ public class FastaFilesFromGenbankGoal extends ObjectGoal<Map<TaxIdNode, List<As
 		this.refGenOnly = booleanConfigValue(GSConfigKey.REF_GEN_ONLY);
 	}
 
-	public boolean isWeakDependency(Goal<GSProject> toGoal) {
+	public boolean isWeakDependency(Goal<P> toGoal) {
 		if (toGoal == assemblyGoal) {
 			return true;
 		}

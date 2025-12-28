@@ -38,14 +38,14 @@ import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 
-public class FilterGoal extends MultiFileGoal {
-	private final LoadIndexGoal indexedGoal;
+public class FilterGoal<P extends GSProject> extends MultiFileGoal<P> {
+	private final LoadIndexGoal<P> indexedGoal;
 	private final ExecutionContext executorServiceBundle;
 
 	@SafeVarargs
-	public FilterGoal(GSProject project, 
-			ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal, LoadIndexGoal indexedGoal,
-			ExecutionContext executorServiceBundle, Goal<GSProject>... deps) {
+	public FilterGoal(P project,
+			ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal, LoadIndexGoal<P> indexedGoal,
+			ExecutionContext executorServiceBundle, Goal<P>... deps) {
 		super(project, GSGoalKey.FILTER, fastqMapGoal, append(deps, indexedGoal));
 		this.executorServiceBundle = executorServiceBundle;
 		this.indexedGoal = indexedGoal;
@@ -60,7 +60,7 @@ public class FilterGoal extends MultiFileGoal {
 	protected void makeFile(File file) {
 		FastqBloomFilter f = null;
 		try {
-			GSProject project = getProject();
+			P project = getProject();
 			StreamingResourceStream resources = fileToFastqs.get(file);
 			File dumpFile = booleanConfigValue(GSConfigKey.WRITE_DUMPED_FASTQ)
 					? project.getOutputFile("dumped", file.getName(), GSFileType.FASTQ_RES)

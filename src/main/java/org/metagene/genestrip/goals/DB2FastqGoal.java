@@ -41,14 +41,14 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
-public class DB2FastqGoal extends FileListGoal<GSProject> {
-	private final ObjectGoal<Set<SmallTaxIdNode>, GSProject> taxNodesGoal;
-	private final ObjectGoal<Database, GSProject> storeGoal;
+public class DB2FastqGoal<P extends GSProject> extends FileListGoal<P> {
+	private final ObjectGoal<Set<SmallTaxIdNode>, P> taxNodesGoal;
+	private final ObjectGoal<Database, P> storeGoal;
 	private final Map<File, SmallTaxIdNode> fileToTaxid;
 
 	@SafeVarargs
-	public DB2FastqGoal(GSProject project, ObjectGoal<Set<SmallTaxIdNode>, GSProject> taxNodesGoal,
-			ObjectGoal<Database, GSProject> storeGoal, Goal<GSProject>... deps) {
+	public DB2FastqGoal(P project, ObjectGoal<Set<SmallTaxIdNode>, P> taxNodesGoal,
+			ObjectGoal<Database, P> storeGoal, Goal<P>... deps) {
 		super(project, GSGoalKey.DB2FASTQ, (List<File>) null, true, Goal.append(deps, taxNodesGoal, storeGoal));
 		this.taxNodesGoal = taxNodesGoal;
 		this.storeGoal = storeGoal;

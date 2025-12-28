@@ -35,12 +35,12 @@ import java.io.*;
 import java.net.URL;
 import java.nio.file.Files;
 
-public class CheckRefSeqRNumGoal extends ObjectGoal<CheckRefSeqRNumGoal.Result, GSProject> {
+public class CheckRefSeqRNumGoal<P extends GSProject> extends ObjectGoal<CheckRefSeqRNumGoal.Result, P> {
     public enum Result { CURRENT, OUTDATED, UNKNOWN }
 
-    private final FileGoal<GSProject> releaseNumberGoal;
+    private final FileGoal<P> releaseNumberGoal;
 
-    public CheckRefSeqRNumGoal(GSProject project, FileGoal<GSProject> releaseNumberGoal, Goal<GSProject>... deps) {
+    public CheckRefSeqRNumGoal(P project, FileGoal<P> releaseNumberGoal, Goal<P>... deps) {
         super(project, GSGoalKey.CHECK_REFSEQ_RNUM, append(deps, releaseNumberGoal));
         this.releaseNumberGoal = releaseNumberGoal;
     }

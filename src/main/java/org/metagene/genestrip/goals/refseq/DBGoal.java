@@ -47,21 +47,21 @@ import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
-public class DBGoal extends FastaReaderGoal<Database> {
-	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
-	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
-	private final ObjectGoal<Database, GSProject> filledStoreGoal;
+public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
+	private final ObjectGoal<AccessionMap, P> accessionMapGoal;
+	private final ObjectGoal<TaxTree, P> taxTreeGoal;
+	private final ObjectGoal<Database, P> filledStoreGoal;
 	private final boolean minUpdate;
 
 	private KMerSortedArray<String> store;
 
 	@SafeVarargs
-	public DBGoal(GSProject project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
-				  ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-				  ObjectGoal<TaxTree, GSProject> taxTreeGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-				  ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
-			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, ObjectGoal<Database, GSProject> filledStoreGoal,
-			Goal<GSProject>... deps) {
+	public DBGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
+				  ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal,
+				  ObjectGoal<TaxTree, P> taxTreeGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+				  ObjectGoal<Map<File, TaxIdNode>, P> additionalGoal,
+			ObjectGoal<AccessionMap, P> accessionMapGoal, ObjectGoal<Database, P> filledStoreGoal,
+			Goal<P>... deps) {
 		super(project, GSGoalKey.UPDATE_DB, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, taxTreeGoal, accessionMapGoal, filledStoreGoal));
 		this.taxTreeGoal = taxTreeGoal;
 		this.accessionMapGoal = accessionMapGoal;

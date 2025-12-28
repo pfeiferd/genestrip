@@ -37,17 +37,17 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import java.io.*;
 import java.util.*;
 
-public class KrakenResFileGoal extends FileListGoal<GSProject> {
-	private final ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal;
-	private final ObjectGoal<Map<String, List<KrakenResCountGoal.KrakenResStats>>, GSProject> countGoal;
+public class KrakenResFileGoal<P extends GSProject> extends FileListGoal<P> {
+	private final ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal;
+	private final ObjectGoal<Map<String, List<KrakenResCountGoal.KrakenResStats>>, P> countGoal;
 	private final Map<File, String> fileToKeyMap;
 
 	@SafeVarargs
-	public KrakenResFileGoal(GSProject project,
-                             ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal,
-                             ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-							 ObjectGoal<Map<String, List<KrakenResCountGoal.KrakenResStats>>, GSProject> countGoal,
-							 Goal<GSProject>... deps) {
+	public KrakenResFileGoal(P project,
+                             ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal,
+                             ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal,
+							 ObjectGoal<Map<String, List<KrakenResCountGoal.KrakenResStats>>, P> countGoal,
+							 Goal<P>... deps) {
 		super(project, GSGoalKey.KRAKENRES, (List<File>) null, Goal.append(deps, taxNodesGoal, countGoal, fastqMapGoal));
 		this.fastqMapGoal = fastqMapGoal;
 		this.countGoal = countGoal;

@@ -43,16 +43,16 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-public class FastaFilesGenbankDownloadGoal extends GSFileDownloadGoal {
-	private final ObjectGoal<Map<TaxIdNode, List<AssemblyEntry>>, GSProject> entryGoal;
+public class FastaFilesGenbankDownloadGoal<P extends GSProject> extends GSFileDownloadGoal<P> {
+	private final ObjectGoal<Map<TaxIdNode, List<AssemblyEntry>>, P> entryGoal;
 	private final int baseURLLen;
 
 	private List<File> files;
 	private Map<String, Object> fileToDir;
 
 	@SafeVarargs
-	public FastaFilesGenbankDownloadGoal(GSProject project,
-										 ObjectGoal<Map<TaxIdNode, List<AssemblyEntry>>, GSProject> entryGoal, Goal<GSProject>... deps) {
+	public FastaFilesGenbankDownloadGoal(P project,
+										 ObjectGoal<Map<TaxIdNode, List<AssemblyEntry>>, P> entryGoal, Goal<P>... deps) {
 		super(project, GSGoalKey.FASTAGSENBANKDL, append(deps, entryGoal));
 		this.entryGoal = entryGoal;
 		baseURLLen = getHttpBaseURL().length();

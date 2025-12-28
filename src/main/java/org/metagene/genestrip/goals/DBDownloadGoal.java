@@ -41,14 +41,21 @@ import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.io.StreamingURLResource;
 import org.metagene.genestrip.make.Goal;
 
-public class DBDownloadGoal extends GSFileDownloadGoal {
+public class DBDownloadGoal<P extends GSProject> extends GSFileDownloadGoal<P> {
 	private final StreamingResource dbResource;
 	private final String md5;
 	private List<File> dbFile;
 	private boolean dumped;
 
 	@SafeVarargs
-	public DBDownloadGoal(GSProject project, URL url, String md5, long logCycle, Goal<GSProject>... deps) {
+	public DBDownloadGoal(P project, StreamingResource dbResource, String md5, Goal<P>... deps) {
+		super(project, GSGoalKey.DB_DOWNLOAD, deps);
+		this.dbResource = dbResource;
+		this.md5 = md5;
+	}
+
+	@SafeVarargs
+	public DBDownloadGoal(P project, URL url, String md5, long logCycle, Goal<P>... deps) {
 		super(project, GSGoalKey.DB_DOWNLOAD, deps);
 		this.dbResource = new StreamingURLResource(url.getFile(), url, true) {
 			@Override
@@ -103,13 +110,6 @@ public class DBDownloadGoal extends GSFileDownloadGoal {
 	}
 
 	protected void log(long bytesCovered) {
-	}
-
-	@SafeVarargs
-	public DBDownloadGoal(GSProject project, StreamingResource dbResource, String md5, Goal<GSProject>... deps) {
-		super(project, GSGoalKey.DB_DOWNLOAD, deps);
-		this.dbResource = dbResource;
-		this.md5 = md5;
 	}
 
 	@Override

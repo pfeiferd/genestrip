@@ -39,14 +39,14 @@ import org.metagene.genestrip.io.StreamingURLResource;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 
-public class FastqMapTransformGoal extends ObjectGoal<Map<String, StreamingResourceStream>, GSProject> {
-	private final ObjectGoal<Map<String, StreamingResourceStream>, GSProject> inputGoal;
+public class FastqMapTransformGoal<P extends GSProject> extends ObjectGoal<Map<String, StreamingResourceStream>, P> {
+	private final ObjectGoal<Map<String, StreamingResourceStream>, P> inputGoal;
 
 	private final boolean fastqType;
 
 	@SafeVarargs
-	public FastqMapTransformGoal(GSProject project, boolean fastqType,
-			ObjectGoal<Map<String, StreamingResourceStream>, GSProject> inputGoal, Goal<GSProject>... deps) {
+	public FastqMapTransformGoal(P project, boolean fastqType,
+			ObjectGoal<Map<String, StreamingResourceStream>, P> inputGoal, Goal<P>... deps) {
 		super(project, fastqType ? GSGoalKey.FASTQ_MAP_TRANSFORM : GSGoalKey.FASTA_MAP_TRANSFORM, append(deps, inputGoal));
 		this.inputGoal = inputGoal;
 		this.fastqType = fastqType;

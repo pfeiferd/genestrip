@@ -35,12 +35,12 @@ import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.Database;
 
-public class StoreDBGoal extends FileListGoal<GSProject> {
-	private final ObjectGoal<Database, GSProject> dbGoal;
+public class StoreDBGoal<P extends GSProject> extends FileListGoal<P> {
+	private final ObjectGoal<Database, P> dbGoal;
 
 	@SafeVarargs
-	public StoreDBGoal(GSProject project, GoalKey key, File dbFile, ObjectGoal<Database, GSProject> dbGoal,
-					   Goal<GSProject>... deps) {
+	public StoreDBGoal(P project, GoalKey key, File dbFile, ObjectGoal<Database, P> dbGoal,
+					   Goal<P>... deps) {
 		super(project, key, dbFile, Goal.append(deps, dbGoal));
 		this.dbGoal = dbGoal;
 	}

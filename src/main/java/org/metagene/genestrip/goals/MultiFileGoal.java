@@ -37,13 +37,13 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
 
-public abstract class MultiFileGoal extends FileListGoal<GSProject> {
-	protected final ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal;
+public abstract class MultiFileGoal<P extends GSProject> extends FileListGoal<P> {
+	protected final ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal;
 	protected final Map<File, StreamingResourceStream> fileToFastqs;
 
 	@SafeVarargs
-	public MultiFileGoal(GSProject project, GoalKey key,
-			ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal, Goal<GSProject>... deps) {
+	public MultiFileGoal(P project, GoalKey key,
+			ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal, Goal<P>... deps) {
 		super(project, key, (List<File>) null, append(deps, fastqMapGoal));
 		this.fastqMapGoal = fastqMapGoal;
 		fileToFastqs = new HashMap<>();

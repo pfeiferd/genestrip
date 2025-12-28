@@ -42,17 +42,17 @@ import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-public class AccessionMapGoal extends ObjectGoal<AccessionMap, GSProject> implements Goal.LogHeapInfo {
-	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
+public class AccessionMapGoal<P extends GSProject> extends ObjectGoal<AccessionMap, P> implements Goal.LogHeapInfo {
+	private final ObjectGoal<TaxTree, P> taxTreeGoal;
 	private final RefSeqCatalogDownloadGoal catalogGoal;
-	private final ObjectGoal<Integer, GSProject> accessionMapSizeGoal;
-	private final ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal;
+	private final ObjectGoal<Integer, P> accessionMapSizeGoal;
+	private final ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal;
 
 	@SafeVarargs
-	public AccessionMapGoal(GSProject project, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
-			ObjectGoal<TaxTree, GSProject> taxTreeGoal, RefSeqCatalogDownloadGoal catalogGoal,
-			ObjectGoal<Integer, GSProject> accessionMapSizeGoal,
-			Goal<GSProject>... deps) {
+	public AccessionMapGoal(P project, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
+			ObjectGoal<TaxTree, P> taxTreeGoal, RefSeqCatalogDownloadGoal catalogGoal,
+			ObjectGoal<Integer, P> accessionMapSizeGoal,
+			Goal<P>... deps) {
 		super(project, GSGoalKey.ACCMAP,
 				Goal.append(deps, categoriesGoal, catalogGoal, accessionMapSizeGoal));
 		this.categoriesGoal = categoriesGoal;

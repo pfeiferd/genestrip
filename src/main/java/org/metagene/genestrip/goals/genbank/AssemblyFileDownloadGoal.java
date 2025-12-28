@@ -34,14 +34,14 @@ import org.metagene.genestrip.genbank.AssemblySummaryReader;
 import org.metagene.genestrip.goals.GSFileDownloadGoal;
 import org.metagene.genestrip.make.Goal;
 
-public class AssemblyFileDownloadGoal extends GSFileDownloadGoal {
+public class AssemblyFileDownloadGoal<P extends GSProject> extends GSFileDownloadGoal<P> {
 	public static final String FTP_DIR_GENBANK = "/genomes/genbank";
 	public static final String FTP_DIR_REFSEQ = "/genomes/refseq";
 
 	private final List<File> files;
 
 	@SafeVarargs
-	public AssemblyFileDownloadGoal(GSProject project, Goal<GSProject>... deps) {
+	public AssemblyFileDownloadGoal(P project, Goal<P>... deps) {
 		super(project, GSGoalKey.ASSEMBLYDOWNLOAD, deps);
 		files = Arrays.asList(
 				new File(project.getCommon().getGenbankDir(), AssemblySummaryReader.ASSEMLY_SUM_GENBANK),

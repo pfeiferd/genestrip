@@ -44,7 +44,7 @@ import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.Goal;
 
-public class AdditionalDownloadsGoal extends GSFileDownloadGoal {
+public class AdditionalDownloadsGoal<P extends GSProject> extends GSFileDownloadGoal<P> {
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#')
 			.setDelimiter(' ').setRecordSeparator('\n').build();
 
@@ -55,7 +55,7 @@ public class AdditionalDownloadsGoal extends GSFileDownloadGoal {
 	private final Map<File, String> fileToMD5;
 
 	@SafeVarargs
-	public AdditionalDownloadsGoal(GSProject project, Goal<GSProject>... deps) {
+	public AdditionalDownloadsGoal(P project, Goal<P>... deps) {
 		super(project, GSGoalKey.ADD_DOWNLOADS, deps);
 		fileToURL = new HashMap<File, URL>();
 		fileToMD5 = new HashMap<File, String>();

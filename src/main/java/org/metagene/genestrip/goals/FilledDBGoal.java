@@ -41,13 +41,13 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
-public class FilledDBGoal extends ObjectGoal<Database, GSProject> {
-	private final ObjectGoal<Database, GSProject> fillDBGoal;
-	private final FileGoal<GSProject> filledStoreGoal;
+public class FilledDBGoal<P extends GSProject> extends ObjectGoal<Database, P> {
+	private final ObjectGoal<Database, P> fillDBGoal;
+	private final FileGoal<P> filledStoreGoal;
 
 	@SafeVarargs
-	public FilledDBGoal(GSProject project, ObjectGoal<Database, GSProject> fillDBGoal,
-			FileGoal<GSProject> filledStoreGoal, Goal<GSProject>... dependencies) {
+	public FilledDBGoal(P project, ObjectGoal<Database, P> fillDBGoal,
+			FileGoal<P> filledStoreGoal, Goal<P>... dependencies) {
 		super(project, GSGoalKey.LOAD_TEMPDB, append(dependencies, filledStoreGoal, fillDBGoal));
 		this.fillDBGoal = fillDBGoal;
 		this.filledStoreGoal = filledStoreGoal;

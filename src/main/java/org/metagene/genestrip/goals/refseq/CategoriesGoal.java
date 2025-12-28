@@ -39,9 +39,9 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 
-public class CategoriesGoal extends ObjectGoal<Set<RefSeqCategory>, GSProject> {
+public class CategoriesGoal<P extends GSProject> extends ObjectGoal<Set<RefSeqCategory>, P> {
 	@SafeVarargs
-	public CategoriesGoal(GSProject project, Goal<GSProject>... deps) {
+	public CategoriesGoal(P project, Goal<P>... deps) {
 		super(project, GSGoalKey.CATEGORIES, deps);
 	}
 

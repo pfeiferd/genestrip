@@ -44,16 +44,16 @@ import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-public class FillSizeGoal extends FastaReaderGoal<Long> {
-	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
+public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<Long, P> {
+	private final ObjectGoal<AccessionMap, P> accessionMapGoal;
 
 	private final List<MyFastaReader> readers;
 
 	@SafeVarargs
-	public FillSizeGoal(GSProject project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
-						ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-						ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
-						ObjectGoal<AccessionMap, GSProject> accessionMapGoal, Goal<GSProject>... deps) {
+	public FillSizeGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
+						ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+						ObjectGoal<Map<File, TaxIdNode>, P> additionalGoal,
+						ObjectGoal<AccessionMap, P> accessionMapGoal, Goal<P>... deps) {
 		super(project, GSGoalKey.FILLSIZE, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, accessionMapGoal));
 		this.accessionMapGoal = accessionMapGoal;
 		readers = new ArrayList<>();

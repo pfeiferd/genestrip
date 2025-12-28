@@ -37,12 +37,12 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.metagene.genestrip.make.GoalKey;
 
-public class Main {
+public abstract class Main<P extends GSProject>  {
     private final Options options;
-    private GSProject project;
+    private P project;
     private String target;
     private String[] restArgs;
-    private GSMaker maker;
+    private GSMaker<P> maker;
 
     public Main() {
         options = createOptions();
@@ -93,23 +93,19 @@ public class Main {
         maker = createMaker(project);
     }
 
-    protected GSProject createProject(GSCommon config, String name, String key, String[] fastqFiles, String csvFile, File csvDir,
+    protected abstract P createProject(GSCommon config, String name, String key, String[] fastqFiles, String csvFile, File csvDir,
                                       File fastqResDir, String taxids, Properties commandLineProps, GSGoalKey forGoal,
-                                      String dbPath, boolean quietInit) {
-        return new GSProject(config, name, key, fastqFiles, csvFile, csvDir,
-                fastqResDir, taxids, commandLineProps, forGoal,
-                dbPath, quietInit);
-    }
+                                      String dbPath, boolean quietInit);
 
-    protected GSMaker createMaker(GSProject project) {
-        return new GSMaker(project);
+    protected GSMaker<P> createMaker(P project) {
+        return new GSMaker<P>(project);
     }
 
     public String getTarget() {
         return target;
     }
 
-    public GSProject getProject() {
+    public P getProject() {
         return project;
     }
 
@@ -234,11 +230,19 @@ public class Main {
         }
     }
 
-    public GSMaker getMaker() {
+    public GSMaker<P> getMaker() {
         return maker;
     }
 
     public static void main(String[] args) {
-        new Main().parseAndRun(args);
+        new Main<GSProject>() {
+            protected GSProject createProject(GSCommon config, String name, String key, String[] fastqFiles, String csvFile, File csvDir,
+                                      File fastqResDir, String taxids, Properties commandLineProps, GSGoalKey forGoal,
+                                      String dbPath, boolean quietInit) {
+                return new GSProject(config, name, key, fastqFiles, csvFile, csvDir,
+                        fastqResDir, taxids, commandLineProps, forGoal,
+                        dbPath, quietInit);
+            }
+        }.parseAndRun(args);
     }
 }

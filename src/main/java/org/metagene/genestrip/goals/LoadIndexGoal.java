@@ -39,13 +39,13 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
-public class LoadIndexGoal extends ObjectGoal<AbstractKMerBloomFilter, GSProject> implements Goal.LogHeapInfo {
-	private final ObjectGoal<AbstractKMerBloomFilter, GSProject> bloomIndex;
+public class LoadIndexGoal<P extends GSProject> extends ObjectGoal<AbstractKMerBloomFilter, P> implements Goal.LogHeapInfo {
+	private final ObjectGoal<AbstractKMerBloomFilter, P> bloomIndex;
 	private final File dbFile;
 
 	@SafeVarargs
-	public LoadIndexGoal(GSProject project, ObjectGoal<AbstractKMerBloomFilter, GSProject> bloomIndex,
-			FileGoal<GSProject> storeIndexGoal, Goal<GSProject>... dependencies) {
+	public LoadIndexGoal(P project, ObjectGoal<AbstractKMerBloomFilter, P> bloomIndex,
+			FileGoal<P> storeIndexGoal, Goal<P>... dependencies) {
 		super(project, GSGoalKey.LOAD_INDEX,
 				project.getDBPath() == null ? append(dependencies, bloomIndex, storeIndexGoal) : dependencies);
 		this.bloomIndex = bloomIndex;

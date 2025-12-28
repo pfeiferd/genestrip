@@ -39,16 +39,16 @@ import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-public class TaxNodesFromGenbankGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
-	private final ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal;
-	private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
-	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
+public class TaxNodesFromGenbankGoal<P extends GSProject> extends ObjectGoal<Set<TaxIdNode>, P> {
+	private final ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal;
+	private final ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal;
+	private final ObjectGoal<AccessionMap, P> accessionMapGoal;
 
 	@SafeVarargs
-	public TaxNodesFromGenbankGoal(GSProject project, 
-			ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
-			ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-			ObjectGoal<AccessionMap, GSProject> accessionMapGoal, Goal<GSProject>... deps) {
+	public TaxNodesFromGenbankGoal(P project,
+			ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
+			ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal,
+			ObjectGoal<AccessionMap, P> accessionMapGoal, Goal<P>... deps) {
 		super(project, GSGoalKey.TAXFROMGENBANK, Goal.append(deps, categoriesGoal, taxNodesGoal, accessionMapGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxNodesGoal = taxNodesGoal;

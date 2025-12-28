@@ -30,11 +30,11 @@ import org.metagene.genestrip.goals.GSFileDownloadGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.GoalKey;
 
-public abstract class RefSeqDownloadGoal extends GSFileDownloadGoal {
+public abstract class RefSeqDownloadGoal<P extends GSProject> extends GSFileDownloadGoal<P> {
 	public static final String RELEASE_FOLDER = "/release";
 
 	@SafeVarargs
-	public RefSeqDownloadGoal(GSProject project, GoalKey key, Goal<GSProject>... deps) {
+	public RefSeqDownloadGoal(P project, GoalKey key, Goal<P>... deps) {
 		super(project, key, deps);
 	}
 	

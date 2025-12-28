@@ -38,17 +38,17 @@ import org.metagene.genestrip.tax.TaxIdCollector;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-public class TaxNodesGoal extends ObjectGoal<Set<TaxIdNode>, GSProject> {
-	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
+public class TaxNodesGoal<P extends GSProject> extends ObjectGoal<Set<TaxIdNode>, P> {
+	private final ObjectGoal<TaxTree, P> taxTreeGoal;
 
 	@SafeVarargs
-	public TaxNodesGoal(GSProject project, ObjectGoal<TaxTree, GSProject> taxTreeGoal,
-			Goal<GSProject>... deps) {
+	public TaxNodesGoal(P project, ObjectGoal<TaxTree, P> taxTreeGoal,
+			Goal<P>... deps) {
 		super(project, GSGoalKey.TAXNODES, Goal.append(deps, taxTreeGoal));
 		this.taxTreeGoal = taxTreeGoal;
 	}
 	
-	public ObjectGoal<TaxTree, GSProject> getTaxTreeGoal() {
+	public ObjectGoal<TaxTree, P> getTaxTreeGoal() {
 		return taxTreeGoal;
 	}
 

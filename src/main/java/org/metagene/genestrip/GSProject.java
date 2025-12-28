@@ -371,7 +371,7 @@ public class GSProject extends Project {
         return new File(getProjectDir(), "log");
     }
 
-    public File getFilterFile(Goal<GSProject> goal) {
+    public <P extends GSProject> File getFilterFile(Goal<P> goal) {
         return getOutputFile(goal.getKey().getName(), GSFileType.FILTER);
     }
 

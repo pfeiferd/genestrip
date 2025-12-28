@@ -38,11 +38,11 @@ import org.metagene.genestrip.store.KMerSortedArray.KMerSortedArrayVisitor;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
-public class BloomIndexGoal extends ObjectGoal<AbstractKMerBloomFilter, GSProject> {
-	private final ObjectGoal<Database, GSProject> filledStoreGoal;
+public class BloomIndexGoal<P extends GSProject> extends ObjectGoal<AbstractKMerBloomFilter, P> {
+	private final ObjectGoal<Database, P> filledStoreGoal;
 
 	@SafeVarargs
-	public BloomIndexGoal(GSProject project, ObjectGoal<Database, GSProject> filledStoreGoal, Goal<GSProject>... deps) {
+	public BloomIndexGoal(P project, ObjectGoal<Database, P> filledStoreGoal, Goal<P>... deps) {
 		super(project, GSGoalKey.FILL_INDEX, append(deps, filledStoreGoal));
 		this.filledStoreGoal = filledStoreGoal;
 	}

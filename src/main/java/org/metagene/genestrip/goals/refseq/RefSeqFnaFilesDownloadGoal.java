@@ -46,22 +46,22 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 
-public class RefSeqFnaFilesDownloadGoal extends RefSeqDownloadGoal {
+public class RefSeqFnaFilesDownloadGoal<P extends GSProject> extends RefSeqDownloadGoal<P> {
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setDelimiter('\t').setRecordSeparator('\n')
 			.build();
 
-	private final ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal;
+	private final ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal;
 	private final RefSeqCatalogDownloadGoal catalogDLGoal;
-	private final ObjectGoal<CheckRefSeqRNumGoal.Result, GSProject> checkReleaseNGoal;
+	private final ObjectGoal<CheckRefSeqRNumGoal.Result, P> checkReleaseNGoal;
 	private List<File> files;
 	private Map<File, RefSeqCategory> file2Cat;
-	private ObjectGoal<Map<String, String>, GSProject> checkSumGoal;
+	private ObjectGoal<Map<String, String>, P> checkSumGoal;
 
 	@SafeVarargs
-	public RefSeqFnaFilesDownloadGoal(GSProject project, 
-			ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal, RefSeqCatalogDownloadGoal catalogDLGoal,
-			ObjectGoal<Map<String, String>, GSProject> checkSumGoal, ObjectGoal<CheckRefSeqRNumGoal.Result, GSProject> checkReleaseNGoal,
-			Goal<GSProject>... deps) {
+	public RefSeqFnaFilesDownloadGoal(P project,
+			ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal, RefSeqCatalogDownloadGoal catalogDLGoal,
+			ObjectGoal<Map<String, String>, P> checkSumGoal, ObjectGoal<CheckRefSeqRNumGoal.Result, P> checkReleaseNGoal,
+			Goal<P>... deps) {
 		super(project, GSGoalKey.REFSEQFNA, Goal.append(deps, categoriesGoal, catalogDLGoal, checkSumGoal, checkReleaseNGoal));
 
 		this.categoriesGoal = categoriesGoal;

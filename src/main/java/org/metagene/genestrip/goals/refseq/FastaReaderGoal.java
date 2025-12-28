@@ -46,11 +46,11 @@ import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
-    protected final ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal;
-    protected final ObjectGoal<Set<TaxTree.TaxIdNode>, GSProject> taxNodesGoal;
+public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal<T, P> {
+    protected final ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal;
+    protected final ObjectGoal<Set<TaxTree.TaxIdNode>, P> taxNodesGoal;
     protected final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
-    protected final ObjectGoal<Map<File, TaxTree.TaxIdNode>, GSProject> additionalGoal;
+    protected final ObjectGoal<Map<File, TaxTree.TaxIdNode>, P> additionalGoal;
 
     private final ExecutionContext bundle;
 
@@ -58,9 +58,9 @@ public abstract class FastaReaderGoal<T> extends ObjectGoal<T, GSProject> {
     private int doneCounter;
     private ProgressBar progressBar;
 
-    public FastaReaderGoal(GSProject project, GoalKey key, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
-                           ObjectGoal<Set<TaxTree.TaxIdNode>, GSProject> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-                           ObjectGoal<Map<File, TaxTree.TaxIdNode>, GSProject> additionalGoal, Goal<GSProject>... dependencies) {
+    public FastaReaderGoal(P project, GoalKey key, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
+                           ObjectGoal<Set<TaxTree.TaxIdNode>, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+                           ObjectGoal<Map<File, TaxTree.TaxIdNode>, P> additionalGoal, Goal<P>... dependencies) {
         super(project, key, Goal.append(dependencies, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal));
         this.categoriesGoal = categoriesGoal;
         this.taxNodesGoal = taxNodesGoal;

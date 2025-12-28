@@ -47,23 +47,23 @@ import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
-public class FillDBGoal extends FastaReaderGoal<Database>  implements Goal.LogHeapInfo {
-	private final ObjectGoal<AccessionMap, GSProject> accessionMapGoal;
-	private final ObjectGoal<Long, GSProject> bloomFilterGoal;
-	private final ObjectGoal<TaxTree, GSProject> taxTreeGoal;
+public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P>  implements Goal.LogHeapInfo {
+	private final ObjectGoal<AccessionMap, P> accessionMapGoal;
+	private final ObjectGoal<Long, P> bloomFilterGoal;
+	private final ObjectGoal<TaxTree, P> taxTreeGoal;
 	private final List<MyFastaReader> readers;
 
 	private KMerSortedArray<String> store;
 
 	@SafeVarargs
-	public FillDBGoal(GSProject project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, GSProject> categoriesGoal,
-					  ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal,
-					  ObjectGoal<TaxTree, GSProject> taxTreeGoal,
+	public FillDBGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
+					  ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal,
+					  ObjectGoal<TaxTree, P> taxTreeGoal,
 					  RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-					  ObjectGoal<Map<File, TaxIdNode>, GSProject> additionalGoal,
-					  ObjectGoal<AccessionMap, GSProject> accessionMapGoal,
-					  ObjectGoal<Long, GSProject> bloomFilterGoal,
-					  Goal<GSProject>... deps) {
+					  ObjectGoal<Map<File, TaxIdNode>, P> additionalGoal,
+					  ObjectGoal<AccessionMap, P> accessionMapGoal,
+					  ObjectGoal<Long, P> bloomFilterGoal,
+					  Goal<P>... deps) {
 		super(project, GSGoalKey.FILL_DB, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, taxTreeGoal, accessionMapGoal, bloomFilterGoal));
 		this.accessionMapGoal = accessionMapGoal;
 		this.bloomFilterGoal = bloomFilterGoal;

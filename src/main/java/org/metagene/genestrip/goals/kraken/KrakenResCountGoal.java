@@ -41,14 +41,14 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.DigitTrie;
 
-public class KrakenResCountGoal extends ObjectGoal<Map<String, List<KrakenResCountGoal.KrakenResStats>>, GSProject> {
-    protected final ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal;
-    private final ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal;
+public class KrakenResCountGoal<P extends GSProject> extends ObjectGoal<Map<String, List<KrakenResCountGoal.KrakenResStats>>, P> {
+    protected final ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal;
+    private final ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal;
 
     @SafeVarargs
-    public KrakenResCountGoal(GSProject project,
-                              ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal,
-                              ObjectGoal<Set<TaxIdNode>, GSProject> taxNodesGoal, Goal<GSProject>... deps) {
+    public KrakenResCountGoal(P project,
+                              ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal,
+                              ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal, Goal<P>... deps) {
         super(project, GSGoalKey.KRAKENCOUNT, append(deps, taxNodesGoal, fastqMapGoal));
         this.fastqMapGoal = fastqMapGoal;
         this.taxNodesGoal = taxNodesGoal;

@@ -35,12 +35,12 @@ import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 
-public class StoreIndexGoal extends FileListGoal<GSProject> {
-	private final ObjectGoal<AbstractKMerBloomFilter, GSProject> indexGoal;
+public class StoreIndexGoal<P extends GSProject> extends FileListGoal<P> {
+	private final ObjectGoal<AbstractKMerBloomFilter, P> indexGoal;
 
 	@SafeVarargs
-	public StoreIndexGoal(GSProject project, ObjectGoal<AbstractKMerBloomFilter, GSProject> indexGoal,
-			Goal<GSProject>... deps) {
+	public StoreIndexGoal(P project, ObjectGoal<AbstractKMerBloomFilter, P> indexGoal,
+			Goal<P>... deps) {
 		super(project, GSGoalKey.INDEX, project.getOutputFile(GSGoalKey.INDEX.getName(), GSFileType.FILTER, true),
 				Goal.append(deps, indexGoal));
 		this.indexGoal = indexGoal;

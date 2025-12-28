@@ -39,14 +39,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MatchGoal extends FileListGoal<GSProject> {
-    private final ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal;
-    private final ObjectGoal<Map<String, MatchingResult>, GSProject> matchResGoal;
+public class MatchGoal<P extends GSProject> extends FileListGoal<P> {
+    private final ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal;
+    private final ObjectGoal<Map<String, MatchingResult>, P> matchResGoal;
     private final Map<File, String> fileToKeyMap;
     private ResultReporter reporter;
 
     @SafeVarargs
-    public MatchGoal(GSProject project, GoalKey key, ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal, ObjectGoal<Map<String, MatchingResult>, GSProject> matchResGoal, Goal<GSProject>... deps) {
+    public MatchGoal(P project, GoalKey key, ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal, ObjectGoal<Map<String, MatchingResult>, P> matchResGoal, Goal<P>... deps) {
         super(project, key, (List<File>) null, append(deps, fastqMapGoal, matchResGoal));
         this.fastqMapGoal = fastqMapGoal;
         this.matchResGoal = matchResGoal;

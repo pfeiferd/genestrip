@@ -51,8 +51,8 @@ import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
 @Deprecated
-public class MatchGoalOld extends MultiFileGoal {
-	private final ObjectGoal<Database, GSProject> storeGoal;
+public class MatchGoalOld<P extends GSProject> extends MultiFileGoal<P> {
+	private final ObjectGoal<Database, P> storeGoal;
 	protected final ExecutionContext bundle;
 	private final Map<String, MatchingResult> matchResults;
 	private final Map<File, String> fileToKeyMap;
@@ -63,8 +63,8 @@ public class MatchGoalOld extends MultiFileGoal {
 	private KMerUniqueCounter uniqueCounter;
 
 	@SafeVarargs
-	public MatchGoalOld(GSProject project, GoalKey key, ObjectGoal<Map<String, StreamingResourceStream>, GSProject> fastqMapGoal,
-						ObjectGoal<Database, GSProject> storeGoal, ExecutionContext bundle, Goal<GSProject>... deps) {
+	public MatchGoalOld(P project, GoalKey key, ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal,
+						ObjectGoal<Database, P> storeGoal, ExecutionContext bundle, Goal<P>... deps) {
 		super(project, key, fastqMapGoal, Goal.append(deps, storeGoal));
 		this.storeGoal = storeGoal;
 		this.bundle = bundle;

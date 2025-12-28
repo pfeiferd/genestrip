@@ -38,16 +38,16 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.match.ResultReporter;
 import org.metagene.genestrip.store.Database;
 
-public class DBInfoGoal extends FileListGoal<GSProject> {
-	private final ObjectGoal<Database, GSProject> storeGoal;
+public class DBInfoGoal<P extends GSProject> extends FileListGoal<P> {
+	private final ObjectGoal<Database, P> storeGoal;
 
 	@SafeVarargs
-	public DBInfoGoal(GSProject project, ObjectGoal<Database, GSProject> storeGoal, Goal<GSProject>... deps) {
+	public DBInfoGoal(P project, ObjectGoal<Database, P> storeGoal, Goal<P>... deps) {
 		this(false, project, storeGoal, deps);
 	}
 
 	@SafeVarargs
-	public DBInfoGoal(boolean temp, GSProject project, ObjectGoal<Database, GSProject> storeGoal, Goal<GSProject>... deps) {
+	public DBInfoGoal(boolean temp, P project, ObjectGoal<Database, P> storeGoal, Goal<P>... deps) {
 		super(project, temp ? GSGoalKey.TEMP_DBINFO : GSGoalKey.DBINFO, temp ? project.getTempDBInfoFile() : project.getDBInfoFile(),
 				Goal.append(deps, storeGoal));
 		this.storeGoal = storeGoal;

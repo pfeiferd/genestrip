@@ -36,17 +36,17 @@ import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.Goal;
 
-public class RefSeqCatalogDownloadGoal extends RefSeqDownloadGoal {
+public class RefSeqCatalogDownloadGoal<P extends GSProject> extends RefSeqDownloadGoal<P> {
 	public static final String CATALOG_FOLDER = RELEASE_FOLDER + "/release-catalog";
 	public static final String CATALOG_BASE_NAME = "RefSeq-release{0}.catalog.gz";
 	public static final String FILES_INSTALLED_NAME = "release{0}.files.installed";
 
-	private final FileGoal<GSProject> releaseNumberGoal;
+	private final FileGoal<P> releaseNumberGoal;
 	private List<File> files;
 
 	@SafeVarargs
-	public RefSeqCatalogDownloadGoal(GSProject project, FileGoal<GSProject> releaseNumberGoal,
-			Goal<GSProject>... deps) {
+	public RefSeqCatalogDownloadGoal(P project, FileGoal<P> releaseNumberGoal,
+			Goal<P>... deps) {
 		super(project, GSGoalKey.REFSEQCAT, Goal.append(deps, releaseNumberGoal));
 		this.releaseNumberGoal = releaseNumberGoal;
 	}
