@@ -361,7 +361,7 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
                 projectSetupGoal);
         registerGoal(db2fastqTaxNodesGoal);
 
-        Goal<P> db2fastqGoal = new DB2FastqGoal(project, db2fastqTaxNodesGoal, loadDBGoal, projectSetupGoal);
+        Goal<P> db2fastqGoal = new DB2FastqGoal(project, GSGoalKey.DB2FASTQ, db2fastqTaxNodesGoal, loadDBGoal, projectSetupGoal);
         registerGoal(db2fastqGoal);
 
         // Use database and bloom filter
@@ -403,6 +403,8 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
                 projectSetupGoal);
         registerGoal(fastaMapGoal);
 
+        // Fasta to fastq
+
         ObjectGoal<Map<String, StreamingResourceStream>, P> fastaMapTransfGoal = new FastqMapTransformGoal(
                 project, false, fastaMapGoal, projectSetupGoal);
         registerGoal(fastaMapTransfGoal);
@@ -422,6 +424,10 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
         KrakenResFileGoal krakenResFileGoal = new KrakenResFileGoal(project, fastqMapTransfGoal, taxNodesGoal,
                 krakenResCountGoal, projectSetupGoal, fastqDownloadsGoal);
         registerGoal(krakenResFileGoal);
+    }
+
+    protected void createGoalDependingOnLoadDB() {
+
     }
 
     public MatchingResult cleanMatch(boolean lr, String key, String... pathsOrURLs) {
@@ -467,10 +473,14 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
         FastqDownloadsGoal<P> fastqDownloadsGoal = new FastqDownloadsGoal(getProject(), true, fastqMapGoal, fastqMapTransfGoal,
                 getGoal(GSGoalKey.SETUP));
 
-        LoadDBGoal<P> loadDBGoal = (LoadDBGoal) getGoal(GSGoalKey.LOAD_DB);
+        LoadDBGoal<P> loadDBGoal = getLoadDBGoal();
 
         return new MatchResultGoal<P>(getProject(), (lr ? GSGoalKey.MATCHRESLR : GSGoalKey.MATCHRES), fastqMapTransfGoal, loadDBGoal,
                 getExecutionContext(getProject()), getGoal(GSGoalKey.SETUP), fastqDownloadsGoal);
+    }
+
+    protected LoadDBGoal<P> getLoadDBGoal() {
+        return (LoadDBGoal) getGoal(GSGoalKey.LOAD_DB);
     }
 
     protected FilterGoal<P> createGoalChainForFilter(String key, String... pathsOrURLs) {

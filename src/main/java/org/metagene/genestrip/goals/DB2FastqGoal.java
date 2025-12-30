@@ -37,6 +37,7 @@ import org.metagene.genestrip.GSProject.GSFileType;
 import org.metagene.genestrip.fastqgen.KMerFastqGenerator;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
@@ -47,9 +48,9 @@ public class DB2FastqGoal<P extends GSProject> extends FileListGoal<P> {
 	private final Map<File, SmallTaxIdNode> fileToTaxid;
 
 	@SafeVarargs
-	public DB2FastqGoal(P project, ObjectGoal<Set<SmallTaxIdNode>, P> taxNodesGoal,
-			ObjectGoal<Database, P> storeGoal, Goal<P>... deps) {
-		super(project, GSGoalKey.DB2FASTQ, (List<File>) null, true, Goal.append(deps, taxNodesGoal, storeGoal));
+	public DB2FastqGoal(P project, GoalKey key, ObjectGoal<Set<SmallTaxIdNode>, P> taxNodesGoal,
+						ObjectGoal<Database, P> storeGoal, Goal<P>... deps) {
+		super(project, key, (List<File>) null, true, Goal.append(deps, taxNodesGoal, storeGoal));
 		this.taxNodesGoal = taxNodesGoal;
 		this.storeGoal = storeGoal;
 		this.fileToTaxid = new HashMap<File, SmallTaxIdNode>();

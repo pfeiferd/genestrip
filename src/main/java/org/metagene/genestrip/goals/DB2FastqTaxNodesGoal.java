@@ -36,7 +36,6 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.KMerSortedArray;
-import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
@@ -79,7 +78,7 @@ public class DB2FastqTaxNodesGoal<P extends GSProject> extends ObjectGoal<Set<Sm
 				}
 			}
 
-			taxIdNodes = asNodesWithDesc(taxTree, taxids, withDescs);
+			taxIdNodes = asNodesWithDescs(taxTree, taxids, withDescs);
 			taxIdNodes.retainAll(storedNodes);
 		}
 		else {
@@ -91,14 +90,14 @@ public class DB2FastqTaxNodesGoal<P extends GSProject> extends ObjectGoal<Set<Sm
 		set(taxIdNodes);
 	}
 
-	public Set<SmallTaxIdNode> asNodesWithDesc(SmallTaxTree taxTree, String[] taxids, boolean[] withDescs) {
+	public Set<SmallTaxIdNode> asNodesWithDescs(SmallTaxTree taxTree, String[] taxids, boolean[] withDescs) {
 		Set<SmallTaxIdNode> res = new HashSet<SmallTaxIdNode>();
 		for (int i = 0; i < taxids.length; i++) {
 			SmallTaxIdNode node = taxTree.getNodeByTaxId(taxids[i]);
 			if (node != null) {
 				res.add(node);
 				if (withDescs[i]) {
-					completeFilterlist(res, node, null);
+					completeFilterlist(res, node);
 				}
 			}
 		}
@@ -106,16 +105,13 @@ public class DB2FastqTaxNodesGoal<P extends GSProject> extends ObjectGoal<Set<Sm
 		return res;
 	}
 
-	private void completeFilterlist(Set<SmallTaxIdNode> filter, SmallTaxIdNode node, Rank depth) {
+	private void completeFilterlist(Set<SmallTaxIdNode> filter, SmallTaxIdNode node) {
 		if (node != null) {
 			filter.add(node);
 			SmallTaxIdNode[] subNodes = node.getSubNodes();
 			if (subNodes != null) {
 				for (SmallTaxIdNode subNode : subNodes) {
-					if (depth == null
-							|| (subNode != null && subNode.getRank() != null && !subNode.getRank().isBelow(depth))) {
-						completeFilterlist(filter, subNode, depth);
-					}
+					completeFilterlist(filter, subNode);
 				}
 			}
 		}

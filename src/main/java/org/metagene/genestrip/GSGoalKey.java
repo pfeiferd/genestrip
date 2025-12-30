@@ -41,7 +41,7 @@ public enum GSGoalKey implements GoalKey {
 	CLEAR("clear", true), 
 	@MDDescription("Generate the database for *k*-mer matching with respect to the given project.")
 	DB("db", true), 
-	@MDDescription("Write information about a project's database content to a CSV file.")
+	@MDDescription("Write information on a project's database content to a CSV file.")
 	DBINFO("dbinfo", true),
 	@MDDescription("Write information about a project's temporary database content to a CSV file.")
 	TEMP_DBINFO("tempdbinfo", false),
