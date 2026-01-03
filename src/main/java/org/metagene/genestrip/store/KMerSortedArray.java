@@ -389,7 +389,6 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			} else {
 				index = valueIndexes[(int) pos] - Short.MIN_VALUE;
 			}
-
 			V oldValue = indexMap[index];
 			V newValue = provider.getUpdateValue(oldValue);
 			if (newValue == null) {
@@ -674,9 +673,9 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				sindex = BigArrays.get(largeValueIndexes, i);
 			} else {
 				kmer = kmers[(int) i];
-				sindex = valueIndexes[(int) i] - Short.MIN_VALUE;
+				sindex = valueIndexes[(int) i];
 			}
-			visitor.nextValue(this, kmer, sindex, i);
+			visitor.nextValue(this, kmer, sindex  - Short.MIN_VALUE, i);
 		}
 	}
 
