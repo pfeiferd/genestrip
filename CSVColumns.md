@@ -1,7 +1,7 @@
 |Name|Description|
 |-|-|
-|`level`|Depth in the taxonomy tree, where the root is zero.|
 |`pos`|Sort position of entry.|
+|`level`|Depth in the taxonomy tree, where the root is zero.|
 |`name`|The name associated with the tax id.|
 |`rank`|The rank of the tax id.|
 |`taxid`|The tax id.|
