@@ -102,12 +102,14 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
     protected double accClassErrorSquaredSum;
 
     public CountsPerTaxid(int level, String taxid, int maxReadSizeBytes) {
+        this.level = level;
         this.taxid = taxid;
         maxContigDescriptor = new byte[maxReadSizeBytes];
         extendedValues = new AccValues[ValueType.VALUES.length];
     }
 
     public CountsPerTaxid(int level, String taxid, long totalReads, long totalKmers, long totalBPs, short[] totalMaxCounts) {
+        this.level = level;
         this.taxid = taxid;
         this.reads = totalReads;
         this.kmers = totalKmers;
@@ -122,12 +124,12 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
         return this.pos - o.pos;
     }
 
-    @MDCDescription(pos = -1, name = "level", desc = "Depth in the taxonomy tree, where the root is zero.")
+    @MDCDescription(pos = 0, name = "level", desc = "Depth in the taxonomy tree, where the root is zero.")
     public int getLevel() {
         return level;
     }
 
-    @MDCDescription(pos = 0, name = "pos", desc = "Sort position of entry.")
+    @MDCDescription(pos = -1, name = "pos", desc = "Sort position of entry.")
     public int getPos() {
         return pos;
     }
