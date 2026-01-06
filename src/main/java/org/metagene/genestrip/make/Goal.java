@@ -24,9 +24,7 @@
  */
 package org.metagene.genestrip.make;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import org.apache.commons.logging.Log;
 import org.metagene.genestrip.util.GSLogFactory;
@@ -38,26 +36,40 @@ public abstract class Goal<P extends Project> {
 	private final P project;
 	private final List<Goal<P>> dependents;
 
+	private boolean potentiallyForMakeRequired;
+
 	@SafeVarargs
 	public Goal(P project, GoalKey goalKey, Goal<P>... dependencies) {
 		this.goalKey = initKey(goalKey);
 		logger = GSLogFactory.getLog(this.goalKey.getName());
 		this.dependencies = dependencies;
 		this.project = project;
+		if (hasTransDependencyFor(this)) {
+			throw new IllegalStateException("Cyclic dependency found for: " + this);
+		}
 		this.dependents = new ArrayList<>();
 		for (Goal<P> dep : dependencies) {
 			dep.addDependent(this);
 		}
 	}
 
-	protected void addDependent(Goal<P> goal) {
+	private void addDependent(Goal<P> goal) {
 		dependents.add(goal);
+	}
+
+	public boolean hasTransDependencyFor(Goal<P> candidate) {
+		for (Goal<P> dep : dependencies) {
+			if (dep.equals(candidate) || dep.hasTransDependencyFor(this)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	protected void dependentMade(Goal<P> goal) {
 		boolean allMade = true;
 		for (Goal<P> dep : dependents) {
-			if (!dep.isMade()) {
+			if (dep.isPotentiallyRequired() && !dep.isMade()) {
 				allMade = false;
 				break;
 			}
@@ -104,22 +116,38 @@ public abstract class Goal<P extends Project> {
 				getLogger().debug("Making " + this);
 				getLogger().debug("Dependencies " + Arrays.toString(dependencies));
 			}
-			startMake();
-			GSLogFactory.incN();
-			for (Goal<P> dep : dependencies) {
-				if (dep != null && !isWeakDependency(dep)) {
-					dep.make();
+			try {
+				markPotentiallyRequired(true);
+				startMake();
+				GSLogFactory.incN();
+				for (Goal<P> dep : dependencies) {
+					if (dep != null && !isWeakDependency(dep)) {
+						dep.make();
+					}
 				}
+				GSLogFactory.decN();
+				makeThis();
+				endMake();
+			} finally {
+				markPotentiallyRequired(false);
 			}
-			GSLogFactory.decN();
-			makeThis();
-			endMake();
 			if (getLogger().isDebugEnabled()) {
 				getLogger().debug("Made " + this);
 			}
 		} else {
 			alreadyMade();
 		}
+	}
+
+	protected void markPotentiallyRequired(boolean mark) {
+		potentiallyForMakeRequired = mark;
+		for (Goal<P> dep : dependencies) {
+			dep.markPotentiallyRequired(mark);
+		}
+	}
+
+	public boolean isPotentiallyRequired() {
+		return potentiallyForMakeRequired;
 	}
 
 	protected void logHeapInfo() {
