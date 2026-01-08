@@ -350,6 +350,7 @@
 								<configuration>
 									<addmodules>
 										<addmodule>java.base</addmodule>
+										<addmodule>java.logging</addmodule>
 									</addmodules>
 									<noheaderfiles>true</noheaderfiles>
 									<nomanpages>true</nomanpages>
