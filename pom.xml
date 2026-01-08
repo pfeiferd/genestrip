@@ -30,7 +30,7 @@
 	<properties>
 		<main.class>org.metagene.genestrip.Main</main.class>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<javapackager.jdkPath>C:/java/jdk-17.0.2</javapackager.jdkPath>
+		<javapackager.jdkPath>C:/java/jdk-25</javapackager.jdkPath>
 	</properties>
 
 	<name>genestrip</name>
