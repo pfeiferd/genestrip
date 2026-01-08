@@ -59,7 +59,7 @@ public abstract class Goal<P extends Project> {
 
 	public boolean hasTransDependencyFor(Goal<P> candidate) {
 		for (Goal<P> dep : dependencies) {
-			if (dep.equals(candidate) || dep.hasTransDependencyFor(this)) {
+			if (dep.equals(candidate) || dep.hasTransDependencyFor(candidate)) {
 				return true;
 			}
 		}
@@ -140,6 +140,11 @@ public abstract class Goal<P extends Project> {
 	}
 
 	protected void markPotentiallyRequired(boolean mark) {
+		// An simple optimization: We don't need to do things another time -
+		// neither on this goal nor on its dependencies.
+		if (potentiallyForMakeRequired == mark) {
+			return;
+		}
 		potentiallyForMakeRequired = mark;
 		for (Goal<P> dep : dependencies) {
 			dep.markPotentiallyRequired(mark);
