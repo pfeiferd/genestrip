@@ -291,11 +291,11 @@ and produces the result file `./someprojectname_match_mysample.csv`.
 
 ### Targets
 
-Genestrip supports three targets for each goal, namely `make`, `clean`, `cleanall`, `cleantotal`.
+Genestrip supports three targets for each goal, namely `make`, `clean`, `cleanall` and `cleantotal`:
 
 - `make` is the default target. It executes a given goal as explained before and creates the files associated with the goal in a lazy manner. If the corresponding files already exist, then `make` does nothing.
 - `clean` *deletes* all files associated with the given goal, but it does not delete any files of goals that the given goal depends on.
-- `cleanall` does the same as `clean`, but it *also recursively deletes* any files of goals that the given goal depends on. The recursion is stopped for [goals not supporting recursive `clean`](Goals.md).
+- `cleanall` does the same as `clean`, but it *also recursively deletes* any files of goals that the given goal depends on. However, the recursion and deletion is stopped at [goals not allowing a recursive `clean`](Goals.md).
 - `cleantotal` does the same as `cleanall`. However, the recursion is *not* stopped at any dependency.
 
 ### Configuration parameters
