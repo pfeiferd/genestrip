@@ -37,7 +37,7 @@ public enum GSGoalKey implements GoalKey {
 	SHOWALL("showall", true),
 	@MDDescription("Generate the *k*-mer matching database and also the filtering database with respect to the given project.")
 	GENALL("genall", true),
-	@MDDescription("Clear the folders `csv`, `db` and `krakenout`  of a project. This will delete all files the respective folders!")
+	@MDDescription("Clear the folders `csv`, `log` and `krakenout`  of a project. This will delete all files the respective folders!")
 	CLEAR("clear", true), 
 	@MDDescription("Generate the database for *k*-mer matching with respect to the given project.")
 	DB("db", true), 
@@ -70,9 +70,9 @@ public enum GSGoalKey implements GoalKey {
 	@MDDescription("Same as `matchres` but without doing read classification.")
 	MATCHRESLR("matchreslr"),
 	@MDDescription("Create data folders in `<base dir>/common` including `common` itself.")
-	COMMON_SETUP("commonsetup"),
+	COMMON_SETUP("commonsetup", false, false),
 	@MDDescription("Create data folders in `<base dir>/<project>`.")
-	SETUP("setup"),
+	SETUP("setup", false, false),
 	@MDDescription("Download the taxonomy.")
 	TAXDOWNLOAD("taxdownload", false, false),
 	@MDDescription("Load the taxonomy into memory.")
@@ -173,7 +173,13 @@ public enum GSGoalKey implements GoalKey {
 		return forUser;
 	}
 
+	@Override
 	public String getName() {
+		return name;
+	}
+
+	@Override
+	public String toString() {
 		return name;
 	}
 

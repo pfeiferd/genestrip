@@ -44,5 +44,10 @@ public interface GoalKey {
 		public boolean isTransClean() {
 			return false;
 		}
+
+		@Override
+		public String toString() {
+			return name;
+		}
 	}
 }

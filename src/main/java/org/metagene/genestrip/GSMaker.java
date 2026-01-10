@@ -198,7 +198,7 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
         registerGoal(projectSetupGoal);
 
         Goal<P> clearGoal = new FileListGoal<P>(project, GSGoalKey.CLEAR, Arrays
-                .asList(project.getDBDir(), project.getKrakenOutDir(), project.getResultsDir(), project.getLogDir())) {
+                .asList(project.getKrakenOutDir(), project.getResultsDir(), project.getLogDir())) {
             @Override
             public boolean isMade() {
                 return false;
