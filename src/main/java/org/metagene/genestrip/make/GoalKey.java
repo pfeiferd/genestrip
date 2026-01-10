@@ -26,6 +26,7 @@ package org.metagene.genestrip.make;
 
 public interface GoalKey {
 	public String getName();
+	public boolean isTransClean();
 	
 	public static class DefaultGoalKey implements GoalKey {
 		private final String name;
@@ -37,6 +38,11 @@ public interface GoalKey {
 		@Override
 		public String getName() {
 			return name;
+		}
+
+		@Override
+		public boolean isTransClean() {
+			return false;
 		}
 	}
 }

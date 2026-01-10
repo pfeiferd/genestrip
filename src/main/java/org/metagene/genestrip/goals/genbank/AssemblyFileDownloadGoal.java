@@ -49,11 +49,6 @@ public class AssemblyFileDownloadGoal<P extends GSProject> extends GSFileDownloa
 	}
 
 	@Override
-	public boolean isAllowTransitiveClean() {
-		return false;
-	}
-
-	@Override
 	public List<File> getFiles() {
 		return files;
 	}

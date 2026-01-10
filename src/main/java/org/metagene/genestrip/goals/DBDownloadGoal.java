@@ -113,11 +113,6 @@ public class DBDownloadGoal<P extends GSProject> extends GSFileDownloadGoal<P> {
 	}
 
 	@Override
-	public boolean isAllowTransitiveClean() {
-		return false;
-	}
-
-	@Override
 	protected String getMD5CheckSum(File file) {
 		return md5;
 	}

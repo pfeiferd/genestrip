@@ -54,11 +54,6 @@ public class TaxIdFileDownloadGoal<P extends GSProject> extends GSFileDownloadGo
 	}
 
 	@Override
-	public boolean isAllowTransitiveClean() {
-		return false;
-	}
-
-	@Override
 	public List<File> getFiles() {
 		return files;
 	}

@@ -27,6 +27,8 @@ package org.metagene.genestrip;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.commons.cli.CommandLine;
@@ -37,7 +39,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.metagene.genestrip.make.GoalKey;
 
-public abstract class Main<P extends GSProject>  {
+public abstract class Main<P extends GSProject> {
     private final Options options;
     private P project;
     private String target;
@@ -94,8 +96,8 @@ public abstract class Main<P extends GSProject>  {
     }
 
     protected abstract P createProject(GSCommon config, String name, String key, String[] fastqFiles, String csvFile, File csvDir,
-                                      File fastqResDir, String taxids, Properties commandLineProps, GSGoalKey forGoal,
-                                      String dbPath, boolean quietInit);
+                                       File fastqResDir, String taxids, Properties commandLineProps, GSGoalKey forGoal,
+                                       String dbPath, boolean quietInit);
 
     protected GSMaker<P> createMaker(P project) {
         return new GSMaker<P>(project);
@@ -132,7 +134,7 @@ public abstract class Main<P extends GSProject>  {
         options.addOption(baseDir);
 
         Option target = Option.builder("t").hasArg().argName("target")
-                .desc("Generation target ('make', 'clean' or 'cleanall'). The default is 'make'.").build();
+                .desc("Generation target ('make', 'clean', 'cleanall' or 'cleantotal'). The default is 'make'.").build();
         options.addOption(target);
 
         Option fastqs = Option.builder("f").hasArgs().valueSeparator(',').argName("fqfile1,fqfile2,...").desc(
@@ -204,30 +206,33 @@ public abstract class Main<P extends GSProject>  {
         if (restArgs.length == 1) {
             restArgs = new String[]{null, maker.getDefaultGoalKey().getName()};
         }
+        List<GoalKey> keys = new ArrayList<GoalKey>();
         for (int i = 1; i < restArgs.length; i++) {
             GoalKey goalKey = maker.getKeyByName(restArgs[i]);
             if (goalKey != null) {
-                out.println("Executing target " + getTarget() + " for goal " + goalKey.getName() + "...");
-                switch (getTarget()) {
-                    case "cleantotal":
-                        maker.cleanTotal(goalKey);
-                        break;
-                    case "cleanall":
-                        maker.cleanAll(goalKey);
-                        break;
-                    case "clean":
-                        maker.clean(goalKey);
-                        break;
-                    default:
-                    case "make":
-                        maker.make(goalKey);
-                        break;
-                }
-                out.println("Done with target " + getTarget() + " for goal " + restArgs[i]);
+                keys.add(goalKey);
             } else {
                 out.println("Omitting unknown goal " + restArgs[i]);
             }
         }
+        out.println("Executing target " + getTarget() + " for goals " + keys + "...");
+        GoalKey[] ks = keys.toArray(new GoalKey[keys.size()]);
+        switch (getTarget()) {
+            case "cleantotal":
+                maker.cleanTotal(ks);
+                break;
+            case "cleanall":
+                maker.cleanAll(ks);
+                break;
+            case "clean":
+                maker.clean(ks);
+                break;
+            default:
+            case "make":
+                maker.make(ks);
+                break;
+        }
+        out.println("Done with target " + getTarget() + " for goals " + keys);
     }
 
     public GSMaker<P> getMaker() {
@@ -237,8 +242,8 @@ public abstract class Main<P extends GSProject>  {
     public static void main(String[] args) {
         new Main<GSProject>() {
             protected GSProject createProject(GSCommon config, String name, String key, String[] fastqFiles, String csvFile, File csvDir,
-                                      File fastqResDir, String taxids, Properties commandLineProps, GSGoalKey forGoal,
-                                      String dbPath, boolean quietInit) {
+                                              File fastqResDir, String taxids, Properties commandLineProps, GSGoalKey forGoal,
+                                              String dbPath, boolean quietInit) {
                 return new GSProject(config, name, key, fastqFiles, csvFile, csvDir,
                         fastqResDir, taxids, commandLineProps, forGoal,
                         dbPath, quietInit);

@@ -74,7 +74,7 @@ public enum GSGoalKey implements GoalKey {
 	@MDDescription("Create data folders in `<base dir>/<project>`.")
 	SETUP("setup"),
 	@MDDescription("Download the taxonomy.")
-	TAXDOWNLOAD("taxdownload"),
+	TAXDOWNLOAD("taxdownload", false, false),
 	@MDDescription("Load the taxonomy into memory.")
 	TAXTREE("taxtree"),
 	@MDDescription("Compute the taxids for the project's database.")
@@ -82,13 +82,13 @@ public enum GSGoalKey implements GoalKey {
 	@MDDescription("Download the RefSeq release number.")
 	REFSEQRELEASE("refseqrelease"),
 	@MDDescription("Download the RefSeq release catalog files.")
-	REFSEQCAT("refseqcat"),
+	REFSEQCAT("refseqcat", false, false),
 	@MDDescription("Load MD5 checksums for RefSeq files into memory")
-	CHECKSUMMAP("checksummap"),
+	CHECKSUMMAP("checksummap", false, false),
 	@MDDescription("Load the RefSeq category names as requested for the project's database.")
 	CATEGORIES("categories"),
 	@MDDescription("Download the genomic files from RefSeq for the requested categories.")
-	REFSEQFNA("refseqfna"),
+	REFSEQFNA("refseqfna", false, false),
 	@MDDescription("Compute the number of RefSeq accession entries to be kept in memory.")
 	ACCMAPSIZE("accmapsize"),
 	@MDDescription("Load the required RefSeq accession entries into memory.")
@@ -96,13 +96,13 @@ public enum GSGoalKey implements GoalKey {
 	@MDDescription("Determine for tax ids for which additional fasta files from Genbank should be downloaded.")
 	TAXFROMGENBANK("taxfromgenbank"),
 	@MDDescription("Download Genbank's assembly catalog file.")
-	ASSEMBLYDOWNLOAD("assemblydownload"),
+	ASSEMBLYDOWNLOAD("assemblydownload", false, false),
 	@MDDescription("Determine the fasta files to be downloaded from Genbank.")
 	FASTAGSENBANK("fastasgenbank"),
 	@MDDescription("Download the requested fasta files from Genbank.")
-	FASTAGSENBANKDL("fastasgenbankdl"),
+	FASTAGSENBANKDL("fastasgenbankdl", false, false),
 	@MDDescription("Download additionally requested fasta files.")
-	ADD_DOWNLOADS("adddownloads"),
+	ADD_DOWNLOADS("adddownloads", false, false),
 	@MDDescription("Associate additional fasta files with tax ids in memory.")
 	ADD_FASTAS("addfastas"),
 	@MDDescription("Precompute the number of *k*-mers for the project's database.")
@@ -134,28 +134,39 @@ public enum GSGoalKey implements GoalKey {
 	@MDDescription("Transform URLs of fasta files to be downloaded to local paths.")
 	FASTA_MAP_TRANSFORM("fastamaptransform"),
 	@MDDescription("Download fastq files given via URLs as requested.")
-	FASTQ_DOWNLOAD("fastqdownload"),
+	FASTQ_DOWNLOAD("fastqdownload", false, false),
 	@MDDescription("Download fasta files given via URLs as requested.")
-	FASTA_DOWNLOAD("fastadownload"),
+	FASTA_DOWNLOAD("fastadownload", false, false),
 	@MDDescription("For internal use (to invoke kraken and count results).")
 	KRAKENCOUNT("krakencount"),
 	@MDDescription("For internal use (to write kraken results to a file).")
 	KRAKENRES("krakenres"),
 	@MDDescription("Download and install a project's database via a given URL.")
-	DB_DOWNLOAD("dbdownload"),
+	DB_DOWNLOAD("dbdownload", false, false),
 	@MDDescription("Check whether the downloaded RefSeq release is equal to the current release on the download server.")
 	CHECK_REFSEQ_RNUM("checkrefseqrnum");
 
 	private final boolean forUser;
 	private final String name;
+	private final boolean transClean;
 
 	private GSGoalKey(String name) {
-		this(name, false);
+		this(name, false, true);
 	}
 
 	private GSGoalKey(String name, boolean forUser) {
+		this(name, forUser, true);
+	}
+
+	private GSGoalKey(String name, boolean forUser, boolean transClean) {
 		this.name = name;
 		this.forUser = forUser;
+		this.transClean = transClean;
+	}
+
+	@Override
+	public boolean isTransClean() {
+		return transClean;
 	}
 
 	public boolean isForUser() {
@@ -172,10 +183,14 @@ public enum GSGoalKey implements GoalKey {
 		ps.print('|');
 		ps.print("User Goal");
 		ps.print('|');
+		ps.print("Rec. Clean");
+		ps.print('|');
 		ps.print("Description");
 		ps.print('|');
 		ps.println();
 
+		ps.print('|');
+		ps.print('-');
 		ps.print('|');
 		ps.print('-');
 		ps.print('|');
@@ -192,6 +207,8 @@ public enum GSGoalKey implements GoalKey {
 			ps.print('`');
 			ps.print('|');
 			ps.print(goalKey.isForUser() ? "X" : "");
+			ps.print('|');
+			ps.print(goalKey.isTransClean() ? "X" : "");
 			ps.print('|');
 			Annotation[] annotations;
 			try {

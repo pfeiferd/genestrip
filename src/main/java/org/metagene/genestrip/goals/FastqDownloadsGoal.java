@@ -61,14 +61,9 @@ public class FastqDownloadsGoal<P extends GSProject> extends GSFileDownloadGoal<
 	}
 
 	@Override
-	public boolean isAllowTransitiveClean() {
-		return false;
-	}
-
-	@Override
 	public List<File> getFiles() {
 		if (files == null) {
-			files = new ArrayList<File>();
+			files = new ArrayList<>();
 			for (String key : mapGoal.get().keySet()) {
 				int index = 0;
 				StreamingResourceStream list = mapGoal.get().get(key);

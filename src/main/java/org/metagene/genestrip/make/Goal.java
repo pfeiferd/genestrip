@@ -36,7 +36,7 @@ public abstract class Goal<P extends Project> {
 	private final P project;
 	private final List<Goal<P>> dependents;
 
-	private boolean potentiallyForMakeRequired;
+	private boolean potentiallyRequiredForMake;
 
 	@SafeVarargs
 	public Goal(P project, GoalKey goalKey, Goal<P>... dependencies) {
@@ -49,7 +49,9 @@ public abstract class Goal<P extends Project> {
 		}
 		this.dependents = new ArrayList<>();
 		for (Goal<P> dep : dependencies) {
-			dep.addDependent(this);
+			if (dep != null) {
+				dep.addDependent(this);
+			}
 		}
 	}
 
@@ -59,8 +61,10 @@ public abstract class Goal<P extends Project> {
 
 	public boolean hasTransDependencyFor(Goal<P> candidate) {
 		for (Goal<P> dep : dependencies) {
-			if (dep.equals(candidate) || dep.hasTransDependencyFor(candidate)) {
-				return true;
+			if (dep != null) {
+				if (dep.equals(candidate) || dep.hasTransDependencyFor(candidate)) {
+					return true;
+				}
 			}
 		}
 		return false;
@@ -142,17 +146,19 @@ public abstract class Goal<P extends Project> {
 	protected void markPotentiallyRequired(boolean mark) {
 		// An simple optimization: We don't need to do things another time -
 		// neither on this goal nor on its dependencies.
-		if (potentiallyForMakeRequired == mark) {
+		if (potentiallyRequiredForMake == mark) {
 			return;
 		}
-		potentiallyForMakeRequired = mark;
+		potentiallyRequiredForMake = mark;
 		for (Goal<P> dep : dependencies) {
-			dep.markPotentiallyRequired(mark);
+			if (dep != null) {
+				dep.markPotentiallyRequired(mark);
+			}
 		}
 	}
 
 	public boolean isPotentiallyRequired() {
-		return potentiallyForMakeRequired;
+		return potentiallyRequiredForMake;
 	}
 
 	protected void logHeapInfo() {
@@ -190,7 +196,9 @@ public abstract class Goal<P extends Project> {
 			doMakeThis();
 			logHeapInfo();
 			for (Goal<P> dep : dependencies) {
-				dep.dependentMade(this);
+				if (dep != null) {
+					dep.dependentMade(this);
+				}
 			}
 		}
 	}
@@ -226,7 +234,7 @@ public abstract class Goal<P extends Project> {
 	}
 
 	public boolean isAllowTransitiveClean() {
-		return true;
+		return goalKey.isTransClean();
 	}
 
 	public void dump() {
@@ -242,10 +250,12 @@ public abstract class Goal<P extends Project> {
 			getLogger().debug("Dependencies " + Arrays.toString(dependencies));
 		}
 		for (Goal<P> dep : dependencies) {
-			if (enforceTransitive) {
-				dep.clean(true);
-			} else {
-				dep.transitiveClean();
+			if (dep != null) {
+				if (enforceTransitive) {
+					dep.clean(true);
+				} else {
+					dep.transitiveClean();
+				}
 			}
 		}
 		cleanThis();

@@ -62,11 +62,6 @@ public class AdditionalDownloadsGoal<P extends GSProject> extends GSFileDownload
 	}
 
 	@Override
-	public boolean isAllowTransitiveClean() {
-		return false;
-	}
-
-	@Override
 	public List<File> getFiles() {
 		if (files == null) {
 			files = new ArrayList<File>();

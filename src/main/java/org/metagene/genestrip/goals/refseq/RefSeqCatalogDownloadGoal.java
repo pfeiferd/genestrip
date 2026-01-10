@@ -60,11 +60,6 @@ public class RefSeqCatalogDownloadGoal<P extends GSProject> extends RefSeqDownlo
 	}
 
 	@Override
-	public boolean isAllowTransitiveClean() {
-		return false;
-	}
-
-	@Override
 	public List<File> getFiles() {
 		if (files == null) {
 			releaseNumberGoal.make();

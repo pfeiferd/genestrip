@@ -144,11 +144,6 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
                 files.remove(project.getCommon().getFastaDir());
                 return files;
             }
-
-            @Override
-            public boolean isAllowTransitiveClean() {
-                return false;
-            }
         };
         registerGoal(commonSetupGoal);
 
@@ -198,11 +193,6 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
             @Override
             protected void makeFile(File file) throws IOException {
                 file.mkdir();
-            }
-
-            @Override
-            public boolean isAllowTransitiveClean() {
-                return false;
             }
         };
         registerGoal(projectSetupGoal);

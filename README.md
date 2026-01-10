@@ -223,8 +223,8 @@ usage: genestrip [options] <project> [<goal1> <goal2>...]
                             are '<base dir>/projects/<project name>/fastq'
                             and '<base dir>/projects/<project name>/csv',
                             respectively.
- -t <target>                Generation target ('make', 'clean' or
-                            'cleanall'). The default is 'make'.
+ -t <target>                Generation target ('make', 'clean', 'cleanall'
+                            or 'cleantotal'). The default is 'make'.
  -tx <taxids>               List of tax ids separated by ',' (but no
                             blanks) for the goal 'db2fastq'. A tax id may
                             have the suffix '+', which means that
@@ -291,11 +291,12 @@ and produces the result file `./someprojectname_match_mysample.csv`.
 
 ### Targets
 
-Genestrip supports three targets for each goal, namely `make`, `clean` and `cleanall`.
+Genestrip supports three targets for each goal, namely `make`, `clean`, `cleanall`, `cleantotal`.
 
 - `make` is the default target. It executes a given goal as explained before and creates the files associated with the goal in a lazy manner. If the corresponding files already exist, then `make` does nothing.
-- `clean` *deletes* all files associated with the given goal but it does not delete any files of goals that the given goal depends on.
-- `cleanall` does same as `clean`, but it *also recursively deletes* any files of goals that the given goal depends on.
+- `clean` *deletes* all files associated with the given goal, but it does not delete any files of goals that the given goal depends on.
+- `cleanall` does the same as `clean`, but it *also recursively deletes* any files of goals that the given goal depends on. The recursion is stopped for [goals not supporting recursive `clean`](Goals.md).
+- `cleantotal` does the same as `cleanall`. However, the recursion is *not* stopped at any dependency.
 
 ### Configuration parameters
 

@@ -59,14 +59,9 @@ public class FastaFilesGenbankDownloadGoal<P extends GSProject> extends GSFileDo
 	}
 
 	@Override
-	public boolean isAllowTransitiveClean() {
-		return false;
-	}
-
-	@Override
 	public List<File> getFiles() {
 		if (files == null) {
-			files = new ArrayList<File>();
+			files = new ArrayList<>();
 			fileToDir = new HashMap<String, Object>();
 			for (List<AssemblyEntry> list : entryGoal.get().values()) {
 				for (AssemblyEntry entry : list) {

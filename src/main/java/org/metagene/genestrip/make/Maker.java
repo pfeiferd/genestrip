@@ -33,6 +33,8 @@ import org.apache.commons.logging.Log;
 import org.metagene.genestrip.util.GSLogFactory;
 
 public abstract class Maker<P extends Project> {
+	private static GoalKey INTERNAL_KEY = new GoalKey.DefaultGoalKey("internalgoal");
+
 	private final Log logger = GSLogFactory.getLog("maker");
 	
 	// Linked Map so as to be able to returns the goals in entry order...
@@ -77,6 +79,14 @@ public abstract class Maker<P extends Project> {
 	public Collection<Goal<P>> getGoals() {
 		return goalsByKey.values();
 	}
+
+	public Goal<P>[] getGoals(GoalKey... keys) {
+		Goal<P>[] goals = new Goal[keys.length];
+		for (int i = 0; i < keys.length; i++) {
+			goals[i] = getGoal(keys[i]);
+		}
+		return goals;
+	}
 		
 	public Goal<P> getGoal(String keyName) {
 		return getGoal(getKeyByName(keyName));
@@ -95,20 +105,30 @@ public abstract class Maker<P extends Project> {
 		return goalsByKey.get(key);
 	}
 	
-	public void make(GoalKey goalKey) {
-		goalsByKey.get(goalKey).make();
+	public void make(GoalKey... keys) {
+		createInternalGoal(keys).make();
 	}
 
-	public void cleanAll(GoalKey goalkey) {
-		goalsByKey.get(goalkey).clean();
+	// We need this goal for the functionality regarding "potentiallyForMakeRequired" in class Goal
+	private Goal<P> createInternalGoal(GoalKey... keys) {
+		return new Goal<P>(getProject(), INTERNAL_KEY, getGoals(keys)) {
+			@Override
+			public boolean isMade() {
+				return false;
+			}
+		};
+	}
+
+	public void cleanAll(GoalKey... keys) {
+		createInternalGoal(keys).clean();
 	}
 	
-	public void cleanTotal(GoalKey goalkey) {
-		goalsByKey.get(goalkey).clean(true);
+	public void cleanTotal(GoalKey... keys) {
+		createInternalGoal(keys).clean(true);
 	}
 	
-	public void clean(GoalKey goalkey) {
-		goalsByKey.get(goalkey).cleanThis();
+	public void clean(GoalKey... keys) {
+		createInternalGoal(keys).cleanThis();
 	}
 	
 	public GoalKey getDefaultGoalKey() {
