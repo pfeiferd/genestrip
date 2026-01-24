@@ -137,7 +137,7 @@ public enum GSConfigKey implements ConfigKey {
 			+ "repetitive sequences of base pairs may be omitted for storing. To do so, Genestrip employs a simple "
 			+ "[genetic dust-filter](https://pubmed.ncbi.nlm.nih.gov/16796549/) for *k*-mers: "
 			+ "It assigns a dust value *d* to each *k*-mer, and if *d* >  `maxDust`, then the *k*-mer will not be stored. "
-			+ "Let *k(i)* be length of a *k*-mer's *i*-th substring s<sub>i</sub> of maximum length such that *s<sub>i</sub>(j) = s<sub>i</sub>(j-2)* holds for all bases in *s*. "
+			+ "Let *k(i)* be length of a *k*-mer's *i*-th substring s<sub>i</sub> of maximum length such that *s<sub>i</sub>(j) = s<sub>i</sub>(j-1)* holds for all bases in *s*. "
 			+ "Given a *k*-mer with *n* such non-overlapping substrings and their lengths *k(1), ..., k(n)*, "
 			+ "then *d = fib(k(1)) + ... + fib(k(n))*, where *fib(k(i))* is the Fibonacci number of *k(i)*. "
 			+ "(The Fibonachi numbers are *fib(1) = 0*, *fib(2) = 1*, *fib(n) = fib(n-1) + fib(n-2)*.) "
