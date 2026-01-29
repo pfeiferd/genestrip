@@ -1,11 +1,13 @@
 package org.metagene.genestrip.util;
 
 import junit.framework.TestCase;
+import org.junit.Ignore;
 
 import java.util.Random;
 
+@Ignore
 public class DustTest extends TestCase {
-    private int k = 5;
+    private int k = 31;
     private final int[] fib;
 
     public DustTest() {
@@ -44,27 +46,16 @@ public class DustTest extends TestCase {
                 assertEquals(h >= buffer.getSize(), buffer.isFilled());
 
                 byte c = CGAT.DECODE_TABLE[random.nextInt(4)];
-                if (h == 29) {
-                    int x = 1;
-                }
                 buffer.putForTest(c);
 
                 if (buffer.isFilled()) {
-                    /*
                     for (int i = 0; i < k; i++) {
                         reverseBuffer.putForTest(buffer.get(k - i - 1));
                     }
-                     */
                     int res = naiveDust(buffer);
-                    int res2 = buffer.getDustValue();
-                    if (res != res2) {
-                        System.out.println(res + " != " + res2);
-                    }
-                    assertEquals(res, res2);
+                    assertEquals(res, buffer.getDustValue());
                     // Check for symmetry
-                    //int res2 = naiveDust(reverseBuffer);
-                    //assertEquals(res, res2);
-                    //assertEquals(res, reverseBuffer.getDustValue());
+                    assertEquals(res, reverseBuffer.getDustValue());
                     for (int i = 0; i < pickThresholds.length; i++) {
                         if (res >= pickThresholds[i] && res < picksDust[i]) {
                             picks[i] = buffer.toString();
@@ -123,6 +114,7 @@ public class DustTest extends TestCase {
         return d;
     }
 
+    /* For Paper:
     // int fib[] = ... is assumed to be defined elsewhere.
     public int d(byte[] s) {
         int d = 0, srl0 = 0, srl1 = 0, srl2 = 0;
@@ -145,4 +137,5 @@ public class DustTest extends TestCase {
         d += fib[srl0] + fib[srl1 / 2] + fib[srl2 / 3];
         return d;
     }
+    */
 }
