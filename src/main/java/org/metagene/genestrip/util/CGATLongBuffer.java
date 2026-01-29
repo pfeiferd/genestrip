@@ -27,7 +27,6 @@ package org.metagene.genestrip.util;
 import static org.metagene.genestrip.util.CGAT.*;
 
 public class CGATLongBuffer {
-	private final int seqMarks[];
 	protected final int size;
 	
 	protected int bpCounter;
@@ -36,12 +35,18 @@ public class CGATLongBuffer {
 	protected boolean filled;
 
 	private final int maxDust;
-	private final int[] dustFunction;
+	private final int[] dustFunctionDiff;
 
-	private byte lastChar;
-	private byte befLastChar;
-	private int sumDust;
-	private int seqCount;
+	private byte l1Char;
+	private byte l2Char;
+	private byte l3Char;
+	private int d;
+	private int srl0;
+	private int srl1;
+	private int srl2;
+	protected final int srl0Buffer[];
+	protected final int srl1Buffer[];
+	protected final int srl2Buffer[];
 
 	public CGATLongBuffer(int size) {
 		this(size, -1);
@@ -57,29 +62,34 @@ public class CGATLongBuffer {
 		this.size = size;
 		this.maxDust = maxDust;
 		if (maxDust >= 0) {
-			dustFunction = new int[size];
-			initDustFunction(dustFunction);
-			seqMarks = new int[size];
+			dustFunctionDiff = new int[size];
+			initDustFunctionDiff(dustFunctionDiff);
+			srl0Buffer = new int[size];
+			srl1Buffer = new int[size];
+			srl2Buffer = new int[size];
 		}
 		else {
-			seqMarks = null;
-			dustFunction = null;
+			srl0Buffer = srl1Buffer = srl2Buffer = null;
+			dustFunctionDiff = null;
 		}
 		reset();
 	}
 	
-	protected void initDustFunction(int[] dustFunction) {		
-		if (dustFunction.length > 0) {
-			dustFunction[0] = 1;
+	protected void initDustFunctionDiff(int[] dustFunctionDiff) {
+		// For the streaming approach we must work with
+		// the differences fib(n + 1) - fib(n - 1) - which are slightly different from the
+		// originally used Fibonacci function with fib(0) = 0, fib(1) = 1, fib(2) = 2, fib(n) = fib(n - 1) + fib(n - 2)
+		if (dustFunctionDiff.length > 0) {
+			dustFunctionDiff[0] = 1;
 		}
-		if (dustFunction.length > 1) {
-			dustFunction[1] = 1;
+		if (dustFunctionDiff.length > 1) {
+			dustFunctionDiff[1] = 1;
 		}
-		if (dustFunction.length > 2) {
-			dustFunction[2] = 1;
+		if (dustFunctionDiff.length > 2) {
+			dustFunctionDiff[2] = 1;
 		}
-		for (int i = 3; i < dustFunction.length; i++) {
-			dustFunction[i] = dustFunction[i - 1] + dustFunction[i - 2];
+		for (int i = 3; i < dustFunctionDiff.length; i++) {
+			dustFunctionDiff[i] = dustFunctionDiff[i - 1] + dustFunctionDiff[i - 2];
 		}
 	}
 
@@ -95,29 +105,83 @@ public class CGATLongBuffer {
 			kmer = ((kmer << 2) & SHIFT_FILTERS_STRAIGHT[size]) | (long) bp;  // Inlined.
 			reverseKmer = (reverseKmer >>> 2) | (((long) CGAT_REVERSE_JUMP_TABLE[c]) << SHIFT_FILTERS_REVERSE[size]);
 			if (maxDust >= 0) {
-				if (c == befLastChar) {
-					seqMarks[(bpCounter - 1 - seqCount + size) % size]++;
-					sumDust += dustFunction[seqCount];
-					if (seqCount < size - 2) {
-						seqCount++;						
+				if (c == l1Char) {
+					int pos = bpCounter - 1 - srl0;
+					if (pos < 0) {
+						pos += size;
+					}
+					srl0Buffer[pos]++;
+					d += dustFunctionDiff[srl0];
+					if (srl0 < size - 1) {
+						srl0++;
 					}
 				} else {
-					seqCount = 0;
+					srl0 = 0;
 				}
-				befLastChar = lastChar;
-				lastChar = c;
+				if (c == l2Char) {
+					int pos = bpCounter - 2 - srl1;
+					if (pos < 0) {
+						pos += size;
+					}
+					srl1Buffer[pos]++;
+					if (((srl1 + 1) & 1) == 0) { // & 1 equals % 2
+						d += dustFunctionDiff[((srl1 + 1) >> 1) - 1];
+					}
+					if (srl1 < size - 2) {
+						srl1++;
+					}
+				} else {
+					srl1 = 0;
+				}
+				if (c == l3Char) {
+					int pos = bpCounter - 3 - srl2;
+					if (pos < 0) {
+						pos += size;
+					}
+					srl2Buffer[pos]++;
+					if (((srl2 + 1) % 3) == 0) {
+						d += dustFunctionDiff[(srl2 + 1) / 3 - 1];
+					}
+					if (srl2 < size - 3) {
+						srl2++;
+					}
+				} else {
+					srl2 = 0;
+				}
+				l3Char = l2Char;
+				l2Char = l1Char;
+				l1Char = c;
 			}
+			int oldBp = bpCounter;
 			bpCounter++;
 			if (bpCounter == size) {
 				bpCounter = 0;
 				filled = true;
 			}
 			if (filled && maxDust >= 0) {
-				int oldCount = seqMarks[bpCounter];
-				seqMarks[bpCounter] = 0;
+				int oldCount = srl0Buffer[oldBp];
+				srl0Buffer[oldBp] = 0;
 				if (oldCount > 0) {
-					sumDust -= dustFunction[oldCount - 1];
-					seqMarks[(bpCounter + 1) % size] = oldCount - 1;
+					d -= dustFunctionDiff[oldCount - 1];
+					srl0Buffer[bpCounter] = oldCount - 1;
+				}
+
+				oldCount = srl1Buffer[oldBp];
+				srl1Buffer[oldBp] = 0;
+				if (oldCount > 0) {
+					if ((oldCount & 1) == 0) {
+						d -= dustFunctionDiff[(oldCount - 1) >> 1];
+					}
+					srl1Buffer[bpCounter] = oldCount - 1;
+				}
+
+				oldCount = srl2Buffer[oldBp];
+				srl2Buffer[oldBp] = 0;
+				if (oldCount > 0) {
+					if ((oldCount % 3) == 0) {
+						d -= dustFunctionDiff[(oldCount - 1) / 3];
+					}
+					srl2Buffer[bpCounter] = oldCount - 1;
 				}
 			}
 			return kmer;
@@ -144,14 +208,19 @@ public class CGATLongBuffer {
 		kmer = 0;
 		reverseKmer = 0;
 		filled = false;
-		seqCount = 0;
-		lastChar = -1;
-		befLastChar = -1;
-		sumDust = maxDust >= 0 ? 0 : -1;
+		srl0 = 0;
+		srl1 = 0;
+		srl2 = 0;
+		l1Char = -1;
+		l2Char = -1;
+		l3Char = -1;
+		d = maxDust >= 0 ? 0 : -1;
 		
-		if (seqMarks != null) {
+		if (maxDust >= 0) {
 			for (int i = 0; i < size; i++) {
-				seqMarks[i] = 0;
+				srl0Buffer[i] = 0;
+				srl1Buffer[i] = 0;
+				srl2Buffer[i] = 0;
 			}
 		}
 	}
@@ -165,11 +234,11 @@ public class CGATLongBuffer {
 	}
 
 	public final boolean isDust() {
-		return sumDust > maxDust;
+		return d > maxDust;
 	}
 
 	public final int getDustValue() {
-		return sumDust;
+		return d;
 	}
 	
 	public final int getMaxDust() {

@@ -68,6 +68,18 @@ public class CGATRingBuffer extends CGATLongBuffer {
 		for (int i = 0; i < size; i++) {
 			builder.append((char)data[(bpCounter + i) % size]);
 		}
+		/* For debug purposes
+		if (srl0Buffer != null) {
+			builder.append(" [");
+			for (int i = 0; i < size; i++) {
+				if (i > 0) {
+					builder.append(',');
+				}
+				builder.append(srl1Buffer[(bpCounter + i) % size]);
+			}
+			builder.append(']');
+		}
+		 */
 
 		return builder.toString();
 	}
