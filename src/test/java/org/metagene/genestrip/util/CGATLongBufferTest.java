@@ -56,13 +56,13 @@ public class CGATLongBufferTest extends TestCase {
 	public void testHighDustKMers() {
 		CGATRingBuffer buffer = new CGATRingBuffer(31, 500);
 
-		int v = fib[14];
+		int v = fib[29];
 		fill(buffer, 'A', 'C');
 		assertEquals(v, buffer.getDustValue());
 		fill(buffer, 'G', 'C');
 		assertEquals(v, buffer.getDustValue());
 
-		v = fib[9] + fib[14] + fib[30];
+		v = fib[30] + fib[29] + fib[28];
 		fill(buffer, 'C', 'C');
 		assertEquals(v, buffer.getDustValue());
 		fill(buffer, 'T', 'T');
@@ -84,28 +84,28 @@ public class CGATLongBufferTest extends TestCase {
 		// From system documentation:
 		CGATLongBuffer buffer = new CGATLongBuffer(8, 1000);
 		fill(buffer, "TTTCGCGA");
-		int v = fib[2] + fib[1];
+		int v = fib[2] + fib[1] + fib[2];
 		assertEquals(v, buffer.getDustValue());
 
 		buffer = new CGATLongBuffer(4, 1000);
 		fill(buffer, "ACAT");
-		assertEquals(fib[0], buffer.getDustValue());
-		fill(buffer, "AAAT");
-		assertEquals(fib[2], buffer.getDustValue());
-		fill(buffer, "AAAA");
-		assertEquals(fib[1] + fib[3], buffer.getDustValue());
-		fill(buffer, "ACAA");
 		assertEquals(fib[1], buffer.getDustValue());
+		fill(buffer, "AAAT");
+		assertEquals( fib[2] + fib[1], buffer.getDustValue());
+		fill(buffer, "AAAA");
+		assertEquals(fib[3] + fib[2] + fib[1], buffer.getDustValue());
+		fill(buffer, "ACAA");
+		assertEquals(fib[1] + fib[1] + fib[1], buffer.getDustValue());
 
 		buffer = new CGATLongBuffer(5, 1000);
 		fill(buffer, "ACATA");
-		assertEquals(fib[0], buffer.getDustValue());
+		assertEquals(fib[1] + fib[1], buffer.getDustValue());
 		fill(buffer, "AAAAA");
-		assertEquals(fib[4] + fib[1], buffer.getDustValue());
+		assertEquals(fib[4] + fib[3] + fib[2], buffer.getDustValue());
 		fill(buffer, "AATAA");
-		assertEquals(2 * fib[1], buffer.getDustValue());
+		assertEquals(2 * fib[1] + fib[1] + fib[2], buffer.getDustValue());
 		fill(buffer, "TATAT");
-		assertEquals(fib[1], buffer.getDustValue());
+		assertEquals(fib[3], buffer.getDustValue());
 	}
 
 	protected void fill(CGATLongBuffer buffer, String kmer) {
@@ -168,43 +168,6 @@ public class CGATLongBufferTest extends TestCase {
 		}
 	}
 
-	// The non-streaming version of the dust function d - only for testing purposes.
-	// Obviously to test the more complex streaming version CGATRingBuffer.
-	protected int naiveDust(CGATRingBuffer buffer) {
-		if (!buffer.isFilled()) {
-			return -1;
-		}
-		int d = 0, srl0 = 0, srl1 = 0, srl2 = 0;
-		int l1 = -1, l2 = -1, l3 = -1;
-		for (int i = 0; i < buffer.getSize(); i++) {
-			byte c = buffer.get(i);
-			if (c == l1) {
-				srl0++;
-			}
-			else {
-				d += fib[srl0];
-				srl0 = 0;
-			}
-			if (c == l2) {
-				srl1++;
-			}
-			else {
-				d += fib[srl1 / 2];
-				srl1 = 0;
-			}
-			if (c == l3) {
-				srl2++;
-			}
-			else {
-				d += fib[srl2 / 3];
-				srl2 = 0;
-			}
-			l3 = l2; l2 = l1; l1 = c;
-		}
-		d += fib[srl0] + fib[srl1 / 2] + fib[srl2 / 3];
-		return d;
-	}
-
 	/* For Paper:
     // int fib[] = ... is assumed to be defined elsewhere.
     public int d(byte[] s) {
@@ -233,7 +196,7 @@ public class CGATLongBufferTest extends TestCase {
 	@Ignore
 	@Test
 	public void testGenerateCSVTable() {
-		int[] pickThresholds = new int[15];
+		int[] pickThresholds = new int[16];
 		for (int i = 0; i < pickThresholds.length; i++) {
 			pickThresholds[i] = fib[i];
 		}
@@ -246,14 +209,14 @@ public class CGATLongBufferTest extends TestCase {
 
 		CGATRingBuffer buffer = new CGATRingBuffer(k, 500);
 		Random random = new Random(10);
-		int max = 10000000;
+		int max = 100000000;
 
 		for (int j = 0; j < max; j++) {
 			for (int h = 0; h < k; h++) {
 				byte c = CGAT.DECODE_TABLE[random.nextInt(4)];
 				buffer.putForTest(c);
 			}
-			int d = naiveDust2(buffer);
+			int d = naiveDust(buffer);
 			for (int i = 0; i < pickThresholds.length; i++) {
 				if (d >= pickThresholds[i]) {
 					countsAboveThresholds[i]++;
@@ -285,7 +248,7 @@ public class CGATLongBufferTest extends TestCase {
 
 	// The non-streaming version of the dust function d - only for testing purposes.
 	// Obviously to test the more complex streaming version CGATRingBuffer.
-	protected int naiveDust2(CGATRingBuffer buffer) {
+	protected int naiveDust(CGATRingBuffer buffer) {
 		if (!buffer.isFilled()) {
 			return -1;
 		}
@@ -304,14 +267,14 @@ public class CGATLongBufferTest extends TestCase {
 				srl1++;
 			}
 			else {
-				d += fib[srl1 * 2 / 3];
+				d += fib[srl1];
 				srl1 = 0;
 			}
 			if (c == l3) {
 				srl2++;
 			}
 			else {
-				d += fib[srl2 * 3 / 4];
+				d += fib[srl2];
 				srl2 = 0;
 			}
 			l3 = l2; l2 = l1; l1 = c;

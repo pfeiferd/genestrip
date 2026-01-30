@@ -124,9 +124,7 @@ public class CGATLongBuffer {
 						pos += size;
 					}
 					srl1Buffer[pos]++;
-					if (((srl1 + 1) & 1) == 0) { // & 1 equals % 2
-						d += dustFunctionDiff[((srl1 + 1) >> 1) - 1];
-					}
+					d += dustFunctionDiff[srl1];
 					if (srl1 < size - 2) {
 						srl1++;
 					}
@@ -139,9 +137,7 @@ public class CGATLongBuffer {
 						pos += size;
 					}
 					srl2Buffer[pos]++;
-					if (((srl2 + 1) % 3) == 0) {
-						d += dustFunctionDiff[(srl2 + 1) / 3 - 1];
-					}
+					d += dustFunctionDiff[srl2];
 					if (srl2 < size - 3) {
 						srl2++;
 					}
@@ -169,18 +165,14 @@ public class CGATLongBuffer {
 				oldCount = srl1Buffer[oldBp];
 				srl1Buffer[oldBp] = 0;
 				if (oldCount > 0) {
-					if ((oldCount & 1) == 0) {
-						d -= dustFunctionDiff[(oldCount - 1) >> 1];
-					}
+					d -= dustFunctionDiff[oldCount - 1];
 					srl1Buffer[bpCounter] = oldCount - 1;
 				}
 
 				oldCount = srl2Buffer[oldBp];
 				srl2Buffer[oldBp] = 0;
 				if (oldCount > 0) {
-					if ((oldCount % 3) == 0) {
-						d -= dustFunctionDiff[(oldCount - 1) / 3];
-					}
+					d -= dustFunctionDiff[oldCount - 1];
 					srl2Buffer[bpCounter] = oldCount - 1;
 				}
 			}
