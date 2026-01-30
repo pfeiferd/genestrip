@@ -191,15 +191,45 @@ public class CGATLongBufferTest extends TestCase {
         d += fib[srl0] + fib[srl1 / 2] + fib[srl2 / 3];
         return d;
     }
-    */
+
+	private int cMax = 2, h = cMax + 1;
+	private int[] srl = new int[h];
+	int[] l = new int[h];
+
+	protected int d(byte[] s) {
+		int d = 0;
+		for (int i = 0; i < h; i++) {
+			l[i] = -1;
+		}
+		for (int i = 0; i < s.length; i++) {
+			for (int j = h - 1; j >= 0; j--) {
+				if (s[i] == l[j]) {
+					srl[j]++;
+				}
+				else {
+					d += fib[srl[j]];
+					srl[j] = 0;
+				}
+				l[j] = j == 0 ? s[0] : l[j - 1];
+			}
+		}
+		for (int j = 0; j < h; j++) {
+			d += fib[srl[j]];
+		}
+		return d;
+	}
+	 */
 
 	@Ignore
 	@Test
 	public void testGenerateCSVTable() {
-		int[] pickThresholds = new int[16];
+		int[] pickThresholds = { 1, 5, 10, 50, 100, 500, 1000, 5000 };
+				/*
+				new int[18];
 		for (int i = 0; i < pickThresholds.length; i++) {
 			pickThresholds[i] = fib[i];
 		}
+				 */
 		String[] picks = new String[pickThresholds.length];
 		int[] picksDust = new int[pickThresholds.length];
 		int[] countsAboveThresholds = new int[pickThresholds.length];
@@ -209,14 +239,14 @@ public class CGATLongBufferTest extends TestCase {
 
 		CGATRingBuffer buffer = new CGATRingBuffer(k, 500);
 		Random random = new Random(10);
-		int max = 100000000;
+		long max = 10000000000L;
 
-		for (int j = 0; j < max; j++) {
+		for (long j = 0; j < max; j++) {
 			for (int h = 0; h < k; h++) {
 				byte c = CGAT.DECODE_TABLE[random.nextInt(4)];
 				buffer.putForTest(c);
 			}
-			int d = naiveDust(buffer);
+			int d = naiveDust(buffer, 2);
 			for (int i = 0; i < pickThresholds.length; i++) {
 				if (d >= pickThresholds[i]) {
 					countsAboveThresholds[i]++;
@@ -229,7 +259,7 @@ public class CGATLongBufferTest extends TestCase {
 		}
 		PrintStream out = System.out;
 
-		out.println("n; t = fib(n); counts >= t; >= t ratio; d(example); example");
+		out.println("n; t; counts >= t; >= t ratio; d(example); example;");
 		for (int i = 0; i < pickThresholds.length; i++) {
 			out.print(i);
 			out.print(";");
@@ -280,6 +310,37 @@ public class CGATLongBufferTest extends TestCase {
 			l3 = l2; l2 = l1; l1 = c;
 		}
 		d += fib[srl0] + fib[srl1] + fib[srl2];
+		return d;
+	}
+
+	// The non-streaming version of the dust function d - only for testing purposes.
+	// Obviously to test the more complex streaming version CGATRingBuffer.
+	protected int naiveDust(CGATRingBuffer buffer, int cMax) {
+		if (!buffer.isFilled()) {
+			return -1;
+		}
+		int d = 0, h = cMax + 1;
+		int[] srl = new int[h];
+		int[] l = new int[h];
+		for (int i = 0; i < h; i++) {
+			l[i] = -1;
+		}
+		for (int i = 0; i < buffer.getSize(); i++) {
+			byte c = buffer.get(i);
+			for (int j = h - 1; j >= 0; j--) {
+				if (c == l[j]) {
+					srl[j]++;
+				}
+				else {
+					d += fib[srl[j]];
+					srl[j] = 0;
+				}
+				l[j] = j == 0 ? c : l[j - 1];
+			}
+		}
+		for (int j = 0; j < h; j++) {
+			d += fib[srl[j]];
+		}
 		return d;
 	}
 }
