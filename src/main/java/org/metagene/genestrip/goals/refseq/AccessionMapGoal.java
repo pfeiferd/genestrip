@@ -54,7 +54,7 @@ public class AccessionMapGoal<P extends GSProject> extends ObjectGoal<AccessionM
 			ObjectGoal<Integer, P> accessionMapSizeGoal,
 			Goal<P>... deps) {
 		super(project, GSGoalKey.ACCMAP,
-				Goal.append(deps, categoriesGoal, catalogGoal, accessionMapSizeGoal));
+				Goal.append(deps, taxTreeGoal, categoriesGoal, catalogGoal, accessionMapSizeGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxTreeGoal = taxTreeGoal;
 		this.catalogGoal = catalogGoal;
