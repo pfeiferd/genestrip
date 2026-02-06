@@ -46,7 +46,6 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<Long, P> {
 	private final ObjectGoal<AccessionMap, P> accessionMapGoal;
-
 	private final List<MyFastaReader> readers;
 
 	@SafeVarargs

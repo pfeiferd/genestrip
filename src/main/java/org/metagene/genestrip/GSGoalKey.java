@@ -144,7 +144,9 @@ public enum GSGoalKey implements GoalKey {
 	@MDDescription("Download and install a project's database via a given URL.")
 	DB_DOWNLOAD("dbdownload", false, false),
 	@MDDescription("Check whether the downloaded RefSeq release is equal to the current release on the download server.")
-	CHECK_REFSEQ_RNUM("checkrefseqrnum");
+	CHECK_REFSEQ_RNUM("checkrefseqrnum"),
+	@MDDescription("Extract gzipped fasta files as individual files from RefSeq bundled offering as used for database entry.")
+	EXTRACT_REFSEQ_FASTA("extractrefseqfasta");
 
 	private final boolean forUser;
 	private final String name;

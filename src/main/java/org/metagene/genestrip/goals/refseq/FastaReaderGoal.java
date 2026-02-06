@@ -86,8 +86,8 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
         int sumFiles = 0;
         List<File> refSeqFiles = isIncludeRefSeqFna() ? fnaFilesGoal.getFiles() : Collections.emptyList();
         sumFiles += refSeqFiles.size();
-        Map<File, TaxTree.TaxIdNode> additionalMap = additionalGoal.get();
-        sumFiles += additionalMap.size();
+        Map<File, TaxTree.TaxIdNode> additionalMap = additionalGoal == null ? null : additionalGoal.get();
+        sumFiles += additionalMap == null ? 0 : additionalMap.size();
         try (ProgressBar pb = (progressBar = createProgressBar(sumFiles))) {
             doneCounter = 0;
             for (File fnaFile : refSeqFiles) {
@@ -106,19 +106,21 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
                 }
                 checkAndLogConsumerThreadProblem();
             }
-            for (File additionalFasta : additionalMap.keySet()) {
-                if (blockingQueue == null) {
-                    fastaReader.ignoreAccessionMap(additionalMap.get(additionalFasta));
-                    fastaReader.readFasta(additionalFasta);
-                } else {
-                    try {
-                        doneCounter++;
-                        blockingQueue.put(new DBGoal.FileAndNode(additionalFasta, additionalMap.get(additionalFasta)));
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
+            if (additionalMap != null) {
+                for (File additionalFasta : additionalMap.keySet()) {
+                    if (blockingQueue == null) {
+                        fastaReader.ignoreAccessionMap(additionalMap.get(additionalFasta));
+                        fastaReader.readFasta(additionalFasta);
+                    } else {
+                        try {
+                            doneCounter++;
+                            blockingQueue.put(new DBGoal.FileAndNode(additionalFasta, additionalMap.get(additionalFasta)));
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
                     }
+                    checkAndLogConsumerThreadProblem();
                 }
-                checkAndLogConsumerThreadProblem();
             }
             // Gentle polling and waiting until all consumers are done.
             while (doneCounter > 0 && !dump) {
@@ -196,7 +198,7 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
         };
     }
 
-    protected abstract AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid);
+    protected abstract AbstractRefSeqFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid);
 
     public void dump() {
         super.dump();

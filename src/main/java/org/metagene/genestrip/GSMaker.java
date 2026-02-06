@@ -260,8 +260,11 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
                 additionalDownloadsGoal);
         registerGoal(additionalFastasGoal);
 
-        // Create database and bloom filter
+        ExtractRefSeqFastasGoal<P> extractFastasGoal = new ExtractRefSeqFastasGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal,
+                accessionMapGoal);
+        registerGoal(extractFastasGoal);
 
+        // Create database and bloom filter
         FillSizeGoal<P> fillSizeGoal = new FillSizeGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal,
                 additionalFastasGoal, accessionMapGoal);
         registerGoal(fillSizeGoal);

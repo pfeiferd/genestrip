@@ -72,7 +72,7 @@ public abstract class AbstractFastaReader {
 		boolean first = true;
 		for (size = bufferedLineReader.nextLine(target); size > 0; size = bufferedLineReader.nextLine(target)) {
 			if (size >= target.length - 1) {
-				throw new IllegalStateException("buffer is too small for data line in fastq file");
+				throw new IllegalStateException("buffer is too small for data line in fasta file");
 			}
 			else {
 				target[size] = 0;
