@@ -40,7 +40,7 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
     protected void doMakeThis() {
         try {
             readFastas();
-            File file = getProject().getOutputFile(getKey().getName(), GSProject.GSFileType.CSV);
+            File file = getProject().getOutputFile(getKey().getName(), GSProject.GSFileType.CSV, false);
             try (PrintStream ps = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
                 //ps.println("refseq descr; taxid;");
                 for (String key : descr2TaxId.keySet()) {
@@ -85,7 +85,7 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
             super.infoLine();
             if (includeRegion) {
                 int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
-                String name = new String(target, 1, pos);
+                String name = new String(target, 1, pos - 1);
                 String taxid = node.getTaxId();
                 descr2TaxId.put(name, taxid);
                 File file = new File(getProject().getFastaDir(), name + ".fasta.gz");
@@ -94,7 +94,7 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
                     PrintStream ps = new PrintStream(os);
                     ps.print('>');
                     ps.print(name);
-                    ps.println(" ");
+                    ps.print(" ");
                     ps.println(taxid);
                     ps.flush();
                 } catch (IOException e) {
@@ -108,7 +108,6 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
             if (includeRegion) {
                 try {
                     os.write(target, 0, size);
-                    os.write('\n');
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
