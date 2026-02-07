@@ -82,7 +82,7 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
                     PrintStream ps = new PrintStream(os);
                     ps.print('>');
                     ps.print(name);
-                    ps.print(" ");
+                    ps.print("|kraken:taxid|"); // This is to please kraken2 during library building...
                     ps.println(taxid);
                     ps.flush();
                 } catch (IOException e) {
