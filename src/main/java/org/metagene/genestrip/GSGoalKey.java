@@ -145,8 +145,10 @@ public enum GSGoalKey implements GoalKey {
 	DB_DOWNLOAD("dbdownload", false, false),
 	@MDDescription("Check whether the downloaded RefSeq release is equal to the current release on the download server.")
 	CHECK_REFSEQ_RNUM("checkrefseqrnum"),
-	@MDDescription("Extract gzipped fasta files as individual files from RefSeq bundled offering as used for database entry.")
-	EXTRACT_REFSEQ_FASTA("extractrefseqfasta");
+	@MDDescription("Extract gzipped fasta files as individual files from RefSeq's bundled offering as used for database entry.")
+	EXTRACT_REFSEQ_FASTA("extractrefseqfasta"),
+	@MDDescription("Run `extractrefseqfasta` and generate matching CSV file.")
+	EXTRACT_REFSEQ_CSV("extractrefseqcsv");
 
 	private final boolean forUser;
 	private final String name;

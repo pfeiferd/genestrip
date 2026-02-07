@@ -40,18 +40,6 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
     protected void doMakeThis() {
         try {
             readFastas();
-            File file = getProject().getOutputFile(getKey().getName(), GSProject.GSFileType.CSV, false);
-            try (PrintStream ps = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
-                //ps.println("refseq descr; taxid;");
-                for (String key : descr2TaxId.keySet()) {
-                    ps.print(key);
-                    ps.print("\t");
-//                    ps.print(";");
-                    ps.print(descr2TaxId.get(key));
-//                    ps.println(";");
-                    ps.println();
-                }
-            }
             set(descr2TaxId);
         } catch (IOException e) {
             throw new RuntimeException(e);
