@@ -35,13 +35,12 @@ public class ExtractRefSeqCSVGoal<P extends GSProject> extends FileListGoal<P> {
     protected void makeFile(File file) throws IOException {
         Map<String, String> descr2TaxId = extractFastaGoal.get();
         try (PrintStream ps = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
-            //ps.println("refseq descr; taxid;");
+            ps.println("refseq descr; taxid;");
             for (String key : descr2TaxId.keySet()) {
                 ps.print(key);
-                ps.print("\t");
-//                    ps.print(";");
+                ps.print(";");
                 ps.print(descr2TaxId.get(key));
-//                    ps.println(";");
+                ps.println(";");
                 ps.println();
             }
         }
