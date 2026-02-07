@@ -41,7 +41,7 @@ public class ExtractRefSeqCSVGoal<P extends GSProject> extends FileListGoal<P> {
                 ps.print(";");
                 ps.print(descr2TaxId.get(key));
                 ps.println(";");
-                ps.println();
+//                ps.println();
             }
         }
     }
