@@ -27,7 +27,7 @@ public class ExtractRefSeqCSVGoal<P extends GSProject> extends FileListGoal<P> {
 
     @SafeVarargs
     public ExtractRefSeqCSVGoal(P project, ObjectGoal<Map<String, String>, P> extractFastaGoal, Goal<P>... deps) {
-        super(project, GSGoalKey.EXTRACT_REFSEQ_CSV, project.getOutputFile(GSGoalKey.EXTRACT_REFSEQ_CSV.name(), GSProject.GSFileType.CSV, false), Goal.append(deps, extractFastaGoal));
+        super(project, GSGoalKey.EXTRACT_REFSEQ_CSV, project.getOutputFile(GSGoalKey.EXTRACT_REFSEQ_CSV.getName(), GSProject.GSFileType.CSV, false), Goal.append(deps, extractFastaGoal));
         this.extractFastaGoal = extractFastaGoal;
     }
 
