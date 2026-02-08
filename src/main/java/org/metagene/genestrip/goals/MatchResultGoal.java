@@ -53,6 +53,7 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 	private final ObjectGoal<Database, P> storeGoal;
 	private final ExecutionContext bundle;
 	private FastqKMerMatcher.AfterMatchCallback afterMatchCallback;
+	private AfterKeyCallcack afterKeyCallcack;
 
 	@SafeVarargs
 	public MatchResultGoal(P project, GoalKey key, ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal,
@@ -114,6 +115,9 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 				MatchingResult res = matcher.runMatcher(fastqs, filteredFile, krakenOutStyleFile, uniqueCounter);
 				res.completeResults(database);
 				matchResults.put(key, res);
+				if (afterKeyCallcack != null) {
+					afterKeyCallcack.afterKey(key, res);
+				}
 			}
 			set(matchResults);
 		} catch (IOException e) {
@@ -166,5 +170,13 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 
 	public void setAfterMatchCallback(FastqKMerMatcher.AfterMatchCallback afterMatchCallback) {
 		this.afterMatchCallback = afterMatchCallback;
+	}
+
+	public void setAfterKeyCallcack(AfterKeyCallcack afterKeyCallcack) {
+		this.afterKeyCallcack = afterKeyCallcack;
+	}
+
+	public interface AfterKeyCallcack {
+		public void afterKey(String key, MatchingResult res);
 	}
 }
