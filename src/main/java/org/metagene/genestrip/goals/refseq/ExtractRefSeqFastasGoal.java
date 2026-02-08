@@ -76,7 +76,7 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
                 String name = new String(target, 1, pos - 1);
                 String taxid = node.getTaxId();
                 descr2TaxId.put(name, taxid);
-                File file = new File(getProject().getFastaDir(), name + ".fasta.gz");
+                File file = new File(getProject().getFastaDir(), name + ".fa.gz");
                 try {
                     os = StreamProvider.getOutputStreamForFile(file);
                     PrintStream ps = new PrintStream(os);
