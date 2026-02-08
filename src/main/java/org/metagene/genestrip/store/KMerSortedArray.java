@@ -47,7 +47,7 @@ import it.unimi.dsi.fastutil.objects.Object2ShortMap;
 import it.unimi.dsi.fastutil.objects.Object2ShortOpenHashMap;
 
 public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
-	public static final int MAX_VALUES = Short.MAX_VALUE - Short.MIN_VALUE;
+	public static final int MAX_VALUES = ((int) Short.MAX_VALUE) - Short.MIN_VALUE;
 
 	private static final long serialVersionUID = 1L;
 
