@@ -31,7 +31,7 @@ import java.util.Random;
 import org.junit.Test;
 import org.metagene.genestrip.DefaultExecutionContext;
 import org.metagene.genestrip.ExecutionContext;
-import org.metagene.genestrip.match.FastqKMerMatcher.MyReadEntry;
+import org.metagene.genestrip.match.FastqKMerMatcher.MatcherReadEntry;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerSortedArray.ValueConverter;
@@ -41,7 +41,6 @@ import org.metagene.genestrip.store.KMerUniqueCounterMap;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.tax.TaxTree;
-import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGAT;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
@@ -95,7 +94,7 @@ public class FastqKMerMatcherTest {
 				new MyFastqMatcher(store, readLength * 10, 1, bundle);
 		KMerUniqueCounter uniqueCounter = bitMap ? new KMerUniqueCounterMap() : new KMerUniqueCounterBits(store, true);
 
-		MyReadEntry entry = new MyReadEntry(2000, true, 4);
+		MatcherReadEntry entry = new MatcherReadEntry(2000, true, 4);
 		entry.readSize = readLength;
 
 		long[] counters = new long[TAXIDS.length];
@@ -224,7 +223,7 @@ public class FastqKMerMatcherTest {
 		FastqKMerMatcher matcher = createMatcher2(inlined, db.convertKMerStore(), bundle, smallTree, 0);
 		matcher.initStats();
 
-		MyReadEntry entry = new MyReadEntry(10, true, 4);
+		MatcherReadEntry entry = new MatcherReadEntry(10, true, 4);
 		entry.readSize = 4;
 
 		fillInRead("CCCC", entry);
@@ -300,7 +299,7 @@ public class FastqKMerMatcherTest {
 		}
 	}
 
-	private void fillInRead(String cgat, MyReadEntry entry) {
+	private void fillInRead(String cgat, MatcherReadEntry entry) {
 		initEntry(entry);
 		for (int i = 0; i < cgat.length(); ++i) {
 			entry.read[i] = (byte) cgat.charAt(i);
@@ -310,7 +309,7 @@ public class FastqKMerMatcherTest {
 		entry.readSize = cgat.length();
 	}
 
-	private void initEntry(MyReadEntry myEntry) {
+	private void initEntry(MatcherReadEntry myEntry) {
 		myEntry.bufferPos = 0;
 		myEntry.usedPaths = 0;
 		myEntry.classNode = null;

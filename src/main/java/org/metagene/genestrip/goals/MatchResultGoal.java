@@ -52,8 +52,7 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 	private final ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal;
 	private final ObjectGoal<Database, P> storeGoal;
 	private final ExecutionContext bundle;
-	private FastqKMerMatcher.AfterMatchCallback afterMatchCallback;
-	private AfterKeyCallcack afterKeyCallcack;
+	private AfterMatchCallback afterMatchCallback;
 
 	@SafeVarargs
 	public MatchResultGoal(P project, GoalKey key, ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal,
@@ -102,7 +101,12 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 									: null,
 							bundle, booleanConfigValue(GSConfigKey.WITH_PROBS));
 					if (afterMatchCallback != null) {
-						matcher.setAfterMatchCallback(afterMatchCallback);
+						matcher.setAfterMatchCallback(new FastqKMerMatcher.AfterMatchCallback() {
+							@Override
+							public void afterMatch(FastqKMerMatcher.MatcherReadEntry entry, boolean found) {
+								afterMatchCallback.afterMatch(entry, found);
+							}
+						});
 					}
 					uniqueCounter = booleanConfigValue(GSConfigKey.COUNT_UNIQUE_KMERS)
 							? new KMerUniqueCounterBits(database.getKmerStore(),
@@ -115,8 +119,8 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 				MatchingResult res = matcher.runMatcher(fastqs, filteredFile, krakenOutStyleFile, uniqueCounter);
 				res.completeResults(database);
 				matchResults.put(key, res);
-				if (afterKeyCallcack != null) {
-					afterKeyCallcack.afterKey(key, res);
+				if (afterMatchCallback != null) {
+					afterMatchCallback.afterKey(key, res);
 				}
 			}
 			set(matchResults);
@@ -168,15 +172,12 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 		}
 	}
 
-	public void setAfterMatchCallback(FastqKMerMatcher.AfterMatchCallback afterMatchCallback) {
+	public void setAfterMatchCallback(AfterMatchCallback afterMatchCallback) {
 		this.afterMatchCallback = afterMatchCallback;
 	}
 
-	public void setAfterKeyCallcack(AfterKeyCallcack afterKeyCallcack) {
-		this.afterKeyCallcack = afterKeyCallcack;
-	}
-
-	public interface AfterKeyCallcack {
+	public interface AfterMatchCallback {
 		public void afterKey(String key, MatchingResult res);
+		public void afterMatch(FastqKMerMatcher.MatcherReadEntry entry, boolean found);
 	}
 }

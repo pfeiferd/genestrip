@@ -30,6 +30,7 @@ import java.util.*;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.goals.MatchResultGoal;
 import org.metagene.genestrip.io.StreamingFileResource;
 import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.io.StreamingResourceStream;
@@ -38,12 +39,15 @@ import org.metagene.genestrip.kraken.KrakenResultListener;
 import org.metagene.genestrip.kraken.KrakenResultProcessor;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.match.FastqKMerMatcher;
+import org.metagene.genestrip.match.MatchingResult;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.DigitTrie;
 
 public class KrakenResCountGoal<P extends GSProject> extends ObjectGoal<Map<String, List<KrakenResCountGoal.KrakenResStats>>, P> {
     protected final ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal;
     private final ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal;
+    private AfterMatchCallback afterMatchCallback;
 
     @SafeVarargs
     public KrakenResCountGoal(P project,
@@ -61,14 +65,16 @@ public class KrakenResCountGoal<P extends GSProject> extends ObjectGoal<Map<Stri
             Map<String, StreamingResourceStream> map = fastqMapGoal.get();
 
             for (String key : map.keySet()) {
-                File filteredFile = null;
-                File krakenOutStyleFile = null;
                 StreamingResourceStream fastqs = map.get(key);
                 List<File> files = new ArrayList<>();
                 for (StreamingResource s : fastqs) {
                     files.add(((StreamingFileResource) s).getFile());
                 }
-                countResults.put(key, computeStats(key, files));
+                List<KrakenResStats> res = computeStats(key, files);
+                countResults.put(key, res);
+                if (afterMatchCallback != null) {
+                    afterMatchCallback.afterKey(key, res);
+                }
             }
             set(countResults);
         } catch (IOException e) {
@@ -121,7 +127,9 @@ public class KrakenResCountGoal<P extends GSProject> extends ObjectGoal<Map<Stri
                                 if (kmerTaxid != null && kmerTaxid.equals(krakenTaxid)) {
                                     stats.kmersInMatchingReads += hitLength;
                                 }
-                                afterReadMatch(krakenTaxid, readDescriptor);
+                                if (afterMatchCallback != null) {
+                                    afterMatchCallback.afterMatch(krakenTaxid, readDescriptor);
+                                }
                             }
                         }
                     }
@@ -190,5 +198,14 @@ public class KrakenResCountGoal<P extends GSProject> extends ObjectGoal<Map<Stri
         public String getTaxid() {
             return taxid;
         }
+    }
+
+    public void setAfterMatchCallback(AfterMatchCallback afterMatchCallback) {
+        this.afterMatchCallback = afterMatchCallback;
+    }
+
+    public interface AfterMatchCallback {
+        public void afterKey(String key, List<KrakenResStats> res);
+        public void afterMatch(String krakenTaxid, byte[] readDescriptor);
     }
 }

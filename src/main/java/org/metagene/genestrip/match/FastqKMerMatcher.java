@@ -98,7 +98,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 
     @Override
     protected ReadEntry createReadEntry(int initialReadSizeBytes, boolean withProbs, Object... config) {
-        return new MyReadEntry(initialReadSizeBytes, withProbs, (int) config[0]);
+        return new MatcherReadEntry(initialReadSizeBytes, withProbs, (int) config[0]);
     }
 
     public MatchingResult runMatcher(StreamingResource fastq, File filteredFile, File krakenOutStyleFile,
@@ -195,7 +195,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
     @Override
     // Made final for potential inlining by JVM
     protected final void nextEntry(ReadEntry entry, int index) throws IOException {
-        MyReadEntry myEntry = (MyReadEntry) entry;
+        MatcherReadEntry myEntry = (MatcherReadEntry) entry;
         myEntry.bufferPos = 0;
 
         myEntry.usedPaths = 0;
@@ -205,7 +205,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             myEntry.counts[i] = 0;
         }
 
-        boolean found =  matchRead(myEntry, index);
+        boolean found = matchRead(myEntry, index);
         afterMatch(myEntry, found);
         if (afterMatchCallback != null) {
             afterMatchCallback.afterMatch(myEntry, found);
@@ -216,7 +216,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         this.afterMatchCallback = afterMatchCallback;
     }
 
-    protected void afterMatch(MyReadEntry myEntry, boolean found) throws IOException {
+    protected void afterMatch(MatcherReadEntry myEntry, boolean found) throws IOException {
         if (found && indexed != null) {
             rewriteInput(myEntry, indexed);
         }
@@ -232,7 +232,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
     private byte[] kmerHelp = new byte[31];
 
     // Made final for potential inlining by JVM
-    protected final boolean matchRead(final MyReadEntry entry, final int index) {
+    protected final boolean matchRead(final MatcherReadEntry entry, final int index) {
         boolean found = false;
         int prints = 0;
         int readTaxErrorCount = taxTree == null ? -1 : 0;
@@ -412,7 +412,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
     }
 
     // Made final for potential inlining by JVM
-    protected final void updateReadTaxid(final SmallTaxIdNode node, final MyReadEntry entry, final int index) {
+    protected final void updateReadTaxid(final SmallTaxIdNode node, final MatcherReadEntry entry, final int index) {
         taxTree.incCount(node, index, entry.readNo);
 
         boolean found = false;
@@ -434,7 +434,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         }
     }
 
-    protected void printKrakenStyleOut(final MyReadEntry entry, final SmallTaxIdNode taxid, final int contigLen, final int state) {
+    protected void printKrakenStyleOut(final MatcherReadEntry entry, final SmallTaxIdNode taxid, final int contigLen, final int state) {
         if (state != 0) {
             entry.printChar(' ');
         }
@@ -450,7 +450,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         entry.printInt(contigLen);
     }
 
-    public static class MyReadEntry extends ReadEntry {
+    public static class MatcherReadEntry extends ReadEntry {
         public byte[] buffer;
         public int bufferPos;
         public int[] badPos = new int[1];
@@ -461,7 +461,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         public long[] indexPos;
         public SmallTaxIdNode classNode;
 
-        public MyReadEntry(int maxReadSizeBytes, boolean withProbs, int paths) {
+        public MatcherReadEntry(int maxReadSizeBytes, boolean withProbs, int paths) {
             super(maxReadSizeBytes, withProbs);
 
             buffer = null;
@@ -531,6 +531,6 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
    }
 
    public interface AfterMatchCallback {
-        void afterMatch(MyReadEntry entry, boolean found);
+        void afterMatch(MatcherReadEntry entry, boolean found);
    }
 }
