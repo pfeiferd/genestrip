@@ -115,6 +115,8 @@ public enum GSConfigKey implements ConfigKey {
 	REQ_SEQ_LIMIT_FOR_GENBANK_RANK("refSeq.limitForGenbankRank", new RankConfigParamInfo(Rank.SPECIES), GSGoalKey.DB),
 	@MDDescription("The refseq status values restrict the considered genomic accessions with respect to the given values. By default all values are allowed / included.")
 	RES_SEQ_STATUS("refseq.status", new RefSeqStatusConfigInfo(Arrays.asList(RefSeqStatus.values())), GSGoalKey.DB),
+	@MDDescription("Whether to create gzipped extracted fasta files in goal `extractrefseqfasta`.")
+	EXTRACT_REFSEQ_GZIP("reqseq.extract.gzip", new BooleanConfigParamInfo(false)),
 
 	// Genbank data selection
 	@MDDescription("Determines the maximum number of fasta files used from Genbank per requested tax id. "

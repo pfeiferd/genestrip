@@ -57,15 +57,18 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
                 longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
                 intConfigValue(GSConfigKey.STEP_SIZE),
                 booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY),
-                regionsPerTaxid);
+                regionsPerTaxid,
+                booleanConfigValue(GSConfigKey.EXTRACT_REFSEQ_GZIP));
     }
 
     protected class MyFastaReader extends AbstractRefSeqFastaReader {
         private OutputStream os;
+        private final boolean gzip;
 
         public MyFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-                             int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid) {
+                             int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean gzip) {
             super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, stepSize, completeGenomesOnly, regionsPerTaxid);
+            this.gzip = gzip;
         }
 
         @Override
@@ -76,7 +79,7 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
                 String name = new String(target, 1, pos - 1);
                 String taxid = node.getTaxId();
                 descr2TaxId.put(name, taxid);
-                File file = new File(getProject().getFastaDir(), name + ".fa.gz");
+                File file = new File(getProject().getFastaDir(), name + (gzip ? ".fa.gz" : ".fa"));
                 try {
                     os = StreamProvider.getOutputStreamForFile(file);
                     PrintStream ps = new PrintStream(os);
