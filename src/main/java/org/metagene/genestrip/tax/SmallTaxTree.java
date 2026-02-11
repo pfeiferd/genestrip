@@ -132,7 +132,11 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 	}
 
 	// Made final for potential inlining by JVM
-	public final SmallTaxIdNode getLeastCommonAncestor(final SmallTaxIdNode node1, final SmallTaxIdNode node2) {
+	public final SmallTaxIdNode getLowestCommonAncestor(final SmallTaxIdNode node1, final SmallTaxIdNode node2) {
+		// Mild optimization
+		if (node1 == node2) {
+			return node1;
+		}
 		for (SmallTaxIdNode res = node1; res != null; res = res.parent) {
 			for (SmallTaxIdNode ancestor2 = node2; ancestor2 != null; ancestor2 = ancestor2.parent) {
 				if (res == ancestor2) {

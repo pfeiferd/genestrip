@@ -115,7 +115,7 @@ public class TaxTree {
 		return false;
 	}
 
-	public TaxIdNode getLeastCommonAncestor(final TaxIdNode node1, final TaxIdNode node2) {
+	public TaxIdNode getLowestCommonAncestor(final TaxIdNode node1, final TaxIdNode node2) {
 		// Mild optimization
 		if (node1 == node2) {
 			return node1;

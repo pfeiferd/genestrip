@@ -160,7 +160,7 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 					}
 
 					TaxIdNode oldNode = taxTree.getNodeByTaxId(oldValue);
-					TaxIdNode lcaNode = taxTree.getLeastCommonAncestor(oldNode, node);
+					TaxIdNode lcaNode = taxTree.getLowestCommonAncestor(oldNode, node);
 
 					lastOldValue = oldValue;
 					lastNode = node;

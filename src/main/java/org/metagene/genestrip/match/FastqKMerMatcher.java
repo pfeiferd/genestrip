@@ -362,7 +362,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                 }
                 SmallTaxIdNode node = entry.readTaxIdNode[0];
                 for (int i = 1; i <= ties; i++) {
-                    node = taxTree.getLeastCommonAncestor(node, entry.readTaxIdNode[i]);
+                    node = taxTree.getLowestCommonAncestor(node, entry.readTaxIdNode[i]);
                 }
                 entry.classNode = node;
                 // For 'readKmers', I decided to count in the k-mers from 'entry.readTaxIdNode[0]' and not just 'node'.
