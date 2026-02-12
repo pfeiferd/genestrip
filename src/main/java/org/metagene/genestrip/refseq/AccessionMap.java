@@ -29,6 +29,7 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 public interface AccessionMap {
 	public void put(byte[] array, int start, int end, TaxIdNode node);
 	public TaxIdNode get(byte[] array, int start, int end, boolean completeGenomesOnly);
+	public TaxIdNode get(byte[] array, int start, int end, boolean completeGenomesOnly, boolean allowPrefx);
 	public void optimize();
 	public int getEntriesForNode(TaxIdNode node);
 }
