@@ -364,7 +364,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                 }
                 if (threshold > 1) {
                     for (int i = 0; i <= ties; i++) {
-                        entry.readTaxIdNode[i] = taxTree.lowestNodeWhenSumAboveThreshold(entry.readTaxIdNode[i], index, entry.readNo, threshold);
+                        entry.readTaxIdNode[i] = taxTree.lowestNodeWhereSumAboveThreshold(entry.readTaxIdNode[i], index, entry.readNo, threshold);
                     }
                 }
                 SmallTaxIdNode node = entry.readTaxIdNode[0];
