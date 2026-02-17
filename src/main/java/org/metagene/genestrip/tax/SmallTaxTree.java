@@ -115,6 +115,21 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		return res;
 	}
 
+	// Made final for potential inlining by JVM
+	public final SmallTaxIdNode lowestNodeWhenSumAboveThreshold(SmallTaxIdNode node, final int index, final long initKey, int threshold) {
+		short res = 0;
+		while (node != null) {
+			if (node.counts != null && node.countsInitKeys != null && node.countsInitKeys[index] == initKey) {
+				res += node.counts[index];
+				if (res >= threshold) {
+					return node;
+				}
+			}
+			node = node.parent;
+		}
+		return null;
+	}
+
 	public int getCountSize() {
 		return countSize;
 	}

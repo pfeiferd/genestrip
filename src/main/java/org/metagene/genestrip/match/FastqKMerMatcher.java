@@ -62,6 +62,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
     protected final double maxReadTaxErrorCount;
     protected final double maxReadClassErrorCount;
     protected OutputStream indexed;
+    protected final int threshold;
 
     // This should stay a box type for the line root.get(taxid.getTaxId(),
     // maxReadSize);
@@ -78,7 +79,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 
     public FastqKMerMatcher(KMerSortedArray<SmallTaxIdNode> kmerStore, int initialReadSize, int maxQueueSize,
                             ExecutionContext bundle, boolean withProbs, int maxKmerResCounts, SmallTaxTree taxTree, int maxPaths,
-                            double maxReadTaxErrorCount, double maxReadClassErrorCount, boolean writeAll) {
+                            double maxReadTaxErrorCount, double maxReadClassErrorCount, boolean writeAll, int threshold) {
         super(kmerStore.getK(), initialReadSize, maxQueueSize, bundle, withProbs, maxPaths);
         consumers = bundle.getThreads() <= 0 ? 1 : bundle.getThreads();
         this.kmerStore = kmerStore;
@@ -91,6 +92,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         this.maxReadClassErrorCount = maxReadClassErrorCount;
         this.maxPaths = maxPaths;
         this.writeAll = writeAll;
+        this.threshold = threshold;
         if (taxTree != null) {
             taxTree.initCountSize(consumers);
         }
@@ -358,6 +360,11 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                         ties++;
                         entry.counts[ties] = sum;
                         entry.readTaxIdNode[ties] = entry.readTaxIdNode[i];
+                    }
+                }
+                if (threshold > 1) {
+                    for (int i = 0; i <= ties; i++) {
+                        entry.readTaxIdNode[i] = taxTree.lowestNodeWhenSumAboveThreshold(entry.readTaxIdNode[i], index, entry.readNo, threshold);
                     }
                 }
                 SmallTaxIdNode node = entry.readTaxIdNode[0];

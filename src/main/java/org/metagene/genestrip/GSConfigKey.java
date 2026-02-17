@@ -204,6 +204,8 @@ public enum GSConfigKey implements ConfigKey {
 			+ "If `maxReadClassErrorCount` < 0, then the read error count is disregarded, which means that even a single matching *k*-mer will lead to the read's classification.")
 	MAX_READ_CLASS_ERROR_COUNT("maxReadClassErrorCount", new DoubleConfigParamInfo(-1, Double.MAX_VALUE, -1),
 			GSGoalKey.MATCH, GSGoalKey.MATCHLR),
+	@MDDescription("TODO")
+	MIN_KMERS_FOR_CLASS("minKMersForClass", new IntConfigParamInfo(1, Integer.MAX_VALUE, 1)),
 	@MDDescription("If > 0, the corresponding number of frequencies of the most frequent *k*-mers per tax id will be reported.")
 	MAX_KMER_RES_COUNTS("maxKMerResCounts", new IntConfigParamInfo(0, 65536, 0), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 	@MDDescription("If `true`, then an optimized version of the filter / matcher with heavily inlined code is used.")
