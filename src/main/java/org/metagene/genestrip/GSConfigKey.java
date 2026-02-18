@@ -192,7 +192,7 @@ public enum GSConfigKey implements ConfigKey {
 			+ "If the number is above `maxReadTaxErrorCount`, then the read will not be classified. "
 			+ "Otherwise the read will be classified in the same way as [done by Kraken](https://genomebiology.biomedcentral.com/articles/10.1186/gb-2014-15-3-r46/figures/1). "
 			+ "If `maxReadTaxErrorCount` is >= 1, then it is interpreted as an absolute number of *k*-mers. "
-			+ "Otherwise (and so, if >= 0 and < 1), it is interpreted as the ratio between the *k*-mers not in the database and all *k*-mers of the read. "
+			+ "If >= 0 and < 1, it is interpreted as the ratio between the *k*-mers not in the database and all *k*-mers of the read. "
 			+ "If `maxReadTaxErrorCount` < 0, then the read error count is disregarded, which means that even a single matching *k*-mer will lead to the read's classification.")
 	MAX_READ_TAX_ERROR_COUNT("maxReadTaxErrorCount", new DoubleConfigParamInfo(-1, Double.MAX_VALUE, -1),
 			GSGoalKey.MATCH, GSGoalKey.MATCHLR),
@@ -200,7 +200,7 @@ public enum GSConfigKey implements ConfigKey {
 			+ "If the number is above `maxReadClassErrorCount`, then the read will not be classified. "
 			+ "Otherwise the read will be classified in the same way as [done by Kraken](https://genomebiology.biomedcentral.com/articles/10.1186/gb-2014-15-3-r46/figures/1). "
 			+ "If `maxReadClassErrorCount` is >= 1, then it is interpreted as an absolute number of *k*-mers. "
-			+ "Otherwise (and so, if >= 0 and < 1), it is interpreted as the ratio between the *k*-mers not in the database and all *k*-mers of the read. "
+			+ "If >= 0 and < 1, it is interpreted as the ratio between the inconsistent *k*-mers and all *k*-mers of the read. "
 			+ "If `maxReadClassErrorCount` < 0, then the read error count is disregarded, which means that even a single matching *k*-mer will lead to the read's classification.")
 	MAX_READ_CLASS_ERROR_COUNT("maxReadClassErrorCount", new DoubleConfigParamInfo(-1, Double.MAX_VALUE, -1),
 			GSGoalKey.MATCH, GSGoalKey.MATCHLR),
