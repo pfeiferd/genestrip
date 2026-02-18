@@ -127,7 +127,8 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 			}
 			node = node.parent;
 		}
-		return root;
+		// TODO: Better return null here and handle null in calling code?
+		return null;
 	}
 
 	public int getCountSize() {

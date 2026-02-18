@@ -372,6 +372,9 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                     node = taxTree.getLowestCommonAncestor(node, entry.readTaxIdNode[i]);
                 }
                 entry.classNode = node;
+                if (node == null) {
+                    return false;
+                }
                 // For 'readKmers', I decided to count in the k-mers from 'entry.readTaxIdNode[0]' and not just 'node'.
                 // (They only differ in case of a tie anyways.) But if there is tie, then the k-mers from one of the tie's nodes
                 // solidify the LCA in a sense - so the counts from one the involved paths are included.
