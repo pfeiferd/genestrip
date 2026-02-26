@@ -46,6 +46,7 @@ import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String, MatchingResult>, P> {
@@ -71,7 +72,7 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 	protected void doMakeThis() {
 		FastqKMerMatcher matcher = null;
 		try {
-			Map<String, MatchingResult> matchResults = new HashMap<>();
+			Map<String, MatchingResult> matchResults = new LinkedHashMap<>(); // To preserver order of keys.
 			Map<String, StreamingResourceStream> map = fastqMapGoal.get();
 			Database database = null;
 			KMerUniqueCounter uniqueCounter = null;
