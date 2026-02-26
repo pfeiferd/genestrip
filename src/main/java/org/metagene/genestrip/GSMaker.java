@@ -272,12 +272,14 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
                 additionalFastasGoal, accessionMapGoal);
         registerGoal(fillSizeGoal);
 
+        /* Not needed anymore with HyperLogLog;
         ObjectGoal<Long, P> fillBloomGoal = new FillBloomFilterGoal(project, getExecutionContext(project), categoriesGoal,
                 taxNodesGoal, refSeqFnaFilesGoal, additionalFastasGoal, accessionMapGoal, fillSizeGoal);
         registerGoal(fillBloomGoal);
+         */
 
         FillDBGoal<P> fillDBGoal = new FillDBGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, taxTreeGoal, refSeqFnaFilesGoal,
-                additionalFastasGoal, accessionMapGoal, fillBloomGoal, projectSetupGoal);
+                additionalFastasGoal, accessionMapGoal, fillSizeGoal, projectSetupGoal);
         registerGoal(fillDBGoal);
 
         StoreDBGoal<P> storeTempDBGoal = new StoreDBGoal<P>(project, GSGoalKey.TEMPDB,
