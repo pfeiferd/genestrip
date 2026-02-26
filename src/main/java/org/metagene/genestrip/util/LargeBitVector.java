@@ -99,23 +99,17 @@ public class LargeBitVector implements Serializable {
 
     public void clear(long index) {
         if (largeBits != null) {
-            long arrayIndex = ((index >>> 6) % size);
+            long arrayIndex = index >>> 6;
             BigArrays.set(largeBits, arrayIndex, BigArrays.get(largeBits, arrayIndex) & ~(1L << (index & 0b111111)));
         } else {
-            // Using optimization instead of '%', see:
-            // http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
-            // and Line 34 in https://github.com/FastFilter/fastfilter_java/blob/master/fastfilter/src/main/java/org/fastfilter/utils/Hash.java
-            // Not sure whether it would also work for long - probably not.
-            //int arrayIndex = (int) ((((index >>> 6) & 0xffffffffL) * (size & 0xffffffffL)) >>> 32);
-            // Original code:
-            int arrayIndex = (int) ((index >>> 6) % size);
+            int arrayIndex = (int) (index >>> 6);
             bits[arrayIndex] = bits[arrayIndex] & ~(1L << (index & 0b111111));
         }
     }
 
     public final void set(final long index) {
         if (largeBits != null) {
-            long arrayIndex = ((index >>> 6) % size);
+            long arrayIndex = index >>> 6;
             BigArrays.set(largeBits, arrayIndex, BigArrays.get(largeBits, arrayIndex) | (1L << (index & 0b111111)));
         } else {
             // Using optimization instead of '%', see:
@@ -124,14 +118,14 @@ public class LargeBitVector implements Serializable {
             // Not sure whether it would also work for long - probably not.
             //int arrayIndex = (int) ((((index >>> 6) & 0xffffffffL) * (size & 0xffffffffL)) >>> 32);
             // Original code:
-            int arrayIndex = (int) ((index >>> 6) % size);
+            int arrayIndex = (int) (index >>> 6);
             bits[arrayIndex] = bits[arrayIndex] | (1L << (index & 0b111111));
         }
     }
 
     public final boolean get(final long index) {
         if (largeBits != null) {
-            long arrayIndex = ((index >>> 6) % size);
+            long arrayIndex = index >>> 6;
             return ((BigArrays.get(largeBits, arrayIndex) >> (index & 0b111111)) & 1L) == 1;
         } else {
             // Using optimization instead of '%', see:
@@ -140,7 +134,7 @@ public class LargeBitVector implements Serializable {
             // Not sure whether it would also work for long - probably not.
             //int arrayIndex = (int) ((((index >>> 6) & 0xffffffffL) * (size & 0xffffffffL)) >>> 32);
             // Original code:
-            int arrayIndex = (int) ((index >>> 6) % size);
+            int arrayIndex = (int) (index >>> 6);
             return (((bits[arrayIndex] >> (index & 0b111111)) & 1L) == 1);
         }
     }

@@ -43,7 +43,7 @@ public class KMerBloomFilterTest {
 
 	@Test
 	public void testPutContains() {
-		AbstractKMerBloomFilter filter = createFilter(k, size, fpp);
+		AbstractKMerBloomFilter filter = createFilter(size, fpp);
 
 		byte[] reverseRead = new byte[k];
 		List<byte[]> reads = new ArrayList<byte[]>();
@@ -57,16 +57,16 @@ public class KMerBloomFilterTest {
 			reads.add(read);
 
 			filter.putLong(CGAT.kMerToLong(read, 0, k, null));
-			assertTrue(filter.contains(read, 0, null));
-			assertTrue(filter.contains(reverseRead, 0, null));
+			assertTrue(contains(filter, read, 0, null));
+			assertTrue(contains(filter, reverseRead, 0, null));
 		}
 
 		for (byte[] read : reads) {
 			for (int j = 0; j < k; j++) {
 				reverseRead[k - j - 1] = CGAT.toComplement(read[j]);
 			}
-			assertTrue(filter.contains(read, 0, null));
-			assertTrue(filter.contains(reverseRead, 0, null));
+			assertTrue(contains(filter, read, 0, null));
+			assertTrue(contains(filter, reverseRead, 0, null));
 		}
 
 		int err = 0;
@@ -75,7 +75,7 @@ public class KMerBloomFilterTest {
 			for (int j = 0; j < k; j++) {
 				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
 			}
-			if (filter.contains(read, 0, null)) {
+			if (contains(filter, read, 0, null)) {
 				err++;
 			}
 		}
@@ -87,7 +87,7 @@ public class KMerBloomFilterTest {
 
 	@Test
 	public void testPutGetViaTrie() {
-		AbstractKMerBloomFilter filter = createFilter(k, size, fpp);
+		AbstractKMerBloomFilter filter = createFilter(size, fpp);
 		KMerTrie<Integer> trie = new KMerTrie<Integer>(2, k, false);
 
 		byte[] read = new byte[trie.getK()];
@@ -103,14 +103,14 @@ public class KMerBloomFilterTest {
 		trie.visit(new KMerTrieVisitor<Integer>() {
 			@Override
 			public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
-				assertTrue(filter.contains(kmer, 0, null));
+				assertTrue(contains(filter, kmer, 0, null));
 			}
 		}, false);
 
 		trie.visit(new KMerTrieVisitor<Integer>() {
 			@Override
 			public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
-				assertTrue(filter.contains(kmer, 0, null));
+				assertTrue(contains(filter, kmer, 0, null));
 			}
 		}, true);
 
@@ -119,7 +119,7 @@ public class KMerBloomFilterTest {
 			for (int j = 0; j < k; j++) {
 				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
 			}
-			if (filter.contains(read, 0, null)) {
+			if (contains(filter, read, 0, null)) {
 				err++;
 			}
 		}
@@ -129,9 +129,17 @@ public class KMerBloomFilterTest {
 		assertTrue(testedFp <= fpp * 1.1);
 	}
 
+	public final boolean contains(AbstractKMerBloomFilter filter, byte[] seq, int start, int[] badPos) {
+		long data = CGAT.kMerToLong(seq, start, k, badPos);
+		if (data == -1 && badPos != null && badPos[0] == -1) {
+			return false;
+		}
+		return filter.containsLong(data);
+	}
 
-	protected AbstractKMerBloomFilter createFilter(int k, long size, double fpp) {
-		AbstractKMerBloomFilter res = new MurmurKMerBloomFilter(k, fpp);
+
+	protected AbstractKMerBloomFilter createFilter(long size, double fpp) {
+		AbstractKMerBloomFilter res = new MurmurKMerBloomFilter(fpp);
 		res.clear();
 		res.ensureExpectedSize(size, isTestLarge());
 		return res;

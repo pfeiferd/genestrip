@@ -82,7 +82,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	private transient long kmersMoved;
 
 	public KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge, boolean xor) {
-		this(k, initialValues, enforceLarge, xor ? new XORKMerBloomFilter(k, fpp) : new MurmurKMerBloomFilter(k, fpp));
+		this(k, initialValues, enforceLarge, xor ? new XORKMerBloomFilter(fpp) : new MurmurKMerBloomFilter(fpp));
 	}
 
 	@SuppressWarnings("unchecked")

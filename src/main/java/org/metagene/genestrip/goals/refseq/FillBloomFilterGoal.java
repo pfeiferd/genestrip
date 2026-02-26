@@ -77,10 +77,8 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Lo
     protected void doMakeThis() {
         try {
             filter = booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH) ?
-                    new XORKMerBloomFilter(intConfigValue(GSConfigKey.KMER_SIZE),
-                            doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP)) :
-                    new MurmurKMerBloomFilter(intConfigValue(GSConfigKey.KMER_SIZE),
-                            doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP));
+                    new XORKMerBloomFilter(doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP)) :
+                    new MurmurKMerBloomFilter(doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP));
             filter.ensureExpectedSize(sizeGoal.get(), false);
             logHeapInfo();
             readFastas();
@@ -112,7 +110,9 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Lo
     protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
         return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
                 taxNodesGoal.get(),
-                isIncludeRefSeqFna() ? accessionMapGoal.get() : null, filter,
+                isIncludeRefSeqFna() ? accessionMapGoal.get() : null,
+                intConfigValue(GSConfigKey.KMER_SIZE),
+                filter,
                 intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
                 (Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
                 longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
@@ -126,9 +126,9 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Lo
     protected class MyFastaReader extends AbstractStoreFastaReader {
         private final AbstractKMerBloomFilter filter;
 
-        public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
+        public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
                              AbstractKMerBloomFilter filter, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
-            super(bufferSize, taxNodes, accessionMap, filter.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases);
+            super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases);
             this.filter = filter;
         }
 

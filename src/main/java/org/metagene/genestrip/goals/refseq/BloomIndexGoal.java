@@ -72,10 +72,8 @@ public class BloomIndexGoal<P extends GSProject> extends ObjectGoal<AbstractKMer
 		}
 
 		AbstractKMerBloomFilter filter = booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH) ?
-				new XORKMerBloomFilter(intConfigValue(GSConfigKey.KMER_SIZE),
-						doubleConfigValue(GSConfigKey.BLOOM_FILTER_FPP)) :
-				new MurmurKMerBloomFilter(intConfigValue(GSConfigKey.KMER_SIZE),
-				doubleConfigValue(GSConfigKey.BLOOM_FILTER_FPP));
+				new XORKMerBloomFilter(doubleConfigValue(GSConfigKey.BLOOM_FILTER_FPP)) :
+				new MurmurKMerBloomFilter(doubleConfigValue(GSConfigKey.BLOOM_FILTER_FPP));
 		filter.ensureExpectedSize(counter[0], false);
 
 		store.visit(new KMerSortedArrayVisitor<String>() {

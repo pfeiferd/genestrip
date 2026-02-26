@@ -43,9 +43,9 @@ public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 	private OutputStream indexed;
 	private OutputStream notIndexed;
 
-	public FastqBloomFilter(AbstractKMerBloomFilter filter, int minPosCount, double positiveRatio, int initialReadSize,
+	public FastqBloomFilter(int k, AbstractKMerBloomFilter filter, int minPosCount, double positiveRatio, int initialReadSize,
 							int maxQueueSize, ExecutionContext bundle, boolean withProbs, boolean inlined) {
-		super(filter.getK(), initialReadSize, maxQueueSize, bundle, withProbs);
+		super(k, initialReadSize, maxQueueSize, bundle, withProbs);
 		this.filter = filter;
 		this.minPosCount = minPosCount;
 		this.positiveRatio = positiveRatio;
@@ -112,7 +112,7 @@ public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 				}
 			}
 			if (kmer != -1) {
-				if (filter.containsViaHash(CGAT.standardKMer(kmer, reverseKmer))) {
+				if (filter.containsLong(CGAT.standardKMer(kmer, reverseKmer))) {
 					counter++;
 					if (counter >= posThreshold) {
 						return true;

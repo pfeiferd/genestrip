@@ -32,34 +32,31 @@ import java.io.*;
 import java.util.Random;
 
 public abstract class AbstractKMerBloomFilter implements Serializable {
-	public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
-
 	private static final long serialVersionUID = 1L;
 
-	protected final int k;
 	protected final double fpp;
 	protected final Random random;
 
 	protected long expectedInsertions;
+	protected long bits;
 	protected LargeBitVector bitVector;
+	protected boolean largeBV;
 	protected int hashes;
 	protected long[] hashFactors;
 	protected long entries;
 
-	public AbstractKMerBloomFilter(int k, double fpp) {
-		if (k <= 0) {
-			throw new IllegalArgumentException("k-mer length k must be > 0");
-		}
+	public AbstractKMerBloomFilter(double fpp) {
 		if (fpp <= 0 || fpp >= 1) {
 			throw new IllegalArgumentException("fpp must be a probability");
 		}
 		this.fpp = fpp;
-		this.k = k;
 
 		random = new Random(42);
 
 		bitVector = new LargeBitVector(0);
+		largeBV = bitVector.isLarge();
 		entries = 0;
+		bits = 0;
 	}
 
 	public void clear() {
@@ -73,7 +70,7 @@ public abstract class AbstractKMerBloomFilter implements Serializable {
 		}
 		this.expectedInsertions = expectedInsertions;
 
-		long bits = optimalNumOfBits(expectedInsertions, fpp);
+		bits = optimalNumOfBits(expectedInsertions, fpp);
 		if (bitVector.ensureCapacity(bits, enforceLarge)) {
 			hashes = optimalNumOfHashFunctions(expectedInsertions, bits);
 			hashFactors = new long[hashes];
@@ -81,15 +78,12 @@ public abstract class AbstractKMerBloomFilter implements Serializable {
 				hashFactors[i] = random.nextLong();
 			}
 		}
+		largeBV = bitVector.isLarge();
 		return bits;
 	}
 
 	public long getExpectedInsertions() {
 		return expectedInsertions;
-	}
-
-	public int getK() {
-		return k;
 	}
 
 	public int getHashes() {
@@ -124,38 +118,22 @@ public abstract class AbstractKMerBloomFilter implements Serializable {
 	 * Competing calls to putLong are multi-threading enabled.
 	 * @param data
 	 */
-	public void putLong(long data) {
-		putViaHash(data);
-	}
-
-	protected void putViaHash(long data) {
+	public void putLong(final long data) {
 		synchronized (this) {
 			entries++;
 		}
 		for (int i = 0; i < hashes; i++) {
-			bitVector.set(hash(data, i));
+			bitVector.set(reduce(hash(data, i)));
 		}
 	}
 
-	public final boolean contains(byte[] seq, int start, int[] badPos) {
-		long data = CGAT.kMerToLong(seq, start, k, badPos);
-		if (data == -1 && badPos != null && badPos[0] == -1) {
-			return false;
-		}
-		return containsViaHash(data);
-	}
-
-	protected final boolean containsViaHash(final long data) {
+	public boolean containsLong(final long data) {
 		for (int i = 0; i < hashes; i++) {
-			if (!bitVector.get(hash(data, i))) {
+			if (!bitVector.get(reduce(hash(data, i)))) {
 				return false;
 			}
 		}
 		return true;
-	}
-
-	public boolean containsLong(final long data) {
-		return containsViaHash(data);
 	}
 
 	protected abstract long hash(final long data, final int i);
@@ -175,6 +153,19 @@ public abstract class AbstractKMerBloomFilter implements Serializable {
 	public static AbstractKMerBloomFilter load(File filterFile) throws IOException, ClassNotFoundException {
 		try (InputStream is = StreamProvider.getInputStreamForFile(filterFile)) {
 			return load(is);
+		}
+	}
+
+	protected final long reduce(final long v) {
+		if (largeBV) {
+			return (v < 0 ? -v : v) % bits;
+		}
+		else {
+			// Using optimization instead of '%', see:
+			// http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
+			// and Line 34 in https://github.com/FastFilter/fastfilter_java/blob/master/fastfilter/src/main/java/org/fastfilter/utils/Hash.java
+			// Not sure whether it would also work for long - probably not.
+			return (int) (((((int) v) & 0xffffffffL) * (bits & 0xffffffffL)) >>> 32);
 		}
 	}
 }
