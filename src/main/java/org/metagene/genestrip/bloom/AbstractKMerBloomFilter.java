@@ -157,8 +157,10 @@ public abstract class AbstractKMerBloomFilter implements Serializable {
 	}
 
 	protected final long reduce(final long v) {
+		return (v < 0 ? -v : v) % bits;
+		/*
 		if (largeBV) {
-			return (v < 0 ? -v : v) % bits;
+		return (v < 0 ? -v : v) % bits;
 		}
 		else {
 			// Using optimization instead of '%', see:
@@ -167,5 +169,6 @@ public abstract class AbstractKMerBloomFilter implements Serializable {
 			// Not sure whether it would also work for long - probably not.
 			return (int) (((((int) v) & 0xffffffffL) * (bits & 0xffffffffL)) >>> 32);
 		}
+		 */
 	}
 }

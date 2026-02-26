@@ -653,6 +653,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		if (optimizedFpp > 0) {
 			// Now make a filter with High fpp.
 			filter = xor ? new XORKMerBloomFilter(optimizedFpp) : new MurmurKMerBloomFilter(optimizedFpp);
+			filter.ensureExpectedSize(entries, false);
 			long kmer;
 			for (long i = 0; i < entries; i++) {
 				if (largeKmers != null) {
