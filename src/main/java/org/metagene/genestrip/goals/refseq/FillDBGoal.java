@@ -85,7 +85,8 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 		// long size = (long) (bloomFilterGoal.get() / (1 - doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP)));
 
 		// No need to adjust the size anymore with HyperLogLog in use:
-		long size = bloomFilterGoal.get();
+		double resizeFactor = doubleConfigValue(GSConfigKey.DB_RESIZING_FACTOR);
+		long size = resizeFactor == 1d ? bloomFilterGoal.get() : (long) (bloomFilterGoal.get() * resizeFactor);
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Store size in kmers: " + size);
 			getLogger().info("DB Size in MB (without Bloom filter): " + (size * 10) / (1024 * 1024));
