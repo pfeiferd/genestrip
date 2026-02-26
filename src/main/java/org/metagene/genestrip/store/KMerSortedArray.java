@@ -65,6 +65,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	// lenth Short.MAX_VALUE. Only 0.5 MB in size...
 	private final V[] indexMap;
 	private final boolean enforceLarge;
+	private final double optimizedFpp;
 
 	// Just for optimizing synchronization during updates
 	private transient Object[] syncs;
@@ -81,13 +82,13 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 	private transient long kmersMoved;
 
-	public KMerSortedArray(int k, double fpp, List<V> initialValues, boolean enforceLarge, boolean xor) {
-		this(k, initialValues, enforceLarge, xor ? new XORKMerBloomFilter(fpp) : new MurmurKMerBloomFilter(fpp));
+	public KMerSortedArray(int k, double entryFpp, double optimizedFpp, List<V> initialValues, boolean enforceLarge, boolean xor) {
+		this(k, initialValues, enforceLarge, xor ? new XORKMerBloomFilter(entryFpp) : new MurmurKMerBloomFilter(entryFpp), optimizedFpp);
 	}
 
 	@SuppressWarnings("unchecked")
 	protected KMerSortedArray(int k, List<V> initialValues, boolean enforceLarge,
-			AbstractKMerBloomFilter filter) {
+			AbstractKMerBloomFilter filter, double optimizedFpp) {
 		this.k = k;
 		int s = initialValues == null ? 0 : initialValues.size();
 		indexMap = (V[]) new Serializable[MAX_VALUES];
@@ -100,6 +101,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				getAddValueIndex(v);
 			}
 		}
+		this.optimizedFpp = optimizedFpp;
 		this.filter = filter;
 		this.useFilter = filter != null;
 		this.kmerPersTaxid = null;
@@ -132,6 +134,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 		k = org.k;
 		enforceLarge = org.enforceLarge;
+		optimizedFpp = org.optimizedFpp;
 
 		size = org.size;
 
@@ -639,6 +642,27 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 			});
 		}
 		sorted = true;
+		// Rework the bloom filter...
+		if (filter != null) {
+			if (filter.getFpp() == optimizedFpp) {
+				return;
+			}
+		}
+		boolean xor = filter == null || filter instanceof XORKMerBloomFilter;
+		filter = null; // Set to null already for garbage collector.
+		if (optimizedFpp > 0) {
+			// Now make a filter with High fpp.
+			filter = xor ? new XORKMerBloomFilter(optimizedFpp) : new MurmurKMerBloomFilter(optimizedFpp);
+			long kmer;
+			for (long i = 0; i < entries; i++) {
+				if (largeKmers != null) {
+					kmer = BigArrays.get(largeKmers, i);
+				} else {
+					kmer = kmers[(int) i];
+				}
+				filter.putLong(kmer);
+			}
+		}
 	}
 
 	@Override

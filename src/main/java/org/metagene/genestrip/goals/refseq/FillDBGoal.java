@@ -49,7 +49,7 @@ import org.metagene.genestrip.util.ByteArrayUtil;
 
 public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P>  implements Goal.LogHeapInfo {
 	private final ObjectGoal<AccessionMap, P> accessionMapGoal;
-	private final ObjectGoal<Long, P> bloomFilterGoal;
+	private final ObjectGoal<Long, P> sizeGoal;
 	private final ObjectGoal<TaxTree, P> taxTreeGoal;
 	private final List<MyFastaReader> readers;
 
@@ -62,11 +62,11 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 					  RefSeqFnaFilesDownloadGoal fnaFilesGoal,
 					  ObjectGoal<Map<File, TaxIdNode>, P> additionalGoal,
 					  ObjectGoal<AccessionMap, P> accessionMapGoal,
-					  ObjectGoal<Long, P> bloomFilterGoal,
+					  ObjectGoal<Long, P> sizeGoal,
 					  Goal<P>... deps) {
-		super(project, GSGoalKey.FILL_DB, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, taxTreeGoal, accessionMapGoal, bloomFilterGoal));
+		super(project, GSGoalKey.FILL_DB, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, taxTreeGoal, accessionMapGoal, sizeGoal));
 		this.accessionMapGoal = accessionMapGoal;
-		this.bloomFilterGoal = bloomFilterGoal;
+		this.sizeGoal = sizeGoal;
 		this.taxTreeGoal = taxTreeGoal;
 		readers = new ArrayList<>();
 	}
@@ -74,7 +74,7 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 	@Override
 	protected void doMakeThis() {
 		store = new KMerSortedArray<>(intConfigValue(GSConfigKey.KMER_SIZE),
-				doubleConfigValue(GSConfigKey.BLOOM_FILTER_FPP), null, false, booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH));
+				doubleConfigValue(GSConfigKey.BLOOM_FILTER_FPP), doubleConfigValue(GSConfigKey.OPT_BLOOM_FILTER_FPP), null, false, booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH));
 		// We have to account for the missing entries in the bloom filter due to
 		// inherent FPP. The formula from below works really well,
 		// so we can allow for a low FPP for the bloom filter from 'bloomFilterGoal'
@@ -86,7 +86,7 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 
 		// No need to adjust the size anymore with HyperLogLog in use:
 		double resizeFactor = doubleConfigValue(GSConfigKey.DB_RESIZING_FACTOR);
-		long size = resizeFactor == 1d ? bloomFilterGoal.get() : (long) (bloomFilterGoal.get() * resizeFactor);
+		long size = resizeFactor == 1d ? sizeGoal.get() : (long) (sizeGoal.get() * resizeFactor);
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Store size in kmers: " + size);
 			getLogger().info("DB Size in MB (without Bloom filter): " + (size * 10) / (1024 * 1024));

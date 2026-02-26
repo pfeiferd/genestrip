@@ -152,6 +152,8 @@ public enum GSConfigKey implements ConfigKey {
 	DB_RESIZING_FACTOR("dbResizingFactor", new DoubleConfigParamInfo(0, Double.MAX_VALUE, 1), GSGoalKey.DB),
 	@MDDescription("TODO")
 	BLOOM_FILTER_FPP("bloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.00000000001d), true, GSGoalKey.FILL_DB),
+	@MDDescription("TODO")
+	OPT_BLOOM_FILTER_FPP("optBloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.01d), true, GSGoalKey.FILL_DB),
 	XOR_BLOOM_HASH("xorBloomHash", new BooleanConfigParamInfo(true)),
 	FASTA_LINE_SIZE_BYTES("fastaLineSizeBytes", new IntConfigParamInfo(4096, 65536, 4096), true, GSGoalKey.DB),
 	@MDDescription("Perform database update regarding least common ancestors only based on genomes of tax ids as selected for the database generation (and not via all of a super-kingdom's RefSeq genomes).")
