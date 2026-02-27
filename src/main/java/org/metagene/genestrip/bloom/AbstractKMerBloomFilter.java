@@ -92,7 +92,6 @@ public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
 		return hashes;
 	}
 
-	@Override
 	public double getFpp() {
 		return fpp;
 	}

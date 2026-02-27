@@ -34,7 +34,6 @@ public interface KMerProbFilter extends Serializable {
     public long ensureExpectedSize(long expectedInsertions, boolean enforceLarge);
     public void clear();
     public long getEntries();
-    public double getFpp();
 
     default public void save(File filterFile) throws IOException {
         try (ObjectOutputStream oOut = new ObjectOutputStream(StreamProvider.getOutputStreamForFile(filterFile))) {

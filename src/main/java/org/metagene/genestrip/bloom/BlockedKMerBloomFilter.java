@@ -158,9 +158,4 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
     public long getEntries() {
         return entries;
     }
-
-    @Override
-    public double getFpp() {
-        return 0.01;
-    }
 }

@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import org.metagene.genestrip.bloom.BlockedKMerBloomFilter;
 import org.metagene.genestrip.bloom.KMerProbFilter;
 import org.metagene.genestrip.bloom.MurmurKMerBloomFilter;
 import org.metagene.genestrip.bloom.XORKMerBloomFilter;
@@ -643,16 +644,11 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		}
 		sorted = true;
 		// Rework the bloom filter...
-		if (filter != null) {
-			if (filter.getFpp() == optimizedFpp) {
-				return;
-			}
-		}
-		boolean xor = filter == null || filter instanceof XORKMerBloomFilter;
 		filter = null; // Set to null already for garbage collector.
 		if (optimizedFpp > 0) {
 			// Now make a filter with High fpp.
-			filter = xor ? new XORKMerBloomFilter(optimizedFpp) : new MurmurKMerBloomFilter(optimizedFpp);
+			filter = new BlockedKMerBloomFilter(10);
+			// new XORKMerBloomFilter(optimizedFpp) : new MurmurKMerBloomFilter(optimizedFpp);
 			filter.ensureExpectedSize(entries, false);
 			long kmer;
 			for (long i = 0; i < entries; i++) {
