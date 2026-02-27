@@ -1,26 +1,26 @@
 /*
- * 
+ *
  * “Commons Clause” License Condition v1.0
- * 
- * The Software is provided to you by the Licensor under the License, 
+ *
+ * The Software is provided to you by the Licensor under the License,
  * as defined below, subject to the following condition.
- * 
- * Without limiting other conditions in the License, the grant of rights under the License 
+ *
+ * Without limiting other conditions in the License, the grant of rights under the License
  * will not include, and the License does not grant to you, the right to Sell the Software.
- * 
- * For purposes of the foregoing, “Sell” means practicing any or all of the rights granted 
- * to you under the License to provide to third parties, for a fee or other consideration 
- * (including without limitation fees for hosting or consulting/ support services related to 
- * the Software), a product or service whose value derives, entirely or substantially, from the 
- * functionality of the Software. Any license notice or attribution required by the License 
+ *
+ * For purposes of the foregoing, “Sell” means practicing any or all of the rights granted
+ * to you under the License to provide to third parties, for a fee or other consideration
+ * (including without limitation fees for hosting or consulting/ support services related to
+ * the Software), a product or service whose value derives, entirely or substantially, from the
+ * functionality of the Software. Any license notice or attribution required by the License
  * must also include this Commons Clause License Condition notice.
- * 
+ *
  * Software: genestrip
- * 
+ *
  * License: Apache 2.0
- * 
+ *
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
- * 
+ *
  */
 package org.metagene.genestrip.bloom;
 
@@ -69,8 +69,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
             int s = (int) start;
             data[s] |= m1;
             data[s + 1 + (int) (hash >>> 60)] |= m2;
-        }
-        else {
+        } else {
             BigArrays.set(largeData, start, BigArrays.get(largeData, start) | m1);
             BigArrays.set(largeData, start + 1 + (int) (hash >>> 60), BigArrays.get(largeData, start) | m1);
         }
@@ -87,10 +86,9 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
             int s = (int) start;
             a = data[s];
             b = data[s + 1 + (int) (hash >>> 60)];
-        }
-        else {
+        } else {
             a = BigArrays.get(largeData, start);
-            b = BigArrays.get(largeData, + 1 + (int) (hash >>> 60));
+            b = BigArrays.get(largeData, +1 + (int) (hash >>> 60));
             throw new IllegalStateException("not implemented yet");
         }
         long m1 = (1L << hash) | (1L << (hash >> 6));
@@ -102,7 +100,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
     public long ensureExpectedSize(long entryCount, boolean enforceLarge) {
         entryCount = Math.max(1, entryCount);
         long bits = entryCount * bitsPerKey;
-        long newSize = (bits  + 63) / 64;
+        long newSize = (bits + 63) / 64;
         entries = 0;
         if (newSize > buckets) {
             buckets = newSize;
@@ -112,7 +110,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
                         buckets);
             } else {
                 largeData = null;
-                data = new long[(int)buckets + 16 + 1];
+                data = new long[(int) buckets + 16 + 1];
             }
         }
         return bits;
@@ -142,7 +140,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
     public void clear() {
         if (largeData != null) {
             BigArrays.fill(largeData, 0L);
-        } else {
+        } else if (data != null) {
             Arrays.fill(data, 0L);
         }
     }
