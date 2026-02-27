@@ -27,6 +27,8 @@ package org.metagene.genestrip.bloom;
 import org.metagene.genestrip.util.MurmurHash3DropIn;
 
 public class MurmurKMerBloomFilter extends AbstractKMerBloomFilter {
+	private static final long serialVersionUID = 1L;
+
 	public MurmurKMerBloomFilter(double fpp) {
 		super(fpp);
 	}

@@ -28,12 +28,22 @@ package org.metagene.genestrip.bloom;
  * Fast and apparently "good enough" for hashing k-mers ...
  */
 public class XORKMerBloomFilter extends AbstractKMerBloomFilter {
+    private static final long serialVersionUID = 1L;
+
     public XORKMerBloomFilter(double fpp) {
         super(fpp);
     }
 
     @Override
-    protected final long hash(long data, final int i) {
-        return hashFactors[i] ^ data;
+    protected final long hash(long x, final int i) {
+        return hashFactors[i] ^ x;
+    }
+
+    // The super simple hash function from above cannot be combined with Lemire's optimization.
+    // It results in a very high fpp...
+    // The more complex hash function from Lemire outweighs the cost of the modulo operator used here.
+    // That's why we keep it simple and leave it as it is.
+    protected final long reduce(final long v) {
+        return (v < 0 ? -v : v) % bits;
     }
 }

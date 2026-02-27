@@ -32,6 +32,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.metagene.genestrip.bloom.AbstractKMerBloomFilter;
+import org.metagene.genestrip.bloom.LemireBloomFilter;
 import org.metagene.genestrip.bloom.MurmurKMerBloomFilter;
 import org.metagene.genestrip.bloom.XORKMerBloomFilter;
 import org.metagene.genestrip.util.CGAT;

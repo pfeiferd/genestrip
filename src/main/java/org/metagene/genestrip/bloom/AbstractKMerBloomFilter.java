@@ -156,7 +156,7 @@ public abstract class AbstractKMerBloomFilter implements Serializable {
 		}
 	}
 
-	protected final long reduce(final long v) {
+	protected long reduce(final long v) {
 		return (v < 0 ? -v : v) % bits;
 		/*
 		if (largeBV) {
