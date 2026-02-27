@@ -31,8 +31,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import org.metagene.genestrip.bloom.AbstractKMerBloomFilter;
-import org.metagene.genestrip.bloom.LemireBloomFilter;
+import org.metagene.genestrip.bloom.KMerProbFilter;
 import org.metagene.genestrip.bloom.MurmurKMerBloomFilter;
 import org.metagene.genestrip.bloom.XORKMerBloomFilter;
 import org.metagene.genestrip.util.CGAT;
@@ -77,7 +76,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	private boolean sorted;
 	private boolean initSize;
 	private short nextValueIndex;
-	private transient AbstractKMerBloomFilter filter;
+	private transient KMerProbFilter filter;
 	private boolean useFilter;
 	private Object2LongMap<V> kmerPersTaxid;
 
@@ -89,7 +88,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 	@SuppressWarnings("unchecked")
 	protected KMerSortedArray(int k, List<V> initialValues, boolean enforceLarge,
-			AbstractKMerBloomFilter filter, double optimizedFpp) {
+							  KMerProbFilter filter, double optimizedFpp) {
 		this.k = k;
 		int s = initialValues == null ? 0 : initialValues.size();
 		indexMap = (V[]) new Serializable[MAX_VALUES];
@@ -184,11 +183,11 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		};
 	}
 
-	public AbstractKMerBloomFilter getFilter() {
+	public KMerProbFilter getFilter() {
 		return filter;
 	}
 
-	public void setFilter(AbstractKMerBloomFilter filter) {
+	public void setFilter(KMerProbFilter filter) {
 		this.filter = filter;
 	}
 

@@ -25,7 +25,8 @@
 package org.metagene.genestrip.bloom;
 
 public class XORKMerBloomFilterTest extends KMerBloomFilterTest {
-	protected AbstractKMerBloomFilter createFilter(int k, long size, double fpp) {
+	@Override
+	protected KMerProbFilter createFilter(long size, double fpp) {
 		XORKMerBloomFilter res = new XORKMerBloomFilter(fpp);
 		res.clear();
 		res.ensureExpectedSize(size, isTestLarge());

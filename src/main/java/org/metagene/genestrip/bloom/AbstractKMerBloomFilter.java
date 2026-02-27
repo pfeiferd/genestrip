@@ -31,7 +31,7 @@ import org.metagene.genestrip.util.LargeBitVector;
 import java.io.*;
 import java.util.Random;
 
-public abstract class AbstractKMerBloomFilter implements Serializable {
+public abstract class AbstractKMerBloomFilter implements KMerProbFilter, Serializable {
 	private static final long serialVersionUID = 1L;
 
 	protected final double fpp;
@@ -59,11 +59,13 @@ public abstract class AbstractKMerBloomFilter implements Serializable {
 		bits = 0;
 	}
 
+	@Override
 	public void clear() {
 		bitVector.clear();
 		entries = 0;
 	}
 
+	@Override
 	public long ensureExpectedSize(long expectedInsertions, boolean enforceLarge) {
 		if (expectedInsertions < 0) {
 			throw new IllegalArgumentException("expected insertions must be > 0");
@@ -90,6 +92,7 @@ public abstract class AbstractKMerBloomFilter implements Serializable {
 		return hashes;
 	}
 
+	@Override
 	public double getFpp() {
 		return fpp;
 	}
@@ -102,6 +105,7 @@ public abstract class AbstractKMerBloomFilter implements Serializable {
 		return bitVector.isLarge();
 	}
 
+	@Override
 	public long getEntries() {
 		return entries;
 	}
@@ -118,6 +122,7 @@ public abstract class AbstractKMerBloomFilter implements Serializable {
 	 * Competing calls to putLong are multi-threading enabled.
 	 * @param data
 	 */
+	@Override
 	public void putLong(final long data) {
 		synchronized (this) {
 			entries++;
@@ -127,6 +132,7 @@ public abstract class AbstractKMerBloomFilter implements Serializable {
 		}
 	}
 
+	@Override
 	public boolean containsLong(final long data) {
 		for (int i = 0; i < hashes; i++) {
 			if (!bitVector.get(reduce(hash(data, i)))) {
@@ -138,37 +144,14 @@ public abstract class AbstractKMerBloomFilter implements Serializable {
 
 	protected abstract long hash(final long data, final int i);
 
+	@Override
 	public void save(File filterFile) throws IOException {
 		try (ObjectOutputStream oOut = new ObjectOutputStream(StreamProvider.getOutputStreamForFile(filterFile))) {
 			oOut.writeObject(this);			
 		}
 	}
 
-	public static AbstractKMerBloomFilter load(InputStream is) throws IOException, ClassNotFoundException {
-		try (ObjectInputStream oOut = new ObjectInputStream(is)) {
-			return (AbstractKMerBloomFilter) oOut.readObject();
-		}
-	}
-
-	public static AbstractKMerBloomFilter load(File filterFile) throws IOException, ClassNotFoundException {
-		try (InputStream is = StreamProvider.getInputStreamForFile(filterFile)) {
-			return load(is);
-		}
-	}
-
 	protected long reduce(final long v) {
 		return (v < 0 ? -v : v) % bits;
-		/*
-		if (largeBV) {
-		return (v < 0 ? -v : v) % bits;
-		}
-		else {
-			// Using optimization instead of '%', see:
-			// http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
-			// and Line 34 in https://github.com/FastFilter/fastfilter_java/blob/master/fastfilter/src/main/java/org/fastfilter/utils/Hash.java
-			// Not sure whether it would also work for long - probably not.
-			return (int) (((((int) v) & 0xffffffffL) * (bits & 0xffffffffL)) >>> 32);
-		}
-		 */
 	}
 }

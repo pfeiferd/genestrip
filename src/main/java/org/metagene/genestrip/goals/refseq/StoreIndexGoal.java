@@ -30,16 +30,16 @@ import java.io.IOException;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.GSFileType;
-import org.metagene.genestrip.bloom.AbstractKMerBloomFilter;
+import org.metagene.genestrip.bloom.KMerProbFilter;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 
 public class StoreIndexGoal<P extends GSProject> extends FileListGoal<P> {
-	private final ObjectGoal<AbstractKMerBloomFilter, P> indexGoal;
+	private final ObjectGoal<KMerProbFilter, P> indexGoal;
 
 	@SafeVarargs
-	public StoreIndexGoal(P project, ObjectGoal<AbstractKMerBloomFilter, P> indexGoal,
+	public StoreIndexGoal(P project, ObjectGoal<KMerProbFilter, P> indexGoal,
 			Goal<P>... deps) {
 		super(project, GSGoalKey.INDEX, project.getOutputFile(GSGoalKey.INDEX.getName(), GSFileType.FILTER, true),
 				Goal.append(deps, indexGoal));
@@ -49,7 +49,7 @@ public class StoreIndexGoal<P extends GSProject> extends FileListGoal<P> {
 	@Override
 	protected void makeFile(File indexFile) {
 		try {
-			AbstractKMerBloomFilter index = indexGoal.get();
+			KMerProbFilter index = indexGoal.get();
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("Saving index " + indexFile + " ...");
 			}

@@ -37,13 +37,13 @@ import org.metagene.genestrip.util.CGAT;
 public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 	private final double positiveRatio;
 	private final int minPosCount;
-	private final AbstractKMerBloomFilter filter;
+	private final KMerProbFilter filter;
 	private final boolean inlined;
 
 	private OutputStream indexed;
 	private OutputStream notIndexed;
 
-	public FastqBloomFilter(int k, AbstractKMerBloomFilter filter, int minPosCount, double positiveRatio, int initialReadSize,
+	public FastqBloomFilter(int k, KMerProbFilter filter, int minPosCount, double positiveRatio, int initialReadSize,
 							int maxQueueSize, ExecutionContext bundle, boolean withProbs, boolean inlined) {
 		super(k, initialReadSize, maxQueueSize, bundle, withProbs);
 		this.filter = filter;

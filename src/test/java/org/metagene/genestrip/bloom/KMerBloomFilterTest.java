@@ -43,7 +43,7 @@ public class KMerBloomFilterTest {
 
 	@Test
 	public void testPutContains() {
-		AbstractKMerBloomFilter filter = createFilter(size, fpp);
+		KMerProbFilter filter = createFilter(size, fpp);
 
 		byte[] reverseRead = new byte[k];
 		List<byte[]> reads = new ArrayList<byte[]>();
@@ -87,7 +87,7 @@ public class KMerBloomFilterTest {
 
 	@Test
 	public void testPutGetViaTrie() {
-		AbstractKMerBloomFilter filter = createFilter(size, fpp);
+		KMerProbFilter filter = createFilter(size, fpp);
 		KMerTrie<Integer> trie = new KMerTrie<Integer>(2, k, false);
 
 		byte[] read = new byte[trie.getK()];
@@ -129,7 +129,7 @@ public class KMerBloomFilterTest {
 		assertTrue(testedFp <= fpp * 1.1);
 	}
 
-	public final boolean contains(AbstractKMerBloomFilter filter, byte[] seq, int start, int[] badPos) {
+	public final boolean contains(KMerProbFilter filter, byte[] seq, int start, int[] badPos) {
 		long data = CGAT.kMerToLong(seq, start, k, badPos);
 		if (data == -1 && badPos != null && badPos[0] == -1) {
 			return false;
@@ -138,8 +138,8 @@ public class KMerBloomFilterTest {
 	}
 
 
-	protected AbstractKMerBloomFilter createFilter(long size, double fpp) {
-		AbstractKMerBloomFilter res = new MurmurKMerBloomFilter(fpp);
+	protected KMerProbFilter createFilter(long size, double fpp) {
+		KMerProbFilter res = new MurmurKMerBloomFilter(fpp);
 		res.clear();
 		res.ensureExpectedSize(size, isTestLarge());
 		return res;

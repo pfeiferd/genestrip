@@ -35,7 +35,7 @@ import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.bloom.AbstractKMerBloomFilter;
+import org.metagene.genestrip.bloom.KMerProbFilter;
 import org.metagene.genestrip.bloom.MurmurKMerBloomFilter;
 import org.metagene.genestrip.bloom.XORKMerBloomFilter;
 import org.metagene.genestrip.make.Goal;
@@ -52,7 +52,7 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Lo
     private final ObjectGoal<AccessionMap, P> accessionMapGoal;
     private final ObjectGoal<Long, P> sizeGoal;
 
-    private AbstractKMerBloomFilter filter;
+    private KMerProbFilter filter;
 
     private final boolean multiThreading;
 
@@ -124,10 +124,10 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Lo
     }
 
     protected class MyFastaReader extends AbstractStoreFastaReader {
-        private final AbstractKMerBloomFilter filter;
+        private final KMerProbFilter filter;
 
         public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-                             AbstractKMerBloomFilter filter, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
+                             KMerProbFilter filter, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
             super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases);
             this.filter = filter;
         }

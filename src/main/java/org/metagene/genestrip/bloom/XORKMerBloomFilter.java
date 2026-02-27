@@ -43,6 +43,7 @@ public class XORKMerBloomFilter extends AbstractKMerBloomFilter {
     // It results in a very high fpp...
     // The more complex hash function from Lemire outweighs the cost of the modulo operator used here.
     // That's why we keep it simple and leave it as it is.
+    @Override
     protected final long reduce(final long v) {
         return (v < 0 ? -v : v) % bits;
     }

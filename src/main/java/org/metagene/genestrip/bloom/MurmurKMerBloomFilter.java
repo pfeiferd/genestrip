@@ -33,6 +33,7 @@ public class MurmurKMerBloomFilter extends AbstractKMerBloomFilter {
 		super(fpp);
 	}
 
+	@Override
 	protected final long hash(final long data, final int i) {
 		return MurmurHash3DropIn.hash64(data, hashFactors[i]);
 	}
