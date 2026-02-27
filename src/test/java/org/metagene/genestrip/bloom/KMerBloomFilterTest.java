@@ -39,7 +39,11 @@ public class KMerBloomFilterTest {
 	protected Random random = new Random(42);
 	protected int k = 31;
 	protected int size = 5 * 1000 * 100;
-	protected double fpp = 0.0001;
+	protected double fpp = createFpp();
+
+	protected double createFpp() {
+		return 0.0001;
+	}
 
 	@Test
 	public void testPutContains() {

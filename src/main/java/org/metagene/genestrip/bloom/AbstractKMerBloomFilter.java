@@ -31,7 +31,7 @@ import org.metagene.genestrip.util.LargeBitVector;
 import java.io.*;
 import java.util.Random;
 
-public abstract class AbstractKMerBloomFilter implements KMerProbFilter, Serializable {
+public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
 	private static final long serialVersionUID = 1L;
 
 	protected final double fpp;
@@ -143,13 +143,6 @@ public abstract class AbstractKMerBloomFilter implements KMerProbFilter, Seriali
 	}
 
 	protected abstract long hash(final long data, final int i);
-
-	@Override
-	public void save(File filterFile) throws IOException {
-		try (ObjectOutputStream oOut = new ObjectOutputStream(StreamProvider.getOutputStreamForFile(filterFile))) {
-			oOut.writeObject(this);			
-		}
-	}
 
 	protected long reduce(final long v) {
 		return (v < 0 ? -v : v) % bits;

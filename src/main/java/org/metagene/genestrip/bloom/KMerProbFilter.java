@@ -35,7 +35,12 @@ public interface KMerProbFilter extends Serializable {
     public void clear();
     public long getEntries();
     public double getFpp();
-    public void save(File filterFile) throws IOException;
+
+    default public void save(File filterFile) throws IOException {
+        try (ObjectOutputStream oOut = new ObjectOutputStream(StreamProvider.getOutputStreamForFile(filterFile))) {
+            oOut.writeObject(this);
+        }
+    }
 
     public static KMerProbFilter load(InputStream is) throws IOException, ClassNotFoundException {
         try (ObjectInputStream oOut = new ObjectInputStream(is)) {
