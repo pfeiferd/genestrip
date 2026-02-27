@@ -51,9 +51,9 @@ public class LargeBitVector implements Serializable {
 
     public void clear() {
         if (largeBits != null) {
-            BigArrays.fill(largeBits, 0);
+            BigArrays.fill(largeBits, 0L);
         } else {
-            Arrays.fill(bits, 0);
+            Arrays.fill(bits, 0L);
         }
     }
 
@@ -68,20 +68,19 @@ public class LargeBitVector implements Serializable {
         newSize = (newSize + 63) / 64;
         if (newSize > size) {
             size = newSize;
-            if (size > MAX_SMALL_CAPACITY || enforceLarge) {
+            if (size > MAX_SMALL_CAPACITY || enforceLarge || largeBits != null) {
                 if (bits != null) {
                     largeBits = BigArrays.wrap(bits);
                 }
+                bits = null;
                 largeBits = BigArrays.ensureCapacity(largeBits == null ? LongBigArrays.EMPTY_BIG_ARRAY : largeBits,
                         size);
-                bits = null;
             } else {
                 long[] oldBits = bits;
                 bits = new long[(int) size];
                 if (oldBits != null) {
                     System.arraycopy(oldBits, 0, bits, 0, oldBits.length);
                 }
-                largeBits = null;
             }
             return true;
         } else {

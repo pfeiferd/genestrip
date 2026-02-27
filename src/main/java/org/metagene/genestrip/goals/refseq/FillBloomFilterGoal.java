@@ -48,6 +48,8 @@ import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.StringLongDigitTrie;
 
+// Not needed anymore due to HyperLogLog estimation of DB size.
+@Deprecated
 public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Long, P> implements Goal.LogHeapInfo {
     private final ObjectGoal<AccessionMap, P> accessionMapGoal;
     private final ObjectGoal<Long, P> sizeGoal;

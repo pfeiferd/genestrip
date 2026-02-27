@@ -27,6 +27,7 @@ package org.metagene.genestrip.bloom;
 import it.unimi.dsi.fastutil.BigArrays;
 import it.unimi.dsi.fastutil.longs.LongBigArrays;
 
+import java.util.Arrays;
 import java.util.Random;
 
 // This implementation is derived from
@@ -46,8 +47,14 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
     private long entries;
 
     public BlockedKMerBloomFilter(int bitsPerKey) {
+        this(bitsPerKey, new Random(42).nextLong());
+    }
+
+    public BlockedKMerBloomFilter(int bitsPerKey, long seed) {
         this.bitsPerKey = bitsPerKey;
-        this.seed = new Random(42).nextLong();
+        this.seed = seed;
+        buckets = 0;
+        entries = 0;
     }
 
     @Override
@@ -100,12 +107,13 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
         if (newSize > buckets) {
             buckets = newSize;
             if (buckets + 16 + 1 > MAX_SMALL_CAPACITY || enforceLarge) {
+                data = null;
+                largeData = BigArrays.ensureCapacity(largeData == null ? LongBigArrays.EMPTY_BIG_ARRAY : largeData,
+                        buckets);
             } else {
+                largeData = null;
                 data = new long[(int)buckets + 16 + 1];
             }
-        } else {
-            largeData = BigArrays.ensureCapacity(largeData == null ? LongBigArrays.EMPTY_BIG_ARRAY : largeData,
-                    buckets);
         }
         return bits;
     }
@@ -132,7 +140,11 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
 
     @Override
     public void clear() {
-
+        if (largeData != null) {
+            BigArrays.fill(largeData, 0L);
+        } else {
+            Arrays.fill(data, 0L);
+        }
     }
 
     @Override

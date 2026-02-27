@@ -39,8 +39,8 @@ public class XORKMerBloomFilter extends AbstractKMerBloomFilter {
         return hashFactors[i] ^ x;
     }
 
-    // The super simple hash function from above cannot be combined with Lemire's optimization.
-    // It results in a very high fpp...
+    // The super simple hash function from above cannot be combined here with Lemire's optimization.
+    // As I measured: It results in a very high fpp...
     // The more complex hash function from Lemire outweighs the cost of the modulo operator used here.
     // That's why we keep it simple and leave it as it is.
     @Override
