@@ -50,7 +50,7 @@ public class LemireOptBloomFilter extends AbstractKMerBloomFilter {
             // Using optimization instead of '%', see:
             // http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
             // and Line 34 in https://github.com/FastFilter/fastfilter_java/blob/master/fastfilter/src/main/java/org/fastfilter/utils/Hash.java
-            // In general, it would NOT work for long indexes because of overflow due to the multiplicaton.
+            // In general, it would NOT work for largeBV indexes because of potential long-overflow due to the multiplicaton.
             return (int) (((((int) v) & 0xffffffffL) * (bits & 0xffffffffL)) >>> 32);
         }
     }

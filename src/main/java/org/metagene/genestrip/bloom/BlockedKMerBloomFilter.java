@@ -34,10 +34,12 @@ import java.util.Random;
 // https://raw.githubusercontent.com/FastFilter/fastfilter_java/refs/heads/master/fastfilter/src/main/java/org/fastfilter/bloom/BlockedBloom.java
 // The corresponding project from https://github.com/FastFilter/fastfilter_java
 // is under Apache 2.0 license.
+//
+// It is highly optimized for best classification performance...
 public class BlockedKMerBloomFilter implements KMerProbFilter {
-    public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
-
     private static final long serialVersionUID = 1L;
+
+    public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
 
     private int bitsPerKey;
     private final long seed;
@@ -77,7 +79,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
 
     @Override
     public boolean containsLong(long key) {
-        long hash = hash(key);
+        long hash = seed ^ key; // Super simple inlined hash function.
         long start = reduce(hash);
         hash = hash ^ Long.rotateLeft(hash, 32);
         long a;
@@ -132,8 +134,15 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
     // The more complex hash function from Lemire outweighs the cost of the modulo operator used here.
     // That's why we keep it simple and leave it as it is.
     protected final long reduce(final long v) {
-        return (int) (((((int) v) & 0xffffffffL) * (buckets & 0xffffffffL)) >>> 32);
-//        return (v < 0 ? -v : v) % buckets;
+        if (largeData == null) {
+            return (v < 0 ? -v : v) % buckets;
+        } else {
+            // Using optimization instead of '%', see:
+            // http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
+            // and Line 34 in https://github.com/FastFilter/fastfilter_java/blob/master/fastfilter/src/main/java/org/fastfilter/utils/Hash.java
+            // In general, it would NOT work for largeData because of potential long-overflow due to the multiplicaton.
+            return (int) (((((int) v) & 0xffffffffL) * (buckets & 0xffffffffL)) >>> 32);
+        }
     }
 
     @Override
