@@ -73,7 +73,8 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
             data[s + 1 + (int) (hash >>> 60)] |= m2;
         } else {
             BigArrays.set(largeData, start, BigArrays.get(largeData, start) | m1);
-            BigArrays.set(largeData, start + 1 + (int) (hash >>> 60), BigArrays.get(largeData, start) | m1);
+            long s2 = start + 1 + (hash >>> 60);
+            BigArrays.set(largeData, s2, BigArrays.get(largeData, s2) | m2);
         }
     }
 
@@ -90,8 +91,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
             b = data[s + 1 + (int) (hash >>> 60)];
         } else {
             a = BigArrays.get(largeData, start);
-            b = BigArrays.get(largeData, +1 + (int) (hash >>> 60));
-            throw new IllegalStateException("not implemented yet");
+            b = BigArrays.get(largeData, start + 1 + (hash >>> 60));
         }
         long m1 = (1L << hash) | (1L << (hash >> 6));
         long m2 = (1L << (hash >> 12)) | (1L << (hash >> 18));
@@ -109,7 +109,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
             if (buckets + 16 + 1 > MAX_SMALL_CAPACITY || enforceLarge) {
                 data = null;
                 largeData = BigArrays.ensureCapacity(largeData == null ? LongBigArrays.EMPTY_BIG_ARRAY : largeData,
-                        buckets);
+                        buckets  + 16 + 1);
             } else {
                 largeData = null;
                 data = new long[(int) buckets + 16 + 1];
@@ -141,7 +141,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
             // http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
             // and Line 34 in https://github.com/FastFilter/fastfilter_java/blob/master/fastfilter/src/main/java/org/fastfilter/utils/Hash.java
             // In general, it would NOT work for largeData because of potential long-overflow due to the multiplicaton.
-            return (int) (((((int) v) & 0xffffffffL) * (buckets & 0xffffffffL)) >>> 32);
+            return (((((int) v) & 0xffffffffL) * (buckets & 0xffffffffL)) >>> 32);
         }
     }
 
