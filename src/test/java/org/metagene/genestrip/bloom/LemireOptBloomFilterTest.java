@@ -24,10 +24,10 @@
  */
 package org.metagene.genestrip.bloom;
 
-public class XORKMerBloomFilterTest extends KMerBloomFilterTest {
+public class LemireOptBloomFilterTest extends KMerBloomFilterTest {
 	@Override
 	protected KMerProbFilter createFilter(long size, double fpp) {
-		KMerProbFilter res = new XORKMerBloomFilter(fpp);
+		KMerProbFilter res = new LemireOptBloomFilter(fpp);
 		res.clear();
 		res.ensureExpectedSize(size, isTestLarge());
 		return res;

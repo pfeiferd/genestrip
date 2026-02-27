@@ -24,17 +24,28 @@
  */
 package org.metagene.genestrip.bloom;
 
-public class XORKMerBloomFilterTest extends KMerBloomFilterTest {
-	@Override
-	protected KMerProbFilter createFilter(long size, double fpp) {
-		KMerProbFilter res = new XORKMerBloomFilter(fpp);
-		res.clear();
-		res.ensureExpectedSize(size, isTestLarge());
-		return res;
-	}
+import org.metagene.genestrip.io.StreamProvider;
 
-	@Override
-	protected boolean isTestLarge() {
-		return false;
-	}
+import java.io.*;
+
+public interface KMerProbFilter extends Serializable {
+    public void putLong(final long data);
+    public boolean containsLong(final long data);
+    public long ensureExpectedSize(long expectedInsertions, boolean enforceLarge);
+    public void clear();
+    public long getEntries();
+    public double getFpp();
+    public void save(File filterFile) throws IOException;
+
+    public static KMerProbFilter load(InputStream is) throws IOException, ClassNotFoundException {
+        try (ObjectInputStream oOut = new ObjectInputStream(is)) {
+            return (KMerProbFilter) oOut.readObject();
+        }
+    }
+
+    public static KMerProbFilter load(File filterFile) throws IOException, ClassNotFoundException {
+        try (InputStream is = StreamProvider.getInputStreamForFile(filterFile)) {
+            return load(is);
+        }
+    }
 }

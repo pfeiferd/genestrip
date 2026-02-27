@@ -34,6 +34,7 @@ public class LemireOptBloomFilter extends AbstractKMerBloomFilter {
 
     @Override
     protected final long hash(long x, final int i) {
+        // return hashFactors[i] ^ x; -- makes test fail.
         x += hashFactors[i];
         x = (x ^ (x >>> 33)) * 0xff51afd7ed558ccdL;
         x = (x ^ (x >>> 33)) * 0xc4ceb9fe1a85ec53L;
