@@ -75,18 +75,23 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 	protected void doMakeThis() {
 		store = new KMerSortedArray<>(intConfigValue(GSConfigKey.KMER_SIZE),
 				doubleConfigValue(GSConfigKey.BLOOM_FILTER_FPP), doubleConfigValue(GSConfigKey.OPT_BLOOM_FILTER_FPP), null, false, booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH));
-		// We have to account for the missing entries in the bloom filter due to
-		// inherent FPP. The formula from below works really well,
-		// so we can allow for a low FPP for the bloom filter from 'bloomFilterGoal'
-		// and save memory during db construction.
-		// It is a conservative estimate too, since collisions occur in the process
-		// of filling (as opposed to the FPP formula that considers a filled
-		// bloom filter).
-		// long size = (long) (bloomFilterGoal.get() / (1 - doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP)));
-
+		long size;
+		if (booleanConfigValue(GSConfigKey.USE_HLL_FOR_DB_SIZING)) {
+			// We have to account for the missing entries in the bloom filter due to
+			// inherent FPP. The formula from below works really well,
+			// so we can allow for a low FPP for the bloom filter from 'bloomFilterGoal'
+			// and save memory during db construction.
+			// It is a conservative estimate too, since collisions occur in the process
+			// of filling (as opposed to the FPP formula that considers a filled
+			// bloom filter).
+			size = (long) (sizeGoal.get() / (1 - doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP)));
+		}
+		else {
+			size = sizeGoal.get();
+		}
 		// No need to adjust the size anymore with HyperLogLog in use:
 		double resizeFactor = doubleConfigValue(GSConfigKey.DB_RESIZING_FACTOR);
-		long size = resizeFactor == 1d ? sizeGoal.get() : (long) (sizeGoal.get() * resizeFactor);
+		size = resizeFactor == 1d ? sizeGoal.get() : (long) (sizeGoal.get() * resizeFactor);
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Store size in kmers: " + size);
 			getLogger().info("DB Size in MB (without Bloom filter): " + (size * 10) / (1024 * 1024));

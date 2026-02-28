@@ -49,7 +49,7 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.StringLongDigitTrie;
 
 // Not needed anymore due to HyperLogLog estimation of DB size.
-@Deprecated
+//@Deprecated
 public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Long, P> implements Goal.LogHeapInfo {
     private final ObjectGoal<AccessionMap, P> accessionMapGoal;
     private final ObjectGoal<Long, P> sizeGoal;
@@ -62,7 +62,7 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Lo
     public FillBloomFilterGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
                                ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
                                ObjectGoal<Map<File, TaxIdNode>, P> additionalGoal,
-                               ObjectGoal<AccessionMap, P> accessionMapGoal, FillSizeGoal sizeGoal, Goal<P>... deps) {
+                               ObjectGoal<AccessionMap, P> accessionMapGoal, ObjectGoal<Long, P> sizeGoal, Goal<P>... deps) {
         super(project, GSGoalKey.TEMPINDEX, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, accessionMapGoal, sizeGoal));
         this.accessionMapGoal = accessionMapGoal;
         this.sizeGoal = sizeGoal;

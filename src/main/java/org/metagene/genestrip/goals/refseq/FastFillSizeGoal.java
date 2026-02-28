@@ -24,13 +24,8 @@
  */
 package org.metagene.genestrip.goals.refseq;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import net.agkn.hll.HLL;
+import net.agkn.hll.HLLType;
 import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
@@ -43,38 +38,53 @@ import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.MurmurHash3DropIn;
 
-public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<Long, P> {
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+
+public class FastFillSizeGoal<P extends GSProject> extends FastaReaderGoal<Long, P> {
 	private final ObjectGoal<AccessionMap, P> accessionMapGoal;
 	private final List<MyFastaReader> readers;
 
+	private Random random;
+	private HLL hll;
+	private final boolean multiThreading;
+
 	@SafeVarargs
-	public FillSizeGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
-						ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
-						ObjectGoal<Map<File, TaxIdNode>, P> additionalGoal,
-						ObjectGoal<AccessionMap, P> accessionMapGoal, Goal<P>... deps) {
+	public FastFillSizeGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
+                            ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+                            ObjectGoal<Map<File, TaxIdNode>, P> additionalGoal,
+                            ObjectGoal<AccessionMap, P> accessionMapGoal, Goal<P>... deps) {
 		super(project, GSGoalKey.FILLSIZE, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, accessionMapGoal));
 		this.accessionMapGoal = accessionMapGoal;
 		readers = new ArrayList<>();
+		multiThreading = bundle.getThreads() > 0;
+		random = new Random(42);
 	}
 
 	@Override
 	protected void doMakeThis() {
 		try {
+			hll = new HLL(15, 6, -1, false, HLLType.FULL);
 			readFastas();
 			long counter = 0;
 			long dustSum = 0;
 			long totalKmerSum = 0;
 
-			for (MyFastaReader reader : readers) {
-				counter += reader.getIncludedKmers();
-				dustSum += reader.getDustCounter();
-				totalKmerSum += reader.getTotalKmers();
-			}
-			set(counter);
+			set(hll.cardinality());
 			if (getLogger().isInfoEnabled()) {
+				for (MyFastaReader reader : readers) {
+					counter += reader.getIncludedKmers();
+					dustSum += reader.getDustCounter();
+					totalKmerSum += reader.getTotalKmers();
+				}
+				long dedup = get();
 				getLogger().info("All included kmers with duplicates: " + counter);
-				getLogger().info("Estimated DB size in MB (without Bloom filter, with duplicates): " + (counter * 10) / (1024 * 1024) );
+				getLogger().info("Deduplicated kmers: " + dedup);
+				getLogger().info("Duplication factor: " + ((double) counter) / dedup);
+				getLogger().info("Estimated DB size in MB (without Bloom filter): " + (dedup * 10) / (1024 * 1024) );
 				if (intConfigValue(GSConfigKey.MAX_DUST) >= 0) {
 					getLogger().info("Dust ratio: " + ((double) dustSum) / totalKmerSum);
 				}
@@ -102,11 +112,14 @@ public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<Long, P> 
 		return fastaReader;
 	}
 
-	protected static class MyFastaReader extends AbstractStoreFastaReader {
+	protected class MyFastaReader extends AbstractStoreFastaReader {
+		private final long hashBase;
+
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
 				int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
 			super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId,
 					maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases);
+			hashBase = random.nextLong();
 		}
 
 		public long getIncludedKmers() {
@@ -123,8 +136,19 @@ public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<Long, P> 
 
 		@Override
 		protected boolean handleStore() {
+			// Hashing proves to be extremely important for a good estimate.
+			long hash = MurmurHash3DropIn.hash64(byteRingBuffer.getStandardKMer(), hashBase);
+			if (multiThreading) {
+				synchronized (hll) {
+					hll.addRaw(hash);
+				}
+			}
+			else {
+				hll.addRaw(hash);
+			}
 			return true;
 		}
+
 
 	/* This would be faster but the estimate in kmers is a little less accurate:
 	@Override

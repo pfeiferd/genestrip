@@ -1,26 +1,26 @@
 /*
- * 
+ *
  * “Commons Clause” License Condition v1.0
- * 
- * The Software is provided to you by the Licensor under the License, 
+ *
+ * The Software is provided to you by the Licensor under the License,
  * as defined below, subject to the following condition.
- * 
- * Without limiting other conditions in the License, the grant of rights under the License 
+ *
+ * Without limiting other conditions in the License, the grant of rights under the License
  * will not include, and the License does not grant to you, the right to Sell the Software.
- * 
- * For purposes of the foregoing, “Sell” means practicing any or all of the rights granted 
- * to you under the License to provide to third parties, for a fee or other consideration 
- * (including without limitation fees for hosting or consulting/ support services related to 
- * the Software), a product or service whose value derives, entirely or substantially, from the 
- * functionality of the Software. Any license notice or attribution required by the License 
+ *
+ * For purposes of the foregoing, “Sell” means practicing any or all of the rights granted
+ * to you under the License to provide to third parties, for a fee or other consideration
+ * (including without limitation fees for hosting or consulting/ support services related to
+ * the Software), a product or service whose value derives, entirely or substantially, from the
+ * functionality of the Software. Any license notice or attribution required by the License
  * must also include this Commons Clause License Condition notice.
- * 
+ *
  * Software: genestrip
- * 
+ *
  * License: Apache 2.0
- * 
+ *
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
- * 
+ *
  */
 package org.metagene.genestrip;
 
@@ -268,15 +268,23 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
         registerGoal(extractCSVGoal);
 
         // Create database and bloom filter
-        FillSizeGoal<P> fillSizeGoal = new FillSizeGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal,
-                additionalFastasGoal, accessionMapGoal);
-        registerGoal(fillSizeGoal);
 
-        /* Not needed anymore with HyperLogLog;
-        ObjectGoal<Long, P> fillBloomGoal = new FillBloomFilterGoal(project, getExecutionContext(project), categoriesGoal,
-                taxNodesGoal, refSeqFnaFilesGoal, additionalFastasGoal, accessionMapGoal, fillSizeGoal);
-        registerGoal(fillBloomGoal);
-         */
+        ObjectGoal<Long, P> fillSizeGoal;
+        // HyperLogLog for sizing is experimental:
+        if (project.booleanConfigValue(GSConfigKey.USE_HLL_FOR_DB_SIZING)) {
+            fillSizeGoal = new FastFillSizeGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal,
+                    additionalFastasGoal, accessionMapGoal);
+            registerGoal(fillSizeGoal);
+        } else {
+            ObjectGoal<Long, P> basicSizeGoal = new FillSizeGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal,
+                    additionalFastasGoal, accessionMapGoal);
+            registerGoal(basicSizeGoal);
+
+            ObjectGoal<Long, P> fillBloomGoal = new FillBloomFilterGoal(project, getExecutionContext(project), categoriesGoal,
+                    taxNodesGoal, refSeqFnaFilesGoal, additionalFastasGoal, accessionMapGoal, basicSizeGoal);
+            registerGoal(fillBloomGoal);
+            fillSizeGoal = fillBloomGoal;
+        }
 
         FillDBGoal<P> fillDBGoal = new FillDBGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, taxTreeGoal, refSeqFnaFilesGoal,
                 additionalFastasGoal, accessionMapGoal, fillSizeGoal, projectSetupGoal);
