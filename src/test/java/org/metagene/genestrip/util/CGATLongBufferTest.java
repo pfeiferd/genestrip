@@ -221,8 +221,7 @@ public class CGATLongBufferTest extends TestCase {
 	 */
 
 	@Ignore
-	@Test
-	public void testGenerateCSVTable() {
+	public void /*test*/generateCSVTable() {
 		int[] pickThresholds = { 1, 5, 10, 50, 100, 500, 1000, 5000 };
 				/*
 				new int[18];
