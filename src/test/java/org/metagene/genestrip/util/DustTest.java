@@ -103,6 +103,19 @@ public class DustTest extends TestCase {
         }
     }
 
+
+    /*
+    public void testDustValue() {
+        CGATRingBuffer buffer = new CGATRingBuffer(k, 500);
+        String kmer = "TTTTTTTTTTTTTCGGTGTTTTTTTGTTACT";
+        for (int i = 0; i < kmer.length(); i++) {
+            buffer.putForTest((byte) kmer.charAt(i));
+        }
+        System.out.println(buffer.getDustValue());
+    }
+     */
+
+
     protected int naiveDust(CGATRingBuffer buffer) {
         if (!buffer.isFilled()) {
             return -1;
