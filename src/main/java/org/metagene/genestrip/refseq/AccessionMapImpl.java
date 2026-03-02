@@ -48,11 +48,6 @@ public class AccessionMapImpl implements AccessionMap {
 
 	@Override
 	public TaxIdNode get(byte[] array, int start, int end, boolean completeGenomesOnly) {
-		return get(array, start, end, completeGenomesOnly, false);
-	}
-
-	@Override
-	public TaxIdNode get(byte[] array, int start, int end, boolean completeGenomesOnly, boolean allowPrefx) {
 		if (!sorted) {
 			throw new IllegalStateException("Map must be optimized before get.");
 		}
@@ -62,7 +57,7 @@ public class AccessionMapImpl implements AccessionMap {
 				!AccessionFileProcessor.isRNAAccession(array, start)) {
 			return null;
 		}
-		int pos = binaryKeySearch(0, entries, array, start, end, allowPrefx);
+		int pos = binaryKeySearch(0, entries, array, start, end);
 		if (pos < 0) {
 			return null;
 		}
@@ -80,13 +75,13 @@ public class AccessionMapImpl implements AccessionMap {
 		return counter;
 	}
 
-	protected int binaryKeySearch(int from, int to, byte[] array, int start, int end, boolean allowPrefx) {
+	protected int binaryKeySearch(int from, int to, byte[] array, int start, int end) {
 		byte[] midVal;
 		to--;
 		while (from <= to) {
 			final int mid = (from + to) >>> 1;
 			midVal = keys[mid];
-			final int res = compareBytes(midVal, array, start, end, allowPrefx);
+			final int res = compareBytes(midVal, array, start, end);
 			if (res < 0)
 				from = mid + 1;
 			else if (res > 0)
@@ -143,9 +138,9 @@ public class AccessionMapImpl implements AccessionMap {
 		}
 	}
 
-	protected int compareBytes(byte[] key1, byte[] array, int start, int end, boolean allowPrefx) {
+	protected int compareBytes(byte[] key1, byte[] array, int start, int end) {
 		int len = end - start;
-		if (allowPrefx || key1.length == len) {
+		if (key1.length == len) {
 			for (int i = 0; i < len; i++) {
 				if (key1[i] != array[start + i]) {
 					return key1[i] - array[start + i];
