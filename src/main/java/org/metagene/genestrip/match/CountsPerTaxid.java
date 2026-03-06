@@ -297,13 +297,13 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
         return Math.sqrt((accErrorSquaredSum  - (accErrorSum * accErrorSum) / reads) / (reads - 1));
     }
 
-    @MDCDescription(pos = 1003, name = "acc. class mean error", desc = "The accumulated `class mean error`.")
+    @MDCDescription(pos = 1003, name = "acc. mean class error", desc = "The accumulated `mean class error`.")
     public double getAccClassMeanError() {
         CountsPerTaxid.AccValues accValues = getAccValuesFor(ValueType.READS);
         return accClassErrorSum / (accValues == null ? 0 : accValues.getAccumulated());
     }
 
-    @MDCDescription(pos = 1004, name = "acc. class error std. dev.", desc = "The standard deviation of the `acc. class mean error`.")
+    @MDCDescription(pos = 1004, name = "acc. class error std. dev.", desc = "The standard deviation of the `acc. mean class error`.")
     public double getAccClassStdErrorDev() {
         CountsPerTaxid.AccValues accValues = getAccValuesFor(ValueType.READS);
         long reads = accValues == null ? 0 : accValues.getAccumulated();
