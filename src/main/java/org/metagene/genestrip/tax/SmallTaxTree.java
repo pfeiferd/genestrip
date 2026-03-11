@@ -74,7 +74,7 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 
 	public void initCountSize(int countSize) {
 		if (countSize <= 0) {
-			throw new IllegalArgumentException("Initialization size must by >= 0.");
+			throw new IllegalArgumentException("Initialization size must be >= 0.");
 		}
 		if (this.countSize > 0 && countSize != this.countSize) {
 			throw new IllegalStateException("Count count size can only be initialized once.");

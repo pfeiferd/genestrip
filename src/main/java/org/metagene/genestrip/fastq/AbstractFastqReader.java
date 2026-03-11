@@ -37,7 +37,7 @@ import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.io.BufferedLineReader;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.GSLogFactory;
-import org.metagene.genestrip.util.SimpleBlockinqQueue;
+import org.metagene.genestrip.util.SimpleBlockingQueue;
 
 public abstract class AbstractFastqReader {
 	private static final byte[] LINE_3 = new byte[] { '+', '\n' };
@@ -83,7 +83,7 @@ public abstract class AbstractFastqReader {
 		// This simple blocking queue gives about 5% to 10% performance boost (on my Mac)
 		// over the ArrayBlockingQueue. Also, it does not cause any memory churn
 		// (unlike ArrayBlockingQueue).
-		return new SimpleBlockinqQueue<>(maxQueueSize);
+		return new SimpleBlockingQueue<>(maxQueueSize);
 		// return new ArrayBlockingQueue<>(maxQueueSize);
 	}
 

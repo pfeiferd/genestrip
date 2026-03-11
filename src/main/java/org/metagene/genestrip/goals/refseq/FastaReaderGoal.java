@@ -28,22 +28,18 @@ import me.tongfei.progressbar.ProgressBar;
 import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.fastq.AbstractFastqReader;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
-import org.metagene.genestrip.refseq.AbstractStoreFastaReader;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.TaxTree;
-import org.metagene.genestrip.util.SimpleBlockinqQueue;
-import org.metagene.genestrip.util.StringLongDigitTrie;
+import org.metagene.genestrip.util.SimpleBlockingQueue;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal<T, P> {
@@ -138,7 +134,7 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
 
     protected BlockingQueue<FileAndNode> createBlockingQueue(int maxQueueSize) {
         // This simple blocking queue performs better than ArrayBlockingQueue.
-        return new SimpleBlockinqQueue<>(maxQueueSize);
+        return new SimpleBlockingQueue<>(maxQueueSize);
         //return new ArrayBlockingQueue<>(maxQueueSize);
     }
 

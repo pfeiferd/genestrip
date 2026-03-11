@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
  * A super simple implementation of BlockingQueue - just good enough in the context of genestrip and no more.
  * Still way more efficient than the standard implementation from the JDK for this purpose.
  */
-public class SimpleBlockinqQueue<T> implements BlockingQueue<T> {
+public class SimpleBlockingQueue<T> implements BlockingQueue<T> {
     private final Object lock = new Object();
 
     private final T[] array;
@@ -43,7 +43,7 @@ public class SimpleBlockinqQueue<T> implements BlockingQueue<T> {
     private int tail = 0;
 
     @SuppressWarnings("unchecked")
-    public SimpleBlockinqQueue(int capacity) {
+    public SimpleBlockingQueue(int capacity) {
         this.capacity = capacity;
         array = (T[]) new Object[capacity];
     }
@@ -165,7 +165,7 @@ public class SimpleBlockinqQueue<T> implements BlockingQueue<T> {
 
     @Override
     public boolean isEmpty() {
-        return size > 0;
+        return size == 0;
     }
 
     @Override

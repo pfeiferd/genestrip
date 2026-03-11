@@ -231,8 +231,6 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         }
     }
 
-    private byte[] kmerHelp = new byte[31];
-
     // Made final for potential inlining by JVM
     protected final boolean matchRead(final MatcherReadEntry entry, final int index) {
         boolean found = false;

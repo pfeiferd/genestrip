@@ -247,7 +247,7 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
         return Math.sqrt((classErrorSquaredSum  - classErrorSum * classErrorSum / reads) / (reads - 1));
     }
 
-    @MDCDescription(pos = 25, name = "contig len std. dev.", desc = "The standard deviation of the `contig length`.")
+    @MDCDescription(pos = 26, name = "contig len std. dev.", desc = "The standard deviation of the `contig length`.")
     public double getContigLenStdDev() {
         return Math.sqrt((contigLenSquaredSum  - ((double) kmers * kmers) / contigs) / (contigs - 1));
     }
