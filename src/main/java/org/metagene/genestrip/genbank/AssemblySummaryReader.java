@@ -120,7 +120,11 @@ public class AssemblySummaryReader {
 			this.ftpURL = ftpURL;
 			this.quality = quality;
 			if (ftpURL != null) {
-				this.fileName = ftpURL.substring(ftpURL.lastIndexOf('/') + 1) + "_genomic.fna.gz";
+				int pos = ftpURL.lastIndexOf('/');
+				if (pos == ftpURL.length() - 1) {
+					pos = ftpURL.lastIndexOf('/', pos - 1);
+				}
+				this.fileName = ftpURL.substring(pos + 1) + "_genomic.fna.gz";
 			} else {
 				String path = url.getFile();
 				this.fileName = path.substring(path.lastIndexOf('/') + 1);
