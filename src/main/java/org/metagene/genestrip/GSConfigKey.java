@@ -28,6 +28,7 @@ import java.io.PrintStream;
 import java.lang.annotation.Annotation;
 import java.util.*;
 
+import org.metagene.genestrip.bloom.BlockedKMerBloomFilter;
 import org.metagene.genestrip.genbank.AssemblySummaryReader.AssemblyQuality;
 import org.metagene.genestrip.goals.MDDescription;
 import org.metagene.genestrip.make.ConfigKey;
@@ -151,9 +152,11 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("TODO")
 	DB_RESIZING_FACTOR("dbResizingFactor", new DoubleConfigParamInfo(0, Double.MAX_VALUE, 1), GSGoalKey.DB),
 	@MDDescription("TODO")
-	BLOOM_FILTER_FPP("bloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.00000000001d), true, GSGoalKey.FILL_DB),
+	INDEX_BLOOM_FILTER_FPP("indexBloomFilterFpp", new DoubleConfigParamInfo(0, 1, BlockedKMerBloomFilter.DEFAULT_FPP), true, GSGoalKey.FILL_DB),
 	@MDDescription("TODO")
-	OPT_BLOOM_FILTER_FPP("optBloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.01d), true, GSGoalKey.FILL_DB),
+	FILL_BLOOM_FILTER_FPP("fillBloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.00000000001d), true, GSGoalKey.FILL_DB),
+	@MDDescription("TODO")
+	OPT_BLOOM_FILTER_FPP("optBloomFilterFpp", new DoubleConfigParamInfo(0, 1, BlockedKMerBloomFilter.DEFAULT_FPP), true, GSGoalKey.FILL_DB),
 	XOR_BLOOM_HASH("xorBloomHash", new BooleanConfigParamInfo(true)),
 	USE_HLL_FOR_DB_SIZING("useHLLForDBSizing", new BooleanConfigParamInfo(false)),
 	FASTA_LINE_SIZE_BYTES("fastaLineSizeBytes", new IntConfigParamInfo(4096, 65536, 4096), true, GSGoalKey.DB),

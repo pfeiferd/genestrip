@@ -644,11 +644,16 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		}
 		sorted = true;
 		// Rework the bloom filter...
+		boolean xor = filter instanceof XORKMerBloomFilter;
 		filter = null; // Set to null already for garbage collector.
-		if (optimizedFpp > 0) {
+		if (optimizedFpp < 1) {
+			if (optimizedFpp == BlockedKMerBloomFilter.DEFAULT_FPP) {
+				filter = new BlockedKMerBloomFilter();
+			}
+			else {
+				filter = xor ? new XORKMerBloomFilter(optimizedFpp) : new MurmurKMerBloomFilter(optimizedFpp);
+			}
 			// Now make a filter with High fpp.
-			filter = new BlockedKMerBloomFilter(10);
-			// new XORKMerBloomFilter(optimizedFpp) : new MurmurKMerBloomFilter(optimizedFpp);
 			filter.ensureExpectedSize(entries, false);
 			long kmer;
 			for (long i = 0; i < entries; i++) {

@@ -81,7 +81,7 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 			store = wrapper.getKmerStore();
 			readFastas();
 			store.fix();
-			set(new Database(store, wrapper.getTaxTree()));
+			set(new Database(store, wrapper.getTaxTree(), getProject().getConfigAsProperties()));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {

@@ -37,6 +37,9 @@ import java.util.Random;
 //
 // It is highly optimized for best classification performance...
 public class BlockedKMerBloomFilter implements KMerProbFilter {
+    public static double DEFAULT_FPP = 0.01d;
+    public static int DEFAULT_BITS_PER_KEY = 10;
+
     private static final long serialVersionUID = 1L;
 
     public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
@@ -47,6 +50,10 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
     private long[] data;
     private long[][] largeData;
     private long entries;
+
+    public BlockedKMerBloomFilter() {
+        this(DEFAULT_BITS_PER_KEY);
+    }
 
     public BlockedKMerBloomFilter(int bitsPerKey) {
         this(bitsPerKey, new Random(42).nextLong());

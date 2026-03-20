@@ -35,6 +35,7 @@ import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.bloom.BlockedKMerBloomFilter;
 import org.metagene.genestrip.bloom.KMerProbFilter;
 import org.metagene.genestrip.bloom.MurmurKMerBloomFilter;
 import org.metagene.genestrip.bloom.XORKMerBloomFilter;
@@ -78,9 +79,15 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Lo
     @Override
     protected void doMakeThis() {
         try {
-            filter = booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH) ?
-                    new XORKMerBloomFilter(doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP)) :
-                    new MurmurKMerBloomFilter(doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP));
+            double tempFpp = doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP);
+            if (tempFpp == BlockedKMerBloomFilter.DEFAULT_FPP) {
+                filter = new BlockedKMerBloomFilter();
+            }
+            else {
+                filter = booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH) ?
+                        new XORKMerBloomFilter(tempFpp) :
+                        new MurmurKMerBloomFilter(tempFpp);
+            }
             filter.ensureExpectedSize(sizeGoal.get(), false);
             logHeapInfo();
             readFastas();

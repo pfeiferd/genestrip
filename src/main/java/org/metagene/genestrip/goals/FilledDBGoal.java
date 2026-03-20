@@ -39,6 +39,7 @@ import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.Database;
+import org.metagene.genestrip.store.InvalidDatabaseClassException;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 public class FilledDBGoal<P extends GSProject> extends ObjectGoal<Database, P> {
@@ -79,7 +80,7 @@ public class FilledDBGoal<P extends GSProject> extends ObjectGoal<Database, P> {
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);
 		} catch (InvalidClassException e) {
-			throw new RuntimeException("Database file version does not match genestrip library version.", e);
+			throw InvalidDatabaseClassException.convertToRuntimeException(e);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

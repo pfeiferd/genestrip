@@ -74,7 +74,7 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 	@Override
 	protected void doMakeThis() {
 		store = new KMerSortedArray<>(intConfigValue(GSConfigKey.KMER_SIZE),
-				doubleConfigValue(GSConfigKey.BLOOM_FILTER_FPP), doubleConfigValue(GSConfigKey.OPT_BLOOM_FILTER_FPP), null, false, booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH));
+				doubleConfigValue(GSConfigKey.FILL_BLOOM_FILTER_FPP), doubleConfigValue(GSConfigKey.OPT_BLOOM_FILTER_FPP), null, false, booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH));
 		double resizeFactor = doubleConfigValue(GSConfigKey.DB_RESIZING_FACTOR);
 		long size = resizeFactor == 1d ? sizeGoal.get() : (long) (sizeGoal.get() * resizeFactor);
 		if (getLogger().isInfoEnabled()) {
@@ -113,7 +113,7 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 				getLogger().info("Sorting kmers ...");
 			}
 			store.optimize();
-			Database wrapper = new Database(store, smallTaxTree);
+			Database wrapper = new Database(store, smallTaxTree, getProject().getConfigAsProperties());
 			set(wrapper);
 		} catch (IOException e) {
 			throw new RuntimeException(e);

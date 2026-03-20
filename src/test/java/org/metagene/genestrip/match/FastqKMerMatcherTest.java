@@ -217,7 +217,7 @@ public class FastqKMerMatcherTest {
 		read[1] = 'G';
 		store.put(read, 0, TAXIDS[2]);
 
-		Database db = new Database(store, smallTree);
+		Database db = new Database(store, smallTree, null);
 
 		ExecutionContext bundle = new DefaultExecutionContext(null, 0, 1000);
 		FastqKMerMatcher matcher = createMatcher2(inlined, db.convertKMerStore(), bundle, smallTree, 0);

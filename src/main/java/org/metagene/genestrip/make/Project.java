@@ -33,6 +33,8 @@ import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.util.GSLogFactory;
 
 public abstract class Project {
+	public static String PROJECT_NAME = "projectName";
+
 	private final Log logger;
 	private final String name;
 	private final Map<ConfigKey, Object> paramMap;
@@ -41,6 +43,15 @@ public abstract class Project {
 		this.name = name;
 		logger = GSLogFactory.getLog("project " + name);
 		paramMap = new HashMap<ConfigKey, Object>();
+	}
+
+	public Properties getConfigAsProperties() {
+		Properties props = new Properties();
+		for (ConfigKey key : paramMap.keySet()) {
+			props.put(key.getName(), paramMap.get(key));
+		}
+		props.setProperty(PROJECT_NAME, getName());
+		return props;
 	}
 	
 	protected Log getLogger() {
