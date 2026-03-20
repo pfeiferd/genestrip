@@ -46,6 +46,10 @@ import org.metagene.genestrip.util.GSLogFactory;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 public class GSProject extends Project {
+    public static final String REFSEQ_RELEASE = "refseq.release";
+    public static final String GENESTRIP_DB_VERSION = "genestrip.dbVersion";
+    public static final String DB_CREATION_DATE = "dbCreationDate";
+
     public static final String CONFIG_PROPERTIES = "config.properties";
 
     public interface FileType {
@@ -66,6 +70,10 @@ public class GSProject extends Project {
         public String getSuffix() {
             return suffix;
         }
+    }
+
+    public static String getGenestripRuntimeVersion() {
+        return Project.class.getPackage().getImplementationVersion();
     }
 
     private final GSCommon common;

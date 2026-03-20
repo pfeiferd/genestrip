@@ -26,6 +26,9 @@ package org.metagene.genestrip.goals.refseq;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.util.Date;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -81,7 +84,9 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 			store = wrapper.getKmerStore();
 			readFastas();
 			store.fix();
-			set(new Database(store, wrapper.getTaxTree(), getProject().getConfigAsProperties()));
+			getProject().setAdditionalProperty(GSProject.GENESTRIP_DB_VERSION, GSProject.getGenestripRuntimeVersion());
+			getProject().setAdditionalProperty(GSProject.DB_CREATION_DATE, DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, Locale.US).format(new Date()));
+			set(new Database(store, wrapper.getTaxTree(), getProject().getAllAsProperties()));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {

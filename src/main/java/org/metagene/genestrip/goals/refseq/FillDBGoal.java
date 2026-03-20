@@ -113,7 +113,7 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 				getLogger().info("Sorting kmers ...");
 			}
 			store.optimize();
-			Database wrapper = new Database(store, smallTaxTree, getProject().getConfigAsProperties());
+			Database wrapper = new Database(store, smallTaxTree, getProject().getAllAsProperties());
 			set(wrapper);
 		} catch (IOException e) {
 			throw new RuntimeException(e);

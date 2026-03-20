@@ -57,7 +57,7 @@ public class CheckRefSeqRNumGoal<P extends GSProject> extends ObjectGoal<CheckRe
                 String currentReleaseNumber = out.toString().trim();
                 byte[] encoded = Files.readAllBytes(releaseNumberGoal.getFile().toPath());
                 String releaseNumber = new String(encoded).trim();
-
+                getProject().setAdditionalProperty(GSProject.REFSEQ_RELEASE, releaseNumber);
                 boolean equal = currentReleaseNumber.equals(releaseNumber);
                 if (!equal) {
                     if (getLogger().isWarnEnabled()) {

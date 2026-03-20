@@ -41,9 +41,6 @@ import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 public class Database implements Serializable {
-	public static final String GENESTRIP_VERSION = "genestrip.version";
-	public static final String CREATION_DATE = "creationDate";
-
 	private static final long serialVersionUID = 1L;
 
 	public static final String DB_FILE = "db.ser";
@@ -54,19 +51,11 @@ public class Database implements Serializable {
 	private final KMerSortedArray<String> kmerStore;
 	private Properties configInfo;
 
-	public static String getGenestripRuntimeVersion() {
-		return Database.class.getPackage().getImplementationVersion();
-	}
-
 	public Database(KMerSortedArray<String> kmerStore, SmallTaxTree taxTree, Properties configInfo) {
 		this.kmerStore = kmerStore;
 		this.taxTree = taxTree;
-		configInfo.setProperty(GENESTRIP_VERSION, getGenestripRuntimeVersion());
-		configInfo.setProperty(CREATION_DATE, DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, Locale.US).format(new Date()));
-
 		this.configInfo = configInfo;
 	}
-
 
 	public KMerSortedArray<String> getKmerStore() {
 		return kmerStore;

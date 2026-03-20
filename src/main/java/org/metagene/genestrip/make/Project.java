@@ -29,20 +29,36 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
-import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.util.GSLogFactory;
 
 public abstract class Project {
-	public static String PROJECT_NAME = "projectName";
+	public static final String PROJECT_NAME = "projectName";
 
 	private final Log logger;
 	private final String name;
 	private final Map<ConfigKey, Object> paramMap;
+	private final Properties additionalProperties;
 	
 	public Project(String name) {
 		this.name = name;
 		logger = GSLogFactory.getLog("project " + name);
 		paramMap = new HashMap<ConfigKey, Object>();
+		additionalProperties = new Properties();
+		setAdditionalProperty(PROJECT_NAME, name);
+	}
+
+	public void setAdditionalProperty(String key, String value) {
+		additionalProperties.setProperty(key, value);
+	}
+
+	public String getAdditionalProperty(String key) {
+		return additionalProperties.getProperty(key);
+	}
+
+	public Properties getAdditionalProperties() {
+		Properties props = new Properties();
+		props.putAll(additionalProperties);
+		return props;
 	}
 
 	public Properties getConfigAsProperties() {
@@ -50,7 +66,13 @@ public abstract class Project {
 		for (ConfigKey key : paramMap.keySet()) {
 			props.put(key.getName(), paramMap.get(key));
 		}
-		props.setProperty(PROJECT_NAME, getName());
+		return props;
+	}
+
+	public Properties getAllAsProperties() {
+		Properties props = new Properties();
+		props.putAll(getConfigAsProperties());
+		props.putAll(additionalProperties);
 		return props;
 	}
 	
