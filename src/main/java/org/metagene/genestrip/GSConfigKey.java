@@ -272,6 +272,12 @@ public enum GSConfigKey implements ConfigKey {
 	}
 
 	GSConfigKey(String name, ConfigParamInfo<?> param, boolean internal, GSGoalKey... forGoals) {
+		if (name == null) {
+			throw new NullPointerException("name");
+		}
+		if (param == null) {
+			throw new NullPointerException("param");
+		}
 		this.name = name;
 		this.param = param;
 		this.internal = internal;

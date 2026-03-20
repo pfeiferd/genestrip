@@ -61,7 +61,7 @@ public class CheckRefSeqRNumGoal<P extends GSProject> extends ObjectGoal<CheckRe
                 boolean equal = currentReleaseNumber.equals(releaseNumber);
                 if (!equal) {
                     if (getLogger().isWarnEnabled()) {
-                        getLogger().warn("You are working with an outdated RefSeq release. Your release: " + releaseNumber + ". Current release: " + currentReleaseNumber);
+                        getLogger().warn("You are working with an outdated RefSeq release. Your release: " + releaseNumber + ". Current release: " + currentReleaseNumber + ".");
                     }
                 }
                 set(equal ? Result.CURRENT : Result.OUTDATED);

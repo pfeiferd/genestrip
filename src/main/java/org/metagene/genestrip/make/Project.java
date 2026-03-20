@@ -48,7 +48,7 @@ public abstract class Project {
 	}
 
 	public void setAdditionalProperty(String key, String value) {
-		additionalProperties.setProperty(key, value);
+		additionalProperties.setProperty(key, String.valueOf(value));
 	}
 
 	public String getAdditionalProperty(String key) {
@@ -64,7 +64,7 @@ public abstract class Project {
 	public Properties getConfigAsProperties() {
 		Properties props = new Properties();
 		for (ConfigKey key : paramMap.keySet()) {
-			props.put(key.getName(), paramMap.get(key));
+			props.put(key.getName(), String.valueOf(paramMap.get(key)));
 		}
 		return props;
 	}
