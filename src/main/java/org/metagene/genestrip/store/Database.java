@@ -100,7 +100,7 @@ public class Database implements Serializable {
 			if (versionInfo != null) {
 				zipEntry = new ZipEntry(CONFIG_INFO_FILE);
 				zipOut.putNextEntry(zipEntry);
-				getConfigInfo().store(zipOut, "Genestrip database version information");
+				getConfigInfo().store(zipOut, "Genestrip database configuration information");
 				zipOut.closeEntry();
 			}
 
