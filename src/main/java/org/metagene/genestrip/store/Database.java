@@ -25,9 +25,6 @@
 package org.metagene.genestrip.store;
 
 import java.io.*;
-import java.text.DateFormat;
-import java.util.Date;
-import java.util.Locale;
 import java.util.Properties;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
