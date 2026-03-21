@@ -105,7 +105,7 @@ public class GenDocFiles {
 					continue;
 				}
 				for (Goal<GSProject> to : goal.getDependencies()) {
-					if (to.getKey().equals(GSGoalKey.SETUP)) {
+					if (to == null || to.getKey().equals(GSGoalKey.SETUP)) {
 						continue;
 					}
 					ps.print(goal.getKey().getName());

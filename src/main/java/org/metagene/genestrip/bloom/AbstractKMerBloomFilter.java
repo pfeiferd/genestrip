@@ -24,11 +24,8 @@
  */
 package org.metagene.genestrip.bloom;
 
-import org.metagene.genestrip.io.StreamProvider;
-import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.LargeBitVector;
 
-import java.io.*;
 import java.util.Random;
 
 public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
@@ -117,15 +114,9 @@ public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
 		return (long) (-n * Math.log(p) / (Math.log(2) * Math.log(2)));
 	}
 
-	/**
-	 * Competing calls to putLong are multi-threading enabled.
-	 * @param data
-	 */
 	@Override
 	public void putLong(final long data) {
-		synchronized (this) {
-			entries++;
-		}
+		entries++;
 		for (int i = 0; i < hashes; i++) {
 			bitVector.set(reduce(hash(data, i)));
 		}
