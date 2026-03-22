@@ -135,8 +135,7 @@ public class Database implements Serializable {
 					// We want the version info as the first thing.
 					// We assume it got stored as first thing and zip maintains this order in the
 					// underlying zip file.
-					if (entryName.equals(CONFIG_INFO_FILE) && configInfo == null) {
-						configInfo = new Properties();
+					if (entryName.equals(CONFIG_INFO_FILE)) {
 						configInfo.load(zis);
 						zis.closeEntry();
 					} else if (entryName.equals(DB_FILE) && res == null) {
