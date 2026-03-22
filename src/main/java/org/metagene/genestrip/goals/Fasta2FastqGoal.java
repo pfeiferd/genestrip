@@ -99,7 +99,7 @@ public class Fasta2FastqGoal<P extends GSProject> extends FileListGoal<P> {
         @Override
         protected void infoLine() {
             out.print("@");
-            ByteArrayUtil.println(target, 0, size - 1, out);
+            ByteArrayUtil.println(target, (size > 0 && target[0] == '>') ? 1 : 0, size - 1, out);
         }
 
         @Override
