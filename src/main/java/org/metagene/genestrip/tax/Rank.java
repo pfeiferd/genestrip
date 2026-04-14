@@ -42,7 +42,7 @@ public enum Rank {
 	SECTION("section", GENUS.level + 10),
 	// Additional, artificial ranks for tracking where k-mers originate from:
 	FILE("FILE", -1),
-	ID("ID", -1),;
+	ID("ID", -1);
 
 	public static final int INDETERMINATE_LEVEL = -1;
 
