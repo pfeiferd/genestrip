@@ -42,7 +42,10 @@ public enum Rank {
 	SECTION("section", GENUS.level + 10),
 	// Additional, artificial ranks for tracking where k-mers originate from:
 	FILE("FILE", -1),
-	ID("ID", -1);
+	ID("ID", -1),
+	// A leaf in the NCBI-taxonomy try with it own taxid (no file, no id, often times as species or below)
+	// Not used yet.
+	TAX_LEAF("leaf", -1);
 
 	public static final int INDETERMINATE_LEVEL = -1;
 
