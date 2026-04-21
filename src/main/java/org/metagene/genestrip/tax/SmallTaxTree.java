@@ -205,15 +205,16 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		return root;
 	}
 
-	public Iterator<SmallTaxIdNode> iterator() {
+	public SmallTreeIterator iterator() {
 		List<Integer> posL = new ArrayList<>();
 		if (root != null) {
 			posL.add(-1);
 		}
 
-		return new Iterator<SmallTaxIdNode>() {
+		return new SmallTreeIterator() {
 			private SmallTaxIdNode nextNode = root;
 			private List<Integer> posList = posL;
+			private boolean lastChildOnLevel = false;
 
 			@Override
 			public SmallTaxIdNode next() {
@@ -222,6 +223,7 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 				}
 				SmallTaxIdNode res = nextNode;
 				int nextPos = posList.get(posL.size() - 1) + 1;
+				lastChildOnLevel = nextNode.subNodes == null || nextPos == nextNode.subNodes.length -1;
 				while (nextNode.subNodes == null || nextPos >= nextNode.subNodes.length) {
 					posList.remove(posL.size() - 1);
 					if (posL.isEmpty()) {
@@ -241,6 +243,11 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 			@Override
 			public boolean hasNext() {
 				return posL.size() != 0;
+			}
+
+			@Override
+			public boolean isLastChildOnLevel() {
+				return lastChildOnLevel;
 			}
 		};
 	}
@@ -421,5 +428,9 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 			}
 			return node;
 		}
+	}
+
+	public interface SmallTreeIterator extends Iterator<SmallTaxIdNode> {
+		public boolean isLastChildOnLevel();
 	}
 }
