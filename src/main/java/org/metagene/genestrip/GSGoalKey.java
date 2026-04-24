@@ -61,6 +61,8 @@ public enum GSGoalKey implements GoalKey {
 	FILTER("filter", true),
 	@MDDescription("Extract reads from fastq files based on matching descriptors. See also config key `extractKey`.")
 	EXTRACT("extract", true),
+	@MDDescription("Generates a compact visual taxonomy tree in SVG-format to represent the database content.")
+	SVG_TAX_TREE("svgtaxtree", true),
 
 	// Non user Goals
 	@MDDescription("Transform a fasta file or streaming resource to fastq file.")

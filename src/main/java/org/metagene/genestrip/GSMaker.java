@@ -370,6 +370,9 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
         Goal<P> db2fastqGoal = new DB2FastqGoal(project, GSGoalKey.DB2FASTQ, db2fastqTaxNodesGoal, loadDBGoal, projectSetupGoal);
         registerGoal(db2fastqGoal);
 
+        SVGTaxTreeGoal<P> svgTaxTreeGoal = new SVGTaxTreeGoal<P>(project, GSGoalKey.SVG_TAX_TREE, loadDBGoal, projectSetupGoal);
+        registerGoal(svgTaxTreeGoal);
+
         // Use database and bloom filter
 
         ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal = new FastqMapGoal(project, true,

@@ -45,6 +45,7 @@ public abstract class Main<P extends GSProject> {
     private String target;
     private String[] restArgs;
     private GSMaker<P> maker;
+    private boolean isolateGoals;
 
     public Main() {
         options = createOptions();
@@ -78,6 +79,8 @@ public abstract class Main<P extends GSProject> {
         boolean downloadToCommon = line.hasOption("ll");
 
         String dbPath = line.getOptionValue("db");
+
+        isolateGoals = line.hasOption("i");
 
         restArgs = line.getArgs();
         if (restArgs.length == 0) {
@@ -136,6 +139,10 @@ public abstract class Main<P extends GSProject> {
         Option target = Option.builder("t").hasArg().argName("target")
                 .desc("Generation target ('make', 'clean', 'cleanall' or 'cleantotal'). The default is 'make'.").build();
         options.addOption(target);
+
+        Option isolateGoals = Option.builder("i").hasArg(false).argName("isolate goals")
+                .desc("If several goals are given, it runs them without reusing intermediate results of object goals between the given goals. Isolation allows for freeing memory resources held by intermediate results but may also cause recomputation. The default is no isolation.").build();
+        options.addOption(isolateGoals);
 
         Option fastqs = Option.builder("f").hasArgs().valueSeparator(',').argName("fqfile1,fqfile2,...").desc(
                         "Input fastq files as paths or URLs to be processed via the goals 'filter', 'match' or 'matchlr'. When a URL is given, the fastq file will not be downloaded but data streaming will be applied unless '-l' or '-ll' is given.")
@@ -229,7 +236,7 @@ public abstract class Main<P extends GSProject> {
                 break;
             default:
             case "make":
-                maker.make(ks);
+                maker.make(isolateGoals, ks);
                 break;
         }
         out.println("Done with target " + getTarget() + " for goals " + keys);

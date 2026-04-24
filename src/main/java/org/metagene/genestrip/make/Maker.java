@@ -104,13 +104,27 @@ public abstract class Maker<P extends Project> {
 	public Goal<P> getGoal(GoalKey key) {
 		return goalsByKey.get(key);
 	}
-	
+
 	public void make(GoalKey... keys) {
-		createInternalGoal(keys).make();
+		make(false, keys);
+	}
+
+	public void make(boolean isolate, GoalKey... keys) {
+		if (isolate) {
+			for (GoalKey key : keys) {
+				Goal goal = getGoal(key);
+				if (goal != null) {
+					goal.make();
+				}
+			}
+		}
+		else {
+			createInternalGoal(keys).make();
+		}
 	}
 
 	// We need this goal for the functionality regarding "potentiallyForMakeRequired" in class Goal
-	private Goal<P> createInternalGoal(GoalKey... keys) {
+	protected Goal<P> createInternalGoal(GoalKey... keys) {
 		return new Goal<P>(getProject(), INTERNAL_KEY, getGoals(keys)) {
 			@Override
 			public boolean isMade() {

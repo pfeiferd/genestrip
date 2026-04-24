@@ -177,6 +177,26 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("Whether to accept lowercase bases for *k*-mers.")
 	ENABLE_LOWERCASE_BASES("lowerCaseBases", new BooleanConfigParamInfo(true), false, GSGoalKey.DB),
 
+	// SVG Database content
+	@MDDescription("The font name for the texts in the generated tree.")
+	SVG_FONT("svgFont", new StringConfigParamInfo("SansSerif"), false, GSGoalKey.SVG_TAX_TREE),
+	@MDDescription("The font size for the texts in the generated tree.")
+	SVG_FONT_SIZE("svgFontSize", new IntConfigParamInfo(1, 100, 18), false, GSGoalKey.SVG_TAX_TREE),
+	@MDDescription("How much a line of text in the tree is de- or increased with regard to the normally required line height.")
+	SVG_LINE_HEIGHT_FACTOR("svgLineHeightFactor", new DoubleConfigParamInfo(0.5, 10, 1), false, GSGoalKey.SVG_TAX_TREE),
+	@MDDescription("Factor for standard indentation of child nodes in tree.")
+	SVG_INDENTATION_FACTOR("svgIndentFactor", new DoubleConfigParamInfo(0, 10, 0.75), false, GSGoalKey.SVG_TAX_TREE),
+	@MDDescription("Gap between horizontal line for child node and node text as a ratio of the font size.")
+	SVG_TEXT_GAP_FACTOR("svgTextGapFactor", new DoubleConfigParamInfo(0, 1, 0.25), false, GSGoalKey.SVG_TAX_TREE),
+	@MDDescription("Factor for additional indentation to reflect *k*-mers of node. The base value is normalized to [0,1], where 1 corresponds to the maximum *k*-mers per taxid as stored in the database.")
+	SVG_KMER_NODE_INDENT_FACTOR("svgKmerNodeIndentFactor", new DoubleConfigParamInfo(0, Double.MAX_VALUE, 0),false, GSGoalKey.SVG_TAX_TREE),
+	@MDDescription("Weather to perform log-based indentation for `svgKmerNodeIndentFactor` instead of linear indentation.")
+	SVG_LOG_BASED_INDENT("svgLogBasedIndent", new BooleanConfigParamInfo(false), false, GSGoalKey.SVG_TAX_TREE),
+	@MDDescription("Weather to use bold text for tax ids requested via the project file `taxids.txt`.")
+	SVG_REQ_NODES("svgReqNodesBold", new BooleanConfigParamInfo(true), false, GSGoalKey.SVG_TAX_TREE),
+	@MDDescription("Weather to add the rank in the node text.")
+	SVG_SHOW_RANK("svgShowRank", new BooleanConfigParamInfo(false), false, GSGoalKey.SVG_TAX_TREE),
+
 	// Match
 	@MDDescription("Affects the log level `trace`: Defines after how many reads per fastq file, information on the matching progress is logged. If less than 1, then no progress information is logged.")
 	LOG_PROGRESS_UPDATE_CYCLE("logProgressUpdateCycle", new LongConfigParamInfo(0, Long.MAX_VALUE, 1000000), GSGoalKey.MATCH, GSGoalKey.MATCHLR, GSGoalKey.FILTER),
