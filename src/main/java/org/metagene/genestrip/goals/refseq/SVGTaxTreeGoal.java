@@ -53,7 +53,7 @@ public class SVGTaxTreeGoal<P extends GSProject> extends FileGoal<P> {
 
     @Override
     public List<File> getFiles() {
-        return Collections.singletonList(getProject().getOutputFile(getKey().getName(), GSProject.GSFileType.CSV, false));
+        return Collections.singletonList(getProject().getOutputFile(getKey().getName(), GSProject.GSFileType.SVG, false));
     }
 
     @Override

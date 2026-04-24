@@ -58,7 +58,7 @@ public class GSProject extends Project {
 
     public enum GSFileType implements FileType {
         FASTQ_RES(".fastq"), FASTQ(".fastq"), FASTA(".fasta"), CSV(".csv"), KRAKEN_OUT(".out"), KRAKEN_OUT_RES(".out"),
-        SER(".ser"), DB(".zip"), FILTER(".ser"), LOG(".log");
+        SER(".ser"), DB(".zip"), FILTER(".ser"), LOG(".log"), SVG(".svg");
 
         private final String suffix;
 
@@ -225,6 +225,7 @@ public class GSProject extends Project {
                 case FASTA:
                     return getFastaDir();
                 case CSV:
+                case SVG:
                     return getResultsDir();
                 case KRAKEN_OUT:
                 case KRAKEN_OUT_RES:
