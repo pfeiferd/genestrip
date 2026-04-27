@@ -1,0 +1,120 @@
+<!--
+ “Commons Clause” License Condition v1.0
+  
+ The Software is provided to you by the Licensor under the License, 
+ as defined below, subject to the following condition.
+  
+ Without limiting other conditions in the License, the grant of rights under the License 
+ will not include, and the License does not grant to you, the right to Sell the Software.
+  
+ For purposes of the foregoing, “Sell” means practicing any or all of the rights granted 
+ to you under the License to provide to third parties, for a fee or other consideration 
+ (including without limitation fees for hosting or consulting/ support services related to 
+ the Software), a product or service whose value derives, entirely or substantially, from the 
+ functionality of the Software. Any license notice or attribution required by the License 
+ must also include this Commons Clause License Condition notice.
+  
+ Software: genestrip
+  
+ License: Apache 2.0
+  
+ Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de) 
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<artifactId>genestrip</artifactId>
+		<groupId>org.genestrip</groupId>
+		<version>2.6</version>
+	</parent>
+	<artifactId>ft</artifactId>
+	<packaging>jar</packaging>
+
+	<properties>
+		<licensedir>${maven.multiModuleProjectDirectory}</licensedir>
+		<main.class>org.metagene.genestrip.finertree.FinerTreeMain</main.class>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>base</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>core</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+			</resource>
+			<resource>
+				<directory>${licensedir}</directory>
+				<includes>
+					<include>LICENSE.txt</include>
+				</includes>
+				<targetPath>META-INF</targetPath>
+			</resource>
+		</resources>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<archive>
+						<manifest>
+							<addClasspath>true</addClasspath>
+							<mainClass>${main.class}</mainClass>
+							<addDefaultImplementationEntries>
+								true
+							</addDefaultImplementationEntries>
+						</manifest>
+					</archive>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<version>2.7.9</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>repackage</goal>
+						</goals>
+						<configuration>
+							<classifier>all</classifier>
+							<mainClass>${main.class}</mainClass>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>com.coderplus.maven.plugins</groupId>
+				<artifactId>copy-rename-maven-plugin</artifactId>
+				<version>1.0</version>
+				<executions>
+					<execution>
+						<id>copy-file</id>
+						<phase>package</phase>
+						<goals>
+							<goal>copy</goal>
+						</goals>
+						<configuration>
+							<sourceFile>${project.build.directory}/${project.build.finalName}-all.jar</sourceFile>
+							<destinationFile>${maven.multiModuleProjectDirectory}/lib/${project.parent.artifactId}.jar</destinationFile>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>
