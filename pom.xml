@@ -25,12 +25,14 @@
 	<groupId>org.genestrip</groupId>
 	<artifactId>genestrip</artifactId>
 	<version>2.6</version>
-	<packaging>jar</packaging>
+	<packaging>pom</packaging>
 
 	<properties>
-		<main.class>org.metagene.genestrip.Main</main.class>
+		<revision>2.7</revision>
+		<java.version>9</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<javapackager.jdkPath>C:/java/jdk-25</javapackager.jdkPath>
+		<main.class>org.metagene.genestrip.finertree.FinerTreeMain</main.class>
 	</properties>
 
 	<name>genestrip</name>
@@ -63,193 +65,129 @@
 		<url>https://github.com/pfeiferd/genestrip/tree/master</url>
 	</scm>
 
-	<dependencies>
-		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-exec</artifactId>
-			<version>1.3</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-csv</artifactId>
-			<version>1.9.0</version>
-		</dependency>
-		<dependency>
-			<groupId>commons-codec</groupId>
-			<artifactId>commons-codec</artifactId>
-			<version>1.15</version>
-		</dependency>
-		<dependency>
-			<groupId>commons-net</groupId>
-			<artifactId>commons-net</artifactId>
-			<version>3.9.0</version>
-		</dependency>
-		<dependency>
-			<groupId>commons-logging</groupId>
-			<artifactId>commons-logging</artifactId>
-			<version>1.2</version>
-		</dependency>
-		<dependency>
-			<groupId>commons-io</groupId>
-			<artifactId>commons-io</artifactId>
-			<version>2.14.0</version>
-		</dependency>
-		<dependency>
-			<groupId>commons-cli</groupId>
-			<artifactId>commons-cli</artifactId>
-			<version>1.9.0</version>
-		</dependency>
-		<dependency>
-			<groupId>it.unimi.dsi</groupId>
-			<artifactId>fastutil</artifactId>
-			<version>8.5.13</version>
-		</dependency>
-		<dependency>
-			<groupId>net.agkn</groupId>
-			<artifactId>hll</artifactId>
-			<version>1.6.0</version>
-		</dependency>
-		<dependency>
-			<groupId>me.tongfei</groupId>
-			<artifactId>progressbar</artifactId>
-			<version>0.10.1</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.xmlgraphics</groupId>
-			<artifactId>batik-svggen</artifactId>
-			<version>1.19</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.xmlgraphics</groupId>
-			<artifactId>batik-dom</artifactId>
-			<version>1.19</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-math3</artifactId>
-			<version>3.6.1</version>
-		</dependency>
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.13.2</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-compress</artifactId>
-			<version>1.26.0</version>
-			<scope>test</scope>
-		</dependency>
-	</dependencies>
+	<modules>
+		<module>base</module>
+		<module>core</module>
+		<module>ft</module>
+	</modules>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-exec</artifactId>
+				<version>1.3</version>
+			</dependency>
+			<dependency>
+				<groupId>commons-codec</groupId>
+				<artifactId>commons-codec</artifactId>
+				<version>1.15</version>
+			</dependency>
+			<dependency>
+				<groupId>commons-net</groupId>
+				<artifactId>commons-net</artifactId>
+				<version>3.9.0</version>
+			</dependency>
+			<dependency>
+				<groupId>commons-logging</groupId>
+				<artifactId>commons-logging</artifactId>
+				<version>1.2</version>
+			</dependency>
+			<dependency>
+				<groupId>commons-io</groupId>
+				<artifactId>commons-io</artifactId>
+				<version>2.14.0</version>
+			</dependency>
+			<dependency>
+				<groupId>me.tongfei</groupId>
+				<artifactId>progressbar</artifactId>
+				<version>0.10.1</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-csv</artifactId>
+				<version>1.9.0</version>
+			</dependency>
+			<dependency>
+				<groupId>commons-cli</groupId>
+				<artifactId>commons-cli</artifactId>
+				<version>1.9.0</version>
+			</dependency>
+			<dependency>
+				<groupId>it.unimi.dsi</groupId>
+				<artifactId>fastutil</artifactId>
+				<version>8.5.13</version>
+			</dependency>
+			<dependency>
+				<groupId>net.agkn</groupId>
+				<artifactId>hll</artifactId>
+				<version>1.6.0</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.xmlgraphics</groupId>
+				<artifactId>batik-svggen</artifactId>
+				<version>1.19</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.xmlgraphics</groupId>
+				<artifactId>batik-dom</artifactId>
+				<version>1.19</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-math3</artifactId>
+				<version>3.6.1</version>
+			</dependency>
+			<dependency>
+				<groupId>junit</groupId>
+				<artifactId>junit</artifactId>
+				<version>4.13.2</version>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-compress</artifactId>
+				<version>1.26.0</version>
+				<scope>test</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 	<build>
-		<resources>
-			<resource>
-				<directory>src/main/resources</directory>
-			</resource>
-			<resource>
-				<directory>${project.basedir}</directory>
-				<includes>
-					<include>LICENSE.txt</include>
-				</includes>
-				<targetPath>META-INF</targetPath>
-			</resource>
-		</resources>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.8.0</version>
-				<configuration>
-					<source>1.8</source>
-					<target>1.8</target>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>3.1.2</version>
-				<configuration>
-					<skipTests>true</skipTests>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-jar-plugin</artifactId>
-				<version>3.3.0</version>
-				<configuration>
-					<archive>
-						<manifest>
-							<addClasspath>true</addClasspath>
-							<mainClass>${main.class}</mainClass>
-							<addDefaultImplementationEntries>
-              					true
-            				</addDefaultImplementationEntries>
-						</manifest>
-					</archive>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-source-plugin</artifactId>
-				<version>2.2.1</version>
-				<executions>
-					<execution>
-						<id>attach-sources</id>
-						<goals>
-							<goal>jar-no-fork</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>3.6.3</version>
-				<executions>
-					<execution>
-						<id>attach-javadocs</id>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-				<version>2.7.9</version>
-				<executions>
-					<execution>
-						<goals>
-							<goal>repackage</goal>
-						</goals>
-						<configuration>
-							<classifier>all</classifier>
-							<mainClass>${main.class}</mainClass>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>com.coderplus.maven.plugins</groupId>
-				<artifactId>copy-rename-maven-plugin</artifactId>
-				<version>1.0</version>
-				<executions>
-					<execution>
-						<id>copy-file</id>
-						<phase>package</phase>
-						<goals>
-							<goal>copy</goal>
-						</goals>
-						<configuration>
-							<sourceFile>${project.build.directory}/${project.build.finalName}-all.jar</sourceFile>
-							<destinationFile>lib/${project.artifactId}.jar</destinationFile>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<version>3.8.0</version>
+					<configuration>
+						<source>${java.version}</source>
+						<target>${java.version}</target>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-surefire-plugin</artifactId>
+					<version>3.1.2</version>
+					<configuration>
+						<skipTests>true</skipTests>
+					</configuration>
+				</plugin>
+				<plugin>
+					<artifactId>maven-resources-plugin</artifactId>
+					<version>3.5.0</version>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-jar-plugin</artifactId>
+					<version>3.3.0</version>
+				</plugin>
+				<plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>versions-maven-plugin</artifactId>
+					<version>2.21.0</version>
+				</plugin>
+			</plugins>
+		</pluginManagement>
 	</build>
 	<reporting>
 		<plugins>
@@ -267,30 +205,23 @@
 	</reporting>
 	<profiles>
 		<profile>
-			<id>spotless</id>
+			<id>init-version</id>
 			<build>
 				<plugins>
 					<plugin>
-						<groupId>com.diffplug.spotless</groupId>
-						<artifactId>spotless-maven-plugin</artifactId>
-						<version>2.43.0</version>
-						<configuration>
-							<java>
-								<lineEndings>UNIX</lineEndings>
-								<includes>
-									<include>src/main/java/**/*.java</include>
-									<include>src/test/java/**/*.java</include>
-								</includes>
-								<licenseHeader>
-									<file>${project.basedir}/license-header</file>
-								</licenseHeader>
-							</java>
-						</configuration>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>versions-maven-plugin</artifactId>
+						<version>2.21.0</version>
 						<executions>
 							<execution>
+								<id>update-version</id>
+								<phase>clean</phase>
 								<goals>
-									<goal>check</goal>
+									<goal>set</goal>
 								</goals>
+								<configuration>
+									<newVersion>${revision}</newVersion>
+								</configuration>
 							</execution>
 						</executions>
 					</plugin>
@@ -329,7 +260,7 @@
 									<outfile>${project.build.directory}/${project.name}.exe</outfile>
 									<jar>${project.build.directory}/${project.build.finalName}-all.jar</jar>
 									<supportUrl>${project.url}</supportUrl>
-									<icon>${project.basedir}/src/main/resources/windows/logo.ico</icon>
+									<icon>core/src/main/resources/windows/logo.ico</icon>
 									<jre>
 										<path>../lib/jre</path>
 										<minVersion>1.8</minVersion>
@@ -457,6 +388,30 @@
 			<build>
 				<plugins>
 					<plugin>
+						<groupId>com.diffplug.spotless</groupId>
+						<artifactId>spotless-maven-plugin</artifactId>
+						<version>2.43.0</version>
+						<configuration>
+							<java>
+								<lineEndings>UNIX</lineEndings>
+								<includes>
+									<include>**/src/main/java/**/*.java</include>
+									<include>**/src/test/java/**/*.java</include>
+								</includes>
+								<licenseHeader>
+									<file>${project.basedir}/license-header</file>
+								</licenseHeader>
+							</java>
+						</configuration>
+						<executions>
+							<execution>
+								<goals>
+									<goal>check</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-surefire-plugin</artifactId>
 						<version>3.1.2</version>
@@ -465,7 +420,7 @@
 								<propertyName>project.build.directory</propertyName>
 								<buildDirectory>${project.build.directory}</buildDirectory>
 								<propertyName>project.directory</propertyName>
-								<buildDirectory>${project.directory}</buildDirectory>
+								<buildDirectory>${project.basedir}</buildDirectory>
 							</systemPropertyVariables>
 							<skipTests>false</skipTests>
 						</configuration>

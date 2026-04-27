@@ -51,12 +51,13 @@ Genestrip is structured as a standard [Maven 2 or 3](https://maven.apache.org/) 
 To build it, `cd` to the installation directory `genestrip`. Given a matching Maven and JDK installation, `mvn install` will compile and install the Genestrip program library. Afterwards a self-contained and executable `genestrip.jar` can be found under `./lib`. 
 
 Since version 0.5, Genestrip is also available on [Maven Central](https://repo1.maven.org/maven2/org/genestrip/genestrip/).
-Here  is the dependency:
+Here is the dependency:
 ```
 <dependency>
 	<groupId>org.genestrip</groupId>
 	<artifactId>genestrip</artifactId>
-	<version>2.6</version>
+	<version>2.7</version>
+	<packaging>pom</packaging>
 </dependency>
 ```
 You may check for higher versions and update the dependency accordingly...
@@ -367,4 +368,11 @@ from a project's `additional.txt` file.
 
 ### API-based usage
 
-An API-based invocation of the goals `match` and `filter` is straight-forward: Please check out the test class [`org.metagene.genestrip.APITest`](./src/test/java/org/metagene/genestrip/APITest.java) in the folder `src/test/java` as a code example.
+An API-based invocation of the goals `match` and `filter` is straight-forward: Please check out the test class [`org.metagene.genestrip.APITest`](core/src/test/java/org/metagene/genestrip/APITest.java) in the folder `src/test/java` as a code example.
+
+### Genestrip-FT
+
+Genestrip-FT is an extension of Genestrip found in the folder `ft`.
+It builds on Genestrip and has it own [README.md](ft/README.md) file.
+Genestrip-FT goals and classes are integrated in `lib/genestrip.jar` and are therefore available
+from the command line like any other Genestrip goal.
