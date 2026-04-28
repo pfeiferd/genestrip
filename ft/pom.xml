@@ -25,7 +25,7 @@
 	<parent>
 		<artifactId>genestrip</artifactId>
 		<groupId>org.genestrip</groupId>
-		<version>2.6</version>
+		<version>${revision}</version>
 	</parent>
 	<artifactId>ft</artifactId>
 	<packaging>jar</packaging>
