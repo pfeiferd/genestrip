@@ -126,11 +126,11 @@ public class APITest {
 	}
 
 	public static File getProjectDir() {
-		String projectDir = System.getProperty("project.directory");
+		String projectDir = System.getProperty("maven.multiModuleProjectDirectory");
 		if (projectDir != null) {
 			return new File(projectDir);
 		}
 		String relPath = APITest.class.getProtectionDomain().getCodeSource().getLocation().getFile();
-		return new File(relPath).getParentFile().getParentFile();
+		return new File(relPath).getParentFile().getParentFile().getParentFile();
 	}
 }
