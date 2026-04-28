@@ -55,9 +55,18 @@ Here is the dependency:
 ```
 <dependency>
 	<groupId>org.genestrip</groupId>
-	<artifactId>genestrip</artifactId>
+	<artifactId>base</artifactId>
 	<version>2.7</version>
-	<packaging>pom</packaging>
+</dependency>
+<dependency>
+	<groupId>org.genestrip</groupId>
+	<artifactId>core</artifactId>
+	<version>2.7</version>
+</dependency>
+<dependency>
+	<groupId>org.genestrip</groupId>
+	<artifactId>ft</artifactId>
+	<version>2.7</version>
 </dependency>
 ```
 You may check for higher versions and update the dependency accordingly...
