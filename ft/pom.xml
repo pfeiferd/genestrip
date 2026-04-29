@@ -217,7 +217,7 @@
                                 </goals>
                                 <configuration>
                                     <sourceFile>${project.build.directory}/${project.parent.artifactId}.exe</sourceFile>
-                                    <destinationFile>bin/${project.parent.artifactId}.exe</destinationFile>
+                                    <destinationFile>${maven.multiModuleProjectDirectory}/bin/${project.parent.artifactId}.exe</destinationFile>
                                 </configuration>
                             </execution>
                         </executions>
@@ -233,7 +233,7 @@
                                     <goal>copy-resources</goal>
                                 </goals>
                                 <configuration>
-                                    <outputDirectory>${project.basedir}/lib/jre</outputDirectory>
+                                    <outputDirectory>${maven.multiModuleProjectDirectory}/lib/jre</outputDirectory>
                                     <resources>
                                         <resource>
                                             <directory>${project.build.directory}/jlink/image</directory>
@@ -269,7 +269,7 @@
                                             </fileSets>
                                             <files>
                                                 <file>
-                                                    <sourceFile>${project.build.directory}/${project.parent.artifactId}.exe</sourceFile>
+                                                    <source>${project.build.directory}/${project.parent.artifactId}.exe</source>
                                                     <outputDirectory>bin</outputDirectory>
                                                 </file>
                                             </files>
