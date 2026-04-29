@@ -13,6 +13,7 @@
 |`matchlr`|X|X|Same as `match` but without doing read classification. This corresponds to the configuration setting `classifyReads=false`.|
 |`filter`|X|X|Filter fastq files as given by the `-f` or `-m` option. The resulting filtered fastq file(s) `filtered_...` will be stored under `<base dir>/projects/<project_name>/fastq/` unless specified otherwise via the `-r` option.|
 |`extract`|X|X|Extract reads from fastq files based on matching descriptors. See also config key `extractKey`.|
+|`svgtaxtree`|X|X|Generates a compact visual taxonomy tree in SVG-format to represent the database content.|
 |`fasta2fastq`||X|Transform a fasta file or streaming resource to fastq file.|
 |`matchres`||X|Analyze fastq files as given by the `-f` or `-m` option.|
 |`matchreslr`||X|Same as `matchres` but without doing read classification.|
