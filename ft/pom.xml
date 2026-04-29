@@ -146,7 +146,7 @@
                         <executions>
                             <execution>
                                 <id>l4j-genestrip</id>
-                                <phase>install</phase>
+                                <phase>verify</phase>
                                 <goals>
                                     <goal>launch4j</goal>
                                 </goals>
@@ -269,7 +269,7 @@
                                             </fileSets>
                                             <files>
                                                 <file>
-                                                    <source>${project.build.directory}/${project.name}.exe</source>
+                                                    <sourceFile>${project.build.directory}/${project.parent.artifactId}.exe</sourceFile>
                                                     <outputDirectory>bin</outputDirectory>
                                                 </file>
                                             </files>
