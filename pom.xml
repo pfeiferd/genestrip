@@ -278,7 +278,7 @@
                         <executions>
                             <execution>
                                 <id>l4j-genestrip</id>
-                                <phase>package</phase>
+                                <phase>install</phase>
                                 <goals>
                                     <goal>launch4j</goal>
                                 </goals>
@@ -320,7 +320,7 @@
                         <artifactId>jlink-maven-plugin</artifactId>
                         <executions>
                             <execution>
-                                <phase>package</phase>
+                                <phase>install</phase>
                                 <goals>
                                     <goal>jlink</goal>
                                 </goals>
@@ -343,7 +343,7 @@
                         <executions>
                             <execution>
                                 <id>copy-exe</id>
-                                <phase>package</phase>
+                                <phase>install</phase>
                                 <goals>
                                     <goal>copy</goal>
                                 </goals>
@@ -360,7 +360,7 @@
                         <executions>
                             <execution>
                                 <id>copy-jre</id>
-                                <phase>package</phase>
+                                <phase>install</phase>
                                 <goals>
                                     <goal>copy-resources</goal>
                                 </goals>
@@ -381,7 +381,7 @@
                         <executions>
                             <execution>
                                 <id>assembly</id>
-                                <phase>package</phase>
+                                <phase>install</phase>
                                 <goals>
                                     <goal>single</goal>
                                 </goals>
