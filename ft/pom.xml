@@ -274,6 +274,10 @@
                                                     <source>${project.build.directory}/${project.parent.artifactId}.exe</source>
                                                     <outputDirectory>bin</outputDirectory>
                                                 </file>
+                                                <file>
+                                                    <source>../LICENSE.txt</source>
+                                                    <outputDirectory>.</outputDirectory>
+                                                </file>
                                             </files>
                                         </assembly>
                                     </inlineDescriptors>
