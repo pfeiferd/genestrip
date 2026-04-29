@@ -216,8 +216,8 @@
                                     <goal>copy</goal>
                                 </goals>
                                 <configuration>
-                                    <sourceFile>${project.build.directory}/${project.name}.exe</sourceFile>
-                                    <destinationFile>bin/${project.name}.exe</destinationFile>
+                                    <sourceFile>${project.build.directory}/${project.parent.artifactId}.exe</sourceFile>
+                                    <destinationFile>bin/${project.parent.artifactId}.exe</destinationFile>
                                 </configuration>
                             </execution>
                         </executions>
