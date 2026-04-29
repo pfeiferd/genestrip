@@ -255,6 +255,7 @@
                                     <goal>single</goal>
                                 </goals>
                                 <configuration>
+                                    <finalName>${project.parent.artifactId}-${revision}</finalName>
                                     <inlineDescriptors>
                                         <assembly>
                                             <id>windows-x64</id>
