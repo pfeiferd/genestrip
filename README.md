@@ -200,7 +200,7 @@ A filtering database is typically smaller than a database required for *k*-mer m
 
 The usage of Genestrip:
 ```
-usage: genestrip [options] <project> [<goal1> <goal2>...]
+usage: genestrip-core [options] <project> [<goal1> <goal2>...]
  -C <key>=<value>           To set Genestrip configuration parameters via
                             the command line.
  -d <base dir>              Base directory for all data files. The default
@@ -214,6 +214,12 @@ usage: genestrip [options] <project> [<goal1> <goal2>...]
                             'matchlr'. When a URL is given, the fastq file
                             will not be downloaded but data streaming will
                             be applied unless '-l' or '-ll' is given.
+ -i                         If several goals are given, it runs them
+                            without reusing intermediate results of object
+                            goals between the given goals. Isolation
+                            allows for freeing memory resources held by
+                            intermediate results but may also cause
+                            recomputation. The default is no isolation.
  -k <key>                   Key used as a prefix for naming result files
                             in conjuntion with '-f'.
  -l                         Download fastqs from URLs to '<base
