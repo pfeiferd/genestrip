@@ -164,7 +164,7 @@
 									<outfile>${project.build.directory}/${project.name}.exe</outfile>
 									<jar>${project.build.directory}/${project.build.finalName}-all.jar</jar>
 									<supportUrl>${project.url}</supportUrl>
-									<icon>core/src/main/resources/windows/logo.ico</icon>
+									<icon>${project.basedir}/src/main/resources/windows/logo.ico</icon>
 									<jre>
 										<path>../lib/jre</path>
 										<minVersion>1.8</minVersion>
