@@ -51,7 +51,7 @@ Genestrip is structured as a standard [Maven 2 or 3](https://maven.apache.org/) 
 To build it, `cd` to the installation directory `genestrip`. Given a matching Maven and JDK installation, `mvn clean install` will compile and install the Genestrip program library. Afterwards, a self-contained and executable `genestrip.jar` can be found under `./lib`. 
 
 Since version 0.5, Genestrip is also available on [Maven Central](https://repo1.maven.org/maven2/org/genestrip/genestrip/).
-Here is the dependency:
+These are the dependencies:
 ```
 <dependency>
 	<groupId>org.genestrip</groupId>
