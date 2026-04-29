@@ -196,6 +196,7 @@
                                     <addmodules>
                                         <addmodule>java.base</addmodule>
                                         <addmodule>java.logging</addmodule>
+                                        <addmodule>java.desktop</addmodule>
                                     </addmodules>
                                     <noheaderfiles>true</noheaderfiles>
                                     <nomanpages>true</nomanpages>
@@ -260,7 +261,7 @@
                                             <formats>
                                                 <format>zip</format>
                                             </formats>
-                                            <baseDirectory>${project.name}</baseDirectory>
+                                            <baseDirectory>${project.parent.artifactId}</baseDirectory>
                                             <fileSets>
                                                 <fileSet>
                                                     <directory>${project.build.directory}/jlink/image</directory>
