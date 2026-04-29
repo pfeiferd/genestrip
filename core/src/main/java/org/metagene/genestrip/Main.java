@@ -197,7 +197,7 @@ public abstract class Main<P extends GSProject> {
         } catch (IOException | ParseException e) {
             HelpFormatter formatter = new HelpFormatter();
             Package p = Main.class.getPackage();
-            formatter.printHelp(p.getImplementationTitle() + " [options] <project> [<goal1> <goal2>...]", getOptions());
+            formatter.printHelp("genestrip [options] <project> [<goal1> <goal2>...]", getOptions());
             System.out.flush();
             System.out.println();
             e.printStackTrace();
