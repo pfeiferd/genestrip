@@ -20,5 +20,5 @@
 |`ftsvgtaxtree`|X|Same as `svgtaxtree` but for an FT database.|
 |`tax2kmers`||Counts the *k*-mers per taxid directly from the underlying genomic files given a corresponding *k*-mer is in the database at all.|
 |`fttax2kmers`||Same as `tax2kmers` but for FT database.|
-|`ftcons`|X|TODO|
-|`dbcons`|X|TODO|
+|`ftcons`||TODO|
+|`dbcons`||TODO|
