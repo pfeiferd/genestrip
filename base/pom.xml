@@ -25,10 +25,11 @@
 	<parent>
 		<artifactId>genestrip</artifactId>
 		<groupId>org.genestrip</groupId>
-		<version>${revision}</version>
+		<version>2.7</version>
 	</parent>
 	<artifactId>base</artifactId>
 	<packaging>jar</packaging>
+	<version>2.7</version>
 
 	<properties>
 		<licensedir>${maven.multiModuleProjectDirectory}</licensedir>
