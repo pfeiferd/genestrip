@@ -41,6 +41,9 @@ public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
 	protected int hashes;
 	protected long[] hashFactors;
 	protected long entries;
+	// For thread-safe put:
+	protected long[] entriesAddends;
+	protected final Object[] syncLocks;
 
 	public AbstractKMerBloomFilter(double fpp) {
 		if (fpp <= 0 || fpp >= 1) {
@@ -54,6 +57,10 @@ public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
 		largeBV = bitVector.isLarge();
 		entries = 0;
 		bits = 0;
+		syncLocks = new Object[256];
+		for (int i = 0; i < 256; i++) {
+			syncLocks[i] = new Object();
+		}
 	}
 
 	@Override
@@ -103,7 +110,16 @@ public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
 
 	@Override
 	public long getEntries() {
-		return entries;
+		if (entriesAddends != null) {
+			long sum = entries;
+			for (int i = 0; i < entriesAddends.length; i++) {
+				sum += entriesAddends[i];
+			}
+			return sum;
+		}
+		else {
+			return entries;
+		}
 	}
 
 	protected int optimalNumOfHashFunctions(long n, long m) {
@@ -112,6 +128,24 @@ public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
 
 	protected long optimalNumOfBits(long n, double p) {
 		return (long) (-n * Math.log(p) / (Math.log(2) * Math.log(2)));
+	}
+
+	public void putLongThreadSafe(final long data) {
+		for (int i = 0; i < hashes; i++) {
+			long bitPos = reduce(hash(data, i));
+			int syncIndex = ((int) ((byte) bitPos)) + 128;
+			// Does this really bring a performance gain??
+			// Locking is likely collision-free but must be done `hashes` times with computation of syncIndex...
+			synchronized (syncLocks[syncIndex]) {
+				bitVector.set(bitPos);
+				if (i == 0) {
+					if (entriesAddends == null) {
+						entriesAddends = new long[256];
+					}
+					entriesAddends[syncIndex]++;
+				}
+			}
+		}
 	}
 
 	@Override

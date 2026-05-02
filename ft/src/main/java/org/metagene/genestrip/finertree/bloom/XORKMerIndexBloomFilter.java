@@ -41,9 +41,14 @@ public class XORKMerIndexBloomFilter extends XORKMerBloomFilter {
         throw new UnsupportedOperationException();
     }
 
-    public void putLongInt(long data, int index) {
+    public void putLongInt(long data, final int index) {
         data = data ^ ((long) index) ^ (((long) index) << 32);
         super.putLong(data);
+    }
+
+    public void putLongIntThreadSafe(long data, final int index) {
+        data = data ^ ((long) index) ^ (((long) index) << 32);
+        super.putLongThreadSafe(data);
     }
 
     public boolean containsLongInt(long data, int index) {
