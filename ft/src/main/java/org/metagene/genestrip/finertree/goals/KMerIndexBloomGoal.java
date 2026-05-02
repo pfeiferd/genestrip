@@ -192,6 +192,10 @@ public class KMerIndexBloomGoal<P extends FTProject> extends FastaReaderGoal<XOR
                     int index = smallNode == null ? OTHER_VALUE : smallNode.storeIndex;
                     if (!filter.containsLongInt(kmer, index)) {
                         if (multiThreading) {
+                            // Yes, this helps immensly :) ...
+                            filter.putLongIntThreadSafe(kmer, index);
+                            // as opposed to a global synchronization:
+                            /*
                             synchronized (filter) {
                                 // This is a trick to enable more parallelism -
                                 // check again after synchronized to avoid synchronized further outside...
@@ -200,6 +204,7 @@ public class KMerIndexBloomGoal<P extends FTProject> extends FastaReaderGoal<XOR
                                     return true;
                                 }
                             }
+                             */
                         } else {
                             filter.putLongInt(kmer, index);
                             return true;
