@@ -68,11 +68,6 @@ These are the dependencies:
 	<artifactId>core</artifactId>
 	<version>2.7</version>
 </dependency>
-<dependency>
-	<groupId>org.genestrip</groupId>
-	<artifactId>ft</artifactId>
-	<version>2.7</version>
-</dependency>
 ```
 You may check for higher versions and update the dependency accordingly...
 
