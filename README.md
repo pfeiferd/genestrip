@@ -44,19 +44,34 @@ Genestrip offers an efficient and sophisticated database generation process that
 
 [Genestrip is free for non-commercial use.](./LICENSE.txt) Please contact [daniel.pfeifer@progotec.de](mailto:daniel.pfeifer@progotec.de) if you are interested in a commercial license.
 
+## How to cite
+
+A paper on Genestrip including an in-depth evaluation is at the final step before its publication at [BMC Bioinformatics](https://link.springer.com/journal/12859)
+(the peer reviews have passed). A citable preprint is [available here](https://www.researchsquare.com/article/rs-7373421/v1) at Research Square.
+
 ## Building and installing
 
 Genestrip is structured as a standard [Maven 2 or 3](https://maven.apache.org/) project and is compatible with the [JDK](https://jdk.java.net/) 11 or higher.[^1]
 
-To build it, `cd` to the installation directory `genestrip`. Given a matching Maven and JDK installation, `mvn install` will compile and install the Genestrip program library. Afterwards a self-contained and executable `genestrip.jar` can be found under `./lib`. 
+To build it, `cd` to the installation directory `genestrip`. Given a matching Maven and JDK installation, `mvn clean install` will compile and install the Genestrip program library. Afterwards, a self-contained and executable `genestrip.jar` can be found under `./lib`. 
 
 Since version 0.5, Genestrip is also available on [Maven Central](https://repo1.maven.org/maven2/org/genestrip/genestrip/).
-Here  is the dependency:
+These are the dependencies:
 ```
 <dependency>
 	<groupId>org.genestrip</groupId>
-	<artifactId>genestrip</artifactId>
-	<version>2.4</version>
+	<artifactId>base</artifactId>
+	<version>2.7</version>
+</dependency>
+<dependency>
+	<groupId>org.genestrip</groupId>
+	<artifactId>core</artifactId>
+	<version>2.7</version>
+</dependency>
+<dependency>
+	<groupId>org.genestrip</groupId>
+	<artifactId>ft</artifactId>
+	<version>2.7</version>
 </dependency>
 ```
 You may check for higher versions and update the dependency accordingly...
@@ -172,6 +187,9 @@ Despite of the these limitations, we tested the Genestrip in the following ways:
 * We applied Genestrip to several real-world fastq files, 
 where the findings matched the expectations. For example, we correctly recovered bacteria in ticks from fastq files as described in [this publication](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10328957/).
 
+A paper on Genestrip including with in-depth evaluation is at the final step before its publication at [BMC Bioinformatics](https://link.springer.com/journal/12859)
+(the peer reviews have passed). Take a look at [this preprint](https://www.researchsquare.com/article/rs-7373421/v1) for evaluation details.
+
 ### Filtering fastq files
 
 Genestrip can be used to *filter* fastq files via *k*-mers from a previously generated database. As an example, one may also use the fastq file `sample.fastq.gz` from `./data/projects/human_virus/fastq`. To start the filtering process, run
@@ -204,6 +222,12 @@ usage: genestrip [options] <project> [<goal1> <goal2>...]
                             'matchlr'. When a URL is given, the fastq file
                             will not be downloaded but data streaming will
                             be applied unless '-l' or '-ll' is given.
+ -i                         If several goals are given, it runs them
+                            without reusing intermediate results of object
+                            goals between the given goals. Isolation
+                            allows for freeing memory resources held by
+                            intermediate results but may also cause
+                            recomputation. The default is no isolation.
  -k <key>                   Key used as a prefix for naming result files
                             in conjuntion with '-f'.
  -l                         Download fastqs from URLs to '<base
@@ -367,4 +391,11 @@ from a project's `additional.txt` file.
 
 ### API-based usage
 
-An API-based invocation of the goals `match` and `filter` is straight-forward: Please check out the test class [`org.metagene.genestrip.APITest`](./src/test/java/org/metagene/genestrip/APITest.java) in the folder `src/test/java` as a code example.
+An API-based invocation of the goals `match` and `filter` is straight-forward: Please check out the test class [`org.metagene.genestrip.APITest`](core/src/test/java/org/metagene/genestrip/APITest.java) in the folder `src/test/java` as a code example.
+
+### Genestrip-FT
+
+Genestrip-FT is an minimal extension of Genestrip found in the folder `ft`.
+It builds on Genestrip and has it own [README.md](ft/README.md) file.
+Genestrip-FT goals and classes are integrated in `lib/genestrip.jar` and are therefore available
+from the command line like any other Genestrip goal.

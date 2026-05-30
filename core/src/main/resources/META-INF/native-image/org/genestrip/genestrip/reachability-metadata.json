@@ -1,0 +1,296 @@
+{
+  "reflection": [
+    {
+      "type": "java.lang.Object",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "java.lang.Thread",
+      "methods": [
+        {
+          "name": "getContextClassLoader",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Throwable"
+    },
+    {
+      "type": "java.util.concurrent.atomic.AtomicBoolean",
+      "fields": [
+        {
+          "name": "value"
+        }
+      ]
+    },
+    {
+      "type": "org.metagene.genestrip.match.CountsPerTaxid",
+      "methods": [
+        {
+          "name": "getAccClassMeanError",
+          "parameterTypes": []
+        },
+        {
+          "name": "getAccClassStdErrorDev",
+          "parameterTypes": []
+        },
+        {
+          "name": "getAccErrorStdDev",
+          "parameterTypes": []
+        },
+        {
+          "name": "getAccMeanError",
+          "parameterTypes": []
+        },
+        {
+          "name": "getAverageContigLen",
+          "parameterTypes": []
+        },
+        {
+          "name": "getAverageReadLength",
+          "parameterTypes": []
+        },
+        {
+          "name": "getClassErrorStdDev",
+          "parameterTypes": []
+        },
+        {
+          "name": "getContigs",
+          "parameterTypes": []
+        },
+        {
+          "name": "getCoverage",
+          "parameterTypes": []
+        },
+        {
+          "name": "getDbKMers",
+          "parameterTypes": []
+        },
+        {
+          "name": "getErrorStdDev",
+          "parameterTypes": []
+        },
+        {
+          "name": "getExpectedUniqueKMers",
+          "parameterTypes": []
+        },
+        {
+          "name": "getKMerConsistency",
+          "parameterTypes": []
+        },
+        {
+          "name": "getKMers",
+          "parameterTypes": []
+        },
+        {
+          "name": "getMaxContigDescriptor",
+          "parameterTypes": []
+        },
+        {
+          "name": "getMaxContigLen",
+          "parameterTypes": []
+        },
+        {
+          "name": "getMeanClassError",
+          "parameterTypes": []
+        },
+        {
+          "name": "getMeanError",
+          "parameterTypes": []
+        },
+        {
+          "name": "getName",
+          "parameterTypes": []
+        },
+        {
+          "name": "getParentTaxId",
+          "parameterTypes": []
+        },
+        {
+          "name": "getPos",
+          "parameterTypes": []
+        },
+        {
+          "name": "getRank",
+          "parameterTypes": []
+        },
+        {
+          "name": "getReads",
+          "parameterTypes": []
+        },
+        {
+          "name": "getReads1KMer",
+          "parameterTypes": []
+        },
+        {
+          "name": "getReadsBPs",
+          "parameterTypes": []
+        },
+        {
+          "name": "getReadsKMers",
+          "parameterTypes": []
+        },
+        {
+          "name": "getTaxid",
+          "parameterTypes": []
+        },
+        {
+          "name": "getUniqueKMers",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.provider.NativePRNG",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.security.SecureRandomParameters"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.provider.SHA",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "glob": "META-INF/services/java.lang.System$LoggerFinder"
+    },
+    {
+      "glob": "META-INF/services/java.time.zone.ZoneRulesProvider"
+    },
+    {
+      "glob": "META-INF/services/org.apache.maven.surefire.spi.MasterProcessChannelProcessorFactory"
+    },
+    {
+      "glob": "simplelog.properties"
+    }
+  ],
+  "bundles": [],
+  "serialization": [
+    {
+      "type": "it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction"
+    },
+    {
+      "type": "it.unimi.dsi.fastutil.objects.AbstractObject2LongMap"
+    },
+    {
+      "type": "it.unimi.dsi.fastutil.objects.AbstractObject2ShortFunction"
+    },
+    {
+      "type": "it.unimi.dsi.fastutil.objects.AbstractObject2ShortMap"
+    },
+    {
+      "type": "it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap"
+    },
+    {
+      "type": "it.unimi.dsi.fastutil.objects.Object2ShortOpenHashMap"
+    },
+    {
+      "type": "java.io.Serializable[]"
+    },
+    {
+      "type": "java.lang.Integer"
+    },
+    {
+      "type": "java.lang.Number"
+    },
+    {
+      "type": "java.lang.Object[]"
+    },
+    {
+      "type": "java.lang.String"
+    },
+    {
+      "type": "java.util.Random"
+    },
+    {
+      "type": "long[]"
+    },
+    {
+      "type": "long[][]"
+    },
+    {
+      "type": "org.junit.runner.Result$SerializedForm"
+    },
+    {
+      "type": "org.metagene.genestrip.bloom.MurmurCGATBloomFilter"
+    },
+    {
+      "type": "org.metagene.genestrip.store.Database"
+    },
+    {
+      "type": "org.metagene.genestrip.store.KMerSortedArray"
+    },
+    {
+      "type": "org.metagene.genestrip.store.KMerTrie"
+    },
+    {
+      "type": "org.metagene.genestrip.store.KMerTrie$SmallNode"
+    },
+    {
+      "type": "org.metagene.genestrip.tax.SmallTaxTree"
+    },
+    {
+      "type": "org.metagene.genestrip.util.LargeBitVector"
+    },
+    {
+      "type": "short[]"
+    },
+    {
+      "type": "short[][]"
+    }
+  ],
+  "jni": [
+    {
+      "type": "java.lang.Boolean",
+      "methods": [
+        {
+          "name": "getBoolean",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.management.VMManagementImpl",
+      "fields": [
+        {
+          "name": "compTimeMonitoringSupport"
+        },
+        {
+          "name": "currentThreadCpuTimeSupport"
+        },
+        {
+          "name": "objectMonitorUsageSupport"
+        },
+        {
+          "name": "otherThreadCpuTimeSupport"
+        },
+        {
+          "name": "remoteDiagnosticCommandsSupport"
+        },
+        {
+          "name": "synchronizerUsageSupport"
+        },
+        {
+          "name": "threadAllocatedMemorySupport"
+        },
+        {
+          "name": "threadContentionMonitoringSupport"
+        }
+      ]
+    }
+  ]
+}

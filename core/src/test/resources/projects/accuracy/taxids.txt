@@ -1,0 +1,43 @@
+# HiSeq
+# Aeromonas hydrophila SSU
+1073377
+# Bacillus cereus VD118
+1053231
+# Bacteroides fragilis HMW615
+ 1073387
+# Mycobacterium abscessus 6G-0125-R
+1001740
+# Pelosinus fermentans A11
+1149860
+# Rhodobacter sphaeroides 2.4.1
+272943
+# Staphylococcus aureus M0927
+1213734 
+# Streptococcus pneumoniae TIGR4
+170187
+# Vibrio cholerae CP1032(5)
+991923
+# Xanthomonas axonopodis pv. Manihotis UA323 (Correct taxid?)
+1185664
+#
+# MiSeq
+# Bacillus cereus VD118
+1053231
+# Citrobacter freundii 47N
+1173724
+# Enterobacter cloacae
+550
+# Klebsiella pneumoniae NES14
+1173763
+# Mycobacterium abscessus 6G-0125-R
+1001740
+# Proteus vulgaris 66N
+1173773
+# Rhodobacter sphaeroides 2.4.1
+272943
+# Staphylococcus aureus ST22
+1210042
+# Salmonella enterica Montevideo str. N19965
+1173880
+# Vibrio cholerae CP1032(5)
+991923

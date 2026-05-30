@@ -1,0 +1,1 @@
+test viral_fasta2fastq_test.fastq.gz

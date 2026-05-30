@@ -1,0 +1,24 @@
+digraph regexp {
+rankdir="BT"
+fontname="Helvetica,Arial,sans-serif"
+node [fontname="Helvetica,Arial,sans-serif", style=rounded, shape=box]
+taxtree [label="o:taxtree" style="rounded, dashed"];
+taxnodes [label="o:taxnodes" style="rounded, dashed"];
+categories [label="o:categories" style="rounded, dashed"];
+refseqfna [label="d:refseqfna" style="rounded, dashed"];
+accmap [label="o:accmap" style="rounded, dashed"];
+addfastas [label="o:addfastas" style="rounded, dashed"];
+loaddb [label="o:loaddb" style="rounded, dashed"];
+ftsetup [label="f:ftsetup"];
+dbqualcounts [label="o:dbqualcounts"];
+dbquality [label="f:dbquality"];
+dbqualcounts -> taxtree [style=dotted];
+dbqualcounts -> accmap [style=dotted];
+dbqualcounts -> loaddb [style=dotted];
+dbqualcounts -> categories [style=dotted];
+dbqualcounts -> taxnodes [style=dotted];
+dbqualcounts -> refseqfna;
+dbqualcounts -> addfastas [style=dotted];
+dbquality -> loaddb [style=dotted];
+dbquality -> dbqualcounts [style=dotted];
+}

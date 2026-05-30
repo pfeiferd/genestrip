@@ -3,7 +3,7 @@
 |`show`|X|X|Show user-related goals.|
 |`showall`|X|X|Show user-related and most internal goals.|
 |`genall`|X|X|Generate the *k*-mer matching database and also the filtering database with respect to the given project.|
-|`clear`|X|X|Clear the folders `csv`, `db` and `krakenout`  of a project. This will delete all files the respective folders!|
+|`clear`|X|X|Clear the folders `csv`, `log` and `krakenout`  of a project. This will delete all files the respective folders!|
 |`db`|X|X|Generate the database for *k*-mer matching with respect to the given project.|
 |`dbinfo`|X|X|Write information on a project's database content to a CSV file.|
 |`tempdbinfo`||X|Write information about a project's temporary database content to a CSV file.|
@@ -13,11 +13,12 @@
 |`matchlr`|X|X|Same as `match` but without doing read classification. This corresponds to the configuration setting `classifyReads=false`.|
 |`filter`|X|X|Filter fastq files as given by the `-f` or `-m` option. The resulting filtered fastq file(s) `filtered_...` will be stored under `<base dir>/projects/<project_name>/fastq/` unless specified otherwise via the `-r` option.|
 |`extract`|X|X|Extract reads from fastq files based on matching descriptors. See also config key `extractKey`.|
+|`svgtaxtree`|X|X|Generates a compact visual taxonomy tree in SVG-format to represent the database content.|
 |`fasta2fastq`||X|Transform a fasta file or streaming resource to fastq file.|
 |`matchres`||X|Analyze fastq files as given by the `-f` or `-m` option.|
 |`matchreslr`||X|Same as `matchres` but without doing read classification.|
-|`commonsetup`||X|Create data folders in `<base dir>/common` including `common` itself.|
-|`setup`||X|Create data folders in `<base dir>/<project>`.|
+|`commonsetup`|||Create data folders in `<base dir>/common` including `common` itself.|
+|`setup`|||Create data folders in `<base dir>/<project>`.|
 |`taxdownload`|||Download the taxonomy.|
 |`taxtree`||X|Load the taxonomy into memory.|
 |`taxnodes`||X|Compute the taxids for the project's database.|
@@ -54,3 +55,5 @@
 |`krakenres`||X|For internal use (to write kraken results to a file).|
 |`dbdownload`|||Download and install a project's database via a given URL.|
 |`checkrefseqrnum`||X|Check whether the downloaded RefSeq release is equal to the current release on the download server.|
+|`extractrefseqfasta`||X|Extract gzipped fasta files as individual files from RefSeq's bundled offering as used for database entry.|
+|`extractrefseqcsv`||X|Run `extractrefseqfasta` and generate matching CSV file.|
