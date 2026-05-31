@@ -61,12 +61,12 @@ These are the dependencies:
 <dependency>
 	<groupId>org.genestrip</groupId>
 	<artifactId>base</artifactId>
-	<version>2.7</version>
+	<version>2.8</version>
 </dependency>
 <dependency>
 	<groupId>org.genestrip</groupId>
 	<artifactId>core</artifactId>
-	<version>2.7</version>
+	<version>2.8</version>
 </dependency>
 ```
 You may check for higher versions and update the dependency accordingly...
