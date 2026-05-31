@@ -83,7 +83,6 @@ public class GSProject extends Project {
     private final File csvDir;
     private final File fastqResDir;
     private final Properties[] properties;
-    private final String taxids;
     private final String dbPath;
 
     private boolean downloadFastqs;
@@ -119,7 +118,6 @@ public class GSProject extends Project {
         this.fastqResources = fastqFiles;
         this.fastqMapFile = csvFile;
         this.csvDir = csvDir != null ? csvDir : new File(getProjectDir(), "csv");
-        this.taxids = taxids;
         this.dbPath = dbPath;
 
         if (commandLineProps != null) {
