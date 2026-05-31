@@ -25,11 +25,11 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.genestrip</groupId>
     <artifactId>genestrip</artifactId>
-    <version>2.7</version>
+    <version>2.8</version>
     <packaging>pom</packaging>
 
     <properties>
-        <revision>2.7</revision>
+        <revision>2.8</revision>
         <java.version>9</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <javapackager.jdkPath>C:/java/jdk-25</javapackager.jdkPath>
