@@ -387,10 +387,3 @@ from a project's `additional.txt` file.
 ### API-based usage
 
 An API-based invocation of the goals `match` and `filter` is straight-forward: Please check out the test class [`org.metagene.genestrip.APITest`](core/src/test/java/org/metagene/genestrip/APITest.java) in the folder `src/test/java` as a code example.
-
-### Genestrip-FT
-
-Genestrip-FT is an minimal extension of Genestrip found in the folder `ft`.
-It builds on Genestrip and has it own [README.md](ft/README.md) file.
-Genestrip-FT goals and classes are integrated in `lib/genestrip.jar` and are therefore available
-from the command line like any other Genestrip goal.
