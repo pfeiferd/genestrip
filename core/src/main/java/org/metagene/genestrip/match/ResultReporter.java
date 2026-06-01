@@ -31,6 +31,7 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.*;
 
+import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.SmallTaxTree;
@@ -48,13 +49,18 @@ public class ResultReporter {
 
     public void printStoreInfo(Database database, PrintStream out) {
         Object2LongMap<String> stats = database.getStats();
+        Map<SmallTaxTree.SmallTaxIdNode, EvoDistanceEstimator.DistanceInfo> distanceInfoMap = new EvoDistanceEstimator().computeDistances(database);
 
-        out.println("pos;level;name;rank;taxid;stored kmers;");
+        out.println("pos;level;name;rank;taxid;stored kmers;requested;distance;");
 
+        String md5 = database.getConfigInfo().getProperty(GSProject.DB_MD5);
         out.print("0;0;TOTAL;");
         out.print(Rank.NO_RANK);
         out.print(';');
-        out.print("1;");
+        if (md5 != null) {
+            out.print(md5);
+        }
+        out.print(';');
         out.print(stats.getLong(null));
         out.println(';');
 
@@ -78,6 +84,10 @@ public class ResultReporter {
                     out.print(taxNode.getTaxId());
                     out.print(';');
                     out.print(stats.getLong(taxId));
+                    out.print(';');
+                    out.print(taxNode.isRequested());
+                    out.print(';');
+                    out.print(taxNode.isRequested());
                     out.println(';');
                 }
             }
