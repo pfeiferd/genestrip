@@ -49,50 +49,48 @@ public class ResultReporter {
 
     public void printStoreInfo(Database database, PrintStream out) {
         Object2LongMap<String> stats = database.getStats();
+        final double invK = 1d / database.getKmerStore().getK();
         Map<SmallTaxTree.SmallTaxIdNode, EvoDistanceEstimator.DistanceInfo> distanceInfoMap = new EvoDistanceEstimator().computeDistances(database);
 
-        out.println("pos;level;name;rank;taxid;stored kmers;requested;distance;");
+        out.println("pos;level;name;rank;taxid;stored kmers;requested;distance;distance portion;");
 
-        String md5 = database.getConfigInfo().getProperty(GSProject.DB_MD5);
         out.print("0;0;TOTAL;");
         out.print(Rank.NO_RANK);
         out.print(';');
+        String md5 = database.getConfigInfo().getProperty(GSProject.DB_MD5);
         if (md5 != null) {
             out.print(md5);
         }
         out.print(';');
         out.print(stats.getLong(null));
-        out.println(';');
-
-        List<String> sortedTaxIds = new ArrayList<>(stats.keySet());
-        SmallTaxTree taxTree = database.getTaxTree();
-        taxTree.sortTaxidsViaTree(sortedTaxIds);
+        out.println("false; 0; 0;");
 
         int i = 1;
-        for (String taxId : sortedTaxIds) {
-            if (taxId != null) {
-                SmallTaxIdNode taxNode = taxTree.getNodeByTaxId(taxId);
-                if (taxNode != null) {
-                    out.print(i++);
-                    out.print(';');
-                    out.print(taxNode.getLevel());
-                    out.print(';');
-                    out.print(taxNode.getName());
-                    out.print(';');
-                    out.print(taxNode.getRank());
-                    out.print(';');
-                    out.print(taxNode.getTaxId());
-                    out.print(';');
-                    out.print(stats.getLong(taxId));
-                    out.print(';');
-                    out.print(taxNode.isRequested());
-                    out.print(';');
-                    out.print(taxNode.isRequested());
-                    out.println(';');
-                }
-            }
+        Iterator<SmallTaxIdNode> it = database.getTaxTree().iterator();
+        while (it.hasNext()) {
+            SmallTaxIdNode taxNode = it.next();
+            out.print(i++);
+            out.print(';');
+            out.print(taxNode.getLevel());
+            out.print(';');
+            out.print(taxNode.getName());
+            out.print(';');
+            out.print(taxNode.getRank());
+            out.print(';');
+            out.print(taxNode.getTaxId());
+            out.print(';');
+            out.print(stats.getOrDefault(taxNode.getTaxId(), 0L));
+            out.print(';');
+            out.print(taxNode.isRequested());
+            out.print(';');
+            EvoDistanceEstimator.DistanceInfo distanceInfo = distanceInfoMap.get(taxNode);
+            out.print(DF.format(distanceInfo.getDistance()));
+            out.print(';');
+            out.print(DF.format(distanceInfo.getDistancePortion()));
+            out.println(';');
         }
     }
+
 
     public static void printMDColumnInfo(PrintStream ps) {
         ps.print('|');
@@ -122,8 +120,7 @@ public class ResultReporter {
                     ps.print(description.name() + " " + type.getName());
                     ps.print('`');
                 }
-            }
-            else if (description.pos() == 999) {
+            } else if (description.pos() == 999) {
                 int i = 0;
                 for (CountsPerTaxid.ValueType type : VALUES) {
                     if (i++ > 0) {
@@ -137,8 +134,7 @@ public class ResultReporter {
                     ps.print(description.name() + " norm. " + type.getName());
                     ps.print('`');
                 }
-            }
-            else {
+            } else {
                 ps.print('`');
                 ps.print(description.name());
                 ps.print('`');
@@ -175,8 +171,7 @@ public class ResultReporter {
                     out.print(type.getName());
                     out.print(';');
                 }
-            }
-            else if (description.pos() == 999) {
+            } else if (description.pos() == 999) {
                 for (CountsPerTaxid.ValueType type : VALUES) {
                     out.print(description.name());
                     out.print(' ');
@@ -187,8 +182,7 @@ public class ResultReporter {
                     out.print(type.getName());
                     out.print(';');
                 }
-            }
-            else if (description.pos() != 2001 || res.isWithMaxKMerCounts()) {
+            } else if (description.pos() != 2001 || res.isWithMaxKMerCounts()) {
                 out.print(methodAndDescription.getDescription().name());
                 out.print(';');
             }
@@ -202,14 +196,13 @@ public class ResultReporter {
                 MDCDescription description = methodAndDescription.getDescription();
                 if (description.pos() == 998) {
                     for (CountsPerTaxid.ValueType type : VALUES) {
-                       double v = counts.getNormalizedFor(type);
+                        double v = counts.getNormalizedFor(type);
                         if (!Double.isNaN(v) && !Double.isInfinite(v) && counts.getPos() != 0) {
                             out.print(v);
                         }
                         out.print(';');
                     }
-                }
-                else if (description.pos() == 999) {
+                } else if (description.pos() == 999) {
                     for (CountsPerTaxid.ValueType type : VALUES) {
                         CountsPerTaxid.AccValues accValues = counts.getAccValuesFor(type);
                         if (accValues != null) {
@@ -221,8 +214,7 @@ public class ResultReporter {
                         }
                         out.print(';');
                     }
-                }
-                else if (description.pos() != 2001 || res.isWithMaxKMerCounts()) {
+                } else if (description.pos() != 2001 || res.isWithMaxKMerCounts()) {
                     Method method = methodAndDescription.getMethod();
                     try {
                         Object value = method.invoke(counts);
@@ -231,8 +223,7 @@ public class ResultReporter {
                             if (!Double.isNaN(v) && !Double.isInfinite(v) && (counts.getPos() != 0 || description.pos() == 13)) {
                                 out.print(v);
                             }
-                        }
-                        else if (value instanceof byte[]) {
+                        } else if (value instanceof byte[]) {
                             ByteArrayUtil.print((byte[]) value, out);
                         } else if (methodAndDescription.getDescription().pos() == 2001 && res.isWithMaxKMerCounts()) {
                             short[] maxKMerCounts = counts.getMaxKMerCounts();
