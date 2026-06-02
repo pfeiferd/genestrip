@@ -56,31 +56,26 @@ public class LoadDBGoal<P extends GSProject> extends ObjectGoal<Database, P> imp
 	@Override
 	protected void doMakeThis() {
 		try {
-			if (booleanConfigValue(GSConfigKey.PROGRESS_BAR) && !dbGoal.isMade()) {
+			if (dbGoal.isMade()) {
+				set(dbGoal.get());
+			} else if (booleanConfigValue(GSConfigKey.PROGRESS_BAR)) {
 				try (StreamingResource.StreamAccess sa = new StreamingFileResource(dbFile, true).openStream()) {
 					try (ProgressBar pb = GSProgressBarCreator.newGSProgressBar(getKey().getName(), sa, null)) {
-						doLoadDB(sa.getInputStream());
+						try (InputStream is = sa.getInputStream()) {
+							set(Database.load(is, booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH)));
+						}
 					}
 				}
+			} else {
+				try (InputStream is = StreamProvider.getInputStreamForFile(dbFile, true)) {
+					set(Database.load(is, booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH)));
+				}
 			}
-			else {
-				doLoadDB(StreamProvider.getInputStreamForFile(dbFile));
-			}
+		} catch (InvalidDatabaseClassException e) {
+			throw e.toRuntimeException();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
-		}
-	}
-
-	protected void doLoadDB(InputStream stream) {
-		try {
-			Database db = dbGoal.isMade() ? dbGoal.get()
-					: Database.load(stream, booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH));
-			set(db);
 		} catch (ClassNotFoundException e) {
-			throw new RuntimeException(e);
-		} catch (InvalidClassException e) {
-			throw InvalidDatabaseClassException.convertToRuntimeException(e);
-		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}

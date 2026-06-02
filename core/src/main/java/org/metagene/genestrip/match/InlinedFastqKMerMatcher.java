@@ -31,8 +31,8 @@ import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.util.CGAT;
 
 public class InlinedFastqKMerMatcher extends FastqKMerMatcher {
-	public InlinedFastqKMerMatcher(KMerSortedArray<SmallTaxIdNode> kmerStore, int initialReadSize, int maxQueueSize, ExecutionContext bundle, boolean withProbs, int maxKmerResCounts, SmallTaxTree taxTree, int maxPaths, double maxReadTaxErrorCount, double maxReadClassErrorCount, boolean writeAll, int threshold) {
-		super(kmerStore, initialReadSize, maxQueueSize, bundle, withProbs, maxKmerResCounts, taxTree, maxPaths, maxReadTaxErrorCount, maxReadClassErrorCount, writeAll, threshold);
+	public InlinedFastqKMerMatcher(KMerSortedArray<SmallTaxIdNode> kmerStore, int initialReadSize, int maxQueueSize, ExecutionContext bundle, boolean withProbs, int maxKmerResCounts, SmallTaxTree taxTree, int maxPaths, double maxReadTaxErrorCount, double maxReadClassErrorCount, boolean writeAll, int threshold, String dbMD5) {
+		super(kmerStore, initialReadSize, maxQueueSize, bundle, withProbs, maxKmerResCounts, taxTree, maxPaths, maxReadTaxErrorCount, maxReadClassErrorCount, writeAll, threshold, dbMD5);
 	}
 	// TODO
 /*

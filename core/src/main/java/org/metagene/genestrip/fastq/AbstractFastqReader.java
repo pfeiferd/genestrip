@@ -99,7 +99,13 @@ public abstract class AbstractFastqReader {
 					}
 				}
 				bundle.clearThrowableList();
-				throw new RuntimeException("Error(s) in consumer thread(s).");
+				if (b.size() > 0) {
+					// Let's take the first one of the potentially  many exceptions and wrap it.
+					throw new RuntimeException("Error(s) in consumer thread(s).", b.get(0));
+				}
+				else {
+					throw new RuntimeException("Error(s) in consumer thread(s).");
+				}
 			}
 		}
 	}
@@ -151,17 +157,71 @@ public abstract class AbstractFastqReader {
 		return logger;
 	}
 
-	protected void readFastq(InputStream inputStream) throws IOException {
+	protected void readFastq(InputStream inputStream, boolean fasta) throws IOException {
 		start();
 		reads = 0;
 		kMers = 0;
 		readBPs = 0;
 		bufferedLineReaderFastQ.setInputStream(inputStream);
 
+        if (fasta) {
+			doReadFasta();
+        }
+        else {
+			doReadFastq();
+        }
+// This newer approach caused the threads to hang at the end of the reading process.
+// I can't be bothered to find out why, so I use the older (ugly) polling approach which works well...		
+//		readsDone = true;
+//		if (blockingQueue != null) {
+//			readStruct.pooled = true;
+//			boolean stillWorking = true;
+//			while (stillWorking) {
+//				checkAndLogConsumerThreadProblem();
+//				stillWorking = false;
+//				for (int i = 0; i < readStructPool.length; i++) {
+//					synchronized (mainThread) {
+//						if (!readStructPool[i].pooled) {
+//							stillWorking = true;
+//							try {
+//								mainThread.wait();
+//							} catch (InterruptedException e) {
+//								// Ignore.
+//							}
+//							break;
+//						}
+//					}
+//				}
+//			}
+//		}
+		if (blockingQueue != null) {
+			// Gentle polling and waiting until all consumers are done.
+			boolean stillWorking = true;
+			while (stillWorking) {
+				checkAndLogConsumerThreadProblem();
+				stillWorking = false;
+				for (int i = 0; i < readStructPool.length; i++) {
+					if (!readStructPool[i].pooled) {
+						stillWorking = true;
+						try {
+							Thread.sleep(100);
+						} catch (InterruptedException e) {
+							// Ignore.
+						}
+						break;
+					}
+				}
+			}
+		}
+
+		done();
+	}
+
+	protected void doReadFastq() throws IOException {
 		ReadEntry readStruct = nextFreeReadStruct();
 		for (readStruct.readDescriptorSize = bufferedLineReaderFastQ.nextLine(readStruct.readDescriptor)
 				- 1; readStruct.readDescriptorSize >= 0; readStruct.readDescriptorSize = bufferedLineReaderFastQ
-						.nextLine(readStruct.readDescriptor) - 1) {
+				.nextLine(readStruct.readDescriptor) - 1) {
 			readStruct.readDescriptor[readStruct.readDescriptorSize] = 0;
 			readStruct.readSize = bufferedLineReaderFastQ.nextLine(readStruct.read) - 1;
 			if (readStruct.readSize == readStruct.read.length) {
@@ -221,6 +281,7 @@ public abstract class AbstractFastqReader {
 			readBPs += readStruct.readSize;
 			if (blockingQueue == null) {
 				nextEntry(readStruct, 0);
+				readStruct.pooled = true;
 				if (dump) {
 					throw new FastqReaderInterruptedException();
 				}
@@ -235,52 +296,66 @@ public abstract class AbstractFastqReader {
 			readStruct = nextFreeReadStruct();
 			updateProgress();
 		}
-// This newer approach caused the threads to hang at the end of the reading process.
-// I can't be bothered to find out why, so I use the older (ugly) polling approach which works well...		
-//		readsDone = true;
-//		if (blockingQueue != null) {
-//			readStruct.pooled = true;
-//			boolean stillWorking = true;
-//			while (stillWorking) {
-//				checkAndLogConsumerThreadProblem();
-//				stillWorking = false;
-//				for (int i = 0; i < readStructPool.length; i++) {
-//					synchronized (mainThread) {
-//						if (!readStructPool[i].pooled) {
-//							stillWorking = true;
-//							try {
-//								mainThread.wait();
-//							} catch (InterruptedException e) {
-//								// Ignore.
-//							}
-//							break;
-//						}
-//					}
-//				}
-//			}
-//		}
-		if (blockingQueue != null) {
-			readStruct.pooled = true;
-			// Gentle polling and waiting until all consumers are done.
-			boolean stillWorking = true;
-			while (stillWorking) {
-				checkAndLogConsumerThreadProblem();
-				stillWorking = false;
-				for (int i = 0; i < readStructPool.length; i++) {
-					if (!readStructPool[i].pooled) {
-						stillWorking = true;
-						try {
-							Thread.sleep(100);
-						} catch (InterruptedException e) {
-							// Ignore.
-						}
-						break;
-					}
+		readStruct.pooled = true;
+	}
+
+	protected void doReadFasta() throws IOException {
+		ReadEntry readStruct = nextFreeReadStruct();
+		for (readStruct.readDescriptorSize = bufferedLineReaderFastQ.nextLine(readStruct.readDescriptor)
+				- 1; readStruct != null && readStruct.readDescriptorSize >= 0;) {
+			readStruct.readDescriptor[readStruct.readDescriptorSize] = 0;
+			readStruct.readSize = bufferedLineReaderFastQ.nextLine(readStruct.read) - 1;
+			if (readStruct.readSize == readStruct.read.length) {
+				readStruct.growReadBuffer(bufferedLineReaderFastQ);
+			}
+
+			int newSize = bufferedLineReaderFastQ.nextLine(readStruct.read, readStruct.readSize) - 1;
+			// If there is no '>' then the line still belongs to the read.
+			while (readStruct.read[readStruct.readSize] != '>' && newSize > readStruct.readSize - 1) {
+				readStruct.readSize = newSize;
+				if (newSize == readStruct.read.length) {
+					readStruct.growReadBuffer(bufferedLineReaderFastQ);
+				}
+				newSize = bufferedLineReaderFastQ.nextLine(readStruct.read, readStruct.readSize) - 1;
+			}
+
+			ReadEntry readStruct2 = null;
+			// Not reached EOF?
+			if (newSize != readStruct.read.length - 1) {
+				readStruct2 = nextFreeReadStruct();
+				int len = newSize - readStruct.readSize;
+				System.arraycopy(readStruct.read, readStruct.readSize, readStruct2.readDescriptor, 0, len);
+				if (newSize == readStruct.read.length) {
+					readStruct2.readDescriptorSize = bufferedLineReaderFastQ.nextLine(readStruct2.readDescriptor, len);
 				}
 			}
-		}
 
-		done();
+			readStruct.read[readStruct.readSize] = 0;
+
+			readStruct.readNo = reads;
+			reads++;
+			if (readStruct.readSize > k) {
+				kMers += readStruct.readSize - k + 1;
+			}
+			readBPs += readStruct.readSize;
+			if (blockingQueue == null) {
+				nextEntry(readStruct, 0);
+				readStruct.pooled = true;
+				if (dump) {
+					throw new FastqReaderInterruptedException();
+				}
+			} else {
+				try {
+					blockingQueue.put(readStruct);
+				} catch (InterruptedException e) {
+					throw new FastqReaderInterruptedException(e);
+				}
+			}
+			checkAndLogConsumerThreadProblem();
+			updateProgress();
+			readStruct = readStruct2;
+		}
+		readStruct.pooled = true;
 	}
 
 	protected void updateProgress() {

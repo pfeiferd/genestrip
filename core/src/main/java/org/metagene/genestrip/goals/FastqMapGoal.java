@@ -50,7 +50,13 @@ import org.metagene.genestrip.io.StreamingURLResource;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 
+import static org.metagene.genestrip.fastq.AbstractLoggingFastqStreamer.FASTA_TYPE_HINT;
+import static org.metagene.genestrip.fastq.AbstractLoggingFastqStreamer.FASTQ_TYPE_HINT;
+
 public class FastqMapGoal<P extends GSProject> extends ObjectGoal<Map<String, StreamingResourceStream>, P> {
+	private static String[] FASTA_SUFFIXES = new String[] { "fasta", "fa", "fna", "fas", "fasta.gz", "fa.gz", "fna.gz", "fas.gz" };
+	private static String[] FASTQ_SUFFIXES = new String[] { "fastq", "fq", "fq.gz", "fastq.gz" };
+
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#')
 			.setDelimiter(' ').setRecordSeparator('\n').build();
 
@@ -146,7 +152,23 @@ public class FastqMapGoal<P extends GSProject> extends ObjectGoal<Map<String, St
 			if (fastqs != null) {
 				List<StreamingResource> res = new ArrayList<StreamingResource>();
 				for (File file : fastqs) {
-					res.add(new StreamingFileResource(file));
+					res.add(new StreamingFileResource(file) {
+						@Override
+						public String getTypeHint() {
+							String fileName = file.getName();
+							for (String suffix : FASTA_SUFFIXES) {
+								if (fileName.endsWith(suffix)) {
+									return FASTA_TYPE_HINT;
+								}
+							}
+							for (String suffix : FASTQ_SUFFIXES) {
+								if (fileName.endsWith(suffix)) {
+									return FASTQ_TYPE_HINT;
+								}
+							}
+							return super.getTypeHint();
+						}
+					});
 				}
 				return res;
 			}

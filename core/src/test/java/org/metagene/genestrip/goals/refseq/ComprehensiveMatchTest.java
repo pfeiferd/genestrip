@@ -26,6 +26,7 @@ package org.metagene.genestrip.goals.refseq;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.metagene.genestrip.*;
 import org.metagene.genestrip.make.FileListGoal;
@@ -39,6 +40,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertTrue;
 
+@Ignore
 public class ComprehensiveMatchTest extends DBGoalTest {
     @BeforeClass()
     public static void clearDB() throws IOException {

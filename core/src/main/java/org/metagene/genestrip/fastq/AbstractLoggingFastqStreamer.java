@@ -38,6 +38,9 @@ import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 
 public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
+    public static final String FASTA_TYPE_HINT = "fasta";
+    public static final String FASTQ_TYPE_HINT = "fastq";
+
     private static final DecimalFormat DF = new DecimalFormat("0.0", new DecimalFormatSymbols(Locale.US));
 
     private StreamingResource.StreamAccess byteCountAccess;
@@ -87,7 +90,7 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
                 fastqStartTime = System.currentTimeMillis();
                 logFastqStart();
                 try (ProgressBar pb = isProgressBar() ? GSProgressBarCreator.newGSProgressBar(getProgressBarTaskName(), byteCountAccess, null) : null) {
-                    readFastq(byteCountAccess.getInputStream());
+                    readFastq(byteCountAccess.getInputStream(), isFastaStream(fastq));
                 }
                 logFastqDone();
                 totalReads += reads;
@@ -98,6 +101,10 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
             coveredCounter++;
         }
         allDone();
+    }
+
+    protected boolean isFastaStream(StreamingResource fastq) {
+        return FASTA_TYPE_HINT.equals(fastq.getTypeHint());
     }
 
     protected boolean isProgressBar() {

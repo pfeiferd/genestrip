@@ -53,6 +53,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
     private final static SmallTaxIdNode INVALID_NODE = new SmallTaxIdNode("INVALID", null, null);
 
     protected final KMerSortedArray<SmallTaxIdNode> kmerStore;
+    protected final String dbMD5;
     protected final int maxKmerResCounts;
 
     // Turned from KMerUniqueCounter to KMerUniqueCounterBits for potential method inlining.
@@ -82,7 +83,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 
     public FastqKMerMatcher(KMerSortedArray<SmallTaxIdNode> kmerStore, int initialReadSize, int maxQueueSize,
                             ExecutionContext bundle, boolean withProbs, int maxKmerResCounts, SmallTaxTree taxTree, int maxPaths,
-                            double maxReadTaxErrorCount, double maxReadClassErrorCount, boolean writeAll, int threshold) {
+                            double maxReadTaxErrorCount, double maxReadClassErrorCount, boolean writeAll, int threshold, String dbMD5) {
         super(kmerStore.getK(), initialReadSize, maxQueueSize, bundle, withProbs, maxPaths);
         consumers = bundle.getThreads() <= 0 ? 1 : bundle.getThreads();
         this.kmerStore = kmerStore;
@@ -96,6 +97,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         this.maxPaths = maxPaths;
         this.writeAll = writeAll;
         this.threshold = threshold;
+        this.dbMD5 = dbMD5;
         if (taxTree != null) {
             taxTree.initCountSize(consumers);
         }
@@ -163,12 +165,12 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             }
         }
 
-        return new MatchingResult(kmerStore.getK(), taxid2Stats, totalReads, totalKMers, totalBPs,
+        return new MatchingResult(kmerStore.getK(), taxid2Stats, dbMD5, totalReads, totalKMers, totalBPs,
                 countMap == null ? null : countMap.get(null));
     }
 
     @Override
-    protected void readFastq(InputStream inputStream) throws IOException {
+    protected void readFastq(InputStream inputStream, boolean fasta) throws IOException {
         try {
             if (taxTree != null) {
                 taxTree.resetCounts(this);
@@ -176,7 +178,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             for (long[] a : readNoPerCPerStat) {
                 Arrays.fill(a, -1);
             }
-            super.readFastq(inputStream);
+            super.readFastq(inputStream, fasta);
         } finally {
             if (taxTree != null) {
                 taxTree.releaseOwner();

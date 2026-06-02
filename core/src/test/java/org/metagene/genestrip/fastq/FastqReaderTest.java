@@ -74,7 +74,7 @@ public class FastqReaderTest {
 			}
 		};
 		ClassLoader classLoader = getClass().getClassLoader();
-		fastqReader.readFastq(classLoader.getResourceAsStream("fastq/SimpleTest.fastq"));
+		fastqReader.readFastq(classLoader.getResourceAsStream("fastq/SimpleTest.fastq"), false);
 		assertEquals(2, calls[0]);
 	}
 

@@ -99,7 +99,8 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 							(booleanConfigValue(GSConfigKey.CLASSIFY_READS) && !GSGoalKey.MATCHRESLR.equals(getKey()))
 									? taxTree
 									: null,
-							bundle, booleanConfigValue(GSConfigKey.WITH_PROBS));
+							bundle, booleanConfigValue(GSConfigKey.WITH_PROBS),
+							database.getConfigInfo().getProperty(GSProject.DB_MD5));
 					if (afterMatchCallback != null) {
 						matcher.setAfterMatchCallback(new FastqKMerMatcher.AfterMatchCallback() {
 							@Override
@@ -134,7 +135,7 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 	}
 
 	protected FastqKMerMatcher createMatcher(KMerSortedArray<SmallTaxIdNode> store, SmallTaxTree taxTree,
-			ExecutionContext bundle, boolean withProbs) {
+			ExecutionContext bundle, boolean withProbs, String dbMD5) {
 		if (booleanConfigValue(GSConfigKey.USE_INLINED)) {
 			return new InlinedFastqKMerMatcher(store, intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
 					intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, withProbs, intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS),
@@ -142,7 +143,8 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 					doubleConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT),
 					doubleConfigValue(GSConfigKey.MAX_READ_CLASS_ERROR_COUNT),
 					booleanConfigValue(GSConfigKey.WRITE_ALL),
-					intConfigValue(GSConfigKey.MIN_KMERS_FOR_CLASS)) {
+					intConfigValue(GSConfigKey.MIN_KMERS_FOR_CLASS),
+					dbMD5) {
 				@Override
 				protected boolean isProgressBar() {
 					return booleanConfigValue(GSConfigKey.PROGRESS_BAR);
@@ -160,7 +162,8 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 					doubleConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT),
 					doubleConfigValue(GSConfigKey.MAX_READ_CLASS_ERROR_COUNT),
 					booleanConfigValue(GSConfigKey.WRITE_ALL),
-					intConfigValue(GSConfigKey.MIN_KMERS_FOR_CLASS)) {
+					intConfigValue(GSConfigKey.MIN_KMERS_FOR_CLASS),
+					dbMD5) {
 				@Override
 				protected boolean isProgressBar() {
 					return booleanConfigValue(GSConfigKey.PROGRESS_BAR);

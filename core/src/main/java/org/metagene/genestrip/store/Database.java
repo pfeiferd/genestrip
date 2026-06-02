@@ -34,6 +34,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
+import org.apache.commons.codec.binary.Hex;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.bloom.KMerProbFilter;
 import org.metagene.genestrip.store.KMerSortedArray.ValueConverter;
@@ -57,7 +58,7 @@ public class Database implements Serializable {
     public Database(KMerSortedArray<String> kmerStore, SmallTaxTree taxTree, Properties configInfo) {
         this.kmerStore = kmerStore;
         this.taxTree = taxTree;
-        this.configInfo = configInfo;
+        this.configInfo = configInfo == null ? new Properties() : configInfo;
     }
 
     public KMerSortedArray<String> getKmerStore() {
@@ -160,11 +161,13 @@ public class Database implements Serializable {
             digo.flush(); // Make sure it all got written.
             zipOut.closeEntry();
 
-            String md5 = messageDigest.digest().toString();
             zipEntry = new ZipEntry(MD5_FILE);
             zipOut.putNextEntry(zipEntry);
-            zipOut.write(md5.getBytes());
+            byte[] md5b = messageDigest.digest();
+            zipOut.write(md5b);
             zipOut.closeEntry();
+            String md5 = Hex.encodeHexString(md5b);
+            configInfo.setProperty(GSProject.DB_MD5, md5);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         } finally {
@@ -182,8 +185,51 @@ public class Database implements Serializable {
 
     public static Database load(InputStream is, boolean withFilter) throws IOException, ClassNotFoundException {
         Properties configInfo = new Properties();
-        Database database = null;
-        KMerProbFilter filter = null;
+        try {
+            Database database = null;
+            KMerProbFilter filter = null;
+            try (ZipInputStream zis = new ZipInputStream(is)) {
+                for (ZipEntry zipEntry = zis.getNextEntry(); zipEntry != null; zipEntry = zis.getNextEntry()) {
+                    String entryName = zipEntry.getName();
+                    // We want the version info as the first thing.
+                    // We assume it got stored as first thing and zip maintains this order in the
+                    // underlying zip file.
+                    if (entryName.equals(CONFIG_INFO_FILE)) {
+                        configInfo.load(zis);
+                        zis.closeEntry();
+                    } else if (entryName.equals(DB_FILE) && database == null) {
+                        ObjectInputStream oOut = new ObjectInputStream(zis);
+                        database = (Database) oOut.readObject();
+                        zis.closeEntry();
+                    } else if (entryName.equals(INDEX_FILE) && withFilter && filter == null) {
+                        ObjectInputStream oOut = new ObjectInputStream(zis);
+                        filter = (KMerProbFilter) oOut.readObject();
+                        zis.closeEntry();
+                    } else if (entryName.equals(MD5_FILE)) {
+                        configInfo.setProperty(GSProject.DB_MD5, loadMD5(zis));
+                        zis.closeEntry();
+                    }
+                }
+                database.setConfigInfo(configInfo);
+                database.initStoreIndices();
+                if (filter != null) {
+                    database.getKmerStore().setFilter(filter);
+                }
+            }
+            return database;
+        } catch (InvalidClassException e) {
+            throw new InvalidDatabaseClassException(e.classname, e.getMessage(), configInfo, e);
+        }
+    }
+
+    public static Properties loadConfigInfo(File file) throws IOException {
+        try (InputStream is = new FileInputStream(file)) {
+            return loadConfigInfo(is);
+        }
+    }
+
+    public static Properties loadConfigInfo(InputStream is) throws IOException {
+        Properties configInfo = new Properties();
         try (ZipInputStream zis = new ZipInputStream(is)) {
             for (ZipEntry zipEntry = zis.getNextEntry(); zipEntry != null; zipEntry = zis.getNextEntry()) {
                 String entryName = zipEntry.getName();
@@ -193,29 +239,19 @@ public class Database implements Serializable {
                 if (entryName.equals(CONFIG_INFO_FILE)) {
                     configInfo.load(zis);
                     zis.closeEntry();
-                } else if (entryName.equals(DB_FILE) && database == null) {
-                    ObjectInputStream oOut = new ObjectInputStream(zis);
-                    database = (Database) oOut.readObject();
-                    zis.closeEntry();
-                } else if (entryName.equals(INDEX_FILE) && withFilter && filter == null) {
-                    ObjectInputStream oOut = new ObjectInputStream(zis);
-                    filter = (KMerProbFilter) oOut.readObject();
-                    zis.closeEntry();
                 } else if (entryName.equals(MD5_FILE)) {
-                    byte[] md5b = new byte[64]; // Large enough buffer for sure
-                    int size = zis.read(md5b);
+                    configInfo.setProperty(GSProject.DB_MD5, loadMD5(zis));
                     zis.closeEntry();
-                    String md5 = new String(md5b, 0, size);
-                    configInfo.setProperty(GSProject.DB_MD5, md5);
                 }
             }
-            database.setConfigInfo(configInfo);
-            database.initStoreIndices();
-            if (filter != null) {
-                database.getKmerStore().setFilter(filter);
-            }
         }
-        return database;
+        return configInfo;
+    }
+
+    private static String loadMD5(InputStream is) throws IOException {
+        byte[] md5b = new byte[16]; // Large enough buffer for sure
+        int size = is.read(md5b);
+        return Hex.encodeHexString(md5b);
     }
 
 	/* Should never be used - so remove it (?)

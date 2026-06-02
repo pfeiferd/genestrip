@@ -68,5 +68,9 @@ public interface StreamingResource {
 
 	public String getName();
 
+	default String getTypeHint() {
+		return null;
+	}
+
 	public StreamAccess openStream() throws IOException;
 }

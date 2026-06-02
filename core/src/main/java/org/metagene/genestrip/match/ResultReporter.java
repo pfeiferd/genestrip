@@ -63,7 +63,7 @@ public class ResultReporter {
         }
         out.print(';');
         out.print(stats.getLong(null));
-        out.println("false; 0; 0;");
+        out.println("; false; 0; 0;");
 
         int i = 1;
         Iterator<SmallTaxIdNode> it = database.getTaxTree().iterator();

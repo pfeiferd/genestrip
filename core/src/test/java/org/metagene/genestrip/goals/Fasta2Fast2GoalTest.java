@@ -64,10 +64,10 @@ public class Fasta2Fast2GoalTest extends DBGoalTest {
             }
 
             @Override
-            public void readFastq(InputStream inputStream) throws IOException {
-                super.readFastq(inputStream);
+            public void readFastq(InputStream inputStream, boolean fasta) throws IOException {
+                super.readFastq(inputStream, fasta);
             }
-        }.readFastq(StreamProvider.getInputStreamForFile(goal.getFile()));
+        }.readFastq(StreamProvider.getInputStreamForFile(goal.getFile()), false);
 
         maker.dumpAll();
     }

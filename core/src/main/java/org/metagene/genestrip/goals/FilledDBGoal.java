@@ -57,31 +57,26 @@ public class FilledDBGoal<P extends GSProject> extends ObjectGoal<Database, P> {
 	@Override
 	protected void doMakeThis() {
 		try {
-			if (booleanConfigValue(GSConfigKey.PROGRESS_BAR) && !fillDBGoal.isMade()) {
+			if (fillDBGoal.isMade()) {
+				set(fillDBGoal.get());
+			} else if (booleanConfigValue(GSConfigKey.PROGRESS_BAR)) {
 				try (StreamingResource.StreamAccess sa = new StreamingFileResource(filledStoreGoal.getFile(), true).openStream()) {
 					try (ProgressBar pb = GSProgressBarCreator.newGSProgressBar(getKey().getName(), sa, null)) {
-						doLoadDB(sa.getInputStream());
+						try (InputStream is = sa.getInputStream()) {
+							set(Database.load(is, true));
+						}
 					}
 				}
+			} else {
+				try (InputStream is = StreamProvider.getInputStreamForFile(filledStoreGoal.getFile(), true)) {
+					set(Database.load(is, true));
+				}
 			}
-			else {
-				doLoadDB(StreamProvider.getInputStreamForFile(filledStoreGoal.getFile()));
-			}
+		} catch (InvalidDatabaseClassException e) {
+			throw e.toRuntimeException();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
-		}
-	}
-
-
-	protected void doLoadDB(InputStream stream) {
-		try {
-			Database db = fillDBGoal.isMade() ? fillDBGoal.get() : Database.load(stream, true);
-			set(db);
 		} catch (ClassNotFoundException e) {
-			throw new RuntimeException(e);
-		} catch (InvalidClassException e) {
-			throw InvalidDatabaseClassException.convertToRuntimeException(e);
-		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
