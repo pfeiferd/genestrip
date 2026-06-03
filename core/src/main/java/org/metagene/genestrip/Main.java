@@ -55,8 +55,7 @@ public abstract class Main<P extends GSProject> {
         CommandLine line = new DefaultParser().parse(options, args);
 
         if (line.hasOption("v")) {
-            Package p = Main.class.getPackage();
-            System.out.println(p.getImplementationTitle() + " version " + p.getImplementationVersion());
+            System.out.println(GSProject.getGenestripRuntimeTitle() + " version " + GSProject.getGenestripRuntimeVersion());
         }
 
         String baseDir = line.getOptionValue("d", "./data");
@@ -145,7 +144,7 @@ public abstract class Main<P extends GSProject> {
         options.addOption(isolateGoals);
 
         Option fastqs = Option.builder("f").hasArgs().valueSeparator(',').argName("fqfile1,fqfile2,...").desc(
-                        "Input fastq files as paths or URLs to be processed via the goals 'filter', 'match' or 'matchlr'. When a URL is given, the fastq file will not be downloaded but data streaming will be applied unless '-l' or '-ll' is given.")
+                        "Input fastq/fasta files as paths or URLs to be processed via the goals 'filter', 'match' or 'matchlr'. When a URL is given, the fastq/fasta file will not be downloaded but data streaming will be applied unless '-l' or '-ll' is given.")
                 .build();
         options.addOption(fastqs);
 
@@ -154,27 +153,27 @@ public abstract class Main<P extends GSProject> {
         options.addOption(key);
 
         Option csv = Option.builder("m").hasArg().argName("fqmap").desc(
-                        "Mapping file with a list of fastq files to be processed via the goals 'filter', 'match' or 'matchlr'. Each line of the file must have the format '<key> <URL or path to fastq file>'.")
+                        "Mapping file with a list of fastq/fasta files to be processed via the goals 'filter', 'match' or 'matchlr'. Each line of the file must have the format '<key> <URL or path to fastq/fasta file>'.")
                 .build();
         options.addOption(csv);
 
         Option resFolder = Option.builder("r").hasArg().argName("path").desc(
-                        "Common store folder for filtered fastq files and result files created via the goals 'filter', 'match' or 'matchlr'. The defaults are '<base dir>/projects/<project name>/fastq' and '<base dir>/projects/<project name>/csv', respectively.")
+                        "Common store folder for filtered fastq/fasta files and result files created via the goals 'filter', 'match' or 'matchlr'. The defaults are '<base dir>/projects/<project name>/fastq' and '<base dir>/projects/<project name>/csv', respectively.")
                 .build();
         options.addOption(resFolder);
 
         Option tax = Option.builder("tx").hasArg().argName("taxids").desc(
-                        "List of tax ids separated by ',' (but no blanks) for the goal 'db2fastq'. A tax id may have the suffix '+', which means that taxonomic descendants from the project's database will be included. It can alternatively be set via the configuration parameter 'taxid'.")
+                        "List of tax ids separated by ',' (but no blanks) for the goal 'db2fastq/fasta'. A tax id may have the suffix '+', which means that taxonomic descendants from the project's database will be included. It can alternatively be set via the configuration parameter 'taxid'.")
                 .build();
         options.addOption(tax);
 
         Option download = Option.builder("l").hasArg(false).argName("load").desc(
-                        "Download fastqs from URLs to '<base dir>/projects/<project name>/fastq' instead of streaming them for the goals 'filter', 'match' and 'matchlr'.")
+                        "Download fastq/fastas from URLs to '<base dir>/projects/<project name>/fastq' instead of streaming them for the goals 'filter', 'match' and 'matchlr'.")
                 .build();
         options.addOption(download);
 
         Option downloadToCommon = Option.builder("ll").hasArg(false).argName("loadToCommon").desc(
-                        "Download fastqs from URLs to '<base dir>/fastq' instead of streaming them for the goals 'filter', 'match' and 'matchlr'.")
+                        "Download fastq/fastas from URLs to '<base dir>/fastq' instead of streaming them for the goals 'filter', 'match' and 'matchlr'.")
                 .build();
         options.addOption(downloadToCommon);
 
