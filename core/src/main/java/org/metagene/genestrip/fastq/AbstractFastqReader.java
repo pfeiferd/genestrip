@@ -65,7 +65,7 @@ public abstract class AbstractFastqReader {
 		bufferedLineReaderFastQ = new BufferedLineReader();
 		int consumerNumber = bundle.getThreads();
 		plusLine = new byte[initialSizeBytes];
-		readStructPool = new ReadEntry[consumerNumber == 0 ? 1 : (maxQueueSize + consumerNumber + 1)];
+		readStructPool = new ReadEntry[consumerNumber == 0 ? 2 : (maxQueueSize + consumerNumber + 2)];
 		for (int i = 0; i < readStructPool.length; i++) {
 			readStructPool[i] = createReadEntry(initialSizeBytes, withProbs, config);
 		}
