@@ -52,12 +52,28 @@ public class InvalidDatabaseClassException extends InvalidClassException {
     public RuntimeException toRuntimeException() {
         String dbVersion = null;
         if (configInfo != null) {
-            dbVersion = configInfo.getProperty(GSProject.GENESTRIP_DB_VERSION);
+            dbVersion = configInfo.getProperty(GSProject.GENESTRIP_VERSION);
         }
         if (dbVersion == null) {
             dbVersion = "unknown";
         }
+
+        String title = null;
+        if (configInfo != null) {
+            title = configInfo.getProperty(GSProject.GENESTRIP_TITLE);
+        }
+        if (title == null) {
+            title = "unknown";
+        }
+
         String runtimeVersion = GSProject.getGenestripRuntimeVersion();
-        return new RuntimeException("Database file version (" + dbVersion + ") does not match Genestrip library version (" + runtimeVersion + ").", this);
+        if (runtimeVersion == null) {
+            runtimeVersion = "unknown";
+        }
+        String runtimeTitle = GSProject.getGenestripRuntimeTitle();
+        if (runtimeTitle == null) {
+            runtimeTitle = "unknown";
+        }
+        return new RuntimeException("DB creation library (" + title + " version " + dbVersion + ") does not match runtime library (" +  runtimeTitle + " version " + runtimeVersion +  ").", this);
     }
 }

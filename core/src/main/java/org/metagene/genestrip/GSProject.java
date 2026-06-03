@@ -47,9 +47,10 @@ import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 public class GSProject extends Project {
     public static final String REFSEQ_RELEASE = "refseq.release";
-    public static final String GENESTRIP_DB_VERSION = "genestrip.dbVersion";
+    public static final String GENESTRIP_VERSION = "genestrip.creationVersion";
+    public static final String GENESTRIP_TITLE = "genestrip.creationTitle";
     public static final String DB_CREATION_DATE = "dbCreationDate";
-    public static final String DB_MD5 = "dbMd5";
+    public static final String DB_MD5 = "dbMD5";
 
     public static final String CONFIG_PROPERTIES = "config.properties";
 
@@ -74,7 +75,11 @@ public class GSProject extends Project {
     }
 
     public static String getGenestripRuntimeVersion() {
-        return Project.class.getPackage().getImplementationVersion();
+        return GSProject.class.getPackage().getImplementationVersion();
+    }
+
+    public static String getGenestripRuntimeTitle() {
+        return GSProject.class.getPackage().getImplementationTitle();
     }
 
     private final GSCommon common;

@@ -84,7 +84,14 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 			store = wrapper.getKmerStore();
 			readFastas();
 			store.fix();
-			getProject().setAdditionalProperty(GSProject.GENESTRIP_DB_VERSION, GSProject.getGenestripRuntimeVersion());
+			String gsVersion = GSProject.getGenestripRuntimeVersion();
+			if (gsVersion != null) {
+				getProject().setAdditionalProperty(GSProject.GENESTRIP_VERSION, gsVersion);
+			}
+			String gsTitle = GSProject.getGenestripRuntimeTitle();
+			if (gsTitle != null) {
+				getProject().setAdditionalProperty(GSProject.GENESTRIP_TITLE, gsTitle);
+			}
 			DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 			getProject().setAdditionalProperty(GSProject.DB_CREATION_DATE, dateFormat.format(new Date()));
 			set(new Database(store, wrapper.getTaxTree(), getProject().getAllAsProperties()));
