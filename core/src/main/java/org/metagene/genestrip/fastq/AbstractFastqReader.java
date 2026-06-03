@@ -304,6 +304,7 @@ public abstract class AbstractFastqReader {
 		for (readStruct.readDescriptorSize = bufferedLineReaderFastQ.nextLine(readStruct.readDescriptor)
 				- 1; readStruct != null && readStruct.readDescriptorSize >= 0;) {
 			readStruct.readDescriptor[readStruct.readDescriptorSize] = 0;
+//			ByteArrayUtil.println(readStruct.readDescriptor, System.out);
 			readStruct.readSize = bufferedLineReaderFastQ.nextLine(readStruct.read) - 1;
 			if (readStruct.readSize == readStruct.read.length) {
 				readStruct.growReadBuffer(bufferedLineReaderFastQ);
@@ -321,16 +322,20 @@ public abstract class AbstractFastqReader {
 
 			ReadEntry readStruct2 = null;
 			// Not reached EOF?
-			if (newSize != readStruct.read.length - 1) {
+			if (newSize != readStruct.readSize - 1) {
 				readStruct2 = nextFreeReadStruct();
 				int len = newSize - readStruct.readSize;
 				System.arraycopy(readStruct.read, readStruct.readSize, readStruct2.readDescriptor, 0, len);
 				if (newSize == readStruct.read.length) {
 					readStruct2.readDescriptorSize = bufferedLineReaderFastQ.nextLine(readStruct2.readDescriptor, len);
 				}
+				else {
+					readStruct2.readDescriptorSize = len;
+				}
 			}
 
 			readStruct.read[readStruct.readSize] = 0;
+//			ByteArrayUtil.println(readStruct.read, System.out);
 
 			readStruct.readNo = reads;
 			reads++;
@@ -355,7 +360,9 @@ public abstract class AbstractFastqReader {
 			updateProgress();
 			readStruct = readStruct2;
 		}
-		readStruct.pooled = true;
+		if (readStruct != null) {
+			readStruct.pooled = true;
+		}
 	}
 
 	protected void updateProgress() {
@@ -371,7 +378,7 @@ public abstract class AbstractFastqReader {
 				return readStructPool[i];
 			}
 		}
-		throw new IllegalStateException("There should always be a read struct available...");
+		throw new IllegalStateException("There should always be a read structs available...");
 	}
 
 	protected void rewriteInput(ReadEntry readStruct, OutputStream out) throws IOException {
