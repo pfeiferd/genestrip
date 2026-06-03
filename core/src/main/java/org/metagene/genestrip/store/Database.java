@@ -1,26 +1,26 @@
 /*
- * 
+ *
  * “Commons Clause” License Condition v1.0
- * 
- * The Software is provided to you by the Licensor under the License, 
+ *
+ * The Software is provided to you by the Licensor under the License,
  * as defined below, subject to the following condition.
- * 
- * Without limiting other conditions in the License, the grant of rights under the License 
+ *
+ * Without limiting other conditions in the License, the grant of rights under the License
  * will not include, and the License does not grant to you, the right to Sell the Software.
- * 
- * For purposes of the foregoing, “Sell” means practicing any or all of the rights granted 
- * to you under the License to provide to third parties, for a fee or other consideration 
- * (including without limitation fees for hosting or consulting/ support services related to 
- * the Software), a product or service whose value derives, entirely or substantially, from the 
- * functionality of the Software. Any license notice or attribution required by the License 
+ *
+ * For purposes of the foregoing, “Sell” means practicing any or all of the rights granted
+ * to you under the License to provide to third parties, for a fee or other consideration
+ * (including without limitation fees for hosting or consulting/ support services related to
+ * the Software), a product or service whose value derives, entirely or substantially, from the
+ * functionality of the Software. Any license notice or attribution required by the License
  * must also include this Commons Clause License Condition notice.
- * 
+ *
  * Software: genestrip
- * 
+ *
  * License: Apache 2.0
- * 
+ *
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
- * 
+ *
  */
 package org.metagene.genestrip.store;
 
@@ -49,7 +49,6 @@ public class Database implements Serializable {
     public static final String DB_FILE = "db.ser";
     public static final String INDEX_FILE = "bloom.ser";
     public static final String CONFIG_INFO_FILE = "configInfo.properties";
-    public static final String MD5_FILE = "md5";
 
     private final SmallTaxTree taxTree;
     private final KMerSortedArray<String> kmerStore;
@@ -136,38 +135,33 @@ public class Database implements Serializable {
         DigestOutputStream digo = null;
         try (ZipOutputStream zipOut = new ZipOutputStream(os)) {
             ZipEntry zipEntry = null;
-            Properties configInfo = getConfigInfo();
-            if (configInfo != null) {
-                zipEntry = new ZipEntry(CONFIG_INFO_FILE);
-                zipOut.putNextEntry(zipEntry);
-                // Zip out here, cause only DB itself shall be in the md5 finger print.
-                configInfo.store(zipOut, "Genestrip database configuration information");
-                zipOut.closeEntry();
-            }
 
             MessageDigest messageDigest = MessageDigest.getInstance("MD5");
             // No try() here cause that would close the zip stream too.
-            digo = new DigestOutputStream(zipOut, messageDigest);
-            zipEntry = new ZipEntry(DB_FILE);
-            zipOut.putNextEntry(zipEntry);
-            ObjectOutputStream oOut = new ObjectOutputStream(digo);
-            oOut.writeObject(this);
-            zipOut.closeEntry();
+            {
+                digo = new DigestOutputStream(zipOut, messageDigest);
+                zipEntry = new ZipEntry(DB_FILE);
+                zipOut.putNextEntry(zipEntry);
+                ObjectOutputStream oOut = new ObjectOutputStream(digo);
+                oOut.writeObject(this);
+                zipOut.closeEntry();
 
-            zipEntry = new ZipEntry(INDEX_FILE);
-            zipOut.putNextEntry(zipEntry);
-            oOut = new ObjectOutputStream(digo);
-            oOut.writeObject(kmerStore.getFilter());
-            digo.flush(); // Make sure it all got written.
-            zipOut.closeEntry();
+                zipEntry = new ZipEntry(INDEX_FILE);
+                zipOut.putNextEntry(zipEntry);
+                oOut = new ObjectOutputStream(digo);
+                oOut.writeObject(kmerStore.getFilter());
+                digo.flush(); // Make sure it all got written.
+                zipOut.closeEntry();
+            }
 
-            zipEntry = new ZipEntry(MD5_FILE);
-            zipOut.putNextEntry(zipEntry);
-            byte[] md5b = messageDigest.digest();
-            zipOut.write(md5b);
-            zipOut.closeEntry();
-            String md5 = Hex.encodeHexString(md5b);
+            // Zip out here, cause only DB itself shall be in the md5 finger print.
+            Properties configInfo = getConfigInfo();
+            String md5 = Hex.encodeHexString(messageDigest.digest());
             configInfo.setProperty(GSProject.DB_MD5, md5);
+            zipEntry = new ZipEntry(CONFIG_INFO_FILE);
+            zipOut.putNextEntry(zipEntry);
+            configInfo.store(zipOut, "Genestrip database configuration information");
+            zipOut.closeEntry();
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         } finally {
@@ -205,9 +199,6 @@ public class Database implements Serializable {
                         ObjectInputStream oOut = new ObjectInputStream(zis);
                         filter = (KMerProbFilter) oOut.readObject();
                         zis.closeEntry();
-                    } else if (entryName.equals(MD5_FILE)) {
-                        configInfo.setProperty(GSProject.DB_MD5, loadMD5(zis));
-                        zis.closeEntry();
                     }
                 }
                 database.setConfigInfo(configInfo);
@@ -232,49 +223,12 @@ public class Database implements Serializable {
         Properties configInfo = new Properties();
         try (ZipInputStream zis = new ZipInputStream(is)) {
             for (ZipEntry zipEntry = zis.getNextEntry(); zipEntry != null; zipEntry = zis.getNextEntry()) {
-                String entryName = zipEntry.getName();
-                // We want the version info as the first thing.
-                // We assume it got stored as first thing and zip maintains this order in the
-                // underlying zip file.
-                if (entryName.equals(CONFIG_INFO_FILE)) {
+                if (zipEntry.getName().equals(CONFIG_INFO_FILE)) {
                     configInfo.load(zis);
-                    zis.closeEntry();
-                } else if (entryName.equals(MD5_FILE)) {
-                    configInfo.setProperty(GSProject.DB_MD5, loadMD5(zis));
                     zis.closeEntry();
                 }
             }
         }
         return configInfo;
     }
-
-    private static String loadMD5(InputStream is) throws IOException {
-        byte[] md5b = new byte[16]; // Large enough buffer for sure
-        int size = is.read(md5b);
-        return Hex.encodeHexString(md5b);
-    }
-
-	/* Should never be used - so remove it (?)
-	public static MurmurCGATBloomFilter loadFilter(File file) throws IOException, ClassNotFoundException {
-		try (InputStream is = new FileInputStream(file)) {
-			return loadFilter(is);
-		}
-	}
-
-	public static MurmurCGATBloomFilter loadFilter(InputStream is) throws IOException, ClassNotFoundException {
-		MurmurCGATBloomFilter filter = null;
-		try (ZipInputStream zis = new ZipInputStream(is)) {
-			for (ZipEntry zipEntry = zis.getNextEntry(); zipEntry != null; zipEntry = zis.getNextEntry()) {
-				String entryName = zipEntry.getName();
-				if (entryName.equals(INDEX_FILE) && filter == null) {
-					ObjectInputStream oOut = new ObjectInputStream(zis);
-					filter = (MurmurCGATBloomFilter) oOut.readObject();
-					zis.closeEntry();
-					break;
-				}
-			}
-		}
-		return filter;
-	}
-	 */
 }

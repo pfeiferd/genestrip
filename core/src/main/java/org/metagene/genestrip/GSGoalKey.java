@@ -43,6 +43,10 @@ public enum GSGoalKey implements GoalKey {
 	DB("db", true), 
 	@MDDescription("Write information on a project's database content to a CSV file.")
 	DBINFO("dbinfo", true),
+	@MDDescription("Load config information for a database - but not (necessarily) that database itself.")
+	DBCONF("dbconf", false),
+	@MDDescription("Show config information for a database - without (necessarily) loading the database itself.")
+	SHOWDBCONF("showdbconf", false),
 	@MDDescription("Write information about a project's temporary database content to a CSV file.")
 	TEMP_DBINFO("tempdbinfo", false),
 	@MDDescription("Generate fastq files from the database. A respective fastq file will contain all *k*-mers specifically associated with a "

@@ -48,11 +48,11 @@ public class DBConfigInfoGoal<P extends GSProject> extends ObjectGoal<Properties
 	private final File dbFile;
 
 	@SafeVarargs
-	public DBConfigInfoGoal(P project, GoalKey key, ObjectGoal<Database, P> dbGoal, FileGoal<P> updateStoreGoal, Goal<P>... deps) {
+	public DBConfigInfoGoal(P project, GoalKey key, ObjectGoal<Database, P> dbGoal, FileGoal<P> storedDBGoal, Goal<P>... deps) {
 		super(project, key,
-				project.getDBPath() == null ? append(deps, dbGoal, updateStoreGoal) : deps);
+				project.getDBPath() == null ? append(deps, dbGoal, storedDBGoal) : deps);
 		this.dbGoal = dbGoal;
-		this.dbFile = getProject().getDBPath() == null ? updateStoreGoal.getFile() : new File(getProject().getDBPath());
+		this.dbFile = getProject().getDBPath() == null ? storedDBGoal.getFile() : new File(getProject().getDBPath());
 	}
 
 	@Override

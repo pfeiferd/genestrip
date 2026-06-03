@@ -26,11 +26,7 @@ package org.metagene.genestrip;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.metagene.genestrip.GSProject.GSFileType;
 import org.metagene.genestrip.goals.*;
@@ -336,6 +332,23 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
 
         LoadDBGoal<P> loadDBGoal = new LoadDBGoal(project, GSGoalKey.LOAD_DB, updateDBGoal, storeDBGoal);
         registerGoal(loadDBGoal);
+
+        DBConfigInfoGoal<P> dbConfigInfoGoal = new DBConfigInfoGoal<P>(project, GSGoalKey.DBCONF, loadDBGoal, storeDBGoal);
+        registerGoal(dbConfigInfoGoal);
+
+        Goal<P> showConfigGoal = new Goal<P>(project, GSGoalKey.SHOWDBCONF, dbConfigInfoGoal) {
+            @Override
+            public boolean isMade() {
+                return false;
+            }
+
+            @Override
+            protected void doMakeThis() {
+                Properties configInfo = dbConfigInfoGoal.get();
+                configInfo.list(System.out);
+            }
+        };
+        registerGoal(showConfigGoal);
 
         BloomIndexGoal<P> bloomIndexGoal = new BloomIndexGoal(project, loadDBGoal, projectSetupGoal);
         registerGoal(bloomIndexGoal);
