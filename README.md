@@ -153,6 +153,8 @@ sh ./bin/genestrip.sh human_virus match -f ./data/projects/human_virus/fastq/sam
 ```
 The resulting CSV file will be named `human_virus_match_sample.csv` under `./data/projects/human_virus/csv`. The same applies to your own projects under `./data/projects`.
 
+**Important: Regarding analysis and filtering (see below), files in fasta format (as recognized by the file name suffixes `.fasta`, `.fa`, `.fna`, `.fas`, `.fasta.gz`, `.fa.gz`, `.fna.gz` and `.fas.gz`) can also be used instead of fastq files. However for simplicity, we only speak of fastq files below.**
+
 These are a few lines of its contents along with the header line:
 ```
 pos;level;name;rank;taxid;reads;kmers from reads;kmers;unique kmers;contigs;average contig length;max contig length;reads >=1 kmer;reads bps;avg. read length;db coverage;exp. unique kmers;unique kmers / exp.;db kmers;parent taxid;mean error;kmer error std. dev.;mean class error;class error std. dev.;contig len std. dev.;norm. reads;norm. kmers;norm. reads bps;norm. read >=1 kmer;norm. reads kmers;acc. reads;acc. norm. reads;acc. kmers;acc. norm. kmers;acc. reads bps;acc. norm. reads bps;acc. read >=1 kmer;acc. norm. read >=1 kmer;acc. reads kmers;acc. norm. reads kmers;max contig desc.;acc. mean error;acc. error std. dev.;acc. class mean error;acc. class error std. dev.;
@@ -212,11 +214,12 @@ usage: genestrip [options] <project> [<goal1> <goal2>...]
                             goals 'filter' or 'match', 'matchlr', 'dbinfo'
                             and 'db2fastq' for use without project
                             context.
- -f <fqfile1,fqfile2,...>   Input fastq files as paths or URLs to be
+ -f <fqfile1,fqfile2,...>   Input fastq/fasta files as paths or URLs to be
                             processed via the goals 'filter', 'match' or
-                            'matchlr'. When a URL is given, the fastq file
-                            will not be downloaded but data streaming will
-                            be applied unless '-l' or '-ll' is given.
+                            'matchlr'. When a URL is given, the
+                            fastq/fasta file will not be downloaded but
+                            data streaming will be applied unless '-l' or
+                            '-ll' is given.
  -i                         If several goals are given, it runs them
                             without reusing intermediate results of object
                             goals between the given goals. Isolation
@@ -225,19 +228,20 @@ usage: genestrip [options] <project> [<goal1> <goal2>...]
                             recomputation. The default is no isolation.
  -k <key>                   Key used as a prefix for naming result files
                             in conjuntion with '-f'.
- -l                         Download fastqs from URLs to '<base
+ -l                         Download fastq/fastas from URLs to '<base
                             dir>/projects/<project name>/fastq' instead of
                             streaming them for the goals 'filter', 'match'
                             and 'matchlr'.
- -ll                        Download fastqs from URLs to '<base
+ -ll                        Download fastq/fastas from URLs to '<base
                             dir>/fastq' instead of streaming them for the
                             goals 'filter', 'match' and 'matchlr'.
- -m <fqmap>                 Mapping file with a list of fastq files to be
-                            processed via the goals 'filter', 'match' or
-                            'matchlr'. Each line of the file must have the
-                            format '<key> <URL or path to fastq file>'.
- -r <path>                  Common store folder for filtered fastq files
-                            and result files created via the goals
+ -m <fqmap>                 Mapping file with a list of fastq/fasta files
+                            to be processed via the goals 'filter',
+                            'match' or 'matchlr'. Each line of the file
+                            must have the format '<key> <URL or path to
+                            fastq/fasta file>'.
+ -r <path>                  Common store folder for filtered fastq/fasta
+                            files and result files created via the goals
                             'filter', 'match' or 'matchlr'. The defaults
                             are '<base dir>/projects/<project name>/fastq'
                             and '<base dir>/projects/<project name>/csv',
@@ -245,8 +249,8 @@ usage: genestrip [options] <project> [<goal1> <goal2>...]
  -t <target>                Generation target ('make', 'clean', 'cleanall'
                             or 'cleantotal'). The default is 'make'.
  -tx <taxids>               List of tax ids separated by ',' (but no
-                            blanks) for the goal 'db2fastq'. A tax id may
-                            have the suffix '+', which means that
+                            blanks) for the goal 'db2fastq/fasta'. A tax
+                            id may have the suffix '+', which means that
                             taxonomic descendants from the project's
                             database will be included. It can
                             alternatively be set via the configuration
