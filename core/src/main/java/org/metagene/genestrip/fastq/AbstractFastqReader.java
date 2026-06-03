@@ -305,9 +305,9 @@ public abstract class AbstractFastqReader {
 				- 1; readStruct != null && readStruct.readDescriptorSize >= 0;) {
 			readStruct.readDescriptor[readStruct.readDescriptorSize] = 0;
 //			ByteArrayUtil.println(readStruct.readDescriptor, System.out);
-			readStruct.readSize = bufferedLineReaderFastQ.nextLine(readStruct.read) - 1;
-			if (readStruct.readSize == readStruct.read.length) {
-				readStruct.growReadBuffer(bufferedLineReaderFastQ);
+			// Early EOL:
+			if (readStruct.readSize == -1) {
+				break;
 			}
 
 			int newSize = bufferedLineReaderFastQ.nextLine(readStruct.read, readStruct.readSize) - 1;
