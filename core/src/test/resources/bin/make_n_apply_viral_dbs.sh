@@ -23,7 +23,8 @@ cp ./data/projects/viral/fasta/*.fa ./viral_db/library
 cp ./data/projects/viral/csv/viral_ku.map ./viral_db/library
 
 ${kudir}/krakenuniq-build --kmer-len 31 --db ./viral_db
-${kudir}/krakenuniq --threads 10 --db ./viral_db --output ./core/target/test.fasta.out ./core/src/test/resources/projects/viral/test.fasta.gz
+# Only one thread here so that results are in deterministic order for later comparison
+${kudir}/krakenuniq --threads 1 --db ./viral_db --output ./core/target/test.fasta.out ./core/src/test/resources/projects/viral/test.fasta.gz
 
 mkdir -p ./viral16_db
 mkdir -p ./viral16_db/library
@@ -37,4 +38,5 @@ cp ./data/projects/viral/fasta/*.fa ./viral16_db/library
 cp ./data/projects/viral/csv/viral_ku.map ./viral16_db/library
 
 ${kudir}/krakenuniq-build --kmer-len 16 --db ./viral16_db
-${kudir}/krakenuniq --threads 10 --db ./viral16_db --output ./core/target/test16.fasta.out ./core/src/test/resources/projects/viral/test.fasta.gz
+# Only one thread here so that results are in deterministic order for later comparison
+${kudir}/krakenuniq --threads 1 --db ./viral16_db --output ./core/target/test16.fasta.out ./core/src/test/resources/projects/viral/test.fasta.gz

@@ -95,6 +95,7 @@ public class ComprehensiveMatchTest extends DBGoalTest {
         for (String file : files) {
             for (int i = 0; i < 2; i++) {
                 project = createTestProject("viral_test_fastq.txt");
+                // Single threaded here so that results are in deterministic order for comparison:
                 project.initConfigParam(GSConfigKey.THREADS, 0);
                 project.initConfigParam(GSConfigKey.WRITE_KRAKEN_STYLE_OUT, true);
                 project.initConfigParam(GSConfigKey.USE_INLINED, i == 0);
