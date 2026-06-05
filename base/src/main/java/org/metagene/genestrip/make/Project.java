@@ -185,7 +185,7 @@ public abstract class Project {
 		}
 	}
 	
-	protected void logParamMap() {
+	public void logParamMap() {
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Effective param map: " + paramMap);
 		}

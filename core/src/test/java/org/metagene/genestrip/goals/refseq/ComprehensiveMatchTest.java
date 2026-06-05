@@ -1,26 +1,26 @@
 /*
- * 
+ *
  * “Commons Clause” License Condition v1.0
- * 
- * The Software is provided to you by the Licensor under the License, 
+ *
+ * The Software is provided to you by the Licensor under the License,
  * as defined below, subject to the following condition.
- * 
- * Without limiting other conditions in the License, the grant of rights under the License 
+ *
+ * Without limiting other conditions in the License, the grant of rights under the License
  * will not include, and the License does not grant to you, the right to Sell the Software.
- * 
- * For purposes of the foregoing, “Sell” means practicing any or all of the rights granted 
- * to you under the License to provide to third parties, for a fee or other consideration 
- * (including without limitation fees for hosting or consulting/ support services related to 
- * the Software), a product or service whose value derives, entirely or substantially, from the 
- * functionality of the Software. Any license notice or attribution required by the License 
+ *
+ * For purposes of the foregoing, “Sell” means practicing any or all of the rights granted
+ * to you under the License to provide to third parties, for a fee or other consideration
+ * (including without limitation fees for hosting or consulting/ support services related to
+ * the Software), a product or service whose value derives, entirely or substantially, from the
+ * functionality of the Software. Any license notice or attribution required by the License
  * must also include this Commons Clause License Condition notice.
- * 
+ *
  * Software: genestrip
- * 
+ *
  * License: Apache 2.0
- * 
+ *
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
- * 
+ *
  */
 package org.metagene.genestrip.goals.refseq;
 
@@ -72,6 +72,7 @@ public class ComprehensiveMatchTest extends DBGoalTest {
     @Test
     public void testKrakenOutput() throws IOException {
         GSProject project = createTestProject("viral_test_fasta.txt");
+        project.logParamMap();
         createProjectGoal(project).make();
 
         GSMaker maker = new GSMaker(project);
@@ -79,28 +80,38 @@ public class ComprehensiveMatchTest extends DBGoalTest {
         maker.dumpAll();
 
         project = createTestProject(null);
+        project.logParamMap();
         maker = new GSMaker(project);
         maker.getGoal(GSGoalKey.FASTA2FASTQ).make();
         maker.getGoal(GSGoalKey.DB).make();
         maker.dumpAll();
 
-        for (int i = 0; i < 2; i++) {
-            project = createTestProject("viral_test_fastq.txt");
-            project.initConfigParam(GSConfigKey.THREADS, 0);
-            project.initConfigParam(GSConfigKey.WRITE_KRAKEN_STYLE_OUT, true);
-            project.initConfigParam(GSConfigKey.USE_INLINED, i == 0);
-            maker = new GSMaker(project);
-            maker.match(false, "test", new File(project.getFastqDir(), getProjectName() +  "_fasta2fastq_test.fastq.gz").toString());
+        // Try original fasta file and fastq generated from fasta:
+        String[] files = new String[]{
+                new File(project.getFastaDir(), "test.fasta.gz").toString(),
+                new File(project.getFastqDir(), getProjectName() + "_fasta2fastq_test.fastq.gz").toString(),
+        };
+        int j = 0;
+        for (String file : files) {
+            for (int i = 0; i < 2; i++) {
+                project = createTestProject("viral_test_fastq.txt");
+                project.initConfigParam(GSConfigKey.THREADS, 0);
+                project.initConfigParam(GSConfigKey.WRITE_KRAKEN_STYLE_OUT, true);
+                project.initConfigParam(GSConfigKey.USE_INLINED, i == 0);
+                maker = new GSMaker(project);
+                maker.match(false, "test" + j + "_" + i, file);
 
-            ObjectGoal<Properties, GSProject> configInfoGoal = (ObjectGoal<Properties, GSProject>) maker.getGoal(GSGoalKey.DBCONF);
-            String refSeqRelease = configInfoGoal.get().getProperty(GSProject.REFSEQ_RELEASE);
-            File file1 = new File(getTargetDir(), getKUOutFileName(refSeqRelease));
-            File file2 = new File(project.getKrakenOutDir(), getProjectName() + "_matchres_test.out");
-            System.out.println("file1: " + file1);
-            System.out.println("file2: " + file2);
-            assertTrue(FileUtils.contentEquals(file1, file2));
-            // Clean up memory and threads.
-            maker.dumpAll();
+                ObjectGoal<Properties, GSProject> configInfoGoal = (ObjectGoal<Properties, GSProject>) maker.getGoal(GSGoalKey.DBCONF);
+                String refSeqRelease = configInfoGoal.get().getProperty(GSProject.REFSEQ_RELEASE);
+                File file1 = new File(getTargetDir(), getKUOutFileName(refSeqRelease));
+                File file2 = new File(project.getKrakenOutDir(), getProjectName() + "_matchres_test" + + j + "_" + i + ".out");
+                System.out.println("file1: " + file1);
+                System.out.println("file2: " + file2);
+                assertTrue(FileUtils.contentEquals(file1, file2));
+                // Clean up memory and threads.
+                maker.dumpAll();
+            }
+            j++;
         }
     }
 

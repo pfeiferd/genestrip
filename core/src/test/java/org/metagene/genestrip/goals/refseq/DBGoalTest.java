@@ -66,7 +66,7 @@ public class DBGoalTest {
 		};
 
 		return new GSProject(config, name, null, null, csvFile1, null, null, null,
-				null, null, null, false);
+				null, null, null, true);
 	}
 
 	protected static File getBaseDir() {
