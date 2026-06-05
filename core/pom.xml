@@ -119,73 +119,70 @@
             <id>gentestdata</id>
             <build>
                 <plugins>
-                    <!--
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
                         <version>3.1.0</version>
                         <executions>
-                    <execution>
-                        <id>installku</id>
-                        <phase>generate-test-resources</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>bash</executable>
-                            <arguments>
-                                <argument>${project.basedir}/src/test/resources/bin/install_ku.sh</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>extract</id>
-                        <phase>generate-test-resources</phase>
-                        <goals>
-                            <goal>java</goal>
-                        </goals>
-                        <configuration>
-                            <mainClass>org.metagene.genestrip.Main</mainClass>
-                            <workingDirectory>..</workingDirectory>
-                            <arguments>
-                                <argument>viral</argument>
-                                <argument>extractrefseqcsv</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>inputcsv</id>
-                        <phase>generate-test-resources</phase>
-                        <goals>
-                            <goal>java</goal>
-                        </goals>
-                        <configuration>
-                            <mainClass>org.metagene.genestrip.goals.refseq.CSVDBFileConverter</mainClass>
-                            <classpathScope>test</classpathScope>
-                            <workingDirectory>..</workingDirectory>
-                            <arguments>
-                                <argument>viral</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>makeviraldb</id>
-                        <phase>generate-test-resources</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>bash</executable>
-                            <arguments>
-                                <argument>${project.basedir}/src/test/resources/bin/make_n_apply_viral_dbs.sh
-                                </argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-                                -->
-
+                            <execution>
+                                <id>installku</id>
+                                <phase>generate-test-resources</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>bash</executable>
+                                    <arguments>
+                                        <argument>${project.basedir}/src/test/resources/bin/install_ku.sh</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>extract</id>
+                                <phase>generate-test-resources</phase>
+                                <goals>
+                                    <goal>java</goal>
+                                </goals>
+                                <configuration>
+                                    <mainClass>org.metagene.genestrip.Main</mainClass>
+                                    <workingDirectory>..</workingDirectory>
+                                    <arguments>
+                                        <argument>viral</argument>
+                                        <argument>extractrefseqcsv</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>inputcsv</id>
+                                <phase>generate-test-resources</phase>
+                                <goals>
+                                    <goal>java</goal>
+                                </goals>
+                                <configuration>
+                                    <mainClass>org.metagene.genestrip.goals.refseq.CSVDBFileConverter</mainClass>
+                                    <classpathScope>test</classpathScope>
+                                    <workingDirectory>..</workingDirectory>
+                                    <arguments>
+                                        <argument>viral</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>makeviraldb</id>
+                                <phase>generate-test-resources</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>bash</executable>
+                                    <arguments>
+                                        <argument>${project.basedir}/src/test/resources/bin/make_n_apply_viral_dbs.sh
+                                        </argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>properties-maven-plugin</artifactId>
