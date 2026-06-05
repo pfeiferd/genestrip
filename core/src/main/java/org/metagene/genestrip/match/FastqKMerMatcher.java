@@ -269,8 +269,9 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                     reverseKmer = CGAT.nextKMerReverse(reverseKmer, entry.read[i + k - 1], k);
                 }
             }
+            long stdKmer = CGAT.standardKMer(kmer, reverseKmer);
             taxIdNode = kmer == -1 ? INVALID_NODE :
-                    kmerStore.getLong(CGAT.standardKMer(kmer, reverseKmer), entry.indexPos);
+                    kmerStore.getLong(stdKmer, entry.indexPos);
             if (readTaxErrorCount != -1) {
                 if (taxIdNode == null || taxIdNode == INVALID_NODE) {
                     readTaxErrorCount++;
@@ -325,7 +326,11 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                     }
                 }
                 if (uniqueCounter != null) {
-                    uniqueCounter.put(CGAT.standardKMer(kmer, reverseKmer), taxIdNode.getTaxId(), entry.indexPos[0]);
+                    // This is a considerable optimization as found via profiling:
+                    // Old version:
+                    // uniqueCounter.put(stdKmer, taxIdNode.getTaxId(), entry.indexPos[0]);
+                    // Faster version:
+                    uniqueCounter.putInlined(entry.indexPos[0]);
                 }
             } else {
                 stats = null;

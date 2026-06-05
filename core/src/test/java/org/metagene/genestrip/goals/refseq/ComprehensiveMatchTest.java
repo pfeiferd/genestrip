@@ -88,7 +88,7 @@ public class ComprehensiveMatchTest extends DBGoalTest {
 
         // Try original fasta file and fastq generated from fasta:
         String[] files = new String[]{
-                // new File(project.getFastaDir(), "test.fasta.gz").toString(),
+                new File(project.getFastaDir(), "test.fasta.gz").toString(),
                 new File(project.getFastqDir(), getProjectName() + "_fasta2fastq_test.fastq.gz").toString(),
         };
         int j = 0;

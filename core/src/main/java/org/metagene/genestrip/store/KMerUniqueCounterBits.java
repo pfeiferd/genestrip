@@ -38,11 +38,16 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 	private final KMerSortedArray<String> store;
 	private final LargeBitVector bitVector;
 	private final LargeShortVector countsVector;
+	private final Object[] locks;
 
 	public KMerUniqueCounterBits(KMerSortedArray<String> store, boolean withCounts) {
 		this.store = store;
 		bitVector = new LargeBitVector(store.getEntries());
 		countsVector = withCounts ? new LargeShortVector(store.getEntries()) : null;
+		locks = new Object[256];
+		for (int i = 0; i < locks.length; i++) {
+			locks[i] = new Object();
+		}
 	}
 	
 	public boolean isWithCounts() {
@@ -65,19 +70,21 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 		}
 	}
 
-	public final synchronized void putInlined(final long kmer, final String taxid, final long index) {
-		if (bitVector.largeBits != null) {
-			long arrayIndex = ((index >>> 6) % bitVector.size);
-			bitVector.largeBits[(int) (arrayIndex >>> 27)][(int) (arrayIndex & 134217727)] = bitVector.largeBits[(int) (arrayIndex >>> 27)][(int) (arrayIndex & 134217727)] | (1L << (index & 0b111111));
-		} else {
-			int arrayIndex = (int) ((index >>> 6) % bitVector.size);
-			bitVector.bits[arrayIndex] = bitVector.bits[arrayIndex] | (1L << (index & 0b111111));
-		}
-		if (countsVector != null) {
-			if (countsVector.largeShorts != null) {
-				countsVector.largeShorts[(int) (index >>> 27)][(int) (index & 134217727)]++;
+	public final void putInlined(final long index) {
+		long arrayIndex = ((index >>> 6) % bitVector.size);
+		synchronized (locks[(int)(arrayIndex & 255)]) {
+			if (bitVector.largeBits != null) {
+				bitVector.largeBits[(int) (arrayIndex >>> 27)][(int) (arrayIndex & 134217727)] = bitVector.largeBits[(int) (arrayIndex >>> 27)][(int) (arrayIndex & 134217727)] | (1L << (index & 0b111111));
 			} else {
-				++countsVector.shorts[(int) index];
+				int arrayI = (int) arrayIndex;
+				bitVector.bits[arrayI] = bitVector.bits[arrayI] | (1L << (index & 0b111111));
+			}
+			if (countsVector != null) {
+				if (countsVector.largeShorts != null) {
+					countsVector.largeShorts[(int) (index >>> 27)][(int) (index & 134217727)]++;
+				} else {
+					++countsVector.shorts[(int) index];
+				}
 			}
 		}
 	}
