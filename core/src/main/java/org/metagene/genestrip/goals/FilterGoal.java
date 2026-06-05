@@ -57,7 +57,7 @@ public class FilterGoal<P extends GSProject> extends MultiFileGoal<P> {
 	}
 
 	@Override
-	protected void makeFile(File file) {
+	protected void makeFile(File file) throws IOException {
 		FastqBloomFilter f = null;
 		try {
 			P project = getProject();
@@ -81,8 +81,6 @@ public class FilterGoal<P extends GSProject> extends MultiFileGoal<P> {
 				}
 			};
 			f.runFilter(resources, file, dumpFile);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
 		} finally {
 			if (f != null) {
 				f.dump();

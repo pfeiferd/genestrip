@@ -40,7 +40,6 @@ import java.util.List;
 
 import static org.junit.Assert.assertTrue;
 
-@Ignore
 public class ComprehensiveMatchTest extends DBGoalTest {
     @BeforeClass()
     public static void clearDB() throws IOException {
@@ -90,7 +89,7 @@ public class ComprehensiveMatchTest extends DBGoalTest {
             project.initConfigParam(GSConfigKey.USE_INLINED, i == 0);
             maker = new GSMaker(project);
             maker.match(false, "test", new File(project.getFastqDir(), getProjectName() +  "_fasta2fastq_test.fastq.gz").toString());
-            File file1 = new File(project.getKrakenOutDir(), "test_ks.out");
+            File file1 = new File(getTargetDir(), getKUOutFileName(project));
             File file2 = new File(project.getKrakenOutDir(), getProjectName() + "_matchres_test.out");
             System.out.println("file1: " + file1);
             System.out.println("file2: " + file2);
@@ -98,6 +97,11 @@ public class ComprehensiveMatchTest extends DBGoalTest {
             // Clean up memory and threads.
             maker.dumpAll();
         }
+    }
+
+    protected String getKUOutFileName(GSProject project) {
+        String release = project.getAdditionalProperty(GSProject.REFSEQ_RELEASE);
+        return "test.fasta-" + release + ".out";
     }
 
     public class ViralProjectGoal extends FileListGoal<GSProject> {

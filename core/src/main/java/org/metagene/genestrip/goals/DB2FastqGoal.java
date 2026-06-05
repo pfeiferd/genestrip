@@ -69,13 +69,9 @@ public class DB2FastqGoal<P extends GSProject> extends FileListGoal<P> {
 	}
 
 	@Override
-	protected void makeFile(File file) {
+	protected void makeFile(File file) throws IOException {
 		KMerFastqGenerator generator = new KMerFastqGenerator(storeGoal.get().getKmerStore());
 		SmallTaxIdNode node = fileToTaxid.get(file);
-		try {
-			generator.generateFastq(file, node.getTaxId(), getProject().getName() + ":" + node.getName());
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		generator.generateFastq(file, node.getTaxId(), getProject().getName() + ":" + node.getName());
 	}
 }

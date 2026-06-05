@@ -87,6 +87,8 @@ public enum GSGoalKey implements GoalKey {
 	TAXNODES("taxnodes"),
 	@MDDescription("Download the RefSeq release number.")
 	REFSEQRELEASE("refseqrelease"),
+	@MDDescription("Store the RefSeq release number in a properties file.")
+	REFSEQ_PROP("refseqprop"),
 	@MDDescription("Download the RefSeq release catalog files.")
 	REFSEQCAT("refseqcat", false, false),
 	@MDDescription("Load MD5 checksums for RefSeq files into memory")

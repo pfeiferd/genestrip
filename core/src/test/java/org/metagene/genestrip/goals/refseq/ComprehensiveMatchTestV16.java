@@ -26,6 +26,7 @@ package org.metagene.genestrip.goals.refseq;
 
 import org.junit.BeforeClass;
 import org.junit.Ignore;
+import org.junit.Test;
 import org.metagene.genestrip.*;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
@@ -35,9 +36,6 @@ import java.io.IOException;
 
 import static org.junit.Assert.assertTrue;
 
-// TODO: The files test_gs.out and test_ku.out must be generated (still missing) for this check.
-// (It has been tested manually though with great accuracy.)
-@Ignore
 public class ComprehensiveMatchTestV16 extends ComprehensiveMatchTest {
     @BeforeClass()
     public static void clearDB() throws IOException {
@@ -47,8 +45,15 @@ public class ComprehensiveMatchTestV16 extends ComprehensiveMatchTest {
         maker.dumpAll();
     }
 
+    @Override
     protected String getProjectName() {
         return "viral16";
+    }
+
+    @Override
+    protected String getKUOutFileName(GSProject project) {
+        String release = project.getAdditionalProperty(GSProject.REFSEQ_RELEASE);
+        return "test16.fasta-" + release + ".out";
     }
 
     @Override

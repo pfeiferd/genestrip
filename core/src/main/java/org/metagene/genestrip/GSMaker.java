@@ -165,8 +165,11 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
         FileGoal<P> releaseNumberGoal = new RefSeqRNumDownloadGoal(project, commonSetupGoal);
         registerGoal(releaseNumberGoal);
 
+        FileGoal<P> refseqPropsGoal = new RefSeqRNumPropsGoal<>(project, commonSetupGoal, releaseNumberGoal);
+        registerGoal(refseqPropsGoal);
+
         RefSeqCatalogDownloadGoal refSeqCatalogGoal = new RefSeqCatalogDownloadGoal(project, releaseNumberGoal,
-                commonSetupGoal);
+                commonSetupGoal, refseqPropsGoal);
         registerGoal(refSeqCatalogGoal);
 
         CheckSumMapGoal checkSumMapGoal = new CheckSumMapGoal(project, refSeqCatalogGoal);

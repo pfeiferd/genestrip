@@ -51,13 +51,6 @@ public class CSVDBFileConverter {
                 }
             }
         }
-
-        maker.getGoal(GSGoalKey.CHECK_REFSEQ_RNUM).make();
-        String release = project.getAdditionalProperty(GSProject.REFSEQ_RELEASE);
-        Properties props = new Properties();
-        props.setProperty(GSProject.REFSEQ_RELEASE, release);
-        File propsFile = new File(project.getResultsDir(), "release.properties");
-        props.store(new FileWriter(propsFile), null);
     }
 
     public static void main(String[] args) throws IOException {
