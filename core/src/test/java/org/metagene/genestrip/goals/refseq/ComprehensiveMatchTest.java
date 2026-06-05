@@ -43,7 +43,6 @@ import java.util.Properties;
 import static org.junit.Assert.assertTrue;
 
 public class ComprehensiveMatchTest extends DBGoalTest {
-    /*
     @BeforeClass()
     public static void clearDB() throws IOException {
         GSProject project = createProject("viral", null);
@@ -51,7 +50,6 @@ public class ComprehensiveMatchTest extends DBGoalTest {
         maker.getGoal(GSGoalKey.CLEAR).make();
         maker.dumpAll();
     }
-     */
 
     protected GSProject createTestProject(String csvFile1) throws IOException {
         return createProject(getProjectName(), csvFile1);
@@ -119,7 +117,6 @@ public class ComprehensiveMatchTest extends DBGoalTest {
             addFile(new File(project.getProjectDir(), "fasta/test.fasta.gz"));
             addFile(new File(project.getProjectDir(), "fastq/viral_test_fastq.txt"));
             addFile(new File(project.getProjectDir(), "fasta/viral_test_fasta.txt"));
-            addFile(new File(project.getProjectDir(), "krakenout/test_ks.out"));
         }
 
         @Override
