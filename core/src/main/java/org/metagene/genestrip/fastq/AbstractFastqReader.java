@@ -304,7 +304,7 @@ public abstract class AbstractFastqReader {
 		for (readStruct.readDescriptorSize = bufferedLineReaderFastQ.nextLine(readStruct.readDescriptor)
 				- 1; readStruct != null && readStruct.readDescriptorSize >= 0;) {
 			readStruct.readDescriptor[readStruct.readDescriptorSize] = 0;
-//			ByteArrayUtil.println(readStruct.readDescriptor, System.out);
+			// ByteArrayUtil.println(readStruct.readDescriptor, System.out);
 
 			readStruct.readSize = 0;
 			int newSize = bufferedLineReaderFastQ.nextLine(readStruct.read, readStruct.readSize) - 1;
@@ -366,9 +366,6 @@ public abstract class AbstractFastqReader {
 	}
 
 	private ReadEntry nextFreeReadStruct() {
-		if (blockingQueue == null) {
-			return readStructPool[0];
-		}
 		for (int i = 0; i < readStructPool.length; i++) {
 			if (readStructPool[i].pooled) {
 				readStructPool[i].pooled = false;
