@@ -61,9 +61,7 @@ public class DBConfigInfoGoal<P extends GSProject> extends ObjectGoal<Properties
 			if (dbGoal.isMade()) {
 				set(dbGoal.get().getConfigInfo());
 			} else {
-				try (InputStream is = StreamProvider.getInputStreamForFile(dbFile, true)) {
-					set(Database.loadConfigInfo(is));
-				}
+				set(Database.loadConfigInfo(dbFile));
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);

@@ -51,9 +51,8 @@ public class ComprehensiveMatchTestV16 extends ComprehensiveMatchTest {
     }
 
     @Override
-    protected String getKUOutFileName(GSProject project) {
-        String release = project.getAdditionalProperty(GSProject.REFSEQ_RELEASE);
-        return "test16.fasta-" + release + ".out";
+    protected String getKUOutFileName(String refSeqRelease) {
+        return "test16.fasta-" + refSeqRelease + ".out";
     }
 
     @Override

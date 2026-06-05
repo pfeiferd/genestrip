@@ -32,15 +32,18 @@ import org.metagene.genestrip.*;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.GoalKey;
+import org.metagene.genestrip.make.ObjectGoal;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.Properties;
 
 import static org.junit.Assert.assertTrue;
 
 public class ComprehensiveMatchTest extends DBGoalTest {
+    /*
     @BeforeClass()
     public static void clearDB() throws IOException {
         GSProject project = createProject("viral", null);
@@ -48,6 +51,7 @@ public class ComprehensiveMatchTest extends DBGoalTest {
         maker.getGoal(GSGoalKey.CLEAR).make();
         maker.dumpAll();
     }
+     */
 
     protected GSProject createTestProject(String csvFile1) throws IOException {
         return createProject(getProjectName(), csvFile1);
@@ -89,7 +93,10 @@ public class ComprehensiveMatchTest extends DBGoalTest {
             project.initConfigParam(GSConfigKey.USE_INLINED, i == 0);
             maker = new GSMaker(project);
             maker.match(false, "test", new File(project.getFastqDir(), getProjectName() +  "_fasta2fastq_test.fastq.gz").toString());
-            File file1 = new File(getTargetDir(), getKUOutFileName(project));
+
+            ObjectGoal<Properties, GSProject> configInfoGoal = (ObjectGoal<Properties, GSProject>) maker.getGoal(GSGoalKey.DBCONF);
+            String refSeqRelease = configInfoGoal.get().getProperty(GSProject.REFSEQ_RELEASE);
+            File file1 = new File(getTargetDir(), getKUOutFileName(refSeqRelease));
             File file2 = new File(project.getKrakenOutDir(), getProjectName() + "_matchres_test.out");
             System.out.println("file1: " + file1);
             System.out.println("file2: " + file2);
@@ -99,9 +106,8 @@ public class ComprehensiveMatchTest extends DBGoalTest {
         }
     }
 
-    protected String getKUOutFileName(GSProject project) {
-        String release = project.getAdditionalProperty(GSProject.REFSEQ_RELEASE);
-        return "test.fasta-" + release + ".out";
+    protected String getKUOutFileName(String refSeqRelease) {
+        return "test.fasta-" + refSeqRelease + ".out";
     }
 
     public class ViralProjectGoal extends FileListGoal<GSProject> {
