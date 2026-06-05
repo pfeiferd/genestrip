@@ -258,7 +258,7 @@
         <profile>
             <id>winexe</id>
             <build>
-                <!-- It all in the module ft -->
+                <!-- It is all in the module ft -->
             </build>
         </profile>
         <profile>
