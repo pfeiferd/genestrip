@@ -109,12 +109,12 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
     }
 
     public MatchingResult runMatcher(StreamingResource fastq, File filteredFile, File krakenOutStyleFile,
-                                     KMerUniqueCounter uniqueCounter) throws IOException {
+                                     KMerUniqueCounterBits uniqueCounter) throws IOException {
         return runMatcher(new StreamingResourceListStream(fastq), filteredFile, krakenOutStyleFile, uniqueCounter);
     }
 
     public MatchingResult runMatcher(StreamingResourceStream fastqs, File filteredFile, File krakenOutStyleFile,
-                                     KMerUniqueCounter uniqueCounter) throws IOException {
+                                     KMerUniqueCounterBits uniqueCounter) throws IOException {
         try (OutputStream lindexed = filteredFile != null ? StreamProvider.getOutputStreamForFile(filteredFile) : null;
              // A PrintStream is implicitly synchronized. So we don't need to worry about
              // multi threading when using it.
@@ -191,9 +191,9 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         Arrays.fill(statsIndex, null);
     }
 
-    void initUniqueCounter(KMerUniqueCounter uniqueCounter) {
+    void initUniqueCounter(KMerUniqueCounterBits uniqueCounter) {
         // Turned from KMerUniqueCounter to KMerUniqueCounterBits for potential method inlining.
-        this.uniqueCounter = (KMerUniqueCounterBits) uniqueCounter;
+        this.uniqueCounter = uniqueCounter;
         if (uniqueCounter != null) {
             uniqueCounter.clear();
         }

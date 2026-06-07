@@ -74,7 +74,7 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 			Map<String, MatchingResult> matchResults = new LinkedHashMap<>(); // To preserver order of keys.
 			Map<String, StreamingResourceStream> map = fastqMapGoal.get();
 			Database database = null;
-			KMerUniqueCounter uniqueCounter = null;
+			KMerUniqueCounterBits uniqueCounter = null;
 
 			for (String key : map.keySet()) {
 				File filteredFile = null;

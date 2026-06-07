@@ -29,11 +29,12 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
+@Deprecated
 public class KMerUniqueCounterMap implements KMerUniqueCounter {
 	private final Long2ObjectMap<String> map;
 
 	public KMerUniqueCounterMap() {
-		map = new Long2ObjectOpenHashMap<String>();
+		map = new Long2ObjectOpenHashMap<>();
 	}
 
 	@Override	
@@ -48,7 +49,7 @@ public class KMerUniqueCounterMap implements KMerUniqueCounter {
 
 	@Override	
 	public Object2LongMap<String> getUniqueKmerCounts() {
-		Object2LongMap<String> res = new Object2LongLinkedOpenHashMap<String>();
+		Object2LongMap<String> res = new Object2LongLinkedOpenHashMap<>();
 		for (long kmer : map.keySet()) {
 			String taxid = map.get(kmer);
 			res.put(taxid, res.getLong(taxid) + 1);

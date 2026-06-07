@@ -92,7 +92,7 @@ public class FastqKMerMatcherTest {
 		FastqKMerMatcher matcher = inlined ?
 				new MyInlinedFastqMatcher(store, readLength * 10, 1, bundle) :
 				new MyFastqMatcher(store, readLength * 10, 1, bundle);
-		KMerUniqueCounter uniqueCounter = bitMap ? new KMerUniqueCounterMap() : new KMerUniqueCounterBits(store, true);
+		KMerUniqueCounterBits uniqueCounter = new KMerUniqueCounterBits(store, true);
 
 		MatcherReadEntry entry = new MatcherReadEntry(2000, true, 4);
 		entry.readSize = readLength;
