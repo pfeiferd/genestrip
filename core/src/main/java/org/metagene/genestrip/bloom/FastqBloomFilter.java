@@ -98,17 +98,15 @@ public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 				kmer = CGAT.kMerToLongStraight(entry.read, i, k, entry.badPos);
 				if (kmer == -1) {
 					i = entry.badPos[0];
-				}
-				else {
+				} else {
 					reverseKmer = CGAT.kMerToLongReverse(entry.read, i, k, null);
 				}
 			} else {
 				kmer = CGAT.nextKMerStraight(kmer, entry.read[i + k - 1], k);
 				if (kmer == -1) {
 					i += k - 1;
-				}
-				else {
-					reverseKmer = CGAT.nextKMerReverse(kmer, entry.read[i + k - 1], k);
+				} else {
+					reverseKmer = CGAT.nextKMerReverse(reverseKmer, entry.read[i + k - 1], k);
 				}
 			}
 			if (kmer != -1) {

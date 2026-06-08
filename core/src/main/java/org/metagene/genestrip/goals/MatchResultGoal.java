@@ -83,7 +83,7 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 
 				if (booleanConfigValue(GSConfigKey.WRITE_FILTERED_FASTQ)) {
 					filteredFile = getProject().getOutputFile(getKey().getName(), key, null, GSFileType.FASTQ_RES,
-							true);
+							booleanConfigValue(GSConfigKey.GZIP_FASTQ_OUTPUT));
 				}
 				if (booleanConfigValue(GSConfigKey.WRITE_KRAKEN_STYLE_OUT)) {
 					krakenOutStyleFile = getProject().getOutputFile(getKey().getName(), key, null,

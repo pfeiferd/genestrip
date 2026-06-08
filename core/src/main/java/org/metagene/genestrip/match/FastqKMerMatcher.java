@@ -269,9 +269,8 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                     reverseKmer = CGAT.nextKMerReverse(reverseKmer, entry.read[i + k - 1], k);
                 }
             }
-            long stdKmer = CGAT.standardKMer(kmer, reverseKmer);
             taxIdNode = kmer == -1 ? INVALID_NODE :
-                    kmerStore.getLong(stdKmer, entry.indexPos);
+                    kmerStore.getLong(CGAT.standardKMer(kmer, reverseKmer), entry.indexPos);
             if (readTaxErrorCount != -1) {
                 if (taxIdNode == null || taxIdNode == INVALID_NODE) {
                     readTaxErrorCount++;
@@ -328,7 +327,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                 if (uniqueCounter != null) {
                     // This is a considerable optimization as found via profiling:
                     // Old version:
-                    // uniqueCounter.put(stdKmer, taxIdNode.getTaxId(), entry.indexPos[0]);
+                    // uniqueCounter.put(CGAT.standardKMer(kmer, reverseKmer), taxIdNode.getTaxId(), entry.indexPos[0]);
                     // Faster version:
                     uniqueCounter.putInlined(entry.indexPos[0]);
                 }
@@ -385,7 +384,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                 }
                 // For 'readKmers', I decided to count in the k-mers from 'entry.readTaxIdNode[0]' and not just 'node'.
                 // (They only differ in case of a tie anyways.) But if there is tie, then the k-mers from one of the tie's nodes
-                // solidify the LCA in a sense - so the counts from one the involved paths are included.
+                // solidify the LCA in a sense - so the counts from one of the involved paths are included.
                 int readKmers = ties > 0 ? taxTree.sumCounts(entry.readTaxIdNode[0], index, entry.readNo) : entry.counts[0];
                 int classErrC = max - readKmers;
                 if (maxReadClassErrorCount < 0 || (maxReadClassErrorCount >= 1 && classErrC <= maxReadClassErrorCount)

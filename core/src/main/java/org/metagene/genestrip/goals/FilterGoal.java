@@ -57,13 +57,18 @@ public class FilterGoal<P extends GSProject> extends MultiFileGoal<P> {
 	}
 
 	@Override
+	protected boolean isUseGZip() {
+		return booleanConfigValue(GSConfigKey.GZIP_FASTQ_OUTPUT);
+	}
+
+	@Override
 	protected void makeFile(File file) throws IOException {
 		FastqBloomFilter f = null;
 		try {
 			P project = getProject();
 			StreamingResourceStream resources = fileToFastqs.get(file);
 			File dumpFile = booleanConfigValue(GSConfigKey.WRITE_DUMPED_FASTQ)
-					? project.getOutputFile("dumped", file.getName(), GSFileType.FASTQ_RES)
+					? project.getOutputFile("dumped", null, file.getName(), GSFileType.FASTQ_RES, isUseGZip())
 					: null;
 			f = new FastqBloomFilter(intConfigValue(GSConfigKey.KMER_SIZE), indexedGoal.get(), intConfigValue(GSConfigKey.MIN_POS_COUNT_FILTER),
 					doubleConfigValue(GSConfigKey.POS_RATIO_FILTER),
@@ -86,10 +91,5 @@ public class FilterGoal<P extends GSProject> extends MultiFileGoal<P> {
 				f.dump();
 			}
 		}
-	}
-	
-	@Override
-	protected boolean isUseGZip() {
-		return true;
 	}
 }

@@ -139,7 +139,8 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 	// Made final for potential inlining by JVM
 	public final boolean isAncestorOf(SmallTaxIdNode node, final SmallTaxIdNode ancestor) {
 		while (node != null) {
-			if (node.equals(ancestor)) {
+			// == will do, faster than equals on works on closed set of nodes with equals not overriden.
+			if (node == ancestor) {
 				return true;
 			}
 			node = node.parent;

@@ -340,6 +340,7 @@ public abstract class AbstractFastqReader {
 				kMers += readStruct.readSize - k + 1;
 			}
 			readBPs += readStruct.readSize;
+			readStruct.readProbsSize = -1; // Indicate no probs available.
 			if (blockingQueue == null) {
 				nextEntry(readStruct, 0);
 				readStruct.pooled = true;
@@ -378,15 +379,22 @@ public abstract class AbstractFastqReader {
 	protected void rewriteInput(ReadEntry readStruct, OutputStream out) throws IOException {
 		synchronized (out) {
 			out.write(readStruct.readDescriptor, 0, readStruct.readDescriptorSize);
+			out.write(' ');
+			/*
+			String taxid = ((FastqKMerMatcher.MatcherReadEntry) readStruct).classNode.getTaxId();
+			if (taxid != null) {
+				out.write(taxid.getBytes());
+			}
+			 */
 			out.write('\n');
 			out.write(readStruct.read, 0, readStruct.readSize);
 			out.write('\n');
 			out.write(LINE_3);
-			if (readStruct.readProbs != null) {
+			if (readStruct.readProbs != null && readStruct.readDescriptorSize >= 0) {
 				out.write(readStruct.readProbs, 0, readStruct.readProbsSize);
 			}
 			else {
-				for (int i = 0; i < readStruct.readProbsSize; i++) {
+				for (int i = 0; i < readStruct.readSize; i++) {
 					out.write('~');
 				}
 			}

@@ -115,6 +115,8 @@ public enum GSConfigKey implements ConfigKey {
 	RES_SEQ_STATUS("refseq.status", new RefSeqStatusConfigInfo(Arrays.asList(RefSeqStatus.values())), GSGoalKey.DB),
 	@MDDescription("Whether to create gzipped extracted fasta files in goal `extractrefseqfasta`.")
 	EXTRACT_REFSEQ_GZIP("reqseq.extract.gzip", new BooleanConfigParamInfo(false)),
+	@MDDescription("Gzip fastq output from goals `filter` and `match`.")
+	GZIP_FASTQ_OUTPUT("gzipFastqOutput", new BooleanConfigParamInfo(true), GSGoalKey.FILTER, GSGoalKey.MATCH),
 
 	// Genbank data selection
 	@MDDescription("Determines the maximum number of fasta files used from Genbank per requested tax id. "
@@ -148,9 +150,9 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("TODO")
 	DB_RESIZING_FACTOR("dbResizingFactor", new DoubleConfigParamInfo(0, Double.MAX_VALUE, 1), GSGoalKey.DB),
 	@MDDescription("TODO")
-	INDEX_BLOOM_FILTER_FPP("indexBloomFilterFpp", new DoubleConfigParamInfo(0, 1, BlockedKMerBloomFilter.DEFAULT_FPP), true, GSGoalKey.FILL_DB),
+	INDEX_BLOOM_FILTER_FPP("indexBloomFilterFpp", new DoubleConfigParamInfo(0, 1, GSConfigKey.INDEX_BLOOM_FILTER_FPP_DEFAULT), true, GSGoalKey.FILL_DB),
 	@MDDescription("TODO")
-	FILL_BLOOM_FILTER_FPP("fillBloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.00000000001d), true, GSGoalKey.FILL_DB),
+	FILL_BLOOM_FILTER_FPP("fillBloomFilterFpp", new DoubleConfigParamInfo(0, 1, GSConfigKey.FILL_BLOOM_FILTER_FPP_DEFAULT), true, GSGoalKey.FILL_DB),
 	@MDDescription("TODO")
 	OPT_BLOOM_FILTER_FPP("optBloomFilterFpp", new DoubleConfigParamInfo(0, 1, BlockedKMerBloomFilter.DEFAULT_FPP), true, GSGoalKey.FILL_DB),
 	XOR_BLOOM_HASH("xorBloomHash", new BooleanConfigParamInfo(true)),
@@ -213,7 +215,7 @@ public enum GSConfigKey implements ConfigKey {
 	CLASSIFY_READS("classifyReads", new BooleanConfigParamInfo(true), GSGoalKey.MATCH),
 	@MDDescription("If `true`, the number of unique *k*-mers will be counted and reported. This requires less than 5% of additional main memory.")
 	COUNT_UNIQUE_KMERS("countUniqueKMers", new BooleanConfigParamInfo(true), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
-	@MDDescription("If `true`, then the goal `match` writes filtered fastq files in the same way that the goal `filter` does. ")
+	@MDDescription("If `true`, then the goal `match` writes filtered fastq files in the same way that the goal `filter` does.")
 	WRITE_FILTERED_FASTQ("writeFilteredFastq", new BooleanConfigParamInfo(false), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 	@MDDescription("If `true`, Genestrip will write output files with suffix `.out` in the [Kraken output format](https://ccb.jhu.edu/software/kraken/MANUAL.html#output-format) "
 			+ "under `<base dir>/projects/<project_name>/krakenout` covering all reads with at least one matching *k*-mer.")
@@ -288,6 +290,9 @@ public enum GSConfigKey implements ConfigKey {
 	KRAKEN_BIN("krakenBin", new StringConfigParamInfo("krakenuniq"), true),
 	KRAKEN_DB("krakenDB", new StringConfigParamInfo("krakenuniq"), true),
 	KRAKEN_EXEC_EXPR("krakenExecExpr", new StringConfigParamInfo("{0} -db {1} {2}"), true);
+
+	public static final double FILL_BLOOM_FILTER_FPP_DEFAULT = 0.00000000001d;
+	public static final double INDEX_BLOOM_FILTER_FPP_DEFAULT = FILL_BLOOM_FILTER_FPP_DEFAULT;
 
 	private final String name;
 	private final ConfigParamInfo<?> param;
