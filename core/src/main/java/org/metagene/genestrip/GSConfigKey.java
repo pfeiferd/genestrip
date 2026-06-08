@@ -291,8 +291,8 @@ public enum GSConfigKey implements ConfigKey {
 	KRAKEN_DB("krakenDB", new StringConfigParamInfo("krakenuniq"), true),
 	KRAKEN_EXEC_EXPR("krakenExecExpr", new StringConfigParamInfo("{0} -db {1} {2}"), true);
 
-	public static final double FILL_BLOOM_FILTER_FPP_DEFAULT = 0.00000000001d;
-	public static final double INDEX_BLOOM_FILTER_FPP_DEFAULT = FILL_BLOOM_FILTER_FPP_DEFAULT;
+	public static final double FILL_BLOOM_FILTER_FPP_DEFAULT =  0.00000000001d;
+	public static final double INDEX_BLOOM_FILTER_FPP_DEFAULT = 0.00000001d;
 
 	private final String name;
 	private final ConfigParamInfo<?> param;
