@@ -165,11 +165,15 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
         FileGoal<P> releaseNumberGoal = new RefSeqRNumDownloadGoal(project, commonSetupGoal);
         registerGoal(releaseNumberGoal);
 
-        FileGoal<P> refseqPropsGoal = new RefSeqRNumPropsGoal<>(project, commonSetupGoal, releaseNumberGoal);
+
+        ObjectGoal<CheckRefSeqRNumGoal.Result, P> checkRefSeqRNumGoal = new CheckRefSeqRNumGoal(project, releaseNumberGoal);
+        registerGoal(checkRefSeqRNumGoal);
+
+        FileGoal<P> refseqPropsGoal = new RefSeqRNumPropsGoal<>(project, checkRefSeqRNumGoal, commonSetupGoal);
         registerGoal(refseqPropsGoal);
 
         RefSeqCatalogDownloadGoal refSeqCatalogGoal = new RefSeqCatalogDownloadGoal(project, releaseNumberGoal,
-                commonSetupGoal, refseqPropsGoal);
+                commonSetupGoal);
         registerGoal(refSeqCatalogGoal);
 
         CheckSumMapGoal checkSumMapGoal = new CheckSumMapGoal(project, refSeqCatalogGoal);
@@ -218,9 +222,6 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
 
         ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal = new CategoriesGoal(project, projectSetupGoal);
         registerGoal(categoriesGoal);
-
-        ObjectGoal<CheckRefSeqRNumGoal.Result, P> checkRefSeqRNumGoal = new CheckRefSeqRNumGoal(project, releaseNumberGoal);
-        registerGoal(checkRefSeqRNumGoal);
 
         RefSeqFnaFilesDownloadGoal refSeqFnaFilesGoal = new RefSeqFnaFilesDownloadGoal(project, categoriesGoal,
                 refSeqCatalogGoal, checkSumMapGoal, checkRefSeqRNumGoal);

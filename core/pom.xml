@@ -261,7 +261,7 @@
                                     <workingDirectory>..</workingDirectory>
                                     <arguments>
                                         <argument>viral</argument>
-                                        <argument>refseqfna</argument>
+                                        <argument>refseqprop</argument>
                                     </arguments>
                                 </configuration>
                             </execution>

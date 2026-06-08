@@ -41,16 +41,23 @@ import java.util.Properties;
 public class RefSeqRNumPropsGoal<P extends GSProject> extends FileListGoal<P> {
     public static final String RELEASE_PROPS_FILE_NAME = "release.properties";
 
+    private final ObjectGoal<CheckRefSeqRNumGoal.Result, P> checkRefSeqRNumGoal;
+
     @SafeVarargs
-    public RefSeqRNumPropsGoal(P project, Goal<P>... deps) {
+    public RefSeqRNumPropsGoal(P project, ObjectGoal<CheckRefSeqRNumGoal.Result, P> checkRNum, Goal<P>... deps) {
         super(project, GSGoalKey.REFSEQ_PROP, new File(project.getCommon().getRefSeqDir(), RELEASE_PROPS_FILE_NAME), deps);
+        this.checkRefSeqRNumGoal = checkRNum;
     }
 
     @Override
     protected void makeFile(File storeFile) throws IOException {
+        // Ensure side effect of pickung up the release number in the props happens:
+        checkRefSeqRNumGoal.make();
         String release = getProject().getAdditionalProperty(GSProject.REFSEQ_RELEASE);
         Properties props = new Properties();
-        props.setProperty(GSProject.REFSEQ_RELEASE, release);
+        if (release != null) {
+            props.setProperty(GSProject.REFSEQ_RELEASE, release);
+        }
         props.store(new FileWriter(storeFile), null);
     }
 }

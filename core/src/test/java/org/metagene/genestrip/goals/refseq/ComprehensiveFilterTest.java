@@ -49,7 +49,7 @@ import java.util.Map;
 import static org.junit.Assert.assertTrue;
 
 public class ComprehensiveFilterTest extends DBGoalTest {
-    //@BeforeClass()
+    @BeforeClass()
     public static void clearDB() throws IOException {
         GSProject project = createProject("human_virus", null);
         GSMaker maker = new GSMaker(project);
