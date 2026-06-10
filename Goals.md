@@ -6,6 +6,8 @@
 |`clear`|X|X|Clear the folders `csv`, `log` and `krakenout`  of a project. This will delete all files the respective folders!|
 |`db`|X|X|Generate the database for *k*-mer matching with respect to the given project.|
 |`dbinfo`|X|X|Write information on a project's database content to a CSV file.|
+|`dbconf`||X|Load config information for a database - but not (necessarily) that database itself.|
+|`showdbconf`||X|Show config information for a database - without (necessarily) loading the database itself.|
 |`tempdbinfo`||X|Write information about a project's temporary database content to a CSV file.|
 |`db2fastq`|X|X|Generate fastq files from the database. A respective fastq file will contain all *k*-mers specifically associated with a single tax id from the database where each *k*-mer is represented by a read consisting of *k* bases. Respective fastq files will be stored in `<base dir>/projects/<project_name>/fastq` with the file name format `<project_name>_db2fastq_<taxid>.fastq.gz`. The command line option `tx` serves at selecting the corresponding tax ids for the fastq files to be generated. If the option is omitted, then fastq files for *all* tax ids from the database will be generated.|
 |`index`|X|X|Generate a filtering database with respect to a given project.|
@@ -23,6 +25,7 @@
 |`taxtree`||X|Load the taxonomy into memory.|
 |`taxnodes`||X|Compute the taxids for the project's database.|
 |`refseqrelease`||X|Download the RefSeq release number.|
+|`refseqprop`||X|Store the RefSeq release number in a properties file.|
 |`refseqcat`|||Download the RefSeq release catalog files.|
 |`checksummap`|||Load MD5 checksums for RefSeq files into memory|
 |`categories`||X|Load the RefSeq category names as requested for the project's database.|
@@ -44,7 +47,7 @@
 |`loaddb`||X|Load the matching database into memory.|
 |`fillindex`||X|Fill the filtering database with *k*-mers.|
 |`loadindex`||X|Load the filtering database into memory.|
-|`db2fastqtaxids`||X|Determine tax ids for the goal `db2fast` from the command line argument.|
+|`db2fastqtaxids`||X|Determine tax ids for the goal `db2fastq` from the command line argument.|
 |`fastqmap`||X|Determine the fastq mapping from command line arguments.|
 |`fastqmaptransform`||X|Transform URLs of fastq files to be downloaded to local paths.|
 |`fastamap`||X|Determine the fasta mapping from command line arguments.|

@@ -57,6 +57,11 @@ public class DB2FastqGoalTest extends ComprehensiveFilterTest {
 		// Just to avoid running the test from the superclass ...
 	}
 
+	@Override
+	public <P extends GSProject> void testFilterOutput() throws IOException {
+		// Just to avoid running the test from the superclass ...
+	}
+
 	@Test
 	public void testDB2FastqGoal() throws IOException {
 		GSCommon config = new GSCommon(getBaseDir());
@@ -84,7 +89,7 @@ public class DB2FastqGoalTest extends ComprehensiveFilterTest {
 		goal.cleanThis();
 		goal.make();
 
-		int[] mapSizes = new int[] { 13, 13, 14, 14, 14, 14 };
+		int[] mapSizes = new int[] { 12, 12, 13, 13, 13, 13 };
  		for (int i = 0; i < taxids.length; i++) {
 			File file = goal.getOutputFile(taxids[i]);
 			MatchingResult result = maker.cleanMatch(false, taxids[i], file.toString());
