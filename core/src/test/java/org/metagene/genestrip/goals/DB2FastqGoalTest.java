@@ -84,7 +84,7 @@ public class DB2FastqGoalTest extends ComprehensiveFilterTest {
 		goal.cleanThis();
 		goal.make();
 
-		int[] mapSizes = new int[] { 12, 12, 13, 13, 13, 13 };
+		int[] mapSizes = new int[] { 13, 13, 14, 14, 14, 14 };
  		for (int i = 0; i < taxids.length; i++) {
 			File file = goal.getOutputFile(taxids[i]);
 			MatchingResult result = maker.cleanMatch(false, taxids[i], file.toString());
