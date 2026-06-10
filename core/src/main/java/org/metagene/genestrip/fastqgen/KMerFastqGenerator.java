@@ -29,44 +29,64 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import org.metagene.genestrip.io.StreamProvider;
+import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerSortedArray.KMerSortedArrayVisitor;
+import org.metagene.genestrip.tax.SmallTaxTree;
+import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.util.CGAT;
 
 public class KMerFastqGenerator {
 	public static final String GENESTRIP_ID = "@GENESTRIP";
 
-	private final KMerSortedArray<String> kmerStore;
+	// private final Database database;
+	private final KMerSortedArray<SmallTaxTree.SmallTaxIdNode> kmerStore;
 	private final byte[] data;
 
-	public KMerFastqGenerator(KMerSortedArray<String> kmerStore) {
-		this.kmerStore = kmerStore;
-		this.data = new byte[kmerStore.getK()];
+	public KMerFastqGenerator(Database database) {
+		//this.database = database;
+		this.data = new byte[database.getKmerStore().getK()];
+		kmerStore = database.convertKMerStore();
 	}
 
-	public void generateFastq(File file, String taxid, String header) throws IOException {
+	public void generateFastq(File file, String taxid, String header, boolean withDesc) throws IOException {
 		try (OutputStream out = StreamProvider.getOutputStreamForFile(file)) {
-			generateFastq(out, taxid, header);
+			generateFastq(out, taxid, header, withDesc);
 		}
 	}
 	
-	public void generateFastq(OutputStream out, String taxid, String header) throws IOException {
+	public void generateFastq(OutputStream out, String taxid, String header, boolean withDesc) throws IOException {
 		FastQWriter fastQWriter = new FastQWriter(GENESTRIP_ID + ":" + header, out);
 		fastQWriter.start();
-		kmerStore.visit(new KMerSortedArrayVisitor<String>() {
+
+		kmerStore.visit(new KMerSortedArrayVisitor<SmallTaxTree.SmallTaxIdNode>() {
 			@Override
-			public void nextValue(KMerSortedArray<String> trie, long kmer, int index, long i) {
-				String idFromDB = kmerStore.getValueForIndex(index);
-				if (idFromDB.equals(taxid)) {
-					fillData(kmer);
-					fastQWriter.addRead(taxid, data);
+			public void nextValue(KMerSortedArray<SmallTaxTree.SmallTaxIdNode> trie, long kmer, int index, long i) {
+				SmallTaxTree.SmallTaxIdNode node = kmerStore.getValueForIndex(index);
+				if (isMatchingNode(node, taxid, withDesc)) {
+					CGAT.longToKMerStraight(kmer, data, 0, data.length);
+					fastQWriter.addRead(node.getTaxId(), data);
 				}
 			}
 		});
 		fastQWriter.done();
 	}
-	
-	protected void fillData(long kmer) {
-		CGAT.longToKMerStraight(kmer, data, 0, data.length);
+
+	protected boolean isMatchingNode(SmallTaxTree.SmallTaxIdNode node, String taxid, boolean withDesc) {
+		if (taxid == null) {
+			return withDesc;
+		}
+		else if (withDesc) {
+			while (node != null) {
+				if (node.getTaxId().equals(taxid)) {
+					return true;
+				}
+				node = node.getParent();
+			}
+			return false;
+		}
+		else {
+			return node.getTaxId().equals(taxid);
+		}
 	}
 }

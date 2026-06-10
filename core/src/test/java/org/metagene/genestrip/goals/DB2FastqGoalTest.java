@@ -28,6 +28,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 
 import org.junit.Test;
@@ -37,6 +38,7 @@ import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSMaker;
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.goals.refseq.ComprehensiveFilterTest;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.match.CountsPerTaxid;
 import org.metagene.genestrip.match.MatchingResult;
@@ -44,23 +46,32 @@ import org.metagene.genestrip.store.Database;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
-public class DB2FastqGoalTest {
+public class DB2FastqGoalTest extends ComprehensiveFilterTest {
+	@Override
+	public void testUpdate() throws IOException {
+		// Just to avoid running the test from the superclass ...
+	}
+
+	@Override
+	public void testKrakenOutput() throws IOException {
+		// Just to avoid running the test from the superclass ...
+	}
+
 	@Test
 	public void testDB2FastqGoal() throws IOException {
-		File baseDir = APITest.getBaseDir();
+		GSCommon config = new GSCommon(getBaseDir());
 
-		GSCommon config = new GSCommon(baseDir);
+		String[] taxids = new String[] { "64320", "12637", "11053", "11060", "11069", "11070" };
 
 		// Create the 'human_virus' project (whose config files are part of the
 		// release).
 		GSProject project = new GSProject(config, "human_virus", null, null, null, null, null, "64320,12637+",
 				null, null, null, false);
-		project.initConfigParam(GSConfigKey.WRITE_KRAKEN_STYLE_OUT, true);
-		// project.initConfigParam(GSConfigKey.THREADS, 0);
-		
+		project.initConfigParam(GSConfigKey.GZIP_FASTQ_OUTPUT, false);
+		project.initConfigParam(GSConfigKey.TAX_IDS, Arrays.asList(taxids));
+
 		GSMaker maker = new GSMaker(project);
 
-		String[] taxids = new String[] { "64320", "12637", "11053", "11060", "11069", "11070" };
 		@SuppressWarnings("unchecked")
 		ObjectGoal<Database, GSProject> storeGoal = (ObjectGoal<Database, GSProject>) maker.getGoal(GSGoalKey.LOAD_DB);
 		Object2LongMap<String> stats = storeGoal.get().getStats();

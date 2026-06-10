@@ -160,6 +160,9 @@ public class DBGoalTest {
 			if (!getProject().getProjectsDir().exists()) {
 				getProject().getProjectsDir().mkdir();
 			}
+			if (!getProject().getProjectDir().exists()) {
+				getProject().getProjectDir().mkdir();
+			}
 			if (!getProject().getFastaDir().exists()) {
 				getProject().getFastaDir().mkdir();
 			}

@@ -40,7 +40,6 @@ import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.io.StreamingResourceListStream;
 import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.store.KMerSortedArray;
-import org.metagene.genestrip.store.KMerUniqueCounter;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
@@ -230,7 +229,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         if (out != null) {
             if (writeAll || myEntry.classNode != null) {
                 synchronized (out) {
-                    myEntry.flush(out);
+                    myEntry.writeMatchDetails(out);
                 }
             }
         }
@@ -468,8 +467,15 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
     }
 
     public static class MatcherReadEntry extends ReadEntry {
+        private final static byte[] U = new byte[] { 'U', '\t'};
+        private final static byte[] C = new byte[] { 'C', '\t'};
+        private final static int CLASS_TAX_BUFFER_SIZE = 128;
+
         public byte[] buffer;
         public int bufferPos;
+
+        private byte[] classTaxBuffer;
+
         public int[] badPos = new int[1];
 
         public int usedPaths;
@@ -495,9 +501,8 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         public void printString(final String s) {
             int len = s.length();
             growPrintBuffer(len);
-            for (int i = 0; i < len; i++) {
-                buffer[bufferPos++] = (byte) s.charAt(i);
-            }
+            s.getBytes(0, len, buffer, bufferPos);
+            bufferPos += len;
         }
 
         protected void growPrintBuffer(int additionalSize) {
@@ -518,33 +523,43 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         }
 
         public void printInt(final int value) {
-            growPrintBuffer(11); // Decimal version of int hat 11 bytes max.
+            growPrintBuffer(11); // Decimal version of int has 11 bytes max.
             bufferPos = ByteArrayUtil.intToByteArray(value, buffer, bufferPos);
         }
 
-        public void flush(PrintStream out) {
+        public void writeMatchDetails(OutputStream out) throws IOException {
             if (buffer == null) {
                 return;
             }
             if (classNode == null) {
-                out.print("U\t");
+                out.write(U);
             } else {
-                out.print("C\t");
+                out.write(C);
             }
             int index = ByteArrayUtil.indexOf(readDescriptor, 1, readDescriptorSize, ' ');
-            ByteArrayUtil.print(readDescriptor, 1, index == -1 ? readDescriptorSize : index, out);
             // ByteArrayUtil.println(readDescriptor, 1, index == -1 ? readDescriptorSize : index, System.out);
-            out.print('\t');
+            out.write(readDescriptor, 1, (index == -1 ? readDescriptorSize : index) - 1);
+            out.write('\t');
             if (classNode == null) {
-                out.print('0');
+                out.write('0');
             } else {
-                out.print(classNode.getTaxId());
+                if (classTaxBuffer == null) {
+                    classTaxBuffer = new byte[CLASS_TAX_BUFFER_SIZE];
+                }
+                String tax = classNode.getTaxId();
+                int len =  tax.length();
+                tax.getBytes(0, len, classTaxBuffer, 0);
+                out.write(classTaxBuffer, 0, len);
             }
-            out.print('\t');
-            out.print(readSize);
-            out.print('\t');
+            out.write('\t');
+            if (classTaxBuffer == null) {
+                classTaxBuffer = new byte[CLASS_TAX_BUFFER_SIZE];
+            }
+            int len =  ByteArrayUtil.intToByteArray(readSize, classTaxBuffer, 0);
+            out.write(classTaxBuffer, 0, len);
+            out.write('\t');
             out.write(buffer, 0, bufferPos);
-            out.println();
+            out.write('\n');
         }
    }
 

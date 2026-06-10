@@ -42,10 +42,13 @@ public class MatchingResult implements Serializable {
 	private final Map<String, CountsPerTaxid> taxid2Stats;
 	private final CountsPerTaxid globalStats;
 
-	public MatchingResult(int k, Map<String, CountsPerTaxid> taxid2Stats, String totalTaxId, long totalReads, long totalKMers, long totalBPs,
+	public MatchingResult(int k, Map<String, CountsPerTaxid> taxid2Stats, String totalDesc, long totalReads, long totalKMers, long totalBPs,
 			short[] totalMaxCounts) {
 		this.k = k;
-		globalStats =  new CountsPerTaxid(0, totalTaxId, totalReads, totalKMers, totalBPs, totalMaxCounts);
+		globalStats =  new CountsPerTaxid(0, null, totalReads, totalKMers, totalBPs, totalMaxCounts);
+		if (totalDesc != null) {
+			globalStats.maxContigDescriptor = totalDesc.getBytes();
+		}
 		this.taxid2Stats = taxid2Stats;
 	}
 

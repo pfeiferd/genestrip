@@ -35,9 +35,7 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.Map;
 
 public class ExtractGoal<P extends GSProject> extends Goal<P> {
@@ -70,7 +68,7 @@ public class ExtractGoal<P extends GSProject> extends Goal<P> {
 				return;
 			}
 
-			PrintStream[] psRef = new PrintStream[1];
+			OutputStream[] psRef = new OutputStream[1];
 			for (String key : map.keySet()) {
 				StreamingResourceStream fastqs = map.get(key);
 				if (matcher == null) {
@@ -79,7 +77,7 @@ public class ExtractGoal<P extends GSProject> extends Goal<P> {
 						@Override
 						protected void nextEntry(ReadEntry readStruct, int threadIndex) throws IOException {
 							if (ByteArrayUtil.startsWith(readStruct.readDescriptor, 1, filter)) {
-								readStruct.print(psRef[0]);
+								readStruct.write(psRef[0]);
 							}
 						}
 
@@ -96,8 +94,8 @@ public class ExtractGoal<P extends GSProject> extends Goal<P> {
 				}
 				if (booleanConfigValue(GSConfigKey.WRITE_FILTERED_FASTQ)) {
 					File filteredFile = getProject().getOutputFile(getKey().getName(), key, null, GSFileType.FASTQ_RES,
-							false);
-					try (PrintStream ps = new PrintStream(filteredFile)) {
+							booleanConfigValue(GSConfigKey.GZIP_FASTQ_OUTPUT));
+					try (FileOutputStream ps = new FileOutputStream(filteredFile)) {
 						psRef[0] = ps;
 						matcher.processFastqStreams(fastqs);
 					}

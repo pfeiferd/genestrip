@@ -116,7 +116,7 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("Whether to create gzipped extracted fasta files in goal `extractrefseqfasta`.")
 	EXTRACT_REFSEQ_GZIP("reqseq.extract.gzip", new BooleanConfigParamInfo(false)),
 	@MDDescription("Gzip fastq output from goals `filter` and `match`.")
-	GZIP_FASTQ_OUTPUT("gzipFastqOutput", new BooleanConfigParamInfo(true), GSGoalKey.FILTER, GSGoalKey.MATCH),
+	GZIP_FASTQ_OUTPUT("gzipFastqOutput", new BooleanConfigParamInfo(true), GSGoalKey.FILTER, GSGoalKey.MATCH, GSGoalKey.FASTA2FASTQ, GSGoalKey.DB2FASTQ),
 
 	// Genbank data selection
 	@MDDescription("Determines the maximum number of fasta files used from Genbank per requested tax id. "

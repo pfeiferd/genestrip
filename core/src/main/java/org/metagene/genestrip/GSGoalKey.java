@@ -131,7 +131,7 @@ public enum GSGoalKey implements GoalKey {
 	FILL_INDEX("fillindex"), 
 	@MDDescription("Load the filtering database into memory.")
 	LOAD_INDEX("loadindex"),
-	@MDDescription("Determine tax ids for the goal `db2fast` from the command line argument.")
+	@MDDescription("Determine tax ids for the goal `db2fastq` from the command line argument.")
 	DB2FASTQ_TAXIDS("db2fastqtaxids"),
 	@MDDescription("Determine the fastq mapping from command line arguments.")
 	FASTQ_MAP("fastqmap"),

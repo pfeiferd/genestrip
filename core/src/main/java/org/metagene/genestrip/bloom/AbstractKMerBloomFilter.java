@@ -24,9 +24,9 @@
  */
 package org.metagene.genestrip.bloom;
 
+import it.unimi.dsi.fastutil.BigArrays;
 import org.metagene.genestrip.util.LargeBitVector;
 
-import java.io.Serializable;
 import java.util.Random;
 
 public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
@@ -119,8 +119,21 @@ public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
 	public void putLong(final long data) {
 		entries++;
 		for (int i = 0; i < hashes; i++) {
-			bitVector.set(reduce(hash(data, i)));
-		}
+            final long index = reduce(hash(data, i));
+            if (bitVector.largeBits != null) {
+                long arrayIndex = index >>> 6;
+                BigArrays.set(bitVector.largeBits, arrayIndex, BigArrays.get(bitVector.largeBits, arrayIndex) | (1L << (index & 0b111111)));
+            } else {
+                // Using optimization instead of '%', see:
+                // http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
+                // and Line 34 in https://github.com/FastFilter/fastfilter_java/blob/master/fastfilter/src/main/java/org/fastfilter/utils/Hash.java
+                // Not sure whether it would also work for long - probably not.
+                //int arrayIndex = (int) ((((index >>> 6) & 0xffffffffL) * (size & 0xffffffffL)) >>> 32);
+                // Original code:
+                int arrayIndex = (int) (index >>> 6);
+                bitVector.bits[arrayIndex] = bitVector.bits[arrayIndex] | (1L << (index & 0b111111));
+            }
+        }
 	}
 
 	@Override

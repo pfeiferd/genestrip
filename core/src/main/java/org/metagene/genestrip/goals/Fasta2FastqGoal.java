@@ -57,16 +57,19 @@ public class Fasta2FastqGoal<P extends GSProject> extends FileListGoal<P> {
     @Override
     protected void provideFiles() {
         for (String key : fastaMapGoal.get().keySet()) {
-            File fastqFile = getProject().getOutputFile(getKey().getName(), key, null, GSProject.GSFileType.FASTQ, true);
+            File fastqFile = getProject().getOutputFile(getKey().getName(), key, null, GSProject.GSFileType.FASTQ, booleanConfigValue(GSConfigKey.GZIP_FASTQ_OUTPUT));
             addFile(fastqFile);
             fileToKeyMap.put(fastqFile, key);
         }
     }
 
+    protected StreamingResourceStream getFastasForFile(File file) {
+        return fastaMapGoal.get().get(fileToKeyMap.get(file));
+    }
 
     @Override
     protected void makeFile(File file) throws IOException {
-        StreamingResourceStream fastas = fastaMapGoal.get().get(fileToKeyMap.get(file));
+        StreamingResourceStream fastas = getFastasForFile(file);
         try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
             FastqWriter writer = new FastqWriter(out, 65535);
             for (StreamingResource rs : fastas) {

@@ -27,6 +27,7 @@ package org.metagene.genestrip.store;
 import java.util.HashMap;
 import java.util.Map;
 
+import it.unimi.dsi.fastutil.BigArrays;
 import org.metagene.genestrip.store.KMerSortedArray.KMerSortedArrayVisitor;
 import org.metagene.genestrip.util.LargeBitVector;
 import org.metagene.genestrip.util.LargeShortVector;
@@ -35,6 +36,9 @@ import it.unimi.dsi.fastutil.objects.Object2LongLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 public class KMerUniqueCounterBits implements KMerUniqueCounter {
+	private static final int LOCKS = 512; // Must be a value in 2^n, n = 1,2,3,...
+	private static final int LOCKS_MASK = LOCKS - 1;
+
 	private final KMerSortedArray<String> store;
 	private final LargeBitVector bitVector;
 	private final LargeShortVector countsVector;
@@ -44,7 +48,7 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 		this.store = store;
 		bitVector = new LargeBitVector(store.getEntries());
 		countsVector = withCounts ? new LargeShortVector(store.getEntries()) : null;
-		locks = new Object[256];
+		locks = new Object[LOCKS];
 		for (int i = 0; i < locks.length; i++) {
 			locks[i] = new Object();
 		}
@@ -64,28 +68,53 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 
 	@Override
 	public final synchronized void put(final long kmer, final String taxid, final long index) {
-		bitVector.set(index);
+		if (bitVector.largeBits != null) {
+			long arrayIndex = index >>> 6;
+			BigArrays.set(bitVector.largeBits, arrayIndex, BigArrays.get(bitVector.largeBits, arrayIndex) | (1L << (index & 0b111111)));
+		} else {
+			// Using optimization instead of '%', see:
+			// http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
+			// and Line 34 in https://github.com/FastFilter/fastfilter_java/blob/master/fastfilter/src/main/java/org/fastfilter/utils/Hash.java
+			// Not sure whether it would also work for long - probably not.
+			//int arrayIndex = (int) ((((index >>> 6) & 0xffffffffL) * (size & 0xffffffffL)) >>> 32);
+			// Original code:
+			int arrayIndex = (int) (index >>> 6);
+			bitVector.bits[arrayIndex] = bitVector.bits[arrayIndex] | (1L << (index & 0b111111));
+		}
 		if (countsVector != null) {
-			countsVector.inc(index);
+			if (countsVector.largeShorts != null) {
+				BigArrays.incr(countsVector.largeShorts, index);
+			} else {
+				++countsVector.shorts[(int) index];
+			}
 		}
 	}
 
 	public final void putInlined(final long index) {
 		long arrayIndex = ((index >>> 6) % bitVector.size);
-		synchronized (locks[(int)(arrayIndex & 255)]) {
+		synchronized (locks[(int)(arrayIndex & LOCKS_MASK)]) {
+			// Inline start
 			if (bitVector.largeBits != null) {
-				bitVector.largeBits[(int) (arrayIndex >>> 27)][(int) (arrayIndex & 134217727)] = bitVector.largeBits[(int) (arrayIndex >>> 27)][(int) (arrayIndex & 134217727)] | (1L << (index & 0b111111));
+				long arrayIndex1 = index >>> 6;
+				BigArrays.set(bitVector.largeBits, arrayIndex1, BigArrays.get(bitVector.largeBits, arrayIndex1) | (1L << (index & 0b111111)));
 			} else {
-				int arrayI = (int) arrayIndex;
-				bitVector.bits[arrayI] = bitVector.bits[arrayI] | (1L << (index & 0b111111));
+				// Using optimization instead of '%', see:
+				// http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
+				// and Line 34 in https://github.com/FastFilter/fastfilter_java/blob/master/fastfilter/src/main/java/org/fastfilter/utils/Hash.java
+				// Not sure whether it would also work for long - probably not.
+				//int arrayIndex = (int) ((((index >>> 6) & 0xffffffffL) * (size & 0xffffffffL)) >>> 32);
+				// Original code:
+				int arrayIndex1 = (int) (index >>> 6);
+				bitVector.bits[arrayIndex1] = bitVector.bits[arrayIndex1] | (1L << (index & 0b111111));
 			}
 			if (countsVector != null) {
 				if (countsVector.largeShorts != null) {
-					countsVector.largeShorts[(int) (index >>> 27)][(int) (index & 134217727)]++;
+					BigArrays.incr(countsVector.largeShorts, index);
 				} else {
 					++countsVector.shorts[(int) index];
 				}
 			}
+			// Inline end
 		}
 	}
 

@@ -48,7 +48,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertTrue;
 
-public class ComprehensiveFilterTest extends DBGoalTest {
+public class ComprehensiveFilterTest extends ComprehensiveMatchTest {
     @BeforeClass()
     public static void clearDB() throws IOException {
         GSProject project = createProject("human_virus", null);
@@ -181,6 +181,9 @@ public class ComprehensiveFilterTest extends DBGoalTest {
             }
             if (!getProject().getProjectsDir().exists()) {
                 getProject().getProjectsDir().mkdir();
+            }
+            if (!getProject().getProjectDir().exists()) {
+                getProject().getProjectDir().mkdir();
             }
             if (!getProject().getFastaDir().exists()) {
                 getProject().getFastaDir().mkdir();
