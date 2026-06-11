@@ -186,11 +186,12 @@ We cannot guarantee for any results returned by Genestrip. Use this software at 
 
 Despite of the these limitations, we tested the Genestrip in the following ways:
 * Critical code is covered by functional tests (using [JUnit](https://junit.org)).
-* Results have been evaluated using various benchmark datasets.
+* Comprehensive automated tests check for *exact match* of read classification results obtained via KrakenUniq and Genestrip.
+* Genestrip's results have been evaluated using various benchmark datasets.
 * We applied Genestrip to several real-world fastq files, 
-where the findings matched the expectations. For example, we correctly recovered bacteria in ticks from fastq files as described in [this publication](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10328957/).
+where the findings matched the expectations.
 
-A paper on Genestrip including with in-depth evaluation is at the final step before its publication at [BMC Bioinformatics](https://link.springer.com/journal/12859)
+A paper on Genestrip including an in-depth evaluation is at the final step before its publication at [BMC Bioinformatics](https://link.springer.com/journal/12859)
 (the peer reviews have passed). Take a look at [this preprint](https://www.researchsquare.com/article/rs-7373421/v1) for evaluation details.
 
 ### Filtering fastq files
