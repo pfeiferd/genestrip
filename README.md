@@ -84,11 +84,17 @@ execution under the relative location `..\lib\jre`. So the folders `bin` and `li
 
 ### Runnning the JUnit tests
 
-The Maven command `mvn -P prerelease install` runs all the JUnit tests for 
-Genestrip and more. It will take time...
+Running these tests is optional for installation and use of Genestrip.
+Caution: Running the tests requires development skills and a deeper understanding of Maven and beyond.
 
-Note that the test `org.metagene.genestrip.goals.refseq.ComprehensiveMatchTest` may fail: It compares analysis output with expected output, but the analysis output 
-heavily depends on the (current, downloaded) version of the NCBI taxonomy and the downloaded RefSeq release.
+Some included tests employ [KrakenUniq](https://github.com/fbreitwieser/krakenuniq) as part of a comprehensive correctness check of Genestrip's read classification procedure.
+For this purpose, the maven command `mvn -P gentestdata install`
+ultimately generates sample output data via KrakenUniq. Later on (i.e. under the Maven profile `preinstall`), this data is compared against Genestrip's corresponding output.
+Among other things, the Maven profile `gentestdata` runs a shell script to install KrakenUniq from its sources
+and also executes KrakeUniq but **this only works on Linux and macOS**.
+
+Afterwards, the Maven command `mvn -P prerelease install` runs all the JUnit tests for 
+Genestrip and more. It will take time...
 
 [^1]: Counter to common belief, Java can well be used for such high performance applications when using its programming facilities the right way.
 
@@ -153,7 +159,7 @@ sh ./bin/genestrip.sh human_virus match -f ./data/projects/human_virus/fastq/sam
 ```
 The resulting CSV file will be named `human_virus_match_sample.csv` under `./data/projects/human_virus/csv`. The same applies to your own projects under `./data/projects`.
 
-**Important: Regarding analysis and filtering (see below), files in fasta format (as recognized by the file name suffixes `.fasta`, `.fa`, `.fna`, `.fas`, `.fasta.gz`, `.fa.gz`, `.fna.gz` and `.fas.gz`) can also be used instead of fastq files. However for simplicity, we only speak of fastq files below.**
+**Important: Regarding analysis and filtering (see below), files in fasta format (as recognized by the file name suffixes `.fasta`, `.fa`, `.fna`, `.fas` and additionally these suffixes with  `.gz` or `.gzip` appended) can also be used instead of fastq files. However for simplicity, we only speak of fastq files below.**
 
 These are a few lines of its contents along with the header line:
 ```
