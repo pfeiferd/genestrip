@@ -46,8 +46,10 @@ Genestrip offers an efficient and sophisticated database generation process that
 
 ## How to cite
 
-A paper on Genestrip including an in-depth evaluation is at the final step before its publication at [BMC Bioinformatics](https://link.springer.com/journal/12859)
-(the peer reviews have passed). A citable preprint is [available here](https://www.researchsquare.com/article/rs-7373421/v1) at Research Square.
+A paper on Genestrip including an in-depth evaluation has been published [at BMC Bioinformatics](https://link.springer.com/article/10.1186/s12859-026-06512-1).
+
+**Citation Info:**
+Pfeifer, D., Graf, M. & Rurik, C. Genestrip: exact and efficient read classification for selected groups of organisms. BMC Bioinformatics 27, 134 (2026). https://doi.org/10.1186/s12859-026-06512-1
 
 ## Building and installing
 
@@ -191,8 +193,7 @@ Despite of the these limitations, we tested the Genestrip in the following ways:
 * We applied Genestrip to several real-world fastq files, 
 where the findings matched the expectations.
 
-A paper on Genestrip including an in-depth evaluation is at the final step before its publication at [BMC Bioinformatics](https://link.springer.com/journal/12859)
-(the peer reviews have passed). Take a look at [this preprint](https://www.researchsquare.com/article/rs-7373421/v1) for evaluation details.
+A paper on Genestrip including an in-depth evaluation is at the final step before its publication [at BMC Bioinformatics](https://link.springer.com/article/10.1186/s12859-026-06512-1).
 
 ### Filtering fastq files
 
