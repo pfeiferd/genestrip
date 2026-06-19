@@ -186,7 +186,7 @@ pos;level;name;rank;taxid;reads;kmers from reads;kmers;unique kmers;contigs;aver
 
 We cannot guarantee for any results returned by Genestrip. Use this software at your own risk. **Important: It is by no means meant to be used for any medical purposes** and it is purely experimental in nature.
 
-Despite of the these limitations, we tested the Genestrip in the following ways:
+Despite of the these limitations, we tested Genestrip in the following ways:
 * Critical code is covered by functional tests (using [JUnit](https://junit.org)).
 * Comprehensive automated tests check for *exact match* of read classification results obtained via KrakenUniq and Genestrip.
 * Genestrip's results have been evaluated using various benchmark datasets.
