@@ -184,16 +184,15 @@ pos;level;name;rank;taxid;reads;kmers from reads;kmers;unique kmers;contigs;aver
 
 ### Reliability of results
 
-We cannot guarantee for any results returned by Genestrip. Use this software at your own risk. **Important: It is by no means meant to be used for any medical purposes** and it is purely experimental in nature.
+We cannot guarantee for any results returned by Genestrip. Use this software at your own risk.
 
-Despite of the these limitations, we tested Genestrip in the following ways:
+We tested Genestrip in the following ways:
 * Critical code is covered by functional tests (using [JUnit](https://junit.org)).
 * Comprehensive automated tests check for *exact match* of read classification results obtained via KrakenUniq and Genestrip.
 * Genestrip's results have been evaluated using various benchmark datasets.
-* We applied Genestrip to several real-world fastq files, 
-where the findings matched the expectations.
+* We applied Genestrip to many real-world fastq files, where the findings matched expectations.
 
-A paper on Genestrip including an in-depth evaluation is at the final step before its publication [at BMC Bioinformatics](https://link.springer.com/article/10.1186/s12859-026-06512-1).
+A paper on Genestrip with an in-depth evaluation is published [at BMC Bioinformatics](https://link.springer.com/article/10.1186/s12859-026-06512-1).
 
 ### Filtering fastq files
 
