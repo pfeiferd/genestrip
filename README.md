@@ -25,15 +25,15 @@
 
 ## Introduction
 
-Metagenomic analysis has become an extremely import field in bioinformatics. To analyse large sets of reads, researchers use highly efficient software tools based on *k*-mer matching and counting such as [Kraken](https://github.com/DerrickWood/kraken), [Kraken 2](https://github.com/DerrickWood/kraken2) or [KrakenUniq](https://github.com/fbreitwieser/krakenuniq). With regard to pathogen detection [KrakenUniq](https://github.com/fbreitwieser/krakenuniq) is particularly suited because of its
- [very low false positive rate](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1568-0) but also because its efficiency, precision and sensitivity.
+Metagenomic analysis has become an extremely important field in bioinformatics. To analyse large sets of reads, researchers use highly efficient software tools based on *k*-mer matching and counting such as [Kraken](https://github.com/DerrickWood/kraken), [Kraken 2](https://github.com/DerrickWood/kraken2) or [KrakenUniq](https://github.com/fbreitwieser/krakenuniq). With regard to pathogen detection [KrakenUniq](https://github.com/fbreitwieser/krakenuniq) is particularly suited because of its
+ [very low false positive rate](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1568-0) but also because of its efficiency, precision and sensitivity.
 
 To avoid false positive classifications of reads or mismatches of *k*-mers, all of these tools resort to very large databases, containing millions of encoded *k*-mers along with their respective tax ids. A database is usually loaded entirely into main memory and consumes tens of gigabytes of space. This requirement mandates specialized and expensive compute servers with very large main memory.
 
-If only a small group of a few dozen species or strains is to be considered, one could simply *generate a smaller database that contains just the *k*-mers of the respective genomes*. **However, when done improperly, this may lead to many false positives at read analysis time.** The reason for this is that due to the evolutionary relationship of organisms, *a large fraction of k-mers that belong to the genome of a species are unspecific* in a sense that they can as well be found in the genome other species not considered for analysis.
+If only a small group of a few dozen species or strains is to be considered, one could simply *generate a smaller database that contains just the *k*-mers of the respective genomes*. **However, when done improperly, this may lead to many false positives at read analysis time.** The reason for this is that due to the evolutionary relationship of organisms, *a large fraction of k-mers that belong to the genome of a species are unspecific* in a sense that they can as well be found in the genome of other species not considered for analysis.
 
 Genestrip offers an efficient and sophisticated database generation process that accounts for this problem: 
-* Genstrips's databases can be generated in a fully automated way on the basis of the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/). On top, genomic files from [Genbank](https://ftp.ncbi.nlm.nih.gov/genomes/genbank/) can be automatically included for the selected group of species or strains. Including such files may refine the database by adding species-related *k*-mers not found in the RefSeq alone.
+* Genestrip's databases can be generated in a fully automated way on the basis of the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/). On top, genomic files from [Genbank](https://ftp.ncbi.nlm.nih.gov/genomes/genbank/) can be automatically included for the selected group of species or strains. Including such files may refine the database by adding species-related *k*-mers not found in the RefSeq alone.
 * Species or strains, whose *k*-mers should be contained, are specified via a text file containing the corresponding [tax ids](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/). 
 * After the database generation has completed, it can be used for highly efficient *k*-mer matching.
 * As a Genestrip database comprises just the genomes of the specified tax ids, it tends to remain small. Therefore analysis can be performed on edge machines as well as on small sized PCs.
@@ -84,7 +84,7 @@ execution under the relative location `..\lib\jre`. So the folders `bin` and `li
 
 [comment]: # (For convenience, the ready-made Zip folder `genestrip-${version}-windows-x64.zip` is also [publicly available for download on genestrip.it.hs-heilbronn.de]https://genestrip.it.hs-heilbronn.de/files/bin.)
 
-### Runnning the JUnit tests
+### Running the JUnit tests
 
 Running these tests is optional for installation and use of Genestrip.
 Caution: Running the tests requires development skills and a deeper understanding of Maven and beyond.
@@ -93,7 +93,7 @@ Some included tests employ [KrakenUniq](https://github.com/fbreitwieser/krakenun
 For this purpose, the maven command `mvn -P gentestdata install`
 ultimately generates sample output data via KrakenUniq. Later on (i.e. under the Maven profile `preinstall`), this data is compared against Genestrip's corresponding output.
 Among other things, the Maven profile `gentestdata` runs a shell script to install KrakenUniq from its sources
-and also executes KrakeUniq but **this only works on Linux and macOS**.
+and also executes KrakenUniq but **this only works on Linux and macOS**.
 
 Afterwards, the Maven command `mvn -P prerelease install` runs all the JUnit tests for 
 Genestrip and more. It will take time...
@@ -111,11 +111,11 @@ in order to generate the `human_virus` database and create a CSV file with basic
 Genestrip follows a goal-oriented approach in order to create any result files (in similarity to [make](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/make.html)). So, when generating the `human_virus` database, Genestrip will
 1. download the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip) and unzip it to `./data/common`,
 1. download the [RefSeq release catalog](https://ftp.ncbi.nlm.nih.gov/refseq/release/release-catalog/) to `./data/common/refseq`,
-1. download [all virus related RefSeq fna files](https://ftp.ncbi.nlm.nih.gov/refseq/release/viral/) to `./data/commmon/refseq` (which is currently just a single file),
+1. download [all virus related RefSeq fna files](https://ftp.ncbi.nlm.nih.gov/refseq/release/viral/) to `./data/common/refseq` (which is currently just a single file),
 1. perform several follow-up goals, until the database file `human_virus_db.zip` is finally made under `./data/projects/human_virus/db`, 
 1. create a CSV file `human_virus_dbinfo.csv` under `./data/projects/human_virus/csv`, which contains basic information about the database, i.e. the number of *k*-mers stored per tax id.
 
-The generated database comprises *k*-mers for all viruses according to the tax id file `./data/project/human_virus/taxids.txt`.
+The generated database comprises *k*-mers for all viruses according to the tax id file `./data/projects/human_virus/taxids.txt`.
 
 
 ### Generating your own database
@@ -145,7 +145,7 @@ In general, Genestrip organizes a project folder `./data/projects/<project_name>
 * `krakenout` is for output files in the style of [Kraken](https://ccb.jhu.edu/software/kraken/MANUAL.html#output-format). They may optionally be generated when analyzing fastq files.
 * `log` is reserved for future use in conjunction with a server-side integration of Genestrip.
 
-A database covering more species may require more memory - especially while generating the database. This can be addressed by adjusting the script `genestrip.sh` where the argument `-Xmx32g` sets the maximum heap space of the Java Virtual Machine to 32GB. E.g. to double it, simple replace `32g` by `64g`.
+A database covering more species may require more memory - especially while generating the database. This can be addressed by adjusting the script `genestrip.sh` where the argument `-Xmx32g` sets the maximum heap space of the Java Virtual Machine to 32GB. E.g. to double it, simply replace `32g` by `64g`.
 
 ### Some preconfigured and ready-made databases
 
@@ -161,7 +161,7 @@ sh ./bin/genestrip.sh human_virus match -f ./data/projects/human_virus/fastq/sam
 ```
 The resulting CSV file will be named `human_virus_match_sample.csv` under `./data/projects/human_virus/csv`. The same applies to your own projects under `./data/projects`.
 
-**Important: Regarding analysis and filtering (see below), files in fasta format (as recognized by the file name suffixes `.fasta`, `.fa`, `.fna`, `.fas` and additionally these suffixes with  `.gz` or `.gzip` appended) can also be used instead of fastq files. However for simplicity, we only speak of fastq files below.**
+**Important: Regarding analysis and filtering (see below), files in fasta format (as recognized by the file name suffixes `.fasta`, `.fa`, `.fna`, `.fas` and additionally these suffixes with `.gz` or `.gzip` appended) can also be used instead of fastq files. However, for simplicity, we only speak of fastq files below.**
 
 These are a few lines of its contents along with the header line:
 ```
@@ -301,7 +301,7 @@ The following goal graph depicts the goals' dependencies (without the trivial go
 Regarding analysis, fastq files will processed in one of the following ways:
 1. Reading from the file system: This happens if a *file path* is given after the `-f` option.
 1. *Streaming* from the network: This happens if a *URL* is given after the `-f` option. (The corresponding fastq file will not be downloaded to the file system then.)
-1. *Downloading* from the network: This happens if a *URL* is given after the `-f` option *and if the option `-l` or `-ll`* is given, respectively. The corresponding fastq file be downloaded if not yet present. Afterwards, the downloaded file will be processed from the file system.
+1. *Downloading* from the network: This happens if a *URL* is given after the `-f` option *and if the option `-l` or `-ll`* is given, respectively. The corresponding fastq file will be downloaded if not yet present. Afterwards, the downloaded file will be processed from the file system.
 
 A comma-separated list of file paths or URLs or both may be put after `-f` without blanks. In this case, related fastq files will be analyzed together and the results will be merged.
 
@@ -321,7 +321,7 @@ and produces the result file `./someprojectname_match_mysample.csv`.
 
 ### Targets
 
-Genestrip supports three targets for each goal, namely `make`, `clean`, `cleanall` and `cleantotal`:
+Genestrip supports four targets for each goal, namely `make`, `clean`, `cleanall` and `cleantotal`:
 
 - `make` is the default target. It executes a given goal as explained before and creates the files associated with the goal in a lazy manner. If the corresponding files already exist, then `make` does nothing.
 - `clean` *deletes* all files associated with the given goal, but it does not delete any files of goals that the given goal depends on.
@@ -358,10 +358,10 @@ The line format is
 <taxid> <path_to_fasta_file>
 ```
 where `<taxid>` is the (unique) tax id associated with the file's genomic data. (Multiple tax ids per fasta file are not supported in this context.) 
-If `<path_to_fastq_file>` is a file name without a path prefix, then the file is assumed to be located in `<base dir>/projects/<project_name>/fasta`. If not found there,
+If `<path_to_fasta_file>` is a file name without a path prefix, then the file is assumed to be located in `<base dir>/projects/<project_name>/fasta`. If not found there,
 the directory `<base dir>/common/fasta` will be checked as a secondary location.
 
-This adding of fasta files can also be used to *just* correct the least common ancestor of *k*-mers in the resulting database since the added fasta files will be automatically used during the update phase of the ``db`` goal. E.g., to correct the least common ancestor of *k*-mers occurring in a purely `protozoa`n database *but also* in the human genome, one may simple add
+This adding of fasta files can also be used to *just* correct the least common ancestor of *k*-mers in the resulting database since the added fasta files will be automatically used during the update phase of the ``db`` goal. E.g., to correct the least common ancestor of *k*-mers occurring in a purely `protozoa`n database *but also* in the human genome, one may simply add
 ```
 9606 <path_to_human_genome_fasta_file>
 ```

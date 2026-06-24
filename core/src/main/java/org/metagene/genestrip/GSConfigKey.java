@@ -78,7 +78,7 @@ public enum GSConfigKey implements ConfigKey {
 			+ "Typical values could be `species` or `strain`, but  all values used for assigning ranks in the taxonomy are possible.")
 	RANK_COMPLETION_DEPTH("rankCompletionDepth", new RankConfigParamInfo(null), GSGoalKey.DB),
 	@MDDescription("If true, then md5 check sums may be skipped by creating and accessing a file named `<file>.md5ok` " +
-			"that marks wether the md5 check sum of `<file>` was found to be ok after a previous download of `<file>`.")
+			"that marks whether the md5 check sum of `<file>` was found to be ok after a previous download of `<file>`.")
 	CHECK_SUM_CACHE_FILE(FileDownloadGoal.CHECK_SUM_CACHE_FILE.getName(), FileDownloadGoal.CHECK_SUM_CACHE_FILE.getInfo(), GSGoalKey.DB),
 
 	// Limit database size
@@ -91,7 +91,7 @@ public enum GSConfigKey implements ConfigKey {
 	MAX_KMERS_PER_TAXID("maxKMersPerTaxid", new LongConfigParamInfo(0, Long.MAX_VALUE, Long.MAX_VALUE)),
 	@MDDescription("The rank for which to consider the parameters `maxGenomesPerTaxid` and `maxKMersPerTaxid`. If `null`, then maximum number of genomes is considered with respect to the direct tax id under which a genome is stored.")
 	MAX_GENOMES_PER_TAXID_RANK("maxPerTaxidRank", new RankConfigParamInfo(null)),
-	@MDDescription("If `true`, a fastq of fasta file which is downloaded via a URL is always assumed to be g-zipped. Otherwise, it will be considered g-zipped only if the" +
+	@MDDescription("If `true`, a fastq or fasta file which is downloaded via a URL is always assumed to be g-zipped. Otherwise, it will be considered g-zipped only if the" +
 			" file part of the URL ends with `.gz` or `.gzip`.")
 	ALWAYS_ASSUME_GZIP("alwaysAssumeGzip", new BooleanConfigParamInfo(true), GSGoalKey.FASTA_MAP, GSGoalKey.FASTQ_MAP),
 
@@ -104,8 +104,8 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("Determines whether Genestrip should try to lookup genomic fasta files from Genbank, "
 			+ "if the number of corresponding reference genomes from the RefSeq is below the given limit for a requested tax id including its descendants. "
 			+ "E.g. `refSeq.limitForGenbankAccess=1` would imply that Genbank is consulted if not a single reference genome is found in the RefSeq for a requested tax id. "
-			+ "The default `refSeq.limitForGenbankAccess=0` essentially inactivates this feature."
-			+ "In addition, Genbank access is also influenced by the keys `genbank.fastaQualities`, `genbank.maxPerTaxid` and `genbank.referenceOnly` (see below)."
+			+ "The default `refSeq.limitForGenbankAccess=0` essentially inactivates this feature. "
+			+ "In addition, Genbank access is also influenced by the keys `genbank.fastaQualities`, `genbank.maxPerTaxid` and `genbank.referenceOnly` (see below). "
 			+ "Note that `refSeq.limitForGenbankAccess` is disregarded if `refseq.filldb=false`.")
 	REQ_SEQ_LIMIT_FOR_GENBANK("refSeq.limitForGenbankAccess", new IntConfigParamInfo(0, Integer.MAX_VALUE, 0),
 			GSGoalKey.DB),
@@ -163,7 +163,7 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("If `true`, then only genomic accessions with the prefixes `AC`, `NC_`, `NZ_` will be considered when updating the database. "
 			+ "Otherwise, all genomic accessions will be considered for the update phase. See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.")
 	UPDATE_WITH_COMPLETE_GENOMES_ONLY("refseq.updateWithCompleteGenomesOnly", new BooleanConfigParamInfo(false), GSGoalKey.UPDATE_DB),
-	@MDDescription("Wether to delete the temporary database after the final database has been saved or not.")
+	@MDDescription("Whether to delete the temporary database after the final database has been saved or not.")
 	REMOVE_TEMP_DB("removeTempDB", new BooleanConfigParamInfo(true), false, GSGoalKey.DB),
 	@MDDescription("Stores *k*-mers in steps of `stepSize`. " +
 			"E.g. if `stepSize=2` then only every second *k*-mer from a genome is considered for entry into the database.")
@@ -190,11 +190,11 @@ public enum GSConfigKey implements ConfigKey {
 	SVG_TEXT_GAP_FACTOR("svgTextGapFactor", new DoubleConfigParamInfo(0, 1, 0.25), false, GSGoalKey.SVG_TAX_TREE),
 	@MDDescription("Factor for additional indentation to reflect *k*-mers of node. The base value is normalized to [0,1], where 1 corresponds to the maximum *k*-mers per taxid as stored in the database.")
 	SVG_KMER_NODE_INDENT_FACTOR("svgKmerNodeIndentFactor", new DoubleConfigParamInfo(0, Double.MAX_VALUE, 0),false, GSGoalKey.SVG_TAX_TREE),
-	@MDDescription("Weather to perform indentation based on the evolutionary distance *d* for `svgKmerNodeIndentFactor` instead of the number of differing *k*-mers.")
+	@MDDescription("Whether to perform indentation based on the evolutionary distance *d* for `svgKmerNodeIndentFactor` instead of the number of differing *k*-mers.")
 	SVG_DISTANCE_INDENT("svgDistanceIndent", new BooleanConfigParamInfo(false), false, GSGoalKey.SVG_TAX_TREE),
-	@MDDescription("Weather to use bold text for tax ids requested via the project file `taxids.txt`.")
+	@MDDescription("Whether to use bold text for tax ids requested via the project file `taxids.txt`.")
 	SVG_REQ_NODES("svgReqNodesBold", new BooleanConfigParamInfo(true), false, GSGoalKey.SVG_TAX_TREE),
-	@MDDescription("Weather to add the rank in the node text.")
+	@MDDescription("Whether to add the rank in the node text.")
 	SVG_SHOW_RANK("svgShowRank", new BooleanConfigParamInfo(false), false, GSGoalKey.SVG_TAX_TREE),
 	@MDDescription("Indicates a too large distance for reliable measuring via a dashed horizontal line")
 	SVG_TOO_LARGE_DISTANCE("svgTooLargeDistance", new DoubleConfigParamInfo(0, 1, 1), false, GSGoalKey.SVG_TAX_TREE),

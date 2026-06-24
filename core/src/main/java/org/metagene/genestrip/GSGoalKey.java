@@ -123,7 +123,7 @@ public enum GSGoalKey implements GoalKey {
 	TEMPDB("tempdb"), 
 	@MDDescription("Load the temporary database into memory.")
 	LOAD_TEMPDB("loadtempdb"), 
-	@MDDescription("Update the temporary database with regard to least commonn ancestors of *k*-mers.")
+	@MDDescription("Update the temporary database with regard to least common ancestors of *k*-mers.")
 	UPDATE_DB("updatedb"), 
 	@MDDescription("Load the matching database into memory.")
 	LOAD_DB("loaddb"),

@@ -187,7 +187,7 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
         return maxContigLen;
     }
 
-    @MDCDescription(pos = 11, name = "reads >=1 kmer", desc = "Reads with at least on *k*-mer of the respective tax id.")
+    @MDCDescription(pos = 11, name = "reads >=1 kmer", desc = "Reads with at least one *k*-mer of the respective tax id.")
     public long getReads1KMer() {
         return reads1KMer;
     }
@@ -202,7 +202,7 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
         return ((double) readsBPs) / reads;
     }
 
-    @MDCDescription(pos = 14, name = "db coverage", desc ="The ratio `unique kmers` / u<sub>t</sub>, , where *u<sub>t</sub>* = `db kmers`")
+    @MDCDescription(pos = 14, name = "db coverage", desc ="The ratio `unique kmers` / u<sub>t</sub>, where *u<sub>t</sub>* = `db kmers`")
     public double getCoverage() {
         return ((double) uniqueKmers) / dbKMers;
     }
@@ -311,8 +311,8 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
     }
 
     @MDCDescription(pos = 2001, name="max kmer counts", desc = "The frequencies of the most frequent unique *k*-mers which are specific to the tax id's genome in descending order separated by `;`. " +
-            "This column is experimental and only added when the configuration property `matchWithKMerCounts` is set to `true`. " +
-            "The number of frequencies is determined via `maxKMerResCounts` (see also Section [Configuration parameters](#configuration-parameters)).")
+            "This column is experimental and only present when the configuration parameter `maxKMerResCounts` is set to a value greater than 0 " +
+            "(see also Section [Configuration parameters](#configuration-parameters)).")
     public short[] getMaxKMerCounts() {
         return maxKMerCounts;
     }
