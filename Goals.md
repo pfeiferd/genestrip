@@ -43,7 +43,7 @@
 |`filldb`||X|Fill the database with *k*-mers.|
 |`tempdb`||X|Save temporary database.|
 |`loadtempdb`||X|Load the temporary database into memory.|
-|`updatedb`||X|Update the temporary database with regard to least commonn ancestors of *k*-mers.|
+|`updatedb`||X|Update the temporary database with regard to least common ancestors of *k*-mers.|
 |`loaddb`||X|Load the matching database into memory.|
 |`fillindex`||X|Fill the filtering database with *k*-mers.|
 |`loadindex`||X|Load the filtering database into memory.|

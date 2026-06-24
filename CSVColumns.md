@@ -12,10 +12,10 @@
 |`contigs`|The number of contiguous sequences of *k*-mers that are specific to the tax id's genome.|
 |`average contig length`|The average length of contiguous sequences of *k*-mers (as the number of *k*-mers) that are specific to the tax id's genome.|
 |`max contig length`|The maximum length of all contiguous sequences of *k*-mers (as the number of *k*-mers) that are specific to the tax id's genome.|
-|`reads >=1 kmer`|Reads with at least on *k*-mer of the respective tax id.|
+|`reads >=1 kmer`|Reads with at least one *k*-mer of the respective tax id.|
 |`reads bps`|The total number of base pairs of reads classified with respect to the tax id.|
 |`avg. read length`|The average length of classified reads in base pairs.|
-|`db coverage`|The ratio `unique kmers` / u<sub>t</sub>, , where *u<sub>t</sub>* = `db kmers`|
+|`db coverage`|The ratio `unique kmers` / u<sub>t</sub>, where *u<sub>t</sub>* = `db kmers`|
 |`exp. unique kmers`|The number of expected unique *k*-mers, which is *u<sub>t</sub> * (1 - (1 - 1/u<sub>t</sub>)*<sup>`kmers`</sup>), where *u<sub>t</sub>* is the number of specific *k*-mers for the tax id in the database.|
 |`unique kmers / exp.`|The ratio `unique kmers` / `exp. unique kmers` for the tax id. This should be close to 1 for a consistent match of *k*-mers. ([This paper](https://arxiv.org/pdf/1602.05822.pdf) discusses the corresponding background distribution (of `unique kmers`).)|
 |`db kmers`|The number *u<sub>t</sub>* of specific *k*-mers for the tax id in the database.|
@@ -32,4 +32,4 @@
 |`acc. error std. dev.`|The standard deviation of the `acc. mean error`.|
 |`acc. mean class error`|The accumulated `mean class error`.|
 |`acc. class error std. dev.`|The standard deviation of the `acc. mean class error`.|
-|`max kmer counts`|The frequencies of the most frequent unique *k*-mers which are specific to the tax id's genome in descending order separated by `;`. This column is experimental and only added when the configuration property `matchWithKMerCounts` is set to `true`. The number of frequencies is determined via `maxKMerResCounts` (see also Section [Configuration parameters](#configuration-parameters)).|
+|`max kmer counts`|The frequencies of the most frequent unique *k*-mers which are specific to the tax id's genome in descending order separated by `;`. This column is experimental and only present when the configuration parameter `maxKMerResCounts` is set to a value greater than 0 (see also Section [Configuration parameters](#configuration-parameters)).|
