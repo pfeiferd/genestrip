@@ -56,15 +56,15 @@ public class InlinedMatcherBenchmarkTest {
     // --- Configuration -------------------------------------------------------
 
     // Realistic k-mer size, same as production default.
-    private static final int K = 31;
+    protected static final int K = 31;
     // Three taxonomy ids spread across the store.
-    private static final String[] TAXIDS = {"1", "2", "3"};
+    protected static final String[] TAXIDS = {"1", "2", "3"};
     // k-mers per taxid — 1500 total; fits comfortably in L2 cache.
-    private static final int KMERS_PER_TAXID = 500;
+    protected static final int KMERS_PER_TAXID = 500;
     // Typical Illumina short-read length.
-    private static final int READ_LENGTH = 250;
+    protected static final int READ_LENGTH = 250;
     // How many known k-mers to embed per read (controls hit density).
-    private static final int KMERS_EMBEDDED_PER_READ = (int) (READ_LENGTH * 0.2);
+    protected static final int KMERS_EMBEDDED_PER_READ = (int) (READ_LENGTH * 0.2);
 
     // --- Setup helpers -------------------------------------------------------
 

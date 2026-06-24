@@ -434,6 +434,13 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		return this.kmerPersTaxid;
 	}
 
+	public long getKMerAt(long pos) {
+		if (largeKmers != null) {
+			return BigArrays.get(largeKmers, pos);
+		}
+		return kmers[(int) pos];
+	}
+
 	// Made final for potential (automated) inlining by JVM
 	public final V getLong(final long kmer, final long[] posStore) {
 		if (filter != null && useFilter && !filter.containsLong(kmer)) {
