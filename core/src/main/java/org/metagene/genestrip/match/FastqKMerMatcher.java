@@ -49,7 +49,7 @@ import org.metagene.genestrip.util.CGAT;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
-    private final static SmallTaxIdNode INVALID_NODE = new SmallTaxIdNode("INVALID", null, null);
+    protected final static SmallTaxIdNode INVALID_NODE = new SmallTaxIdNode("INVALID", null, null);
 
     protected final KMerSortedArray<SmallTaxIdNode> kmerStore;
     protected final String dbMD5;
@@ -235,8 +235,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         }
     }
 
-    // Made final for potential inlining by JVM
-    protected final boolean matchRead(final MatcherReadEntry entry, final int index) {
+    protected boolean matchRead(final MatcherReadEntry entry, final int index) {
         boolean found = false;
         int prints = 0;
         int readTaxErrorCount = taxTree == null ? -1 : 0;
