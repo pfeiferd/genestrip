@@ -147,13 +147,19 @@ public enum GSConfigKey implements ConfigKey {
 			+ "then less than 0.00002 % of them would be dropped. If `maxDust = -1`, then dust-filtering is inactive.")
 	MAX_DUST("maxDust", new IntConfigParamInfo(-1, Integer.MAX_VALUE, -1), GSGoalKey.DB),
 	TEMP_BLOOM_FILTER_FPP("tempBloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.001d), true, GSGoalKey.TEMPINDEX),
-	@MDDescription("TODO")
+	@MDDescription("A scaling factor applied to the pre-computed *k*-mer count estimate (from the goal `fillsize`) to determine the allocated size of the *k*-mer store before filling it. "
+			+ "A value greater than `1.0` reserves more space than the estimate; a value less than `1.0` reserves less. "
+			+ "The default `1.0` uses the estimate as-is. Adjusting this value can be useful if the estimate from `fillsize` is slightly off, "
+			+ "e.g. because `useHLLForDBSizing` is `true`.")
 	DB_RESIZING_FACTOR("dbResizingFactor", new DoubleConfigParamInfo(0, Double.MAX_VALUE, 1), GSGoalKey.DB),
-	@MDDescription("TODO")
+	@MDDescription("False positive probability (FPP) of the Bloom filter embedded in the filtering database (used by the goal `filter`). "
+			+ "A lower value reduces false positives during filtering at the cost of a larger filter.")
 	INDEX_BLOOM_FILTER_FPP("indexBloomFilterFpp", new DoubleConfigParamInfo(0, 1, GSConfigKey.INDEX_BLOOM_FILTER_FPP_DEFAULT), true, GSGoalKey.FILL_DB),
-	@MDDescription("TODO")
+	@MDDescription("False positive probability (FPP) of the temporary Bloom filter used inside the *k*-mer store during the database fill phase. "
+			+ "This filter is discarded after sorting and replaced by the one governed by `optBloomFilterFpp`.")
 	FILL_BLOOM_FILTER_FPP("fillBloomFilterFpp", new DoubleConfigParamInfo(0, 1, GSConfigKey.FILL_BLOOM_FILTER_FPP_DEFAULT), true, GSGoalKey.FILL_DB),
-	@MDDescription("TODO")
+	@MDDescription("False positive probability (FPP) of the Bloom filter embedded in the final matching database after the *k*-mer store has been sorted and optimized. "
+			+ "This is the filter used during matching when `useBloomFilterForMatch=true`.")
 	OPT_BLOOM_FILTER_FPP("optBloomFilterFpp", new DoubleConfigParamInfo(0, 1, BlockedKMerBloomFilter.DEFAULT_FPP), true, GSGoalKey.FILL_DB),
 	XOR_BLOOM_HASH("xorBloomHash", new BooleanConfigParamInfo(true)),
 	USE_HLL_FOR_DB_SIZING("useHLLForDBSizing", new BooleanConfigParamInfo(false)),
@@ -168,7 +174,9 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("Stores *k*-mers in steps of `stepSize`. " +
 			"E.g. if `stepSize=2` then only every second *k*-mer from a genome is considered for entry into the database.")
 	STEP_SIZE("stepSize", new IntConfigParamInfo(1, Integer.MAX_VALUE, 1), GSGoalKey.DB),
-	@MDDescription("TODO")
+	@MDDescription("Whether to add artificial nodes of rank `DATA` in the taxonomy tree as intermediate children of tax id nodes when filling the database. "
+			+ "K-mers are then assigned to these intermediate DATA nodes rather than directly to the tax id, enabling finer-grained attribution within a taxon. "
+			+ "Analogous to `idNodes` and `fileNodes`. BEWARE: This may cause a database build to fail as only up to 32767 tax ids are allowed.")
 	DATA_NODES("dataNodes", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
 	@MDDescription("Whether to add artificial nodes in the tax tree to represent ids after '>' from fasta info lines for *k*-mers. BEWARE: This may cause a database build to fail as only up to 32767 tax ids are allowed.")
 	ID_NODES("idNodes", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),

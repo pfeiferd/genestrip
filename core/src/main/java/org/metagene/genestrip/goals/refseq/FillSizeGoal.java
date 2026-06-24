@@ -125,19 +125,5 @@ public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<Long, P> 
 		protected boolean handleStore() {
 			return true;
 		}
-
-	/* This would be faster but the estimate in kmers is a little less accurate:
-	@Override
-	protected void dataLine() {
-		if (includeRegion) {
-			if (isAllowMoreKmers()) {
-				bpsInRegion += size - 1;
-				if (bpsInRegion >= k) {
-					kmersInRegion = ((bpsInRegion - k + 1) / stepSize); // TODO not yet correct
-				}
-			}
-		}
-	}
-	 */
 	}
 }

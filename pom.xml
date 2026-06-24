@@ -30,7 +30,7 @@
 
     <properties>
         <revision>2.9</revision>
-        <java.version>9</java.version>
+        <java.version>11</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <javapackager.jdkPath>C:/java/jdk-25</javapackager.jdkPath>
         <main.class>org.metagene.genestrip.Main</main.class>

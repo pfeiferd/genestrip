@@ -35,7 +35,12 @@ public enum FTGoalKey implements GoalKey {
     FTSETUP("ftsetup"),
     @MDDescription("Counts the *k*-mers per taxid directly from the underlying genomic files given a corresponding *k*-mer is in the database at all.")
     DB_QUALITY_COUNTS("dbqualcounts", false),
-    @MDDescription("TODO")
+    @MDDescription("Generate a CSV file with intrinsic quality metrics per tax id for a project's database. "
+            + "For each tax id, *k*-mers are counted directly from the underlying genomic files and compared with the *k*-mers stored in the database. "
+            + "The resulting CSV file contains precision and recall values: "
+            + "*precision* measures how specifically the stored *k*-mers are assigned to the correct tax id (true positives / (true positives + false positives)); "
+            + "*recall* measures how completely the genomic *k*-mers of a tax id are represented in the database (true positives / (true positives + false negatives)). "
+            + "The result is stored under `<base dir>/projects/<project_name>/csv`.")
     DB_QUALITY("dbquality", false);
 
     private final boolean forUser;

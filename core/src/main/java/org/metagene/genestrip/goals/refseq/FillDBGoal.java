@@ -113,7 +113,6 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 			}
 			store.optimize();
 			Database database = new Database(store, smallTaxTree, getProject().getAllAsProperties());
-			database.ensureAllTreeNodesInDB();
 			database.initStoreIndices();
 			set(database);
 		} catch (IOException e) {

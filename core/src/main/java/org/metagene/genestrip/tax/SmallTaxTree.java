@@ -90,7 +90,7 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		if (this.owner == null) {
 			this.owner = owner;
 		} else if (this.owner != owner) {
-			throw new IllegalArgumentException("Tax tree not relaease by previous owner: " + this.owner);
+			throw new IllegalArgumentException("Tax tree not released by previous owner: " + this.owner);
 		}
 		root.resetCounts();
 	}

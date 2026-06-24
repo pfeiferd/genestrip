@@ -82,24 +82,6 @@ public class Database implements Serializable {
         }
     }
 
-    public void ensureAllTreeNodesInDB() {
-        ensureAllTreeNodesInDB(taxTree.getRoot());
-    }
-
-    protected void ensureAllTreeNodesInDB(SmallTaxIdNode node) {
-        if (node == null || node.getTaxId() == null) {
-            return;
-        }
-        int index = kmerStore.getAddValueIndex(node.getTaxId());
-        node.setStoreIndex(index);
-        SmallTaxIdNode[] subnodes = node.getSubNodes();
-        if (subnodes != null) {
-            for (int i = 0; i < subnodes.length; i++) {
-                ensureAllTreeNodesInDB(subnodes[i]);
-            }
-        }
-    }
-
     public KMerSortedArray<SmallTaxIdNode> convertKMerStore() {
         return new KMerSortedArray<>(kmerStore, new ValueConverter<String, SmallTaxIdNode>() {
             @Override
