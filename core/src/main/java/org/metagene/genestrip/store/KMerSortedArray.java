@@ -80,8 +80,10 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	private transient KMerProbFilter filter;
 	private boolean useFilter;
 	// When true, lookups use the radix-guided search instead of plain binary search.
+	// Made transient for compatibility with existing databases.
 	private transient boolean radixSearch;
 	// Number of key bits consumed per radix step (radix = 2^radixBits buckets per step).
+	// Made transient for compatibility with existing databases.
 	private transient int radixBits = 8;
 	private Object2LongMap<V> kmerPersTaxid;
 
