@@ -38,18 +38,16 @@ public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 	private final double positiveRatio;
 	private final int minPosCount;
 	private final KMerProbFilter filter;
-	private final boolean inlined;
 
 	private OutputStream indexed;
 	private OutputStream notIndexed;
 
 	public FastqBloomFilter(int k, KMerProbFilter filter, int minPosCount, double positiveRatio, int initialReadSize,
-							int maxQueueSize, ExecutionContext bundle, boolean withProbs, boolean inlined) {
+							int maxQueueSize, ExecutionContext bundle, boolean withProbs) {
 		super(k, initialReadSize, maxQueueSize, bundle, withProbs);
 		this.filter = filter;
 		this.minPosCount = minPosCount;
 		this.positiveRatio = positiveRatio;
-		this.inlined = inlined;
 	}
 
 	public void runFilter(StreamingResourceStream fastqs, File filteredFile, File restFile) throws IOException {

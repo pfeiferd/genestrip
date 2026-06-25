@@ -73,8 +73,7 @@ public class FilterGoal<P extends GSProject> extends MultiFileGoal<P> {
 			f = new FastqBloomFilter(intConfigValue(GSConfigKey.KMER_SIZE), indexedGoal.get(), intConfigValue(GSConfigKey.MIN_POS_COUNT_FILTER),
 					doubleConfigValue(GSConfigKey.POS_RATIO_FILTER),
 					intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES), intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE),
-					executorServiceBundle, booleanConfigValue(GSConfigKey.WITH_PROBS),
-					booleanConfigValue(GSConfigKey.USE_INLINED)) {
+					executorServiceBundle, booleanConfigValue(GSConfigKey.WITH_PROBS)) {
 				@Override
 				protected boolean isProgressBar() {
 					return booleanConfigValue(GSConfigKey.PROGRESS_BAR);
