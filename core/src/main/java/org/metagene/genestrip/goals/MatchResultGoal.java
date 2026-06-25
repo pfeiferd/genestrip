@@ -91,10 +91,14 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 
 				if (matcher == null) {
 					database = storeGoal.get();
-					database.getKmerStore().setUseFilter(booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH));
-
 					SmallTaxTree taxTree = database.getTaxTree();
-					matcher = createMatcher(database.convertKMerStore(),
+					KMerSortedArray<SmallTaxIdNode> store = database.convertKMerStore();
+
+					store.setUseFilter(booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH));
+					// Select the k-mer store's lookup strategy (radix-guided vs. binary search).
+					store.setRadixSearch(booleanConfigValue(GSConfigKey.USE_RADIX_SEARCH));
+
+					matcher = createMatcher(store,
 							(booleanConfigValue(GSConfigKey.CLASSIFY_READS) && !GSGoalKey.MATCHRESLR.equals(getKey()))
 									? taxTree
 									: null,

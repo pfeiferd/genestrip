@@ -79,6 +79,8 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	private short nextValueIndex;
 	private transient KMerProbFilter filter;
 	private boolean useFilter;
+	// When true, lookups use the radix-guided search instead of plain binary search.
+	private boolean radixSearch;
 	private Object2LongMap<V> kmerPersTaxid;
 
 	private transient long kmersMoved;
@@ -145,6 +147,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		nextValueIndex = org.nextValueIndex;
 		filter = org.filter;
 		useFilter = org.useFilter;
+		radixSearch = org.radixSearch;
 
 		indexMap = (V[]) new Serializable[MAX_VALUES];
 		valueMap = new Object2ShortOpenHashMap<>(org.valueMap.size());
@@ -198,6 +201,22 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 	public boolean isUseFilter() {
 		return useFilter;
+	}
+
+	/**
+	 * Selects the search strategy used by {@link #getLong(long, long[])},
+	 * {@link #getLongInlined(long, long[])} and {@link #update(long, UpdateValueProvider)}
+	 * for the sorted store.
+	 *
+	 * @param radixSearch {@code true} for the radix-guided search, {@code false}
+	 *                    for the default binary search.
+	 */
+	public void setRadixSearch(boolean radixSearch) {
+		this.radixSearch = radixSearch;
+	}
+
+	public boolean isRadixSearch() {
+		return radixSearch;
 	}
 
 	public Object2LongMap<V> getNKmersPerTaxid() {
@@ -370,12 +389,14 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 		long pos;
 		if (largeKmers != null) {
-			pos = LongBigArrays.binarySearch(largeKmers, 0, entries, kmer);
+			pos = radixSearch ? radixSearchLarge(kmer, entries)
+					: LongBigArrays.binarySearch(largeKmers, 0, entries, kmer);
 			if (pos < 0) {
 				return false;
 			}
 		} else {
-			pos = Arrays.binarySearch(kmers, 0, (int) entries, kmer);
+			pos = radixSearch ? radixSearchSmall(kmer, (int) entries)
+					: Arrays.binarySearch(kmers, 0, (int) entries, kmer);
 			if (pos < 0) {
 				return false;
 			}
@@ -441,6 +462,120 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		return kmers[(int) pos];
 	}
 
+	// Below this interval width the 16-way split degenerates, so the search finishes
+	// with plain binary steps.
+	private static final int RADIX_MIN_SPAN = 16;
+
+	/**
+	 * Radix-guided search over the small (single-array) sorted k-mer store.
+	 * <p>
+	 * A k-mer occupies the lowest {@code 2*k} bits of the {@code long} (the first base
+	 * in the most significant bits, see {@link CGAT#kMerToLongStraight}). Starting from
+	 * the top nibble, each step takes the next 4 key bits as a digit {@code d in [0,15]}
+	 * and treats the {@code d}-th of 16 equal sub-ranges of the current interval
+	 * {@code [lo, hi]} as the predicted location of the key. It probes the start of that
+	 * sixteenth ({@code lo + (hi - lo) * d / 16}, the division done with a {@code >>> 4}
+	 * shift) and the start of the next one. The two 3-way comparisons either confirm the
+	 * key lies inside the predicted sixteenth — narrowing {@code [lo, hi]} to it and
+	 * consuming the nibble — or push the interval to the side the comparisons indicate,
+	 * which keeps the result exact for any (also non-uniform) key distribution. Once the
+	 * interval gets small the search finishes with binary steps.
+	 * <p>
+	 * Compared to interpolation search the probe positions depend only on the key bits
+	 * and {@code [lo, hi]} (not on the stored values), so the early, cache-critical probes
+	 * land on a small fixed set of array positions that stay warm in the L3 cache, while
+	 * the interval shrinks by ~16x per step instead of 2x — roughly halving the probe count.
+	 *
+	 * @return the index of {@code key} if found, otherwise {@code -(insertionPoint) - 1}
+	 *         (same contract as {@link Arrays#binarySearch(long[], int, int, long)}).
+	 */
+	private int radixSearchSmall(final long key, final int to) {
+		int lo = 0;
+		int hi = to - 1;
+		int shift = (k << 1) - 4; // top nibble of the 2*k significant bits
+		while (lo <= hi) {
+			final int span = hi - lo;
+			if (shift < 0 || span < RADIX_MIN_SPAN) {
+				final int mid = (lo + hi) >>> 1;
+				final long midVal = kmers[mid];
+				if (midVal < key) lo = mid + 1;
+				else if (midVal > key) hi = mid - 1;
+				else return mid;
+				continue;
+			}
+			final int digit = (int) ((key >>> shift) & 0xF);
+			final int lower = lo + (int) (((long) span * digit) >>> 4); // start of the d-th sixteenth
+			final long lowerVal = kmers[lower];
+			if (lowerVal == key) {
+				return lower;
+			}
+			if (lowerVal > key) {
+				hi = lower - 1; // key is before the predicted sixteenth
+				continue;
+			}
+			final int upper = lo + (int) (((long) span * (digit + 1)) >>> 4); // start of the next sixteenth
+			final long upperVal = kmers[upper];
+			if (upperVal == key) {
+				return upper;
+			}
+			if (upperVal < key) {
+				lo = upper + 1; // key is beyond the predicted sixteenth
+			} else {
+				lo = lower + 1; // key is inside the predicted sixteenth: narrow and consume the nibble
+				hi = upper - 1;
+				shift -= 4;
+			}
+		}
+		return -(lo + 1);
+	}
+
+	/**
+	 * Radix-guided search over the large ({@code long[][]} BigArray) sorted k-mer store.
+	 * The BigArray segment size is {@code 2^27}, so an index is split into segment
+	 * ({@code pos >>> 27}) and offset ({@code pos & (2^27 - 1)}) via bit operations.
+	 *
+	 * @see #radixSearchSmall(long, int)
+	 */
+	private long radixSearchLarge(final long key, final long to) {
+		long lo = 0;
+		long hi = to - 1;
+		int shift = (k << 1) - 4; // top nibble of the 2*k significant bits
+		while (lo <= hi) {
+			final long span = hi - lo;
+			if (shift < 0 || span < RADIX_MIN_SPAN) {
+				final long mid = (lo + hi) >>> 1;
+				final long midVal = largeKmers[(int) (mid >>> 27)][(int) (mid & 134217727)];
+				if (midVal < key) lo = mid + 1;
+				else if (midVal > key) hi = mid - 1;
+				else return mid;
+				continue;
+			}
+			final int digit = (int) ((key >>> shift) & 0xF);
+			final long lower = lo + ((span * digit) >>> 4); // start of the d-th sixteenth
+			final long lowerVal = largeKmers[(int) (lower >>> 27)][(int) (lower & 134217727)];
+			if (lowerVal == key) {
+				return lower;
+			}
+			if (lowerVal > key) {
+				hi = lower - 1; // key is before the predicted sixteenth
+				continue;
+			}
+			final long upper = lo + ((span * (digit + 1)) >>> 4); // start of the next sixteenth
+			final long upperVal = largeKmers[(int) (upper >>> 27)][(int) (upper & 134217727)];
+			if (upperVal == key) {
+				return upper;
+			}
+			if (upperVal < key) {
+				lo = upper + 1; // key is beyond the predicted sixteenth
+			} else {
+				lo = lower + 1; // key is inside the predicted sixteenth: narrow and consume the nibble
+				hi = upper - 1;
+				shift -= 4;
+			}
+		}
+		return -(lo + 1);
+	}
+
 	// Made final for potential (automated) inlining by JVM
 	public final V getLong(final long kmer, final long[] posStore) {
 		if (filter != null && useFilter && !filter.containsLong(kmer)) {
@@ -450,13 +585,15 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		long pos;
 		if (sorted) {
 			if (largeKmers != null) {
-				pos = LongBigArrays.binarySearch(largeKmers, 0, entries, kmer);
+				pos = radixSearch ? radixSearchLarge(kmer, entries)
+						: LongBigArrays.binarySearch(largeKmers, 0, entries, kmer);
 				if (pos < 0) {
 					return null;
 				}
 				index = BigArrays.get(largeValueIndexes, pos);
 			} else {
-				pos = Arrays.binarySearch(kmers, 0, (int) entries, kmer);
+				pos = radixSearch ? radixSearchSmall(kmer, (int) entries)
+						: Arrays.binarySearch(kmers, 0, (int) entries, kmer);
 				if (pos < 0) {
 					return null;
 				}
@@ -503,25 +640,30 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		short index;
 		if (sorted) {
 			if (largeKmers != null) {
-				long pos = -1;
-				boolean finished = false;
-				long from = 0;
-				long to = entries;
-				long midVal;
-				to--;
-				while (from <= to) {
-					final long mid = (from + to) >>> 1;
-					midVal = largeKmers[(int) (mid >>> 27)][(int) (mid & 134217727)];
-					if (midVal < kmer) from = mid + 1;
-					else if (midVal > kmer) to = mid - 1;
-					else {
-						pos = mid;
-						finished = true;
-						break;
+				long pos;
+				if (radixSearch) {
+					pos = radixSearchLarge(kmer, entries);
+				} else {
+					pos = -1;
+					boolean finished = false;
+					long from = 0;
+					long to = entries;
+					long midVal;
+					to--;
+					while (from <= to) {
+						final long mid = (from + to) >>> 1;
+						midVal = largeKmers[(int) (mid >>> 27)][(int) (mid & 134217727)];
+						if (midVal < kmer) from = mid + 1;
+						else if (midVal > kmer) to = mid - 1;
+						else {
+							pos = mid;
+							finished = true;
+							break;
+						}
 					}
-				}
-				if (!finished) {
-					pos = -(from + 1);
+					if (!finished) {
+						pos = -(from + 1);
+					}
 				}
 				if (posStore != null) {
 					posStore[0] = pos;
@@ -531,27 +673,32 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				}
 				index = largeValueIndexes[(int) (pos >>> 27)][(int) (pos & 134217727)];
 			} else {
-				int pos = -1;
-				int low = 0;
-				int high = (int) entries - 1;
-				boolean finished = false;
+				int pos;
+				if (radixSearch) {
+					pos = radixSearchSmall(kmer, (int) entries);
+				} else {
+					pos = -1;
+					int low = 0;
+					int high = (int) entries - 1;
+					boolean finished = false;
 
-				while (low <= high) {
-					int mid = (low + high) >>> 1;
-					long midVal = kmers[mid];
+					while (low <= high) {
+						int mid = (low + high) >>> 1;
+						long midVal = kmers[mid];
 
-					if (midVal < kmer)
-						low = mid + 1;
-					else if (midVal > kmer)
-						high = mid - 1;
-					else {
-						pos = mid;
-						finished = true;
-						break;// key found
+						if (midVal < kmer)
+							low = mid + 1;
+						else if (midVal > kmer)
+							high = mid - 1;
+						else {
+							pos = mid;
+							finished = true;
+							break;// key found
+						}
 					}
-				}
-				if (!finished) {
-					pos = -(low + 1);// key not found.
+					if (!finished) {
+						pos = -(low + 1);// key not found.
+					}
 				}
 				if (posStore != null) {
 					posStore[0] = pos;

@@ -55,12 +55,15 @@ public class InlinedMatcherBenchmarkTest {
 
     // --- Configuration -------------------------------------------------------
 
-    // Realistic k-mer size, same as production default.
-    protected static final int K = 31;
+    // The regression and benchmark are repeated for each of these k-mer sizes.
+    protected static final int[] K_VALUES = {16, 21, 31};
     // Three taxonomy ids spread across the store.
     protected static final String[] TAXIDS = {"1", "2", "3"};
-    // k-mers per taxid — 1500 total; fits comfortably in L2 cache.
-    protected static final int KMERS_PER_TAXID = 500;
+    // k-mers per taxid for the performance benchmark (store sized for a realistic workload).
+    protected static final int KMERS_PER_TAXID = 50000000;
+    // k-mers per taxid for the correctness regression — kept small (1500 total) so the
+    // matcher-equivalence check stays fast and cheap regardless of the benchmark store size.
+    protected static final int REGRESSION_KMERS_PER_TAXID = 500;
     // Typical Illumina short-read length.
     protected static final int READ_LENGTH = 250;
     // How many known k-mers to embed per read (controls hit density).
@@ -69,26 +72,26 @@ public class InlinedMatcherBenchmarkTest {
     // --- Setup helpers -------------------------------------------------------
 
     /**
-     * Builds a sorted k=31 store from randomly generated k-mers.
-     * Stores the straight-encoded bytes of each canonical k-mer in
-     * {@code storedKmersOut} so they can be embedded in test reads later.
+     * Builds a sorted store of the given k-mer size {@code k} with {@code kmersPerTaxid}
+     * randomly generated k-mers per taxid. Stores the straight-encoded bytes of each
+     * canonical k-mer in the returned setup so they can be embedded in test reads later.
      */
     @SuppressWarnings("unchecked")
-    static TestSetup buildSetup(Random rng) {
-        int totalKmers = KMERS_PER_TAXID * TAXIDS.length;
+    static TestSetup buildSetup(int k, int kmersPerTaxid, Random rng) {
+        int totalKmers = kmersPerTaxid * TAXIDS.length;
         KMerSortedArray<String> strStore = new KMerSortedArray<>(
-                K, 0.001, 0.001, Arrays.asList(TAXIDS), false, true);
+                k, 0.001, 0.001, Arrays.asList(TAXIDS), false, true);
         strStore.initSize(totalKmers);
 
         List<byte[]> allKmers = new ArrayList<>(totalKmers);
-        byte[] seq = new byte[K];
+        byte[] seq = new byte[k];
         for (String taxid : TAXIDS) {
             int added = 0;
-            while (added < KMERS_PER_TAXID) {
-                for (int j = 0; j < K; j++) {
+            while (added < kmersPerTaxid) {
+                for (int j = 0; j < k; j++) {
                     seq[j] = CGAT.DECODE_TABLE[rng.nextInt(4)];
                 }
-                long canonical = CGAT.kMerToLong(seq, 0, K, null);
+                long canonical = CGAT.kMerToLong(seq, 0, k, null);
                 if (canonical == -1) {
                     continue; // bad char from kMerToLong (should not happen with DECODE_TABLE)
                 }
@@ -96,8 +99,8 @@ public class InlinedMatcherBenchmarkTest {
                     // Store the byte form of the canonical k-mer for embedding in reads.
                     // longToKMerStraight is the exact inverse of kMerToLongStraight, so
                     // when the matcher re-encodes these bytes it will recover `canonical`.
-                    byte[] kmerBytes = new byte[K];
-                    CGAT.longToKMerStraight(canonical, kmerBytes, 0, K);
+                    byte[] kmerBytes = new byte[k];
+                    CGAT.longToKMerStraight(canonical, kmerBytes, 0, k);
                     allKmers.add(kmerBytes);
                     added++;
                 }
@@ -124,7 +127,7 @@ public class InlinedMatcherBenchmarkTest {
      * Each read is random DNA with KMERS_EMBEDDED_PER_READ known k-mers
      * from {@code allKmers} embedded at random positions.
      */
-    static byte[][] generateReads(Random rng, List<byte[]> allKmers, int count) {
+    static byte[][] generateReads(int k, Random rng, List<byte[]> allKmers, int count) {
         byte[][] reads = new byte[count][READ_LENGTH];
         for (int i = 0; i < count; i++) {
             byte[] read = reads[i];
@@ -132,9 +135,9 @@ public class InlinedMatcherBenchmarkTest {
                 read[j] = CGAT.DECODE_TABLE[rng.nextInt(4)];
             }
             for (int hit = 0; hit < KMERS_EMBEDDED_PER_READ; hit++) {
-                int pos = rng.nextInt(READ_LENGTH - K + 1);
+                int pos = rng.nextInt(READ_LENGTH - k + 1);
                 byte[] kmer = allKmers.get(rng.nextInt(allKmers.size()));
-                System.arraycopy(kmer, 0, read, pos, K);
+                System.arraycopy(kmer, 0, read, pos, k);
             }
         }
         return reads;
@@ -193,7 +196,7 @@ public class InlinedMatcherBenchmarkTest {
     /**
      * Verifies that every statistics field produced by FastqKMerMatcher and
      * InlinedFastqKMerMatcher is identical when given the same reads in the
-     * same order, using a realistic k=31 store.
+     * same order. Repeated for each k-mer size in {@link #K_VALUES}.
      *
      * Fields checked per taxid:
      *   kmers, reads1KMer, contigs, maxContigLen, contigLenSquaredSum
@@ -201,64 +204,66 @@ public class InlinedMatcherBenchmarkTest {
      */
     @Test
     public void testIdenticalResults() {
-        TestSetup setup = buildSetup(new Random(12345L));
-        byte[][] reads = generateReads(new Random(67890L), setup.allKmers, 500);
-        KMerUniqueCounterBits uniqueStdCounter = new KMerUniqueCounterBits(setup.strStore, false);
-        KMerUniqueCounterBits uniqueInlCounter = new KMerUniqueCounterBits(setup.strStore, false);
+        for (int k : K_VALUES) {
+            TestSetup setup = buildSetup(k, REGRESSION_KMERS_PER_TAXID, new Random(12345L));
+            byte[][] reads = generateReads(k, new Random(67890L), setup.allKmers, 500);
+            KMerUniqueCounterBits uniqueStdCounter = new KMerUniqueCounterBits(setup.strStore, false);
+            KMerUniqueCounterBits uniqueInlCounter = new KMerUniqueCounterBits(setup.strStore, false);
 
-        // --- Standard matcher ---
-        FastqKMerMatcher stdMatcher = createMatcher(false, setup.nodeStore);
-        MatcherReadEntry stdEntry = new MatcherReadEntry(READ_LENGTH * 2, false, 4);
-        stdMatcher.initStats();
-        stdMatcher.initUniqueCounter(uniqueStdCounter);
-        runReadsForStats(stdMatcher, stdEntry, reads, 0L);
-        Object2LongMap<String> uniqueStd = uniqueStdCounter.getUniqueKmerCounts();
+            // --- Standard matcher ---
+            FastqKMerMatcher stdMatcher = createMatcher(false, setup.nodeStore);
+            MatcherReadEntry stdEntry = new MatcherReadEntry(READ_LENGTH * 2, false, 4);
+            stdMatcher.initStats();
+            stdMatcher.initUniqueCounter(uniqueStdCounter);
+            runReadsForStats(stdMatcher, stdEntry, reads, 0L);
+            Object2LongMap<String> uniqueStd = uniqueStdCounter.getUniqueKmerCounts();
 
-        // --- Inlined matcher on identical reads ---
-        InlinedFastqKMerMatcher inlMatcher =
-                (InlinedFastqKMerMatcher) createMatcher(true, setup.nodeStore);
-        MatcherReadEntry inlEntry = new MatcherReadEntry(READ_LENGTH * 2, false, 4);
-        inlMatcher.initStats();
-        inlMatcher.initUniqueCounter(uniqueInlCounter);
-        runReadsForStats(inlMatcher, inlEntry, reads, 0L);
-        Object2LongMap<String> uniqueInl = uniqueInlCounter.getUniqueKmerCounts();
+            // --- Inlined matcher on identical reads ---
+            InlinedFastqKMerMatcher inlMatcher =
+                    (InlinedFastqKMerMatcher) createMatcher(true, setup.nodeStore);
+            MatcherReadEntry inlEntry = new MatcherReadEntry(READ_LENGTH * 2, false, 4);
+            inlMatcher.initStats();
+            inlMatcher.initUniqueCounter(uniqueInlCounter);
+            runReadsForStats(inlMatcher, inlEntry, reads, 0L);
+            Object2LongMap<String> uniqueInl = uniqueInlCounter.getUniqueKmerCounts();
 
-        // --- Compare all statistics per taxid ---
-        for (String taxid : TAXIDS) {
-            int vi = setup.strStore.getIndexForValue(taxid);
-            CountsPerTaxid statsStd = stdMatcher.statsIndex[vi];
-            CountsPerTaxid statsInl = inlMatcher.statsIndex[vi];
+            // --- Compare all statistics per taxid ---
+            for (String taxid : TAXIDS) {
+                int vi = setup.strStore.getIndexForValue(taxid);
+                CountsPerTaxid statsStd = stdMatcher.statsIndex[vi];
+                CountsPerTaxid statsInl = inlMatcher.statsIndex[vi];
 
-            if (statsStd == null) {
-                assertNull("taxid=" + taxid + ": inlined unexpectedly non-null", statsInl);
-                continue;
+                if (statsStd == null) {
+                    assertNull("k=" + k + " taxid=" + taxid + ": inlined unexpectedly non-null", statsInl);
+                    continue;
+                }
+                assertNotNull("k=" + k + " taxid=" + taxid + ": inlined unexpectedly null", statsInl);
+
+                assertEquals("k=" + k + " taxid=" + taxid + " kmers",
+                        statsStd.getKMers(), statsInl.getKMers());
+                assertEquals("k=" + k + " taxid=" + taxid + " reads1KMer",
+                        statsStd.getReads1KMer(), statsInl.getReads1KMer());
+                assertEquals("k=" + k + " taxid=" + taxid + " contigs",
+                        statsStd.getContigs(), statsInl.getContigs());
+                assertEquals("k=" + k + " taxid=" + taxid + " maxContigLen",
+                        statsStd.getMaxContigLen(), statsInl.getMaxContigLen());
+                assertEquals("k=" + k + " taxid=" + taxid + " contigLenSquaredSum",
+                        statsStd.contigLenSquaredSum, statsInl.contigLenSquaredSum);
+
+                // Unique k-mer counts (position-based via KMerUniqueCounterBits)
+                assertEquals("k=" + k + " taxid=" + taxid + " uniqueKmers",
+                        uniqueStd.getLong(taxid), uniqueInl.getLong(taxid));
             }
-            assertNotNull("taxid=" + taxid + ": inlined unexpectedly null", statsInl);
-
-            assertEquals("taxid=" + taxid + " kmers",
-                    statsStd.getKMers(), statsInl.getKMers());
-            assertEquals("taxid=" + taxid + " reads1KMer",
-                    statsStd.getReads1KMer(), statsInl.getReads1KMer());
-            assertEquals("taxid=" + taxid + " contigs",
-                    statsStd.getContigs(), statsInl.getContigs());
-            assertEquals("taxid=" + taxid + " maxContigLen",
-                    statsStd.getMaxContigLen(), statsInl.getMaxContigLen());
-            assertEquals("taxid=" + taxid + " contigLenSquaredSum",
-                    statsStd.contigLenSquaredSum, statsInl.contigLenSquaredSum);
-
-            // Unique k-mer counts (position-based via KMerUniqueCounterBits)
-            assertEquals("taxid=" + taxid + " uniqueKmers",
-                    uniqueStd.getLong(taxid), uniqueInl.getLong(taxid));
         }
     }
 
     // --- Performance benchmark -----------------------------------------------
 
     /**
-     * Benchmarks FastqKMerMatcher vs InlinedFastqKMerMatcher with k=31 and
-     * realistic read length.
+     * Benchmarks FastqKMerMatcher vs InlinedFastqKMerMatcher with realistic read length,
+     * repeated for each k-mer size in {@link #K_VALUES}.
      *
-     * Protocol:
+     * Protocol (per k):
      *  1. JIT warm-up: 20 000 reads through each matcher before timing starts.
      *  2. 7 timed rounds of 10 000 reads each, run alternately per matcher
      *     to spread any OS-level jitter equally.
@@ -279,81 +284,83 @@ public class InlinedMatcherBenchmarkTest {
         final int BENCH_ROUNDS = 7;       // discard min + max → 5 effective rounds
         final int READS_PER_ROUND = 10_000;
 
-        TestSetup setup = buildSetup(new Random(99999L));
-        int totalReads = WARMUP_READS + READS_PER_ROUND * BENCH_ROUNDS;
-        byte[][] reads = generateReads(new Random(11111L), setup.allKmers, totalReads);
+        for (int k : K_VALUES) {
+            TestSetup setup = buildSetup(k, KMERS_PER_TAXID, new Random(99999L));
+            int totalReads = WARMUP_READS + READS_PER_ROUND * BENCH_ROUNDS;
+            byte[][] reads = generateReads(k, new Random(11111L), setup.allKmers, totalReads);
 
-        FastqKMerMatcher stdMatcher = createMatcher(false, setup.nodeStore);
-        InlinedFastqKMerMatcher inlMatcher =
-                (InlinedFastqKMerMatcher) createMatcher(true, setup.nodeStore);
-        MatcherReadEntry stdEntry = new MatcherReadEntry(READ_LENGTH * 2, false, 4);
-        MatcherReadEntry inlEntry = new MatcherReadEntry(READ_LENGTH * 2, false, 4);
-        stdEntry.readNo = 0;
-        inlEntry.readNo = 0;
+            FastqKMerMatcher stdMatcher = createMatcher(false, setup.nodeStore);
+            InlinedFastqKMerMatcher inlMatcher =
+                    (InlinedFastqKMerMatcher) createMatcher(true, setup.nodeStore);
+            MatcherReadEntry stdEntry = new MatcherReadEntry(READ_LENGTH * 2, false, 4);
+            MatcherReadEntry inlEntry = new MatcherReadEntry(READ_LENGTH * 2, false, 4);
+            stdEntry.readNo = 0;
+            inlEntry.readNo = 0;
 
-        // --- Warm-up ---
-        stdMatcher.initStats();
-        inlMatcher.initStats();
-        byte[][] warmupReads = Arrays.copyOfRange(reads, 0, WARMUP_READS);
-        runReadsForBenchmark(stdMatcher, stdEntry, warmupReads);
-        runReadsForBenchmark(inlMatcher, inlEntry, warmupReads);
-        // Reset stats to avoid skew from accumulated entries during warm-up.
-        stdMatcher.initStats();
-        inlMatcher.initStats();
+            // --- Warm-up ---
+            stdMatcher.initStats();
+            inlMatcher.initStats();
+            byte[][] warmupReads = Arrays.copyOfRange(reads, 0, WARMUP_READS);
+            runReadsForBenchmark(stdMatcher, stdEntry, warmupReads);
+            runReadsForBenchmark(inlMatcher, inlEntry, warmupReads);
+            // Reset stats to avoid skew from accumulated entries during warm-up.
+            stdMatcher.initStats();
+            inlMatcher.initStats();
 
-        // --- Timed rounds (alternating to share OS jitter fairly) ---
-        long[] stdNs = new long[BENCH_ROUNDS];
-        long[] inlNs = new long[BENCH_ROUNDS];
-        for (int r = 0; r < BENCH_ROUNDS; r++) {
-            byte[][] roundReads = Arrays.copyOfRange(reads,
-                    WARMUP_READS + r * READS_PER_ROUND,
-                    WARMUP_READS + (r + 1) * READS_PER_ROUND);
+            // --- Timed rounds (alternating to share OS jitter fairly) ---
+            long[] stdNs = new long[BENCH_ROUNDS];
+            long[] inlNs = new long[BENCH_ROUNDS];
+            for (int r = 0; r < BENCH_ROUNDS; r++) {
+                byte[][] roundReads = Arrays.copyOfRange(reads,
+                        WARMUP_READS + r * READS_PER_ROUND,
+                        WARMUP_READS + (r + 1) * READS_PER_ROUND);
 
-            long t0 = System.nanoTime();
-            runReadsForBenchmark(stdMatcher, stdEntry, roundReads);
-            stdNs[r] = System.nanoTime() - t0;
+                long t0 = System.nanoTime();
+                runReadsForBenchmark(stdMatcher, stdEntry, roundReads);
+                stdNs[r] = System.nanoTime() - t0;
 
-            long t1 = System.nanoTime();
-            runReadsForBenchmark(inlMatcher, inlEntry, roundReads);
-            inlNs[r] = System.nanoTime() - t1;
+                long t1 = System.nanoTime();
+                runReadsForBenchmark(inlMatcher, inlEntry, roundReads);
+                inlNs[r] = System.nanoTime() - t1;
+            }
+
+            // Discard min + max, average the 5 middle rounds.
+            Arrays.sort(stdNs);
+            Arrays.sort(inlNs);
+            long stdSum = 0, inlSum = 0;
+            int effective = BENCH_ROUNDS - 2;
+            for (int r = 1; r <= effective; r++) {
+                stdSum += stdNs[r];
+                inlSum += inlNs[r];
+            }
+            double stdMs = stdSum / (1_000_000.0 * effective);
+            double inlMs = inlSum / (1_000_000.0 * effective);
+            double speedup = stdMs / inlMs;
+
+            long innerLoopsPerRound = (long) READS_PER_ROUND * (READ_LENGTH - k + 1);
+            System.out.printf("%n=== InlinedFastqKMerMatcher Benchmark (k=%d) ===%n", k);
+            System.out.printf("  Store:  k=%d, %d k-mers (%d taxids x %d)%n",
+                    k, KMERS_PER_TAXID * TAXIDS.length, TAXIDS.length, KMERS_PER_TAXID);
+            System.out.printf("  Reads:  %d reads x %d bp per round (%,d inner-loop iterations)%n",
+                    READS_PER_ROUND, READ_LENGTH, innerLoopsPerRound);
+            System.out.printf("  Rounds: %d timed, min+max discarded, %d averaged%n",
+                    BENCH_ROUNDS, effective);
+            System.out.printf("  FastqKMerMatcher (standard):  %6.2f ms/round  (%5.1f ns/read)%n",
+                    stdMs, stdMs * 1_000_000 / READS_PER_ROUND);
+            System.out.printf("  InlinedFastqKMerMatcher:       %6.2f ms/round  (%5.1f ns/read)%n",
+                    inlMs, inlMs * 1_000_000 / READS_PER_ROUND);
+            System.out.printf("  Speedup factor: %.3fx%n", speedup);
+            if (speedup >= 1.0) {
+                System.out.printf("  -> Inlined is %.1f%% faster%n", (speedup - 1.0) * 100);
+            } else {
+                System.out.printf("  -> Inlined is %.1f%% slower (JIT may already inline standard variant)%n",
+                        (1.0 - speedup) * 100);
+            }
+
+            // Sanity: inlined should not be dramatically slower
+            assertTrue("Speedup should be >= 0.7 for k=" + k + " (got " + String.format("%.3f", speedup) + ")",
+                    speedup >= 0.7);
         }
-
-        // Discard min + max, average the 5 middle rounds.
-        Arrays.sort(stdNs);
-        Arrays.sort(inlNs);
-        long stdSum = 0, inlSum = 0;
-        int effective = BENCH_ROUNDS - 2;
-        for (int r = 1; r <= effective; r++) {
-            stdSum += stdNs[r];
-            inlSum += inlNs[r];
-        }
-        double stdMs = stdSum / (1_000_000.0 * effective);
-        double inlMs = inlSum / (1_000_000.0 * effective);
-        double speedup = stdMs / inlMs;
-
-        long innerLoopsPerRound = (long) READS_PER_ROUND * (READ_LENGTH - K + 1);
-        System.out.printf("%n=== InlinedFastqKMerMatcher Benchmark ===%n");
-        System.out.printf("  Store:  k=%d, %d k-mers (%d taxids x %d)%n",
-                K, KMERS_PER_TAXID * TAXIDS.length, TAXIDS.length, KMERS_PER_TAXID);
-        System.out.printf("  Reads:  %d reads x %d bp per round (%,d inner-loop iterations)%n",
-                READS_PER_ROUND, READ_LENGTH, innerLoopsPerRound);
-        System.out.printf("  Rounds: %d timed, min+max discarded, %d averaged%n",
-                BENCH_ROUNDS, effective);
-        System.out.printf("  FastqKMerMatcher (standard):  %6.2f ms/round  (%5.1f ns/read)%n",
-                stdMs, stdMs * 1_000_000 / READS_PER_ROUND);
-        System.out.printf("  InlinedFastqKMerMatcher:       %6.2f ms/round  (%5.1f ns/read)%n",
-                inlMs, inlMs * 1_000_000 / READS_PER_ROUND);
-        System.out.printf("  Speedup factor: %.3fx%n", speedup);
-        if (speedup >= 1.0) {
-            System.out.printf("  -> Inlined is %.1f%% faster%n", (speedup - 1.0) * 100);
-        } else {
-            System.out.printf("  -> Inlined is %.1f%% slower (JIT may already inline standard variant)%n",
-                    (1.0 - speedup) * 100);
-        }
-
-        // Sanity: inlined should not be dramatically slower
-        assertTrue("Speedup should be >= 0.7 (got " + String.format("%.3f", speedup) + ")",
-                speedup >= 0.7);
     }
 
     // --- Shared data holder --------------------------------------------------
