@@ -63,6 +63,10 @@ public class RadixSearchBenchmarkTest extends InlinedMatcherBenchmarkTest {
 
     // --- Configuration -------------------------------------------------------
 
+    // Radix widths (bits consumed per step → 2^bits buckets) swept by the benchmark and
+    // verified for correctness. 4 is the default; larger widths do fewer but pricier steps.
+    private static final int[] RADIX_BITS_VALUES = {4, 6, 8, 10, 12};
+
     // Medium store for correctness test (fast to build, all entries verified).
     private static final int CORRECTNESS_KMERS_PER_TAXID = 20_000; // 60 K total
 
@@ -176,79 +180,81 @@ public class RadixSearchBenchmarkTest extends InlinedMatcherBenchmarkTest {
      */
     private void assertRadixIdenticalToBinary(boolean enforceLarge) {
         for (int k : K_VALUES) {
-            Random rng = new Random(54321L);
             KMerSortedArray<SmallTaxIdNode> store =
-                    buildStore(k, CORRECTNESS_KMERS_PER_TAXID, enforceLarge, rng);
+                    buildStore(k, CORRECTNESS_KMERS_PER_TAXID, enforceLarge, new Random(54321L));
             // Disable the Bloom filter so misses actually reach the search and are compared.
             store.setUseFilter(false);
 
             long[] posStoreBinary = new long[1];
             long[] posStoreRadix = new long[1];
-
-            // --- Hits: sample all stored k-mers from the sorted array ---
             long totalEntries = store.getEntries();
-            int hitCount = 0;
-            for (long pos = 0; pos < totalEntries; pos++) {
-                long kmer = store.getKMerAt(pos);
 
-                store.setRadixSearch(false);
-                SmallTaxIdNode binaryResult = store.getLong(kmer, posStoreBinary);
+            // Verify every benchmarked radix width against binary search.
+            for (int bits : RADIX_BITS_VALUES) {
+                store.setRadixBits(bits);
+                Random rng = new Random(98765L); // identical miss queries across widths
 
-                store.setRadixSearch(true);
-                SmallTaxIdNode radixResult = store.getLong(kmer, posStoreRadix);
+                // --- Hits: sample all stored k-mers from the sorted array ---
+                int hitCount = 0;
+                for (long pos = 0; pos < totalEntries; pos++) {
+                    long kmer = store.getKMerAt(pos);
 
-                assertNotNull("k=" + k + " binary search missed stored kmer at pos " + pos, binaryResult);
-                assertNotNull("k=" + k + " radix search missed stored kmer at pos " + pos, radixResult);
-                assertSame("k=" + k + " different node for stored kmer at pos " + pos,
-                        binaryResult, radixResult);
-                assertEquals("k=" + k + " posStore differs for stored kmer at pos " + pos,
-                        posStoreBinary[0], posStoreRadix[0]);
-                hitCount++;
-            }
+                    store.setRadixSearch(false);
+                    SmallTaxIdNode binaryResult = store.getLong(kmer, posStoreBinary);
 
-            // --- Random queries (mostly misses) ---
-            int missCount = 0, randomHits = 0;
-            byte[] seq = new byte[k];
-            for (int i = 0; i < 100_000; i++) {
-                for (int j = 0; j < k; j++) seq[j] = CGAT.DECODE_TABLE[rng.nextInt(4)];
-                long kmer = CGAT.kMerToLong(seq, 0, k, null);
-                if (kmer == -1) continue;
+                    store.setRadixSearch(true);
+                    SmallTaxIdNode radixResult = store.getLong(kmer, posStoreRadix);
 
-                store.setRadixSearch(false);
-                SmallTaxIdNode binaryResult = store.getLong(kmer, posStoreBinary);
-
-                store.setRadixSearch(true);
-                SmallTaxIdNode radixResult = store.getLong(kmer, posStoreRadix);
-
-                assertEquals("k=" + k + " binary and radix disagree on random kmer " + i,
-                        binaryResult == null, radixResult == null);
-                if (binaryResult != null) {
-                    assertSame("k=" + k + " different node for random kmer " + i,
+                    assertNotNull("k=" + k + " bits=" + bits + " binary search missed stored kmer at pos " + pos, binaryResult);
+                    assertNotNull("k=" + k + " bits=" + bits + " radix search missed stored kmer at pos " + pos, radixResult);
+                    assertSame("k=" + k + " bits=" + bits + " different node for stored kmer at pos " + pos,
                             binaryResult, radixResult);
-                    assertEquals("k=" + k + " posStore differs for random kmer " + i,
+                    assertEquals("k=" + k + " bits=" + bits + " posStore differs for stored kmer at pos " + pos,
                             posStoreBinary[0], posStoreRadix[0]);
-                    randomHits++;
-                } else {
-                    missCount++;
+                    hitCount++;
                 }
-            }
 
-            System.out.printf("%nCorrectness (%s path, k=%d): %d hits, %d misses, %d random hits verified%n",
-                    enforceLarge ? "large/BigArray" : "small", k, hitCount, missCount, randomHits);
+                // --- Random queries (mostly misses) ---
+                int missCount = 0, randomHits = 0;
+                byte[] seq = new byte[k];
+                for (int i = 0; i < 100_000; i++) {
+                    for (int j = 0; j < k; j++) seq[j] = CGAT.DECODE_TABLE[rng.nextInt(4)];
+                    long kmer = CGAT.kMerToLong(seq, 0, k, null);
+                    if (kmer == -1) continue;
+
+                    store.setRadixSearch(false);
+                    SmallTaxIdNode binaryResult = store.getLong(kmer, posStoreBinary);
+
+                    store.setRadixSearch(true);
+                    SmallTaxIdNode radixResult = store.getLong(kmer, posStoreRadix);
+
+                    assertEquals("k=" + k + " bits=" + bits + " binary and radix disagree on random kmer " + i,
+                            binaryResult == null, radixResult == null);
+                    if (binaryResult != null) {
+                        assertSame("k=" + k + " bits=" + bits + " different node for random kmer " + i,
+                                binaryResult, radixResult);
+                        assertEquals("k=" + k + " bits=" + bits + " posStore differs for random kmer " + i,
+                                posStoreBinary[0], posStoreRadix[0]);
+                        randomHits++;
+                    } else {
+                        missCount++;
+                    }
+                }
+
+                System.out.printf("%nCorrectness (%s path, k=%d, radix=%d bits): %d hits, %d misses, %d random hits verified%n",
+                        enforceLarge ? "large/BigArray" : "small", k, bits, hitCount, missCount, randomHits);
+            }
         }
     }
 
     // --- Benchmark -----------------------------------------------------------
 
     /**
-     * Benchmarks three lookup variants in a tight loop, repeated for each k-mer size in
-     * {@link #K_VALUES}:
-     * <ul>
-     *   <li>binary search via {@link KMerSortedArray#getLong} (radix off),</li>
-     *   <li>radix search via {@link KMerSortedArray#getLong} (radix on),</li>
-     *   <li>the combined improvement: radix search inside the manually inlined lookup
-     *       {@link KMerSortedArray#getLongInlined} (radix on).</li>
-     * </ul>
+     * Benchmarks binary search against the radix search at several radix widths, repeated for
+     * each k-mer size in {@link #K_VALUES}. For every width in {@link #RADIX_BITS_VALUES} it
+     * times both the plain lookup ({@link KMerSortedArray#getLong}) and the combined variant
+     * with the manually inlined lookup ({@link KMerSortedArray#getLongInlined}), all relative
+     * to the binary-search baseline (radix off).
      *
      * <p>The store is built with {@code enforceLarge=true} to exercise the
      * BigArray code path. Only {@value #QUERIES_PER_ROUND} query k-mers
@@ -264,6 +270,7 @@ public class RadixSearchBenchmarkTest extends InlinedMatcherBenchmarkTest {
         final int WARMUP_ITERS = 5;
         final int BENCH_ROUNDS = 7;
         final int HALF = QUERIES_PER_ROUND / 2;
+        final int nWidths = RADIX_BITS_VALUES.length;
 
         for (int k : K_VALUES) {
             Random rng = new Random(77777L);
@@ -287,21 +294,23 @@ public class RadixSearchBenchmarkTest extends InlinedMatcherBenchmarkTest {
 
             long[] posStore = new long[1];
 
-            // --- Warm-up (all variants, several passes) ---
+            // --- Warm-up (all variants and widths, several passes) ---
             for (int w = 0; w < WARMUP_ITERS; w++) {
                 store.setRadixSearch(false);
                 for (long q : queries) store.getLong(q, posStore);
 
                 store.setRadixSearch(true);
-                for (long q : queries) store.getLong(q, posStore);
-                // Combined improvement: radix search inside the manually inlined lookup.
-                for (long q : queries) store.getLongInlined(q, posStore);
+                for (int bits : RADIX_BITS_VALUES) {
+                    store.setRadixBits(bits);
+                    for (long q : queries) store.getLong(q, posStore);
+                    for (long q : queries) store.getLongInlined(q, posStore);
+                }
             }
 
-            // --- Timed rounds (alternating to share OS jitter fairly) ---
+            // --- Timed rounds ---
             long[] binaryNs = new long[BENCH_ROUNDS];
-            long[] radixNs = new long[BENCH_ROUNDS];
-            long[] radixInlinedNs = new long[BENCH_ROUNDS];
+            long[][] radixNs = new long[nWidths][BENCH_ROUNDS];        // radix via getLong, per width
+            long[][] radixInlinedNs = new long[nWidths][BENCH_ROUNDS]; // radix via getLongInlined, per width
             for (int r = 0; r < BENCH_ROUNDS; r++) {
                 store.setRadixSearch(false);
                 long t0 = System.nanoTime();
@@ -309,62 +318,60 @@ public class RadixSearchBenchmarkTest extends InlinedMatcherBenchmarkTest {
                 binaryNs[r] = System.nanoTime() - t0;
 
                 store.setRadixSearch(true);
-                long t1 = System.nanoTime();
-                for (long q : queries) store.getLong(q, posStore);
-                radixNs[r] = System.nanoTime() - t1;
+                for (int bi = 0; bi < nWidths; bi++) {
+                    store.setRadixBits(RADIX_BITS_VALUES[bi]);
 
-                // radixSearch is still true: combined radix + inlined lookup path.
-                long t2 = System.nanoTime();
-                for (long q : queries) store.getLongInlined(q, posStore);
-                radixInlinedNs[r] = System.nanoTime() - t2;
+                    long t1 = System.nanoTime();
+                    for (long q : queries) store.getLong(q, posStore);
+                    radixNs[bi][r] = System.nanoTime() - t1;
+
+                    long t2 = System.nanoTime();
+                    for (long q : queries) store.getLongInlined(q, posStore);
+                    radixInlinedNs[bi][r] = System.nanoTime() - t2;
+                }
             }
 
-            // Discard min + max, average the rest.
-            Arrays.sort(binaryNs);
-            Arrays.sort(radixNs);
-            Arrays.sort(radixInlinedNs);
-            long binSum = 0, radSum = 0, radInlSum = 0;
-            int effective = BENCH_ROUNDS - 2;
-            for (int r = 1; r <= effective; r++) {
-                binSum += binaryNs[r];
-                radSum += radixNs[r];
-                radInlSum += radixInlinedNs[r];
-            }
-            double binMs    = binSum / (1_000_000.0 * effective);
-            double radMs    = radSum / (1_000_000.0 * effective);
-            double radInlMs = radInlSum / (1_000_000.0 * effective);
-            double speedup        = binMs / radMs;
-            double speedupInlined = binMs / radInlMs;
+            double binMs = trimmedMeanMs(binaryNs);
 
-            System.out.printf("%n=== Radix vs Binary Search Benchmark (k=%d) ===%n", k);
+            System.out.printf("%n=== Radix-width sweep vs Binary Search (k=%d) ===%n", k);
             System.out.printf("  Store: k=%d, enforceLarge=true, %,d k-mers (~%.1f MB k-mer data)%n",
                     k, entries, entries * 8.0 / (1024 * 1024));
-            System.out.printf("  log2(%,d) = %.1f probes (binary)  |  ~%.1f probes (radix, log2/4)%n",
-                    entries, Math.log(entries) / Math.log(2),
-                    (Math.log(entries) / Math.log(2)) / 4.0);
+            System.out.printf("  log2(%,d) = %.1f probes (binary)%n", entries, Math.log(entries) / Math.log(2));
             System.out.printf("  Queries per round: %,d (50%% hits, 50%% misses)%n", QUERIES_PER_ROUND);
             System.out.printf("  Rounds: %d timed, min+max discarded, %d averaged%n",
-                    BENCH_ROUNDS, effective);
-            System.out.printf("  Binary search:          %7.3f ms  (%5.1f ns/query)%n",
+                    BENCH_ROUNDS, BENCH_ROUNDS - 2);
+            System.out.printf("  Binary search:               %7.3f ms  (%5.1f ns/query)%n",
                     binMs, binMs * 1_000_000 / QUERIES_PER_ROUND);
-            System.out.printf("  Radix search:           %7.3f ms  (%5.1f ns/query)  %.3fx%n",
-                    radMs, radMs * 1_000_000 / QUERIES_PER_ROUND, speedup);
-            System.out.printf("  Radix + inlined lookup: %7.3f ms  (%5.1f ns/query)  %.3fx  (combined improvement)%n",
-                    radInlMs, radInlMs * 1_000_000 / QUERIES_PER_ROUND, speedupInlined);
-            if (speedupInlined >= 1.0) {
-                System.out.printf("  -> Combined radix + inlined is %.1f%% faster than binary%n",
-                        (speedupInlined - 1.0) * 100);
-            } else {
-                System.out.printf("  -> Combined radix + inlined is %.1f%% slower than binary (store fits in cache)%n",
-                        (1.0 - speedupInlined) * 100);
-            }
+            for (int bi = 0; bi < nWidths; bi++) {
+                int bits = RADIX_BITS_VALUES[bi];
+                double radMs    = trimmedMeanMs(radixNs[bi]);
+                double radInlMs = trimmedMeanMs(radixInlinedNs[bi]);
+                double speedup        = binMs / radMs;
+                double speedupInlined = binMs / radInlMs;
+                System.out.printf("  Radix %2d-bit:                %7.3f ms  (%5.1f ns/query)  %.3fx%n",
+                        bits, radMs, radMs * 1_000_000 / QUERIES_PER_ROUND, speedup);
+                System.out.printf("  Radix %2d-bit + inlined:      %7.3f ms  (%5.1f ns/query)  %.3fx%n",
+                        bits, radInlMs, radInlMs * 1_000_000 / QUERIES_PER_ROUND, speedupInlined);
 
-            // Sanity bound only — speedup direction depends on available cache.
-            assertTrue("Radix speedup ratio out of plausible range for k=" + k + ": " + speedup,
-                    speedup >= 0.2 && speedup <= 5.0);
-            assertTrue("Radix+inlined speedup ratio out of plausible range for k=" + k + ": " + speedupInlined,
-                    speedupInlined >= 0.2 && speedupInlined <= 5.0);
+                // Sanity bound only — speedup direction depends on available cache.
+                assertTrue("Radix speedup out of plausible range (k=" + k + ", bits=" + bits + "): " + speedup,
+                        speedup >= 0.2 && speedup <= 5.0);
+                assertTrue("Radix+inlined speedup out of plausible range (k=" + k + ", bits=" + bits + "): " + speedupInlined,
+                        speedupInlined >= 0.2 && speedupInlined <= 5.0);
+            }
         }
+    }
+
+    /** Mean of the timings in ms after discarding the fastest and slowest round. */
+    private static double trimmedMeanMs(long[] ns) {
+        long[] sorted = ns.clone();
+        Arrays.sort(sorted);
+        long sum = 0;
+        int effective = sorted.length - 2;
+        for (int r = 1; r <= effective; r++) {
+            sum += sorted[r];
+        }
+        return sum / (1_000_000.0 * effective);
     }
 
     // Avoid retesting of stuff from super class.

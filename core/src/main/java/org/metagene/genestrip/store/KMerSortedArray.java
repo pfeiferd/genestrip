@@ -80,7 +80,9 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	private transient KMerProbFilter filter;
 	private boolean useFilter;
 	// When true, lookups use the radix-guided search instead of plain binary search.
-	private boolean radixSearch;
+	private transient boolean radixSearch;
+	// Number of key bits consumed per radix step (radix = 2^radixBits buckets per step).
+	private transient int radixBits = 8;
 	private Object2LongMap<V> kmerPersTaxid;
 
 	private transient long kmersMoved;
@@ -148,6 +150,7 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		filter = org.filter;
 		useFilter = org.useFilter;
 		radixSearch = org.radixSearch;
+		radixBits = org.radixBits;
 
 		indexMap = (V[]) new Serializable[MAX_VALUES];
 		valueMap = new Object2ShortOpenHashMap<>(org.valueMap.size());
@@ -217,6 +220,24 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 
 	public boolean isRadixSearch() {
 		return radixSearch;
+	}
+
+	/**
+	 * Sets the radix width (number of key bits consumed per radix step) used by the
+	 * radix-guided search. The radix uses {@code 2^radixBits} buckets per step, so larger
+	 * values reduce the number of steps but make the early probes span more array positions.
+	 *
+	 * @param radixBits the radix width, in [1, 16]; the default is 8 (256 buckets per step).
+	 */
+	public void setRadixBits(int radixBits) {
+		if (radixBits < 1 || radixBits > 16) {
+			throw new IllegalArgumentException("radixBits must be in [1, 16], got " + radixBits);
+		}
+		this.radixBits = radixBits;
+	}
+
+	public int getRadixBits() {
+		return radixBits;
 	}
 
 	public Object2LongMap<V> getNKmersPerTaxid() {
@@ -462,40 +483,40 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 		return kmers[(int) pos];
 	}
 
-	// Below this interval width the 16-way split degenerates, so the search finishes
-	// with plain binary steps.
-	private static final int RADIX_MIN_SPAN = 16;
-
 	/**
 	 * Radix-guided search over the small (single-array) sorted k-mer store.
 	 * <p>
 	 * A k-mer occupies the lowest {@code 2*k} bits of the {@code long} (the first base
 	 * in the most significant bits, see {@link CGAT#kMerToLongStraight}). Starting from
-	 * the top nibble, each step takes the next 4 key bits as a digit {@code d in [0,15]}
-	 * and treats the {@code d}-th of 16 equal sub-ranges of the current interval
-	 * {@code [lo, hi]} as the predicted location of the key. It probes the start of that
-	 * sixteenth ({@code lo + (hi - lo) * d / 16}, the division done with a {@code >>> 4}
-	 * shift) and the start of the next one. The two 3-way comparisons either confirm the
-	 * key lies inside the predicted sixteenth — narrowing {@code [lo, hi]} to it and
-	 * consuming the nibble — or push the interval to the side the comparisons indicate,
-	 * which keeps the result exact for any (also non-uniform) key distribution. Once the
-	 * interval gets small the search finishes with binary steps.
+	 * the most significant bits, each step takes the next {@link #radixBits} key bits as a
+	 * digit {@code d in [0, 2^radixBits)} and treats the {@code d}-th of {@code 2^radixBits}
+	 * equal sub-ranges of the current interval {@code [lo, hi]} as the predicted location of
+	 * the key. It probes the start of that bucket ({@code lo + (hi - lo) * d / 2^radixBits},
+	 * the division done with a {@code >>> radixBits} shift) and the start of the next one.
+	 * The two 3-way comparisons either confirm the key lies inside the predicted bucket —
+	 * narrowing {@code [lo, hi]} to it and consuming the digit — or push the interval to the
+	 * side the comparisons indicate, which keeps the result exact for any (also non-uniform)
+	 * key distribution. Once the interval is narrower than one bucket the search finishes
+	 * with binary steps.
 	 * <p>
 	 * Compared to interpolation search the probe positions depend only on the key bits
 	 * and {@code [lo, hi]} (not on the stored values), so the early, cache-critical probes
 	 * land on a small fixed set of array positions that stay warm in the L3 cache, while
-	 * the interval shrinks by ~16x per step instead of 2x — roughly halving the probe count.
+	 * the interval shrinks by ~{@code 2^radixBits}x per step instead of 2x — reducing the probe count.
 	 *
 	 * @return the index of {@code key} if found, otherwise {@code -(insertionPoint) - 1}
 	 *         (same contract as {@link Arrays#binarySearch(long[], int, int, long)}).
 	 */
 	private int radixSearchSmall(final long key, final int to) {
+		final int bits = radixBits;
+		final int mask = (1 << bits) - 1;
+		final int minSpan = 1 << bits; // need at least one element per bucket
 		int lo = 0;
 		int hi = to - 1;
-		int shift = (k << 1) - 4; // top nibble of the 2*k significant bits
+		int shift = (k << 1) - bits; // most significant digit of the 2*k significant bits
 		while (lo <= hi) {
 			final int span = hi - lo;
-			if (shift < 0 || span < RADIX_MIN_SPAN) {
+			if (shift < 0 || span < minSpan) {
 				final int mid = (lo + hi) >>> 1;
 				final long midVal = kmers[mid];
 				if (midVal < key) lo = mid + 1;
@@ -503,27 +524,27 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				else return mid;
 				continue;
 			}
-			final int digit = (int) ((key >>> shift) & 0xF);
-			final int lower = lo + (int) (((long) span * digit) >>> 4); // start of the d-th sixteenth
+			final int digit = (int) ((key >>> shift) & mask);
+			final int lower = lo + (int) (((long) span * digit) >>> bits); // start of the d-th bucket
 			final long lowerVal = kmers[lower];
 			if (lowerVal == key) {
 				return lower;
 			}
 			if (lowerVal > key) {
-				hi = lower - 1; // key is before the predicted sixteenth
+				hi = lower - 1; // key is before the predicted bucket
 				continue;
 			}
-			final int upper = lo + (int) (((long) span * (digit + 1)) >>> 4); // start of the next sixteenth
+			final int upper = lo + (int) (((long) span * (digit + 1)) >>> bits); // start of the next bucket
 			final long upperVal = kmers[upper];
 			if (upperVal == key) {
 				return upper;
 			}
 			if (upperVal < key) {
-				lo = upper + 1; // key is beyond the predicted sixteenth
+				lo = upper + 1; // key is beyond the predicted bucket
 			} else {
-				lo = lower + 1; // key is inside the predicted sixteenth: narrow and consume the nibble
+				lo = lower + 1; // key is inside the predicted bucket: narrow and consume the digit
 				hi = upper - 1;
-				shift -= 4;
+				shift -= bits;
 			}
 		}
 		return -(lo + 1);
@@ -537,12 +558,15 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 	 * @see #radixSearchSmall(long, int)
 	 */
 	private long radixSearchLarge(final long key, final long to) {
+		final int bits = radixBits;
+		final int mask = (1 << bits) - 1;
+		final long minSpan = 1L << bits; // need at least one element per bucket
 		long lo = 0;
 		long hi = to - 1;
-		int shift = (k << 1) - 4; // top nibble of the 2*k significant bits
+		int shift = (k << 1) - bits; // most significant digit of the 2*k significant bits
 		while (lo <= hi) {
 			final long span = hi - lo;
-			if (shift < 0 || span < RADIX_MIN_SPAN) {
+			if (shift < 0 || span < minSpan) {
 				final long mid = (lo + hi) >>> 1;
 				final long midVal = largeKmers[(int) (mid >>> 27)][(int) (mid & 134217727)];
 				if (midVal < key) lo = mid + 1;
@@ -550,27 +574,27 @@ public class KMerSortedArray<V extends Serializable> implements KMerStore<V> {
 				else return mid;
 				continue;
 			}
-			final int digit = (int) ((key >>> shift) & 0xF);
-			final long lower = lo + ((span * digit) >>> 4); // start of the d-th sixteenth
+			final int digit = (int) ((key >>> shift) & mask);
+			final long lower = lo + ((span * digit) >>> bits); // start of the d-th bucket
 			final long lowerVal = largeKmers[(int) (lower >>> 27)][(int) (lower & 134217727)];
 			if (lowerVal == key) {
 				return lower;
 			}
 			if (lowerVal > key) {
-				hi = lower - 1; // key is before the predicted sixteenth
+				hi = lower - 1; // key is before the predicted bucket
 				continue;
 			}
-			final long upper = lo + ((span * (digit + 1)) >>> 4); // start of the next sixteenth
+			final long upper = lo + ((span * (digit + 1)) >>> bits); // start of the next bucket
 			final long upperVal = largeKmers[(int) (upper >>> 27)][(int) (upper & 134217727)];
 			if (upperVal == key) {
 				return upper;
 			}
 			if (upperVal < key) {
-				lo = upper + 1; // key is beyond the predicted sixteenth
+				lo = upper + 1; // key is beyond the predicted bucket
 			} else {
-				lo = lower + 1; // key is inside the predicted sixteenth: narrow and consume the nibble
+				lo = lower + 1; // key is inside the predicted bucket: narrow and consume the digit
 				hi = upper - 1;
-				shift -= 4;
+				shift -= bits;
 			}
 		}
 		return -(lo + 1);

@@ -259,6 +259,9 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("If `true`, then the *k*-mer store uses a radix-guided search instead of binary search for *k*-mer lookups during matching / filtering. "
 			+ "It tends to be somewhat faster than binary search for large *k*-mer stores that do not fit into the CPU cache, and can be combined with `useInlined`.")
 	USE_RADIX_SEARCH("useRadixSearch", new BooleanConfigParamInfo(false), true, GSGoalKey.MATCH, GSGoalKey.MATCHLR),
+	@MDDescription("The radix width (number of *k*-mer bits consumed per step) used by the radix search when `useRadixSearch` is `true`. "
+			+ "Each step splits the current search interval into `2^radixSearchBits` buckets, so larger values do fewer but individually pricier steps. Only relevant if `useRadixSearch` is `true`.")
+	RADIX_SEARCH_BITS("radixSearchBits", new IntConfigParamInfo(1, 16, 8), true, GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 	THREAD_QUEUE_SIZE("threadQueueSize", new IntConfigParamInfo(1, 10000, 1000), true),
 	INITIAL_READ_SIZE_BYTES("initialReadSizeBytes", new IntConfigParamInfo(256, 65536, 4096), true),
 	MAX_CLASSIFICATION_PATHS("maxClassificationPaths", new IntConfigParamInfo(1, 128, 10), true),

@@ -97,6 +97,7 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 					store.setUseFilter(booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH));
 					// Select the k-mer store's lookup strategy (radix-guided vs. binary search).
 					store.setRadixSearch(booleanConfigValue(GSConfigKey.USE_RADIX_SEARCH));
+					store.setRadixBits(intConfigValue(GSConfigKey.RADIX_SEARCH_BITS));
 
 					matcher = createMatcher(store,
 							(booleanConfigValue(GSConfigKey.CLASSIFY_READS) && !GSGoalKey.MATCHRESLR.equals(getKey()))
