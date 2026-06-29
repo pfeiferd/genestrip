@@ -26,6 +26,7 @@ package org.metagene.genestrip.goals.refseq;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -45,17 +46,50 @@ import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
 import org.metagene.genestrip.refseq.AbstractStoreFastaReader;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
+import org.metagene.genestrip.store.RadixKMerStore;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.StringLongDigitTrie;
 
-// Not needed anymore due to HyperLogLog estimation of DB size.
-//@Deprecated
-public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Long, P> implements Goal.LogHeapInfo {
+public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<FillBloomFilterGoal.DBSize, P> implements Goal.LogHeapInfo {
+    /**
+     * Combined deduplicated DB size: the total estimated number of distinct k-mers and, when
+     * available, the per-{@link RadixKMerStore} radix-bucket counts (length {@code 2^radixStoreBits},
+     * suitable as the {@code bucketSizes} argument of a {@link RadixKMerStore} created with the same
+     * {@code radixStoreBits}). {@code bucketSizes} is {@code null} for sizing strategies that do not
+     * compute per-bucket counts.
+     */
+    public static class DBSize implements Serializable {
+        private static final long serialVersionUID = 1L;
+
+        private final long size;
+        private final int[] bucketSizes;
+
+        public DBSize(long size, int[] bucketSizes) {
+            this.size = size;
+            this.bucketSizes = bucketSizes;
+        }
+
+        public long getSize() {
+            return size;
+        }
+
+        public int[] getBucketSizes() {
+            return bucketSizes;
+        }
+    }
+
     private final ObjectGoal<AccessionMap, P> accessionMapGoal;
     private final ObjectGoal<Long, P> sizeGoal;
 
     private KMerProbFilter filter;
+    // Number of low k-mer bits used as the radix (from config); the radix store created later must
+    // use the same value. Set in doMakeThis().
+    private int radixBits;
+    // Deduplicated k-mer count per RadixKMerStore radix bucket (low radixBits bits of the k-mer),
+    // computed alongside the total so a RadixKMerStore can later be sized per bucket. Shared by all
+    // reader threads; see MyFastaReader.handleStore() for the thread-safe update.
+    private int[] bucketSizes;
 
     private final boolean multiThreading;
 
@@ -89,6 +123,8 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Lo
                         new MurmurKMerBloomFilter(tempFpp);
             }
             filter.ensureExpectedSize(sizeGoal.get(), false);
+            radixBits = intConfigValue(GSConfigKey.RADIX_STORE_BITS);
+            bucketSizes = new int[1 << radixBits];
             logHeapInfo();
             readFastas();
             long entries = filter.getEntries();
@@ -99,8 +135,14 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Lo
             // It is a conservative estimate too, since collisions occur in the process
             // of filling (as opposed to the FPP formula that considers a filled
             // bloom filter).
-            entries = (long) (entries / (1d - doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP)));
-            set(entries);
+            double divisor = 1d - doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP);
+            entries = (long) (entries / divisor);
+            // Apply the same FPP correction per bucket so the bucket sizes stay consistent with the
+            // total (their sum stays approximately 'entries').
+            for (int i = 0; i < bucketSizes.length; i++) {
+                bucketSizes[i] = (int) (bucketSizes[i] / divisor);
+            }
+            set(new DBSize(entries, bucketSizes));
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
@@ -154,19 +196,25 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Lo
         protected boolean handleStore() {
             long kmer = byteRingBuffer.getStandardKMer();
             if (!filter.containsLong(kmer)) {
+                int bucket = RadixKMerStore.radixOf(kmer, radixBits);
                 if (multiThreading) {
                     synchronized (filter) {
                         // This is a trick to enable more parallelism -
                         // check again after synchronized to avoid synchronized further outside...
                         if (!filter.containsLong(kmer)) {
                             filter.putLong(kmer);
+                            // Counted under the same lock as the filter update, so the per-bucket
+                            // counts stay exactly in step with filter.getEntries() across threads
+                            // (and race losers, whose re-check fails, are not counted).
+                            bucketSizes[bucket]++;
                             return true;
                         }
                     }
                 } else {
                     filter.putLong(kmer);
+                    bucketSizes[bucket]++;
+                    return true;
                 }
-                return true;
             }
             return false;
         }

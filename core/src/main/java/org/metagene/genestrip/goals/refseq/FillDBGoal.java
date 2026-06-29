@@ -40,6 +40,8 @@ import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.KMerSortedArray;
+import org.metagene.genestrip.store.KMerStore;
+import org.metagene.genestrip.store.RadixKMerStore;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
@@ -49,11 +51,11 @@ import org.metagene.genestrip.util.ByteArrayUtil;
 
 public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P>  implements Goal.LogHeapInfo {
 	private final ObjectGoal<AccessionMap, P> accessionMapGoal;
-	private final ObjectGoal<Long, P> sizeGoal;
+	private final ObjectGoal<FillBloomFilterGoal.DBSize, P> sizeGoal;
 	private final ObjectGoal<TaxTree, P> taxTreeGoal;
 	private final List<MyFastaReader> readers;
 
-	private KMerSortedArray<String> store;
+	private KMerStore<String> store;
 
 	@SafeVarargs
 	public FillDBGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
@@ -62,7 +64,7 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 					  RefSeqFnaFilesDownloadGoal<P> fnaFilesGoal,
 					  ObjectGoal<Map<File, TaxIdNode>, P> additionalGoal,
 					  ObjectGoal<AccessionMap, P> accessionMapGoal,
-					  ObjectGoal<Long, P> sizeGoal,
+					  ObjectGoal<FillBloomFilterGoal.DBSize, P> sizeGoal,
 					  Goal<P>... deps) {
 		super(project, GSGoalKey.FILL_DB, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, taxTreeGoal, accessionMapGoal, sizeGoal));
 		this.accessionMapGoal = accessionMapGoal;
@@ -73,15 +75,32 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 
 	@Override
 	protected void doMakeThis() {
-		store = new KMerSortedArray<>(intConfigValue(GSConfigKey.KMER_SIZE),
-				doubleConfigValue(GSConfigKey.FILL_BLOOM_FILTER_FPP), doubleConfigValue(GSConfigKey.OPT_BLOOM_FILTER_FPP), null, false, booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH));
+		int k = intConfigValue(GSConfigKey.KMER_SIZE);
+		double fillFpp = doubleConfigValue(GSConfigKey.FILL_BLOOM_FILTER_FPP);
+		double optFpp = doubleConfigValue(GSConfigKey.OPT_BLOOM_FILTER_FPP);
+		boolean xor = booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH);
 		double resizeFactor = doubleConfigValue(GSConfigKey.DB_RESIZING_FACTOR);
-		long size = resizeFactor == 1d ? sizeGoal.get() : (long) (sizeGoal.get() * resizeFactor);
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Store size in kmers: " + size);
-			getLogger().info("DB Size in MB (without Bloom filter): " + (size * 10) / (1024 * 1024));
+		boolean useRadixStore = booleanConfigValue(GSConfigKey.USE_RADIX_STORE);
+		FillBloomFilterGoal.DBSize dbSize = sizeGoal.get();
+
+		if (useRadixStore) {
+			// The radix store reserves capacity per radix bucket; the resizing factor scales each
+			// bucket (analogous to scaling the total for the sorted array). The radix width must
+			// match the one FillBloomFilterGoal used to count the per-bucket sizes.
+			int radixBits = intConfigValue(GSConfigKey.RADIX_STORE_BITS);
+			int[] bucketSizes = scaleBucketSizes(dbSize.getBucketSizes(), resizeFactor);
+			store = new RadixKMerStore<>(k, radixBits, bucketSizes, fillFpp, optFpp, null, xor);
+		} else {
+			long dedupSize = dbSize.getSize();
+			long size = resizeFactor == 1d ? dedupSize : (long) (dedupSize * resizeFactor);
+			KMerSortedArray<String> array = new KMerSortedArray<>(k, fillFpp, optFpp, null, false, xor);
+			array.initSize(size);
+			store = array;
 		}
-		store.initSize(size);
+		if (getLogger().isInfoEnabled()) {
+			getLogger().info("Store size in kmers: " + store.getSize());
+			getLogger().info("DB Size in MB (without Bloom filter): " + (store.getSize() * 10) / (1024 * 1024));
+		}
 
 		try {
 			readFastas();
@@ -121,6 +140,23 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 			store = null;
 			cleanUpThreads();
 		}
+	}
+
+	// Scales the per-radix-bucket capacities by the resizing factor (a new array is returned; the
+	// original from the size goal is not modified). resizeFactor == 1 returns the array unchanged.
+	private static int[] scaleBucketSizes(int[] bucketSizes, double resizeFactor) {
+		if (bucketSizes == null) {
+			throw new IllegalStateException(
+					"useRadixStore is set but the size goal did not provide per-bucket k-mer counts.");
+		}
+		if (resizeFactor == 1d) {
+			return bucketSizes;
+		}
+		int[] scaled = new int[bucketSizes.length];
+		for (int i = 0; i < bucketSizes.length; i++) {
+			scaled[i] = (int) (bucketSizes[i] * resizeFactor);
+		}
+		return scaled;
 	}
 
 	@Override
@@ -184,11 +220,11 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 	}
 
 	protected static class MyFastaReader extends AbstractStoreFastaReader {
-		private final KMerSortedArray<String> store;
+		private final KMerStore<String> store;
 		private long tooManyCounter;
 
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
-							 KMerSortedArray<String> store, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
+							 KMerStore<String> store, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
 			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases);
 			this.store = store;
 		}

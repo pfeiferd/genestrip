@@ -34,8 +34,8 @@ import org.metagene.genestrip.bloom.XORKMerBloomFilter;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.Database;
-import org.metagene.genestrip.store.KMerSortedArray;
-import org.metagene.genestrip.store.KMerSortedArray.KMerSortedArrayVisitor;
+import org.metagene.genestrip.store.KMerStore;
+import org.metagene.genestrip.store.KMerStore.IndexedKMerStoreVisitor;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
@@ -51,13 +51,13 @@ public class BloomIndexGoal<P extends GSProject> extends ObjectGoal<KMerProbFilt
 	@Override
 	protected void doMakeThis() {
 		Database wrapper = filledStoreGoal.get();
-		KMerSortedArray<String> store = wrapper.getKmerStore();
+		KMerStore<String> store = wrapper.getKmerStore();
 		SmallTaxTree taxTree = wrapper.getTaxTree();
 
 		long[] counter = new long[1];
-		store.visit(new KMerSortedArrayVisitor<String>() {
+		store.visit(new IndexedKMerStoreVisitor<String>() {
 			@Override
-			public void nextValue(KMerSortedArray<String> trie, long kmer, int index, long i) {
+			public void nextValue(KMerStore<String> trie, long kmer, int index, long i) {
 				String taxid = store.getValueForIndex(index);
 				if (taxid != null) {
 					SmallTaxIdNode node = taxTree.getNodeByTaxId(taxid);
@@ -83,9 +83,9 @@ public class BloomIndexGoal<P extends GSProject> extends ObjectGoal<KMerProbFilt
 		}
 		filter.ensureExpectedSize(counter[0], false);
 
-		store.visit(new KMerSortedArrayVisitor<String>() {
+		store.visit(new IndexedKMerStoreVisitor<String>() {
 			@Override
-			public void nextValue(KMerSortedArray<String> trie, long kmer, int index, long i) {
+			public void nextValue(KMerStore<String> trie, long kmer, int index, long i) {
 				String taxid = store.getValueForIndex(index);
 				if (taxid != null) {
 					SmallTaxIdNode node = taxTree.getNodeByTaxId(taxid);

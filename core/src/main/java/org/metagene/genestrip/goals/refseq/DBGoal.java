@@ -43,8 +43,8 @@ import org.metagene.genestrip.refseq.AbstractStoreFastaReader;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.store.Database;
-import org.metagene.genestrip.store.KMerSortedArray;
-import org.metagene.genestrip.store.KMerSortedArray.UpdateValueProvider;
+import org.metagene.genestrip.store.KMerStore;
+import org.metagene.genestrip.store.KMerStore.UpdateValueProvider;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
@@ -56,7 +56,7 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 	private final ObjectGoal<Database, P> filledStoreGoal;
 	private final boolean minUpdate;
 
-	private KMerSortedArray<String> store;
+	private KMerStore<String> store;
 
 	@SafeVarargs
 	public DBGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
@@ -161,10 +161,10 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 	}
 
 	protected class MyFastaReader extends AbstractStoreFastaReader {
-		private final KMerSortedArray<String> store;
+		private final KMerStore<String> store;
 		private final UpdateValueProvider<String> provider;
 
-		public MyFastaReader(int bufferSize, TaxTree taxTree, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, KMerSortedArray<String> store,
+		public MyFastaReader(int bufferSize, TaxTree taxTree, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, KMerStore<String> store,
 							 int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
 			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases);
 			this.store = store;

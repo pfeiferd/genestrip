@@ -35,7 +35,7 @@ import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.Database;
-import org.metagene.genestrip.store.KMerSortedArray;
+import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
@@ -52,7 +52,7 @@ public class DB2FastqTaxNodesGoal<P extends GSProject> extends ObjectGoal<Set<Sm
 	@Override
 	protected void doMakeThis() {
 		Set<SmallTaxIdNode> taxIdNodes;
-		KMerSortedArray<String> store = storeGoal.get().getKmerStore();
+		KMerStore<String> store = storeGoal.get().getKmerStore();
 		SmallTaxTree taxTree = storeGoal.get().getTaxTree();
 
 		Set<SmallTaxIdNode> storedNodes = new HashSet<SmallTaxIdNode>();

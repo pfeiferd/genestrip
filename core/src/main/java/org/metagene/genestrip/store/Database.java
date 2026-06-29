@@ -37,7 +37,7 @@ import java.util.zip.ZipOutputStream;
 import org.apache.commons.codec.binary.Hex;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.bloom.KMerProbFilter;
-import org.metagene.genestrip.store.KMerSortedArray.ValueConverter;
+import org.metagene.genestrip.store.KMerStore.ValueConverter;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
@@ -51,16 +51,16 @@ public class Database implements Serializable {
     public static final String CONFIG_INFO_FILE = "configInfo.properties";
 
     private final SmallTaxTree taxTree;
-    private final KMerSortedArray<String> kmerStore;
+    private final KMerStore<String> kmerStore;
     private Properties configInfo;
 
-    public Database(KMerSortedArray<String> kmerStore, SmallTaxTree taxTree, Properties configInfo) {
+    public Database(KMerStore<String> kmerStore, SmallTaxTree taxTree, Properties configInfo) {
         this.kmerStore = kmerStore;
         this.taxTree = taxTree;
         this.configInfo = configInfo == null ? new Properties() : configInfo;
     }
 
-    public KMerSortedArray<String> getKmerStore() {
+    public KMerStore<String> getKmerStore() {
         return kmerStore;
     }
 
@@ -82,8 +82,8 @@ public class Database implements Serializable {
         }
     }
 
-    public KMerSortedArray<SmallTaxIdNode> convertKMerStore() {
-        return new KMerSortedArray<>(kmerStore, new ValueConverter<String, SmallTaxIdNode>() {
+    public KMerStore<SmallTaxIdNode> convertKMerStore() {
+        return kmerStore.convertValues(new ValueConverter<String, SmallTaxIdNode>() {
             @Override
             public SmallTaxIdNode convertValue(String value) {
                 return taxTree.getNodeByTaxId(value);
@@ -131,7 +131,10 @@ public class Database implements Serializable {
                 zipEntry = new ZipEntry(INDEX_FILE);
                 zipOut.putNextEntry(zipEntry);
                 oOut = new ObjectOutputStream(digo);
-                oOut.writeObject(kmerStore.getFilter());
+                // Only tunable stores expose a probabilistic pre-filter; for others none is written.
+                KMerProbFilter filter = kmerStore instanceof TunableKMerStore
+                        ? ((TunableKMerStore<String>) kmerStore).getFilter() : null;
+                oOut.writeObject(filter);
                 digo.flush(); // Make sure it all got written.
                 zipOut.closeEntry();
             }
@@ -185,8 +188,8 @@ public class Database implements Serializable {
                 }
                 database.setConfigInfo(configInfo);
                 database.initStoreIndices();
-                if (filter != null) {
-                    database.getKmerStore().setFilter(filter);
+                if (filter != null && database.getKmerStore() instanceof TunableKMerStore) {
+                    ((TunableKMerStore<String>) database.getKmerStore()).setFilter(filter);
                 }
             }
             return database;

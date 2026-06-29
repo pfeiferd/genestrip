@@ -35,7 +35,7 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.match.FastqKMerMatcher;
-import org.metagene.genestrip.store.KMerSortedArray;
+import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.tax.SmallTaxTree;
 
 import java.io.File;
@@ -104,7 +104,7 @@ public class ComprehensiveFilterTest extends ComprehensiveMatchTest {
                 return new MatchResultGoal<P>(getProject(), (lr ? GSGoalKey.MATCHRESLR : GSGoalKey.MATCHRES), fastqMapTransfGoal, loadDBGoal,
                         getExecutionContext(getProject()), getGoal(GSGoalKey.SETUP), fastqDownloadsGoal) {
                     @Override
-                    protected FastqKMerMatcher createMatcher(KMerSortedArray<SmallTaxTree.SmallTaxIdNode> store, SmallTaxTree taxTree, ExecutionContext bundle, boolean withProbs, String dbMD5) {
+                    protected FastqKMerMatcher createMatcher(KMerStore<SmallTaxTree.SmallTaxIdNode> store, SmallTaxTree taxTree, ExecutionContext bundle, boolean withProbs, String dbMD5) {
                         return new FastqKMerMatcher(store, intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
                                 intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, withProbs, intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS),
                                 taxTree, intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS),

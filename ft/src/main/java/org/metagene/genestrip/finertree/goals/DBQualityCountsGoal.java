@@ -41,7 +41,7 @@ import org.metagene.genestrip.refseq.AbstractStoreFastaReader;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.store.Database;
-import org.metagene.genestrip.store.KMerSortedArray;
+import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.TaxTree;
@@ -56,7 +56,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
     private final ObjectGoal<Database, P> storeGoal;
 
     private SmallTaxTree tree;
-    private KMerSortedArray<SmallTaxTree.SmallTaxIdNode> kMerSortedArray;
+    private KMerStore<SmallTaxTree.SmallTaxIdNode> kMerSortedArray;
     private XORKMerIndexBloomFilter filter;
     private Map<String, Counts> map;
 

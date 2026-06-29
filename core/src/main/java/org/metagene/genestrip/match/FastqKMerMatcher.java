@@ -39,7 +39,7 @@ import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.io.StreamingResourceListStream;
 import org.metagene.genestrip.io.StreamingResourceStream;
-import org.metagene.genestrip.store.KMerSortedArray;
+import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
@@ -51,7 +51,7 @@ import it.unimi.dsi.fastutil.objects.Object2LongMap;
 public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
     protected final static SmallTaxIdNode INVALID_NODE = new SmallTaxIdNode("INVALID", null, null);
 
-    protected final KMerSortedArray<SmallTaxIdNode> kmerStore;
+    protected final KMerStore<SmallTaxIdNode> kmerStore;
     protected final String dbMD5;
     protected final int maxKmerResCounts;
 
@@ -80,7 +80,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 
     private AfterMatchCallback afterMatchCallback;
 
-    public FastqKMerMatcher(KMerSortedArray<SmallTaxIdNode> kmerStore, int initialReadSize, int maxQueueSize,
+    public FastqKMerMatcher(KMerStore<SmallTaxIdNode> kmerStore, int initialReadSize, int maxQueueSize,
                             ExecutionContext bundle, boolean withProbs, int maxKmerResCounts, SmallTaxTree taxTree, int maxPaths,
                             double maxReadTaxErrorCount, double maxReadClassErrorCount, boolean writeAll, int threshold, String dbMD5) {
         super(kmerStore.getK(), initialReadSize, maxQueueSize, bundle, withProbs, maxPaths);

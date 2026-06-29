@@ -29,6 +29,7 @@ import java.lang.annotation.Annotation;
 import java.util.*;
 
 import org.metagene.genestrip.bloom.BlockedKMerBloomFilter;
+import org.metagene.genestrip.store.RadixKMerStore;
 import org.metagene.genestrip.genbank.AssemblySummaryReader.AssemblyQuality;
 import org.metagene.genestrip.make.*;
 import org.metagene.genestrip.make.ConfigParamInfo.BooleanConfigParamInfo;
@@ -149,8 +150,7 @@ public enum GSConfigKey implements ConfigKey {
 	TEMP_BLOOM_FILTER_FPP("tempBloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.001d), true, GSGoalKey.TEMPINDEX),
 	@MDDescription("A scaling factor applied to the pre-computed *k*-mer count estimate (from the goal `fillsize`) to determine the allocated size of the *k*-mer store before filling it. "
 			+ "A value greater than `1.0` reserves more space than the estimate; a value less than `1.0` reserves less. "
-			+ "The default `1.0` uses the estimate as-is. Adjusting this value can be useful if the estimate from `fillsize` is slightly off, "
-			+ "e.g. because `useHLLForDBSizing` is `true`.")
+			+ "The default `1.0` uses the estimate as-is. Adjusting this value can be useful if the estimate from `fillsize` is slightly off.")
 	DB_RESIZING_FACTOR("dbResizingFactor", new DoubleConfigParamInfo(0, Double.MAX_VALUE, 1), GSGoalKey.DB),
 	@MDDescription("False positive probability (FPP) of the Bloom filter embedded in the filtering database (used by the goal `filter`). "
 			+ "A lower value reduces false positives during filtering at the cost of a larger filter.")
@@ -161,8 +161,14 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("False positive probability (FPP) of the Bloom filter embedded in the final matching database after the *k*-mer store has been sorted and optimized. "
 			+ "This is the filter used during matching when `useBloomFilterForMatch=true`.")
 	OPT_BLOOM_FILTER_FPP("optBloomFilterFpp", new DoubleConfigParamInfo(0, 1, BlockedKMerBloomFilter.DEFAULT_FPP), true, GSGoalKey.FILL_DB),
+	@MDDescription("If `true`, the database's *k*-mer store uses the radix-indexed `RadixKMerStore` instead of the default sorted-array store. "
+			+ "It is sized per radix bucket from the deduplicated per-bucket *k*-mer counts (see goal `tempindex`) and tends to be faster for lookups on large databases that exceed the CPU cache.")
+	USE_RADIX_STORE("useRadixStore", new BooleanConfigParamInfo(false), true, GSGoalKey.FILL_DB),
+	@MDDescription("Number of low *k*-mer bits used as the radix index of the `RadixKMerStore` (only relevant when `useRadixStore` is `true`). "
+			+ "The store has `2^radixStoreBits` buckets; more bits give smaller, more cache-friendly buckets at the cost of a larger radix table. "
+			+ "Must be at least `2*k - 48` so the remaining k-mer bits still fit in an entry.")
+	RADIX_STORE_BITS("radixStoreBits", new IntConfigParamInfo(RadixKMerStore.MIN_RADIX_BITS, 24, RadixKMerStore.DEFAULT_RADIX_BITS), true, GSGoalKey.TEMPINDEX, GSGoalKey.FILL_DB),
 	XOR_BLOOM_HASH("xorBloomHash", new BooleanConfigParamInfo(true)),
-	USE_HLL_FOR_DB_SIZING("useHLLForDBSizing", new BooleanConfigParamInfo(false)),
 	FASTA_LINE_SIZE_BYTES("fastaLineSizeBytes", new IntConfigParamInfo(4096, 65536, 4096), true, GSGoalKey.DB),
 	@MDDescription("Perform database update regarding least common ancestors only based on genomes of tax ids as selected for the database generation (and not via all of a super-kingdom's RefSeq genomes).")
 	MIN_UPDATE("minUpdate", new BooleanConfigParamInfo(false), false, GSGoalKey.UPDATE_DB),
@@ -254,14 +260,6 @@ public enum GSConfigKey implements ConfigKey {
 	MIN_KMERS_FOR_CLASS("minKMersForClass", new IntConfigParamInfo(1, Integer.MAX_VALUE, 1)),
 	@MDDescription("If > 0, the corresponding number of frequencies of the most frequent *k*-mers per tax id will be reported.")
 	MAX_KMER_RES_COUNTS("maxKMerResCounts", new IntConfigParamInfo(0, 65536, 0), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
-	@MDDescription("If `true`, then an optimized version of the matcher with heavily inlined code is used.")
-	USE_INLINED("useInlined", new BooleanConfigParamInfo(false), true, GSGoalKey.MATCH, GSGoalKey.MATCHLR),
-	@MDDescription("If `true`, then the *k*-mer store uses a radix-guided search instead of binary search for *k*-mer lookups during matching / filtering. "
-			+ "It tends to be somewhat faster than binary search for large *k*-mer stores that do not fit into the CPU cache, and can be combined with `useInlined`.")
-	USE_RADIX_SEARCH("useRadixSearch", new BooleanConfigParamInfo(false), true, GSGoalKey.MATCH, GSGoalKey.MATCHLR),
-	@MDDescription("The radix width (number of *k*-mer bits consumed per step) used by the radix search when `useRadixSearch` is `true`. "
-			+ "Each step splits the current search interval into `2^radixSearchBits` buckets, so larger values do fewer but individually pricier steps. Only relevant if `useRadixSearch` is `true`.")
-	RADIX_SEARCH_BITS("radixSearchBits", new IntConfigParamInfo(1, 16, 8), true, GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 	THREAD_QUEUE_SIZE("threadQueueSize", new IntConfigParamInfo(1, 10000, 1000), true),
 	INITIAL_READ_SIZE_BYTES("initialReadSizeBytes", new IntConfigParamInfo(256, 65536, 4096), true),
 	MAX_CLASSIFICATION_PATHS("maxClassificationPaths", new IntConfigParamInfo(1, 128, 10), true),

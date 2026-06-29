@@ -28,7 +28,9 @@ import java.io.Serializable;
 
 public class KMerSortedArrayTest extends AbstractKMerStoreTest {
 	@Override
-	public <V extends Serializable> KMerStore<V> createKMerStore(Class<V> clazz, Object... params) {
-		return new KMerSortedArray<V>((int) params[0], 0.000001, 0.000001,null, false, true);
+	public <V extends Serializable> KMerStore<V> createKMerStore(Class<V> clazz, int k, long[] kmers) {
+		KMerSortedArray<V> store = new KMerSortedArray<V>(k, 0.000001, 0.000001, null, false, true);
+		store.initSize(kmers.length);
+		return store;
 	}
 }

@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import it.unimi.dsi.fastutil.BigArrays;
-import org.metagene.genestrip.store.KMerSortedArray.KMerSortedArrayVisitor;
+import org.metagene.genestrip.store.KMerStore.IndexedKMerStoreVisitor;
 import org.metagene.genestrip.util.LargeBitVector;
 import org.metagene.genestrip.util.LargeShortVector;
 
@@ -39,12 +39,12 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 	private static final int LOCKS = 512; // Must be a value in 2^n, n = 1,2,3,...
 	private static final int LOCKS_MASK = LOCKS - 1;
 
-	private final KMerSortedArray<String> store;
+	private final KMerStore<String> store;
 	private final LargeBitVector bitVector;
 	private final LargeShortVector countsVector;
 	private final Object[] locks;
 
-	public KMerUniqueCounterBits(KMerSortedArray<String> store, boolean withCounts) {
+	public KMerUniqueCounterBits(KMerStore<String> store, boolean withCounts) {
 		this.store = store;
 		bitVector = new LargeBitVector(store.getEntries());
 		countsVector = withCounts ? new LargeShortVector(store.getEntries()) : null;
@@ -122,9 +122,9 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 	public Object2LongMap<String> getUniqueKmerCounts() {
 		Object2LongMap<String> res = new Object2LongLinkedOpenHashMap<String>();
 		long[] valueCounter = new long[store.getNValues()];
-		store.visit(new KMerSortedArrayVisitor<String>() {
+		store.visit(new IndexedKMerStoreVisitor<String>() {
 			@Override
-			public void nextValue(KMerSortedArray<String> trie, long kmer, int index, long i) {
+			public void nextValue(KMerStore<String> trie, long kmer, int index, long i) {
 				if (bitVector.get(i)) {
 					valueCounter[index]++;
 				}
@@ -144,9 +144,9 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 		res.put(null, totalMaxCounts);
 		
 		
-		store.visit(new KMerSortedArrayVisitor<String>() {
+		store.visit(new IndexedKMerStoreVisitor<String>() {
 			@Override
-			public void nextValue(KMerSortedArray<String> trie, long kmer, int index, long i) {
+			public void nextValue(KMerStore<String> trie, long kmer, int index, long i) {
 				if (bitVector.get(i)) {
 					String taxid = store.getValueForIndex(index);
 					if (taxid != null) {						
@@ -185,9 +185,9 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 			return 0;
 		}
 		int[] count = new int[1];
-		store.visit(new KMerSortedArrayVisitor<String>() {
+		store.visit(new IndexedKMerStoreVisitor<String>() {
 			@Override
-			public void nextValue(KMerSortedArray<String> trie, long kmer, int index, long i) {
+			public void nextValue(KMerStore<String> trie, long kmer, int index, long i) {
 				if (index == sindex && bitVector.get(i)) {
 					count[0]++;
 				}
@@ -202,9 +202,9 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 		if (sindex < 0) {
 			return;
 		}
-		store.visit(new KMerSortedArrayVisitor<String>() {
+		store.visit(new IndexedKMerStoreVisitor<String>() {
 			@Override
-			public void nextValue(KMerSortedArray<String> trie, long kmer, int index, long i) {
+			public void nextValue(KMerStore<String> trie, long kmer, int index, long i) {
 				if (index == sindex && bitVector.get(i)) {
 					updateMaxCounts(countsVector.get(i), target);
 				}

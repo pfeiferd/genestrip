@@ -269,22 +269,13 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
 
         // Create database and bloom filter
 
-        ObjectGoal<Long, P> fillSizeGoal;
-        // HyperLogLog for sizing is experimental:
-        if (project.booleanConfigValue(GSConfigKey.USE_HLL_FOR_DB_SIZING)) {
-            fillSizeGoal = new FastFillSizeGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal,
-                    additionalFastasGoal, accessionMapGoal);
-            registerGoal(fillSizeGoal);
-        } else {
-            ObjectGoal<Long, P> basicSizeGoal = new FillSizeGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal,
-                    additionalFastasGoal, accessionMapGoal);
-            registerGoal(basicSizeGoal);
+        ObjectGoal<Long, P> basicSizeGoal = new FillSizeGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal,
+                additionalFastasGoal, accessionMapGoal);
+        registerGoal(basicSizeGoal);
 
-            ObjectGoal<Long, P> fillBloomGoal = new FillBloomFilterGoal(project, getExecutionContext(project), categoriesGoal,
-                    taxNodesGoal, refSeqFnaFilesGoal, additionalFastasGoal, accessionMapGoal, basicSizeGoal);
-            registerGoal(fillBloomGoal);
-            fillSizeGoal = fillBloomGoal;
-        }
+        ObjectGoal<FillBloomFilterGoal.DBSize, P> fillSizeGoal = new FillBloomFilterGoal(project, getExecutionContext(project), categoriesGoal,
+                taxNodesGoal, refSeqFnaFilesGoal, additionalFastasGoal, accessionMapGoal, basicSizeGoal);
+        registerGoal(fillSizeGoal);
 
         FillDBGoal<P> fillDBGoal = new FillDBGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, taxTreeGoal, refSeqFnaFilesGoal,
                 additionalFastasGoal, accessionMapGoal, fillSizeGoal, projectSetupGoal);

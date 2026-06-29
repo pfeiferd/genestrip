@@ -34,11 +34,11 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.match.FastqKMerMatcher;
-import org.metagene.genestrip.match.InlinedFastqKMerMatcher;
 import org.metagene.genestrip.match.MatchingResult;
 import org.metagene.genestrip.store.Database;
-import org.metagene.genestrip.store.KMerSortedArray;
+import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
+import org.metagene.genestrip.store.TunableKMerStore;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
@@ -92,12 +92,13 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 				if (matcher == null) {
 					database = storeGoal.get();
 					SmallTaxTree taxTree = database.getTaxTree();
-					KMerSortedArray<SmallTaxIdNode> store = database.convertKMerStore();
+					KMerStore<SmallTaxIdNode> store = database.convertKMerStore();
 
-					store.setUseFilter(booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH));
-					// Select the k-mer store's lookup strategy (radix-guided vs. binary search).
-					store.setRadixSearch(booleanConfigValue(GSConfigKey.USE_RADIX_SEARCH));
-					store.setRadixBits(intConfigValue(GSConfigKey.RADIX_SEARCH_BITS));
+					// The pre-filter is optional (see TunableKMerStore); apply it only when supported.
+					if (store instanceof TunableKMerStore) {
+						((TunableKMerStore<SmallTaxIdNode>) store)
+								.setUseFilter(booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH));
+					}
 
 					matcher = createMatcher(store,
 							(booleanConfigValue(GSConfigKey.CLASSIFY_READS) && !GSGoalKey.MATCHRESLR.equals(getKey()))
@@ -138,47 +139,26 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 		}
 	}
 
-	protected FastqKMerMatcher createMatcher(KMerSortedArray<SmallTaxIdNode> store, SmallTaxTree taxTree,
+	protected FastqKMerMatcher createMatcher(KMerStore<SmallTaxIdNode> store, SmallTaxTree taxTree,
 			ExecutionContext bundle, boolean withProbs, String dbMD5) {
-		if (booleanConfigValue(GSConfigKey.USE_INLINED)) {
-			return new InlinedFastqKMerMatcher(store, intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
-					intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, withProbs, intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS),
-					taxTree, intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS),
-					doubleConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT),
-					doubleConfigValue(GSConfigKey.MAX_READ_CLASS_ERROR_COUNT),
-					booleanConfigValue(GSConfigKey.WRITE_ALL),
-					intConfigValue(GSConfigKey.MIN_KMERS_FOR_CLASS),
-					dbMD5) {
-				@Override
-				protected boolean isProgressBar() {
-					return booleanConfigValue(GSConfigKey.PROGRESS_BAR);
-				}
+		return new FastqKMerMatcher(store, intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
+				intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, withProbs, intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS),
+				taxTree, intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS),
+				doubleConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT),
+				doubleConfigValue(GSConfigKey.MAX_READ_CLASS_ERROR_COUNT),
+				booleanConfigValue(GSConfigKey.WRITE_ALL),
+				intConfigValue(GSConfigKey.MIN_KMERS_FOR_CLASS),
+				dbMD5) {
+			@Override
+			protected boolean isProgressBar() {
+				return booleanConfigValue(GSConfigKey.PROGRESS_BAR);
+			}
 
-				@Override
-				protected String getProgressBarTaskName() {
-					return getKey().getName();
-				}			};
-		}
-		else {
-			return new FastqKMerMatcher(store, intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
-					intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, withProbs, intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS),
-					taxTree, intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS),
-					doubleConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT),
-					doubleConfigValue(GSConfigKey.MAX_READ_CLASS_ERROR_COUNT),
-					booleanConfigValue(GSConfigKey.WRITE_ALL),
-					intConfigValue(GSConfigKey.MIN_KMERS_FOR_CLASS),
-					dbMD5) {
-				@Override
-				protected boolean isProgressBar() {
-					return booleanConfigValue(GSConfigKey.PROGRESS_BAR);
-				}
-
-				@Override
-				protected String getProgressBarTaskName() {
-					return getKey().getName();
-				}
-			};
-		}
+			@Override
+			protected String getProgressBarTaskName() {
+				return getKey().getName();
+			}
+		};
 	}
 
 	public void setAfterMatchCallback(AfterMatchCallback afterMatchCallback) {

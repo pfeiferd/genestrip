@@ -26,6 +26,7 @@ package org.metagene.genestrip.match;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
 import org.junit.Test;
@@ -34,8 +35,10 @@ import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.match.FastqKMerMatcher.MatcherReadEntry;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.KMerSortedArray;
-import org.metagene.genestrip.store.KMerSortedArray.ValueConverter;
+import org.metagene.genestrip.store.KMerStore;
+import org.metagene.genestrip.store.KMerStore.ValueConverter;
 import org.metagene.genestrip.store.KMerUniqueCounterBits;
+import org.metagene.genestrip.store.RadixKMerStore;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.tax.TaxTree;
@@ -50,36 +53,59 @@ public class FastqKMerMatcherTest {
 
 	private final Random random = new Random(42);
 
-	@Test
-	public void testMatchRead() {
-		testMatchReadHelp(true,false, false, false);
-		testMatchReadHelp(false,false, false, false);
-		testMatchReadHelp(true,false, true, false);
-		testMatchReadHelp(false,false, true, false);
-		testMatchReadHelp(true,false, false, true);
-		testMatchReadHelp(false,false, false, true);
-		testMatchReadHelp(true,false, true, true);
-		testMatchReadHelp(false,false, true, true);
+	// The KMerStore implementations the matcher is tested against (via the common KMerStore interface).
+	private enum StoreType {
+		SORTED_SMALL, SORTED_LARGE, RADIX
 	}
 
-	protected void testMatchReadHelp(boolean inlined, boolean bitMap, boolean large, boolean optimize) {
+	// Creates an empty KMerStore<String> of the given type, sized to hold exactly the given distinct
+	// k-mers, with the taxid values pre-registered.
+	private KMerStore<String> newStore(StoreType type, int k, long[] distinctKmers, List<String> initialValues) {
+		switch (type) {
+		case SORTED_SMALL:
+		case SORTED_LARGE: {
+			KMerSortedArray<String> store = new KMerSortedArray<>(k, 0.0001, 0.0001, initialValues,
+					type == StoreType.SORTED_LARGE, true);
+			store.initSize(distinctKmers.length);
+			return store;
+		}
+		case RADIX: {
+			int radixBits = RadixKMerStore.DEFAULT_RADIX_BITS;
+			int[] bucketSizes = new int[1 << radixBits];
+			for (long kmer : distinctKmers) {
+				bucketSizes[RadixKMerStore.radixOf(kmer, radixBits)]++;
+			}
+			return new RadixKMerStore<>(k, radixBits, bucketSizes, 0.0001, 0.0001, initialValues, true);
+		}
+		default:
+			throw new IllegalArgumentException("Unknown store type: " + type);
+		}
+	}
+
+	@Test
+	public void testMatchRead() {
+		// Exercise the matcher against every KMerStore implementation, optimized and not.
+		for (StoreType type : StoreType.values()) {
+			testMatchReadHelp(type, false);
+			testMatchReadHelp(type, true);
+		}
+	}
+
+	protected void testMatchReadHelp(StoreType type, boolean optimize) {
 		int readLength = 500;
 		int entries = 2000;
 
-		// Three k-mers in the DB: CC, AA and AG which correspond to the reverse complements GG, TT, CT.
-		KMerSortedArray<String> store = new KMerSortedArray<>(2, 0.0001, 0.0001, Arrays.asList(TAXIDS), large, true);
-		store.initSize(3);
-		byte[] read = new byte[] { 'C', 'C' };
-		store.put(read, 0, TAXIDS[0]);
-		read[0] = 'G';
-		read[1] = 'G';
-		assertFalse(store.put(read, 0, TAXIDS[1]));
-		read[0] = 'T';
-		read[1] = 'T';
-		assertTrue(store.put(read, 0, TAXIDS[1]));
-		read[0] = 'A';
-		read[1] = 'G';
-		store.put(read, 0, TAXIDS[2]);
+		// Three k-mers in the DB: CC, TT and AG which correspond to the reverse complements GG, AA, CT.
+		long ccKmer = CGAT.kMerToLong(new byte[] { 'C', 'C' }, 0, 2, null);
+		long ggKmer = CGAT.kMerToLong(new byte[] { 'G', 'G' }, 0, 2, null); // canonicalises to CC
+		long ttKmer = CGAT.kMerToLong(new byte[] { 'T', 'T' }, 0, 2, null);
+		long agKmer = CGAT.kMerToLong(new byte[] { 'A', 'G' }, 0, 2, null);
+
+		KMerStore<String> store = newStore(type, 2, new long[] { ccKmer, ttKmer, agKmer }, Arrays.asList(TAXIDS));
+		store.putLong(ccKmer, TAXIDS[0]);
+		assertFalse(store.putLong(ggKmer, TAXIDS[1])); // GG is the reverse complement of CC -> duplicate
+		assertTrue(store.putLong(ttKmer, TAXIDS[1]));
+		store.putLong(agKmer, TAXIDS[2]);
 
 		if (optimize) {
 			store.optimize();
@@ -87,9 +113,7 @@ public class FastqKMerMatcherTest {
 
 		ExecutionContext bundle = new DefaultExecutionContext(null, 0, 1000);
 
-		FastqKMerMatcher matcher = inlined ?
-				new MyInlinedFastqMatcher(store, readLength * 10, 1, bundle) :
-				new MyFastqMatcher(store, readLength * 10, 1, bundle);
+		FastqKMerMatcher matcher = new MyFastqMatcher(store, readLength * 10, 1, bundle);
 		KMerUniqueCounterBits uniqueCounter = new KMerUniqueCounterBits(store, true);
 
 		MatcherReadEntry entry = new MatcherReadEntry(2000, true, 4);
@@ -115,7 +139,7 @@ public class FastqKMerMatcherTest {
 
 			int t = -1;
 			int lastT = -1;
-			read = entry.read;
+			byte[] read = entry.read;
 			for (int j = 0; j < readLength; j++) {
 				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
 				if (j > 0) {
@@ -185,17 +209,12 @@ public class FastqKMerMatcherTest {
 
 	@Test
 	public void testReadClassification() {
-		testReadClassificationHelp(true, true, true);
-		testReadClassificationHelp(false, true, true);
-		testReadClassificationHelp(true, false, true);
-		testReadClassificationHelp(false, false, true);
-		testReadClassificationHelp(true, true, false);
-		testReadClassificationHelp(false, true, false);
-		testReadClassificationHelp(true, false, false);
-		testReadClassificationHelp(false, false, false);
+		for (StoreType type : StoreType.values()) {
+			testReadClassificationHelp(type);
+		}
 	}
 
-	public void testReadClassificationHelp(boolean inlined, boolean large, boolean optimize) {
+	public void testReadClassificationHelp(StoreType type) {
 		ClassLoader classLoader = getClass().getClassLoader();
 		File treePath = new File(classLoader.getResource("taxtree").getFile());
 		TaxTree tree = new TaxTree(treePath, false);
@@ -204,22 +223,21 @@ public class FastqKMerMatcherTest {
 		}
 		SmallTaxTree smallTree = tree.toSmallTaxTree();
 
-		KMerSortedArray<String> store = new KMerSortedArray<>(2, 0.0001, 0.0001, Arrays.asList(TAXIDS), large, true);
-		store.initSize(3);
-		byte[] read = new byte[] { 'C', 'C' };
-		store.put(read, 0, TAXIDS[0]);
-		read[0] = 'C';
-		read[1] = 'T';
-		assertTrue(store.put(read, 0, TAXIDS[1]));
-		read[0] = 'C';
-		read[1] = 'G';
-		store.put(read, 0, TAXIDS[2]);
+		// Three k-mers in the DB: CC, CT and CG which correspond to the reverse complements GG, AG, CG.
+		long ccKmer = CGAT.kMerToLong(new byte[] { 'C', 'C' }, 0, 2, null);
+		long ctKmer = CGAT.kMerToLong(new byte[] { 'C', 'T' }, 0, 2, null);
+		long cgKmer = CGAT.kMerToLong(new byte[] { 'C', 'G' }, 0, 2, null);
+
+		KMerStore<String> store = newStore(type, 2, new long[] { ccKmer, ctKmer, cgKmer }, Arrays.asList(TAXIDS));
+		store.putLong(ccKmer, TAXIDS[0]);
+		assertTrue(store.putLong(ctKmer, TAXIDS[1]));
+		store.putLong(cgKmer, TAXIDS[2]);
 
 		Database db = new Database(store, smallTree, null);
 		db.initStoreIndices();
 
 		ExecutionContext bundle = new DefaultExecutionContext(null, 0, 1000);
-		FastqKMerMatcher matcher = createMatcher2(inlined, db.convertKMerStore(), bundle, smallTree, 0);
+		FastqKMerMatcher matcher = createMatcher2(db.convertKMerStore(), bundle, smallTree, 0);
 		matcher.initStats();
 
 		MatcherReadEntry entry = new MatcherReadEntry(10, true, 4);
@@ -288,14 +306,9 @@ public class FastqKMerMatcherTest {
 		assertEquals("2", entry.classNode.getTaxId());
 	}
 
-	private FastqKMerMatcher createMatcher2(boolean inlined, KMerSortedArray<SmallTaxIdNode> kmerStore, ExecutionContext bundle, SmallTaxTree tree,
+	private FastqKMerMatcher createMatcher2(KMerStore<SmallTaxIdNode> kmerStore, ExecutionContext bundle, SmallTaxTree tree,
 											double error) {
-		if (inlined) {
-			return new InlinedFastqKMerMatcher (kmerStore, 1024, 100, bundle, false, 10, tree, 4, error, -1, true, 1, null);
-		}
-		else {
-			return new FastqKMerMatcher (kmerStore, 1024, 100, bundle, false, 10, tree, 4, error, -1, true, 1, null);
-		}
+		return new FastqKMerMatcher (kmerStore, 1024, 100, bundle, false, 10, tree, 4, error, -1, true, 1, null);
 	}
 
 	private void fillInRead(String cgat, MatcherReadEntry entry) {
@@ -323,34 +336,11 @@ public class FastqKMerMatcherTest {
 	}
 
 	protected static class MyFastqMatcher extends FastqKMerMatcher implements GetStats {
-		private final KMerSortedArray<String> orgKmerStore;
+		private final KMerStore<String> orgKmerStore;
 
-		public MyFastqMatcher(KMerSortedArray<String> kmerStore, int initialReadSize, int maxQueueSize,
+		public MyFastqMatcher(final KMerStore<String> kmerStore, int initialReadSize, int maxQueueSize,
 				ExecutionContext bundle) {
-			super(new KMerSortedArray<>(kmerStore, new ValueConverter<String, SmallTaxIdNode>() {
-				@Override
-				public SmallTaxIdNode convertValue(String value) {
-					SmallTaxIdNode node = new SmallTaxIdNode(value, null, null);
-					node.setStoreIndex(kmerStore.getIndexForValue(value));
-					return node;
-				}
-			}), initialReadSize, maxQueueSize, bundle, false, 10, null, 4, 0, 0, true, 1, null);
-			orgKmerStore = kmerStore;
-			out = System.out;
-		}
-
-		@Override
-		public CountsPerTaxid getStats(String taxid) {
-			return statsIndex[orgKmerStore.getIndexForValue(taxid)];
-		}
-	}
-
-	protected static class MyInlinedFastqMatcher extends InlinedFastqKMerMatcher implements GetStats {
-		private final KMerSortedArray<String> orgKmerStore;
-
-		public MyInlinedFastqMatcher(KMerSortedArray<String> kmerStore, int initialReadSize, int maxQueueSize,
-							  ExecutionContext bundle) {
-			super(new KMerSortedArray<>(kmerStore, new ValueConverter<String, SmallTaxIdNode>() {
+			super(kmerStore.convertValues(new ValueConverter<String, SmallTaxIdNode>() {
 				@Override
 				public SmallTaxIdNode convertValue(String value) {
 					SmallTaxIdNode node = new SmallTaxIdNode(value, null, null);
@@ -369,15 +359,8 @@ public class FastqKMerMatcherTest {
 	}
 
 	protected static class MyFastqMatcher2 extends FastqKMerMatcher {
-		public MyFastqMatcher2(KMerSortedArray<SmallTaxIdNode> kmerStore, ExecutionContext bundle, SmallTaxTree tree,
+		public MyFastqMatcher2(KMerStore<SmallTaxIdNode> kmerStore, ExecutionContext bundle, SmallTaxTree tree,
 				double error) {
-			super(kmerStore, 1024, 100, bundle, false, 10, tree, 4, error, -1, true, 1, null);
-		}
-	}
-
-	protected static class MyInlinedFastqMatcher2 extends InlinedFastqKMerMatcher {
-		public MyInlinedFastqMatcher2(KMerSortedArray<SmallTaxIdNode> kmerStore, ExecutionContext bundle, SmallTaxTree tree,
-							   double error) {
 			super(kmerStore, 1024, 100, bundle, false, 10, tree, 4, error, -1, true, 1, null);
 		}
 	}

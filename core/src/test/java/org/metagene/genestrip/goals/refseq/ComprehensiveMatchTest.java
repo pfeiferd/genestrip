@@ -98,7 +98,6 @@ public class ComprehensiveMatchTest extends DBGoalTest {
                 // Single threaded here so that results are in deterministic order for comparison:
                 project.initConfigParam(GSConfigKey.THREADS, 0);
                 project.initConfigParam(GSConfigKey.WRITE_KRAKEN_STYLE_OUT, true);
-                project.initConfigParam(GSConfigKey.USE_INLINED, i == 0);
                 project.initConfigParam(GSConfigKey.MAX_CLASSIFICATION_PATHS, 20);
                 maker = new GSMaker(project);
                 maker.match(false, "test" + j + "_" + i, file);

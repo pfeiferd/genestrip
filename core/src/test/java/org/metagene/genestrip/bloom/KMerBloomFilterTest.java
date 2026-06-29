@@ -31,8 +31,6 @@ import java.util.List;
 import java.util.Random;
 
 import org.junit.Test;
-import org.metagene.genestrip.store.KMerTrie;
-import org.metagene.genestrip.store.KMerTrie.KMerTrieVisitor;
 import org.metagene.genestrip.util.CGAT;
 
 public class KMerBloomFilterTest {
@@ -90,33 +88,31 @@ public class KMerBloomFilterTest {
 	}
 
 	@Test
-	public void testPutGetViaTrie() {
+	public void testPutGetEnumeratingStoredKMers() {
 		KMerProbFilter filter = createFilter(size, fpp);
-		KMerTrie<Integer> trie = new KMerTrie<Integer>(2, k, false);
 
-		byte[] read = new byte[trie.getK()];
+		byte[] read = new byte[k];
+		byte[] reverseRead = new byte[k];
+		List<byte[]> reads = new ArrayList<byte[]>();
 
 		for (int i = 1; i < size; i++) {
 			for (int j = 0; j < k; j++) {
 				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
 			}
 			filter.putLong(CGAT.kMerToLong(read, 0, k, null));
-			trie.put(read, 0, i, false);
+			reads.add(read.clone());
 		}
 
-		trie.visit(new KMerTrieVisitor<Integer>() {
-			@Override
-			public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
-				assertTrue(contains(filter, kmer, 0, null));
+		// Every stored k-mer must be in the filter, in both orientations (their canonical form is
+		// the same). This used to enumerate the stored k-mers via a KMerTrie; a plain list of the
+		// inserted k-mers serves the same purpose.
+		for (byte[] r : reads) {
+			assertTrue(contains(filter, r, 0, null));
+			for (int j = 0; j < k; j++) {
+				reverseRead[k - j - 1] = CGAT.toComplement(r[j]);
 			}
-		}, false);
-
-		trie.visit(new KMerTrieVisitor<Integer>() {
-			@Override
-			public void nextValue(KMerTrie<Integer> trie, byte[] kmer, Integer value) {
-				assertTrue(contains(filter, kmer, 0, null));
-			}
-		}, true);
+			assertTrue(contains(filter, reverseRead, 0, null));
+		}
 
 		int err = 0;
 		for (int i = 1; i < size; i++) {
