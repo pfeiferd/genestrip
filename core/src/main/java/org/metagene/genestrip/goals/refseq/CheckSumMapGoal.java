@@ -54,9 +54,18 @@ public class CheckSumMapGoal<P extends GSProject> extends ObjectGoal<Map<String,
 			Map<String, String> map = new HashMap<String, String>();
 			int len;
 			while ((len = lineReader.nextLine(target)) > 0) {
-				int tab = ByteArrayUtil.indexOf(target, 0, len, '\t');
+				// Trim trailing line terminator(s) ('\n', or '\r\n' for CRLF / a final line without
+				// one). Cap at target.length since nextLine returns length+1 when a line overflows.
+				int end = Math.min(len, target.length);
+				while (end > 0 && (target[end - 1] == '\n' || target[end - 1] == '\r')) {
+					end--;
+				}
+				int tab = ByteArrayUtil.indexOf(target, 0, end, '\t');
+				if (tab < 0) {
+					continue; // skip malformed lines without a tab
+				}
 				String md5 = new String(target, 0, tab);
-				String file = new String(target, tab + 1, len - tab - 2);
+				String file = new String(target, tab + 1, end - tab - 1);
 				map.put(file, md5);
 			}
 			set(map);

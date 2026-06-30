@@ -41,6 +41,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal<T, P> {
     protected final ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal;
@@ -50,8 +51,9 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
 
     private final ExecutionContext bundle;
 
-    private boolean dump;
-    private int doneCounter;
+    // volatile / atomic: written by dump() and the consumer threads, read by the producer's spin loop.
+    private volatile boolean dump;
+    private final AtomicInteger doneCounter = new AtomicInteger();
     private ProgressBar progressBar;
 
     public FastaReaderGoal(P project, GoalKey key, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
@@ -85,7 +87,7 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
         Map<File, TaxTree.TaxIdNode> additionalMap = additionalGoal == null ? null : additionalGoal.get();
         sumFiles += additionalMap == null ? 0 : additionalMap.size();
         try (ProgressBar pb = (progressBar = createProgressBar(sumFiles))) {
-            doneCounter = 0;
+            doneCounter.set(0);
             for (File fnaFile : refSeqFiles) {
                 RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
                 if (categoriesGoal.get().contains(cat)) {
@@ -93,7 +95,7 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
                         fastaReader.readFasta(fnaFile);
                     } else {
                         try {
-                            doneCounter++;
+                            doneCounter.incrementAndGet();
                             blockingQueue.put(new DBGoal.FileAndNode(fnaFile, null));
                         } catch (InterruptedException e) {
                             throw new RuntimeException(e);
@@ -109,7 +111,7 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
                         fastaReader.readFasta(additionalFasta);
                     } else {
                         try {
-                            doneCounter++;
+                            doneCounter.incrementAndGet();
                             blockingQueue.put(new DBGoal.FileAndNode(additionalFasta, additionalMap.get(additionalFasta)));
                         } catch (InterruptedException e) {
                             throw new RuntimeException(e);
@@ -119,7 +121,7 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
                 }
             }
             // Gentle polling and waiting until all consumers are done.
-            while (doneCounter > 0 && !dump) {
+            while (doneCounter.get() > 0 && !dump) {
                 checkAndLogConsumerThreadProblem();
                 try {
                     Thread.sleep(100);
@@ -180,7 +182,7 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
                                 progressBar.step();
                             }
                         } finally {
-                            doneCounter--;
+                            doneCounter.decrementAndGet();
                         }
                     } catch (IOException e) {
                         throw new RuntimeException(e);

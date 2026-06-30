@@ -148,7 +148,7 @@ public abstract class Main<P extends GSProject> {
                 .build();
         options.addOption(fastqs);
 
-        Option key = Option.builder("k").hasArgs().argName("key")
+        Option key = Option.builder("k").hasArg().argName("key")
                 .desc("Key used as a prefix for naming result files in conjuntion with '-f'.").build();
         options.addOption(key);
 
