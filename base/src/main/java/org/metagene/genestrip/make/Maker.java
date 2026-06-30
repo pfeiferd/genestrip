@@ -119,7 +119,7 @@ public abstract class Maker<P extends Project> {
 			}
 		}
 		else {
-			createInternalGoal(keys).make();
+			runInternal(g -> g.make(), keys);
 		}
 	}
 
@@ -130,19 +130,38 @@ public abstract class Maker<P extends Project> {
 			public boolean isMade() {
 				return false;
 			}
+
+			// This internal goal is created fresh for every make()/clean() call; dropping it from
+			// its dependencies' dependent lists on dump() prevents those long-lived goals from
+			// accumulating dead dependents. (Registered goals' dump() stays a no-op, so Maker.dump()
+			// does not disturb the real inter-goal dependency edges.)
+			@Override
+			public void dump() {
+				detachFromDependencies();
+			}
 		};
 	}
 
+	// Runs the action on a fresh internal goal and always detaches it afterwards (via dump()).
+	private void runInternal(java.util.function.Consumer<Goal<P>> action, GoalKey... keys) {
+		Goal<P> internalGoal = createInternalGoal(keys);
+		try {
+			action.accept(internalGoal);
+		} finally {
+			internalGoal.dump();
+		}
+	}
+
 	public void cleanAll(GoalKey... keys) {
-		createInternalGoal(keys).clean();
+		runInternal(g -> g.clean(), keys);
 	}
-	
+
 	public void cleanTotal(GoalKey... keys) {
-		createInternalGoal(keys).clean(true);
+		runInternal(g -> g.clean(true), keys);
 	}
-	
+
 	public void clean(GoalKey... keys) {
-		createInternalGoal(keys).cleanThis();
+		runInternal(g -> g.cleanThis(), keys);
 	}
 	
 	public GoalKey getDefaultGoalKey() {

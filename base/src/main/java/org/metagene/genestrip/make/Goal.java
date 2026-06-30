@@ -60,6 +60,21 @@ public abstract class Goal<P extends Project> {
 		dependents.add(goal);
 	}
 
+	private void removeDependent(Goal<P> goal) {
+		dependents.remove(goal);
+	}
+
+	// Reverses the dependent registration done in the constructor. Intended for short-lived goals
+	// (e.g. Maker's internal goals): detaching them keeps the dependent lists of long-lived shared
+	// goals from growing across repeated make()/clean() calls and lets the transient goal be GC'd.
+	protected void detachFromDependencies() {
+		for (Goal<P> dep : dependencies) {
+			if (dep != null) {
+				dep.removeDependent(this);
+			}
+		}
+	}
+
 	public boolean hasTransDependencyFor(Goal<P> candidate) {
 		for (Goal<P> dep : dependencies) {
 			if (dep != null) {
