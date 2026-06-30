@@ -281,7 +281,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
 
         // Unweighted
         public double getAvgRecall() {
-            if (aggPrecisionSum == 0) {
+            if (aggRecallSum == 0) {
                 return getRecall();
             }
             else {

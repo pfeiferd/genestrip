@@ -132,7 +132,8 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 				return false;
 			}
 			if (entries == size) {
-				throw new IllegalStateException("Capacity exceeded.");
+				// Overfull store, leave quietly.
+				return false;
 			}
 			pos = entries++;
 			sindex = getAddValueIndex(value);

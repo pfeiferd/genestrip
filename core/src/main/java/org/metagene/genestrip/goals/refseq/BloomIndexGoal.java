@@ -61,7 +61,7 @@ public class BloomIndexGoal<P extends GSProject> extends ObjectGoal<KMerProbFilt
 				String taxid = store.getValueForIndex(index);
 				if (taxid != null) {
 					SmallTaxIdNode node = taxTree.getNodeByTaxId(taxid);
-					if (node.isRequested()) {
+					if (node != null && node.isRequested()) {
 						counter[0]++;
 					}
 				}
@@ -89,7 +89,7 @@ public class BloomIndexGoal<P extends GSProject> extends ObjectGoal<KMerProbFilt
 				String taxid = store.getValueForIndex(index);
 				if (taxid != null) {
 					SmallTaxIdNode node = taxTree.getNodeByTaxId(taxid);
-					if (node.isRequested()) {
+					if (node != null && node.isRequested()) {
 						filter.putLong(kmer);
 					}
 				}

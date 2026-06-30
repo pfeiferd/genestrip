@@ -37,7 +37,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 public class StreamProvider {
-	public static final int DEFAULT_BUFFER_SIZE = 8 * 4069;
+	public static final int DEFAULT_BUFFER_SIZE = 8 * 4096;
 
 	private static int bufferSize = DEFAULT_BUFFER_SIZE;
 
@@ -111,8 +111,7 @@ public class StreamProvider {
 	}
 
 	public static long getUncompressedSize(File gzipFile) {
-		try {
-			InputStream stream = StreamProvider.getInputStreamForFile(gzipFile);
+		try (InputStream stream = StreamProvider.getInputStreamForFile(gzipFile)) {
 			long uSize;
 			for (uSize = 0; stream.read() != -1; uSize++)
 				;

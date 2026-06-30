@@ -105,8 +105,8 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 	}
 
 	// Made final for potential inlining by JVM
-	public final short sumCounts(SmallTaxIdNode node, final int index, final long initKey) {
-		short res = 0;
+	public final int sumCounts(SmallTaxIdNode node, final int index, final long initKey) {
+		int res = 0;
 		while (node != null) {
 			if (node.counts != null && node.countsInitKeys != null && node.countsInitKeys[index] == initKey) {
 				res += node.counts[index];
@@ -118,7 +118,7 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 
 	// Made final for potential inlining by JVM
 	public final SmallTaxIdNode lowestNodeWhereSumAboveThreshold(SmallTaxIdNode node, final int index, final long initKey, int threshold) {
-		short res = 0;
+		int res = 0;
 		while (node != null) {
 			if (node.counts != null && node.countsInitKeys != null && node.countsInitKeys[index] == initKey) {
 				res += node.counts[index];
@@ -259,7 +259,7 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		private boolean requested;
 
 		protected transient SmallTaxIdNode parent;
-		private transient short[] counts;
+		private transient int[] counts;
 		private transient long[] countsInitKeys;
 		// Made public for inlining
 		public transient int storeIndex;
@@ -414,7 +414,7 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 			if (counts == null || countsInitKeys == null) {
 				synchronized (this) {
 					if (counts == null) {
-						counts = new short[size];
+						counts = new int[size];
 						countsInitKeys = new long[size];
 					}
 				}

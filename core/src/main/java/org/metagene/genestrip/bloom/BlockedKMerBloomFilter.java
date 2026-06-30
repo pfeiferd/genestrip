@@ -142,7 +142,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
     // That's why we keep it simple and leave it as it is.
     protected final long reduce(final long v) {
         if (largeData == null) {
-            return (v < 0 ? -v : v) % buckets;
+            return Math.abs(v % buckets);
         } else {
             // Using optimization instead of '%', see:
             // http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/

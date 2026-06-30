@@ -273,7 +273,7 @@ public abstract class AbstractFastqReader {
             readStruct.readNo = reads;
 
             reads++;
-            if (readStruct.readSize > k) {
+            if (readStruct.readSize >= k) {
                 kMers += readStruct.readSize - k + 1;
             }
             readBPs += readStruct.readSize;

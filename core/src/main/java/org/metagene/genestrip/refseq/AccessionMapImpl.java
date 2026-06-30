@@ -64,11 +64,10 @@ public class AccessionMapImpl implements AccessionMap {
 		return values[pos];
 	}
 
-
 	public int getEntriesForNode(TaxIdNode node) {
 		int counter = 0;
 		for (TaxIdNode n : values) {
-			if (n != node && n == node) {
+			if (n == node) {
 				counter++;
 			}
 		}

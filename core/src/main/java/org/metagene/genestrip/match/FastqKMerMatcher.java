@@ -290,7 +290,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                     if (stats != null) {
                         synchronized (stats) {
                             stats.contigs++;
-                            stats.contigLenSquaredSum += contigLen * contigLen;
+                            stats.contigLenSquaredSum += ((long) contigLen) * contigLen;
                             if (contigLen > stats.maxContigLen) {
                                 stats.maxContigLen = contigLen;
                                 int j = 1;
@@ -356,7 +356,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             if (readTaxErrorCount != -1) {
                 int ties = 0;
                 for (int i = 0; i < entry.usedPaths; i++) {
-                    short sum = taxTree.sumCounts(entry.readTaxIdNode[i], index, entry.readNo);
+                    int sum = taxTree.sumCounts(entry.readTaxIdNode[i], index, entry.readNo);
                     if (sum > entry.counts[0]) {
                         entry.counts[0] = sum;
                         entry.readTaxIdNode[0] = entry.readTaxIdNode[i];
@@ -479,7 +479,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 
         public int usedPaths;
         public SmallTaxIdNode[] readTaxIdNode;
-        public short[] counts;
+        public int[] counts;
         public long[] indexPos;
         public SmallTaxIdNode classNode;
 
@@ -488,7 +488,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 
             buffer = null;
             readTaxIdNode = new SmallTaxIdNode[paths];
-            counts = new short[paths];
+            counts = new int[paths];
             indexPos = new long[1];
         }
 

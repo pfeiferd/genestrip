@@ -112,7 +112,7 @@ public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
 	}
 
 	protected long optimalNumOfBits(long n, double p) {
-		return (long) (-n * Math.log(p) / (Math.log(2) * Math.log(2)));
+		return Math.max(1L, (long) (-n * Math.log(p) / (Math.log(2) * Math.log(2))));
 	}
 
 	@Override
@@ -149,6 +149,6 @@ public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
 	protected abstract long hash(final long data, final int i);
 
 	protected long reduce(final long v) {
-		return (v < 0 ? -v : v) % bits;
+		return Math.abs(v % bits);
 	}
 }

@@ -53,8 +53,8 @@ public class CGAT {
 		CGAT_COMPLEMENT['A'] = 'T';
 		CGAT_COMPLEMENT['T'] = 'A';
 
-		CGAT_JUMP_TABLE = new int[Byte.MAX_VALUE];
-		CGAT_REVERSE_JUMP_TABLE = new int[Byte.MAX_VALUE];
+		CGAT_JUMP_TABLE = new int[Byte.MAX_VALUE + 1];
+		CGAT_REVERSE_JUMP_TABLE = new int[Byte.MAX_VALUE + 1];
 		for (int i = 0; i < CGAT_JUMP_TABLE.length; i++) {
 			CGAT_JUMP_TABLE[i] = -1;
 			CGAT_REVERSE_JUMP_TABLE[i] = -1;
