@@ -68,7 +68,7 @@ public class LargeShortVector implements Serializable {
 	public boolean ensureCapacity(long newSize, boolean enforceLarge) {
 		if (newSize > size) {
 			size = newSize;
-			if (size > MAX_SMALL_CAPACITY || enforceLarge) {
+			if (size > MAX_SMALL_CAPACITY || enforceLarge || largeShorts != null) {
 				if (shorts != null) {
 					largeShorts = BigArrays.wrap(shorts);
 				}

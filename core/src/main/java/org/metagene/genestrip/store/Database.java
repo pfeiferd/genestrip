@@ -164,27 +164,40 @@ public class Database implements Serializable {
 
     public static Database load(InputStream is, boolean withFilter) throws IOException, ClassNotFoundException {
         Properties configInfo = new Properties();
+        // The config entry (which holds the DB version/title) is stored AFTER the DB and index
+        // entries (it carries the MD5 of the already-written DB). So a class-incompatibility error
+        // while deserializing the DB or index is deferred until the loop has read the config -
+        // otherwise InvalidDatabaseClassException would report an empty config ("unknown" version).
+        InvalidClassException deferred = null;
         try {
             Database database = null;
             KMerProbFilter filter = null;
             try (ZipInputStream zis = new ZipInputStream(is)) {
                 for (ZipEntry zipEntry = zis.getNextEntry(); zipEntry != null; zipEntry = zis.getNextEntry()) {
                     String entryName = zipEntry.getName();
-                    // We want the version info as the first thing.
-                    // We assume it got stored as first thing and zip maintains this order in the
-                    // underlying zip file.
                     if (entryName.equals(CONFIG_INFO_FILE)) {
                         configInfo.load(zis);
                         zis.closeEntry();
-                    } else if (entryName.equals(DB_FILE) && database == null) {
+                    } else if (entryName.equals(DB_FILE) && database == null && deferred == null) {
                         ObjectInputStream oOut = new ObjectInputStream(zis);
-                        database = (Database) oOut.readObject();
+                        try {
+                            database = (Database) oOut.readObject();
+                        } catch (InvalidClassException e) {
+                            deferred = e;
+                        }
                         zis.closeEntry();
-                    } else if (entryName.equals(INDEX_FILE) && withFilter && filter == null) {
+                    } else if (entryName.equals(INDEX_FILE) && withFilter && filter == null && deferred == null) {
                         ObjectInputStream oOut = new ObjectInputStream(zis);
-                        filter = (KMerProbFilter) oOut.readObject();
+                        try {
+                            filter = (KMerProbFilter) oOut.readObject();
+                        } catch (InvalidClassException e) {
+                            deferred = e;
+                        }
                         zis.closeEntry();
                     }
+                }
+                if (deferred != null) {
+                    throw new InvalidDatabaseClassException(deferred.classname, deferred.getMessage(), configInfo, deferred);
                 }
                 database.setConfigInfo(configInfo);
                 database.initStoreIndices();

@@ -111,7 +111,7 @@ public class ByteArrayUtil {
 	}
 
 	public static boolean checkDigits(byte[] data, int start, int end) {
-		for (int i = start; i <= end; i++) {
+		for (int i = start; i < end; i++) {
 			if (data[i] < '0' || data[i] > '9') {
 				return false;
 			}
@@ -139,10 +139,15 @@ public class ByteArrayUtil {
 		}
 		if (value < 0) {
 			data[pos++] = '-';
+		} else {
+			// Extract digits in the negative range so Integer.MIN_VALUE (which has no positive
+			// counterpart) is handled correctly.
+			value = -value;
 		}
 		int start = pos;
 		while (value != 0) {
-			data[pos++] = (byte) ('0' + (value % 10));
+			// value is <= 0 here, so value % 10 is in [-9, 0] and '0' - (value % 10) is the digit.
+			data[pos++] = (byte) ('0' - (value % 10));
 			value /= 10;
 		}
 		// Reorder:

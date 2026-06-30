@@ -24,6 +24,8 @@
  */
 package org.metagene.genestrip.make;
 
+import java.util.Objects;
+
 public interface GoalKey {
 	public String getName();
 	public boolean isTransClean();
@@ -48,6 +50,25 @@ public interface GoalKey {
 		@Override
 		public String toString() {
 			return name;
+		}
+
+		// Identity by name so a DefaultGoalKey resolves the same goal in Maker.goalsByKey
+		// regardless of which instance is used. Only equal to other DefaultGoalKeys, never to the
+		// GSGoalKey enum constants that share the map.
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (!(obj instanceof DefaultGoalKey)) {
+				return false;
+			}
+			return Objects.equals(name, ((DefaultGoalKey) obj).name);
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hashCode(name);
 		}
 	}
 }

@@ -62,9 +62,11 @@ public class ByteCountingFileInputStream extends FileInputStream {
 	@Override
 	public int read(byte[] b) throws IOException {
 		int res = super.read(b);
-		bRead += res;
-		if (progressBar != null) {
-			progressBar.stepTo(bRead);
+		if (res > 0) {
+			bRead += res;
+			if (progressBar != null) {
+				progressBar.stepTo(bRead);
+			}
 		}
 		return res;
 	}
@@ -72,9 +74,11 @@ public class ByteCountingFileInputStream extends FileInputStream {
 	@Override
 	public int read(byte[] b, int off, int len) throws IOException {
 		int res = super.read(b, off, len);
-		bRead += res;
-		if (progressBar != null) {
-			progressBar.stepTo(bRead);
+		if (res > 0) {
+			bRead += res;
+			if (progressBar != null) {
+				progressBar.stepTo(bRead);
+			}
 		}
 		return res;
 	}

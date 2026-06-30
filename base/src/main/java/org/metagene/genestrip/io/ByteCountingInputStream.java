@@ -38,20 +38,29 @@ public class ByteCountingInputStream extends InputStream {
 
 	@Override
 	public int read() throws IOException {
-		bRead++;
-		return delegate.read();
+		int b = delegate.read();
+		if (b != -1) {
+			bRead++;
+		}
+		return b;
 	}
 
 	@Override
 	public int read(byte[] b) throws IOException {
-		bRead += b.length;
-		return delegate.read(b);
+		int n = delegate.read(b);
+		if (n > 0) {
+			bRead += n;
+		}
+		return n;
 	}
 
 	@Override
 	public int read(byte[] b, int off, int len) throws IOException {
-		bRead += len;
-		return delegate.read(b, off, len);
+		int n = delegate.read(b, off, len);
+		if (n > 0) {
+			bRead += n;
+		}
+		return n;
 	}
 
 	public long getBytesRead() {
@@ -87,6 +96,10 @@ public class ByteCountingInputStream extends InputStream {
 
 	@Override
 	public long skip(long n) throws IOException {
-		return delegate.skip(n);
+		long skipped = delegate.skip(n);
+		if (skipped > 0) {
+			bRead += skipped;
+		}
+		return skipped;
 	}
 }
