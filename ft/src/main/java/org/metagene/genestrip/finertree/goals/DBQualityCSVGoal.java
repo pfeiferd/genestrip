@@ -23,6 +23,7 @@
  * 
  */
 package org.metagene.genestrip.finertree.goals;
+import java.nio.charset.StandardCharsets;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.finertree.FTGoalKey;
@@ -62,7 +63,7 @@ public class DBQualityCSVGoal<P extends FTProject> extends FileGoal<P> {
         Map<String, DBQualityCountsGoal.Counts> kmersPerTax = kmersPerTaxGoal.get();
         SmallTaxTree tree = storeGoal.get().getTaxTree();
 
-        try (PrintStream ps = new PrintStream(file)) {
+        try (PrintStream ps = new PrintStream(file, StandardCharsets.UTF_8)) {
             ps.println("taxid;name;rank;parent taxid;tp;tp+fp;tp+fn;precision;recall;weighted avg precision;weighted avg recall;");
             // We want result in order of the tree:
             Iterator<SmallTaxTree.SmallTaxIdNode> iterator = tree.iterator();

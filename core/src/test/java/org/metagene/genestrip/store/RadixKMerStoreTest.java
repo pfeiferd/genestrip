@@ -29,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.junit.Test;
+import org.metagene.genestrip.util.CGAT;
 
 /**
  * Runs the shared {@link AbstractKMerStoreTest} suite against {@link RadixKMerStore} and adds the
@@ -99,6 +100,48 @@ public class RadixKMerStoreTest extends AbstractKMerStoreTest {
 			fail("expected IllegalArgumentException for radixBits below the minimum");
 		} catch (IllegalArgumentException expected) {
 			// ok
+		}
+	}
+
+	// Exercises value indices beyond KMerSortedArray's cap (65535) and beyond 2^(63-REMAINING_BITS) -
+	// i.e. into the range where the packed entry's high bit is set (a negative long) - to verify the
+	// 19-bit value field actually delivers the expanded RadixKMerStore.MAX_VALUES and round-trips.
+	@Test
+	public void testValueCapacityBeyondSortedArray() {
+		int n = 300_000;
+		assertTrue(n > KMerSortedArray.MAX_VALUES
+				&& n > (1 << (63 - RadixKMerStore.REMAINING_BITS)) // some indices set the entry's top bit
+				&& n < RadixKMerStore.MAX_VALUES);
+
+		// n distinct k-mers, each with a distinct value -> value index == insertion order.
+		Map<Long, Integer> kmerMap = new LinkedHashMap<Long, Integer>();
+		byte[] read = new byte[k];
+		int v = 0;
+		while (kmerMap.size() < n) {
+			for (int j = 0; j < k; j++) {
+				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
+			}
+			long kmer = CGAT.kMerToLong(read, 0, k, null);
+			if (!kmerMap.containsKey(kmer)) {
+				kmerMap.put(kmer, v++);
+			}
+		}
+
+		long[] kmers = kmerArray(kmerMap);
+		int[] bucketSizes = new int[1 << RADIX_BITS];
+		for (long kmer : kmers) {
+			bucketSizes[RadixKMerStore.radixOf(kmer, RADIX_BITS)]++;
+		}
+		// A very low fpp so no k-mer is dropped on a fill-time filter false positive.
+		RadixKMerStore<Integer> store = new RadixKMerStore<Integer>(k, RADIX_BITS, bucketSizes, 1e-9, 1e-9, null, true);
+		for (Map.Entry<Long, Integer> e : kmerMap.entrySet()) {
+			assertTrue(store.putLong(e.getKey(), e.getValue()));
+		}
+		store.optimize();
+
+		assertEquals(n, store.getNValues());
+		for (Map.Entry<Long, Integer> e : kmerMap.entrySet()) {
+			assertEquals(e.getValue(), store.getLong(e.getKey(), null));
 		}
 	}
 }

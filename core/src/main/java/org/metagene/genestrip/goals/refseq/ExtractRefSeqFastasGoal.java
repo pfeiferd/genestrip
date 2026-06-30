@@ -23,6 +23,7 @@
  * 
  */
 package org.metagene.genestrip.goals.refseq;
+import java.nio.charset.StandardCharsets;
 
 import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
@@ -100,13 +101,13 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
             super.infoLine();
             if (includeRegion) {
                 int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
-                String name = new String(target, 1, pos - 1);
+                String name = new String(target, 1, pos - 1, StandardCharsets.UTF_8);
                 String taxid = node.getTaxId();
                 descr2TaxId.put(name, taxid);
                 File file = new File(getProject().getFastaDir(), name + (gzip ? ".fa.gz" : ".fa"));
                 try {
                     os = StreamProvider.getOutputStreamForFile(file);
-                    PrintStream ps = new PrintStream(os);
+                    PrintStream ps = new PrintStream(os, false, StandardCharsets.UTF_8);
                     ps.print('>');
                     ps.print(name);
                     ps.print("|kraken:taxid|"); // This is to please kraken2 during library building...

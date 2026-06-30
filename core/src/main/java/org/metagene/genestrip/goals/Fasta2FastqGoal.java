@@ -23,6 +23,7 @@
  * 
  */
 package org.metagene.genestrip.goals;
+import java.nio.charset.StandardCharsets;
 
 import me.tongfei.progressbar.ProgressBar;
 import org.metagene.genestrip.GSConfigKey;
@@ -70,7 +71,7 @@ public class Fasta2FastqGoal<P extends GSProject> extends FileListGoal<P> {
     @Override
     protected void makeFile(File file) throws IOException {
         StreamingResourceStream fastas = getFastasForFile(file);
-        try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
+        try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file), false, StandardCharsets.UTF_8)) {
             FastqWriter writer = new FastqWriter(out, 65535);
             for (StreamingResource rs : fastas) {
                 try (StreamingResource.StreamAccess byteCountAccess = rs.openStream()) {

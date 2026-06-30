@@ -23,6 +23,7 @@
  * 
  */
 package org.metagene.genestrip.util;
+import java.nio.charset.StandardCharsets;
 
 import java.io.PrintStream;
 
@@ -85,7 +86,7 @@ public class ByteArrayUtil {
 				break;
 			}
 		}
-		return new String(array, 0, i);
+		return new String(array, 0, i, StandardCharsets.UTF_8);
 	}
 
 	public static void println(byte[] array, PrintStream ps) {

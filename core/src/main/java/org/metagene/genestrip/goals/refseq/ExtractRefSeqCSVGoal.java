@@ -23,6 +23,7 @@
  * 
  */
 package org.metagene.genestrip.goals.refseq;
+import java.nio.charset.StandardCharsets;
 
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
@@ -49,7 +50,7 @@ public class ExtractRefSeqCSVGoal<P extends GSProject> extends FileListGoal<P> {
     @Override
     protected void makeFile(File file) throws IOException {
         Map<String, String> descr2TaxId = extractFastaGoal.get();
-        try (PrintStream ps = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
+        try (PrintStream ps = new PrintStream(StreamProvider.getOutputStreamForFile(file), false, StandardCharsets.UTF_8)) {
             ps.println("refseq descr; taxid;");
             for (String key : descr2TaxId.keySet()) {
                 ps.print(key);

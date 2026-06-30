@@ -23,6 +23,7 @@
  * 
  */
 package org.metagene.genestrip.goals.kraken;
+import java.nio.charset.StandardCharsets;
 
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
@@ -66,7 +67,7 @@ public class KrakenResFileGoal<P extends GSProject> extends FileListGoal<P> {
 	@Override
 	protected void makeFile(File file) throws IOException {
 		List<KrakenResCountGoal.KrakenResStats> list = countGoal.get().get(fileToKeyMap.get(file));
-		try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
+		try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file), false, StandardCharsets.UTF_8)) {
 			print(list, out);
 		}
 	}

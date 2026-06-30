@@ -23,6 +23,7 @@
  * 
  */
 package org.metagene.genestrip.genbank;
+import java.nio.charset.StandardCharsets;
 
 import java.io.File;
 import java.io.IOException;
@@ -69,7 +70,7 @@ public class AssemblySummaryReader {
 		Map<TaxIdNode, List<AssemblyEntry>> result = new HashMap<TaxIdNode, List<AssemblyEntry>>();
 		int counter = 0;
 		try (CSVParser parser = FORMAT
-				.parse(new InputStreamReader(StreamProvider.getInputStreamForFile(new File(baseDir, assFileName))))) {
+				.parse(new InputStreamReader(StreamProvider.getInputStreamForFile(new File(baseDir, assFileName)), StandardCharsets.UTF_8))) {
 			for (CSVRecord record : parser) {
 				// Prevent inconsistent entries (they gotta have at least 20 columns)
 				if (record.size() >= 20) {

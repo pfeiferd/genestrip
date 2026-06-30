@@ -23,6 +23,7 @@
  * 
  */
 package org.metagene.genestrip.goals;
+import java.nio.charset.StandardCharsets;
 
 import java.io.File;
 import java.io.IOException;
@@ -107,7 +108,7 @@ public class FastqMapGoal<P extends GSProject> extends ObjectGoal<Map<String, St
 			File csvFile = fastqType ? getProject().fastqFileFromPath(mapFilePath) : getProject().fastaFileFromPath(mapFilePath);
 			if (csvFile != null) {
 				try (CSVParser parser = FORMAT
-						.parse(new InputStreamReader(StreamProvider.getInputStreamForFile(csvFile)))) {
+						.parse(new InputStreamReader(StreamProvider.getInputStreamForFile(csvFile), StandardCharsets.UTF_8))) {
 					for (CSVRecord record : parser) {
 						key = record.get(0);
 						List<StreamingResource> resources = getResources(record.get(1));

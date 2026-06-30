@@ -23,6 +23,7 @@
  * 
  */
 package org.metagene.genestrip.match;
+import java.nio.charset.StandardCharsets;
 
 import java.io.File;
 import java.io.IOException;
@@ -118,7 +119,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
              // A PrintStream is implicitly synchronized. So we don't need to worry about
              // multi threading when using it.
              PrintStream lout = krakenOutStyleFile != null
-                     ? new PrintStream(StreamProvider.getOutputStreamForFile(krakenOutStyleFile))
+                     ? new PrintStream(StreamProvider.getOutputStreamForFile(krakenOutStyleFile), false, StandardCharsets.UTF_8)
                      : null) {
             indexed = lindexed;
             out = lout;

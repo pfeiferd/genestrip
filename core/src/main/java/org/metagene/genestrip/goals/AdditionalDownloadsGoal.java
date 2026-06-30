@@ -23,6 +23,7 @@
  * 
  */
 package org.metagene.genestrip.goals;
+import java.nio.charset.StandardCharsets;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -69,7 +70,7 @@ public class AdditionalDownloadsGoal<P extends GSProject> extends GSFileDownload
 			if (additonalEntryFile.exists()) {
 				List<String> forGlobalDownload = new ArrayList<String>();
 				try (CSVParser parser = FORMAT
-						.parse(new InputStreamReader(StreamProvider.getInputStreamForFile(additonalEntryFile)))) {
+						.parse(new InputStreamReader(StreamProvider.getInputStreamForFile(additonalEntryFile), StandardCharsets.UTF_8))) {
 					for (CSVRecord record : parser) {
 						String fileName = record.get(1);
 						if (record.size() >= 3) {
@@ -97,7 +98,7 @@ public class AdditionalDownloadsGoal<P extends GSProject> extends GSFileDownload
 				File downloadsFile = new File(getProject().getCommon().getFastaDir(), DOWNLOADS_NAME);
 				if (downloadsFile.exists()) {
 					try (CSVParser parser = FORMAT
-							.parse(new InputStreamReader(StreamProvider.getInputStreamForFile(downloadsFile)))) {
+							.parse(new InputStreamReader(StreamProvider.getInputStreamForFile(downloadsFile), StandardCharsets.UTF_8))) {
 						for (CSVRecord record : parser) {
 							if (record.size() >= 2) {
 								String fileName = record.get(0);

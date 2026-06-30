@@ -23,6 +23,7 @@
  * 
  */
 package org.metagene.genestrip.goals;
+import java.nio.charset.StandardCharsets;
 
 import java.io.File;
 import java.io.IOException;
@@ -55,7 +56,7 @@ public class DBInfoGoal<P extends GSProject> extends FileListGoal<P> {
     @Override
     protected void makeFile(File file) throws IOException {
         Database wrapper = storeGoal.get();
-        try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
+        try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file), false, StandardCharsets.UTF_8)) {
             new ResultReporter().printStoreInfo(wrapper, out);
         }
     }

@@ -23,6 +23,7 @@
  * 
  */
 package org.metagene.genestrip.fastqgen;
+import java.nio.charset.StandardCharsets;
 
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -39,7 +40,7 @@ public class FastQWriter {
 
 	public FastQWriter(String id, OutputStream out) {
 		this.id = id;
-		printStream = new PrintStream(out);
+		printStream = new PrintStream(out, false, StandardCharsets.UTF_8);
 	}
 
 	public long getAdded() {

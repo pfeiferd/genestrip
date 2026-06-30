@@ -27,6 +27,7 @@ package org.metagene.genestrip.tax;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -145,7 +146,7 @@ public class TaxTree {
 				if (a != -1 && b != -1) {
 					TaxIdNode node = taxIdNodeTrie.get(target, 0, a - 1);
 					if (node != null) {
-						String name = new String(target, a + 2, b - a - 3);
+						String name = new String(target, a + 2, b - a - 3, StandardCharsets.UTF_8);
 						if (node.name == null || scientific) {
 							node.name = name;
 						}
@@ -225,7 +226,7 @@ public class TaxTree {
 				if (substitute == null) {
 					substitute = taxIdNodeTrie.get(idStringGenerator.generateID(nextArtCounter.getAndIncrement()), true);
 					substitute.rank = (short) Rank.ID.ordinal();
-					substitute.name = new String(array, start, end - start);
+					substitute.name = new String(array, start, end - start, StandardCharsets.UTF_8);
 					node.addSubNode(substitute);
 				}
 			}
@@ -366,7 +367,7 @@ public class TaxTree {
 	public static class TaxIdNodeTrie extends DigitTrie<TaxIdNode> {
 		@Override
 		protected TaxIdNode createInGet(byte[] seq, int start, int end, Object createContext) {
-			return new TaxIdNode(new String(seq, start, end - start), null);
+			return new TaxIdNode(new String(seq, start, end - start, StandardCharsets.UTF_8), null);
 		}
 
 		@Override

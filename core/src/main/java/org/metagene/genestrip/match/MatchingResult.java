@@ -23,6 +23,7 @@
  * 
  */
 package org.metagene.genestrip.match;
+import java.nio.charset.StandardCharsets;
 
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.tax.Rank;
@@ -47,7 +48,7 @@ public class MatchingResult implements Serializable {
 		this.k = k;
 		globalStats =  new CountsPerTaxid(0, null, totalReads, totalKMers, totalBPs, totalMaxCounts);
 		if (totalDesc != null) {
-			byte[] bytes = totalDesc.getBytes();
+			byte[] bytes = totalDesc.getBytes(StandardCharsets.UTF_8);
 			System.arraycopy(bytes, 0, globalStats.maxContigDescriptor,0, Math.min(bytes.length, globalStats.maxContigDescriptor.length));
 		}
 		this.taxid2Stats = taxid2Stats;

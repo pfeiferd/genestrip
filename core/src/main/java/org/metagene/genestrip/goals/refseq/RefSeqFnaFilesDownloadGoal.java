@@ -23,6 +23,7 @@
  * 
  */
 package org.metagene.genestrip.goals.refseq;
+import java.nio.charset.StandardCharsets;
 
 import java.io.File;
 import java.io.IOException;
@@ -138,7 +139,7 @@ public class RefSeqFnaFilesDownloadGoal<P extends GSProject> extends RefSeqDownl
 
 			File installedFiles = catalogDLGoal.getInstalledFilesFile();
 
-			try (Reader in = new InputStreamReader(StreamProvider.getInputStreamForFile(installedFiles))) {
+			try (Reader in = new InputStreamReader(StreamProvider.getInputStreamForFile(installedFiles), StandardCharsets.UTF_8)) {
 				Iterable<CSVRecord> records = FORMAT.parse(in);
 				for (CSVRecord record : records) {
 					String filename = record.get(1);

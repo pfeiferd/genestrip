@@ -23,6 +23,7 @@
  * 
  */
 package org.metagene.genestrip.goals;
+import java.nio.charset.StandardCharsets;
 
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.GSFileType;
@@ -68,7 +69,7 @@ public class MatchGoal<P extends GSProject> extends FileListGoal<P> {
     @Override
     protected void makeFile(File file) throws IOException {
         MatchingResult result = matchResGoal.get().get(fileToKeyMap.get(file));
-        try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
+        try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file), false, StandardCharsets.UTF_8)) {
             if (reporter == null) {
                 reporter = new ResultReporter();
             }

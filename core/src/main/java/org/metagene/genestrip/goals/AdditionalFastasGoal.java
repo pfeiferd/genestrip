@@ -23,6 +23,7 @@
  * 
  */
 package org.metagene.genestrip.goals;
+import java.nio.charset.StandardCharsets;
 
 import java.io.File;
 import java.io.IOException;
@@ -69,7 +70,7 @@ public class AdditionalFastasGoal<P extends GSProject> extends ObjectGoal<Map<Fi
 		File additonalEntryFile = getProject().getAdditionalFile();
 		if (additonalEntryFile.exists()) {
 			try (CSVParser parser = FORMAT
-					.parse(new InputStreamReader(StreamProvider.getInputStreamForFile(additonalEntryFile)))) {
+					.parse(new InputStreamReader(StreamProvider.getInputStreamForFile(additonalEntryFile), StandardCharsets.UTF_8))) {
 				for (CSVRecord record : parser) {
 					String taxid = record.get(0);
 					String fastaFilePath = record.get(1);
