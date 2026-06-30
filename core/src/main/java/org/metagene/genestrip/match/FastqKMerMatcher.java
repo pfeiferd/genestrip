@@ -383,7 +383,10 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                 // For 'readKmers', I decided to count in the k-mers from 'entry.readTaxIdNode[0]' and not just 'node'.
                 // (They only differ in case of a tie anyways.) But if there is tie, then the k-mers from one of the tie's nodes
                 // solidify the LCA in a sense - so the counts from one of the involved paths are included.
-                int readKmers = ties > 0 ? taxTree.sumCounts(entry.readTaxIdNode[0], index, entry.readNo) : entry.counts[0];
+                // When threshold > 1, readTaxIdNode[0] was promoted to an ancestor above, so the
+                // voting-time entry.counts[0] is stale; recompute sumCounts for the actual node.
+                int readKmers = (ties > 0 || threshold > 1)
+                        ? taxTree.sumCounts(entry.readTaxIdNode[0], index, entry.readNo) : entry.counts[0];
                 int classErrC = max - readKmers;
                 if (maxReadClassErrorCount < 0 || (maxReadClassErrorCount >= 1 && classErrC <= maxReadClassErrorCount)
                         || (classErrC <= maxReadClassErrorCount * max)) {

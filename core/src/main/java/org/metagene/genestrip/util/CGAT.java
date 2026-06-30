@@ -121,10 +121,10 @@ public class CGAT {
 	}
 	
 	public static void longToKMerStraight(long kmer, byte[] res, int start, int k) {
-		assert(k <= 31);
 		for (int i = k - 1; i >= 0; i--) {
-			res[start + i] = DECODE_TABLE[(int) (kmer % 4)]; 
-			kmer = kmer >> 2;
+			// & 3 and >>> 2 (not % 4 and >> 2) so a k-mer whose top bit is set decodes correctly.
+			res[start + i] = DECODE_TABLE[(int) (kmer & 3)];
+			kmer = kmer >>> 2;
 		}
 	}
 
@@ -170,8 +170,9 @@ public class CGAT {
 		reverse(seq, 0, seq.length);
 	}
 
+	// Reverse-complements seq[start, start+k) in place (k is the region length, not an end index).
 	public static void reverse(byte[] seq, int start, int k) {
-		int end = k - 1;
+		int end = start + k - 1;
 		byte h;
 		while (start < end) {
 			h = CGAT_COMPLEMENT[seq[start]];

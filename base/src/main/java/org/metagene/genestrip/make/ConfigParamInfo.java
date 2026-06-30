@@ -195,7 +195,19 @@ public abstract class ConfigParamInfo<V> {
 
 		@Override
 		protected Boolean fromString(String s) {
-			return s == null ? null : Boolean.valueOf(s.trim());
+			if (s == null) {
+				return null;
+			}
+			String t = s.trim();
+			// Return null (not false) for anything that is not "true"/"false" so that a typo is
+			// reported as an invalid value instead of being silently coerced to false.
+			if (t.equalsIgnoreCase("true")) {
+				return Boolean.TRUE;
+			}
+			if (t.equalsIgnoreCase("false")) {
+				return Boolean.FALSE;
+			}
+			return null;
 		}
 
 		@Override

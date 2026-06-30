@@ -92,6 +92,11 @@ public abstract class AbstractKMerStore<V extends Serializable> implements Tunab
 
 	@SuppressWarnings("unchecked")
 	protected AbstractKMerStore(int k, int maxValues, List<V> initialValues, KMerProbFilter filter, double optimizedFpp) {
+		// k must be <= 31: at k=32 a k-mer fills all 64 bits, so the all-T k-mer collides with the
+		// -1L "invalid k-mer" sentinel used throughout CGAT/the matcher (see GSConfigKey.KMER_SIZE).
+		if (k < 1 || k > 31) {
+			throw new IllegalArgumentException("k must be in [1, 31], got " + k);
+		}
 		this.k = k;
 		this.maxValues = maxValues;
 		int s = initialValues == null ? 0 : initialValues.size();

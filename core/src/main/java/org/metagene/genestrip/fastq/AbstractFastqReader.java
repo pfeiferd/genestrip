@@ -54,7 +54,8 @@ public abstract class AbstractFastqReader {
     private final byte[] plusLine;
     protected final int k;
 
-    private boolean dump;
+    // volatile: written by dump() and read by the producer loop on a different thread.
+    private volatile boolean dump;
 
     protected final ExecutionContext bundle;
 
@@ -335,7 +336,7 @@ public abstract class AbstractFastqReader {
 
             readStruct.readNo = reads;
             reads++;
-            if (readStruct.readSize > k) {
+            if (readStruct.readSize >= k) {
                 kMers += readStruct.readSize - k + 1;
             }
             readBPs += readStruct.readSize;
@@ -396,7 +397,8 @@ public abstract class AbstractFastqReader {
 
     protected static class ReadEntry {
         public long readNo;
-        public boolean pooled;
+        // volatile: written by consumer threads, read by the producer's pool/poll loop.
+        public volatile boolean pooled;
 
         public final byte[] readDescriptor;
         public int readDescriptorSize;

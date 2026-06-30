@@ -54,7 +54,10 @@ public enum GSConfigKey implements ConfigKey {
 	PROGRESS_BAR_UPDATE("progressBarUpdateMs", new IntConfigParamInfo(100, Integer.MAX_VALUE, 1000), GSGoalKey.DB, GSGoalKey.MATCH, GSGoalKey.MATCHLR, GSGoalKey.FILTER),
 	@MDDescription("The number of base pairs *k* for *k*-mers. "
 			+ "Changes to this values do *not* affect the memory usage of a database.")
-	KMER_SIZE("kMerSize", new IntConfigParamInfo(15, 32, 31), GSGoalKey.DB, GSGoalKey.FILTER, GSGoalKey.MATCH, GSGoalKey.MATCHLR),
+	// Max is 31, not 32: at k=32 a k-mer fills all 64 bits, so the all-T k-mer equals the -1L
+	// "invalid k-mer" sentinel used throughout CGAT/the matcher (causing a hang) and longToKMer
+	// would see negative values. k<=31 keeps the top bits free for the sentinel.
+	KMER_SIZE("kMerSize", new IntConfigParamInfo(15, 31, 31), GSGoalKey.DB, GSGoalKey.FILTER, GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 	@MDDescription("Extract key for read descriptors. The beginning of a descriptor must match this key after the '@' for the read to be written.")
 	EXTRACT_KEY("extractKey", new StringConfigParamInfo(""), GSGoalKey.EXTRACT),
 
@@ -475,7 +478,12 @@ public enum GSConfigKey implements ConfigKey {
 			if (qs != null) {
 				StringTokenizer tokenizer = new StringTokenizer(qs, ",;");
 				while (tokenizer.hasMoreTokens()) {
-					res.add(AssemblyQuality.valueOf(tokenizer.nextToken().trim()));
+					try {
+						res.add(AssemblyQuality.valueOf(tokenizer.nextToken().trim()));
+					} catch (IllegalArgumentException e) {
+						// Unknown token: report as an invalid value (the framework falls back to default).
+						return null;
+					}
 				}
 			}
 			return res;
@@ -620,9 +628,11 @@ public enum GSConfigKey implements ConfigKey {
 			if (qs != null) {
 				StringTokenizer tokenizer = new StringTokenizer(qs, ",;");
 				while (tokenizer.hasMoreTokens()) {
-					RefSeqStatus q = RefSeqStatus.valueOf(tokenizer.nextToken().trim());
-					if (q != null) {
-						res.add(q);
+					try {
+						res.add(RefSeqStatus.valueOf(tokenizer.nextToken().trim()));
+					} catch (IllegalArgumentException e) {
+						// Unknown token: report as an invalid value (the framework falls back to default).
+						return null;
 					}
 				}
 			}
