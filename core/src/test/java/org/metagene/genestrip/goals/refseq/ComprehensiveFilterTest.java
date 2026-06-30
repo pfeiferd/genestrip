@@ -70,7 +70,17 @@ public class ComprehensiveFilterTest extends ComprehensiveMatchTest {
     // This test relies on the correctness of the matcher
     @Test
     public <P extends GSProject> void testFilterOutput() throws IOException {
+        // Run once with KMerSortedArray and once with RadixKMerStore; the filtered output must match.
+        for (boolean radix : new boolean[] { false, true }) {
+            useRadixStore = radix;
+            clearGeneratedDB();
+            this.<P>doTestFilterOutput();
+        }
+    }
+
+    protected <P extends GSProject> void doTestFilterOutput() throws IOException {
         GSProject project = createProject("human_virus", null);
+        project.initConfigParam(GSConfigKey.USE_RADIX_STORE, useRadixStore);
         project.initConfigParam(GSConfigKey.THREADS, 0);
         project.initConfigParam(GSConfigKey.WRITE_FILTERED_FASTQ, true);
         project.initConfigParam(GSConfigKey.GZIP_FASTQ_OUTPUT, false);

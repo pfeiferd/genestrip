@@ -51,8 +51,14 @@ public class ComprehensiveMatchTest extends DBGoalTest {
         maker.dumpAll();
     }
 
+    // Toggled by the @Test methods so each test builds the DB once with KMerSortedArray and once
+    // with RadixKMerStore (the matcher output must be identical for both store types).
+    protected boolean useRadixStore;
+
     protected GSProject createTestProject(String csvFile1) throws IOException {
-        return createProject(getProjectName(), csvFile1);
+        GSProject project = createProject(getProjectName(), csvFile1);
+        project.initConfigParam(GSConfigKey.USE_RADIX_STORE, useRadixStore);
+        return project;
     }
 
     protected String getProjectName() {
@@ -71,6 +77,23 @@ public class ComprehensiveMatchTest extends DBGoalTest {
 
     @Test
     public void testKrakenOutput() throws IOException {
+        // Build and match with KMerSortedArray and, alternatively, with RadixKMerStore. The kraken
+        // output must be identical for both, so each is compared against the same reference file.
+        for (boolean radix : new boolean[] { false, true }) {
+            useRadixStore = radix;
+            clearGeneratedDB();
+            doTestKrakenOutput();
+        }
+    }
+
+    protected void clearGeneratedDB() throws IOException {
+        GSProject project = createTestProject(null);
+        GSMaker maker = new GSMaker(project);
+        maker.getGoal(GSGoalKey.CLEAR).make();
+        maker.dumpAll();
+    }
+
+    protected void doTestKrakenOutput() throws IOException {
         GSProject project = createTestProject("viral_test_fasta.txt");
         project.logParamMap();
         createProjectGoal(project).make();

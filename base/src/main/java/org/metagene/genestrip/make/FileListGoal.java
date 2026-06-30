@@ -45,7 +45,7 @@ public abstract class FileListGoal<P extends Project> extends FileGoal<P> {
 
 	@SafeVarargs
 	public FileListGoal(P project, GoalKey key, List<File> files, boolean allowEmptyFiles, Goal<P>... dependencies) {
-		super(project, key, dependencies);
+		super(project, key, allowEmptyFiles, dependencies);
 		this.files = files != null ? new ArrayList<File>(files) : new ArrayList<File>();
 	}
 

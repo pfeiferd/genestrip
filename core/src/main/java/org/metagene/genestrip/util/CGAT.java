@@ -25,26 +25,16 @@
 package org.metagene.genestrip.util;
 
 public class CGAT {
-	public static final byte[] CGAT_TO_UPPER_CASE = new byte[256];
 	public static final byte[] CGAT_COMPLEMENT = new byte[127];
 	public static final int[] CGAT_JUMP_TABLE;
 	public static final int[] CGAT_REVERSE_JUMP_TABLE;
 
 	public static final byte[] DECODE_TABLE = new byte[] { 'C', 'G', 'A', 'T' };
-	public static final byte[] REVERSE_DECODE_TABLE = new byte[] { 'G', 'C', 'T', 'A' };
 
 	public static long SHIFT_FILTERS_STRAIGHT[] = new long[33]; // TODO ~(-1 << ((k - 1) * 2))
 	public static long SHIFT_FILTERS_REVERSE[] = new long[33]; // TODO ((k - 1) * 2)
 
 	static {
-		for (int i = 0; i < CGAT_TO_UPPER_CASE.length; i++) {
-			CGAT_TO_UPPER_CASE[i] = (byte) (i - 128);
-		}
-		CGAT_TO_UPPER_CASE[128 + 'c'] = 'C';
-		CGAT_TO_UPPER_CASE[128 + 'g'] = 'G';
-		CGAT_TO_UPPER_CASE[128 + 'a'] = 'A';
-		CGAT_TO_UPPER_CASE[128 + 't'] = 'T';
-
 		for (int i = 0; i < CGAT_COMPLEMENT.length; i++) {
 			CGAT_COMPLEMENT[i] = -1;
 		}
@@ -78,8 +68,15 @@ public class CGAT {
 		}
 	}
 
+	// Upper-cases only the four nucleotide letters; every other byte is returned unchanged.
 	public static byte cgatToUpperCase(byte c) {
-		return CGAT_TO_UPPER_CASE[128 + c];
+		switch (c) {
+		case 'a': return 'A';
+		case 'c': return 'C';
+		case 'g': return 'G';
+		case 't': return 'T';
+		default:  return c;
+		}
 	}
 
 	public static boolean isCGAT(byte c) {

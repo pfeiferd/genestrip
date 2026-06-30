@@ -79,7 +79,7 @@ public abstract class FileGoal<P extends Project> extends Goal<P> {
 	}
 
 	protected boolean isMade(File file) {
-		return file.exists();
+		return file.exists() && !isBadEmpty(file);
 	}
 
 	protected boolean isBadEmpty(File file) {
