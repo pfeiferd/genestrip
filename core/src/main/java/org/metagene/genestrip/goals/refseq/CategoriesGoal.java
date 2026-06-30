@@ -71,7 +71,9 @@ public class CategoriesGoal<P extends GSProject> extends ObjectGoal<Set<RefSeqCa
 					}
 					String category = line.trim();
 					RefSeqCategory cat = RefSeqCategory.fromDirectoryString(category);
-					res.add(cat);
+					if (cat != null) {
+						res.add(cat);
+					}
 				}
 			}
 		}

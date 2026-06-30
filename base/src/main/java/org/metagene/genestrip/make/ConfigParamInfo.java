@@ -145,11 +145,18 @@ public abstract class ConfigParamInfo<V> {
 	public static class DoubleConfigParamInfo extends ConfigParamInfo<Double> {
 		private final double min;
 		private final double max;
+		// When true the value must lie in the OPEN interval (min, max) rather than [min, max].
+		private final boolean exclusive;
 
 		public DoubleConfigParamInfo(double min, double max, double defaultValue) {
+			this(min, max, defaultValue, false);
+		}
+
+		public DoubleConfigParamInfo(double min, double max, double defaultValue, boolean exclusive) {
 			super(defaultValue);
 			this.min = min;
 			this.max = max;
+			this.exclusive = exclusive;
 		}
 
 		@Override
@@ -164,15 +171,15 @@ public abstract class ConfigParamInfo<V> {
 		@Override
 		public boolean isValueInRange(Object value) {
 			if (value instanceof Double) {
-				Double d = (Double) value;
-				return d >= min && d <= max;
+				double d = (Double) value;
+				return exclusive ? (d > min && d < max) : (d >= min && d <= max);
 			}
 			return false;
 		}
 
 		@Override
 		public String getMDRangeDescriptor() {
-			return "[" + min + ", " + max + "]";
+			return (exclusive ? "(" : "[") + min + ", " + max + (exclusive ? ")" : "]");
 		}
 
 		@Override

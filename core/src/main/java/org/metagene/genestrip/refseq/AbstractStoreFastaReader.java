@@ -57,7 +57,14 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 	protected void dataLine() {
 		if (includeRegion) {
 			if (isAllowMoreKmers()) {
-				for (int i = 0; i < size - 1; i++) {
+				// Strip the trailing line terminator(s) the reader includes in 'size': a single '\n',
+				// or '\r\n' for CRLF files. A final line without a trailing newline keeps all bytes
+				// (so its last base is not dropped, and a stray '\r' does not reset the ring buffer).
+				int end = size;
+				while (end > 0 && (target[end - 1] == '\n' || target[end - 1] == '\r')) {
+					end--;
+				}
+				for (int i = 0; i < end; i++) {
 					byteRingBuffer.put(enableLowerCaseBases ? CGAT.cgatToUpperCase(target[i]) : target[i]);
 					bpsInRegion++;
 					if (bpsInRegion % stepSize == 0) {

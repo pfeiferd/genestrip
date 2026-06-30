@@ -108,8 +108,14 @@ public class Fasta2FastqGoal<P extends GSProject> extends FileListGoal<P> {
 
         @Override
         protected void dataLine() {
-            ByteArrayUtil.print(target, 0, size - 1, out);
-            dataSize += size - 1;
+            // Strip the trailing line terminator(s) ('\n', or '\r\n' for CRLF); a final line without
+            // a newline keeps all bytes. Sequence and the matching quality count (dataSize) stay in sync.
+            int end = size;
+            while (end > 0 && (target[end - 1] == '\n' || target[end - 1] == '\r')) {
+                end--;
+            }
+            ByteArrayUtil.print(target, 0, end, out);
+            dataSize += end;
         }
 
         @Override

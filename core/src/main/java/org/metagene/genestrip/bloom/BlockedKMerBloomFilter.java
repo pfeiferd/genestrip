@@ -141,15 +141,12 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
     // The more complex hash function from Lemire outweighs the cost of the modulo operator used here.
     // That's why we keep it simple and leave it as it is.
     protected final long reduce(final long v) {
-        if (largeData == null) {
-            return Math.abs(v % buckets);
-        } else {
-            // Using optimization instead of '%', see:
-            // http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
-            // and Line 34 in https://github.com/FastFilter/fastfilter_java/blob/master/fastfilter/src/main/java/org/fastfilter/utils/Hash.java
-            // In general, it would NOT work for largeData because of potential long-overflow due to the multiplicaton.
-            return (((((int) v) & 0xffffffffL) * (buckets & 0xffffffffL)) >>> 32);
-        }
+        return Math.abs(v % buckets);
+        // Using optimization instead of '%', see:
+        // http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
+        // and Line 34 in https://github.com/FastFilter/fastfilter_java/blob/master/fastfilter/src/main/java/org/fastfilter/utils/Hash.java
+        // In general, it would NOT work for largeData because of potential long-overflow due to the multiplicaton.
+        // return (((((int) v) & 0xffffffffL) * (buckets & 0xffffffffL)) >>> 32);
     }
 
     @Override

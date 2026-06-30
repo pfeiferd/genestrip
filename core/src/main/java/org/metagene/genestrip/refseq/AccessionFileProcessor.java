@@ -80,6 +80,11 @@ public abstract class AccessionFileProcessor {
                     GSProgressBarCreator.newGSProgressBar(getProgressBarTaskName(), byteCountAccess, null) : null) {
                 try (BufferedLineReader reader = new BufferedLineReader(byteCountAccess.getInputStream())) {
                     while ((size = reader.nextLine(target)) > 0) {
+                        if (size > target.length) {
+                            // nextLine returns target.length + 1 when a line does not fit the buffer;
+                            // using it as a scan bound below would read past the array.
+                            throw new IllegalStateException("buffer is too small for a line in the accession catalog file");
+                        }
                         int pos1 = ByteArrayUtil.indexOf(target, 0, size, '\t');
                         int pos2 = ByteArrayUtil.indexOf(target, pos1 + 1, size, '\t');
                         int pos3 = ByteArrayUtil.indexOf(target, pos2 + 1, size, '\t');

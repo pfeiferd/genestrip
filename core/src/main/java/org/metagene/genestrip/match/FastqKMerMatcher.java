@@ -294,7 +294,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                             if (contigLen > stats.maxContigLen) {
                                 stats.maxContigLen = contigLen;
                                 int j = 1;
-                                for (; j < entry.readDescriptorSize && entry.readDescriptor[j] != ' '; j++) {
+                                for (; j < entry.readDescriptorSize && j < stats.maxContigDescriptor.length && entry.readDescriptor[j] != ' '; j++) {
                                     stats.maxContigDescriptor[j - 1] = entry.readDescriptor[j];
                                 }
                                 stats.maxContigDescriptor[j - 1] = 0;
@@ -341,11 +341,11 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                 if (stats != null) {
                     synchronized (stats) {
                         stats.contigs++;
-                        stats.contigLenSquaredSum += contigLen * contigLen;
+                        stats.contigLenSquaredSum += ((long) contigLen) * contigLen;
                         if (contigLen > stats.maxContigLen) {
                             stats.maxContigLen = contigLen;
                             int j = 1;
-                            for (; j < entry.readDescriptorSize && entry.readDescriptor[j] != ' '; j++) {
+                            for (; j < entry.readDescriptorSize && j < stats.maxContigDescriptor.length && entry.readDescriptor[j] != ' '; j++) {
                                 stats.maxContigDescriptor[j - 1] = entry.readDescriptor[j];
                             }
                             stats.maxContigDescriptor[j - 1] = 0;

@@ -147,20 +147,20 @@ public enum GSConfigKey implements ConfigKey {
 			+ "For practical concerns `maxDust = 500` may be suitable. In this case, if *31*-mers were uniformly, randomly generated, "
 			+ "then less than 0.00002 % of them would be dropped. If `maxDust = -1`, then dust-filtering is inactive.")
 	MAX_DUST("maxDust", new IntConfigParamInfo(-1, Integer.MAX_VALUE, -1), GSGoalKey.DB),
-	TEMP_BLOOM_FILTER_FPP("tempBloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.001d), true, GSGoalKey.TEMPINDEX),
+	TEMP_BLOOM_FILTER_FPP("tempBloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.001d, true), true, GSGoalKey.TEMPINDEX),
 	@MDDescription("A scaling factor applied to the pre-computed *k*-mer count estimate (from the goal `fillsize`) to determine the allocated size of the *k*-mer store before filling it. "
 			+ "A value greater than `1.0` reserves more space than the estimate; a value less than `1.0` reserves less. "
 			+ "The default `1.0` uses the estimate as-is. Adjusting this value can be useful if the estimate from `fillsize` is slightly off.")
 	DB_RESIZING_FACTOR("dbResizingFactor", new DoubleConfigParamInfo(0, Double.MAX_VALUE, 1), GSGoalKey.DB),
 	@MDDescription("False positive probability (FPP) of the Bloom filter embedded in the filtering database (used by the goal `filter`). "
 			+ "A lower value reduces false positives during filtering at the cost of a larger filter.")
-	INDEX_BLOOM_FILTER_FPP("indexBloomFilterFpp", new DoubleConfigParamInfo(0, 1, GSConfigKey.INDEX_BLOOM_FILTER_FPP_DEFAULT), true, GSGoalKey.FILL_DB),
+	INDEX_BLOOM_FILTER_FPP("indexBloomFilterFpp", new DoubleConfigParamInfo(0, 1, GSConfigKey.INDEX_BLOOM_FILTER_FPP_DEFAULT, true), true, GSGoalKey.FILL_DB),
 	@MDDescription("False positive probability (FPP) of the temporary Bloom filter used inside the *k*-mer store during the database fill phase. "
 			+ "This filter is discarded after sorting and replaced by the one governed by `optBloomFilterFpp`.")
-	FILL_BLOOM_FILTER_FPP("fillBloomFilterFpp", new DoubleConfigParamInfo(0, 1, GSConfigKey.FILL_BLOOM_FILTER_FPP_DEFAULT), true, GSGoalKey.FILL_DB),
+	FILL_BLOOM_FILTER_FPP("fillBloomFilterFpp", new DoubleConfigParamInfo(0, 1, GSConfigKey.FILL_BLOOM_FILTER_FPP_DEFAULT, true), true, GSGoalKey.FILL_DB),
 	@MDDescription("False positive probability (FPP) of the Bloom filter embedded in the final matching database after the *k*-mer store has been sorted and optimized. "
 			+ "This is the filter used during matching when `useBloomFilterForMatch=true`.")
-	OPT_BLOOM_FILTER_FPP("optBloomFilterFpp", new DoubleConfigParamInfo(0, 1, BlockedKMerBloomFilter.DEFAULT_FPP), true, GSGoalKey.FILL_DB),
+	OPT_BLOOM_FILTER_FPP("optBloomFilterFpp", new DoubleConfigParamInfo(0, 1, BlockedKMerBloomFilter.DEFAULT_FPP, true), true, GSGoalKey.FILL_DB),
 	@MDDescription("If `true`, the database's *k*-mer store uses the radix-indexed `RadixKMerStore` instead of the default sorted-array store. "
 			+ "It is sized per radix bucket from the deduplicated per-bucket *k*-mer counts (see goal `tempindex`) and tends to be faster for lookups on large databases that exceed the CPU cache.")
 	USE_RADIX_STORE("useRadixStore", new BooleanConfigParamInfo(false), true, GSGoalKey.FILL_DB),

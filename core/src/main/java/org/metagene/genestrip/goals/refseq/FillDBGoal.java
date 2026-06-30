@@ -206,7 +206,12 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 					if (Rank.ID.ordinal() != res.getRankOrdinal()) {
 						int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
 						if (pos < 0) {
+							// No space in the header: the id is the rest of the line. Trim the
+							// trailing line terminator(s) so the id-node name excludes '\n' (and '\r').
 							pos = size;
+							while (pos > 0 && (target[pos - 1] == '\n' || target[pos - 1] == '\r')) {
+								pos--;
+							}
 						}
 						res = taxTree.idNode(res, target, 1, pos, idStringGenerator);
 					}

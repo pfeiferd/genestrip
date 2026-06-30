@@ -197,7 +197,9 @@ public class Database implements Serializable {
                     }
                 }
                 if (deferred != null) {
-                    throw new InvalidDatabaseClassException(deferred.classname, deferred.getMessage(), configInfo, deferred);
+                    // configInfo is now populated; re-throw the raw exception and let the outer
+                    // catch wrap it (once) into an InvalidDatabaseClassException carrying the config.
+                    throw deferred;
                 }
                 database.setConfigInfo(configInfo);
                 database.initStoreIndices();
