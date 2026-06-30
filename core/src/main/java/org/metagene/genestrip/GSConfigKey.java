@@ -154,7 +154,8 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("A scaling factor applied to the pre-computed *k*-mer count estimate (from the goal `fillsize`) to determine the allocated size of the *k*-mer store before filling it. "
 			+ "A value greater than `1.0` reserves more space than the estimate; a value less than `1.0` reserves less. "
 			+ "The default `1.0` uses the estimate as-is. Adjusting this value can be useful if the estimate from `fillsize` is slightly off.")
-	DB_RESIZING_FACTOR("dbResizingFactor", new DoubleConfigParamInfo(0, Double.MAX_VALUE, 1), GSGoalKey.DB),
+	// Exclusive lower bound: a factor of 0 would size the store to 0 -> a silently empty DB.
+	DB_RESIZING_FACTOR("dbResizingFactor", new DoubleConfigParamInfo(0, Double.MAX_VALUE, 1, true), GSGoalKey.DB),
 	@MDDescription("False positive probability (FPP) of the Bloom filter embedded in the filtering database (used by the goal `filter`). "
 			+ "A lower value reduces false positives during filtering at the cost of a larger filter.")
 	INDEX_BLOOM_FILTER_FPP("indexBloomFilterFpp", new DoubleConfigParamInfo(0, 1, GSConfigKey.INDEX_BLOOM_FILTER_FPP_DEFAULT, true), true, GSGoalKey.FILL_DB),
