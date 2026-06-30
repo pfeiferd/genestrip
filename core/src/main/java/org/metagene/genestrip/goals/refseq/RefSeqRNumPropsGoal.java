@@ -58,6 +58,8 @@ public class RefSeqRNumPropsGoal<P extends GSProject> extends FileListGoal<P> {
         if (release != null) {
             props.setProperty(GSProject.REFSEQ_RELEASE, release);
         }
-        props.store(new FileWriter(storeFile), null);
+        try (FileWriter writer = new FileWriter(storeFile)) {
+            props.store(writer, null);
+        }
     }
 }
