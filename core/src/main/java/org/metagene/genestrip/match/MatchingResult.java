@@ -47,7 +47,8 @@ public class MatchingResult implements Serializable {
 		this.k = k;
 		globalStats =  new CountsPerTaxid(0, null, totalReads, totalKMers, totalBPs, totalMaxCounts);
 		if (totalDesc != null) {
-			globalStats.maxContigDescriptor = totalDesc.getBytes();
+			byte[] bytes = totalDesc.getBytes();
+			System.arraycopy(bytes, 0, globalStats.maxContigDescriptor,0, Math.min(bytes.length, globalStats.maxContigDescriptor.length));
 		}
 		this.taxid2Stats = taxid2Stats;
 	}

@@ -82,7 +82,7 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
     protected int contigs;
     protected long contigLenSquaredSum;
     protected int maxContigLen;
-    protected byte[] maxContigDescriptor;
+    protected final byte[] maxContigDescriptor;
     protected short[] maxKMerCounts;
     protected double errorSum;
     protected double errorSquaredSum;

@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import me.tongfei.progressbar.ProgressBar;
 import org.metagene.genestrip.io.BufferedLineReader;
@@ -44,7 +45,9 @@ import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 public class TaxTree {
 	private static final int MAX_LINE_SIZE = 4096;
 
-	private int nextArtCounter = 1;
+	// Atomic so concurrent reader threads (each synchronizing on a different parent node when
+	// creating data/file/id nodes) cannot lose updates and generate duplicate artificial ids.
+	private final AtomicInteger nextArtCounter = new AtomicInteger(1);
 
 	public static final Comparator<TaxIdNode> NODE_COMPARATOR = new Comparator<TaxIdNode>() {
 		@Override
@@ -188,7 +191,7 @@ public class TaxTree {
 			synchronized (node) {
 				substitute = node.getDataChild();
 				if (substitute == null && idStringGenerator != null) {
-					substitute = taxIdNodeTrie.get(idStringGenerator.generateID(nextArtCounter++), true);
+					substitute = taxIdNodeTrie.get(idStringGenerator.generateID(nextArtCounter.getAndIncrement()), true);
 					substitute.rank = (short) Rank.DATA.ordinal();
 					substitute.name = "Data for " + node.getTaxId();
 					node.addSubNode(substitute);
@@ -204,7 +207,7 @@ public class TaxTree {
 			synchronized (node) {
 				substitute = node.getChildWithName(name);
 				if (substitute == null && idStringGenerator != null) {
-					substitute = taxIdNodeTrie.get(idStringGenerator.generateID(nextArtCounter++), true);
+					substitute = taxIdNodeTrie.get(idStringGenerator.generateID(nextArtCounter.getAndIncrement()), true);
 					substitute.rank = (short) Rank.FILE.ordinal();
 					substitute.name = name;
 					node.addSubNode(substitute);
@@ -220,7 +223,7 @@ public class TaxTree {
 			synchronized (node) {
 				substitute = node.getChildWithName(array, start, end);
 				if (substitute == null) {
-					substitute = taxIdNodeTrie.get(idStringGenerator.generateID(nextArtCounter++), true);
+					substitute = taxIdNodeTrie.get(idStringGenerator.generateID(nextArtCounter.getAndIncrement()), true);
 					substitute.rank = (short) Rank.ID.ordinal();
 					substitute.name = new String(array, start, end - start);
 					node.addSubNode(substitute);
