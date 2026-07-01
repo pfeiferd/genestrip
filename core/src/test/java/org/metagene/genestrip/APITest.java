@@ -31,96 +31,119 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.metagene.genestrip.make.Goal;
 
+/**
+ * Demonstrates (and tests) how to drive Genestrip programmatically through its API, using the
+ * bundled {@code human_virus} sample project.
+ * <p>
+ * Two equivalent styles are shown:
+ * <ul>
+ * <li>{@link #testAndDemoSimpleAPI()} uses the high-level convenience methods
+ *     {@link GSMaker#match} / {@link GSMaker#filter}, while</li>
+ * <li>{@link #testAndDemoBasicAPI()} uses the lower-level goal API directly
+ *     ({@link GSMaker#getGoal}, {@link Goal#cleanThis()}, {@link Goal#make()}).</li>
+ * </ul>
+ * In both cases, making a {@code match} or {@code filter} goal automatically pulls in whatever
+ * upstream goals are still missing - e.g. the {@code db} goal that builds the database - so the
+ * examples run end to end even on a fresh checkout.
+ */
 public class APITest {
-	// Ensure database will be regenerated prior to test.
+	// Runs once before all tests in this class: run the 'clear' goal, which empties the project's
+	// generated-output folders (csv, log and krakenout) so each test starts from a clean slate.
+	// Note: 'clear' does not delete the database itself; the match/filter goals below rebuild their
+	// own results and (re)create the database only if it is missing.
 	@BeforeClass
 	public static void clearDB() throws IOException {
 		File baseDir = getBaseDir();
 
-		// Load the system configuration.
+		// Load Genestrip's system-wide configuration, rooted at the base directory.
 		GSCommon config = new GSCommon(baseDir);
 
-		// Create the 'human_virus' project (whose config files are part of the
-		// release).
+		// Create the 'human_virus' project (whose config files ship as part of the release, under
+		// the base directory).
 		GSProject project = new GSProject(config, "human_virus");
-		GSMaker maker = new GSMaker(project);
+		GSMaker<GSProject> maker = new GSMaker<>(project);
 		maker.getGoal(GSGoalKey.CLEAR).make();
-		
+
+		// Release the resources held by the maker (data cached in memory and its worker threads).
 		maker.dumpAll();
 	}
 
+	// Demonstrates the high-level convenience API: GSMaker.match(...) / GSMaker.filter(...).
 	@Test
 	public void testAndDemoSimpleAPI() throws IOException {
 		File baseDir = getBaseDir();
 
-		// Load the system configuration.
+		// Load Genestrip's system-wide configuration, rooted at the base directory.
 		GSCommon config = new GSCommon(baseDir);
 
-		// Create the 'human_virus' project (whose config files are part of the
-		// release).
+		// Create the 'human_virus' project (whose config files ship as part of the release).
 		GSProject project = new GSProject(config, "human_virus");
-		GSMaker maker = new GSMaker(project);
+		GSMaker<GSProject> maker = new GSMaker<>(project);
 
-		// Get the fastq file to run a match on. (In this case, a small sample file
-		// provied as part of the release.)
+		// The fastq file to run a match on (here a small sample file shipped with the release).
 		File fastq = new File(getBaseDir(), "projects/human_virus/fastq/sample.fastq.gz");
-		// An example on how to set configuration parameters programmatically:
+		// Example of setting a configuration parameter programmatically (this overrides the value
+		// from the project's config files); see GSConfigKey for the available keys.
 		project.initConfigParam(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH, true);
 		//project.initConfigParam(GSConfigKey.MAX_KMER_RES_COUNTS, 35);
-		// Run the 'match' goal for the given file. This may trigger other goals such as
-		// the 'db' goal to first create the 'human_virus' database.
+		// Run the 'match' goal on the fastq file. Arguments:
+		//   1st boolean: use the 'matchlr' variant (matching without read classification, intended
+		//                for long reads) when true; 'false' selects the standard 'match'.
+		//   2nd boolean: when true, first delete any previously generated result for this input.
+		//   key (null): optional name for the input group; null uses a default derived from the file.
+		// Making 'match' also triggers any prerequisite goals, e.g. the 'db' goal that builds the
+		// 'human_virus' database if it does not exist yet.
 		maker.match(false, true, null, fastq.toString());
 
-		// Delete a potential result that has previously been generated.
-		// Run the 'filter' goal for the given file. This may trigger other goals such
-		// as the 'index' goal to
-		// first create the 'human_virus' filtering database.
+		// Run the 'filter' goal on the same input. The leading 'true' first deletes any previously
+		// generated result. Making 'filter' triggers any prerequisite goals, e.g. the 'index' goal
+		// that builds the 'human_virus' filtering database if needed.
 		maker.filter(true, null, fastq.toString());
 
-		// Clean up memory and threads.
+		// Release the resources held by the maker (data cached in memory and its worker threads).
 		maker.dumpAll();
 	}
 
+	// Demonstrates the lower-level goal API: obtain a Goal and drive it with cleanThis()/make().
 	@Test
 	public void testAndDemoBasicAPI() throws IOException {
 		// Get the base directory for Genestrip. (Depends on your setup.)
 		File baseDir = getBaseDir();
 
-		// Load the system configuration.
+		// Load Genestrip's system-wide configuration, rooted at the base directory.
 		GSCommon config = new GSCommon(baseDir);
 
-		// Get the fastq file to run a match on. (In this case, a small sample file
-		// provied as part of the release.)
+		// The fastq file to run a match on (here a small sample file shipped with the release).
 		File fastq = new File(getBaseDir(), "projects/human_virus/fastq/sample.fastq.gz");
 
-		// Create the 'human_virus' project (whose config files are part of the
-		// release).
+		// Create the 'human_virus' project and bind the fastq input to it up front (the last
+		// constructor argument). The goals below then read their input from the project, so - unlike
+		// the simple API above - no file paths need to be passed per call. The 'key' argument (here
+		// null) optionally names the input group.
 		GSProject project = new GSProject(config, "human_virus", null, new String[] { fastq.getCanonicalPath() });
-		GSMaker maker = new GSMaker(project);
-		// Run the 'match' goal. This may trigger other goals such as the 'db' goal to
-		// first create the 'human_virus' database.
+		GSMaker<GSProject> maker = new GSMaker<>(project);
+		// Obtain the 'match' goal. Making it triggers any prerequisite goals, e.g. the 'db' goal that
+		// builds the 'human_virus' database if it does not exist yet.
 		Goal<GSProject> goal = maker.getGoal(GSGoalKey.MATCH);
 		// First, delete a potential result that has previously been generated.
 		goal.cleanThis();
-		// then do the match.
+		// then run the match.
 		goal.make();
 
-		// Run the 'filter' goal. This may trigger other goals such as the 'index' goal
-		// to
-		// first create the 'human_virus' filtering database.
+		// Obtain the 'filter' goal. Making it triggers any prerequisite goals, e.g. the 'index' goal
+		// that builds the 'human_virus' filtering database if needed.
 		goal = maker.getGoal(GSGoalKey.FILTER);
 		// First, delete a potential result that has previously been generated.
 		goal.cleanThis();
-		// then do the match.
+		// then run the filter.
 		goal.make();
 
-		// Clean up memory and threads.
+		// Release the resources held by the maker (data cached in memory and its worker threads).
 		maker.dumpAll();
 	}
 
-	// To find the base directory for any project file provided as part of the
-	// release.
-	// (This may have to be done differently for you own projects.)
+	// Locates the base directory of the bundled sample projects that ship as part of the release.
+	// (For your own projects this is typically a fixed path you choose instead.)
 	public static File getBaseDir() {
 		return new File(getProjectDir(), "data");
 	}

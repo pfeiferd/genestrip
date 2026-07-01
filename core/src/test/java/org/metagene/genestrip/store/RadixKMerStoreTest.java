@@ -75,7 +75,7 @@ public class RadixKMerStoreTest extends AbstractKMerStoreTest {
 		Map<Long, Integer> kmerMap = new LinkedHashMap<Long, Integer>();
 		generate(SMALL_SIZE, null, kmerMap);
 		long[] kmers = kmerArray(kmerMap);
-		// radixBits must be >= MIN_RADIX_BITS (17); exercise a few valid widths around the default.
+		// radixBits must be >= MIN_RADIX_BITS (16); exercise a few valid widths around the default.
 		for (int radixBits : new int[] { RadixKMerStore.MIN_RADIX_BITS, 20, 22 }) {
 			int[] sizes = new int[1 << radixBits];
 			for (long kmer : kmers) {
@@ -93,7 +93,7 @@ public class RadixKMerStoreTest extends AbstractKMerStoreTest {
 
 	@Test
 	public void testRadixBitsBelowMinimum() {
-		// radixBits below MIN_RADIX_BITS (17) is rejected.
+		// radixBits below MIN_RADIX_BITS (16) is rejected.
 		int tooSmall = RadixKMerStore.MIN_RADIX_BITS - 1;
 		try {
 			new RadixKMerStore<Integer>(k, tooSmall, new int[1 << tooSmall], 0.000001, 0.000001, null, true);
@@ -103,15 +103,22 @@ public class RadixKMerStoreTest extends AbstractKMerStoreTest {
 		}
 	}
 
-	// Exercises value indices beyond KMerSortedArray's cap (65535) and beyond 2^(63-REMAINING_BITS) -
+	// Exercises value indices beyond KMerSortedArray's cap (65535) and beyond 2^(63-remainingBits) -
 	// i.e. into the range where the packed entry's high bit is set (a negative long) - to verify the
-	// 19-bit value field actually delivers the expanded RadixKMerStore.MAX_VALUES and round-trips.
+	// widened value field actually delivers the expanded per-radix MAX_VALUES and round-trips.
 	@Test
 	public void testValueCapacityBeyondSortedArray() {
-		int n = 300_000;
+		// The value count is derived from the store's actual per-radix capacity (which depends on
+		// RADIX_BITS) rather than hard-coded, so the test stays valid if the default radix width - and
+		// hence maxValuesForRadix() - changes. Half-way between the top-bit threshold and the cap, it
+		// is guaranteed to satisfy all three bounds below.
+		int remainingBits = RadixKMerStore.remainingBitsForRadix(RADIX_BITS);
+		int topBitThreshold = 1 << (63 - remainingBits); // above this, value indices set the entry's top bit
+		int maxValues = RadixKMerStore.maxValuesForRadix(RADIX_BITS);
+		int n = topBitThreshold + (maxValues - topBitThreshold) / 2;
 		assertTrue(n > KMerSortedArray.MAX_VALUES
-				&& n > (1 << (63 - RadixKMerStore.REMAINING_BITS)) // some indices set the entry's top bit
-				&& n < RadixKMerStore.MAX_VALUES);
+				&& n > topBitThreshold // some indices set the entry's top bit
+				&& n < maxValues);
 
 		// n distinct k-mers, each with a distinct value -> value index == insertion order.
 		Map<Long, Integer> kmerMap = new LinkedHashMap<Long, Integer>();

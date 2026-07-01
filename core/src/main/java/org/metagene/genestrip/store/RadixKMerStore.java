@@ -54,14 +54,18 @@ import it.unimi.dsi.fastutil.longs.LongComparator;
  * effective width would shrink with smaller {@code k}.
  * <p>
  * Each bucket is a {@code long[]} whose entries pack the remaining k-mer bits in their low
- * {@value #REMAINING_BITS} bits and the value index in their high 19 bits
- * ({@code entry = (valueIndex << }{@value #REMAINING_BITS}{@code ) | remaining}). The remaining bits
- * fit in {@value #REMAINING_BITS} bits as long as {@code 2*k - radixBits <= }{@value #REMAINING_BITS}
- * (validated by the constructor). This is the role that {@code valueIndexes}/{@code largeValueIndexes}
- * play in {@link KMerSortedArray}; here it lives in the spare 16 bits of each k-mer entry, so no
- * separate value-index array (and no large/small variant) is needed — each radix bucket holds at
- * most {@code entries / 2^radixBits} k-mers and therefore fits in a plain {@code int}-indexed
- * {@code long[]} even for very large databases.
+ * {@code remainingBits} bits and the value index in the high {@code 64 - remainingBits} bits
+ * ({@code entry = (valueIndex << remainingBits) | remaining}). The width {@code remainingBits} is
+ * derived from {@code radixBits} ({@link #remainingBitsForRadix(int)}): it is sized for the
+ * worst-case {@code k} (=31), i.e. {@code 2*31 - radixBits}, so the remaining bits of every valid
+ * {@code k <= 31} always fit (no per-{@code k} constructor check is needed). Because a larger
+ * {@code radixBits} needs fewer remaining bits, it leaves more high bits for the value index, so the
+ * number of distinct values the store can hold ({@link #getMaxValues()} /
+ * {@link #maxValuesForRadix(int)}) grows with {@code radixBits}. This packing plays the role that
+ * {@code valueIndexes}/{@code largeValueIndexes} play in {@link KMerSortedArray}; here it lives in
+ * the spare high bits of each k-mer entry, so no separate value-index array (and no large/small
+ * variant) is needed — each radix bucket holds at most {@code entries / 2^radixBits} k-mers and
+ * therefore fits in a plain {@code int}-indexed {@code long[]} even for very large databases.
  * <p>
  * A lookup first indexes the radix table: a {@code null} bucket means there is no k-mer with that
  * {@code radixBits}-bit suffix, so {@link #getLong} returns {@code null} immediately — even before
@@ -79,38 +83,43 @@ import it.unimi.dsi.fastutil.longs.LongComparator;
  */
 public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V> {
 	/**
-	 * Minimum (and default) number of low k-mer bits used as the radix index. At least 17 bits are
-	 * used so that the remaining k-mer bits ({@code 2*k - radixBits}, at most {@code 2*31 - 17 = 45}
-	 * since {@code k <= 31}) fit in the {@value #REMAINING_BITS} low bits of each entry, leaving the
-	 * high 19 bits free for the value index.
+	 * Minimum number of low k-mer bits used as the radix index. The lower this bound, the wider the
+	 * reserved remaining-bits field (sized for the worst-case {@code k}, see
+	 * {@link #remainingBitsForRadix(int)}) and hence the fewer high bits are left for the value
+	 * index: at 16 bits the store supports {@code 2^18} distinct values (see
+	 * {@link #maxValuesForRadix(int)}).
 	 */
-	public static final int MIN_RADIX_BITS = 17;
-	/** Default number of (low) k-mer bits used as the radix index. */
-	public static final int DEFAULT_RADIX_BITS = MIN_RADIX_BITS;
-	/** Number of (remaining) k-mer bits stored in the low bits of each entry. */
-	public static final int REMAINING_BITS = 45;
-	/** Mask selecting the {@value #REMAINING_BITS} stored (remaining) k-mer bits of an entry. */
-	public static final long REMAINING_MASK = (1L << REMAINING_BITS) - 1;
-	// Since k <= 31 (2*k <= 62) the remaining bits need at most 2*31 - MIN_RADIX_BITS = 45, which 45
-	// holds exactly (no spare bit, so MIN_RADIX_BITS and the constructor's fit check are load-bearing),
-	// leaving 64 - REMAINING_BITS = 19 bits of each entry for the value index - eight times as many
-	// distinct values as KMerSortedArray's short-indexed store. (The value index packs into the
-	// entry's high bits via an unsigned shift; entries are never compared to the -1L "erroneous k-mer"
-	// sentinel, which lives in the full-k-mer space and stays safe because a reconstructed valid k-mer
-	// occupies at most 2*k <= 62 bits, i.e. is always < 2^62.)
-	public static final int MAX_VALUES = 8 * KMerSortedArray.MAX_VALUES;
+	public static final int MIN_RADIX_BITS = 16;
+	/** Maximum number of low k-mer bits used as the radix index. */
+	public static final int MAX_RADIX_BITS = 30;
+	/**
+	 * Default number of (low) k-mer bits used as the radix index. Deliberately kept above
+	 * {@link #MIN_RADIX_BITS} so the default store retains its larger value capacity
+	 * ({@code 2^19} distinct values) rather than the {@code 2^18} of the minimum width.
+	 */
+	public static final int DEFAULT_RADIX_BITS = 17;
+
+	// Worst-case number of populated k-mer bits (2 * 31, since k <= 31). The remaining-bits field is
+	// sized against this so it holds the remaining bits of every valid k regardless of the store's k.
+	private static final int MAX_KMER_BITS = 62;
+	// Cap on the value-index width so getMaxValues() stays a positive int / valid array length even
+	// for the widest radix (a 30-bit index already allows > 10^9 distinct values). Also keeps the
+	// 1 << valueBits below the 32-bit shift wrap-around at radixBits == MAX_RADIX_BITS.
+	private static final int MAX_VALUE_INDEX_BITS = 30;
 
 	private static final long serialVersionUID = 1L;
-
-	// Orders entries by their remaining k-mer bits (the value index in the high bits is ignored).
-	// The masked values are in [0, 2^45) and hence never negative, so a signed compare is correct.
-	private static final LongComparator REMAINING_COMPARATOR =
-			(a, b) -> Long.compare(a & REMAINING_MASK, b & REMAINING_MASK);
 
 	// Number of low k-mer bits used as the radix index, and the corresponding mask. Configurable per
 	// store; the number of buckets is 2^radixBits == radixIndex.length.
 	private final int radixBits;
 	private final int radixMask;
+	// Number of low entry bits reserved for the (stored) remaining k-mer bits, and its mask. Derived
+	// from radixBits (see remainingBitsForRadix); the value index occupies the entry bits above them.
+	// The value index packs into those high bits via an unsigned shift, so an entry may be negative;
+	// entries are never compared to the -1L "erroneous k-mer" sentinel, which lives in the full-k-mer
+	// space and stays safe because a reconstructed valid k-mer occupies at most 2*k <= 62 bits.
+	private final int remainingBits;
+	private final long remainingMask;
 
 	// radixIndex[r] holds all k-mers whose low radixBits bits equal r, or null if there are none.
 	private final long[][] radixIndex;
@@ -126,6 +135,40 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	// offsets are only ever consumed after optimize() (matching / unique-counting).
 	private final long[] bucketOffset;
 
+	/**
+	 * Number of low entry bits reserved for the (stored) remaining k-mer bits of a store with the
+	 * given radix width. Sized for the worst-case {@code k} (=31, i.e. {@code 2*k = 62}): the
+	 * remaining bits are {@code 2*k - radixBits}, maximal at {@code k = 31}, so reserving
+	 * {@code 62 - radixBits} is enough for every {@code k <= 31}.
+	 *
+	 * @return the reserved remaining-bits width, {@code 62 - radixBits}.
+	 */
+	public static int remainingBitsForRadix(int radixBits) {
+		return MAX_KMER_BITS - radixBits;
+	}
+
+	/**
+	 * Maximum number of distinct values a store with the given radix width can hold. The value index
+	 * occupies the entry bits above the reserved remaining bits ({@link #remainingBitsForRadix(int)}),
+	 * so a wider radix leaves more bits for it and raises this cap. The width is capped at
+	 * {@value #MAX_VALUE_INDEX_BITS} bits so the result stays a positive {@code int} / valid array
+	 * length.
+	 *
+	 * @return {@code 2^valueBits}, where {@code valueBits = min(30, 64 - remainingBitsForRadix(radixBits))}.
+	 */
+	public static int maxValuesForRadix(int radixBits) {
+		checkRadixBits(radixBits);
+		int valueBits = Math.min(MAX_VALUE_INDEX_BITS, Long.SIZE - remainingBitsForRadix(radixBits));
+		return 1 << valueBits;
+	}
+
+	private static void checkRadixBits(int radixBits) {
+		if (radixBits < MIN_RADIX_BITS || radixBits > MAX_RADIX_BITS) {
+			throw new IllegalArgumentException(
+					"radixBits must be in [" + MIN_RADIX_BITS + ", " + MAX_RADIX_BITS + "], got " + radixBits);
+		}
+	}
+
 	public RadixKMerStore(int k, int radixBits, int[] bucketSizes, double entryFpp, double optimizedFpp,
 						  List<V> initialValues, boolean xor) {
 		this(k, radixBits, bucketSizes, initialValues,
@@ -134,16 +177,13 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 
 	protected RadixKMerStore(int k, int radixBits, int[] bucketSizes, List<V> initialValues, KMerProbFilter filter,
 							 double optimizedFpp) {
-		super(k, MAX_VALUES, initialValues, filter, optimizedFpp);
-		if (radixBits < MIN_RADIX_BITS || radixBits > 30) {
-			throw new IllegalArgumentException("radixBits must be in [" + MIN_RADIX_BITS + ", 30], got " + radixBits);
-		}
-		// The remaining (2*k - radixBits) k-mer bits must fit in the REMAINING_BITS low bits of the
-		// entry (the high 19 bits hold the value index).
-		if (2 * k - radixBits > REMAINING_BITS) {
-			throw new IllegalArgumentException("radixBits=" + radixBits + " is too small for k=" + k
-					+ "; it must be at least " + (2 * k - REMAINING_BITS) + " so the remaining k-mer bits fit.");
-		}
+		// maxValuesForRadix validates radixBits (before super allocates), and its result depends on
+		// radixBits: a wider radix reserves fewer remaining bits and so admits more distinct values.
+		super(k, maxValuesForRadix(radixBits), initialValues, filter, optimizedFpp);
+		// The reserved remaining bits are sized for the worst-case k, so 2*k - radixBits always fits;
+		// no per-k fit check is needed here.
+		this.remainingBits = remainingBitsForRadix(radixBits);
+		this.remainingMask = (1L << remainingBits) - 1;
 		int radixSize = 1 << radixBits;
 		if (bucketSizes.length != radixSize) {
 			throw new IllegalArgumentException("bucketSizes must have length 2^radixBits = " + radixSize
@@ -177,6 +217,8 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		super(org, converter);
 		radixBits = org.radixBits;
 		radixMask = org.radixMask;
+		remainingBits = org.remainingBits;
+		remainingMask = org.remainingMask;
 		radixIndex = org.radixIndex;
 		bucketFill = org.bucketFill;
 		// The offsets depend only on the (shared) bucket capacities, so they can be shared too.
@@ -225,8 +267,8 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		return kmer >>> radixBits;
 	}
 
-	private static long entryOf(int valueIndex, long remaining) {
-		return (((long) valueIndex) << REMAINING_BITS) | remaining;
+	private long entryOf(int valueIndex, long remaining) {
+		return (((long) valueIndex) << remainingBits) | remaining;
 	}
 
 	@Override
@@ -295,7 +337,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 			int hi = fill - 1;
 			while (lo <= hi) {
 				final int mid = (lo + hi) >>> 1;
-				final long midRem = bucket[mid] & REMAINING_MASK;
+				final long midRem = bucket[mid] & remainingMask;
 				if (midRem < remaining) {
 					lo = mid + 1;
 				} else if (midRem > remaining) {
@@ -307,7 +349,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 			}
 		} else {
 			for (int i = 0; i < fill; i++) {
-				if ((bucket[i] & REMAINING_MASK) == remaining) {
+				if ((bucket[i] & remainingMask) == remaining) {
 					pos = i;
 					break;
 				}
@@ -319,7 +361,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		if (posStore != null) {
 			posStore[0] = bucketOffset[radix] + pos;
 		}
-		return indexMap[(int) (bucket[pos] >>> REMAINING_BITS)];
+		return indexMap[(int) (bucket[pos] >>> remainingBits)];
 	}
 
 	@Override
@@ -342,7 +384,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		int hi = fill - 1;
 		while (lo <= hi) {
 			int mid = (lo + hi) >>> 1;
-			long midRem = bucket[mid] & REMAINING_MASK;
+			long midRem = bucket[mid] & remainingMask;
 			if (midRem < remaining) {
 				lo = mid + 1;
 			} else if (midRem > remaining) {
@@ -358,7 +400,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		// Synchronize only on accesses that (might) target the same entry; see KMerSortedArray.
 		synchronized (syncs[((radix * 31) + pos) & (syncs.length - 1)]) {
 			long entry = bucket[pos];
-			int vi = (int) (entry >>> REMAINING_BITS);
+			int vi = (int) (entry >>> remainingBits);
 			V oldValue = indexMap[vi];
 			V newValue = provider.getUpdateValue(oldValue);
 			if (newValue == null) {
@@ -370,7 +412,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 					newVi = getAddValueIndex(newValue);
 					kmersMoved++;
 				}
-				bucket[pos] = entryOf(newVi, entry & REMAINING_MASK);
+				bucket[pos] = entryOf(newVi, entry & remainingMask);
 				return true;
 			}
 			return false;
@@ -382,6 +424,11 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		if (sorted) {
 			return;
 		}
+		// Orders entries by their remaining k-mer bits (the value index in the high bits is ignored);
+		// the masked values are non-negative, so a signed compare is correct. Built locally (rather
+		// than kept as a field) so the store stays serializable - a lambda field would not be.
+		final long mask = remainingMask;
+		final LongComparator remainingComparator = (a, b) -> Long.compare(a & mask, b & mask);
 		for (int r = 0; r < radixIndex.length; r++) {
 			long[] bucket = radixIndex[r];
 			if (bucket == null) {
@@ -389,7 +436,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 			}
 			int fill = bucketFill[r];
 			if (fill > 1) {
-				LongArrays.quickSort(bucket, 0, fill, REMAINING_COMPARATOR);
+				LongArrays.quickSort(bucket, 0, fill, remainingComparator);
 			}
 		}
 		sorted = true;
@@ -411,7 +458,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 				int fill = bucketFill[r];
 				for (int i = 0; i < fill; i++) {
 					// Reassemble the full k-mer: remaining bits shifted back above the radix bits.
-					filter.putLong(((bucket[i] & REMAINING_MASK) << radixBits) | r);
+					filter.putLong(((bucket[i] & remainingMask) << radixBits) | r);
 				}
 			}
 		}
@@ -429,8 +476,8 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 			for (int i = 0; i < fill; i++) {
 				long entry = bucket[i];
 				// Reassemble the full k-mer: remaining bits shifted back above the radix bits.
-				long kmer = ((entry & REMAINING_MASK) << radixBits) | r;
-				visitor.nextValue(this, kmer, (int) (entry >>> REMAINING_BITS), base + i);
+				long kmer = ((entry & remainingMask) << radixBits) | r;
+				visitor.nextValue(this, kmer, (int) (entry >>> remainingBits), base + i);
 			}
 		}
 	}

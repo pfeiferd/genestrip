@@ -171,6 +171,11 @@ public abstract class AbstractKMerStore<V extends Serializable> implements Tunab
 	}
 
 	@Override
+	public int getMaxValues() {
+		return maxValues;
+	}
+
+	@Override
 	public long getEntries() {
 		return entries;
 	}

@@ -170,7 +170,8 @@ public enum GSConfigKey implements ConfigKey {
 	USE_RADIX_STORE("useRadixStore", new BooleanConfigParamInfo(false), true, GSGoalKey.FILL_DB),
 	@MDDescription("Number of low *k*-mer bits used as the radix index of the `RadixKMerStore` (only relevant when `useRadixStore` is `true`). "
 			+ "The store has `2^radixStoreBits` buckets; more bits give smaller, more cache-friendly buckets at the cost of a larger radix table. "
-			+ "Must be at least `2*k - 48` so the remaining k-mer bits still fit in an entry.")
+			+ "It also raises the store's value capacity (`MAX_VALUES`, the number of distinct values it can hold): each *k*-mer entry reserves `62 - radixStoreBits` low bits for the remaining *k*-mer bits (sized for the worst-case `k=31`) and uses the high `2 + radixStoreBits` bits (capped at 30) for the value index, so a wider radix leaves more bits for values. "
+			+ "Because the value capacity grows with `radixStoreBits`, so does the memory of the store's value-index array; this scales with the larger databases that warrant a wider radix.")
 	RADIX_STORE_BITS("radixStoreBits", new IntConfigParamInfo(RadixKMerStore.MIN_RADIX_BITS, 24, RadixKMerStore.DEFAULT_RADIX_BITS), true, GSGoalKey.TEMPINDEX, GSGoalKey.FILL_DB),
 	XOR_BLOOM_HASH("xorBloomHash", new BooleanConfigParamInfo(true)),
 	FASTA_LINE_SIZE_BYTES("fastaLineSizeBytes", new IntConfigParamInfo(4096, 65536, 4096), true, GSGoalKey.DB),

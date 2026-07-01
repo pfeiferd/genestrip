@@ -51,6 +51,13 @@ public interface KMerStore<V extends Serializable> extends Serializable {
 	// --- Value <-> store-index mapping ---------------------------------------
 
 	/**
+	 * @return the maximum number of distinct values this store can hold (the value-index capacity).
+	 *         Defined per implementation; see e.g. {@link KMerSortedArray#MAX_VALUES} and
+	 *         {@link RadixKMerStore#maxValuesForRadix(int)}.
+	 */
+	public int getMaxValues();
+
+	/**
 	 * @return the number of distinct values currently registered in this store.
 	 */
 	public int getNValues();
