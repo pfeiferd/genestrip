@@ -30,21 +30,43 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.zip.GZIPInputStream;
 
+/**
+ * A {@link StreamingResource} backed by a {@link URL}. The content is decompressed with GZIP unless
+ * suppressed, and the number of bytes read is tracked via a {@link ByteCountingInputStream}.
+ */
 public class StreamingURLResource implements StreamingResource {
 	private final String name;
 	private final URL url;
 	private final boolean noGZ;
 
+	/**
+	 * Creates a resource for the given URL, named after its file part, with GZIP decompression.
+	 *
+	 * @param url the URL backing the resource
+	 */
 	public StreamingURLResource(URL url) {
 		this(url.getFile(), url, false);
 	}
 
+	/**
+	 * Creates a resource for the given URL with the given name. If {@code noGZ} is {@code true}, the
+	 * content is read without GZIP decompression.
+	 *
+	 * @param name the resource name
+	 * @param url the URL backing the resource
+	 * @param noGZ whether to read the content without GZIP decompression
+	 */
 	public StreamingURLResource(String name, URL url, boolean noGZ) {
 		this.name = name;
 		this.url = url;
 		this.noGZ = noGZ;
 	}
 
+	/**
+	 * Returns whether the content is read without GZIP decompression.
+	 *
+	 * @return {@code true} if GZIP decompression is suppressed
+	 */
 	public boolean isNoGZ() {
 		return noGZ;
 	}
@@ -73,6 +95,14 @@ public class StreamingURLResource implements StreamingResource {
 		};
 	}
 
+	/**
+	 * Wraps the given stream in a {@link ByteCountingInputStream}; may be overridden to customize the
+	 * byte-counting stream.
+	 *
+	 * @param is the stream to wrap
+	 * @return the byte-counting stream wrapping {@code is}
+	 * @throws IOException if wrapping the stream fails
+	 */
 	protected ByteCountingInputStream createByteCountingInputStream(InputStream is) throws IOException {
 		return new ByteCountingInputStream(is);
 	}
@@ -82,6 +112,11 @@ public class StreamingURLResource implements StreamingResource {
 		return name;
 	}
 
+	/**
+	 * Returns the URL backing this resource.
+	 *
+	 * @return the backing URL
+	 */
 	public URL getURL() {
 		return url;
 	}

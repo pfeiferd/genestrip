@@ -41,12 +41,27 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.*;
 
+/**
+ * Writes a CSV file with the per-tax-id database-quality metrics (tp, tp+fp, tp+fn, precision, recall
+ * and their weighted averages) computed by {@link DBQualityCountsGoal}, ordered by the taxonomy tree.
+ *
+ * @param <P> the concrete FT project type
+ */
 public class DBQualityCSVGoal<P extends FTProject> extends FileGoal<P> {
     private static final DecimalFormat DF = new DecimalFormat("0.00000000", new DecimalFormatSymbols(Locale.US));
 
     private final ObjectGoal<Database, P> storeGoal;
     private final ObjectGoal<Map<String, DBQualityCountsGoal.Counts>, P> kmersPerTaxGoal;
 
+    /**
+     * Creates the goal writing the per-tax-id database-quality CSV file.
+     *
+     * @param project         the FT project
+     * @param key             the goal key
+     * @param storeGoal       the goal providing the database (for its taxonomy tree)
+     * @param kmersPerTaxGoal the goal providing the per-tax-id quality counts
+     * @param deps            further goals this goal depends on
+     */
     public DBQualityCSVGoal(P project, FTGoalKey key, ObjectGoal<Database, P> storeGoal, ObjectGoal<Map<String, DBQualityCountsGoal.Counts>, P> kmersPerTaxGoal, Goal<P>... deps) {
         super(project, key, Goal.append(deps, storeGoal, kmersPerTaxGoal));
         this.storeGoal = storeGoal;

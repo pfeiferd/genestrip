@@ -30,25 +30,47 @@ import java.util.Arrays;
 import it.unimi.dsi.fastutil.BigArrays;
 import it.unimi.dsi.fastutil.longs.LongBigArrays;
 
+/**
+ * A bit vector that transparently switches between a single {@code long[]} for small capacities and
+ * fastutil big arrays for capacities beyond the range of a normal array, and never shrinks.
+ */
 public class LargeBitVector implements Serializable {
     private static final long serialVersionUID = 1L;
 
+    /** Maximum capacity in longs for which the small {@code long[]} backing is used. */
     public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
 
     // All made public for inlining (optimization):
+    /** The current capacity in 64-bit words. */
     public long size;
+    /** The small backing array, or {@code null} when the large backing is used. */
     public long[] bits;
+    /** The large (big-array) backing, or {@code null} when the small backing is used. */
     public long[][] largeBits;
 
+    /**
+     * Creates a bit vector with at least the given initial capacity in bits.
+     *
+     * @param initialSize the initial capacity in bits
+     */
     public LargeBitVector(long initialSize) {
         this(initialSize, false);
     }
 
+    /**
+     * Creates a bit vector with at least the given initial capacity in bits.
+     *
+     * @param initialSize  the initial capacity in bits
+     * @param enforceLarge if true, forces the big-array backing even when a normal array would fit.
+     */
     public LargeBitVector(long initialSize, boolean enforceLarge) {
         size = -1;
         ensureCapacity(initialSize, enforceLarge);
     }
 
+    /**
+     * Sets all bits to zero.
+     */
     public void clear() {
         if (largeBits != null) {
             BigArrays.fill(largeBits, 0L);
@@ -62,6 +84,7 @@ public class LargeBitVector implements Serializable {
      * might be enlarged but never gets smaller in size.
      *
      * @param newSize The desired size in bits.
+     * @param enforceLarge if true, forces the big-array backing even when a normal array would fit.
      * @return Whether the vector got bigger or not.
      */
     public boolean ensureCapacity(long newSize, boolean enforceLarge) {
@@ -88,14 +111,29 @@ public class LargeBitVector implements Serializable {
         }
     }
 
+    /**
+     * Returns whether this vector currently uses the large (big-array) backing storage.
+     *
+     * @return {@code true} if the large backing is in use
+     */
     public boolean isLarge() {
         return largeBits != null;
     }
 
+    /**
+     * Returns the current capacity in bits.
+     *
+     * @return the current capacity in bits
+     */
     public long getBitSize() {
         return size * 64;
     }
 
+    /**
+     * Clears (sets to 0) the bit at the given index.
+     *
+     * @param index the bit index to clear
+     */
     public void clear(long index) {
         if (largeBits != null) {
             long arrayIndex = index >>> 6;
@@ -106,6 +144,11 @@ public class LargeBitVector implements Serializable {
         }
     }
 
+    /**
+     * Sets (to 1) the bit at the given index.
+     *
+     * @param index the bit index to set
+     */
     public final void set(final long index) {
         if (largeBits != null) {
             long arrayIndex = index >>> 6;
@@ -122,6 +165,12 @@ public class LargeBitVector implements Serializable {
         }
     }
 
+    /**
+     * Returns whether the bit at the given index is set.
+     *
+     * @param index the bit index to test
+     * @return {@code true} if the bit is set
+     */
     public final boolean get(final long index) {
         if (largeBits != null) {
             long arrayIndex = index >>> 6;

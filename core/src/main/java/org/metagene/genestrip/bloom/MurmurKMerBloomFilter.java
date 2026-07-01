@@ -26,9 +26,17 @@ package org.metagene.genestrip.bloom;
 
 import org.metagene.genestrip.util.MurmurHash3DropIn;
 
+/**
+ * An {@link AbstractKMerBloomFilter} that hashes k-mers with MurmurHash3.
+ */
 public class MurmurKMerBloomFilter extends AbstractKMerBloomFilter {
 	private static final long serialVersionUID = 1L;
 
+	/**
+	 * Creates a filter with the given target false-positive probability.
+	 *
+	 * @param fpp the target false-positive probability
+	 */
 	public MurmurKMerBloomFilter(double fpp) {
 		super(fpp);
 	}

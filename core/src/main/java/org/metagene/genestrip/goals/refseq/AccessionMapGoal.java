@@ -42,12 +42,29 @@ import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
+/**
+ * Goal that builds the {@link AccessionMap}: it scans the RefSeq release catalog and maps every
+ * accession range to its taxonomy node, incrementing that node's RefSeq region count. Depends on
+ * the tax tree, the selected categories, the downloaded catalog and the pre-computed map size.
+ *
+ * @param <P> the project type
+ */
 public class AccessionMapGoal<P extends GSProject> extends ObjectGoal<AccessionMap, P> implements Goal.LogHeapInfo {
 	private final ObjectGoal<TaxTree, P> taxTreeGoal;
 	private final RefSeqCatalogDownloadGoal catalogGoal;
 	private final ObjectGoal<Integer, P> accessionMapSizeGoal;
 	private final ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal;
 
+	/**
+	 * Creates the goal, wiring the tax tree, categories, catalog download and map-size goals it reads.
+	 *
+	 * @param project the project
+	 * @param categoriesGoal goal providing the selected RefSeq categories
+	 * @param taxTreeGoal goal providing the taxonomy tree
+	 * @param catalogGoal goal providing the downloaded RefSeq catalog
+	 * @param accessionMapSizeGoal goal providing the pre-computed accession-map size
+	 * @param deps additional goal dependencies
+	 */
 	@SafeVarargs
 	public AccessionMapGoal(P project, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
 			ObjectGoal<TaxTree, P> taxTreeGoal, RefSeqCatalogDownloadGoal catalogGoal,

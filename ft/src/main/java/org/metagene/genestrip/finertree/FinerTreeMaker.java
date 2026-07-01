@@ -40,22 +40,47 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
+/**
+ * {@link GSMaker} for the finer-tree (FT) extension. Builds the standard Genestrip goal graph and adds
+ * the FT-specific setup and database-quality goals.
+ *
+ * @param <P> the concrete FT project type
+ */
 public class FinerTreeMaker<P extends FTProject> extends GSMaker<P> {
     private boolean useFTDBForAPI;
 
+    /**
+     * Creates a finer-tree maker for the given project.
+     *
+     * @param project the project the goals are built for
+     */
     public FinerTreeMaker(P project) {
         super(project);
         setUseFTDBForAPI(false);
     }
 
+    /**
+     * Sets whether the FT database should be used for API access.
+     *
+     * @param useFTDBForAPI whether the FT database is used for API access
+     */
     public void setUseFTDBForAPI(boolean useFTDBForAPI) {
         this.useFTDBForAPI = useFTDBForAPI;
     }
 
+    /**
+     * Returns whether the FT database is used for API access.
+     *
+     * @return whether the FT database is used for API access
+     */
     public boolean isUseFTDBForAPI() {
         return useFTDBForAPI;
     }
 
+    /**
+     * Registers the standard Genestrip goals and additionally the FT setup goal and the
+     * database-quality counting and CSV goals.
+     */
     @Override
     protected void createGoals() {
         super.createGoals();

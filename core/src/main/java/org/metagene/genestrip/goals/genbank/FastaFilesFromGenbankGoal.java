@@ -43,6 +43,12 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
+/**
+ * Produces, per tax id, the GenBank assembly entries whose fasta files should additionally be downloaded,
+ * selected by the configured quality filter and capped at the configured maximum (keeping the best quality).
+ *
+ * @param <P> the project type
+ */
 public class FastaFilesFromGenbankGoal<P extends GSProject> extends ObjectGoal<Map<TaxIdNode, List<AssemblyEntry>>, P> {
 	private static final Comparator<AssemblyEntry> COMPARATOR = new Comparator<AssemblyEntry>() {
 		@Override
@@ -59,6 +65,15 @@ public class FastaFilesFromGenbankGoal<P extends GSProject> extends ObjectGoal<M
 	private final int maxFromGenbank;
 	private final boolean refGenOnly;
 
+	/**
+	 * Creates the goal, wiring the tax tree, assembly-summary and Genbank tax id goals it uses to
+	 * select the fasta files to download from Genbank.
+	 *
+	 * @param project the project type
+	 * @param taxTreeGoal the goal providing the taxonomy tree
+	 * @param assemblyGoal the goal providing the assembly-summary file
+	 * @param taxidsFromGenbankGoal the goal providing the tax ids to fetch from Genbank
+	 */
 	@SuppressWarnings("unchecked")
 	public FastaFilesFromGenbankGoal(P project, ObjectGoal<TaxTree, P> taxTreeGoal,
 			FileGoal<P> assemblyGoal, ObjectGoal<Set<TaxIdNode>, P> taxidsFromGenbankGoal) {
@@ -71,6 +86,10 @@ public class FastaFilesFromGenbankGoal<P extends GSProject> extends ObjectGoal<M
 		this.refGenOnly = booleanConfigValue(GSConfigKey.REF_GEN_ONLY);
 	}
 
+	/**
+	 * Treats the assembly-summary download as a weak dependency, so it is only made on demand within
+	 * {@link #doMakeThis()}.
+	 */
 	public boolean isWeakDependency(Goal<P> toGoal) {
 		if (toGoal == assemblyGoal) {
 			return true;

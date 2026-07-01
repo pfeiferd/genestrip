@@ -27,11 +27,21 @@ package org.metagene.genestrip.io;
 import java.io.IOException;
 import java.io.InputStream;
 
+/**
+ * An {@link InputStream} that wraps a delegate stream and counts the number of bytes read from it,
+ * keeping the count consistent across {@code mark}/{@code reset} and {@code skip}.
+ */
 public class ByteCountingInputStream extends InputStream {
+	/** The number of bytes read from the delegate stream so far. */
 	protected long bRead;
 	private long readToMark;
 	private final InputStream delegate;
 
+	/**
+	 * Creates a byte-counting stream wrapping the given delegate stream.
+	 *
+	 * @param delegate the underlying input stream to read from
+	 */
 	public ByteCountingInputStream(InputStream delegate) {
 		this.delegate = delegate;
 	}
@@ -63,6 +73,11 @@ public class ByteCountingInputStream extends InputStream {
 		return n;
 	}
 
+	/**
+	 * Returns the total number of bytes read so far.
+	 *
+	 * @return the number of bytes read
+	 */
 	public long getBytesRead() {
 		return bRead;
 	}

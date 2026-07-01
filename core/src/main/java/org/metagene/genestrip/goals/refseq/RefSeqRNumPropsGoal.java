@@ -38,11 +38,25 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Properties;
 
+/**
+ * Goal that writes a {@code release.properties} file recording the RefSeq release number the
+ * database was built from.
+ *
+ * @param <P> the project type
+ */
 public class RefSeqRNumPropsGoal<P extends GSProject> extends FileListGoal<P> {
+    /** Name of the properties file recording the RefSeq release number. */
     public static final String RELEASE_PROPS_FILE_NAME = "release.properties";
 
     private final ObjectGoal<CheckRefSeqRNumGoal.Result, P> checkRefSeqRNumGoal;
 
+    /**
+     * Creates the goal, wiring the release-check goal whose side effect records the release number.
+     *
+     * @param project   the project this goal belongs to
+     * @param checkRNum the release-check goal whose side effect records the release number
+     * @param deps      additional goals this goal depends on
+     */
     @SafeVarargs
     public RefSeqRNumPropsGoal(P project, ObjectGoal<CheckRefSeqRNumGoal.Result, P> checkRNum, Goal<P>... deps) {
         super(project, GSGoalKey.REFSEQ_PROP, new File(project.getCommon().getRefSeqDir(), RELEASE_PROPS_FILE_NAME), deps);

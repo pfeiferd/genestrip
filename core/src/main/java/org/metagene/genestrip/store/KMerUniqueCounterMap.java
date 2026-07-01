@@ -29,10 +29,17 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
+/**
+ * Deprecated {@link KMerUniqueCounter} that simply keeps every matched k-mer in a map. Superseded by
+ * {@link KMerUniqueCounterBits}, which uses far less memory.
+ */
 @Deprecated
 public class KMerUniqueCounterMap implements KMerUniqueCounter {
 	private final Long2ObjectMap<String> map;
 
+	/**
+	 * Creates an empty map-based unique counter.
+	 */
 	public KMerUniqueCounterMap() {
 		map = new Long2ObjectOpenHashMap<>();
 	}

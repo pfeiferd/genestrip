@@ -32,6 +32,10 @@ import it.unimi.dsi.fastutil.BigArrays;
 import it.unimi.dsi.fastutil.BigSwapper;
 import it.unimi.dsi.fastutil.longs.LongComparator;
 
+/**
+ * An {@link AccessionMap} backed by parallel key and value arrays that, once {@link #optimize()} is
+ * called, are sorted by accession key so that lookups use binary search.
+ */
 public class AccessionMapImpl implements AccessionMap {
 	private final byte[][] keys;
 	private final TaxIdNode[] values;
@@ -39,6 +43,11 @@ public class AccessionMapImpl implements AccessionMap {
 	private int entries;
 	private boolean sorted;
 
+	/**
+	 * Creates a map with capacity for the given number of entries.
+	 *
+	 * @param size the number of entries the map can hold
+	 */
 	public AccessionMapImpl(int size) {
 		entries = 0;
 		keys = new byte[size][];
@@ -74,6 +83,17 @@ public class AccessionMapImpl implements AccessionMap {
 		return counter;
 	}
 
+	/**
+	 * Binary-searches the sorted keys in {@code [from, to)} for the key {@code array[start, end)},
+	 * returning its index, or {@code -(insertionPoint + 1)} if absent.
+	 *
+	 * @param from  the index of the first key to search (inclusive)
+	 * @param to    the index one past the last key to search (exclusive)
+	 * @param array the byte array holding the search key
+	 * @param start the start index of the search key in {@code array} (inclusive)
+	 * @param end   the end index of the search key in {@code array} (exclusive)
+	 * @return the index of the matching key, or {@code -(insertionPoint + 1)} if absent
+	 */
 	protected int binaryKeySearch(int from, int to, byte[] array, int start, int end) {
 		byte[] midVal;
 		to--;
@@ -124,6 +144,13 @@ public class AccessionMapImpl implements AccessionMap {
 		sorted = true;
 	}
 
+	/**
+	 * Lexicographically compares two keys, ordering shorter keys before longer ones.
+	 *
+	 * @param key1 the first key
+	 * @param key2 the second key
+	 * @return a negative, zero or positive value if {@code key1} sorts before, equal to or after {@code key2}
+	 */
 	protected int compareBytes(byte[] key1, byte[] key2) {
 		if (key1.length == key2.length) {
 			for (int i = 0; i < key1.length; i++) {
@@ -137,6 +164,16 @@ public class AccessionMapImpl implements AccessionMap {
 		}
 	}
 
+	/**
+	 * Lexicographically compares the given key against {@code array[start, end)}, ordering the
+	 * shorter of the two before the longer.
+	 *
+	 * @param key1  the key to compare
+	 * @param array the byte array holding the other key
+	 * @param start the start index of the other key in {@code array} (inclusive)
+	 * @param end   the end index of the other key in {@code array} (exclusive)
+	 * @return a negative, zero or positive value if {@code key1} sorts before, equal to or after the other key
+	 */
 	protected int compareBytes(byte[] key1, byte[] array, int start, int end) {
 		int len = end - start;
 		if (key1.length == len) {

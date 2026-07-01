@@ -37,13 +37,33 @@ import java.util.Set;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
+/**
+ * Collects sets of taxonomy nodes from a {@link TaxTree}, e.g. by reading tax ids from
+ * a file, expanding a set to include its descendants, or restricting a set to those
+ * below given ancestors.
+ */
 public class TaxIdCollector {
 	private final TaxTree taxTree;
 
+	/**
+	 * Creates a collector operating on the given taxonomy tree.
+	 *
+	 * @param taxTree the taxonomy tree used to resolve tax ids
+	 */
 	public TaxIdCollector(TaxTree taxTree) {
 		this.taxTree = taxTree;
 	}
 
+	/**
+	 * Reads tax ids from the given file (one per line, ignoring {@code #} comments and
+	 * taking the last tab-separated field) and resolves them to nodes. Tax ids prefixed
+	 * with {@code -} are added to {@code excludes} instead of the returned set.
+	 *
+	 * @param file the file to read tax ids from
+	 * @param excludes the set receiving nodes for excluded (minus-prefixed) tax ids
+	 * @return the set of included nodes
+	 * @throws java.io.IOException if the file cannot be read
+	 */
 	public Set<TaxIdNode> readFromFile(File file, Set<TaxIdNode> excludes) throws IOException {
 		Set<TaxIdNode> res = new HashSet<TaxIdNode>();
 
@@ -87,6 +107,15 @@ public class TaxIdCollector {
 		return res;
 	}
 
+	/**
+	 * Returns a new set containing the given nodes together with all of their
+	 * descendants, descending only into sub-nodes that are not below the given rank
+	 * {@code depth} (or all descendants if {@code depth} is {@code null}).
+	 *
+	 * @param taxIds the starting nodes
+	 * @param depth the rank not to descend below, or {@code null} for all descendants
+	 * @return a new set of the given nodes together with their (bounded) descendants
+	 */
 	public Set<TaxIdNode> withDescendants(Set<TaxIdNode> taxIds, Rank depth) {
 		Set<TaxIdNode> res = new HashSet<TaxTree.TaxIdNode>();
 
@@ -96,6 +125,14 @@ public class TaxIdCollector {
 		return res;
 	}
 
+	/**
+	 * Returns the subset of the given nodes that are descendants of (or equal to) the
+	 * given ancestor.
+	 *
+	 * @param ancestor the ancestor node to restrict to
+	 * @param taxIds the candidate nodes
+	 * @return the subset of nodes that are descendants of (or equal to) the ancestor
+	 */
 	public Set<TaxIdNode> restrictToAncestor(TaxIdNode ancestor, Set<TaxIdNode> taxIds) {
 		Set<TaxIdNode> res = new HashSet<TaxTree.TaxIdNode>();
 
@@ -107,6 +144,14 @@ public class TaxIdCollector {
 		return res;
 	}
 
+	/**
+	 * Returns the subset of the given nodes that are descendants of (or equal to) any of
+	 * the given ancestors.
+	 *
+	 * @param ancestors the ancestor nodes to restrict to
+	 * @param taxIds the candidate nodes
+	 * @return the subset of nodes that are descendants of (or equal to) any ancestor
+	 */
 	public Set<TaxIdNode> restrictToAncestors(Set<TaxIdNode> ancestors, Set<TaxIdNode> taxIds) {
 		Set<TaxIdNode> res = new HashSet<TaxTree.TaxIdNode>();
 

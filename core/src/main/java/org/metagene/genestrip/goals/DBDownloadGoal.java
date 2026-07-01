@@ -41,12 +41,27 @@ import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.io.StreamingURLResource;
 import org.metagene.genestrip.make.Goal;
 
+/**
+ * Download goal that fetches the genestrip database file from a {@link StreamingResource} or URL into the
+ * project's DB file, optionally verifying an MD5 checksum. An in-progress download can be interrupted via
+ * {@link #dump()}.
+ *
+ * @param <P> the project type
+ */
 public class DBDownloadGoal<P extends GSProject> extends GSFileDownloadGoal<P> {
 	private final StreamingResource dbResource;
 	private final String md5;
 	private List<File> dbFile;
 	private boolean dumped;
 
+	/**
+	 * Creates a download goal that fetches the database from the given streaming resource.
+	 *
+	 * @param project    the project this goal belongs to
+	 * @param dbResource the streaming resource to download the database from
+	 * @param md5        the expected MD5 checksum of the downloaded file
+	 * @param deps       the goals this goal depends on
+	 */
 	@SafeVarargs
 	public DBDownloadGoal(P project, StreamingResource dbResource, String md5, Goal<P>... deps) {
 		super(project, GSGoalKey.DB_DOWNLOAD, deps);
@@ -54,6 +69,17 @@ public class DBDownloadGoal<P extends GSProject> extends GSFileDownloadGoal<P> {
 		this.md5 = md5;
 	}
 
+	/**
+	 * Creates a download goal that fetches the database from the given URL, logging progress every
+	 * {@code logCycle} bytes.
+	 *
+	 * @param project  the project this goal belongs to
+	 * @param url      the URL to download the database from
+	 * @param md5      the expected MD5 checksum of the downloaded file
+	 * @param logCycle number of bytes between successive calls to {@link #log(long)}; {@code <= 0} disables
+	 *                 periodic logging.
+	 * @param deps     the goals this goal depends on
+	 */
 	@SafeVarargs
 	public DBDownloadGoal(P project, URL url, String md5, long logCycle, Goal<P>... deps) {
 		super(project, GSGoalKey.DB_DOWNLOAD, deps);
@@ -99,6 +125,11 @@ public class DBDownloadGoal<P extends GSProject> extends GSFileDownloadGoal<P> {
 		this.md5 = md5;
 	}
 
+	/**
+	 * Returns whether this goal has been dumped (and thus any download interrupted).
+	 *
+	 * @return {@code true} if the goal has been dumped
+	 */
 	public boolean isDumped() {
 		return dumped;
 	}
@@ -109,6 +140,11 @@ public class DBDownloadGoal<P extends GSProject> extends GSFileDownloadGoal<P> {
 		dumped = true;
 	}
 
+	/**
+	 * Hook invoked periodically during download with the number of bytes read so far; does nothing by default.
+	 *
+	 * @param bytesCovered the number of bytes read so far
+	 */
 	protected void log(long bytesCovered) {
 	}
 
@@ -159,9 +195,15 @@ public class DBDownloadGoal<P extends GSProject> extends GSFileDownloadGoal<P> {
 		}
 	}
 
+	/**
+	 * Thrown to abort an in-progress database download once the goal has been dumped/interrupted.
+	 */
 	public static class DBDownloadInterruptedException extends RuntimeException {
 		private static final long serialVersionUID = 1L;
 
+		/**
+		 * Creates a new interruption exception.
+		 */
 		public DBDownloadInterruptedException() {
 			super();
 		}

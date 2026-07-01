@@ -50,13 +50,28 @@ import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
+/**
+ * Builds the Genestrip goal graph for a project and wires up their dependencies. Also offers
+ * convenience methods to run matching and filtering directly (for programmatic/API use) and manages a
+ * shared {@link ExecutionContext} for parallel work.
+ *
+ * @param <P> the concrete project type
+ */
 public class GSMaker<P extends GSProject> extends Maker<P> {
     private ExecutionContext executionContext;
 
+    /**
+     * Creates a maker for the given project.
+     *
+     * @param project the project to create goals for
+     */
     public GSMaker(P project) {
         super(project);
     }
 
+    /**
+     * Disposes the maker and, if created, the shared execution context (shutting down its threads).
+     */
     public void dumpAll() {
         dump();
         if (executionContext != null) {
@@ -64,11 +79,25 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
         }
     }
 
+    /**
+     * Creates the execution context, sizing its thread pool from the project's {@code threads}
+     * configuration.
+     *
+     * @param mainThread the thread that drives goal execution
+     * @param project    the project supplying the thread and log-cycle configuration
+     * @return the newly created execution context
+     */
     protected ExecutionContext createExecutionContext(Thread mainThread, P project) {
         return new DefaultExecutionContext(mainThread, project.intConfigValue(GSConfigKey.THREADS),
                 project.longConfigValue(GSConfigKey.LOG_PROGRESS_UPDATE_CYCLE));
     }
 
+    /**
+     * Returns the shared execution context, lazily creating it on first use.
+     *
+     * @param project the project used to create the context on first use
+     * @return the shared execution context
+     */
     protected ExecutionContext getExecutionContext(P project) {
         if (executionContext == null) {
             executionContext = createExecutionContext(getMainThread(), project);
@@ -76,10 +105,20 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
         return executionContext;
     }
 
+    /**
+     * Returns the thread that drives goal execution.
+     *
+     * @return the current thread
+     */
     protected Thread getMainThread() {
         return Thread.currentThread();
     }
 
+    /**
+     * Creates and registers all goals of the Genestrip pipeline (taxonomy download, RefSeq/Genbank
+     * data acquisition, database and bloom filter construction, matching, filtering and reporting) and
+     * their dependencies.
+     */
     protected void createGoals() {
         P project = getProject();
         // Show goals...
@@ -443,18 +482,48 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
         registerGoal(krakenResFileGoal);
     }
 
+    /**
+     * Hook for subclasses to register additional goals that depend on the loaded database; does
+     * nothing by default.
+     */
     protected void createGoalDependingOnLoadDB() {
 
     }
 
+    /**
+     * Like {@link #match(boolean, String, String...)} but first cleans previous results so matching is
+     * recomputed.
+     *
+     * @param lr          if {@code true}, matches without read classification (long-read mode)
+     * @param key         the result file key
+     * @param pathsOrURLs the fastq/fasta input paths or URLs
+     * @return the matching result for the given key
+     */
     public MatchingResult cleanMatch(boolean lr, String key, String... pathsOrURLs) {
         return match(lr, true, key, pathsOrURLs);
     }
 
+    /**
+     * Matches the given fastq/fasta inputs against the project's database and writes the result files.
+     *
+     * @param lr          if {@code true}, matches without read classification (long-read mode)
+     * @param key         the result file key
+     * @param pathsOrURLs the fastq/fasta input paths or URLs
+     * @return the matching result for the given key
+     */
     public MatchingResult match(boolean lr, String key, String... pathsOrURLs) {
         return match(lr, false, key, pathsOrURLs);
     }
 
+    /**
+     * Matches the given fastq/fasta inputs against the project's database and writes the result files.
+     *
+     * @param lr          if {@code true}, matches without read classification (long-read mode)
+     * @param clean       if {@code true}, cleans previous results first so matching is recomputed
+     * @param key         the result file key
+     * @param pathsOrURLs the fastq/fasta input paths or URLs
+     * @return the matching result for the given key
+     */
     public MatchingResult match(boolean lr, boolean clean, String key, String... pathsOrURLs) {
         MatchResultGoal<P> matchResGoal = createGoalChainForMatchResult(lr, key, pathsOrURLs);
         MatchGoal<P> matchGoal = new MatchGoal(matchResGoal.getProject(), (lr ? GSGoalKey.MATCHLR : GSGoalKey.MATCH), matchResGoal.getFastqMapGoal(), matchResGoal);
@@ -467,10 +536,27 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
         return res;
     }
 
+    /**
+     * Computes and returns the matching result for the given inputs without writing the result files.
+     *
+     * @param lr          if {@code true}, matches without read classification (long-read mode)
+     * @param key         the result file key
+     * @param pathsOrURLs the fastq/fasta input paths or URLs
+     * @return the matching result for the given key
+     */
     public MatchingResult matchResult(boolean lr, String key, String... pathsOrURLs) {
         return createGoalChainForMatchResult(lr, key, pathsOrURLs).get().get(key);
     }
 
+    /**
+     * Builds the chain of goals (fastq map, transform, download and load-db) that produces the match
+     * result for the given inputs.
+     *
+     * @param lr          if {@code true}, matches without read classification (long-read mode)
+     * @param key         the result file key
+     * @param pathsOrURLs the fastq/fasta input paths or URLs
+     * @return the goal producing the matching result for the given inputs
+     */
     protected MatchResultGoal<P> createGoalChainForMatchResult(boolean lr, String key, String... pathsOrURLs) {
         ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal = new FastqMapGoal(getProject(), true,
                 getGoal(GSGoalKey.SETUP)) {
@@ -496,10 +582,23 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
                 getExecutionContext(getProject()), getGoal(GSGoalKey.SETUP), fastqDownloadsGoal);
     }
 
+    /**
+     * Returns the goal that loads the project's database.
+     *
+     * @return the load-db goal
+     */
     protected LoadDBGoal<P> getLoadDBGoal() {
         return (LoadDBGoal) getGoal(GSGoalKey.LOAD_DB);
     }
 
+    /**
+     * Builds the chain of goals (fastq map, transform, download and load-index) that produces the
+     * filtered fastq output for the given inputs.
+     *
+     * @param key         the result file key
+     * @param pathsOrURLs the fastq/fasta input paths or URLs
+     * @return the goal producing the filtered fastq output for the given inputs
+     */
     protected FilterGoal<P> createGoalChainForFilter(String key, String... pathsOrURLs) {
         ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal = new FastqMapGoal(getProject(), true,
                 getGoal(GSGoalKey.SETUP)) {
@@ -525,6 +624,14 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
                 getGoal(GSGoalKey.SETUP), fastqDownloadsGoal);
     }
 
+    /**
+     * Filters the given fastq/fasta inputs against the project's bloom index, writing filtered fastq
+     * files.
+     *
+     * @param clean       if {@code true}, cleans previous results first so filtering is recomputed
+     * @param key         the result file key
+     * @param pathsOrURLs the fastq/fasta input paths or URLs
+     */
     public void filter(boolean clean, String key, String... pathsOrURLs) {
         FilterGoal<P> filterGoal = createGoalChainForFilter(key, pathsOrURLs);
         if (clean) {
@@ -533,10 +640,24 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
         filterGoal.make();
     }
 
+    /**
+     * Filters the given fastq/fasta inputs against the project's bloom index, writing filtered fastq
+     * files.
+     *
+     * @param key         the result file key
+     * @param pathsOrURLs the fastq/fasta input paths or URLs
+     */
     public void filter(String key, String... pathsOrURLs) {
         filter(false, key, pathsOrURLs);
     }
 
+    /**
+     * Like {@link #filter(String, String...)} but first cleans previous results so filtering is
+     * recomputed.
+     *
+     * @param key         the result file key
+     * @param pathsOrURLs the fastq/fasta input paths or URLs
+     */
     public void cleanFilter(String key, String... pathsOrURLs) {
         filter(true, key, pathsOrURLs);
     }

@@ -45,12 +45,27 @@ import org.metagene.genestrip.io.StreamingURLResource;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 
+/**
+ * Download goal that fetches the fastq (or fasta) input resources referenced by URL in the fastq/fasta map to
+ * their corresponding local files.
+ *
+ * @param <P> the project type
+ */
 public class FastqDownloadsGoal<P extends GSProject> extends GSFileDownloadGoal<P> {
 	private List<File> files;
 	private final Map<File, URL> fileToURL;
 	private final ObjectGoal<Map<String, StreamingResourceStream>, P> mapGoal;
 	private final ObjectGoal<Map<String, StreamingResourceStream>, P> transformGoal;
 
+	/**
+	 * Creates the goal that downloads the FASTQ (or FASTA) files.
+	 *
+	 * @param project       the project type
+	 * @param fastqType     whether FASTQ ({@code true}) or FASTA ({@code false}) files are downloaded
+	 * @param mapGoal       the goal providing the resource streams keyed by name
+	 * @param transformGoal the goal providing the transformed resource streams keyed by name
+	 * @param deps          additional goals this goal depends on
+	 */
 	@SafeVarargs
 	public FastqDownloadsGoal(P project, boolean fastqType, ObjectGoal<Map<String, StreamingResourceStream>, P> mapGoal,
 			ObjectGoal<Map<String, StreamingResourceStream>, P> transformGoal, Goal<P>... deps) {

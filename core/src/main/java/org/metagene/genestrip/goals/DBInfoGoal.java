@@ -38,14 +38,34 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.match.ResultReporter;
 import org.metagene.genestrip.store.Database;
 
+/**
+ * Writes a human-readable report about the database (via {@link ResultReporter}) to the project's DB-info file.
+ *
+ * @param <P> the project type
+ */
 public class DBInfoGoal<P extends GSProject> extends FileListGoal<P> {
     private final ObjectGoal<Database, P> storeGoal;
 
+    /**
+     * Creates the goal writing to the final DB-info file.
+     *
+     * @param project the project type
+     * @param storeGoal the goal supplying the database to report on
+     * @param deps the additional goals this goal depends on
+     */
     @SafeVarargs
     public DBInfoGoal(P project, ObjectGoal<Database, P> storeGoal, Goal<P>... deps) {
         this(false, project, storeGoal, deps);
     }
 
+    /**
+     * Creates the goal writing the database report.
+     *
+     * @param temp if {@code true}, writes to the temporary DB-info file instead of the final one.
+     * @param project the project type
+     * @param storeGoal the goal supplying the database to report on
+     * @param deps the additional goals this goal depends on
+     */
     @SafeVarargs
     public DBInfoGoal(boolean temp, P project, ObjectGoal<Database, P> storeGoal, Goal<P>... deps) {
         super(project, temp ? GSGoalKey.TEMP_DBINFO : GSGoalKey.DBINFO, temp ? project.getTempDBInfoFile() : project.getDBInfoFile(),

@@ -30,21 +30,42 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * A {@link StreamingResourceStream} backed by an explicit list of resources.
+ */
 public class StreamingResourceListStream implements StreamingResourceStream {
 	private final List<StreamingResource> list;
 	
+	/**
+	 * Creates a stream containing the single given resource.
+	 *
+	 * @param elem the single resource to hold
+	 */
 	public StreamingResourceListStream(StreamingResource elem) {
 		this(Collections.singletonList(elem));
 	}
 	
+	/**
+	 * Creates an empty stream.
+	 */
 	public StreamingResourceListStream() {
 		this(new ArrayList<>());
 	}
 	
+	/**
+	 * Creates a stream backed by the given list of resources.
+	 *
+	 * @param list the list of resources backing the stream
+	 */
 	public StreamingResourceListStream(List<StreamingResource> list) {
 		this.list = list;
 	}
 	
+	/**
+	 * Returns the list of resources backing this stream.
+	 *
+	 * @return the backing list of resources
+	 */
 	public List<StreamingResource> getList() {
 		return list;
 	}

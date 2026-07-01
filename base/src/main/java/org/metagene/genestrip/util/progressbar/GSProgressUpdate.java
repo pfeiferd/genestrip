@@ -24,7 +24,21 @@
  */
 package org.metagene.genestrip.util.progressbar;
 
+/**
+ * Supplies live current and maximum progress values to a progress bar renderer.
+ */
 public interface GSProgressUpdate {
+    /**
+     * Returns the current progress value.
+     *
+     * @return the current progress value
+     */
     public long current();
+
+    /**
+     * Returns the maximum progress value.
+     *
+     * @return the maximum progress value
+     */
     public long max();
 }

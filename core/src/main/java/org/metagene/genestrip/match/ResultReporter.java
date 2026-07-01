@@ -40,13 +40,28 @@ import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
+/**
+ * Writes textual reports as semicolon-separated CSV: database/tax-tree information and
+ * the per-tax-id match result. The result columns are driven reflectively by the
+ * {@link MDCDescription} annotations on {@link CountsPerTaxid} getters.
+ */
 public class ResultReporter {
     private static final DecimalFormat DF = new DecimalFormat("0.00000000", new DecimalFormatSymbols(Locale.US));
     private static final CountsPerTaxid.ValueType[] VALUES = CountsPerTaxid.ValueType.values();
 
+    /**
+     * Creates a result reporter.
+     */
     public ResultReporter() {
     }
 
+    /**
+     * Prints one CSV row per taxonomy node describing the database: level, name, rank,
+     * tax id, stored k-mer count, requested flag and evolutionary distances.
+     *
+     * @param database the database whose store information is reported
+     * @param out      the stream to write the CSV rows to
+     */
     public void printStoreInfo(Database database, PrintStream out) {
         Object2LongMap<String> stats = database.getStats();
         final double invK = 1d / database.getKmerStore().getK();
@@ -92,6 +107,12 @@ public class ResultReporter {
     }
 
 
+    /**
+     * Prints a Markdown table documenting every match-result column (its name and
+     * description) as declared by the {@link MDCDescription} annotations.
+     *
+     * @param ps the stream to write the Markdown table to
+     */
     public static void printMDColumnInfo(PrintStream ps) {
         ps.print('|');
         ps.print("Name");
@@ -159,6 +180,13 @@ public class ResultReporter {
         return methodAndDescriptions;
     }
 
+    /**
+     * Prints the match result as CSV: a header row of column names followed by one row
+     * per tax id, with values obtained reflectively from the annotated getters.
+     *
+     * @param res the matching result to report
+     * @param out the stream to write the CSV rows to
+     */
     public void printMatchResult(MatchingResult res, PrintStream out) {
         List<MethodAndDescription> methodAndDescriptions = getSortedMethodAndDescriptions();
 

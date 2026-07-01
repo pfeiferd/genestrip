@@ -30,9 +30,23 @@ import org.metagene.genestrip.goals.GSFileDownloadGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.GoalKey;
 
+/**
+ * Abstract base for goals that download files from the NCBI RefSeq server, supplying the RefSeq
+ * HTTP and FTP base URLs from configuration.
+ *
+ * @param <P> the project type
+ */
 public abstract class RefSeqDownloadGoal<P extends GSProject> extends GSFileDownloadGoal<P> {
+	/** Subfolder on the RefSeq server holding the release files. */
 	public static final String RELEASE_FOLDER = "/release";
 
+	/**
+	 * Creates a RefSeq download goal.
+	 *
+	 * @param project the project
+	 * @param key     the goal key identifying this goal
+	 * @param deps    the goals this goal depends on
+	 */
 	@SafeVarargs
 	public RefSeqDownloadGoal(P project, GoalKey key, Goal<P>... deps) {
 		super(project, key, deps);

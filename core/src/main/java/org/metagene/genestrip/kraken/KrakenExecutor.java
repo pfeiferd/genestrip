@@ -38,15 +38,36 @@ import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.commons.exec.util.StringUtils;
 import org.apache.commons.io.IOUtils;
 
+/**
+ * Builds and runs an external Kraken command over a set of FASTQ files. The concrete
+ * command is derived from a {@link MessageFormat} template whose arguments are the
+ * binary, the database, the FASTQ files and an optional classification output file.
+ */
 public class KrakenExecutor {
 	private final String bin;
 	private final String execCommand;
 
+	/**
+	 * Creates an executor for the given Kraken binary and command template.
+	 *
+	 * @param bin the path to the Kraken binary.
+	 * @param execCommand the {@link MessageFormat} command template to run.
+	 */
 	public KrakenExecutor(String bin, String execCommand) {
 		this.execCommand = execCommand;
 		this.bin = StringUtils.quoteArgument(bin);
 	}
 
+	/**
+	 * Builds the concrete Kraken command line for the given database, FASTQ files and
+	 * optional classification output file by filling in the command template.
+	 *
+	 * @param database the Kraken database to use.
+	 * @param fastqs the FASTQ files to classify.
+	 * @param classOut the classification output file, or null for none.
+	 * @return the fully expanded command line string.
+	 * @throws IOException if a canonical path cannot be resolved.
+	 */
 	public String genExecLine(String database, List<File> fastqs, File classOut) throws IOException {
 		StringBuilder fastqsStr = new StringBuilder();
 		boolean first = true;
@@ -61,14 +82,41 @@ public class KrakenExecutor {
 				classOut == null ? "" : StringUtils.quoteArgument(classOut.getCanonicalPath()));
 	}
 
+	/**
+	 * Whether the command template writes the classification to a file (i.e. references
+	 * the {@code classOut} argument {@code {3}}).
+	 *
+	 * @return true if the template references the classification output file argument.
+	 */
 	public boolean isWithFileForOutput() {
 		return execCommand.contains("{3}");
 	}
 
+	/**
+	 * Builds the command line and parses it into a commons-exec {@link CommandLine}.
+	 *
+	 * @param database the Kraken database to use.
+	 * @param fastqs the FASTQ files to classify.
+	 * @param classOut the classification output file, or null for none.
+	 * @return the parsed command line.
+	 * @throws IOException if a canonical path cannot be resolved.
+	 */
 	protected CommandLine genExecCommand(String database, List<File> fastqs, File classOut) throws IOException {
 		return CommandLine.parse(genExecLine(database, fastqs, classOut));
 	}
 
+	/**
+	 * Runs Kraken via commons-exec, pumping its standard output and error to the given
+	 * streams with custom stream handling.
+	 *
+	 * @param database the Kraken database to use.
+	 * @param fastqs the FASTQ files to classify.
+	 * @param classOut the classification output file, or null for none.
+	 * @param outputStream the stream to receive Kraken's standard output.
+	 * @param errorStream the stream to receive Kraken's standard error.
+	 * @throws IOException if execution or stream handling fails.
+	 * @throws IllegalStateException if Kraken terminates with a non-zero exit code
+	 */
 	public void execute2(String database, List<File> fastqs, File classOut, OutputStream outputStream,
 			OutputStream errorStream) throws IOException {
 		Executor executor = new DefaultExecutor();
@@ -104,6 +152,20 @@ public class KrakenExecutor {
 		}
 	}
 
+	/**
+	 * Runs Kraken via {@link Runtime#exec(String)}, copying its standard output to the
+	 * given stream and its standard error to {@code System.err}, and waits for it to
+	 * finish.
+	 *
+	 * @param database the Kraken database to use.
+	 * @param fastqs the FASTQ files to classify.
+	 * @param classOut the classification output file, or null for none.
+	 * @param outputStream the stream to receive Kraken's standard output.
+	 * @param errorStream the stream to receive Kraken's standard error.
+	 * @throws InterruptedException if the current thread is interrupted while waiting.
+	 * @throws IOException if execution or stream handling fails.
+	 * @throws IllegalStateException if Kraken terminates with a non-zero exit code
+	 */
 	public void execute(String database, List<File> fastqs, File classOut, OutputStream outputStream,
 			OutputStream errorStream) throws InterruptedException, IOException {
 		Process process = Runtime.getRuntime().exec(genExecLine(database, fastqs, classOut));
@@ -115,10 +177,25 @@ public class KrakenExecutor {
 		}
 	}
 
+	/**
+	 * Copies Kraken's standard output stream to the given output stream. Subclasses may
+	 * override this to process the output instead.
+	 *
+	 * @param stream Kraken's standard output stream.
+	 * @param outputStream the stream to copy the output to.
+	 * @throws IOException if copying fails.
+	 */
 	protected void handleOutputStream(InputStream stream, OutputStream outputStream) throws IOException {
 		IOUtils.copyLarge(stream, outputStream);
 	}
 
+	/**
+	 * Copies Kraken's standard error stream to the given error stream.
+	 *
+	 * @param inputStream Kraken's standard error stream.
+	 * @param errorStream the stream to copy the error output to.
+	 * @throws IOException if copying fails.
+	 */
 	protected void handleErrorStream(InputStream inputStream, OutputStream errorStream) throws IOException {
 		IOUtils.copy(inputStream, errorStream);
 	}

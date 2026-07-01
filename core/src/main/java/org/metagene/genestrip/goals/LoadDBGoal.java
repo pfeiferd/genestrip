@@ -40,10 +40,25 @@ import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.InvalidDatabaseClassException;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
+/**
+ * Loads the matching database into memory from the stored database file (or reuses an already-made one),
+ * optionally showing a progress bar and enabling the bloom pre-filter for matching.
+ *
+ * @param <P> the project type
+ */
 public class LoadDBGoal<P extends GSProject> extends ObjectGoal<Database, P> implements Goal.LogHeapInfo {
 	private final ObjectGoal<Database, P> dbGoal;
 	private final File dbFile;
 
+	/**
+	 * Creates the goal that loads the database into memory.
+	 *
+	 * @param project         the project type
+	 * @param key             the goal key identifying this goal
+	 * @param dbGoal          the goal providing an already-made database
+	 * @param updateStoreGoal the goal providing the stored database file
+	 * @param dependencies    additional goals this goal depends on
+	 */
 	@SafeVarargs
 	public LoadDBGoal(P project, GoalKey key, ObjectGoal<Database, P> dbGoal, FileGoal<P> updateStoreGoal,
 					  Goal<P>... dependencies) {
@@ -80,6 +95,11 @@ public class LoadDBGoal<P extends GSProject> extends ObjectGoal<Database, P> imp
 		}
 	}
 
+	/**
+	 * Sets the database directly, bypassing loading from file.
+	 *
+	 * @param object the database to set
+	 */
 	public void setDatabase(Database object) {
 		set(object);
 	}

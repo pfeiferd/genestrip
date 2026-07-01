@@ -26,13 +26,36 @@ package org.metagene.genestrip.make;
 
 import java.util.Objects;
 
+/**
+ * Identifies a goal within a {@link Maker}. A key has a name used for lookup and declares whether
+ * goals identified by it may be cleaned transitively.
+ */
 public interface GoalKey {
+	/**
+	 * Returns the name used to look up the goal identified by this key.
+	 *
+	 * @return the goal name
+	 */
 	public String getName();
+	/**
+	 * Returns whether goals identified by this key may be cleaned transitively when one of their
+	 * dependents is cleaned.
+	 *
+	 * @return {@code true} if transitive cleaning is allowed
+	 */
 	public boolean isTransClean();
 	
+	/**
+	 * A simple {@link GoalKey} identified solely by its name, with transitive cleaning disabled.
+	 */
 	public static class DefaultGoalKey implements GoalKey {
 		private final String name;
 		
+		/**
+		 * Creates a key identified by the given name.
+		 *
+		 * @param name the goal name
+		 */
 		public DefaultGoalKey(String name) {
 			this.name = name;
 		}

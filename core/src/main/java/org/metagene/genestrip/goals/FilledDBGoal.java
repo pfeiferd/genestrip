@@ -42,10 +42,24 @@ import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.InvalidDatabaseClassException;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
+/**
+ * Provides the filled database, either taken from the in-memory fill goal or loaded from the stored temporary
+ * database file.
+ *
+ * @param <P> the project type
+ */
 public class FilledDBGoal<P extends GSProject> extends ObjectGoal<Database, P> {
 	private final ObjectGoal<Database, P> fillDBGoal;
 	private final FileGoal<P> filledStoreGoal;
 
+	/**
+	 * Creates the goal, wiring the in-memory fill goal and the stored temporary-database file goal.
+	 *
+	 * @param project         the project this goal belongs to
+	 * @param fillDBGoal      the goal supplying the in-memory filled database
+	 * @param filledStoreGoal the goal supplying the stored temporary database file
+	 * @param dependencies    any further goals this goal depends on
+	 */
 	@SafeVarargs
 	public FilledDBGoal(P project, ObjectGoal<Database, P> fillDBGoal,
 			FileGoal<P> filledStoreGoal, Goal<P>... dependencies) {

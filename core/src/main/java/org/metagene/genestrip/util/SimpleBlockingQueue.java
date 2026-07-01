@@ -32,6 +32,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * A super simple implementation of BlockingQueue - just good enough in the context of genestrip and no more.
  * Still way more efficient than the standard implementation from the JDK for this purpose.
+ *
+ * @param <T> the type of elements held in this queue
  */
 public class SimpleBlockingQueue<T> implements BlockingQueue<T> {
     private final Object lock = new Object();
@@ -42,6 +44,11 @@ public class SimpleBlockingQueue<T> implements BlockingQueue<T> {
     private int head = 0;
     private int tail = 0;
 
+    /**
+     * Creates a blocking queue with the given fixed capacity.
+     *
+     * @param capacity the fixed capacity of the queue
+     */
     @SuppressWarnings("unchecked")
     public SimpleBlockingQueue(int capacity) {
         this.capacity = capacity;

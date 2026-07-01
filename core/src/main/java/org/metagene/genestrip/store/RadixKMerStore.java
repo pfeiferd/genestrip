@@ -80,6 +80,8 @@ import it.unimi.dsi.fastutil.longs.LongComparator;
  * <p>
  * Common functionality (value &lt;-&gt; index mapping, counters, the pre-filter and statistics) is
  * inherited from {@link AbstractKMerStore}.
+ *
+ * @param <V> the value type mapped to each k-mer
  */
 public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V> {
 	/**
@@ -111,19 +113,25 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 
 	// Number of low k-mer bits used as the radix index, and the corresponding mask. Configurable per
 	// store; the number of buckets is 2^radixBits == radixIndex.length.
+	/** Number of low k-mer bits used as the radix index. */
 	private final int radixBits;
+	/** Bit mask selecting the low {@code radixBits} bits used as the radix index. */
 	private final int radixMask;
 	// Number of low entry bits reserved for the (stored) remaining k-mer bits, and its mask. Derived
 	// from radixBits (see remainingBitsForRadix); the value index occupies the entry bits above them.
 	// The value index packs into those high bits via an unsigned shift, so an entry may be negative;
 	// entries are never compared to the -1L "erroneous k-mer" sentinel, which lives in the full-k-mer
 	// space and stays safe because a reconstructed valid k-mer occupies at most 2*k <= 62 bits.
+	/** Number of low entry bits reserved for the stored remaining k-mer bits. */
 	private final int remainingBits;
+	/** Bit mask selecting the low {@code remainingBits} bits of an entry. */
 	private final long remainingMask;
 
 	// radixIndex[r] holds all k-mers whose low radixBits bits equal r, or null if there are none.
+	/** Per-radix buckets: {@code radixIndex[r]} holds all entries whose radix is {@code r}, or null if none. */
 	private final long[][] radixIndex;
 	// Number of entries actually stored in each bucket (<= radixIndex[r].length).
+	/** Number of entries actually stored in each bucket. */
 	private final int[] bucketFill;
 
 	// Maps (radix, localPos) to a global storage position. Allocated once (hence final). The
@@ -133,6 +141,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	// optimize() rather than maintained per putLong() because incrementing the fill of bucket r
 	// shifts the offset of every later bucket - O(#buckets) per inserted k-mer - whereas the
 	// offsets are only ever consumed after optimize() (matching / unique-counting).
+	/** Maps each radix bucket to the global storage offset of its first entry. */
 	private final long[] bucketOffset;
 
 	/**
@@ -141,6 +150,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	 * remaining bits are {@code 2*k - radixBits}, maximal at {@code k = 31}, so reserving
 	 * {@code 62 - radixBits} is enough for every {@code k <= 31}.
 	 *
+	 * @param radixBits the radix width of the store.
 	 * @return the reserved remaining-bits width, {@code 62 - radixBits}.
 	 */
 	public static int remainingBitsForRadix(int radixBits) {
@@ -154,6 +164,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	 * {@value #MAX_VALUE_INDEX_BITS} bits so the result stays a positive {@code int} / valid array
 	 * length.
 	 *
+	 * @param radixBits the radix width of the store.
 	 * @return {@code 2^valueBits}, where {@code valueBits = min(30, 64 - remainingBitsForRadix(radixBits))}.
 	 */
 	public static int maxValuesForRadix(int radixBits) {
@@ -169,12 +180,35 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		}
 	}
 
+	/**
+	 * Creates a radix k-mer store with the given radix width and per-bucket capacities, using a
+	 * bloom pre-filter with the given false-positive probabilities.
+	 *
+	 * @param k the k-mer length.
+	 * @param radixBits the number of low k-mer bits used as the radix index.
+	 * @param bucketSizes the capacity of each radix bucket; length must be {@code 2^radixBits}.
+	 * @param entryFpp the target false-positive probability of the entry (pre-)filter.
+	 * @param optimizedFpp the target false-positive probability after optimization.
+	 * @param initialValues the initial list of values.
+	 * @param xor true to use an XOR-based bloom filter, false to use a Murmur-based one.
+	 */
 	public RadixKMerStore(int k, int radixBits, int[] bucketSizes, double entryFpp, double optimizedFpp,
 						  List<V> initialValues, boolean xor) {
 		this(k, radixBits, bucketSizes, initialValues,
 				xor ? new XORKMerBloomFilter(entryFpp) : new MurmurKMerBloomFilter(entryFpp), optimizedFpp);
 	}
 
+	/**
+	 * Creates a radix k-mer store with the given radix width, per-bucket capacities and an explicit
+	 * probabilistic pre-filter.
+	 *
+	 * @param k the k-mer length.
+	 * @param radixBits the number of low k-mer bits used as the radix index.
+	 * @param bucketSizes the capacity of each radix bucket; length must be {@code 2^radixBits}.
+	 * @param initialValues the initial list of values.
+	 * @param filter the probabilistic pre-filter to use, or null for none.
+	 * @param optimizedFpp the target false-positive probability after optimization.
+	 */
 	protected RadixKMerStore(int k, int radixBits, int[] bucketSizes, List<V> initialValues, KMerProbFilter filter,
 							 double optimizedFpp) {
 		// maxValuesForRadix validates radixBits (before super allocates), and its result depends on
@@ -213,6 +247,13 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		}
 	}
 
+	/**
+	 * Creates a store that shares the radix index of another store while converting its values.
+	 *
+	 * @param <W> the source store's value type.
+	 * @param org the store to copy the radix structure from.
+	 * @param converter the converter from the source value type to this store's value type.
+	 */
 	public <W extends Serializable> RadixKMerStore(RadixKMerStore<W> org, KMerStore.ValueConverter<W, V> converter) {
 		super(org, converter);
 		radixBits = org.radixBits;
@@ -226,6 +267,8 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	}
 
 	/**
+	 * Returns the number of low k-mer bits this store uses as its radix index.
+	 *
 	 * @return the number of low k-mer bits this store uses as its radix index.
 	 */
 	public int getRadixBits() {
@@ -253,6 +296,10 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	// --- Insertion / lookup ---------------------------------------------------
 
 	/**
+	 * Returns the radix bucket index of the given k-mer for a store using the given radix width.
+	 *
+	 * @param kmer the k-mer whose radix bucket index is computed.
+	 * @param radixBits the radix width of the store.
 	 * @return the radix bucket index of the given k-mer for a store using {@code radixBits} radix
 	 *         bits (its low {@code radixBits} bits), in {@code [0, 2^radixBits)}. Callers that
 	 *         pre-count k-mers per bucket (to size this store) must use this exact mapping with the

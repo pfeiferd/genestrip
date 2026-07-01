@@ -26,9 +26,39 @@ package org.metagene.genestrip.refseq;
 
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
+/**
+ * Maps genomic/RNA accession numbers to the tax id nodes they belong to.
+ */
 public interface AccessionMap {
+	/**
+	 * Adds a mapping from the accession key {@code array[start, end)} to the given tax id node.
+	 *
+	 * @param array the byte array containing the accession key.
+	 * @param start the start index of the key (inclusive).
+	 * @param end the end index of the key (exclusive).
+	 * @param node the tax id node to map the accession key to.
+	 */
 	public void put(byte[] array, int start, int end, TaxIdNode node);
+	/**
+	 * Returns the tax id node for the accession key {@code array[start, end)}, or null if none.
+	 *
+	 * @param array the byte array containing the accession key.
+	 * @param start the start index of the key (inclusive).
+	 * @param end the end index of the key (exclusive).
+	 * @param completeGenomesOnly if true, only complete-genome, RNA and mRNA accessions are resolved.
+	 * @return the tax id node for the accession key, or null if none.
+	 */
 	public TaxIdNode get(byte[] array, int start, int end, boolean completeGenomesOnly);
+	/**
+	 * Prepares the map for lookups; must be called after all {@link #put} calls and before any
+	 * {@link #get}.
+	 */
 	public void optimize();
+	/**
+	 * Returns the number of accession entries mapped to the given node.
+	 *
+	 * @param node the tax id node to count entries for.
+	 * @return the number of accession entries mapped to the node.
+	 */
 	public int getEntriesForNode(TaxIdNode node);
 }

@@ -38,11 +38,25 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import java.io.*;
 import java.util.*;
 
+/**
+ * Writes the per-taxid Kraken statistics for each key to a CSV output file.
+ *
+ * @param <P> the project type
+ */
 public class KrakenResFileGoal<P extends GSProject> extends FileListGoal<P> {
 	private final ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal;
 	private final ObjectGoal<Map<String, List<KrakenResCountGoal.KrakenResStats>>, P> countGoal;
 	private final Map<File, String> fileToKeyMap;
 
+	/**
+	 * Creates the goal that writes the Kraken result files.
+	 *
+	 * @param project      the project type
+	 * @param fastqMapGoal the goal providing the FASTQ streams keyed by name
+	 * @param taxNodesGoal the goal providing the tax id nodes of interest
+	 * @param countGoal    the goal providing the per-key Kraken result statistics
+	 * @param deps         additional goals this goal depends on
+	 */
 	@SafeVarargs
 	public KrakenResFileGoal(P project,
                              ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal,
@@ -72,6 +86,12 @@ public class KrakenResFileGoal<P extends GSProject> extends FileListGoal<P> {
 		}
 	}
 
+	/**
+	 * Writes the given per-taxid statistics as CSV (taxid, reads, kmers, kmers in matching reads) to {@code out}.
+	 *
+	 * @param list the per-taxid statistics to write
+	 * @param out  the stream to write the CSV rows to
+	 */
 	protected void print(List<KrakenResCountGoal.KrakenResStats> list, PrintStream out) {
 		out.println("taxid;reads;kmers;kmers in matching reads");
 		for (KrakenResCountGoal.KrakenResStats stats : list) {

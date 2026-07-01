@@ -35,13 +35,35 @@ import org.metagene.genestrip.bloom.KMerProbFilter;
  * These operations are not part of the core {@link KMerStore} contract because an exchangeable
  * store implementation may not offer them. Callers should therefore feature-check via
  * {@code instanceof TunableKMerStore} before using them.
+ *
+ * @param <V> the value type mapped to each k-mer
  */
 public interface TunableKMerStore<V extends Serializable> extends KMerStore<V> {
+	/**
+	 * Returns the probabilistic pre-filter currently used by this store.
+	 *
+	 * @return the current pre-filter, or null if none is set.
+	 */
 	public KMerProbFilter getFilter();
 
+	/**
+	 * Sets the probabilistic pre-filter used by this store.
+	 *
+	 * @param filter the pre-filter to use, or null for none.
+	 */
 	public void setFilter(KMerProbFilter filter);
 
+	/**
+	 * Enables or disables use of the pre-filter for lookups.
+	 *
+	 * @param useFilter true to use the pre-filter, false to bypass it.
+	 */
 	public void setUseFilter(boolean useFilter);
 
+	/**
+	 * Returns whether the pre-filter is currently used for lookups.
+	 *
+	 * @return true if the pre-filter is used, false otherwise.
+	 */
 	public boolean isUseFilter();
 }

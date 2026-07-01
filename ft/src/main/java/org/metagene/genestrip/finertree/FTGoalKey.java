@@ -30,11 +30,26 @@ import org.metagene.genestrip.make.GoalKey;
 import java.io.PrintStream;
 import java.lang.annotation.Annotation;
 
+/**
+ * Enumeration of the goals added by the finer-tree (FT) extension. Constants annotated with
+ * {@link MDDescription} contribute to the generated documentation.
+ */
 public enum FTGoalKey implements GoalKey {
+    /**
+     * Goal that creates the additional project folders required by the FT extension.
+     */
     @MDDescription("Create additional folders in `<base dir>/<project>` like `tex`.")
     FTSETUP("ftsetup"),
+    /**
+     * Goal that counts the k-mers per tax id from the underlying genomic files for database quality
+     * assessment.
+     */
     @MDDescription("Counts the *k*-mers per taxid directly from the underlying genomic files given a corresponding *k*-mer is in the database at all.")
     DB_QUALITY_COUNTS("dbqualcounts", false),
+    /**
+     * Goal that generates a CSV file with intrinsic quality metrics (precision and recall) per tax id
+     * for a project's database.
+     */
     @MDDescription("Generate a CSV file with intrinsic quality metrics per tax id for a project's database. "
             + "For each tax id, *k*-mers are counted directly from the underlying genomic files and compared with the *k*-mers stored in the database. "
             + "The resulting CSV file contains precision and recall values: "
@@ -60,6 +75,11 @@ public enum FTGoalKey implements GoalKey {
         return true;
     }
 
+    /**
+     * Indicates whether this goal is meant to be invoked directly by users.
+     *
+     * @return whether this goal is intended to be invoked directly by users
+     */
     public boolean isForUser() {
         return forUser;
     }
@@ -74,6 +94,11 @@ public enum FTGoalKey implements GoalKey {
         return name;
     }
 
+    /**
+     * Prints a Markdown table listing the FT goals with their user flag and descriptions.
+     *
+     * @param ps the stream the Markdown table is written to
+     */
     public static void printGoalInfo(PrintStream ps) {
         ps.print('|');
         ps.print("Name");

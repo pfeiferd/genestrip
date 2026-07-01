@@ -36,14 +36,30 @@ import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.Goal;
 
+/**
+ * Download goal for the RefSeq release catalog ({@code .catalog.gz}) and the matching
+ * {@code files.installed} listing, whose file names are derived from the current release number.
+ *
+ * @param <P> the project type
+ */
 public class RefSeqCatalogDownloadGoal<P extends GSProject> extends RefSeqDownloadGoal<P> {
+	/** Remote folder holding the RefSeq release catalog files. */
 	public static final String CATALOG_FOLDER = RELEASE_FOLDER + "/release-catalog";
+	/** Name pattern for the release catalog file, parameterized by release number. */
 	public static final String CATALOG_BASE_NAME = "RefSeq-release{0}.catalog.gz";
+	/** Name pattern for the {@code files.installed} listing, parameterized by release number. */
 	public static final String FILES_INSTALLED_NAME = "release{0}.files.installed";
 
 	private final FileGoal<P> releaseNumberGoal;
 	private List<File> files;
 
+	/**
+	 * Creates the goal, wiring the release-number goal that determines the catalog file names.
+	 *
+	 * @param project           the project this goal belongs to
+	 * @param releaseNumberGoal the goal that determines the current RefSeq release number
+	 * @param deps              the goals this goal depends on
+	 */
 	@SafeVarargs
 	public RefSeqCatalogDownloadGoal(P project, FileGoal<P> releaseNumberGoal,
 			Goal<P>... deps) {
@@ -51,14 +67,28 @@ public class RefSeqCatalogDownloadGoal<P extends GSProject> extends RefSeqDownlo
 		this.releaseNumberGoal = releaseNumberGoal;
 	}
 
+	/**
+	 * The downloaded RefSeq release catalog file.
+	 *
+	 * @return the catalog file
+	 */
 	public File getCatalogFile() {
 		return getFiles().get(0);
 	}
 
+	/**
+	 * The downloaded {@code files.installed} listing that accompanies the catalog.
+	 *
+	 * @return the {@code files.installed} listing file
+	 */
 	public File getInstalledFilesFile() {
 		return getFiles().get(1);
 	}
 
+	/**
+	 * Resolves the catalog and {@code files.installed} file paths for the current RefSeq release,
+	 * making the release-number goal first to learn the release number.
+	 */
 	@Override
 	public List<File> getFiles() {
 		if (files == null) {

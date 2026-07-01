@@ -39,10 +39,24 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
+/**
+ * Loads the k-mer bloom-filter index ({@link KMerProbFilter}) from the stored database file, or reuses the
+ * already-made in-memory index.
+ *
+ * @param <P> the project type
+ */
 public class LoadIndexGoal<P extends GSProject> extends ObjectGoal<KMerProbFilter, P> implements Goal.LogHeapInfo {
 	private final ObjectGoal<KMerProbFilter, P> bloomIndex;
 	private final File dbFile;
 
+	/**
+	 * Creates the goal, wiring the bloom-index and store-index goals it loads from.
+	 *
+	 * @param project        the project this goal belongs to
+	 * @param bloomIndex     the goal supplying the in-memory bloom index, if already made
+	 * @param storeIndexGoal the goal supplying the on-disk store index file
+	 * @param dependencies   any further goals this goal depends on
+	 */
 	@SafeVarargs
 	public LoadIndexGoal(P project, ObjectGoal<KMerProbFilter, P> bloomIndex,
 			FileGoal<P> storeIndexGoal, Goal<P>... dependencies) {
@@ -70,6 +84,11 @@ public class LoadIndexGoal<P extends GSProject> extends ObjectGoal<KMerProbFilte
 		}
 	}
 
+	/**
+	 * Loads the index from the given stream, or reuses the in-memory bloom index when it is already made.
+	 *
+	 * @param stream the stream to load the index from
+	 */
 	protected void doLoadIndex(InputStream stream) {
 		try {
 			KMerProbFilter filter = bloomIndex.isMade() ? bloomIndex.get()

@@ -33,20 +33,38 @@ import org.metagene.genestrip.io.BufferedLineReader;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.util.GSLogFactory;
 
+/**
+ * Abstract line-based FASTA reader that reads a stream line by line and dispatches header ('&gt;')
+ * lines and data (sequence) lines to overridable template methods.
+ */
 public abstract class AbstractFastaReader {
 	private final Log logger = GSLogFactory.getLog("fastareader");
 	
 	private final BufferedLineReader bufferedLineReader;
+	/** Buffer holding the bytes of the line currently being processed. */
 	protected final byte[] target;
+	/** Number of valid bytes of the current line held in {@link #target}. */
 	protected int size;
-	
+
+	/** Number of data (sequence) lines read so far from the current input. */
 	protected long dataLines;
 	
+	/**
+	 * Creates a reader using a line buffer of the given size in bytes.
+	 *
+	 * @param bufferSize the size in bytes of the line buffer used to hold each line.
+	 */
 	public AbstractFastaReader(int bufferSize) {
 		this.bufferedLineReader = new BufferedLineReader();
 		target = new byte[bufferSize];
 	}
 
+	/**
+	 * Reads the given FASTA file (transparently decompressing it as needed).
+	 *
+	 * @param file the FASTA file to read.
+	 * @throws IOException if the file cannot be opened or read.
+	 */
 	public void readFasta(File file) throws IOException {
 		if (logger.isDebugEnabled()) {
 			logger.debug("Reading fasta file " + file);
@@ -59,10 +77,22 @@ public abstract class AbstractFastaReader {
 		}
 	}
 	
+	/**
+	 * Returns the logger used by this reader.
+	 *
+	 * @return the logger of this reader.
+	 */
 	protected Log getLogger() {
 		return logger;
 	}
 
+	/**
+	 * Reads FASTA content from the given (non-{@code null}) stream, dispatching header and data lines
+	 * to the overridable template methods.
+	 *
+	 * @param inputStream the stream to read FASTA content from; must not be {@code null}.
+	 * @throws IOException if the stream cannot be read.
+	 */
 	// value must not be null...
 	public void readFasta(InputStream inputStream) throws IOException {
 		dataLines = 0;
@@ -99,18 +129,36 @@ public abstract class AbstractFastaReader {
 		}
 	}
 
+	/**
+	 * Called when a new region begins (i.e. a '&gt;' header line is encountered).
+	 */
 	protected void startRegion() {
 	}
 
+	/**
+	 * Called when the current region ends (before the next region or at end of input).
+	 */
 	protected void endRegion() {
 	}
 	
+	/**
+	 * Called for a header ('&gt;') line; the line's bytes are held in {@code target[0, size)}.
+	 */
 	protected void infoLine() {
 	}
 	
+	/**
+	 * Handles a data (sequence) line, whose bytes are held in {@code target[0, size)}.
+	 */
 	protected abstract void dataLine();
 	
+	/**
+	 * Called once after all lines of the input have been processed.
+	 */
 	protected void done() {};
-	
+
+	/**
+	 * Called once before reading of the input begins.
+	 */
 	protected void start() {};
 }

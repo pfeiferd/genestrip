@@ -36,7 +36,13 @@ import org.metagene.genestrip.util.GSLogFactory;
 import org.metagene.genestrip.util.StringLongDigitTrie;
 import org.metagene.genestrip.util.StringLongDigitTrie.StringLong;
 
+/**
+ * Parses Kraken-style classification output line by line, notifying a
+ * {@link KrakenResultListener} for each per-taxon k-mer segment and accumulating the
+ * total k-mer counts per tax id.
+ */
 public class KrakenResultProcessor {
+	/** The logger for this processor. */
 	protected static final Log logger = GSLogFactory.getLog("krakenresproc");
 
 	private final byte[] krakenChars;
@@ -44,6 +50,11 @@ public class KrakenResultProcessor {
 
 	private final BufferedLineReader bufferedLineReaderKraken;
 
+	/**
+	 * Creates a processor with buffers sized for the given maximum read size.
+	 *
+	 * @param maxReadSizeBytes the maximum read size in bytes
+	 */
 	public KrakenResultProcessor(int maxReadSizeBytes) {
 		krakenChars = new byte[maxReadSizeBytes];
 		readDescriptor = new byte[maxReadSizeBytes];
@@ -51,6 +62,15 @@ public class KrakenResultProcessor {
 		bufferedLineReaderKraken = new BufferedLineReader();
 	}
 
+	/**
+	 * Parses the given Kraken output stream, invoking {@code listener} (if non-null) for
+	 * every k-mer segment attributed to a tax id.
+	 *
+	 * @param fromKraken the Kraken output stream to parse
+	 * @param listener the listener notified for each k-mer segment, or {@code null} for none
+	 * @return the list of tax ids with their accumulated k-mer counts
+	 * @throws IOException if reading the stream fails
+	 */
 	public List<StringLong> process(InputStream fromKraken, KrakenResultListener listener) throws IOException {
 		StringLongDigitTrie root = new StringLongDigitTrie();
 

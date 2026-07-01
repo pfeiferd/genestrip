@@ -48,9 +48,23 @@ import java.text.DecimalFormatSymbols;
 import java.util.*;
 import java.util.List;
 
+/**
+ * Goal that renders the database's taxonomy tree to an SVG file using {@link TaxTreePainter},
+ * configured from the project's {@code SVG_*} settings.
+ *
+ * @param <P> the project type
+ */
 public class SVGTaxTreeGoal<P extends GSProject> extends FileGoal<P> {
     private final ObjectGoal<Database, P> storeGoal;
 
+    /**
+     * Creates the goal under the given goal key, wiring the database goal whose tax tree is rendered.
+     *
+     * @param project the project this goal belongs to
+     * @param key the goal key identifying this goal
+     * @param storeGoal the goal supplying the database whose tax tree is rendered
+     * @param deps additional goals this goal depends on
+     */
     public SVGTaxTreeGoal(P project, GoalKey key, ObjectGoal<Database, P> storeGoal, Goal<P>... deps) {
         super(project, key, Goal.append(deps, storeGoal));
         this.storeGoal = storeGoal;

@@ -34,6 +34,10 @@ import java.util.concurrent.ThreadFactory;
 
 import org.metagene.genestrip.io.StreamingResource;
 
+/**
+ * Default {@link ExecutionContext} that runs tasks on a fixed-size thread pool and
+ * collects uncaught exceptions thrown in the worker threads.
+ */
 public class DefaultExecutionContext implements ExecutionContext {
 	private final Thread mainThread;
 	private final String threadBaseName;
@@ -45,10 +49,29 @@ public class DefaultExecutionContext implements ExecutionContext {
 	private final List<Thread> executorThreads;
 	private final long logUpdateCycle;
 
+	/**
+	 * Creates an execution context with the default thread name prefix.
+	 *
+	 * @param mainTread      the main thread to interrupt when a worker thread fails, may be {@code null}
+	 * @param consumers      the number of worker threads; a negative value uses the number of
+	 *                       available processors minus one, and {@code 0} makes tasks run inline
+	 *                       in the calling thread
+	 * @param logUpdateCycle the number of processed reads between progress log updates
+	 */
 	public DefaultExecutionContext(Thread mainTread, int consumers, long logUpdateCycle) {
 		this(mainTread, consumers, logUpdateCycle, "Executor Thread");
 	}
 	
+	/**
+	 * Creates an execution context.
+	 *
+	 * @param mainTread      the main thread to interrupt when a worker thread fails, may be {@code null}
+	 * @param consumers      the number of worker threads; a negative value uses the number of
+	 *                       available processors minus one, and {@code 0} makes tasks run inline
+	 *                       in the calling thread
+	 * @param logUpdateCycle the number of processed reads between progress log updates
+	 * @param threadBaseName the base name used for the created worker threads
+	 */
 	public DefaultExecutionContext(Thread mainTread, int consumers, long logUpdateCycle, String threadBaseName) {
 		this.mainThread = mainTread;
 		this.threadBaseName = threadBaseName;
@@ -123,6 +146,13 @@ public class DefaultExecutionContext implements ExecutionContext {
 		hasThrowables = false;
 	}
 
+	/**
+	 * Creates the thread factory used for the pool. Each produced thread is named, registered for
+	 * interruption and equipped with a handler that records uncaught exceptions and interrupts all
+	 * other threads.
+	 *
+	 * @return the thread factory for the pool
+	 */
 	protected ThreadFactory createThreadFactory() {
 		return new ThreadFactory() {
 			private int newCounter = 0;

@@ -32,11 +32,24 @@ import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.Goal;
 
+/**
+ * Download goal for the RefSeq {@code RELEASE_NUMBER} file, which identifies the current RefSeq
+ * release.
+ *
+ * @param <P> the project type
+ */
 public class RefSeqRNumDownloadGoal<P extends GSProject> extends RefSeqDownloadGoal<P> {
+	/** The name of the RefSeq release-number file. */
 	public static final String RELEASE_NUMBER_FILE_NAME = "RELEASE_NUMBER";
-	
+
 	private final List<File> files;
-	
+
+	/**
+	 * Creates the download goal for the RefSeq release-number file.
+	 *
+	 * @param project the project this goal belongs to.
+	 * @param deps the goals this goal depends on.
+	 */
 	@SafeVarargs
 	public RefSeqRNumDownloadGoal(P project, Goal<P>... deps) {
 		super(project, GSGoalKey.REFSEQRELEASE, deps);

@@ -50,6 +50,14 @@ import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
+/**
+ * Goal ({@code UPDATE_DB}) that updates an already-filled database by re-reading the RefSeq (and
+ * additional) FASTA files and merging each k-mer's stored taxid with the k-mer's new node via their
+ * lowest common ancestor, then stamps Genestrip version, title and creation-date properties.
+ * Produces the updated {@link Database}.
+ *
+ * @param <P> the project type
+ */
 public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 	private final ObjectGoal<AccessionMap, P> accessionMapGoal;
 	private final ObjectGoal<TaxTree, P> taxTreeGoal;
@@ -58,6 +66,20 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 
 	private KMerStore<String> store;
 
+	/**
+	 * Creates the goal, wiring the tax tree, accession map and filled-store goals it updates in place.
+	 *
+	 * @param project the project this goal belongs to
+	 * @param bundle the execution context providing worker threads
+	 * @param categoriesGoal the goal supplying the RefSeq categories to include
+	 * @param taxNodesGoal the goal supplying the set of taxonomy nodes
+	 * @param taxTreeGoal the goal supplying the taxonomy tree
+	 * @param fnaFilesGoal the goal supplying the downloaded RefSeq FASTA files
+	 * @param additionalGoal the goal supplying additional FASTA files mapped to taxonomy nodes
+	 * @param accessionMapGoal the goal supplying the accession-to-taxid map
+	 * @param filledStoreGoal the goal supplying the filled database to update
+	 * @param deps additional goals this goal depends on
+	 */
 	@SafeVarargs
 	public DBGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
 				  ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal,
@@ -160,10 +182,32 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 		};
 	}
 
+	/**
+	 * FASTA reader that updates each existing k-mer's taxid to the lowest common ancestor of its
+	 * current node and the k-mer's new node.
+	 */
 	protected class MyFastaReader extends AbstractStoreFastaReader {
 		private final KMerStore<String> store;
 		private final UpdateValueProvider<String> provider;
 
+		/**
+		 * Creates the reader that updates existing k-mers to the lowest common ancestor of their
+		 * current and new nodes.
+		 *
+		 * @param bufferSize the FASTA read buffer size in bytes
+		 * @param taxTree the taxonomy tree
+		 * @param taxNodes the set of taxonomy nodes to consider
+		 * @param accessionMap the accession-to-taxid map
+		 * @param store the k-mer store to update
+		 * @param maxGenomesPerTaxId the maximum number of genomes per taxid
+		 * @param maxGenomesPerTaxIdRank the rank at which the genome limit applies
+		 * @param maxKmersPerTaxId the maximum number of k-mers per taxid
+		 * @param maxDust the maximum dust (low-complexity) threshold
+		 * @param stepSize the k-mer sampling step size
+		 * @param completeGenomesOnly whether to restrict to complete genomes only
+		 * @param regionsPerTaxid the trie of regions per taxid
+		 * @param enableLowerCaseBases whether lowercase bases are treated as valid
+		 */
 		public MyFastaReader(int bufferSize, TaxTree taxTree, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, KMerStore<String> store,
 							 int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
 			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases);

@@ -24,7 +24,15 @@
  */
 package org.metagene.genestrip.util;
 
+/**
+ * A drop-in reimplementation of the 64-bit MurmurHash3 hash (as in Apache Commons Codec) that,
+ * unlike the deprecated original, supports a custom seed.
+ */
 public class MurmurHash3DropIn {
+    // Static utility class - not meant to be instantiated.
+    private MurmurHash3DropIn() {
+    }
+
     /*
      * The following code was copied from
      * org.apache.commons.codec.digest.MurmurHash3.hash64()
@@ -41,6 +49,14 @@ public class MurmurHash3DropIn {
     private static final int M = 5;
     private static final int N1 = 0x52dce729;
 
+    /**
+     * Computes the 64-bit MurmurHash3 hash of the given 8-byte value, using {@code hashBase} as the
+     * seed.
+     *
+     * @param data     the 8-byte value to hash
+     * @param hashBase the seed value
+     * @return the 64-bit MurmurHash3 hash
+     */
     public static final long hash64(final long data, long hashBase) {
         long hash = hashBase;
 

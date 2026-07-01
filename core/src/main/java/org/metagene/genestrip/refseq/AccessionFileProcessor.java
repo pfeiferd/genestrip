@@ -39,17 +39,27 @@ import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.GSLogFactory;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
+/**
+ * Streams and parses the (large) NCBI RefSeq accession catalog file line by line, filtering entries
+ * by sequence type (DNA/RNA/mRNA), RefSeq category and release status, and dispatching each matching
+ * entry to {@link #handleEntry(byte[], int, int, int)}.
+ */
 public abstract class AccessionFileProcessor {
     private static int MAX_LINE_SIZE = 2048;
 
+    /** Accession prefixes that mark any genomic (DNA) sequence. */
     protected static final String[] ALL_GENOMIC_ACCESSION_PREFIXES = {"AC_", "NC_", "NG_", "NT_", "NW_", "NZ_"};
 
+    /** Accession prefixes that mark a complete genomic (DNA) sequence. */
     protected static final String[] COMPLETE_GENOMIC_ACCESSION_PREFIXES = {"AC_", "NC_", "NZ_"};
 
+    /** Accession prefixes that mark a (non-messenger) RNA sequence. */
     protected static final String[] RNA_PREFIXES = {"NR_", "XR_"};
 
+    /** Accession prefixes that mark a messenger-RNA sequence. */
     protected static final String[] M_RNA_PREFIXES = {"NM_", "XM_"};
 
+    /** Logger used for accession-catalog reading. */
     protected final Log logger = GSLogFactory.getLog("accreader");
 
     private final RefSeqCategory[] categories;
@@ -58,6 +68,14 @@ public abstract class AccessionFileProcessor {
     private final boolean rna;
     private final boolean mrna;
 
+    /**
+     * Creates a processor that keeps catalog entries matching the given RefSeq categories, sequence
+     * type and release statuses.
+     *
+     * @param categories the RefSeq categories whose entries are kept
+     * @param seqType the sequence type (DNA/RNA/mRNA) to keep
+     * @param statuses the RefSeq release statuses to keep
+     */
     public AccessionFileProcessor(Collection<RefSeqCategory> categories, SeqType seqType, List<GSConfigKey.RefSeqStatus> statuses) {
         // Converting to array makes iterator below way more efficient (less/no object
         // allocations) -
@@ -69,6 +87,12 @@ public abstract class AccessionFileProcessor {
         this.statuses = statuses.toArray(new GSConfigKey.RefSeqStatus[statuses.size()]);
     }
 
+    /**
+     * Streams and parses the given RefSeq catalog file, invoking {@link #handleEntry} for every
+     * entry that matches the configured sequence type, category and status filters.
+     *
+     * @param catalogFile the RefSeq catalog file to stream and parse
+     */
     public void processCatalog(StreamingResource catalogFile) {
         try (StreamAccess byteCountAccess = catalogFile.openStream()) {
             long totalCatSize = byteCountAccess.getSize();
@@ -106,16 +130,46 @@ public abstract class AccessionFileProcessor {
         }
     }
 
+    /**
+     * Returns whether a progress bar should be shown while processing the catalog.
+     *
+     * @return {@code true} if a progress bar should be shown
+     */
     protected boolean isProgressBar() {
         return true;
     }
 
+    /**
+     * Returns the task name shown on the progress bar.
+     *
+     * @return the progress bar task name
+     */
     protected String getProgressBarTaskName() {
         return ((GSLogFactory.GSLog) logger).getName();
     }
 
+    /**
+     * Handles a catalog entry that passed all filters, given the line buffer and the byte offsets
+     * delimiting its tax id (ending at {@code taxIdEnd}) and its accession ({@code accessionStart}
+     * inclusive to {@code accessionEnd} exclusive).
+     *
+     * @param target the line buffer holding the catalog entry
+     * @param taxIdEnd the exclusive end offset of the tax id
+     * @param accessionStart the inclusive start offset of the accession
+     * @param accessionEnd the exclusive end offset of the accession
+     */
     protected abstract void handleEntry(byte[] target, int taxIdEnd, int accessionStart, int accessionEnd);
 
+    /**
+     * Returns whether the given byte range contains the directory name of any of the given
+     * categories.
+     *
+     * @param outerArray the buffer to search
+     * @param start the inclusive start offset of the range
+     * @param end the exclusive end offset of the range
+     * @param categories the categories whose directory names are searched for
+     * @return whether any category's directory name occurs in the range
+     */
     protected boolean containsCategory(byte[] outerArray, int start, int end, RefSeqCategory[] categories) {
         for (int i = 0; i < categories.length; i++) {
             if (ByteArrayUtil.indexOf(outerArray, start, end, categories[i].getDirectory()) != -1) {
@@ -125,6 +179,15 @@ public abstract class AccessionFileProcessor {
         return false;
     }
 
+    /**
+     * Returns whether the given byte range contains the name of any of the given release statuses.
+     *
+     * @param outerArray the buffer to search
+     * @param start the inclusive start offset of the range
+     * @param end the exclusive end offset of the range
+     * @param status the release statuses whose names are searched for
+     * @return whether any status name occurs in the range
+     */
     protected boolean containsStatus(byte[] outerArray, int start, int end, GSConfigKey.RefSeqStatus[] status) {
         for (int i = 0; i < status.length; i++) {
             if (ByteArrayUtil.indexOf(outerArray, start, end, status[i].getName()) != -1) {
@@ -134,6 +197,13 @@ public abstract class AccessionFileProcessor {
         return false;
     }
 
+    /**
+     * Returns whether the accession starting at the given offset has a genomic (DNA) prefix.
+     *
+     * @param outerArray the buffer holding the accession
+     * @param start the start offset of the accession
+     * @return whether the accession has a genomic prefix
+     */
     protected boolean isGenomicAccession(byte[] outerArray, int start) {
         for (int i = 0; i < ALL_GENOMIC_ACCESSION_PREFIXES.length; i++) {
             if (ByteArrayUtil.startsWith(outerArray, start, ALL_GENOMIC_ACCESSION_PREFIXES[i])) {
@@ -143,6 +213,13 @@ public abstract class AccessionFileProcessor {
         return false;
     }
 
+    /**
+     * Returns whether the accession starting at the given offset has a (non-messenger) RNA prefix.
+     *
+     * @param outerArray the buffer holding the accession
+     * @param start the start offset of the accession
+     * @return whether the accession has an RNA prefix
+     */
     public static boolean isRNAAccession(byte[] outerArray, int start) {
         for (int i = 0; i < RNA_PREFIXES.length; i++) {
             if (ByteArrayUtil.startsWith(outerArray, start, RNA_PREFIXES[i])) {
@@ -152,6 +229,13 @@ public abstract class AccessionFileProcessor {
         return false;
     }
 
+    /**
+     * Returns whether the accession starting at the given offset has a messenger-RNA prefix.
+     *
+     * @param outerArray the buffer holding the accession
+     * @param start the start offset of the accession
+     * @return whether the accession has a messenger-RNA prefix
+     */
     public static boolean isMRNAAccession(byte[] outerArray, int start) {
         for (int i = 0; i < M_RNA_PREFIXES.length; i++) {
             if (ByteArrayUtil.startsWith(outerArray, start, M_RNA_PREFIXES[i])) {
@@ -161,6 +245,13 @@ public abstract class AccessionFileProcessor {
         return false;
     }
 
+    /**
+     * Returns whether the accession starting at the given offset has a complete-genome prefix.
+     *
+     * @param outerArray the buffer holding the accession
+     * @param start the start offset of the accession
+     * @return whether the accession has a complete-genome prefix
+     */
     public static boolean isCompleteGenomicAccession(byte[] outerArray, int start) {
         String[] prefixes = AccessionFileProcessor.COMPLETE_GENOMIC_ACCESSION_PREFIXES;
         for (int i = 0; i < prefixes.length; i++) {

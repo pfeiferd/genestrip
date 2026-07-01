@@ -38,11 +38,26 @@ import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
+/**
+ * Produces the set of tax ids whose sequence data should additionally be fetched from GenBank: either all
+ * requested nodes (non-RefSeq database) or those with too few RefSeq regions under the configured limit.
+ *
+ * @param <P> the project type
+ */
 public class TaxNodesFromGenbankGoal<P extends GSProject> extends ObjectGoal<Set<TaxIdNode>, P> {
 	private final ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal;
 	private final ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal;
 	private final ObjectGoal<AccessionMap, P> accessionMapGoal;
 
+	/**
+	 * Creates the goal, wiring the categories, tax nodes and accession-map goals it reads.
+	 *
+	 * @param project the project
+	 * @param categoriesGoal goal providing the selected RefSeq categories
+	 * @param taxNodesGoal goal providing the requested tax id nodes
+	 * @param accessionMapGoal goal providing the accession-to-tax-id map
+	 * @param deps additional goal dependencies
+	 */
 	@SafeVarargs
 	public TaxNodesFromGenbankGoal(P project,
 			ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,

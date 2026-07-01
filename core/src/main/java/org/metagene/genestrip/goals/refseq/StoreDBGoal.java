@@ -38,9 +38,24 @@ import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.Database;
 
+/**
+ * Goal that saves the built {@link Database} (k-mer store together with its index) to the given
+ * database file.
+ *
+ * @param <P> the project type
+ */
 public class StoreDBGoal<P extends GSProject> extends FileListGoal<P> {
     private final ObjectGoal<Database, P> dbGoal;
 
+    /**
+     * Creates the goal that saves the database goal's result to {@code dbFile} under the given key.
+     *
+     * @param project the project this goal belongs to
+     * @param key     the goal key identifying this goal
+     * @param dbFile  the file the database is saved to
+     * @param dbGoal  the goal supplying the database to save
+     * @param deps    the goals this goal depends on
+     */
     @SafeVarargs
     public StoreDBGoal(P project, GoalKey key, File dbFile, ObjectGoal<Database, P> dbGoal,
                        Goal<P>... deps) {

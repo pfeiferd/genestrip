@@ -38,10 +38,25 @@ import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 
+/**
+ * Filters each input FASTQ file against the loaded bloom-filter index, writing the reads that pass to a per-key
+ * FASTQ output file (and optionally the rejected reads to a dump file).
+ *
+ * @param <P> the project type
+ */
 public class FilterGoal<P extends GSProject> extends MultiFileGoal<P> {
 	private final LoadIndexGoal<P> indexedGoal;
 	private final ExecutionContext executorServiceBundle;
 
+	/**
+	 * Creates the goal, wiring the input FASTQ map, the loaded index and the execution context.
+	 *
+	 * @param project the project type
+	 * @param fastqMapGoal the goal supplying the per-key input FASTQ resources
+	 * @param indexedGoal the goal supplying the loaded bloom-filter index
+	 * @param executorServiceBundle the execution context providing threading and shared services
+	 * @param deps the additional goals this goal depends on
+	 */
 	@SafeVarargs
 	public FilterGoal(P project,
 			ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal, LoadIndexGoal<P> indexedGoal,

@@ -24,13 +24,22 @@
  */
 package org.metagene.genestrip.fastq;
 
+/**
+ * Thrown to unwind the FASTQ/FASTA reader when it is interrupted or asked to stop (dump).
+ */
 public class FastqReaderInterruptedException extends RuntimeException {
 	private static final long serialVersionUID = 1L;
 
+	/** Creates the exception with no cause. */
 	public FastqReaderInterruptedException() {
 		super();
 	}
-	
+
+	/**
+	 * Creates the exception wrapping the given interruption as its cause.
+	 *
+	 * @param arg0 the interruption that caused the reader to stop.
+	 */
 	public FastqReaderInterruptedException(InterruptedException arg0) {
 		super(arg0);
 	}

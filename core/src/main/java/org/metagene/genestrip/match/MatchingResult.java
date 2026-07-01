@@ -36,13 +36,32 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * The result of matching FASTQ reads against the k-mer database: the per-tax-id
+ * statistics ({@link CountsPerTaxid}) together with the global totals and the k-mer
+ * length used.
+ */
 public class MatchingResult implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
+	/** The k-mer length used for matching. */
 	private final int k;
+	/** The per-tax-id statistics, keyed by tax id. */
 	private final Map<String, CountsPerTaxid> taxid2Stats;
+	/** The global totals across all tax ids. */
 	private final CountsPerTaxid globalStats;
 
+	/**
+	 * Creates a matching result from the per-tax-id statistics and the global totals.
+	 *
+	 * @param k              the k-mer length used for matching
+	 * @param taxid2Stats    the per-tax-id statistics, keyed by tax id
+	 * @param totalDesc      the descriptor of the overall best-matching contig, or {@code null}
+	 * @param totalReads     the total number of reads
+	 * @param totalKMers     the total number of k-mers
+	 * @param totalBPs       the total number of base pairs
+	 * @param totalMaxCounts the global maximum k-mer counts, or {@code null}
+	 */
 	public MatchingResult(int k, Map<String, CountsPerTaxid> taxid2Stats, String totalDesc, long totalReads, long totalKMers, long totalBPs,
 			short[] totalMaxCounts) {
 		this.k = k;
@@ -55,6 +74,13 @@ public class MatchingResult implements Serializable {
 	}
 
 
+	/**
+	 * Finalizes the result against the given database: adds any missing parent nodes,
+	 * sorts the entries into taxonomy-tree order and computes each entry's position,
+	 * db-normalized and accumulated (subtree) values.
+	 *
+	 * @param database the database to finalize the result against
+	 */
 	public void completeResults(Database database) {
 		taxid2Stats.put(globalStats.getTaxid(), globalStats);
 
@@ -91,18 +117,38 @@ public class MatchingResult implements Serializable {
 		}
 	}
 
+	/**
+	 * Returns the k-mer length used for matching.
+	 *
+	 * @return the k-mer length
+	 */
 	public int getK() {
 		return k;
 	}
 
+	/**
+	 * Returns an unmodifiable view of the per-tax-id statistics, keyed by tax id.
+	 *
+	 * @return the per-tax-id statistics
+	 */
 	public Map<String, CountsPerTaxid> getTaxid2Stats() {
 		return Collections.unmodifiableMap(taxid2Stats);
 	}
 
+	/**
+	 * Whether per-tax-id maximum k-mer counts were collected during matching.
+	 *
+	 * @return {@code true} if maximum k-mer counts were collected
+	 */
 	public boolean isWithMaxKMerCounts() {
 		return globalStats.maxKMerCounts != null;
 	}
 
+	/**
+	 * Returns the global totals across all tax ids.
+	 *
+	 * @return the global statistics
+	 */
 	public CountsPerTaxid getGlobalStats() {
 		return globalStats;
 	}

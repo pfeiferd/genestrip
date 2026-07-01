@@ -38,16 +38,34 @@ import org.metagene.genestrip.tax.TaxIdCollector;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
+/**
+ * Produces the set of requested taxonomic nodes read from the project's tax-ids file, expanded with descendants
+ * down to the configured rank and with the excluded nodes removed.
+ *
+ * @param <P> the project type
+ */
 public class TaxNodesGoal<P extends GSProject> extends ObjectGoal<Set<TaxIdNode>, P> {
 	private final ObjectGoal<TaxTree, P> taxTreeGoal;
 
+	/**
+	 * Creates the goal wiring the tax tree goal whose nodes are selected.
+	 *
+	 * @param project the project this goal belongs to
+	 * @param taxTreeGoal the goal supplying the taxonomy tree
+	 * @param deps additional goals this goal depends on
+	 */
 	@SafeVarargs
 	public TaxNodesGoal(P project, ObjectGoal<TaxTree, P> taxTreeGoal,
 			Goal<P>... deps) {
 		super(project, GSGoalKey.TAXNODES, Goal.append(deps, taxTreeGoal));
 		this.taxTreeGoal = taxTreeGoal;
 	}
-	
+
+	/**
+	 * Returns the goal supplying the taxonomy tree.
+	 *
+	 * @return the tax tree goal
+	 */
 	public ObjectGoal<TaxTree, P> getTaxTreeGoal() {
 		return taxTreeGoal;
 	}

@@ -41,11 +41,26 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.DigitTrie;
 
+/**
+ * Runs Kraken on each input fastq set and produces per-key, per-taxid read and k-mer statistics
+ * ({@link KrakenResStats}), optionally restricted to a given set of tax ids.
+ *
+ * @param <P> the project type
+ */
 public class KrakenResCountGoal<P extends GSProject> extends ObjectGoal<Map<String, List<KrakenResCountGoal.KrakenResStats>>, P> {
+    /** Goal supplying the per-key map of fastq input resources to run Kraken on. */
     protected final ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal;
     private final ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal;
     private AfterMatchCallback afterMatchCallback;
 
+    /**
+     * Creates the goal.
+     *
+     * @param project      the project this goal belongs to
+     * @param fastqMapGoal goal supplying the per-key map of fastq input resources
+     * @param taxNodesGoal goal supplying the tax id nodes to restrict counting to, may be {@code null}
+     * @param deps         additional goals this goal depends on
+     */
     @SafeVarargs
     public KrakenResCountGoal(P project,
                               ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal,
@@ -79,6 +94,15 @@ public class KrakenResCountGoal<P extends GSProject> extends ObjectGoal<Map<Stri
         }
     }
 
+    /**
+     * Runs Kraken on the given fastq files and returns the per-taxid statistics, restricted to the configured
+     * tax ids when a tax-nodes goal is set.
+     *
+     * @param key    the input key the statistics are computed for
+     * @param fastqs the fastq files to run Kraken on
+     * @return the per-taxid Kraken statistics
+     * @throws IOException if running Kraken or reading its output fails
+     */
     protected List<KrakenResStats> computeStats(String key, List<File> fastqs) throws IOException {
         DigitTrie<KrakenResStats> countingTrie = new DigitTrie<KrakenResStats>() {
             @Override
@@ -163,46 +187,106 @@ public class KrakenResCountGoal<P extends GSProject> extends ObjectGoal<Map<Stri
         }
     }
 
+    /**
+     * Hook invoked for each classified read; does nothing by default.
+     *
+     * @param krakenTaxid    the tax id Kraken assigned to the read
+     * @param readDescriptor the read descriptor bytes
+     */
     protected void afterReadMatch(String krakenTaxid, byte[] readDescriptor) {
     }
 
+    /**
+     * Per-taxid Kraken statistics: number of reads, matched k-mers, and k-mers within matching reads.
+     */
     public static class KrakenResStats implements Comparable<KrakenResStats>, Serializable {
         private static final long serialVersionUID = 1L;
 
+        /** The tax id these statistics belong to. */
         private String taxid;
 
+        /** The number of reads classified to the tax id. */
         private long reads;
+        /** The number of matched k-mers counted for the tax id. */
         private long kmers;
+        /** The number of k-mers within reads matching the tax id. */
         private long kmersInMatchingReads;
+
+        /**
+         * Creates an empty statistics record.
+         */
+        public KrakenResStats() {
+        }
 
         @Override
         public int compareTo(KrakenResStats o) {
             return taxid.compareTo(o.taxid);
         }
 
+        /**
+         * Returns the number of reads classified to the tax id.
+         *
+         * @return the number of reads classified to the tax id
+         */
         public long getReads() {
             return reads;
         }
 
+        /**
+         * Returns the number of matched k-mers counted for the tax id.
+         *
+         * @return the number of matched k-mers counted for the tax id
+         */
         public long getKmers() {
             return kmers;
         }
 
+        /**
+         * Returns the number of k-mers within reads matching the tax id.
+         *
+         * @return the number of k-mers within reads matching the tax id
+         */
         public long getKmersInMatchingReads() {
             return kmersInMatchingReads;
         }
 
+        /**
+         * Returns the tax id these statistics belong to.
+         *
+         * @return the tax id these statistics belong to
+         */
         public String getTaxid() {
             return taxid;
         }
     }
 
+    /**
+     * Sets the callback invoked while counting Kraken results.
+     *
+     * @param afterMatchCallback the callback to invoke, may be {@code null}
+     */
     public void setAfterMatchCallback(AfterMatchCallback afterMatchCallback) {
         this.afterMatchCallback = afterMatchCallback;
     }
 
+    /**
+     * Callback invoked while counting Kraken results: once per finished key and once per classified read.
+     */
     public interface AfterMatchCallback {
+        /**
+         * Invoked once the statistics for a key have been computed.
+         *
+         * @param key the input key that was finished
+         * @param res the per-taxid statistics computed for the key
+         */
         public void afterKey(String key, List<KrakenResStats> res);
+
+        /**
+         * Invoked for each classified read.
+         *
+         * @param krakenTaxid    the tax id Kraken assigned to the read
+         * @param readDescriptor the read descriptor bytes
+         */
         public void afterMatch(String krakenTaxid, byte[] readDescriptor);
     }
 }

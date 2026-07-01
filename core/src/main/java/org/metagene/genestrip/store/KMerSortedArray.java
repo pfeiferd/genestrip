@@ -38,35 +38,83 @@ import it.unimi.dsi.fastutil.BigSwapper;
 import it.unimi.dsi.fastutil.longs.LongBigArrays;
 import it.unimi.dsi.fastutil.longs.LongComparator;
 
+/**
+ * A {@link KMerStore} that keeps its k-mers in a single {@code long} array sorted by
+ * {@link #optimize()}, with a parallel {@code short} array holding each k-mer's value index (offset by
+ * {@link Short#MIN_VALUE}); lookups binary-search the sorted array. It uses small ({@code int}-indexed)
+ * arrays up to {@link #MAX_SMALL_CAPACITY} and switches to large fastutil
+ * {@link it.unimi.dsi.fastutil.BigArrays} for bigger databases (or when large storage is enforced).
+ * Common value-index, counter, pre-filter and statistics handling is inherited from
+ * {@link AbstractKMerStore}.
+ *
+ * @param <V> the value type mapped to each k-mer
+ */
 public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V> {
 	// The value index is stored in a (large) short array, offset by Short.MIN_VALUE, so the number
 	// of distinct values is capped by the short range.
+	/** Maximum number of distinct values, capped by the short range of the value index. */
 	public static final int MAX_VALUES = ((int) Short.MAX_VALUE) - Short.MIN_VALUE;
 
 	private static final long serialVersionUID = 1L;
 
+	/** Capacity threshold above which the store switches to big (paged) arrays. */
 	public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
 
+	/** The k-mers, sorted after optimization (small-array layout). */
 	private long[] kmers;
+	/** The per-k-mer value indexes (small-array layout). */
 	private short[] valueIndexes;
 
+	/** The k-mers, sorted after optimization (big-array layout). */
 	private long[][] largeKmers;
+	/** The per-k-mer value indexes (big-array layout). */
 	private short[][] largeValueIndexes;
 
+	/** Whether the big-array layout is enforced regardless of size. */
 	private final boolean enforceLarge;
 
+	/** Whether the store size has already been initialized. */
 	private boolean initSize;
 
+	/**
+	 * Creates a store with a fill-time pre-filter of the given {@code entryFpp} (an
+	 * {@link XORKMerBloomFilter} when {@code xor}, otherwise a {@link MurmurKMerBloomFilter}) and a
+	 * post-optimize filter targeting {@code optimizedFpp}.
+	 *
+	 * @param k the k-mer length
+	 * @param entryFpp the target false-positive probability of the fill-time pre-filter
+	 * @param optimizedFpp the target false-positive probability after optimization
+	 * @param initialValues the initial list of values
+	 * @param enforceLarge whether to enforce the big-array layout
+	 * @param xor whether to use an {@link XORKMerBloomFilter} (else a {@link MurmurKMerBloomFilter})
+	 */
 	public KMerSortedArray(int k, double entryFpp, double optimizedFpp, List<V> initialValues, boolean enforceLarge, boolean xor) {
 		this(k, initialValues, enforceLarge, xor ? new XORKMerBloomFilter(entryFpp) : new MurmurKMerBloomFilter(entryFpp), optimizedFpp);
 	}
 
+	/**
+	 * Creates a store using the given fill-time pre-filter.
+	 *
+	 * @param k the k-mer length
+	 * @param initialValues the initial list of values
+	 * @param enforceLarge whether to enforce the big-array layout
+	 * @param filter the fill-time pre-filter to use
+	 * @param optimizedFpp the target false-positive probability after optimization
+	 */
 	protected KMerSortedArray(int k, List<V> initialValues, boolean enforceLarge,
 							  KMerProbFilter filter, double optimizedFpp) {
 		super(k, MAX_VALUES, initialValues, filter, optimizedFpp);
 		this.enforceLarge = enforceLarge;
 	}
 
+	/**
+	 * Value-converting copy constructor: shares the (immutable after optimize) k-mer and value-index
+	 * arrays with {@code org} while remapping the values via {@code converter}.
+	 *
+	 * @param <W> the source value type
+	 * @param org the store to copy k-mer and value-index arrays from
+	 * @param converter the converter remapping source values to this store's value type
+	 */
 	public <W extends Serializable> KMerSortedArray(KMerSortedArray<W> org, KMerStore.ValueConverter<W, V> converter) {
 		super(org, converter);
 		kmers = org.kmers;
@@ -104,6 +152,11 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 		}
 	}
 
+	/**
+	 * Indicates whether this store uses the big-array layout for large k-mer sets.
+	 *
+	 * @return whether this store uses the big-array layout
+	 */
 	public boolean isLarge() {
 		return largeKmers != null;
 	}
@@ -148,6 +201,15 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 		return true;
 	}
 
+	/**
+	 * Decodes the k-mer starting at {@code start} in the nucleotide sequence and returns its stored
+	 * value, see {@link #getLong(long, long[])}.
+	 *
+	 * @param nseq the nucleotide sequence
+	 * @param start the start position of the k-mer within the sequence
+	 * @param indexStore an optional array receiving the storage position (may be {@code null})
+	 * @return the stored value, or {@code null} if the k-mer is not present
+	 */
 	public V get(byte[] nseq, int start, long[] indexStore) {
 		return getLong(CGAT.kMerToLong(nseq, start, k, null), indexStore);
 	}
@@ -204,6 +266,12 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 		}
 	}
 
+	/**
+	 * Stores the given value index for the entry at the given storage position.
+	 *
+	 * @param pos the storage position
+	 * @param index the value index to store
+	 */
 	public void setIndexAtPosition(long pos, int index) {
 		if (largeKmers != null) {
 			BigArrays.set(largeValueIndexes, pos, (short) (index + Short.MIN_VALUE));
@@ -212,6 +280,12 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 		}
 	}
 
+	/**
+	 * Returns the k-mer stored at the given storage position.
+	 *
+	 * @param pos the storage position
+	 * @return the k-mer stored at the given storage position.
+	 */
 	public long getKMerAt(long pos) {
 		if (largeKmers != null) {
 			return BigArrays.get(largeKmers, pos);
@@ -273,6 +347,12 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 		return indexMap[index - Short.MIN_VALUE];
 	}
 
+	/**
+	 * Returns the value index of the entry at the given storage position.
+	 *
+	 * @param pos the storage position
+	 * @return the value index of the entry at the given storage position.
+	 */
 	public int indexAtPosition(long pos) {
 		return (largeKmers != null ? BigArrays.get(largeValueIndexes, pos) : valueIndexes[(int) pos]) - Short.MIN_VALUE;
 	}
@@ -358,6 +438,8 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 	}
 
 	/**
+	 * @param <V> the source value type
+	 * @param <W> the target value type
 	 * @deprecated Use {@link KMerStore.ValueConverter} instead. Kept as a source-compatible
 	 *             alias so existing references continue to compile.
 	 */

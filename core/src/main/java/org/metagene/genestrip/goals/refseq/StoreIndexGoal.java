@@ -35,9 +35,21 @@ import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 
+/**
+ * Goal that saves the index Bloom filter ({@link KMerProbFilter}) to the project's index file.
+ *
+ * @param <P> the project type
+ */
 public class StoreIndexGoal<P extends GSProject> extends FileListGoal<P> {
     private final ObjectGoal<KMerProbFilter, P> indexGoal;
 
+    /**
+     * Creates the goal, wiring the index goal that supplies the Bloom filter to save.
+     *
+     * @param project the project this goal belongs to
+     * @param indexGoal the goal supplying the Bloom filter to save
+     * @param deps additional goals this goal depends on
+     */
     @SafeVarargs
     public StoreIndexGoal(P project, ObjectGoal<KMerProbFilter, P> indexGoal,
                           Goal<P>... deps) {

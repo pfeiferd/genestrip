@@ -30,35 +30,105 @@ import org.apache.commons.logging.Log;
 import java.time.Duration;
 import java.util.Optional;
 
+/**
+ * Factory for tongfei {@link me.tongfei.progressbar.ProgressBar} instances configured for Genestrip:
+ * ASCII style, a custom renderer that pulls live current/max values from a {@link GSProgressUpdate},
+ * a configurable update interval and unit name, and optional rendering of the bar to a {@link Log}
+ * at debug level.
+ */
 public class GSProgressBarCreator {
     private static int globalUpdateInterval = 1000;
 
+    /**
+     * Sets the default refresh interval (in milliseconds) used for newly created progress bars.
+     *
+     * @param globalUpdateInterval the refresh interval in milliseconds
+     */
     public static void setGlobalUpdateInterval(int globalUpdateInterval) {
         GSProgressBarCreator.globalUpdateInterval = globalUpdateInterval;
     }
 
+    /**
+     * Returns the default refresh interval (in milliseconds) used for newly created progress bars.
+     *
+     * @return the refresh interval in milliseconds
+     */
     public static int getGlobalUpdateInterval() {
         return globalUpdateInterval;
     }
 
     private GSProgressBarCreator() {}
 
+    /**
+     * Creates a byte-counting progress bar for the given task that reads its current and maximum
+     * values from the given progress update.
+     *
+     * @param task           the task name shown on the bar
+     * @param progressUpdate a live source of current/max values
+     * @param log            a log to render the bar to at debug level, or {@code null} for the console
+     * @return the created progress bar
+     */
     public static ProgressBar newGSProgressBar(String task, GSProgressUpdate progressUpdate, Log log) {
         return newGSProgressBar(task, 0,globalUpdateInterval, " bytes", progressUpdate, log, false);
     }
 
+    /**
+     * Creates a byte-counting progress bar as {@link #newGSProgressBar(String, GSProgressUpdate, Log)}.
+     * If {@code doneWorkaround} is {@code true}, the bar jumps to its maximum once the task is no
+     * longer alive.
+     *
+     * @param task           the task name shown on the bar
+     * @param progressUpdate a live source of current/max values
+     * @param log            a log to render the bar to at debug level, or {@code null} for the console
+     * @param doneWorkaround whether the bar jumps to its maximum once the task is no longer alive
+     * @return the created progress bar
+     */
     public static ProgressBar newGSProgressBar(String task, GSProgressUpdate progressUpdate, Log log, boolean doneWorkaround) {
         return newGSProgressBar(task, 0,globalUpdateInterval, " bytes", progressUpdate, log, doneWorkaround);
     }
 
+    /**
+     * Creates a progress bar for the given task with a fixed maximum and the given unit name, stepped
+     * by the caller.
+     *
+     * @param task     the task name shown on the bar
+     * @param max      the fixed maximum value
+     * @param unitName the unit label for counted amounts
+     * @param log      a log to render the bar to at debug level, or {@code null} for the console
+     * @return the created progress bar
+     */
     public static ProgressBar newGSProgressBar(String task, long max, String unitName, Log log) {
         return newGSProgressBar(task, max, globalUpdateInterval, unitName, null, log, false);
     }
 
+    /**
+     * Creates a progress bar for the given task with the given unit name that reads its progress from
+     * the given progress update.
+     *
+     * @param task           the task name shown on the bar
+     * @param unitName       the unit label for counted amounts
+     * @param progressUpdate a live source of current/max values
+     * @param log            a log to render the bar to at debug level, or {@code null} for the console
+     * @return the created progress bar
+     */
     public static ProgressBar newGSProgressBar(String task, String unitName, GSProgressUpdate progressUpdate, Log log) {
         return newGSProgressBar(task, 0, globalUpdateInterval, unitName, progressUpdate, log, false);
     }
 
+    /**
+     * Creates a progress bar with full control over its parameters.
+     *
+     * @param task                 the task name shown on the bar
+     * @param max                  the initial maximum value
+     * @param updateIntervalMillis how often the bar is refreshed, in milliseconds
+     * @param unitName             the unit label for counted amounts
+     * @param progressUpdate       a live source of current/max values, or {@code null} to step the bar
+     *                             manually
+     * @param log                  a log to render the bar to at debug level, or {@code null} for the
+     *                             console
+     * @param doneWorkaround       whether the bar jumps to its maximum once the task is no longer alive
+     * @return the created progress bar
+     */
     public static ProgressBar newGSProgressBar(String task, long max, int updateIntervalMillis, String unitName, GSProgressUpdate progressUpdate, Log log, boolean doneWorkaround) {
         GSProgressBarRenderer renderer = new GSProgressBarRenderer(unitName, progressUpdate, doneWorkaround);
         ProgressBarBuilder progressBarBuilder = new ProgressBarBuilder().setInitialMax(max).

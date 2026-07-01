@@ -39,11 +39,25 @@ import org.metagene.genestrip.io.StreamingURLResource;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 
+/**
+ * Transforms an input fastq/fasta resource map so that remote (URL) resources are replaced by the local files
+ * they will be downloaded to; when no download is configured the input map is passed through unchanged.
+ *
+ * @param <P> the project type
+ */
 public class FastqMapTransformGoal<P extends GSProject> extends ObjectGoal<Map<String, StreamingResourceStream>, P> {
 	private final ObjectGoal<Map<String, StreamingResourceStream>, P> inputGoal;
 
 	private final boolean fastqType;
 
+	/**
+	 * Creates the goal that transforms the input fastq/fasta map into local download targets.
+	 *
+	 * @param project the project type
+	 * @param fastqType whether the map holds fastq (else fasta) resources
+	 * @param inputGoal the goal providing the input resource map
+	 * @param deps additional goal dependencies
+	 */
 	@SafeVarargs
 	public FastqMapTransformGoal(P project, boolean fastqType,
 			ObjectGoal<Map<String, StreamingResourceStream>, P> inputGoal, Goal<P>... deps) {
@@ -72,6 +86,13 @@ public class FastqMapTransformGoal<P extends GSProject> extends ObjectGoal<Map<S
 		}
 	}
 
+	/**
+	 * Copies the input map into {@code map}, replacing every {@link StreamingURLResource} with the local file
+	 * under {@code dir} that it will be downloaded to.
+	 *
+	 * @param map the destination map to fill
+	 * @param dir the directory the resources will be downloaded to
+	 */
 	protected void fillMap(Map<String, StreamingResourceStream> map, File dir) {
 		for (String key : inputGoal.get().keySet()) {
 			StreamingResourceListStream list = new StreamingResourceListStream();

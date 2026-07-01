@@ -31,13 +31,37 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATLongBuffer;
 
+/**
+ * Abstract RefSeq FASTA reader that streams each region's bases through a {@link CGATLongBuffer}
+ * (applying the step size and DUST low-complexity filter) and hands every qualifying k-mer to
+ * {@link #handleStore()}.
+ */
 public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader {
+	/** The ring buffer accumulating bases into k-mers. */
 	protected final CGATLongBuffer byteRingBuffer;
+	/** The number of k-mers dropped as low-complexity (DUST). */
 	protected long dustCounter;
+	/** The total number of filled k-mers seen. */
 	protected long totalKmers;
 
 	private boolean enableLowerCaseBases;
 
+	/**
+	 * Creates the reader.
+	 *
+	 * @param bufferSize the read buffer size
+	 * @param taxNodes the requested tax nodes
+	 * @param accessionMap the accession-to-taxid map
+	 * @param k the k-mer length
+	 * @param maxGenomesPerTaxId the maximum number of genomes per tax id
+	 * @param maxGenomesPerTaxIdRank the rank at which the per-tax-id genome limit applies
+	 * @param maxKmersPerTaxId the maximum number of k-mers per tax id
+	 * @param maxDust the maximum allowed low-complexity (dust) run length
+	 * @param stepSize the k-mer sampling step size
+	 * @param completeGenomesOnly whether to include only complete genomes
+	 * @param regionsPerTaxid the per-taxid region trie
+	 * @param enableLowerCaseBases whether lower-case bases are included
+	 */
 	public AbstractStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank,
 									long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid,
 									boolean enableLowerCaseBases) {
@@ -47,12 +71,19 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 		this.enableLowerCaseBases = enableLowerCaseBases;
 	}
 
+	/**
+	 * Resets the k-mer ring buffer in addition to the superclass region reset.
+	 */
 	@Override
 	protected void startRegion() {
 		super.startRegion();
 		byteRingBuffer.reset();
 	}
 
+	/**
+	 * Feeds a data line's bases through the k-mer ring buffer and, every {@code stepSize} bases,
+	 * stores each filled non-low-complexity k-mer via {@link #handleStore()}.
+	 */
 	@Override
 	protected void dataLine() {
 		if (includeRegion) {
@@ -82,5 +113,11 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 		}
 	}
 
+	/**
+	 * Stores the current k-mer (available via the ring buffer); returns whether it was counted as
+	 * included.
+	 *
+	 * @return whether the k-mer was counted as included
+	 */
 	protected abstract boolean handleStore();
 }

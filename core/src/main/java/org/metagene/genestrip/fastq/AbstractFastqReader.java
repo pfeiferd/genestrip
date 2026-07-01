@@ -39,26 +39,49 @@ import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.GSLogFactory;
 import org.metagene.genestrip.util.SimpleBlockingQueue;
 
+/**
+ * Abstract multi-threaded FASTQ/FASTA reader. It parses reads into a pool of reusable
+ * {@link ReadEntry} buffers and either processes them inline or hands them to a configurable number
+ * of consumer threads via a blocking queue, calling {@link #nextEntry(ReadEntry, int)} for each.
+ */
 public abstract class AbstractFastqReader {
     private static final byte[] LINE_3 = new byte[]{'+', '\n'};
 
+    /** The logger used by this reader. */
     protected final Log logger = GSLogFactory.getLog("fastqreader");
 
+    /** Number of reads processed so far. */
     protected long reads;
+    /** Number of k-mers counted across all reads processed so far. */
     protected long kMers;
+    /** Total number of base pairs across all reads processed so far. */
     protected long readBPs;
 
     private final BufferedLineReader bufferedLineReaderFastQ;
     private final ReadEntry[] readStructPool;
     private final BlockingQueue<ReadEntry> blockingQueue;
     private final byte[] plusLine;
+    /** The k-mer length used when counting k-mers per read. */
     protected final int k;
 
     // volatile: written by dump() and read by the producer loop on a different thread.
     private volatile boolean dump;
 
+    /** The execution context providing the consumer threads and error handling. */
     protected final ExecutionContext bundle;
 
+    /**
+     * Creates a reader for k-mers of length {@code k}, allocating read buffers of
+     * {@code initialSizeBytes} and starting the number of consumer threads given by the execution
+     * context (or processing inline if that number is zero).
+     *
+     * @param k the k-mer length used when counting k-mers per read.
+     * @param initialSizeBytes the initial size in bytes of each allocated read buffer.
+     * @param maxQueueSize the maximum number of read entries buffered in the blocking queue.
+     * @param bundle the execution context providing the consumer threads and error handling.
+     * @param withProbs whether reads carry per-base quality (probability) values.
+     * @param config optional configuration passed on to the read-entry and runnable factories.
+     */
     public AbstractFastqReader(int k, int initialSizeBytes, int maxQueueSize, ExecutionContext bundle,
                                boolean withProbs, Object... config) {
         this.k = k;
@@ -80,6 +103,12 @@ public abstract class AbstractFastqReader {
         }
     }
 
+    /**
+     * Creates the blocking queue used to hand read entries to the consumer threads.
+     *
+     * @param maxQueueSize the maximum number of read entries the queue may hold.
+     * @return the blocking queue used to pass read entries to the consumer threads.
+     */
     protected BlockingQueue<ReadEntry> createBlockingQueue(int maxQueueSize) {
         // This simple blocking queue gives about 5% to 10% performance boost (on my Mac)
         // over the ArrayBlockingQueue. Also, it does not cause any memory churn
@@ -88,6 +117,9 @@ public abstract class AbstractFastqReader {
         // return new ArrayBlockingQueue<>(maxQueueSize);
     }
 
+    /**
+     * Logs any exceptions raised on consumer threads and rethrows the first as a runtime exception.
+     */
     // Made final for potential inlining by JVM
     protected final void checkAndLogConsumerThreadProblem() {
         synchronized (bundle) {
@@ -110,6 +142,14 @@ public abstract class AbstractFastqReader {
         }
     }
 
+    /**
+     * Creates the worker {@link Runnable} for a consumer thread, which takes read entries from the
+     * queue, processes them via {@link #nextEntry(ReadEntry, int)} and returns them to the pool.
+     *
+     * @param rindex the index identifying this consumer thread.
+     * @param config optional configuration for the consumer thread.
+     * @return the runnable executed by the consumer thread.
+     */
     protected Runnable createRunnable(int rindex, Object... config) {
         return new Runnable() {
             private final int index = rindex;
@@ -144,19 +184,43 @@ public abstract class AbstractFastqReader {
         };
     }
 
+    /**
+     * Creates a pooled read-entry buffer; subclasses may override to use a specialized entry.
+     *
+     * @param initialReadSizeBytes the initial size in bytes of the entry's buffers.
+     * @param withProbs whether the entry carries per-base quality (probability) values.
+     * @param config optional configuration for the created entry.
+     * @return the newly created read entry.
+     */
     protected ReadEntry createReadEntry(int initialReadSizeBytes, boolean withProbs, Object... config) {
         return new ReadEntry(initialReadSizeBytes, withProbs);
     }
 
+    /**
+     * Signals the reader to stop and interrupts all consumer threads.
+     */
     public void dump() {
         dump = true;
         bundle.interruptAll();
     }
 
+    /**
+     * Returns the logger used by this reader.
+     *
+     * @return the logger used by this reader.
+     */
     protected Log getLogger() {
         return logger;
     }
 
+    /**
+     * Reads all reads from the given stream (as FASTA if {@code fasta} is true, otherwise FASTQ),
+     * dispatching them and waiting for all consumer threads to finish.
+     *
+     * @param inputStream the stream to read reads from.
+     * @param fasta if {@code true} the input is parsed as FASTA, otherwise as FASTQ.
+     * @throws IOException if the stream cannot be read.
+     */
     protected void readFastq(InputStream inputStream, boolean fasta) throws IOException {
         start();
         reads = 0;
@@ -216,6 +280,11 @@ public abstract class AbstractFastqReader {
         done();
     }
 
+    /**
+     * Parses the input as FASTQ, dispatching one {@link ReadEntry} per read.
+     *
+     * @throws IOException if the input cannot be read.
+     */
     protected void doReadFastq() throws IOException {
         ReadEntry readStruct = nextFreeReadStruct();
         for (readStruct.readDescriptorSize = bufferedLineReaderFastQ.nextLine(readStruct.readDescriptor)
@@ -298,6 +367,11 @@ public abstract class AbstractFastqReader {
         readStruct.pooled = true;
     }
 
+    /**
+     * Parses the input as FASTA, dispatching one {@link ReadEntry} per sequence.
+     *
+     * @throws IOException if the input cannot be read.
+     */
     protected void doReadFasta() throws IOException {
         ReadEntry readStruct = nextFreeReadStruct();
         for (readStruct.readDescriptorSize = bufferedLineReaderFastQ.nextLine(readStruct.readDescriptor)
@@ -363,6 +437,10 @@ public abstract class AbstractFastqReader {
         }
     }
 
+    /**
+     * Hook called after each read is dispatched so subclasses can report progress; does nothing by
+     * default.
+     */
     protected void updateProgress() {
     }
 
@@ -376,6 +454,14 @@ public abstract class AbstractFastqReader {
         throw new IllegalStateException("There should always be a read structs available...");
     }
 
+    /**
+     * Writes the given read entry to the output stream in a thread-safe manner and updates the write
+     * statistics.
+     *
+     * @param readStruct the read entry to write.
+     * @param out the output stream to write to.
+     * @throws IOException if writing to the stream fails.
+     */
     protected void rewriteInput(ReadEntry readStruct, OutputStream out) throws IOException {
         synchronized (out) {
             readStruct.write(out);
@@ -383,32 +469,72 @@ public abstract class AbstractFastqReader {
         }
     }
 
+    /**
+     * Hook called after a read entry is written out so subclasses can update write statistics; does
+     * nothing by default.
+     */
     protected void updateWriteStats() {
     }
 
+    /**
+     * Processes a single read entry. Called on consumer threads, so it must be thread-safe; it may
+     * freely operate on the given read entry.
+     *
+     * @param readStruct the read entry to process.
+     * @param threadIndex the index of the consumer thread invoking this method.
+     * @throws IOException if processing the read entry fails.
+     */
     // Must be thread safe. Can freely operate on readStruct.
     protected abstract void nextEntry(ReadEntry readStruct, int threadIndex) throws IOException;
 
+    /**
+     * Hook called after all reads have been processed; does nothing by default.
+     *
+     * @throws IOException if the subclass fails to finalize processing.
+     */
     protected void done() throws IOException {
     }
 
+    /**
+     * Hook called before reading begins; does nothing by default.
+     *
+     * @throws IOException if the subclass fails to initialize.
+     */
     protected void start() throws IOException {
     }
 
+    /**
+     * A reusable, pooled buffer holding one read's descriptor, sequence and (optional) quality
+     * bytes.
+     */
     protected static class ReadEntry {
+        /** The zero-based sequential number of this read. */
         public long readNo;
+        /** Whether this entry is currently free in the pool and available for reuse. */
         // volatile: written by consumer threads, read by the producer's pool/poll loop.
         public volatile boolean pooled;
 
+        /** The buffer holding the read's descriptor (header) bytes. */
         public final byte[] readDescriptor;
+        /** The number of valid bytes in {@link #readDescriptor}. */
         public int readDescriptorSize;
 
+        /** The buffer holding the read's sequence bytes. */
         public byte[] read;
+        /** The number of valid bytes in {@link #read}. */
         public int readSize;
 
+        /** The buffer holding the read's per-base quality bytes, or {@code null} if none. */
         public byte[] readProbs;
+        /** The number of valid bytes in {@link #readProbs}, or {@code -1} if none. */
         public int readProbsSize;
 
+        /**
+         * Creates a read entry with buffers of the given size.
+         *
+         * @param maxReadSizeBytes the initial size in bytes of the entry's buffers.
+         * @param withProbs whether a per-base quality buffer is allocated.
+         */
         protected ReadEntry(int maxReadSizeBytes, boolean withProbs) {
             readDescriptor = new byte[maxReadSizeBytes];
             read = new byte[maxReadSizeBytes];
@@ -434,6 +560,13 @@ public abstract class AbstractFastqReader {
 		}
 		 */
 
+        /**
+         * Writes this read to the stream in FASTQ format, synthesizing '~' quality values when none
+         * are present.
+         *
+         * @param out the output stream to write to.
+         * @throws IOException if writing to the stream fails.
+         */
         public void write(OutputStream out) throws IOException {
             out.write(readDescriptor, 0, readDescriptorSize);
             out.write('\n');
@@ -450,6 +583,13 @@ public abstract class AbstractFastqReader {
             out.write('\n');
         }
 
+        /**
+         * Doubles the read buffer (and the probability buffer, if present) until the current line
+         * fits, continuing to read the line from the given reader.
+         *
+         * @param lineReader the reader to continue reading the current line from.
+         * @throws IOException if reading from the reader fails.
+         */
         protected final void growReadBuffer(BufferedLineReader lineReader) throws IOException {
             while (readSize == read.length) {
                 byte[] newBuffer = new byte[read.length * 2];

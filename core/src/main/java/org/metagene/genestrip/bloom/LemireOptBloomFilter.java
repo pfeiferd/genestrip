@@ -27,7 +27,16 @@ package org.metagene.genestrip.bloom;
 // Added for expermimental reasons.
 // This Bloom filter version requires a more complex hash function (from Lemire as below)
 // than in the XORKMerBloomFilter which in combination makes it slower than the XORKMerBloomFilter.
+/**
+ * Experimental {@link AbstractKMerBloomFilter} using a Lemire-style bit-mixing hash. The more complex
+ * hash makes it slower in practice than {@link XORKMerBloomFilter}.
+ */
 public class LemireOptBloomFilter extends AbstractKMerBloomFilter {
+    /**
+     * Creates a filter with the given target false-positive probability.
+     *
+     * @param fpp the target false-positive probability
+     */
     public LemireOptBloomFilter(double fpp) {
         super(fpp);
     }

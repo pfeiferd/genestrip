@@ -24,22 +24,67 @@
  */
 package org.metagene.genestrip.refseq;
 
+/**
+ * The NCBI RefSeq release categories (each corresponding to a directory) that genomes are organized
+ * into.
+ */
 public enum RefSeqCategory {
-	ARCHAEA("archaea"), BACTERIA("bacteria"), COMPLETE("complete"), FUNGI("fungi"), INVERTEBRATE("invertebrate"),
-	MITOCHONDRION("mitochondrion"), OTHER("other"), PLANT("plant"), PLASMID("plasmid"), PLASTID("plastid"),
-	PROTOZOA("protozoa"), VERTEBRATE_MAMMALIAN("vertebrate_mammalian"), VERTEBRATE_OTHER("vertebrate_other"),
+	/** The archaea RefSeq category. */
+	ARCHAEA("archaea"),
+	/** The bacteria RefSeq category. */
+	BACTERIA("bacteria"),
+	/** The complete-genomes RefSeq category. */
+	COMPLETE("complete"),
+	/** The fungi RefSeq category. */
+	FUNGI("fungi"),
+	/** The invertebrate RefSeq category. */
+	INVERTEBRATE("invertebrate"),
+	/** The mitochondrion RefSeq category. */
+	MITOCHONDRION("mitochondrion"),
+	/** The other RefSeq category. */
+	OTHER("other"),
+	/** The plant RefSeq category. */
+	PLANT("plant"),
+	/** The plasmid RefSeq category. */
+	PLASMID("plasmid"),
+	/** The plastid RefSeq category. */
+	PLASTID("plastid"),
+	/** The protozoa RefSeq category. */
+	PROTOZOA("protozoa"),
+	/** The mammalian vertebrate RefSeq category. */
+	VERTEBRATE_MAMMALIAN("vertebrate_mammalian"),
+	/** The other vertebrate RefSeq category. */
+	VERTEBRATE_OTHER("vertebrate_other"),
+	/** The viral RefSeq category. */
 	VIRAL("viral");
 
+	/** The RefSeq directory name associated with this category. */
 	private String directory;
 
+	/**
+	 * Creates a category for the given RefSeq directory name.
+	 *
+	 * @param directory the RefSeq directory name.
+	 */
 	RefSeqCategory(String directory) {
 		this.directory = directory;
 	}
 
+	/**
+	 * Returns the RefSeq directory name associated with this category.
+	 *
+	 * @return the directory name.
+	 */
 	public String getDirectory() {
 		return directory;
 	}
 	
+	/**
+	 * Returns the category whose directory name equals the given string, or null if none matches.
+	 *
+	 * @param category the RefSeq directory name to look up.
+	 * @return the matching category, or null if none matches.
+	 */
 	public static RefSeqCategory fromDirectoryString(String category) {
 		for (RefSeqCategory cat : RefSeqCategory.values()) {
 			if (cat.getDirectory().equals(category)) {

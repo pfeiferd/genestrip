@@ -29,12 +29,29 @@ import org.metagene.genestrip.*;
 import java.io.File;
 import java.util.Properties;
 
+/**
+ * Command line entry point for the finer-tree (FT) extension. Behaves like {@link Main} but builds a
+ * {@link FinerTreeMaker} so the FT-specific goals are available.
+ *
+ * @param <P> the concrete FT project type
+ */
 public abstract class FinerTreeMain<P extends FTProject> extends Main<P> {
+    /**
+     * Creates the finer-tree command-line launcher.
+     */
+    protected FinerTreeMain() {
+    }
+
     @Override
     protected FinerTreeMaker<P> createMaker(P project) {
         return new FinerTreeMaker<P>(project);
     }
 
+    /**
+     * Runs the finer-tree extension on the default {@link FTProject} type from the command line.
+     *
+     * @param args the command line arguments
+     */
     public static void main(String[] args) {
         new FinerTreeMain<FTProject>() {
             @Override

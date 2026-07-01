@@ -39,7 +39,19 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 
+/**
+ * Goal that reads the project's categories file and produces the set of {@link RefSeqCategory}
+ * values selected for the database.
+ *
+ * @param <P> the project type
+ */
 public class CategoriesGoal<P extends GSProject> extends ObjectGoal<Set<RefSeqCategory>, P> {
+	/**
+	 * Creates the categories goal for the given project.
+	 *
+	 * @param project the project this goal belongs to
+	 * @param deps    any goals this goal depends on
+	 */
 	@SafeVarargs
 	public CategoriesGoal(P project, Goal<P>... deps) {
 		super(project, GSGoalKey.CATEGORIES, deps);
@@ -54,6 +66,14 @@ public class CategoriesGoal<P extends GSProject> extends ObjectGoal<Set<RefSeqCa
 		}
 	}
 
+	/**
+	 * Parses the categories file into a set of {@link RefSeqCategory} values; one category directory
+	 * name per line, with whole-line and end-of-line '#' comments ignored and unknown names skipped.
+	 *
+	 * @param file the categories file to parse
+	 * @return the set of selected categories
+	 * @throws IOException if reading the file fails
+	 */
 	protected Set<RefSeqCategory> readFromFile(File file) throws IOException {
 		Set<RefSeqCategory> res = new HashSet<RefSeqCategory>();
 

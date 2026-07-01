@@ -29,26 +29,57 @@ import org.metagene.genestrip.GSProject;
 import java.io.InvalidClassException;
 import java.util.Properties;
 
+/**
+ * Wraps an {@link InvalidClassException} raised while deserializing a {@link Database}, additionally
+ * carrying the database's config info so a version-mismatch message can be produced.
+ */
 public class InvalidDatabaseClassException extends InvalidClassException {
     private static final long serialVersionUID = 1L;
 
+    /** The database's config info used to produce a version-mismatch message. */
     private final Properties configInfo;
+    /** The wrapped {@link InvalidClassException} that was raised while deserializing. */
     private final InvalidClassException exception;
 
+    /**
+     * Creates the exception wrapping the given {@link InvalidClassException} and config info.
+     *
+     * @param cname      the name of the invalid class
+     * @param reason     the reason the class is invalid
+     * @param configInfo the database's config info, or {@code null}
+     * @param e          the wrapped invalid-class exception
+     */
     public InvalidDatabaseClassException(String cname, String reason, Properties configInfo, InvalidClassException e) {
         super(cname, reason);
         this.configInfo = configInfo;
         this.exception = e;
     }
 
+    /**
+     * Returns the database's config info.
+     *
+     * @return the config info, or {@code null} if none was available
+     */
     public Properties getConfigInfo() {
         return configInfo;
     }
 
+    /**
+     * Returns the wrapped invalid-class exception.
+     *
+     * @return the wrapped exception
+     */
     public InvalidClassException getException() {
         return exception;
     }
 
+    /**
+     * Builds a runtime exception describing the version mismatch.
+     *
+     * @return a {@link RuntimeException} describing the mismatch between the library that created the
+     *         database and the current runtime library, using the version/title from the config info
+     *         (falling back to "unknown").
+     */
     public RuntimeException toRuntimeException() {
         String dbVersion = null;
         if (configInfo != null) {

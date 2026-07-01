@@ -43,7 +43,14 @@ import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
+/**
+ * Generates FASTQ files from the k-mers stored in the database, writing one output file per configured tax id
+ * (or a single {@code total} file when none are given). A trailing {@code +} on a tax id enables read descriptions.
+ *
+ * @param <P> the project type
+ */
 public class DB2FastqGoal<P extends GSProject> extends FileListGoal<P> {
+    /** The output name used when no specific tax ids are configured. */
     public static final String TOTAL = "total";
 
     private final ObjectGoal<Set<SmallTaxIdNode>, P> taxNodesGoal;
@@ -53,6 +60,15 @@ public class DB2FastqGoal<P extends GSProject> extends FileListGoal<P> {
     private final String[] taxids;
     private final boolean[] withDescs;
 
+    /**
+     * Creates the goal for generating FASTQ files from the database's stored k-mers.
+     *
+     * @param project the project this goal belongs to
+     * @param key the goal key identifying this goal
+     * @param taxNodesGoal the goal supplying the set of taxonomy nodes
+     * @param storeGoal the goal supplying the database to read k-mers from
+     * @param deps additional goals this goal depends on
+     */
     @SafeVarargs
     public DB2FastqGoal(P project, GoalKey key, ObjectGoal<Set<SmallTaxIdNode>, P> taxNodesGoal,
                         ObjectGoal<Database, P> storeGoal, Goal<P>... deps) {
@@ -86,6 +102,12 @@ public class DB2FastqGoal<P extends GSProject> extends FileListGoal<P> {
         }
     }
 
+    /**
+     * Returns the output FASTQ file for the given tax id.
+     *
+     * @param taxid the tax id (or {@link #TOTAL}) the file is generated for
+     * @return the output FASTQ file for the given tax id
+     */
     protected File getOutputFile(String taxid) {
         return getProject().getOutputFile(getKey().getName(), taxid, null, GSFileType.FASTQ_RES, booleanConfigValue(GSConfigKey.GZIP_FASTQ_OUTPUT));
     }

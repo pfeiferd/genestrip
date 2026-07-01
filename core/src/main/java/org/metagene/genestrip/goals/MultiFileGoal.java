@@ -37,10 +37,26 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
 
+/**
+ * Base class for goals that produce one output file per fastq/fasta map key, keeping the association from each
+ * output file back to its input resources.
+ *
+ * @param <P> the project type
+ */
 public abstract class MultiFileGoal<P extends GSProject> extends FileListGoal<P> {
+	/** The goal supplying the per-key fastq/fasta input streams. */
 	protected final ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal;
+	/** Maps each produced output file back to its input resources. */
 	protected final Map<File, StreamingResourceStream> fileToFastqs;
 
+	/**
+	 * Creates the goal wiring the fastq map goal whose keys drive the produced output files.
+	 *
+	 * @param project the project this goal belongs to
+	 * @param key the goal key identifying this goal
+	 * @param fastqMapGoal the goal supplying the per-key fastq/fasta input streams
+	 * @param deps additional goals this goal depends on
+	 */
 	@SafeVarargs
 	public MultiFileGoal(P project, GoalKey key,
 			ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal, Goal<P>... deps) {
@@ -66,11 +82,27 @@ public abstract class MultiFileGoal<P extends GSProject> extends FileListGoal<P>
 		}
 	}
 
+	/**
+	 * Hook called for each provided output file together with its map key; does nothing by default.
+	 *
+	 * @param file the produced output file
+	 * @param key the map key the file corresponds to
+	 */
 	protected void enterFileAndKey(File file, String key) {}
 
+	/**
+	 * Returns whether produced output files should be GZIP-compressed.
+	 *
+	 * @return whether output files should be GZIP-compressed
+	 */
 	protected boolean isUseGZip() {
 		return false;
 	}
 
+	/**
+	 * Returns the file type of the produced output files.
+	 *
+	 * @return the output file type
+	 */
 	protected abstract GSFileType getFileType();
 }

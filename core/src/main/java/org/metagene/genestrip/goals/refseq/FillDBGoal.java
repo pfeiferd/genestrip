@@ -49,6 +49,14 @@ import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
+/**
+ * Goal ({@code FILL_DB}) that allocates the k-mer store (a {@link RadixKMerStore} or a sorted array
+ * sized from the estimated {@link FillBloomFilterGoal.DBSize}), fills it by labelling each k-mer
+ * with its tax node's taxid, marks the requested nodes, optimizes the store and produces the
+ * indexed {@link Database}.
+ *
+ * @param <P> the project type
+ */
 public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P>  implements Goal.LogHeapInfo {
 	private final ObjectGoal<AccessionMap, P> accessionMapGoal;
 	private final ObjectGoal<FillBloomFilterGoal.DBSize, P> sizeGoal;
@@ -57,6 +65,21 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 
 	private KMerStore<String> store;
 
+	/**
+	 * Creates the goal, wiring the tax tree, accession-map and estimated-size goals it uses to build
+	 * and fill the store.
+	 *
+	 * @param project the project type
+	 * @param bundle the execution context
+	 * @param categoriesGoal the goal providing the RefSeq categories to include
+	 * @param taxNodesGoal the goal providing the requested tax nodes
+	 * @param taxTreeGoal the goal providing the taxonomy tree
+	 * @param fnaFilesGoal the goal providing the downloaded fna files
+	 * @param additionalGoal the goal providing additional files mapped to tax nodes
+	 * @param accessionMapGoal the goal providing the accession map
+	 * @param sizeGoal the goal providing the estimated database size
+	 * @param deps additional goal dependencies
+	 */
 	@SafeVarargs
 	public FillDBGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
 					  ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal,
@@ -224,10 +247,30 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 		return fastaReader;
 	}
 
+	/**
+	 * FASTA reader that stores each k-mer under its tax node's taxid, counting the k-mers dropped
+	 * once the store is full.
+	 */
 	protected static class MyFastaReader extends AbstractStoreFastaReader {
 		private final KMerStore<String> store;
 		private long tooManyCounter;
 
+		/**
+		 * Creates the reader storing k-mers into the given store.
+		 *
+		 * @param bufferSize the read buffer size
+		 * @param taxNodes the requested tax nodes
+		 * @param accessionMap the accession-to-taxid map
+		 * @param store the k-mer store to fill
+		 * @param maxGenomesPerTaxId the maximum number of genomes per tax id
+		 * @param maxGenomesPerTaxIdRank the rank at which the per-tax-id genome limit applies
+		 * @param maxKmersPerTaxId the maximum number of k-mers per tax id
+		 * @param maxDust the maximum allowed low-complexity (dust) run length
+		 * @param stepSize the k-mer sampling step size
+		 * @param completeGenomesOnly whether to include only complete genomes
+		 * @param regionsPerTaxid the per-taxid region trie
+		 * @param enableLowerCaseBases whether lower-case bases are included
+		 */
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
 							 KMerStore<String> store, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
 			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases);

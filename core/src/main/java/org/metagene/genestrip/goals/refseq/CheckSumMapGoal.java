@@ -36,9 +36,22 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
+/**
+ * Goal that builds a map from installed RefSeq file name to its expected MD5 checksum, parsed from
+ * the release {@code files.installed} listing (used to verify downloaded FASTA files).
+ *
+ * @param <P> the project type
+ */
 public class CheckSumMapGoal<P extends GSProject> extends ObjectGoal<Map<String, String>, P> {
 	private final RefSeqCatalogDownloadGoal catalogGoal;
 
+	/**
+	 * Creates the goal, wiring the catalog download goal whose {@code files.installed} is parsed.
+	 *
+	 * @param project the project type
+	 * @param catalogGoal the catalog download goal whose {@code files.installed} is parsed
+	 * @param deps the additional goals this goal depends on
+	 */
 	@SafeVarargs
 	public CheckSumMapGoal(P project, RefSeqCatalogDownloadGoal catalogGoal,
 			Goal<P>... deps) {

@@ -51,6 +51,15 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
 
+/**
+ * Computes intrinsic database-quality counts per tax id by re-reading the underlying genomic fasta
+ * files and comparing the *k*-mers they contain against those stored in the database. For each tax id
+ * it accumulates true positives, true-positives-plus-false-positives and true-positives-plus-false-
+ * negatives (from which precision and recall are derived), aggregating results up selected ranks. A
+ * XOR bloom filter is used to detect duplicate (k-mer, tax id) pairs.
+ *
+ * @param <P> the concrete FT project type
+ */
 public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Map<String, DBQualityCountsGoal.Counts>, P> implements Goal.LogHeapInfo {
     private final ObjectGoal<AccessionMap, P> accessionMapGoal;
     private final ObjectGoal<Database, P> storeGoal;
@@ -60,6 +69,21 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
     private XORKMerIndexBloomFilter filter;
     private Map<String, Counts> map;
 
+    /**
+     * Creates the goal, depending on the accession map and the loaded database in addition to the
+     * standard fasta-reader dependencies.
+     *
+     * @param project          the FT project
+     * @param key              the goal key
+     * @param bundle           the execution context used to run the fasta readers
+     * @param categoriesGoal   the goal providing the RefSeq categories to read
+     * @param taxNodesGoal     the goal providing the tax nodes to be included
+     * @param fnaFilesGoal     the goal providing the downloaded genomic fasta files
+     * @param additionalGoal   the goal providing additional fasta files mapped to tax nodes
+     * @param accessionMapGoal the goal providing the accession-to-tax-node map
+     * @param storeGoal        the goal providing the loaded database
+     * @param deps             further goals this goal depends on
+     */
     @SafeVarargs
     public DBQualityCountsGoal(P project, FTGoalKey key, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
                                ObjectGoal<Set<TaxTree.TaxIdNode>, P> taxNodesGoal,
@@ -166,7 +190,28 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
                 booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES));
     }
 
+    /**
+     * Fasta reader that, for each *k*-mer read from a genome, checks whether it is stored in the
+     * database and whether the stored node lies on the path from the read's leaf node, updating the
+     * per-tax-id counts accordingly while deduplicating via the bloom filter.
+     */
     protected class MyFastaReader extends AbstractUpdateFastaReader {
+        /**
+         * Creates the reader, taking the id/file/data node flags from the goal's configuration.
+         *
+         * @param bufferSize             the input read buffer size
+         * @param taxNodes               the tax nodes to be included
+         * @param accessionMap           the map from accession numbers to tax nodes
+         * @param k                      the k-mer length
+         * @param maxGenomesPerTaxId     the maximum number of genomes to consider per tax id
+         * @param maxGenomesPerTaxIdRank the rank at which the per-tax-id genome limit applies
+         * @param maxKmersPerTaxId       the maximum number of k-mers to store per tax id
+         * @param maxDust                the maximum dust (low-complexity) threshold
+         * @param stepSize               the step size between stored k-mers
+         * @param completeGenomesOnly    whether only complete genomes are considered
+         * @param regionsPerTaxid        the trie counting regions per tax id
+         * @param enableLowerCaseBases   whether lower-case bases are treated as regular bases
+         */
         public MyFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap,
                              int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
             super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases, booleanConfigValue(GSConfigKey.ID_NODES), booleanConfigValue(GSConfigKey.FILE_NODES), booleanConfigValue(GSConfigKey.DATA_NODES));
@@ -219,6 +264,14 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
         }
     }
 
+    /**
+     * Walks up the taxonomy tree until a node of the given rank is reached.
+     *
+     * @param node the node to start from
+     * @param r    the rank to look for
+     * @return the nearest ancestor of {@code node} (or the node itself) having rank {@code r}, or
+     *         {@code null} if there is none
+     */
     protected SmallTaxTree.SmallTaxIdNode toRankedNode(SmallTaxTree.SmallTaxIdNode node, Rank r) {
         while (node != null && !r.equals(node.getRank())) {
             node = node.getParent();
@@ -226,6 +279,14 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
         return node;
     }
 
+    /**
+     * Sums the per-tax-id stored k-mer counts along the path from a node up to the root.
+     *
+     * @param node  the node to start from
+     * @param stats the per-tax-id stored k-mer counts keyed by tax id
+     * @return the sum of the per-tax-id stored *k*-mer counts from {@code stats} along the path from
+     *         {@code node} up to the root
+     */
     protected long getPathSum(SmallTaxTree.SmallTaxIdNode node, Object2LongMap stats) {
         long res = 0L;
         for (; node != null; node = node.getParent()) {
@@ -234,37 +295,75 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
         return res;
     }
 
+    /**
+     * Per-tax-id tally of true positives, true-positives-plus-false-positives and true-positives-plus-
+     * false-negatives, plus aggregated precision/recall sums used to compute weighted and unweighted
+     * averages.
+     */
     public static class Counts implements Serializable {
         private static final long serialVersionUID = 1L;
 
+        /** True positives plus false positives (all k-mers stored under this tax id). */
         private long tpPlusFp;
+        /** True positives (k-mers correctly stored under this tax id). */
         private long tp;
+        /** True positives plus false negatives (all k-mers read from this tax id's genomes). */
         private long tpPlusFn;
+        /** Number of child nodes aggregated into this tally. */
         private int aggregations;
+        /** Sum of the aggregated children's precision values. */
         private double aggPrecisionSum;
+        /** Sum of the aggregated children's recall values. */
         private double aggRecallSum;
 
+        /** Creates an empty tally with all counts set to zero. */
         public Counts() {
         }
 
+        /**
+         * Returns the true-positives-plus-false-negatives count.
+         *
+         * @return the true positives plus false negatives
+         */
         public long getTpPlusFn() {
             return tpPlusFn;
         }
 
+        /**
+         * Returns the true-positives count.
+         *
+         * @return the true positives
+         */
         public long getTp() {
             return tp;
         }
 
+        /**
+         * Returns the true-positives-plus-false-positives count.
+         *
+         * @return the true positives plus false positives
+         */
         public long getTpPlusFp() {
             return tpPlusFp;
         }
 
         // Weighted
+        /**
+         * Returns the weighted precision.
+         *
+         * @return the precision {@code tp / (tp + fp)}
+         */
         public double getPrecision() {
             return ((double) tp / tpPlusFp);
         }
 
         // Unweighted
+        /**
+         * Returns the unweighted average precision.
+         *
+         * @return the unweighted average precision over aggregated nodes, or {@link #getPrecision()}
+         *         if there was no aggregation
+         */
         public double getAvgPrecision() {
             if (aggPrecisionSum == 0) {
                 return getPrecision();
@@ -275,11 +374,22 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
         }
 
         // Weighted
+        /**
+         * Returns the weighted recall.
+         *
+         * @return the recall {@code tp / (tp + fn)}
+         */
         public double getRecall() {
             return ((double) tp / tpPlusFn);
         }
 
         // Unweighted
+        /**
+         * Returns the unweighted average recall.
+         *
+         * @return the unweighted average recall over aggregated nodes, or {@link #getRecall()} if
+         *         there was no aggregation
+         */
         public double getAvgRecall() {
             if (aggRecallSum == 0) {
                 return getRecall();

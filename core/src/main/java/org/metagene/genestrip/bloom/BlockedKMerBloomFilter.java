@@ -30,35 +30,63 @@ import it.unimi.dsi.fastutil.longs.LongBigArrays;
 import java.util.Arrays;
 import java.util.Random;
 
-// This implementation is derived from
-// https://raw.githubusercontent.com/FastFilter/fastfilter_java/refs/heads/master/fastfilter/src/main/java/org/fastfilter/bloom/BlockedBloom.java
-// The corresponding project from https://github.com/FastFilter/fastfilter_java
-// is under Apache 2.0 license.
-//
-// It is highly optimized for best classification performance...
+/**
+ * A blocked Bloom filter for k-mers, derived from FastFilter's {@code BlockedBloom} and tuned for
+ * lookup speed: every key sets/tests a few bits within a small block of adjacent {@code long} words,
+ * so a query touches only one or two cache lines. Uses small ({@code int}-indexed) storage up to
+ * {@link #MAX_SMALL_CAPACITY} and fastutil {@link BigArrays} beyond it.
+ * <p/>
+ * This implementation is derived from
+ * <a href="https://raw.githubusercontent.com/FastFilter/fastfilter_java/refs/heads/master/fastfilter/src/main/java/org/fastfilter/bloom/BlockedBloom.java">BlockedBloom.java</a>
+ * The corresponding GitHub project is <a href="https://github.com/FastFilter/fastfilter_java">jastfilter_java</a>
+ * is under Apache 2.0 license. It is highly optimized for best classification performance...
+ */
 public class BlockedKMerBloomFilter implements KMerProbFilter {
+    /** Default false-positive probability. */
     public static double DEFAULT_FPP = 0.01d;
+    /** Default number of bits allocated per key. */
     public static int DEFAULT_BITS_PER_KEY = 10;
 
     private static final long serialVersionUID = 1L;
 
+    /** Maximum capacity (in words) that still uses the small {@code int}-indexed storage. */
     public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
 
-    private int bitsPerKey;
+    /** Number of bits allocated per key. */
+    private final int bitsPerKey;
+    /** Hash seed used to derive bit positions. */
     private final long seed;
+    /** Number of buckets (words) available for bits. */
     private long buckets;
+    /** Small ({@code int}-indexed) bit storage, or {@code null} when large storage is used. */
     private long[] data;
+    /** Large ({@code long}-indexed) bit storage, or {@code null} when small storage is used. */
     private long[][] largeData;
+    /** Number of keys inserted so far. */
     private long entries;
 
+    /**
+     * Creates a filter with {@link #DEFAULT_BITS_PER_KEY} bits per key.
+     */
     public BlockedKMerBloomFilter() {
         this(DEFAULT_BITS_PER_KEY);
     }
 
+    /**
+     * Creates a filter with the given number of bits per key and a fixed default seed.
+     *
+     * @param bitsPerKey the number of bits allocated per key
+     */
     public BlockedKMerBloomFilter(int bitsPerKey) {
         this(bitsPerKey, new Random(42).nextLong());
     }
 
+    /**
+     * Creates a filter with the given number of bits per key and hash seed.
+     *
+     * @param bitsPerKey the number of bits allocated per key
+     * @param seed       the hash seed used to derive bit positions
+     */
     public BlockedKMerBloomFilter(int bitsPerKey, long seed) {
         this.bitsPerKey = bitsPerKey;
         this.seed = seed;
@@ -125,6 +153,12 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
         return bits;
     }
 
+    /**
+     * Computes the hash of the given key.
+     *
+     * @param x the key to hash
+     * @return the (deliberately trivial) hash of the given key.
+     */
     protected final long hash(long x) {
         /*
         x += seed;
@@ -140,12 +174,18 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
     // It results in a very high fpp...
     // The more complex hash function from Lemire outweighs the cost of the modulo operator used here.
     // That's why we keep it simple and leave it as it is.
+    /**
+     * Reduces a hash value to a valid start bucket index.
+     *
+     * @param v the hash value to reduce
+     * @return the start bucket index in {@code [0, buckets)} for the given hash value.
+     */
     protected final long reduce(final long v) {
         return Math.abs(v % buckets);
         // Using optimization instead of '%', see:
         // http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
         // and Line 34 in https://github.com/FastFilter/fastfilter_java/blob/master/fastfilter/src/main/java/org/fastfilter/utils/Hash.java
-        // In general, it would NOT work for largeData because of potential long-overflow due to the multiplicaton.
+        // In general, it would NOT work for largeData because of potential long-overflow due to the multiplication.
         // return (((((int) v) & 0xffffffffL) * (buckets & 0xffffffffL)) >>> 32);
     }
 

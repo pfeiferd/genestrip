@@ -29,8 +29,17 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Attaches a human-readable Markdown description to a field (typically a config-key field), used
+ * when generating documentation.
+ */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
 public @interface MDDescription {
+	/**
+	 * Returns the Markdown description text.
+	 *
+	 * @return the Markdown description text
+	 */
 	String value();
 }

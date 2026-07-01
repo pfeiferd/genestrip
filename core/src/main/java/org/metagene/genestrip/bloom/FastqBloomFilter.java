@@ -34,6 +34,11 @@ import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.util.CGAT;
 
+/**
+ * Streams FASTQ reads and classifies each read by how many of its (canonical) k-mers are found in a
+ * {@link KMerProbFilter}: reads with enough matching k-mers are written to one output and the rest to
+ * another.
+ */
 public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 	private final double positiveRatio;
 	private final int minPosCount;
@@ -42,6 +47,19 @@ public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 	private OutputStream indexed;
 	private OutputStream notIndexed;
 
+	/**
+	 * Creates a filter that accepts a read when enough of its k-mers are present in {@code filter}.
+	 *
+	 * @param k              the k-mer length
+	 * @param filter         the k-mer probability filter to test membership against
+	 * @param minPosCount    if positive, the absolute number of matching k-mers required to accept a read;
+	 *                       otherwise {@code positiveRatio} of the read's k-mers must match
+	 * @param positiveRatio  fraction of matching k-mers required when {@code minPosCount} is not positive
+	 * @param initialReadSize the initial read buffer size in bytes
+	 * @param maxQueueSize   the maximum size of the read processing queue
+	 * @param bundle         the execution context driving the parallel processing
+	 * @param withProbs      if {@code true}, per-base quality probabilities are read and preserved
+	 */
 	public FastqBloomFilter(int k, KMerProbFilter filter, int minPosCount, double positiveRatio, int initialReadSize,
 							int maxQueueSize, ExecutionContext bundle, boolean withProbs) {
 		super(k, initialReadSize, maxQueueSize, bundle, withProbs);
@@ -50,6 +68,15 @@ public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 		this.positiveRatio = positiveRatio;
 	}
 
+	/**
+	 * Filters the given FASTQ streams, writing accepted reads to {@code filteredFile} and the rest to
+	 * {@code restFile}; either file may be {@code null} to discard that side.
+	 *
+	 * @param fastqs       the FASTQ input streams to filter
+	 * @param filteredFile the file to write accepted reads to, or {@code null} to discard them
+	 * @param restFile     the file to write rejected reads to, or {@code null} to discard them
+	 * @throws IOException if reading the input or writing the output fails
+	 */
 	public void runFilter(StreamingResourceStream fastqs, File filteredFile, File restFile) throws IOException {
 		try (OutputStream lindexed = filteredFile != null ? StreamProvider.getOutputStreamForFile(filteredFile) : null;
 			 OutputStream lnotIndexed = restFile != null ? StreamProvider.getOutputStreamForFile(restFile) : null) {
@@ -82,6 +109,14 @@ public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 		return new MyReadEntry(maxReadSizeBytes, withProbs);
 	}
 
+	/**
+	 * Decides whether the given read should be accepted based on how many of its canonical k-mers are
+	 * present in the filter.
+	 *
+	 * @param entry the read to test
+	 * @return whether the given read has enough of its canonical k-mers present in the filter, scanning
+	 *         only until the accept or reject threshold is decided.
+	 */
 	protected boolean isAcceptRead(final MyReadEntry entry) {
 		int max = entry.readSize - k + 1;
 		int posThreshold = (minPosCount > 0) ? minPosCount : (int) (max * positiveRatio);
@@ -126,9 +161,19 @@ public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 	}
 
 
+	/**
+	 * A read entry that additionally tracks the position of the last invalid base encountered.
+	 */
 	protected static class MyReadEntry extends ReadEntry {
+		/** Single-element holder for the position of the last invalid base. */
 		public final int[] badPos = new int[1];
 
+		/**
+		 * Creates the read entry.
+		 *
+		 * @param maxReadSizeBytes the maximum read size in bytes
+		 * @param withProbs        if {@code true}, per-base quality probabilities are stored
+		 */
 		protected MyReadEntry(int maxReadSizeBytes, boolean withProbs) {
 			super(maxReadSizeBytes, withProbs);
 		}

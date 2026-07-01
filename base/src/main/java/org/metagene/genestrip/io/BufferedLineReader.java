@@ -28,15 +28,32 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 
+/**
+ * Reads newline-delimited lines from an input stream into caller-supplied byte buffers with minimal
+ * allocation. Null (0) bytes are skipped and not counted, and lines are delimited by {@code '\n'}.
+ */
 public class BufferedLineReader implements Closeable {
+	/**
+	 * Default internal buffer size (in bytes) used when no explicit size is given.
+	 */
 	public static final int DEFAULT_BUFFER_SIZE = 8 * 4096;
 
 	private static int bufferSize = DEFAULT_BUFFER_SIZE;
 
+	/**
+	 * Sets the default internal buffer size (in bytes) used by newly created readers.
+	 *
+	 * @param bufferSize the default buffer size in bytes
+	 */
 	public static void setBufferSize(int bufferSize) {
 		BufferedLineReader.bufferSize = bufferSize;
 	}
 
+	/**
+	 * Returns the default internal buffer size (in bytes) used by newly created readers.
+	 *
+	 * @return the default buffer size in bytes
+	 */
 	public static int getBufferSize() {
 		return bufferSize;
 	}
@@ -47,25 +64,52 @@ public class BufferedLineReader implements Closeable {
 	private InputStream stream;
 	private int bufferFill;
 
+	/**
+	 * Creates a reader with no input stream set yet; use {@link #setInputStream(InputStream)} before
+	 * reading.
+	 */
 	public BufferedLineReader() {
 		this(null);
 	}
 
+	/**
+	 * Creates a reader over the given stream using the current default buffer size.
+	 *
+	 * @param stream the input stream to read from
+	 */
 	public BufferedLineReader(InputStream stream) {
 		this(stream, bufferSize);
 	}
 
+	/**
+	 * Creates a reader over the given stream using an internal buffer of the given size.
+	 *
+	 * @param stream     the input stream to read from
+	 * @param bufferSize the internal buffer size in bytes
+	 */
 	public BufferedLineReader(InputStream stream, int bufferSize) {
 		this.buffer = new byte[bufferSize];
 		setInputStream(stream);
 	}
 
+	/**
+	 * Sets (or replaces) the input stream to read from and resets the internal buffer state.
+	 *
+	 * @param stream the input stream to read from
+	 */
 	public void setInputStream(InputStream stream) {
 		pos = buffer.length;
 		bufferFill = 0;
 		this.stream = stream;
 	}
 
+	/**
+	 * Reads and discards the next line, returning the number of non-null bytes it contained
+	 * (excluding the terminating newline).
+	 *
+	 * @return the number of non-null bytes in the skipped line
+	 * @throws IOException if reading from the underlying stream fails
+	 */
 	// Made final for potential inlining by JVM
 	public final int skipLine() throws IOException {
 		int size = 0;
@@ -88,11 +132,29 @@ public class BufferedLineReader implements Closeable {
 		return size;
 	}
 
+	/**
+	 * Reads the next line into {@code target} starting at position 0; see
+	 * {@link #nextLine(byte[], int)}.
+	 *
+	 * @param target the buffer to write the line into
+	 * @return the number of bytes written; {@code target.length + 1} if the buffer filled up before
+	 *         the end of the line was reached
+	 * @throws IOException if reading from the underlying stream fails
+	 */
 	// Made final for potential inlining by JVM
 	public final int nextLine(byte[] target) throws IOException {
 		return nextLine(target, 0);
 	}
 
+	/**
+	 * Reads the next line into {@code target} starting at {@code startPos}, skipping null bytes.
+	 *
+	 * @param target   the buffer to write the line into
+	 * @param startPos the position in {@code target} at which to start writing
+	 * @return the number of bytes written; {@code target.length + 1} if the buffer filled up before
+	 *         the end of the line was reached
+	 * @throws IOException if reading from the underlying stream fails
+	 */
 	// Returns target.length + 1 if target is full but end of line not reached.
 	// Made final for potential inlining by JVM
 	public final int nextLine(byte[] target, int startPos) throws IOException {

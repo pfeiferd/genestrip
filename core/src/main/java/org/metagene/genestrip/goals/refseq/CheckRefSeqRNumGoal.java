@@ -35,11 +35,32 @@ import java.io.*;
 import java.net.URL;
 import java.nio.file.Files;
 
+/**
+ * Goal that compares the locally downloaded RefSeq release number with the one currently published
+ * by NCBI, recording the local number as a project property and reporting whether it is current.
+ *
+ * @param <P> the project type
+ */
 public class CheckRefSeqRNumGoal<P extends GSProject> extends ObjectGoal<CheckRefSeqRNumGoal.Result, P> {
-    public enum Result { CURRENT, OUTDATED, UNKNOWN }
+    /** Result of the release-number comparison: local is current, outdated, or undeterminable. */
+    public enum Result {
+        /** The local RefSeq release is current. */
+        CURRENT,
+        /** The local RefSeq release is outdated. */
+        OUTDATED,
+        /** The current RefSeq release could not be determined. */
+        UNKNOWN
+    }
 
     private final FileGoal<P> releaseNumberGoal;
 
+    /**
+     * Creates the goal for the given project.
+     *
+     * @param project           the project
+     * @param releaseNumberGoal the goal providing the locally stored release-number file
+     * @param deps              additional goals this goal depends on
+     */
     public CheckRefSeqRNumGoal(P project, FileGoal<P> releaseNumberGoal, Goal<P>... deps) {
         super(project, GSGoalKey.CHECK_REFSEQ_RNUM, append(deps, releaseNumberGoal));
         this.releaseNumberGoal = releaseNumberGoal;
@@ -75,10 +96,20 @@ public class CheckRefSeqRNumGoal<P extends GSProject> extends ObjectGoal<CheckRe
         }
     }
 
+    /**
+     * Builds the HTTP URL of NCBI's current RefSeq {@code RELEASE_NUMBER} file.
+     *
+     * @return the URL of the current RefSeq release-number file
+     */
     protected String buildHttpURL() {
         return getHttpBaseURL() + RefSeqDownloadGoal.RELEASE_FOLDER + "/" + RefSeqRNumDownloadGoal.RELEASE_NUMBER_FILE_NAME;
     }
 
+    /**
+     * Returns the base HTTP URL used to reach the RefSeq download location.
+     *
+     * @return the RefSeq HTTP base URL
+     */
     protected String getHttpBaseURL() {
         return stringConfigValue(GSConfigKey.REF_SEQ_HTTP_BASE_URL);
     }

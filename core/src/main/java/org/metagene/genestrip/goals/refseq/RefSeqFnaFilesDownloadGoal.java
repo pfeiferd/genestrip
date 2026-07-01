@@ -47,6 +47,13 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 
+/**
+ * Download goal for the RefSeq genomic/RNA {@code .fna} files of the selected categories, verified
+ * against their catalog MD5 checksums; the list of files to fetch is derived from the release
+ * {@code files.installed} listing and the configured sequence type.
+ *
+ * @param <P> the project type
+ */
 public class RefSeqFnaFilesDownloadGoal<P extends GSProject> extends RefSeqDownloadGoal<P> {
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setDelimiter('\t').setRecordSeparator('\n')
 			.build();
@@ -58,6 +65,16 @@ public class RefSeqFnaFilesDownloadGoal<P extends GSProject> extends RefSeqDownl
 	private Map<File, RefSeqCategory> file2Cat;
 	private ObjectGoal<Map<String, String>, P> checkSumGoal;
 
+	/**
+	 * Creates the goal, wiring the categories, catalog download, checksum and release-check goals.
+	 *
+	 * @param project           the project this goal belongs to
+	 * @param categoriesGoal    the goal supplying the RefSeq categories to download
+	 * @param catalogDLGoal     the goal downloading the RefSeq catalog
+	 * @param checkSumGoal      the goal supplying the expected file checksums
+	 * @param checkReleaseNGoal the goal checking the RefSeq release number
+	 * @param deps              any further goals this goal depends on
+	 */
 	@SafeVarargs
 	public RefSeqFnaFilesDownloadGoal(P project,
 			ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal, RefSeqCatalogDownloadGoal catalogDLGoal,
@@ -71,12 +88,19 @@ public class RefSeqFnaFilesDownloadGoal<P extends GSProject> extends RefSeqDownl
 		this.checkReleaseNGoal = checkReleaseNGoal;
 	}
 
+	/**
+	 * Runs the RefSeq release check before reporting whether this goal is already made.
+	 */
 	@Override
 	public boolean isMade() {
 		checkReleaseNGoal.get();
 		return super.isMade();
 	}
 
+	/**
+	 * Downloads the given RefSeq FASTA file, first warning if the local release is outdated (in which
+	 * case the MD5 check may fail).
+	 */
 	@Override
 	protected void makeFile(File file) throws IOException {
 		if (CheckRefSeqRNumGoal.Result.OUTDATED.equals(checkReleaseNGoal.get())) {
@@ -88,10 +112,22 @@ public class RefSeqFnaFilesDownloadGoal<P extends GSProject> extends RefSeqDownl
 		super.makeFile(file);
 	}
 
+	/**
+	 * The RefSeq category that the given downloaded file belongs to.
+	 *
+	 * @param file the downloaded file
+	 * @return the category the file belongs to, or {@code null} if unknown
+	 */
 	public RefSeqCategory getCategoryForFile(File file) {
 		return file2Cat.get(file);
 	}
 
+	/**
+	 * Whether the given catalog file name matches the configured sequence type (genomic and/or RNA).
+	 *
+	 * @param filename the catalog file name to check
+	 * @return {@code true} if the file name matches the configured sequence type
+	 */
 	protected boolean isRelevantFileName(String filename) {
 		// TODO: Code not very elegant - but whatever...
 		switch ((SeqType) configValue(GSConfigKey.SEQ_TYPE)) {
@@ -108,6 +144,13 @@ public class RefSeqFnaFilesDownloadGoal<P extends GSProject> extends RefSeqDownl
 		}
 	}
 
+	/**
+	 * The selected {@link RefSeqCategory} whose directory prefixes the given file name, or
+	 * {@code null} if none matches.
+	 *
+	 * @param filename the file name to match
+	 * @return the matching category, or {@code null} if none matches
+	 */
 	protected RefSeqCategory getCategoryForFileName(String filename) {
 		for (RefSeqCategory cat : categoriesGoal.get()) {
 			if (filename.startsWith(cat.getDirectory() + ".")) {
@@ -127,6 +170,10 @@ public class RefSeqFnaFilesDownloadGoal<P extends GSProject> extends RefSeqDownl
 		return checkSumGoal.get().get(file.getName());
 	}
 
+	/**
+	 * Builds the deterministically ordered list of {@code .fna} files to download by scanning the
+	 * catalog's {@code files.installed} for relevant files in the selected categories.
+	 */
 	@Override
 	public List<File> getFiles() {
 		if (files == null) {

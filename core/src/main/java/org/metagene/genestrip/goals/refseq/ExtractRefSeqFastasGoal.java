@@ -45,12 +45,30 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.*;
 
+/**
+ * Goal that extracts the selected RefSeq regions into individual FASTA files (with kraken2-style
+ * {@code |kraken:taxid|} headers) under the project's FASTA directory, and produces a map from each
+ * sequence description to its taxid.
+ *
+ * @param <P> the project type
+ */
 public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoal<Map<String, String>, P> {
     private final ObjectGoal<AccessionMap, P> accessionMapGoal;
     private final List<FillSizeGoal.MyFastaReader> readers;
 
     private Map<String, String> descr2TaxId;
 
+    /**
+     * Creates the goal, wiring the categories, tax-node, RefSeq-file and accession-map goals it reads.
+     *
+     * @param project the project type
+     * @param bundle the execution context providing threading and shared services
+     * @param categoriesGoal the goal supplying the selected RefSeq categories
+     * @param taxNodesGoal the goal supplying the selected taxonomic nodes
+     * @param fnaFilesGoal the goal supplying the downloaded RefSeq FASTA files
+     * @param accessionMapGoal the goal supplying the accession-to-tax-id map
+     * @param deps the additional goals this goal depends on
+     */
     @SafeVarargs
     public ExtractRefSeqFastasGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
                                    ObjectGoal<Set<TaxTree.TaxIdNode>, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
@@ -86,10 +104,29 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
                 booleanConfigValue(GSConfigKey.EXTRACT_REFSEQ_GZIP));
     }
 
+    /**
+     * FASTA reader that writes each included region to its own FASTA file and records the mapping
+     * from sequence description to taxid.
+     */
     protected class MyFastaReader extends AbstractRefSeqFastaReader {
         private OutputStream os;
         private final boolean gzip;
 
+        /**
+         * Creates the reader that writes each included region to its own FASTA file.
+         *
+         * @param bufferSize the FASTA line read-buffer size in bytes
+         * @param taxNodes the taxonomic nodes to keep regions for
+         * @param accessionMap the accession-to-tax-id map, or {@code null} if not used
+         * @param k the k-mer size
+         * @param maxGenomesPerTaxId the maximum number of genomes kept per tax id
+         * @param maxGenomesPerTaxIdRank the rank at which the genome limit is applied
+         * @param maxKmersPerTaxId the maximum number of k-mers kept per tax id
+         * @param stepSize the k-mer sampling step size
+         * @param completeGenomesOnly whether only complete genomes are considered
+         * @param regionsPerTaxid the per-tax-id region counter
+         * @param gzip whether the output FASTA files are GZIP-compressed
+         */
         public MyFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
                              int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean gzip) {
             super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, stepSize, completeGenomesOnly, regionsPerTaxid);

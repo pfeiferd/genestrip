@@ -27,34 +27,74 @@ package org.metagene.genestrip;
 import java.io.File;
 import java.io.IOException;
 
+/**
+ * Holds system-wide configuration rooted at a base directory and derives the standard shared
+ * directory locations (common, fastq, fasta, refseq and genbank) used across projects.
+ */
 public class GSCommon {
 	private final File baseDir;
 
+	/**
+	 * Creates the system configuration rooted at the given base directory.
+	 *
+	 * @param baseDir the base directory under which shared directories are located
+	 * @throws IOException if the base directory cannot be resolved
+	 */
 	public GSCommon(File baseDir) throws IOException {
 		this.baseDir = baseDir;
 	}
 
+	/**
+	 * Returns the base directory under which all shared directories are located.
+	 *
+	 * @return the base directory
+	 */
 	public File getBaseDir() {
 		return baseDir;
 	}
 
 
+	/**
+	 * Returns the shared {@code common} directory located under the base directory.
+	 *
+	 * @return the shared {@code common} directory
+	 */
 	public File getCommonDir() {
 		return new File(baseDir, "common");
 	}
 
+	/**
+	 * Returns the shared {@code fastq} directory located under the base directory.
+	 *
+	 * @return the shared {@code fastq} directory
+	 */
 	public File getFastqDir() {
 		return new File(baseDir, "fastq");
 	}
 
+	/**
+	 * Returns the shared {@code fasta} directory located under the {@code common} directory.
+	 *
+	 * @return the shared {@code fasta} directory
+	 */
 	public File getFastaDir() {
 		return new File(getCommonDir(), "fasta");
 	}
 
+	/**
+	 * Returns the shared {@code refseq} directory located under the {@code common} directory.
+	 *
+	 * @return the shared {@code refseq} directory
+	 */
 	public File getRefSeqDir() {
 		return new File(getCommonDir(), "refseq");
 	}
 
+	/**
+	 * Returns the shared {@code genbank} directory located under the {@code common} directory.
+	 *
+	 * @return the shared {@code genbank} directory
+	 */
 	public File getGenbankDir() {
 		return new File(getCommonDir(), "genbank");
 	}

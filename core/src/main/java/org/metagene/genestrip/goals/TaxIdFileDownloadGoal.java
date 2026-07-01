@@ -39,12 +39,26 @@ import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.tax.TaxTree;
 
+/**
+ * Downloads the NCBI taxonomy dump ({@code taxdmp.zip}) and extracts {@code nodes.dmp} and {@code names.dmp}
+ * into the common directory.
+ *
+ * @param <P> the project type
+ */
 public class TaxIdFileDownloadGoal<P extends GSProject> extends GSFileDownloadGoal<P> {
+	/** File name of the NCBI taxonomy dump archive. */
 	public static final String TAX_DMP_ZIP = "taxdmp.zip";
+	/** FTP directory on the NCBI server holding the taxonomy dump. */
 	public static final String FTP_DIR = "/pub/taxonomy";
 
 	private final List<File> files;
 
+	/**
+	 * Creates the goal that downloads and extracts the NCBI taxonomy dump files.
+	 *
+	 * @param project the project
+	 * @param deps    the goals this goal depends on
+	 */
 	@SafeVarargs
 	public TaxIdFileDownloadGoal(P project, Goal<P>... deps) {
 		super(project, GSGoalKey.TAXDOWNLOAD, deps);

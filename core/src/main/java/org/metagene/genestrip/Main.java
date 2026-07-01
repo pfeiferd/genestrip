@@ -39,6 +39,12 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.metagene.genestrip.make.GoalKey;
 
+/**
+ * Command line entry point for Genestrip. Parses the command line options, builds the project and its
+ * {@link GSMaker}, and runs the requested target (make/clean variants) for the given goals.
+ *
+ * @param <P> the concrete project type created by this launcher
+ */
 public abstract class Main<P extends GSProject> {
     private final Options options;
     private P project;
@@ -47,10 +53,20 @@ public abstract class Main<P extends GSProject> {
     private GSMaker<P> maker;
     private boolean isolateGoals;
 
+    /**
+     * Creates a new instance, building the command line option set.
+     */
     public Main() {
         options = createOptions();
     }
 
+    /**
+     * Parses the command line arguments, creating the project (with its configuration) and the maker.
+     *
+     * @param args the command line arguments
+     * @throws ParseException if the arguments are malformed or the project name is missing
+     * @throws java.io.IOException if project creation requires I/O that fails
+     */
     public void parse(String[] args) throws ParseException, IOException {
         CommandLine line = new DefaultParser().parse(options, args);
 
@@ -97,34 +113,87 @@ public abstract class Main<P extends GSProject> {
         maker = createMaker(project);
     }
 
+    /**
+     * Creates the concrete project instance; implemented by subclasses to supply their project type.
+     *
+     * @param config           the common Genestrip configuration
+     * @param name             the project name
+     * @param key              the key used as a prefix for result file names, or {@code null}
+     * @param fastqFiles       the input fastq/fasta file paths or URLs, or {@code null}
+     * @param csvFile          the mapping file path, or {@code null}
+     * @param csvDir           the directory for CSV result files, or {@code null}
+     * @param fastqResDir      the directory for filtered fastq/fasta files, or {@code null}
+     * @param taxids           the comma-separated list of tax ids, or {@code null}
+     * @param commandLineProps the configuration properties set on the command line
+     * @param forGoal          the goal the project is created for, or {@code null}
+     * @param dbPath           the path to a filtering or matching database, or {@code null}
+     * @param quietInit        whether to suppress output during initialization
+     * @return the newly created project
+     */
     protected abstract P createProject(GSCommon config, String name, String key, String[] fastqFiles, String csvFile, File csvDir,
                                        File fastqResDir, String taxids, Properties commandLineProps, GSGoalKey forGoal,
                                        String dbPath, boolean quietInit);
 
+    /**
+     * Creates the maker used to build and run the goal graph; may be overridden to use a subclass.
+     *
+     * @param project the project to create the maker for
+     * @return the newly created maker
+     */
     protected GSMaker<P> createMaker(P project) {
         return new GSMaker<P>(project);
     }
 
+    /**
+     * Returns the parsed generation target.
+     *
+     * @return the target name
+     */
     public String getTarget() {
         return target;
     }
 
+    /**
+     * Returns the project created during parsing.
+     *
+     * @return the project
+     */
     public P getProject() {
         return project;
     }
 
+    /**
+     * Returns the command line option set.
+     *
+     * @return the options
+     */
     public Options getOptions() {
         return options;
     }
 
+    /**
+     * Returns the non-option arguments (project name followed by goal names).
+     *
+     * @return the remaining arguments
+     */
     public String[] getRestArgs() {
         return restArgs;
     }
 
+    /**
+     * Returns the name of the default goal used when none is given.
+     *
+     * @return the default goal name
+     */
     public String getDefaultGoal() {
         return "show";
     }
 
+    /**
+     * Builds the Apache Commons CLI option set understood by Genestrip.
+     *
+     * @return the option set
+     */
     protected Options createOptions() {
         Options options = new Options();
 
@@ -189,6 +258,12 @@ public abstract class Main<P extends GSProject> {
         return options;
     }
 
+    /**
+     * Parses the arguments and runs the requested goals, printing the usage help on failure and
+     * always disposing the maker's resources at the end.
+     *
+     * @param args the command line arguments
+     */
     public void parseAndRun(String[] args) {
         try {
             parse(args);
@@ -207,6 +282,13 @@ public abstract class Main<P extends GSProject> {
         }
     }
 
+    /**
+     * Resolves the goal names from the remaining arguments (falling back to the default goal) and
+     * executes the parsed target ({@code make}, {@code clean}, {@code cleanall} or {@code cleantotal})
+     * for them.
+     *
+     * @param out the stream for progress and status messages
+     */
     public void run(PrintStream out) {
         String[] restArgs = getRestArgs();
         if (restArgs.length == 1) {
@@ -241,10 +323,20 @@ public abstract class Main<P extends GSProject> {
         out.println("Done with target " + getTarget() + " for goals " + keys);
     }
 
+    /**
+     * Returns the maker created during parsing.
+     *
+     * @return the maker, or {@code null} if parsing has not run
+     */
     public GSMaker<P> getMaker() {
         return maker;
     }
 
+    /**
+     * Runs Genestrip on the default {@link GSProject} type from the command line.
+     *
+     * @param args the command line arguments
+     */
     public static void main(String[] args) {
         new Main<GSProject>() {
             protected GSProject createProject(GSCommon config, String name, String key, String[] fastqFiles, String csvFile, File csvDir,

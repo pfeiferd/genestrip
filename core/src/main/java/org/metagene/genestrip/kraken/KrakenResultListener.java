@@ -24,7 +24,23 @@
  */
 package org.metagene.genestrip.kraken;
 
+/**
+ * Callback that receives the tax id assignments parsed from Kraken-style output, once
+ * per contiguous k-mer segment of each classified read.
+ */
 public interface KrakenResultListener {
+	/**
+	 * Called for a segment of a read that Kraken attributes to a tax id.
+	 *
+	 * @param lineCount      the 1-based number of the output line (read) being processed
+	 * @param readDescriptor the read's descriptor bytes
+	 * @param krakenTaxid    the tax id Kraken assigned to the whole read
+	 * @param bps            the read length in base pairs
+	 * @param pos            the start position of this segment within the read
+	 * @param kmerTaxid      the tax id assigned to this segment
+	 * @param hitLength      the number of k-mers in this segment
+	 * @param output         the raw output line bytes
+	 */
 	public void newTaxIdForRead(long lineCount, byte[] readDescriptor, 
 			String krakenTaxid, int bps, int pos, String kmerTaxid, int hitLength, byte[] output);
 }

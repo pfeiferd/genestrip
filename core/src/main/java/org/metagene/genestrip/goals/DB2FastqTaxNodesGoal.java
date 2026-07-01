@@ -39,9 +39,22 @@ import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
+/**
+ * Produces the set of database tax id nodes to generate FASTQ files for: all nodes that actually occur in the
+ * store, optionally intersected with the configured tax ids (a trailing {@code +} also selects descendants).
+ *
+ * @param <P> the project type
+ */
 public class DB2FastqTaxNodesGoal<P extends GSProject> extends ObjectGoal<Set<SmallTaxIdNode>, P> {
 	private final ObjectGoal<Database, P> storeGoal;
 
+	/**
+	 * Creates the goal for the given project and store goal.
+	 *
+	 * @param project the project this goal belongs to.
+	 * @param storeGoal the goal providing the database whose stored tax id nodes are used.
+	 * @param deps the goals this goal depends on.
+	 */
 	@SafeVarargs
 	public DB2FastqTaxNodesGoal(P project,
 			ObjectGoal<Database, P> storeGoal, Goal<P>... deps) {
@@ -90,6 +103,15 @@ public class DB2FastqTaxNodesGoal<P extends GSProject> extends ObjectGoal<Set<Sm
 		set(taxIdNodes);
 	}
 
+	/**
+	 * Resolves the given tax ids to their store nodes, additionally including all descendant nodes for every id
+	 * whose corresponding {@code withDescs} flag is set.
+	 *
+	 * @param taxTree the tax tree used to resolve tax ids to nodes.
+	 * @param taxids the tax ids to resolve.
+	 * @param withDescs per-id flags indicating whether to also include the descendants of that id.
+	 * @return the set of resolved nodes, including descendants where requested.
+	 */
 	public Set<SmallTaxIdNode> asNodesWithDescs(SmallTaxTree taxTree, String[] taxids, boolean[] withDescs) {
 		Set<SmallTaxIdNode> res = new HashSet<SmallTaxIdNode>();
 		for (int i = 0; i < taxids.length; i++) {

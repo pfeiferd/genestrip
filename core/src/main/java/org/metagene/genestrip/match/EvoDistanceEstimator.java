@@ -32,7 +32,25 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+/**
+ * Estimates an evolutionary "distance" for each taxonomy node from the distribution of
+ * stored k-mers across the tree. The distance reflects how much of a node's k-mers sit
+ * below it versus above it, and its per-node portion is the increment relative to the
+ * node's strongest child branch.
+ */
 public class EvoDistanceEstimator {
+    /**
+     * Creates an evolutionary-distance estimator.
+     */
+    public EvoDistanceEstimator() {
+    }
+
+    /**
+     * Computes {@link DistanceInfo} for every node of the database's taxonomy tree.
+     *
+     * @param database the database whose taxonomy tree and k-mer stats are analyzed
+     * @return a map from each taxonomy node to its distance information
+     */
     public Map<SmallTaxTree.SmallTaxIdNode, DistanceInfo> computeDistances(Database database) {
         SmallTaxTree tree = database.getTaxTree();
         Object2LongMap<String> stats = database.getStats();
@@ -51,12 +69,24 @@ public class EvoDistanceEstimator {
         return distances;
     }
 
+    /**
+     * The distance estimate for a single taxonomy node, its per-node portion and the
+     * child branch carrying the most k-mers below it (the "longest path" branch).
+     */
     public static class DistanceInfo {
         private final SmallTaxTree.SmallTaxIdNode node;
         private final double distance;
         private final SmallTaxTree.SmallTaxIdNode branch;
         private double distancePortion;
 
+        /**
+         * Computes the distance for the given node from the per-tax-id k-mer counts and
+         * the k-mer length {@code k}, and determines its strongest child branch.
+         *
+         * @param node the taxonomy node to compute the distance for
+         * @param stats the per-tax-id k-mer counts
+         * @param k the k-mer length
+         */
         public DistanceInfo(SmallTaxTree.SmallTaxIdNode node, Object2LongMap<String> stats, int k) {
             this.node = node;
 
@@ -87,6 +117,11 @@ public class EvoDistanceEstimator {
             distance = 1 - Math.pow(1 - ((double) below / sum), 1d / k);
         }
 
+        /**
+         * Returns the taxonomy node this distance information describes.
+         *
+         * @return the taxonomy node this distance information describes
+         */
         public SmallTaxTree.SmallTaxIdNode getNode() {
             return node;
         }
@@ -108,14 +143,30 @@ public class EvoDistanceEstimator {
             return childMax + stats.getOrDefault(node.getTaxId(), 0L);
         }
 
+        /**
+         * Returns the evolutionary distance estimate for this node.
+         *
+         * @return the evolutionary distance estimate for this node
+         */
         public double getDistance() {
             return distance;
         }
 
+        /**
+         * Returns the per-node portion of the distance relative to the strongest child branch.
+         *
+         * @return the per-node portion of the distance relative to the strongest child branch
+         */
         public double getDistancePortion() {
             return distancePortion;
         }
 
+        /**
+         * Returns the child branch that carries the most k-mers below it, or {@code null}
+         * for a leaf.
+         *
+         * @return the strongest child branch, or {@code null} for a leaf
+         */
         public SmallTaxTree.SmallTaxIdNode getBranch() {
             return branch;
         }

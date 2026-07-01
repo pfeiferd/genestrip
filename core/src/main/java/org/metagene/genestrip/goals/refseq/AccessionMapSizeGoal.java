@@ -39,10 +39,25 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.AccessionFileProcessor;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 
+/**
+ * Goal that counts how many accession entries the RefSeq catalog contributes for the selected
+ * categories and sequence type; the resulting size is used to pre-allocate the
+ * {@link org.metagene.genestrip.refseq.AccessionMap}.
+ *
+ * @param <P> the project type
+ */
 public class AccessionMapSizeGoal<P extends GSProject> extends ObjectGoal<Integer, P> {
 	private final ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal;
 	private final RefSeqCatalogDownloadGoal catalogGoal;
 
+	/**
+	 * Creates the goal, wiring the categories and catalog download goals it scans.
+	 *
+	 * @param project        the project type
+	 * @param categoriesGoal the goal providing the selected RefSeq categories
+	 * @param catalogGoal    the goal providing the downloaded RefSeq catalog file
+	 * @param deps           additional goals this goal depends on
+	 */
 	@SafeVarargs
 	public AccessionMapSizeGoal(P project,
 			ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal, RefSeqCatalogDownloadGoal catalogGoal,

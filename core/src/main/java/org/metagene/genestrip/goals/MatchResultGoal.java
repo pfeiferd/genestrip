@@ -47,12 +47,28 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * Runs the k-mer matcher over each input fastq stream against the database and produces the per-key
+ * {@link MatchingResult}s, optionally also writing filtered and kraken-style output files.
+ *
+ * @param <P> the project type
+ */
 public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String, MatchingResult>, P> {
 	private final ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal;
 	private final ObjectGoal<Database, P> storeGoal;
 	private final ExecutionContext bundle;
 	private AfterMatchCallback afterMatchCallback;
 
+	/**
+	 * Creates the goal wiring the fastq map and database goals that supply the matcher's inputs.
+	 *
+	 * @param project the project this goal belongs to
+	 * @param key the goal key identifying this goal
+	 * @param fastqMapGoal the goal supplying the per-key fastq input streams
+	 * @param storeGoal the goal supplying the database to match against
+	 * @param bundle the execution context providing threads and progress reporting
+	 * @param deps additional goals this goal depends on
+	 */
 	@SafeVarargs
 	public MatchResultGoal(P project, GoalKey key, ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal,
                            ObjectGoal<Database, P> storeGoal, ExecutionContext bundle, Goal<P>... deps) {
@@ -62,6 +78,11 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 		this.bundle = bundle;
 	}
 
+	/**
+	 * Returns the goal supplying the per-key fastq input streams.
+	 *
+	 * @return the fastq map goal
+	 */
 	public ObjectGoal<Map<String, StreamingResourceStream>, P> getFastqMapGoal() {
 		return fastqMapGoal;
 	}
@@ -139,6 +160,17 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 		}
 	}
 
+	/**
+	 * Creates the {@link FastqKMerMatcher} for the given store and tax tree, configured from the goal's config
+	 * values.
+	 *
+	 * @param store the k-mer store to match reads against
+	 * @param taxTree the tax tree used for read classification, or {@code null} to disable classification
+	 * @param bundle the execution context providing threads and progress reporting
+	 * @param withProbs whether match probabilities are computed
+	 * @param dbMD5 the MD5 checksum of the database used
+	 * @return the configured matcher
+	 */
 	protected FastqKMerMatcher createMatcher(KMerStore<SmallTaxIdNode> store, SmallTaxTree taxTree,
 			ExecutionContext bundle, boolean withProbs, String dbMD5) {
 		return new FastqKMerMatcher(store, intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
@@ -161,12 +193,33 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 		};
 	}
 
+	/**
+	 * Sets the callback invoked during matching.
+	 *
+	 * @param afterMatchCallback the callback to invoke, or {@code null} to disable it
+	 */
 	public void setAfterMatchCallback(AfterMatchCallback afterMatchCallback) {
 		this.afterMatchCallback = afterMatchCallback;
 	}
 
+	/**
+	 * Callback invoked during matching: once per finished key and once per matched read.
+	 */
 	public interface AfterMatchCallback {
+		/**
+		 * Called once all reads for a map key have been matched.
+		 *
+		 * @param key the map key that was completed
+		 * @param res the matching result for that key
+		 */
 		public void afterKey(String key, MatchingResult res);
+
+		/**
+		 * Called for each matched read.
+		 *
+		 * @param entry the read entry that was matched
+		 * @param found whether the read matched the database
+		 */
 		public void afterMatch(FastqKMerMatcher.MatcherReadEntry entry, boolean found);
 	}
 }

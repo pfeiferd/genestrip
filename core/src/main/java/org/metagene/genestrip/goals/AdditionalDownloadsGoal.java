@@ -45,16 +45,30 @@ import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.Goal;
 
+/**
+ * Download goal for user-specified additional fasta/genome files: it reads the project's additional-entries file
+ * (and matching entries in the shared {@code downloads.txt}), resolving each to a target file, its download URL
+ * and an optional MD5 checksum.
+ *
+ * @param <P> the project type
+ */
 public class AdditionalDownloadsGoal<P extends GSProject> extends GSFileDownloadGoal<P> {
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#')
 			.setDelimiter(' ').setRecordSeparator('\n').build();
 
+	/** File name of the shared list of additional downloads. */
 	public static final String DOWNLOADS_NAME = "downloads.txt";
 
 	private List<File> files;
 	private final Map<File, URL> fileToURL;
 	private final Map<File, String> fileToMD5;
 
+	/**
+	 * Creates the goal that resolves and downloads additional declared files.
+	 *
+	 * @param project the project
+	 * @param deps additional goal dependencies
+	 */
 	@SafeVarargs
 	public AdditionalDownloadsGoal(P project, Goal<P>... deps) {
 		super(project, GSGoalKey.ADD_DOWNLOADS, deps);
@@ -62,6 +76,10 @@ public class AdditionalDownloadsGoal<P extends GSProject> extends GSFileDownload
 		fileToMD5 = new HashMap<File, String>();
 	}
 
+	/**
+	 * Parses the project's additional-entries file and the shared {@code downloads.txt}, resolving each declared
+	 * entry to a target file plus its download URL and optional MD5 checksum.
+	 */
 	@Override
 	public List<File> getFiles() {
 		if (files == null) {

@@ -38,10 +38,24 @@ import org.metagene.genestrip.util.ByteArrayUtil;
 import java.io.*;
 import java.util.Map;
 
+/**
+ * Streams the input FASTQ resources and extracts every read whose descriptor starts with the configured extract
+ * key, writing the matching reads to per-key output files or to standard out. Produces no cached result.
+ *
+ * @param <P> the project type
+ */
 public class ExtractGoal<P extends GSProject> extends Goal<P> {
 	private final ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal;
 	private final ExecutionContext bundle;
 
+	/**
+	 * Creates the goal.
+	 *
+	 * @param project      the project this goal belongs to
+	 * @param fastqMapGoal goal supplying the per-key map of fastq input resources to extract from
+	 * @param bundle       the execution context driving the parallel processing
+	 * @param deps         additional goals this goal depends on
+	 */
 	@SafeVarargs
 	public ExtractGoal(P project, ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal,
 					   ExecutionContext bundle, Goal<P>... deps) {

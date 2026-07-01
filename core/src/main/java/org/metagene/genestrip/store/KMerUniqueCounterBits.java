@@ -35,6 +35,12 @@ import org.metagene.genestrip.util.LargeShortVector;
 import it.unimi.dsi.fastutil.objects.Object2LongLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
+/**
+ * A {@link KMerUniqueCounter} that marks each matched k-mer in a {@link LargeBitVector} indexed by the
+ * k-mer's storage position in the backing {@link KMerStore}, so every distinct k-mer is counted at
+ * most once. When constructed with counts enabled, a parallel {@link LargeShortVector} also records
+ * how often each k-mer was matched.
+ */
 public class KMerUniqueCounterBits implements KMerUniqueCounter {
 	private static final int LOCKS = 512; // Must be a value in 2^n, n = 1,2,3,...
 	private static final int LOCKS_MASK = LOCKS - 1;
@@ -44,6 +50,13 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 	private final LargeShortVector countsVector;
 	private final Object[] locks;
 
+	/**
+	 * Creates a counter over the given store. If {@code withCounts} is set, per-k-mer match counts are
+	 * tracked in addition to the presence bits.
+	 *
+	 * @param store      the backing k-mer store
+	 * @param withCounts if {@code true}, per-k-mer match counts are tracked as well
+	 */
 	public KMerUniqueCounterBits(KMerStore<String> store, boolean withCounts) {
 		this.store = store;
 		bitVector = new LargeBitVector(store.getEntries());
@@ -54,6 +67,11 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 		}
 	}
 	
+	/**
+	 * Returns whether per-k-mer match counts are being tracked.
+	 *
+	 * @return {@code true} if counting is enabled
+	 */
 	public boolean isWithCounts() {
 		return countsVector != null;
 	}
@@ -90,6 +108,12 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 		}
 	}
 
+	/**
+	 * Marks the k-mer at the given storage position as matched (and increments its match count when
+	 * counting is enabled), synchronizing per bit-array word to allow concurrent callers.
+	 *
+	 * @param index the storage position of the k-mer within the backing store
+	 */
 	public final void putInlined(final long index) {
 		long arrayIndex = ((index >>> 6) % bitVector.size);
 		synchronized (locks[(int)(arrayIndex & LOCKS_MASK)]) {
@@ -138,6 +162,14 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 		return res;
 	}
 
+	/**
+	 * Determines, per taxid, the {@code counts} highest per-k-mer match counts among that taxid's
+	 * matched k-mers. The returned map also holds the overall top counts under the {@code null} key.
+	 * Requires that this counter was created with counting enabled.
+	 *
+	 * @param counts the number of highest match counts to keep per taxid
+	 * @return a map from taxid to its highest match counts, with the overall top counts under the {@code null} key
+	 */
 	public Map<String, short[]> getMaxCountsCounts(int counts) {
 		Map<String, short[]> res = new HashMap<String, short[]>();
 		short[] totalMaxCounts = new short[counts];
@@ -197,6 +229,13 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 		return count[0];
 	}
 
+	/**
+	 * Fills {@code target} (in descending order) with the highest per-k-mer match counts among the
+	 * given taxid's matched k-mers.
+	 *
+	 * @param taxid  the taxid whose matched k-mers are inspected
+	 * @param target the array to fill with the highest match counts in descending order
+	 */
 	public void getMaxCounts(String taxid, short[] target) {
 		final int sindex = store.getIndexForValue(taxid);
 		if (sindex < 0) {

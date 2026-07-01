@@ -44,10 +44,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Converts the FASTA resources for each key into a FASTQ output file, emitting a synthetic maximal-quality line
+ * for every sequence.
+ *
+ * @param <P> the project type
+ */
 public class Fasta2FastqGoal<P extends GSProject> extends FileListGoal<P> {
     private final ObjectGoal<Map<String, StreamingResourceStream>, P> fastaMapGoal;
     private final Map<File, String> fileToKeyMap;
 
+    /**
+     * Creates the goal, wiring the FASTA-map goal whose resources are converted to FASTQ.
+     *
+     * @param project the project
+     * @param key the goal key
+     * @param fastaMapGoal goal providing the FASTA resources per key
+     * @param deps additional goal dependencies
+     */
     public Fasta2FastqGoal(P project, GoalKey key, ObjectGoal<Map<String, StreamingResourceStream>, P> fastaMapGoal, Goal<P>... deps) {
         super(project, key, (List<File>) null, append(deps, fastaMapGoal));
 
@@ -64,6 +78,12 @@ public class Fasta2FastqGoal<P extends GSProject> extends FileListGoal<P> {
         }
     }
 
+    /**
+     * Returns the FASTA resources feeding the given output file.
+     *
+     * @param file the FASTQ output file
+     * @return the FASTA resources mapped to that file
+     */
     protected StreamingResourceStream getFastasForFile(File file) {
         return fastaMapGoal.get().get(fileToKeyMap.get(file));
     }
@@ -83,14 +103,28 @@ public class Fasta2FastqGoal<P extends GSProject> extends FileListGoal<P> {
         }
     }
 
+    /**
+     * Indicates whether a progress bar should be shown while processing.
+     *
+     * @return whether a progress bar should be shown
+     */
     protected boolean isProgressBar() {
         return getProject().booleanConfigValue(GSConfigKey.PROGRESS_BAR);
     }
 
+    /**
+     * Reads FASTA input and writes it out as FASTQ, using {@code '~'} (maximal quality) for every base.
+     */
     protected static class FastqWriter extends AbstractFastaReader {
         private int dataSize;
         private final PrintStream out;
 
+        /**
+         * Creates a FASTQ writer over the given output stream.
+         *
+         * @param out the stream to write FASTQ output to
+         * @param bufferSize the read buffer size in bytes
+         */
         public FastqWriter(PrintStream out, int bufferSize) {
             super(bufferSize);
             this.out = out;

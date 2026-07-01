@@ -43,10 +43,25 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.Properties;
 
+/**
+ * Produces the configuration-info {@link Properties} of the database, taken from the in-memory database when
+ * available or otherwise loaded directly from the stored database file.
+ *
+ * @param <P> the project type
+ */
 public class DBConfigInfoGoal<P extends GSProject> extends ObjectGoal<Properties, P> {
 	private final ObjectGoal<Database, P> dbGoal;
 	private final File dbFile;
 
+	/**
+	 * Creates the goal for the given project and goal key.
+	 *
+	 * @param project     the project
+	 * @param key         the goal key identifying this goal
+	 * @param dbGoal      the goal providing the in-memory database, if available
+	 * @param storedDBGoal the goal providing the stored database file
+	 * @param deps        additional goals this goal depends on
+	 */
 	@SafeVarargs
 	public DBConfigInfoGoal(P project, GoalKey key, ObjectGoal<Database, P> dbGoal, FileGoal<P> storedDBGoal, Goal<P>... deps) {
 		super(project, key,

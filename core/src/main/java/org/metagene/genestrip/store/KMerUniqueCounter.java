@@ -26,12 +26,38 @@ package org.metagene.genestrip.store;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
+/**
+ * Tracks distinct k-mers matched (looked up) per taxid, so the number of unique matched k-mers can be
+ * reported per taxon.
+ */
 public interface KMerUniqueCounter {
+	/**
+	 * Clears all recorded unique-k-mer counts.
+	 */
 	public void clear();
 
+	/**
+	 * Records that the given k-mer, stored at position {@code index} in the backing store, was matched
+	 * for the given taxid.
+	 *
+	 * @param kmer the matched k-mer
+	 * @param taxid the taxid the k-mer was matched for
+	 * @param index the position of the k-mer in the backing store
+	 */
 	public void put(long kmer, String taxid, long index);
 
+	/**
+	 * Returns the number of distinct matched k-mers per taxid.
+	 *
+	 * @return the number of distinct matched k-mers per taxid.
+	 */
 	public Object2LongMap<String> getUniqueKmerCounts();
-	
+
+	/**
+	 * Returns the number of distinct matched k-mers for the given taxid.
+	 *
+	 * @param taxid the taxid to query
+	 * @return the number of distinct matched k-mers for the given taxid.
+	 */
 	public int getUniqueKmerCount(String taxid);
 }

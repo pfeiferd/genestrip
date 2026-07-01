@@ -37,8 +37,14 @@ import org.metagene.genestrip.util.GSLogFactory;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 
+/**
+ * An {@link AbstractFastqReader} that reads through a stream of FASTQ/FASTA resources one after
+ * another while logging and reporting per-file and overall progress.
+ */
 public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
+    /** Type hint identifying a resource that should be parsed as FASTA. */
     public static final String FASTA_TYPE_HINT = "fasta";
+    /** Type hint identifying a resource that should be parsed as FASTQ. */
     public static final String FASTQ_TYPE_HINT = "fastq";
 
     private static final DecimalFormat DF = new DecimalFormat("0.0", new DecimalFormatSymbols(Locale.US));
@@ -52,12 +58,26 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
     private long fastqFileSize;
     private long coveredFilesSize;
     private long startTime;
+    /** The number of reads indexed (written) so far. */
     protected long indexedC;
+    /** The total number of reads processed across all files. */
     protected long totalReads;
+    /** The total number of k-mers processed across all files. */
     protected long totalKMers;
+    /** The total number of base pairs processed across all files. */
     protected long totalBPs;
     private final long logUpdateCycle;
 
+    /**
+     * Creates the streamer with the given matching parameters and execution context.
+     *
+     * @param k the k-mer length
+     * @param initialReadSize the initial read buffer size in bytes
+     * @param maxQueueSize the maximum size of the consumer thread queue
+     * @param bundle the execution context providing threads and progress reporting
+     * @param withProbs whether match probabilities are computed
+     * @param config additional configuration passed to the underlying reader
+     */
     public AbstractLoggingFastqStreamer(int k, int initialReadSize, int maxQueueSize, ExecutionContext bundle, boolean withProbs,
                                         Object... config) {
         super(k, initialReadSize, maxQueueSize, bundle, withProbs, config);
@@ -65,6 +85,13 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
         this.logUpdateCycle = bundle.getLogUpdateCycle();
     }
 
+    /**
+     * Reads and processes every FASTQ/FASTA resource in the given stream, logging and reporting
+     * progress and accumulating total read, k-mer and base-pair counts.
+     *
+     * @param fastqs the stream of FASTQ/FASTA resources to process
+     * @throws IOException if a resource cannot be opened or read
+     */
     public void processFastqStreams(StreamingResourceStream fastqs) throws IOException {
         if (logger.isInfoEnabled()) {
             logger.info("Number of consumer threads: " + bundle.getThreads());
@@ -103,14 +130,30 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
         allDone();
     }
 
+    /**
+     * Returns whether the given resource should be parsed as FASTA (based on its type hint).
+     *
+     * @param fastq the resource to inspect
+     * @return whether the given resource should be parsed as FASTA
+     */
     protected boolean isFastaStream(StreamingResource fastq) {
         return FASTA_TYPE_HINT.equals(fastq.getTypeHint());
     }
 
+    /**
+     * Returns whether a progress bar should be shown while processing.
+     *
+     * @return whether a progress bar should be shown
+     */
     protected boolean isProgressBar() {
         return true;
     }
 
+    /**
+     * Returns the task name displayed on the progress bar.
+     *
+     * @return the progress bar task name
+     */
     protected String getProgressBarTaskName() {
         return ((GSLogFactory.GSLog) logger).getName();
     }
@@ -142,6 +185,10 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
         }
     }
 
+    /**
+     * Computes and reports progress for the current file and for the overall run to the execution
+     * context.
+     */
     protected void doUpdateProgress() {
         if (bundle.isRequiresProgress()) {
             long bytesCovered = byteCountAccess.getBytesRead();
@@ -161,16 +208,27 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
         }
     }
 
+    /**
+     * Returns the number of reads between progress log updates.
+     *
+     * @return the log update cycle in reads
+     */
     public long getLogUpdateCycle() {
         return logUpdateCycle;
     }
 
+    /**
+     * Logs the start of processing for the current file.
+     */
     protected void logFastqStart() {
         if (logger.isInfoEnabled()) {
             logger.info("Processing fastq file (" + (coveredCounter + 1) + "/" + totalCount + "): " + currentFastq);
         }
     }
 
+    /**
+     * Logs completion statistics for the current file.
+     */
     protected void logFastqDone() {
         if (logger.isInfoEnabled()) {
             long bytesCovered = byteCountAccess.getBytesRead();
@@ -183,6 +241,9 @@ public abstract class AbstractLoggingFastqStreamer extends AbstractFastqReader {
         }
     }
 
+    /**
+     * Logs and reports the final totals after all files have been processed.
+     */
     protected void allDone() {
         long totalTime = (System.currentTimeMillis() - startTime);
         if (bundle.isRequiresProgress()) {

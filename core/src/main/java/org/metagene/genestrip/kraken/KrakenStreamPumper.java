@@ -128,6 +128,14 @@ public class KrakenStreamPumper implements Runnable {
 		}
 	}
 
+	/**
+	 * Copies all bytes from the input stream to the output stream. Subclasses may
+	 * override this to process the data while it is pumped.
+	 *
+	 * @param is the input stream to read from
+	 * @param os the output stream to write to (may be {@code null})
+	 * @throws java.io.IOException if reading or writing fails
+	 */
 	protected void doWork(InputStream is, OutputStream os) throws IOException {
 		if (os != null) {
 			int length;

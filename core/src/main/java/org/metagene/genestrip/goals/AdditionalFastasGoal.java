@@ -45,6 +45,12 @@ import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
+/**
+ * Produces the mapping from additional local fasta files to their taxonomic node, combining entries listed in
+ * the project's additional file with the genbank-derived assembly entries.
+ *
+ * @param <P> the project type
+ */
 public class AdditionalFastasGoal<P extends GSProject> extends ObjectGoal<Map<File, TaxIdNode>, P> {
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#')
 			.setDelimiter(' ').setRecordSeparator('\n').build();
@@ -53,6 +59,15 @@ public class AdditionalFastasGoal<P extends GSProject> extends ObjectGoal<Map<Fi
 	private final ObjectGoal<Map<TaxIdNode, List<AssemblyEntry>>, P> fromGenbank;
 	private final FastaFilesGenbankDownloadGoal fastaFilesGenbankDownloadGoal;
 
+	/**
+	 * Creates the goal, wiring the tax tree, the Genbank assembly entries and the Genbank FASTA download goal.
+	 *
+	 * @param project the project
+	 * @param taxTreeGoal goal providing the taxonomy tree
+	 * @param fromGenbank goal providing the assembly entries per tax id node
+	 * @param fastaFilesGenbankDownloadGoal goal providing the downloaded Genbank FASTA files
+	 * @param dependencies additional goal dependencies
+	 */
 	@SafeVarargs
 	public AdditionalFastasGoal(P project, ObjectGoal<TaxTree, P> taxTreeGoal,
 			ObjectGoal<Map<TaxIdNode, List<AssemblyEntry>>, P> fromGenbank,
@@ -99,7 +114,6 @@ public class AdditionalFastasGoal<P extends GSProject> extends ObjectGoal<Map<Fi
 				res.put(file, node);
 			}
 		}
-		// taxTree.reinitPositions();
 
 		set(res);
 	}

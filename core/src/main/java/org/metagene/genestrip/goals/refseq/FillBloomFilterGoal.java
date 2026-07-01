@@ -51,6 +51,13 @@ import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.StringLongDigitTrie;
 
+/**
+ * Goal that estimates the deduplicated database size: it streams all selected k-mers through a
+ * temporary Bloom filter and counts the distinct k-mers, in total and per {@link RadixKMerStore}
+ * radix bucket, producing a {@link DBSize} used to size the final k-mer store.
+ *
+ * @param <P> the project type
+ */
 public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<FillBloomFilterGoal.DBSize, P> implements Goal.LogHeapInfo {
     /**
      * Combined deduplicated DB size: the total estimated number of distinct k-mers and, when
@@ -62,18 +69,36 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
     public static class DBSize implements Serializable {
         private static final long serialVersionUID = 1L;
 
+        /** The total estimated number of distinct k-mers. */
         private final long size;
+        /** The per-radix-bucket distinct k-mer counts, or {@code null} if not computed. */
         private final int[] bucketSizes;
 
+        /**
+         * Creates a DB size holder.
+         *
+         * @param size the total estimated number of distinct k-mers
+         * @param bucketSizes the per-radix-bucket counts, or {@code null} if not computed
+         */
         public DBSize(long size, int[] bucketSizes) {
             this.size = size;
             this.bucketSizes = bucketSizes;
         }
 
+        /**
+         * Returns the total estimated number of distinct k-mers.
+         *
+         * @return the total estimated number of distinct k-mers
+         */
         public long getSize() {
             return size;
         }
 
+        /**
+         * Returns the per-radix-bucket distinct k-mer counts.
+         *
+         * @return the per-radix-bucket counts, or {@code null} if not computed
+         */
         public int[] getBucketSizes() {
             return bucketSizes;
         }
@@ -93,6 +118,19 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
 
     private final boolean multiThreading;
 
+    /**
+     * Creates the goal, wiring the accession-map and expected-size goals alongside the FASTA inputs.
+     *
+     * @param project the project type
+     * @param bundle the execution context providing threading and shared services
+     * @param categoriesGoal the goal supplying the selected RefSeq categories
+     * @param taxNodesGoal the goal supplying the selected taxonomic nodes
+     * @param fnaFilesGoal the goal supplying the downloaded RefSeq FASTA files
+     * @param additionalGoal the goal supplying additional FASTA files mapped to tax nodes
+     * @param accessionMapGoal the goal supplying the accession-to-tax-id map
+     * @param sizeGoal the goal supplying the expected k-mer count for filter sizing
+     * @param deps the additional goals this goal depends on
+     */
     @SafeVarargs
     public FillBloomFilterGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
                                ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
@@ -104,6 +142,9 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
         multiThreading = bundle.getThreads() > 0;
     }
 
+    /**
+     * Eagerly cleans this goal's result once all dependent goals have been made, to free memory.
+     */
     @Override
     protected void allDependentsMade() {
         // To save memory...
@@ -183,9 +224,31 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
                 booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES));
     }
 
+    /**
+     * FASTA reader that adds each not-yet-seen k-mer to the temporary Bloom filter and counts the
+     * distinct k-mers per radix bucket in a thread-safe way.
+     */
     protected class MyFastaReader extends AbstractStoreFastaReader {
         private final KMerProbFilter filter;
 
+        /**
+         * Creates the reader that fills the temporary Bloom filter and counts distinct k-mers per
+         * radix bucket.
+         *
+         * @param bufferSize the FASTA line read-buffer size in bytes
+         * @param taxNodes the taxonomic nodes to keep k-mers for
+         * @param accessionMap the accession-to-tax-id map, or {@code null} if not used
+         * @param k the k-mer size
+         * @param filter the temporary Bloom filter to fill
+         * @param maxGenomesPerTaxId the maximum number of genomes kept per tax id
+         * @param maxGenomesPerTaxIdRank the rank at which the genome limit is applied
+         * @param maxKmersPerTaxId the maximum number of k-mers kept per tax id
+         * @param maxDust the maximum allowed low-complexity (dust) run length
+         * @param stepSize the k-mer sampling step size
+         * @param completeGenomesOnly whether only complete genomes are considered
+         * @param regionsPerTaxid the per-tax-id region counter
+         * @param enableLowerCaseBases whether lower-case bases are processed
+         */
         public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
                              KMerProbFilter filter, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
             super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases);

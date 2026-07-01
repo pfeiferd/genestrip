@@ -43,12 +43,26 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Writes the k-mer matching result for each fastq map key as a CSV file (via {@link ResultReporter}).
+ *
+ * @param <P> the project type
+ */
 public class MatchGoal<P extends GSProject> extends FileListGoal<P> {
     private final ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal;
     private final ObjectGoal<Map<String, MatchingResult>, P> matchResGoal;
     private final Map<File, String> fileToKeyMap;
     private ResultReporter reporter;
 
+    /**
+     * Creates the goal, wiring the fastq map and matching-result goals it reports on.
+     *
+     * @param project the project this goal belongs to
+     * @param key the goal key identifying this goal
+     * @param fastqMapGoal the goal supplying the fastq resources to match
+     * @param matchResGoal the goal supplying the matching results to report
+     * @param deps additional goals this goal depends on
+     */
     @SafeVarargs
     public MatchGoal(P project, GoalKey key, ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal, ObjectGoal<Map<String, MatchingResult>, P> matchResGoal, Goal<P>... deps) {
         super(project, key, (List<File>) null, Goal.append(deps, fastqMapGoal, matchResGoal));

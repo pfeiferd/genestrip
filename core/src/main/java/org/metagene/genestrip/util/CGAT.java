@@ -24,14 +24,28 @@
  */
 package org.metagene.genestrip.util;
 
+/**
+ * Low-level helpers for encoding DNA bases (C, G, A, T) into 2-bit codes and k-mers into longs,
+ * as well as decoding, complementing and reverse-complementing them.
+ */
 public class CGAT {
+	// Static utility class - not meant to be instantiated.
+	private CGAT() {
+	}
+
+	/** Lookup table mapping each nucleotide byte to its Watson-Crick complement; non-CGAT entries are -1. */
 	public static final byte[] CGAT_COMPLEMENT = new byte[127];
+	/** Lookup table mapping each nucleotide byte to its straight 2-bit code (C=0, G=1, A=2, T=3); non-CGAT entries are -1. */
 	public static final int[] CGAT_JUMP_TABLE;
+	/** Lookup table mapping each nucleotide byte to the 2-bit code of its complement (C=1, G=0, A=3, T=2); non-CGAT entries are -1. */
 	public static final int[] CGAT_REVERSE_JUMP_TABLE;
 
+	/** Maps a 2-bit code (0-3) back to its nucleotide letter C, G, A or T. */
 	public static final byte[] DECODE_TABLE = new byte[] { 'C', 'G', 'A', 'T' };
 
+	/** Per-k bit masks retaining the low 2k bits, used when appending a base to a straight k-mer encoding. */
 	public static long SHIFT_FILTERS_STRAIGHT[] = new long[33]; // TODO ~(-1 << ((k - 1) * 2))
+	/** Per-k shift amounts ((k-1)*2), used when prepending a base to a reverse k-mer encoding. */
 	public static long SHIFT_FILTERS_REVERSE[] = new long[33]; // TODO ((k - 1) * 2)
 
 	static {
@@ -68,7 +82,12 @@ public class CGAT {
 		}
 	}
 
-	// Upper-cases only the four nucleotide letters; every other byte is returned unchanged.
+	/**
+	 * Upper-cases only the four nucleotide letters; every other byte is returned unchanged.
+	 *
+	 * @param c the byte to upper-case
+	 * @return the uppercase nucleotide letter, or {@code c} unchanged if it is not a, c, g or t
+	 */
 	public static byte cgatToUpperCase(byte c) {
 		switch (c) {
 		case 'a': return 'A';
@@ -79,24 +98,64 @@ public class CGAT {
 		}
 	}
 
+	/**
+	 * Returns whether the given byte is one of the uppercase nucleotide letters C, G, A or T.
+	 *
+	 * @param c the byte to test
+	 * @return {@code true} if {@code c} is C, G, A or T
+	 */
 	public static boolean isCGAT(byte c) {
 		return c == 'C' || c == 'G' || c == 'A' || c == 'T';
 	}
 
+	/**
+	 * Returns the Watson-Crick complement of the given nucleotide byte, or -1 for non-CGAT input.
+	 *
+	 * @param c the nucleotide byte to complement
+	 * @return the complement byte, or -1 if {@code c} is not a CGAT base
+	 */
 	public static byte toComplement(byte c) {
 		return CGAT_COMPLEMENT[c];
 	}
 
+	/**
+	 * Encodes the k bases starting at {@code start} into the canonical (standard) k-mer, i.e. the
+	 * larger of the straight and reverse-complement 2-bit encodings.
+	 *
+	 * @param seq    the byte array holding the bases
+	 * @param start  the index of the first base to encode
+	 * @param k      the number of bases (k-mer length)
+	 * @param badPos if non-null, {@code badPos[0]} is set to the position of the first non-CGAT base,
+	 *               or -1 if none.
+	 * @return the canonical k-mer encoding, or -1 if a non-CGAT base is encountered.
+	 */
 	public static long kMerToLong(byte[] seq, int start, int k, int[] badPos) {
 		long reverse = kMerToLongReverse(seq, start, k, badPos);
 		long straight = kMerToLongStraight(seq, start, k, badPos);
 		return standardKMer(reverse, straight);
 	}
 
+	/**
+	 * Returns the canonical k-mer, i.e. the larger of the two given encodings.
+	 *
+	 * @param straight the straight k-mer encoding
+	 * @param reverse  the reverse-complement k-mer encoding
+	 * @return the larger of {@code straight} and {@code reverse}
+	 */
 	public static long standardKMer(long straight, long reverse) {
 		return straight > reverse ? straight : reverse;
 	}
 
+	/**
+	 * Encodes the k bases starting at {@code start} into a 2-bit-per-base long in reading direction.
+	 *
+	 * @param seq    the byte array holding the bases
+	 * @param start  the index of the first base to encode
+	 * @param k      the number of bases (k-mer length)
+	 * @param badPos if non-null, {@code badPos[0]} is set to the position of the first non-CGAT base,
+	 *               or -1 if none.
+	 * @return the straight k-mer encoding, or -1 if a non-CGAT base is encountered.
+	 */
 	public static long kMerToLongStraight(final byte[] seq, final int start, final int k, final int[] badPos) {
 		long res = 0;
 		int c;
@@ -120,6 +179,15 @@ public class CGAT {
 		return res;
 	}
 	
+	/**
+	 * Decodes a straight 2-bit-per-base k-mer encoding back into k nucleotide bytes, written to
+	 * {@code res} starting at {@code start}.
+	 *
+	 * @param kmer  the straight k-mer encoding to decode
+	 * @param res   the byte array to write the decoded bases into
+	 * @param start the index in {@code res} at which to write the first base
+	 * @param k     the number of bases (k-mer length)
+	 */
 	public static void longToKMerStraight(long kmer, byte[] res, int start, int k) {
 		for (int i = k - 1; i >= 0; i--) {
 			// & 3 and >>> 2 (not % 4 and >> 2) so a k-mer whose top bit is set decodes correctly.
@@ -128,6 +196,15 @@ public class CGAT {
 		}
 	}
 
+	/**
+	 * Returns the straight k-mer encoding obtained by appending base {@code bp} to the given k-mer
+	 * and dropping its oldest base, or -1 if {@code bp} is not a CGAT base.
+	 *
+	 * @param kmer the current straight k-mer encoding
+	 * @param bp   the nucleotide byte to append
+	 * @param k    the number of bases (k-mer length)
+	 * @return the updated straight k-mer encoding, or -1 if {@code bp} is not a CGAT base
+	 */
 	public static long nextKMerStraight(final long kmer, final byte bp, final int k) {
 		int c = CGAT_JUMP_TABLE[bp];
 		if (c == -1) {
@@ -136,6 +213,16 @@ public class CGAT {
 		return ((kmer << 2) & SHIFT_FILTERS_STRAIGHT[k]) | (long) c;
 	}
 
+	/**
+	 * Returns the reverse-complement k-mer encoding obtained by prepending the complement of base
+	 * {@code bp} to the given reverse k-mer and dropping its oldest base, or -1 if {@code bp} is not
+	 * a CGAT base.
+	 *
+	 * @param kmer the current reverse-complement k-mer encoding
+	 * @param bp   the nucleotide byte whose complement to prepend
+	 * @param k    the number of bases (k-mer length)
+	 * @return the updated reverse-complement k-mer encoding, or -1 if {@code bp} is not a CGAT base
+	 */
 	public static long nextKMerReverse(final long kmer, final byte bp, final int k) {
 		int c = CGAT_REVERSE_JUMP_TABLE[bp];
 		if (c == -1) {
@@ -144,6 +231,17 @@ public class CGAT {
 		return (kmer >>> 2) | (((long) c) << SHIFT_FILTERS_REVERSE[k]);
 	}
 
+	/**
+	 * Encodes the reverse complement of the k bases starting at {@code start} into a 2-bit-per-base
+	 * long.
+	 *
+	 * @param seq    the byte array holding the bases
+	 * @param start  the index of the first base to encode
+	 * @param k      the number of bases (k-mer length)
+	 * @param badPos if non-null, {@code badPos[0]} is set to the position of the first non-CGAT base,
+	 *               or -1 if none.
+	 * @return the reverse-complement k-mer encoding, or -1 if a non-CGAT base is encountered.
+	 */
 	public static long kMerToLongReverse(final byte[] seq, final int start, final int k, final int[] badPos) {
 		long res = 0;
 		int c;
@@ -166,11 +264,22 @@ public class CGAT {
 		return res;
 	}
 
+	/**
+	 * Reverse-complements the entire array in place.
+	 *
+	 * @param seq the byte array to reverse-complement
+	 */
 	public static void reverse(byte[] seq) {
 		reverse(seq, 0, seq.length);
 	}
 
-	// Reverse-complements seq[start, start+k) in place (k is the region length, not an end index).
+	/**
+	 * Reverse-complements seq[start, start+k) in place (k is the region length, not an end index).
+	 *
+	 * @param seq   the byte array to reverse-complement
+	 * @param start the index of the first base of the region
+	 * @param k     the length of the region to reverse-complement
+	 */
 	public static void reverse(byte[] seq, int start, int k) {
 		int end = start + k - 1;
 		byte h;

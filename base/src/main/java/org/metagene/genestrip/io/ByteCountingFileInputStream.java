@@ -31,15 +31,33 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
+/**
+ * A {@link FileInputStream} that counts the number of bytes read and, optionally, advances a
+ * progress bar as reading proceeds. The count is kept consistent across {@code mark}/{@code reset}.
+ */
 public class ByteCountingFileInputStream extends FileInputStream {
 	private final ProgressBar progressBar;
 	private long readToMark;
 	private long bRead;
 
+	/**
+	 * Creates a byte-counting stream over the given file without a progress bar.
+	 *
+	 * @param file the file to read from
+	 * @throws FileNotFoundException if the file does not exist or cannot be opened for reading
+	 */
 	public ByteCountingFileInputStream(File file) throws FileNotFoundException {
 		this(file, null);
 	}
 
+	/**
+	 * Creates a byte-counting stream over the given file that advances the given progress bar as
+	 * bytes are read.
+	 *
+	 * @param file        the file to read from
+	 * @param progressBar the progress bar to advance as bytes are read, or {@code null} for none
+	 * @throws FileNotFoundException if the file does not exist or cannot be opened for reading
+	 */
 	public ByteCountingFileInputStream(File file, ProgressBar progressBar) throws FileNotFoundException {
 		super(file);
 		bRead = 0;
@@ -98,6 +116,11 @@ public class ByteCountingFileInputStream extends FileInputStream {
 		}
 	}
 	
+	/**
+	 * Returns the total number of bytes read so far.
+	 *
+	 * @return the number of bytes read
+	 */
 	public long getBytesRead() {
 		return bRead;
 	}

@@ -24,11 +24,32 @@
  */
 package org.metagene.genestrip.make;
 
+/**
+ * Identifies a configuration parameter of a {@link Project}. A key has a name, a
+ * {@link ConfigParamInfo} describing its value type, range and default, and may optionally be
+ * restricted to certain goals.
+ */
 public interface ConfigKey {
+	/**
+	 * Returns the name of this configuration parameter.
+	 *
+	 * @return the parameter name
+	 */
 	public String getName();
 
+	/**
+	 * Returns the descriptor of this parameter's value type, valid range and default value.
+	 *
+	 * @return the parameter's value type descriptor
+	 */
 	public ConfigParamInfo<?> getInfo();
 
+	/**
+	 * Returns whether this parameter is applicable to the given goal; {@code true} by default.
+	 *
+	 * @param forGoal the goal to test applicability for
+	 * @return {@code true} if this parameter applies to the given goal
+	 */
 	default public boolean isForGoal(GoalKey forGoal) {
 		return true;
 	}

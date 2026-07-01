@@ -39,9 +39,23 @@ import org.metagene.genestrip.store.KMerStore.IndexedKMerStoreVisitor;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
+/**
+ * Goal that builds the index Bloom filter ({@link KMerProbFilter}) from the filled database: it
+ * inserts every k-mer whose stored taxid belongs to a requested tax node, sizing the filter from
+ * the configured false-positive probability.
+ *
+ * @param <P> the project type
+ */
 public class BloomIndexGoal<P extends GSProject> extends ObjectGoal<KMerProbFilter, P> {
 	private final ObjectGoal<Database, P> filledStoreGoal;
 
+	/**
+	 * Creates the goal, wiring the filled database goal whose k-mers are indexed.
+	 *
+	 * @param project         the project this goal belongs to
+	 * @param filledStoreGoal the goal supplying the filled database whose k-mers are indexed
+	 * @param deps            any further goals this goal depends on
+	 */
 	@SafeVarargs
 	public BloomIndexGoal(P project, ObjectGoal<Database, P> filledStoreGoal, Goal<P>... deps) {
 		super(project, GSGoalKey.FILL_INDEX, append(deps, filledStoreGoal));

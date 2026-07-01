@@ -29,10 +29,32 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Marks a {@link CountsPerTaxid} getter as a match-detail column of the CSV result.
+ * It provides the column's sort position, header name and a human-readable description
+ * that are read reflectively when the report and its column documentation are generated.
+ */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface MDCDescription {
+	/**
+	 * The column's sort position.
+	 *
+	 * @return the sort position
+	 */
 	int pos();
+
+	/**
+	 * The column header name.
+	 *
+	 * @return the header name
+	 */
 	String name();
+
+	/**
+	 * The human-readable column description.
+	 *
+	 * @return the column description
+	 */
 	String desc();
 }

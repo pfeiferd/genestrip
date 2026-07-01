@@ -59,37 +59,64 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
  * </ul>
  * The storage-specific operations ({@code initSize}, {@code putLong}, {@code getLong},
  * {@code update}, {@code optimize}, {@code visit}, {@code convertValues}) remain abstract.
+ *
+ * @param <V> the value type mapped to each k-mer
  */
 public abstract class AbstractKMerStore<V extends Serializable> implements TunableKMerStore<V> {
 	private static final long serialVersionUID = 1L;
 
+	/** The k-mer length; always in {@code [1, 31]}. */
 	protected final int k;
 
 	// Maximum number of distinct values this store supports. Defined per subclass (see their
 	// MAX_VALUES constants) since it depends on how the value index is stored (short array vs.
 	// packed bits) and passed to this base constructor.
+	/** The value-index capacity (maximum number of distinct values). */
 	protected final int maxValues;
 	// Maps a value to its 0-based store index.
+	/** Maps each value to its 0-based store index. */
 	protected final Object2IntMap<V> valueMap;
 	// Indexed 0-based by value index; length maxValues.
+	/** Maps each store index back to its value; length {@code maxValues}. */
 	protected final V[] indexMap;
+	/** The next store index to assign to a newly registered value. */
 	protected int nextValueIndex;
 
+	/** The total capacity of the store. */
 	protected long size;
+	/** The number of entries currently stored. */
 	protected long entries;
+	/** Whether the store has been sorted/optimized. */
 	protected boolean sorted;
 
+	/** The target false-positive probability of the post-optimize filter. */
 	protected final double optimizedFpp;
 	// Transient: the filter is (re)built on optimize() and stored separately by Database.
+	/** The optional probabilistic pre-filter, or {@code null} if none. */
 	protected transient KMerProbFilter filter;
+	/** Whether the pre-filter is currently in use. */
 	protected boolean useFilter;
 
+	/** Per-value k-mer count statistics, or {@code null} if not tracked. */
 	protected Object2LongMap<V> kmerPersTaxid;
 
+	/** The number of k-mers moved during optimization. */
 	protected transient long kmersMoved;
 	// Just for optimizing synchronization during updates.
+	/** The lock array used to serialize concurrent updates of the same entry. */
 	protected transient Object[] syncs;
 
+	/**
+	 * Base constructor: sets {@code k} (which must be in {@code [1, 31]}), the value-index capacity,
+	 * the optional fill-time pre-filter and the post-optimize filter fpp, and registers any initial
+	 * values so they receive stable store indices.
+	 *
+	 * @param k             the k-mer length; must be in {@code [1, 31]}
+	 * @param maxValues     the value-index capacity (maximum number of distinct values)
+	 * @param initialValues values to register up front for stable store indices, or {@code null}
+	 * @param filter        the optional fill-time pre-filter, or {@code null} for none
+	 * @param optimizedFpp  the target false-positive probability of the post-optimize filter
+	 */
 	@SuppressWarnings("unchecked")
 	protected AbstractKMerStore(int k, int maxValues, List<V> initialValues, KMerProbFilter filter, double optimizedFpp) {
 		// k must be <= 31: at k=32 a k-mer fills all 64 bits, so the all-T k-mer collides with the
@@ -120,6 +147,10 @@ public abstract class AbstractKMerStore<V extends Serializable> implements Tunab
 	 * Copy constructor shared by the subclasses' {@code convertValues} support: copies the common
 	 * counters and rebuilds the value maps with converted values. The concrete k-mer storage is
 	 * copied (typically shared) by the subclass constructor.
+	 *
+	 * @param <W>       the value type of the store being converted from
+	 * @param org       the store whose common state is copied
+	 * @param converter converts each value of {@code org} to a value of this store
 	 */
 	@SuppressWarnings("unchecked")
 	protected <W extends Serializable> AbstractKMerStore(AbstractKMerStore<W> org,
@@ -152,6 +183,13 @@ public abstract class AbstractKMerStore<V extends Serializable> implements Tunab
 		initSyncs();
 	}
 
+	/**
+	 * Restores the transient state after deserialization.
+	 *
+	 * @param ois the stream to read from
+	 * @throws ClassNotFoundException if a serialized class cannot be resolved
+	 * @throws IOException            if reading fails
+	 */
 	private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
 		ois.defaultReadObject();
 		initSyncs();
@@ -227,6 +265,8 @@ public abstract class AbstractKMerStore<V extends Serializable> implements Tunab
 	 * kind (blocked / XOR / Murmur) as the current fill-time filter. Returns {@code null} when
 	 * {@code optimizedFpp >= 1} (no filter). The caller is expected to assign the result to
 	 * {@link #filter} and then populate it with the stored k-mers.
+	 *
+	 * @return the newly created pre-filter, or {@code null} if {@code optimizedFpp >= 1}
 	 */
 	protected KMerProbFilter createOptimizedFilter() {
 		if (optimizedFpp >= 1) {
@@ -294,6 +334,13 @@ public abstract class AbstractKMerStore<V extends Serializable> implements Tunab
 
 	// --- Statistics -----------------------------------------------------------
 
+	/**
+	 * Counts, by visiting every entry, how many stored k-mers map to each value. The {@code null} key
+	 * maps to the total number of entries.
+	 *
+	 * @return a map from each value to its number of stored k-mers, with the {@code null} key
+	 *         mapping to the total number of entries
+	 */
 	public Object2LongMap<V> getNKmersPerTaxid() {
 		final long[] countArray = new long[getNValues()];
 		visit(new KMerStore.IndexedKMerStoreVisitor<V>() {

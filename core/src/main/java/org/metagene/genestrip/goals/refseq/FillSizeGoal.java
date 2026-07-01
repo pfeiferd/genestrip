@@ -44,10 +44,28 @@ import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
+/**
+ * Goal that counts the total number of included k-mers (duplicates included) across the selected
+ * RefSeq FASTA files, giving a rough estimate of the raw database size.
+ *
+ * @param <P> the project type
+ */
 public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<Long, P> {
 	private final ObjectGoal<AccessionMap, P> accessionMapGoal;
 	private final List<MyFastaReader> readers;
 
+	/**
+	 * Creates the goal, wiring the accession-map goal alongside the FASTA inputs it counts.
+	 *
+	 * @param project the project
+	 * @param bundle the execution context
+	 * @param categoriesGoal goal providing the selected RefSeq categories
+	 * @param taxNodesGoal goal providing the tax id nodes to include
+	 * @param fnaFilesGoal goal providing the downloaded RefSeq FASTA files
+	 * @param additionalGoal goal providing additional FASTA files mapped to tax id nodes
+	 * @param accessionMapGoal goal providing the accession-to-tax-id map
+	 * @param deps additional goal dependencies
+	 */
 	@SafeVarargs
 	public FillSizeGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
 						ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
@@ -102,21 +120,55 @@ public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<Long, P> 
 		return fastaReader;
 	}
 
+	/**
+	 * FASTA reader that only counts k-mers (included, total and dust) without storing them.
+	 */
 	protected static class MyFastaReader extends AbstractStoreFastaReader {
+		/**
+		 * Creates a counting FASTA reader.
+		 *
+		 * @param bufferSize the read buffer size in bytes
+		 * @param taxNodes the tax id nodes to include
+		 * @param accessionMap the accession-to-tax-id map, or {@code null} if RefSeq FASTA is excluded
+		 * @param k the k-mer length
+		 * @param maxGenomesPerTaxId the maximum number of genomes per tax id
+		 * @param maxGenomesPerTaxIdRank the rank at which the genome limit applies
+		 * @param maxKmersPerTaxId the maximum number of k-mers per tax id
+		 * @param maxDust the maximum dust value, or a negative value to disable dust filtering
+		 * @param stepSize the k-mer step size
+		 * @param completeGenomesOnly whether only complete-genome accessions are considered
+		 * @param regionsPerTaxid the per-tax-id genome region trie
+		 * @param enableLowerCaseBases whether lowercase bases are accepted
+		 */
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
 				int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
 			super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId,
 					maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases);
 		}
 
+		/**
+		 * Returns the number of included k-mers counted so far.
+		 *
+		 * @return the number of included k-mers counted so far
+		 */
 		public long getIncludedKmers() {
 			return includedKmers;
 		}
 
+		/**
+		 * Returns the total number of k-mers counted so far.
+		 *
+		 * @return the total number of k-mers counted so far
+		 */
 		public long getTotalKmers() {
 			return totalKmers;
 		}
 
+		/**
+		 * Returns the accumulated dust count.
+		 *
+		 * @return the accumulated dust count
+		 */
 		public long getDustCounter() {
 			return dustCounter;
 		}

@@ -33,14 +33,30 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.zip.GZIPInputStream;
 
+/**
+ * A {@link StreamingResource} backed by a file on disk. GZIP files are decompressed transparently
+ * unless suppressed, and the number of bytes read is tracked via a {@link ByteCountingFileInputStream}.
+ */
 public class StreamingFileResource implements StreamingResource {
 	private final File file;
 	private final boolean noGZ;
 
+	/**
+	 * Creates a resource for the given file, decompressing it transparently if it is a GZIP file.
+	 *
+	 * @param file the file to stream from
+	 */
 	public StreamingFileResource(File file) {
 		this(file, false);
 	}
 	
+	/**
+	 * Creates a resource for the given file. If {@code noGZ} is {@code true}, {@code .gz} files are
+	 * read without decompression.
+	 *
+	 * @param file the file to stream from
+	 * @param noGZ if {@code true}, {@code .gz} files are read without decompression
+	 */
 	public StreamingFileResource(File file, boolean noGZ) {
 		this.file = file;
 		this.noGZ = noGZ;
@@ -87,6 +103,11 @@ public class StreamingFileResource implements StreamingResource {
 		return file.getName();
 	}
 	
+	/**
+	 * Returns the underlying file.
+	 *
+	 * @return the file backing this resource
+	 */
 	public File getFile() {
 		return file;
 	}

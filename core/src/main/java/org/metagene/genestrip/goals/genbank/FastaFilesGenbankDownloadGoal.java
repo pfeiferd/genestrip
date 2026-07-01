@@ -43,6 +43,12 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
+/**
+ * Download goal that fetches the fasta files for the GenBank assembly entries selected by
+ * {@link FastaFilesFromGenbankGoal}, via FTP directory or direct URL.
+ *
+ * @param <P> the project type
+ */
 public class FastaFilesGenbankDownloadGoal<P extends GSProject> extends GSFileDownloadGoal<P> {
 	private final ObjectGoal<Map<TaxIdNode, List<AssemblyEntry>>, P> entryGoal;
 	private final int baseURLLen;
@@ -50,6 +56,13 @@ public class FastaFilesGenbankDownloadGoal<P extends GSProject> extends GSFileDo
 	private List<File> files;
 	private Map<String, Object> fileToDir;
 
+	/**
+	 * Creates the goal that downloads the Genbank fasta files for the resolved assembly entries.
+	 *
+	 * @param project   the project
+	 * @param entryGoal the goal providing the assembly entries per tax id node
+	 * @param deps      the goals this goal depends on
+	 */
 	@SafeVarargs
 	public FastaFilesGenbankDownloadGoal(P project,
 										 ObjectGoal<Map<TaxIdNode, List<AssemblyEntry>>, P> entryGoal, Goal<P>... deps) {
@@ -99,14 +112,32 @@ public class FastaFilesGenbankDownloadGoal<P extends GSProject> extends GSFileDo
 		return files;
 	}
 
+	/**
+	 * Returns the local target file for the given assembly entry.
+	 *
+	 * @param entry the assembly entry
+	 * @return the local target file for the entry
+	 */
 	public File entryToFile(AssemblyEntry entry) {
 		return new File(getFastaDir(), entry.getFileName());
 	}
 
+	/**
+	 * Returns the directory into which Genbank fasta files are downloaded.
+	 *
+	 * @return the Genbank fasta directory
+	 */
 	protected File getFastaDir() {
 		return getProject().getCommon().getGenbankDir();
 	}
 
+	/**
+	 * Returns the FTP directory of the given URL relative to the configured HTTP base URL, or {@code null} if the
+	 * URL is not below that base URL.
+	 *
+	 * @param url the URL to convert
+	 * @return the FTP directory relative to the base URL, or {@code null}
+	 */
 	protected String getFtpDirFromURL(String url) {
 		if (url.length() <= baseURLLen) {
 			return null;

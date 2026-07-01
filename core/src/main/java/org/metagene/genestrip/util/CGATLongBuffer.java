@@ -26,12 +26,20 @@ package org.metagene.genestrip.util;
 
 import static org.metagene.genestrip.util.CGAT.*;
 
+/**
+ * A streaming ring buffer that incrementally computes the straight and reverse-complement 2-bit
+ * encodings of the last k bases fed to it via {@link #put(byte)}, optionally tracking a DUST
+ * low-complexity score so that low-complexity k-mers can be filtered out.
+ */
 public class CGATLongBuffer {
+	/** The k-mer length in bases. */
 	protected final int size;
-	
+
+	/** The current write position within the ring buffer. */
 	protected int bpCounter;
 	private long kmer;
 	private long reverseKmer;
+	/** Whether at least {@code size} bases have been buffered. */
 	protected boolean filled;
 
 	private final int maxDust;
@@ -44,14 +52,28 @@ public class CGATLongBuffer {
 	private int srl0;
 	private int srl1;
 	private int srl2;
+	/** Ring buffer of run lengths for the DUST computation at offset 0. */
 	protected final int srl0Buffer[];
+	/** Ring buffer of run lengths for the DUST computation at offset 1. */
 	protected final int srl1Buffer[];
+	/** Ring buffer of run lengths for the DUST computation at offset 2. */
 	protected final int srl2Buffer[];
 
+	/**
+	 * Creates a buffer for k-mers of the given length with DUST filtering disabled.
+	 *
+	 * @param size the k-mer length in bases (at most 32)
+	 */
 	public CGATLongBuffer(int size) {
 		this(size, -1);
 	}
 
+	/**
+	 * Creates a buffer for k-mers of the given length (at most 32).
+	 *
+	 * @param size    the k-mer length in bases (at most 32)
+	 * @param maxDust the maximum tolerated DUST score, or a negative value to disable DUST tracking.
+	 */
 	public CGATLongBuffer(int size, int maxDust) {
 		if (size > 32) {
 			throw new IllegalArgumentException("size must be <= 32");
@@ -75,6 +97,11 @@ public class CGATLongBuffer {
 		reset();
 	}
 	
+	/**
+	 * Initializes the DUST weighting table used to incrementally update the DUST score.
+	 *
+	 * @param dustFunctionDiff the array to fill with the DUST weighting differences
+	 */
 	protected void initDustFunctionDiff(int[] dustFunctionDiff) {
 		// For the streaming approach we must work with
 		// the differences fib(n + 1) - fib(n - 1) - which are slightly different from the
@@ -93,6 +120,14 @@ public class CGATLongBuffer {
 		}
 	}
 
+	/**
+	 * Feeds the next base into the buffer, updating the straight and reverse-complement encodings and
+	 * (if enabled) the DUST score.
+	 *
+	 * @param c the next base to feed into the buffer
+	 * @return the updated straight k-mer encoding, or -1 if {@code c} is not a CGAT base, in which
+	 *         case the buffer is reset.
+	 */
 	public final long put(byte c) {
 		// This is inlined: kmer = CGAT.nextKMerStraight(kmer, c, size);
 		// And also: reverseKmer = CGAT.nextKMerReverse(reverseKmer, c, size)
@@ -180,14 +215,31 @@ public class CGATLongBuffer {
 		}
 	}
 	
+	/**
+	 * Returns the current straight k-mer encoding, or -1 if fewer than k bases have been buffered.
+	 *
+	 * @return the straight k-mer encoding, or -1 if not yet filled
+	 */
 	public final long getKMer() {
 		return filled ? kmer : -1;
 	}
 
+	/**
+	 * Returns the current reverse-complement k-mer encoding, or -1 if fewer than k bases have been
+	 * buffered.
+	 *
+	 * @return the reverse-complement k-mer encoding, or -1 if not yet filled
+	 */
 	public final long getReverseKMer() {
 		return filled ? reverseKmer : -1;
 	}
 
+	/**
+	 * Returns the current canonical (standard) k-mer encoding, or -1 if fewer than k bases have been
+	 * buffered.
+	 *
+	 * @return the canonical k-mer encoding, or -1 if not yet filled
+	 */
 	public final long getStandardKMer() {
 		if (filled) {
 			return CGAT.standardKMer(kmer, reverseKmer);
@@ -195,6 +247,9 @@ public class CGATLongBuffer {
 		return -1;
 	}
 
+	/**
+	 * Clears all buffered bases and DUST state so that the buffer starts empty again.
+	 */
 	public final void reset() {
 		bpCounter = 0;
 		kmer = 0;
@@ -217,22 +272,48 @@ public class CGATLongBuffer {
 		}
 	}
 
+	/**
+	 * Returns whether at least {@code size} bases have been buffered.
+	 *
+	 * @return {@code true} if the buffer is filled
+	 */
 	public final boolean isFilled() {
 		return filled;
 	}
 
+	/**
+	 * Returns the k-mer length in bases.
+	 *
+	 * @return the k-mer length
+	 */
 	public final int getSize() {
 		return size;
 	}
 
+	/**
+	 * Returns whether the current k-mer's DUST score exceeds the configured maximum (i.e. it is
+	 * low-complexity).
+	 *
+	 * @return {@code true} if the current k-mer is low-complexity
+	 */
 	public final boolean isDust() {
 		return d > maxDust;
 	}
 
+	/**
+	 * Returns the current DUST score, or -1 if DUST tracking is disabled.
+	 *
+	 * @return the current DUST score
+	 */
 	public final int getDustValue() {
 		return d;
 	}
-	
+
+	/**
+	 * Returns the maximum tolerated DUST score, or a negative value if DUST tracking is disabled.
+	 *
+	 * @return the maximum tolerated DUST score
+	 */
 	public final int getMaxDust() {
 		return maxDust;
 	}

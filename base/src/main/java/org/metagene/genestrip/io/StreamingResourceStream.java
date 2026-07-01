@@ -26,19 +26,43 @@ package org.metagene.genestrip.io;
 
 import java.io.IOException;
 
+/**
+ * An iterable sequence of {@link StreamingResource}s, e.g. the set of input resources to be
+ * processed one after another.
+ */
 public interface StreamingResourceStream extends Iterable<StreamingResource> {
+	/**
+	 * Returns the combined size in bytes of all resources in the stream, or {@code -1} if unknown.
+	 *
+	 * @return the combined size in bytes, or {@code -1} if unknown
+	 * @throws java.io.IOException if determining the size requires I/O that fails
+	 */
 	default long getTotalByteSize() throws IOException {
 		return -1;
 	}
-	
+
+	/**
+	 * Returns the number of resources in the stream, or {@code -1} if unknown.
+	 *
+	 * @return the number of resources, or {@code -1} if unknown
+	 */
 	// Number of elements in the stream, maybe -1 if known.
 	default int size() {
 		return -1;
 	}
 	
+	/**
+	 * Unchecked wrapper for an {@link IOException} raised while iterating a
+	 * {@link StreamingResourceStream}, allowing it to propagate through the {@link Iterable} API.
+	 */
 	public static class IteratorRuntimeIOException extends RuntimeException {
 		private static final long serialVersionUID = 1L;
 
+		/**
+		 * Wraps the given {@link IOException}.
+		 *
+		 * @param e the I/O exception to wrap
+		 */
 		public IteratorRuntimeIOException(IOException e) {
 			super(e);
 		}

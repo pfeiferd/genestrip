@@ -32,7 +32,20 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
+/**
+ * Base class for genestrip {@link FileDownloadGoal}s that sources the HTTP/FTP base URLs and download options
+ * from the project's {@link GSConfigKey} configuration.
+ *
+ * @param <P> the project type
+ */
 public abstract class GSFileDownloadGoal<P extends GSProject> extends FileDownloadGoal<P> {
+	/**
+	 * Creates a download goal for the given project and key.
+	 *
+	 * @param project the project this goal belongs to
+	 * @param key     the goal key identifying this goal
+	 * @param deps    the goals this goal depends on
+	 */
 	@SafeVarargs
 	public GSFileDownloadGoal(P project, GoalKey key, Goal<P>... deps) {
 		super(project, key, deps);

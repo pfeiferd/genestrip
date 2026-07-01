@@ -34,29 +34,65 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.StringLongDigitTrie;
 
+/**
+ * Abstract FASTA reader for RefSeq genome files that resolves each region's tax id via the
+ * accession map and tracks, per tax id, the number of regions (genomes) and k-mers already
+ * included, so that configurable per-tax-id genome and k-mer limits can be enforced.
+ */
 public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
+	/** The set of tax id nodes of interest for this run. */
 	protected final Set<TaxIdNode> taxNodes;
+	/** Maps sequence accessions to their tax id nodes. */
 	protected final AccessionMap accessionMap;
+	/** Maximum number of genomes (regions) to include per tax id, or unlimited if non-positive. */
 	protected final int maxGenomesPerTaxId;
+	/** Maximum number of k-mers to include per tax id, or unlimited if non-positive. */
 	protected final long maxKmersPerTaxId;
+	/** Taxonomic rank at which the per-tax-id genome limit is applied. */
 	protected final Rank maxGenomesPerTaxIdRank;
+	/** Per-tax-id trie counting how many regions have already been included. */
 	protected final StringLong2DigitTrie regionsPerTaxid;
+	/** The k-mer length. */
 	protected final int k;
+	/** The step size between successive k-mers. */
 	protected final int stepSize;
 	private final boolean completeGenomesOnly;
 
+	/** Whether the current region is being included. */
 	protected boolean includeRegion;
+	/** Number of k-mers already included for the current mapped node. */
 	protected long kMersForNode;
+	/** The tax id node the current region is mapped to. */
 	protected TaxIdNode mappedNode;
+	/** The tax id node resolved for the current region. */
 	protected TaxIdNode node;
+	/** The FASTA file currently being read. */
 	protected File file;
 
+	/** Whether accession-map lookups are currently bypassed in favor of {@link #mappedNode}. */
 	protected boolean ignoreMap;
+	/** Number of base pairs seen in the current region. */
 	protected long bpsInRegion;
+	/** Number of k-mers seen in the current region. */
 	protected long kmersInRegion;
+	/** Total number of k-mers included so far. */
 	protected long includedKmers;
 
 
+	/**
+	 * Creates a RefSeq FASTA reader with the given tax nodes, accession map and per-tax-id limits.
+	 *
+	 * @param bufferSize             the read buffer size in bytes
+	 * @param taxNodes               the set of tax id nodes of interest
+	 * @param accessionMap           maps sequence accessions to their tax id nodes
+	 * @param k                      the k-mer length
+	 * @param maxGenomesPerTaxId     the maximum number of genomes per tax id
+	 * @param maxGenomesPerTaxIdRank the rank at which the genome limit is applied
+	 * @param maxKmersPerTaxId       the maximum number of k-mers per tax id
+	 * @param stepSize               the step size between successive k-mers
+	 * @param completeGenomesOnly    whether only complete genomes are considered
+	 * @param regionsPerTaxid        the trie counting included regions per tax id
+	 */
 	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId,
 									 Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId,
 									 int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid) {
@@ -75,20 +111,37 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		this.completeGenomesOnly = completeGenomesOnly;
 	}
 
+	/**
+	 * Records the file being read (for reference by subclasses) and delegates to the superclass.
+	 */
 	public void readFasta(File file) throws IOException {
 		this.file = file;
 		super.readFasta(file);
 	}
 
+	/**
+	 * Returns the trie counting how many regions have been included per tax id.
+	 *
+	 * @return the per-tax-id region-count trie
+	 */
 	public StringLongDigitTrie getRegionsPerTaxid() {
 		return regionsPerTaxid;
 	}
 
+	/**
+	 * Forces all following regions to be mapped to the given tax id instead of resolving accessions
+	 * via the accession map; pass null to re-enable map lookups.
+	 *
+	 * @param node the tax id node to map all following regions to, or {@code null} to re-enable map lookups
+	 */
 	public void ignoreAccessionMap(TaxIdNode node) {
 		this.ignoreMap = node != null;
 		this.mappedNode = node;
 	}
 
+	/**
+	 * Resets the per-region flags and counters at the start of a new region.
+	 */
 	@Override
 	protected void startRegion() {
 		includeRegion = false;
@@ -96,6 +149,9 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		bpsInRegion = 0;
 	}
 
+	/**
+	 * At the end of an included region, adds its k-mer count to its tax id node and all ancestors.
+	 */
 	@Override
 	protected void endRegion() {
 		if (includeRegion) {
@@ -108,6 +164,10 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		}
 	}
 
+	/**
+	 * Processes a region header: resolves the region's tax id node and decides whether the region is
+	 * included, based on the configured per-tax-id genome and k-mer limits.
+	 */
 	@Override
 	protected void infoLine() {
 		// Handle new region:
@@ -151,10 +211,20 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		}
 	}
 
+	/**
+	 * Returns whether more k-mers may still be added for the current node without exceeding the
+	 * configured per-tax-id k-mer limit.
+	 *
+	 * @return {@code true} if more k-mers may still be added for the current node
+	 */
 	public boolean isAllowMoreKmers() {
 		return kMersForNode + kmersInRegion < maxKmersPerTaxId;
 	}
 
+	/**
+	 * Resolves the current region's tax id node from the accession in the header line via the
+	 * accession map.
+	 */
 	protected void updateNodeFromInfoLine() {
 		int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
 		if (pos >= 0) {
@@ -168,32 +238,85 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		}
 	}
 
+	/**
+	 * Hook to adjust the resolved tax id node; returns it unchanged by default.
+	 *
+	 * @return the (possibly adjusted) tax id node for the current region
+	 */
 	protected TaxIdNode reworkNode() {
 		return node;
 	}
 
+	/**
+	 * A {@link StringLongDigitTrie} whose entries additionally track a second long value (the
+	 * accumulated k-mer count) alongside the region count.
+	 */
 	public static class StringLong2DigitTrie extends StringLongDigitTrie {
+		/**
+		 * Creates an empty trie.
+		 */
+		public StringLong2DigitTrie() {
+		}
+
+		/**
+		 * Increments the region count and adds {@code add} to the k-mer count for the given key,
+		 * creating the entry if necessary.
+		 *
+		 * @param key the tax id key of the entry
+		 * @param add the number of k-mers to add to the entry's k-mer count
+		 */
 		public void incAndAdd(String key, long add) {
 			((StringLong2) get(key, this)).incAndAdd(add);
 		}
 
+		/**
+		 * Creates a new trie entry for the given digit-string key.
+		 *
+		 * @param digits        the digit-string (tax id) key of the entry
+		 * @param createContext the creation context passed through by the trie
+		 * @return the new entry
+		 */
 		@Override
 		protected StringLong2 createInGet(String digits, Object createContext) {
 			return new StringLong2(digits);
 		}
 
+		/**
+		 * Creates a new trie entry for the key given as a byte range.
+		 *
+		 * @param seq           the byte array containing the key
+		 * @param start         the start index of the key (inclusive)
+		 * @param end           the end index of the key (exclusive)
+		 * @param createContext the creation context passed through by the trie
+		 * @return the new entry
+		 */
 		@Override
 		protected StringLong createInGet(byte[] seq, int start, int end, Object createContext) {
 			return new StringLong2(new String(seq, start, end - start));
 		}
 
+		/**
+		 * A {@link StringLong} that additionally holds a second long value (the accumulated k-mer
+		 * count), where the inherited long value counts regions (genomes).
+		 */
 		public static class StringLong2 extends StringLong {
+			/** The accumulated k-mer count; the inherited long value counts regions (genomes). */
 			private long longValue2;
 
+			/**
+			 * Creates an entry for the given tax id key with a zero k-mer count.
+			 *
+			 * @param digits the digit-string (tax id) key of the entry
+			 */
 			public StringLong2(String digits) {
 				super(digits);
 			}
 
+			/**
+			 * Increments the region count and adds {@code add} to the k-mer count.
+			 *
+			 * @param add the number of k-mers to add to the k-mer count
+			 */
 			public synchronized void incAndAdd(long add) {
 				longValue++;
 				longValue2 += add;

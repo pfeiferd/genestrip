@@ -54,6 +54,12 @@ import org.metagene.genestrip.make.ObjectGoal;
 import static org.metagene.genestrip.fastq.AbstractLoggingFastqStreamer.FASTA_TYPE_HINT;
 import static org.metagene.genestrip.fastq.AbstractLoggingFastqStreamer.FASTQ_TYPE_HINT;
 
+/**
+ * Produces the mapping from key to fastq (or fasta) streaming resources, assembled from the project's configured
+ * input paths/URLs, an optional map CSV file, and any extra resources.
+ *
+ * @param <P> the project type
+ */
 public class FastqMapGoal<P extends GSProject> extends ObjectGoal<Map<String, StreamingResourceStream>, P> {
 	private static String[] FASTA_SUFFIXES = new String[] { "fasta", "fa", "fna", "fas", "fasta.gz", "fa.gz", "fna.gz", "fas.gz", "fasta.gzip", "fa.gzip", "fna.gzip", "fas.gzip" };
 	private static String[] FASTQ_SUFFIXES = new String[] { "fastq", "fq", "fq.gz", "fastq.gz", "fq.gzip", "fastq.gzip" };
@@ -64,6 +70,13 @@ public class FastqMapGoal<P extends GSProject> extends ObjectGoal<Map<String, St
 	private final boolean fastqType;
 	private final boolean alwaysAssumeGZIP;
 
+	/**
+	 * Creates the goal that derives the fastq/fasta resource map for the project.
+	 *
+	 * @param project   the project
+	 * @param fastqType whether the goal handles fastq ({@code true}) or fasta ({@code false}) files
+	 * @param deps      the goals this goal depends on
+	 */
 	@SafeVarargs
 	public FastqMapGoal(P project, boolean fastqType, Goal<P>... deps) {
 		super(project, fastqType ? GSGoalKey.FASTQ_MAP : GSGoalKey.FASTA_MAP, deps);
@@ -82,6 +95,17 @@ public class FastqMapGoal<P extends GSProject> extends ObjectGoal<Map<String, St
 		}
 	}
 
+	/**
+	 * Assembles the key-to-resources map from the given input paths/URLs, the optional map CSV file and the extra
+	 * resources, preserving insertion order of keys.
+	 *
+	 * @param key            the key for the input files, or {@code null} to derive it from the first file
+	 * @param fastqs         the input fastq/fasta paths or URLs, or {@code null}
+	 * @param orKey          the key under which the extra resources are added, or {@code null}
+	 * @param otherResources the extra streaming resources to add, or {@code null}
+	 * @param mapFilePath    the path to the mapping CSV file, or {@code null}
+	 * @return the assembled key-to-resources map
+	 */
 	protected Map<String, StreamingResourceStream> createFastqMap(String key, String[] fastqs, String orKey,
 			StreamingResourceStream otherResources, String mapFilePath) {
 		// Linked hash map preserve order of keys as entered.
@@ -142,6 +166,12 @@ public class FastqMapGoal<P extends GSProject> extends ObjectGoal<Map<String, St
 		return resMap;
 	}
 
+	/**
+	 * Resolves a path or URL string to the corresponding streaming resources, or {@code null} if none exist.
+	 *
+	 * @param pathOrURL the path or URL to resolve
+	 * @return the matching streaming resources, or {@code null} if none exist
+	 */
 	protected List<StreamingResource> getResources(String pathOrURL) {
 		try {
 			URL url = new URL(pathOrURL);

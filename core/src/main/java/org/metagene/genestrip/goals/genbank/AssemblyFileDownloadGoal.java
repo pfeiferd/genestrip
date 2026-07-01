@@ -34,12 +34,26 @@ import org.metagene.genestrip.genbank.AssemblySummaryReader;
 import org.metagene.genestrip.goals.GSFileDownloadGoal;
 import org.metagene.genestrip.make.Goal;
 
+/**
+ * Downloads the GenBank and RefSeq assembly summary files into the project's common genbank and refseq
+ * directories.
+ *
+ * @param <P> the project type
+ */
 public class AssemblyFileDownloadGoal<P extends GSProject> extends GSFileDownloadGoal<P> {
+	/** Remote directory holding the GenBank assembly summary file. */
 	public static final String FTP_DIR_GENBANK = "/genomes/genbank";
+	/** Remote directory holding the RefSeq assembly summary file. */
 	public static final String FTP_DIR_REFSEQ = "/genomes/refseq";
 
 	private final List<File> files;
 
+	/**
+	 * Creates the goal that downloads the GenBank and RefSeq assembly summary files.
+	 *
+	 * @param project the project
+	 * @param deps additional goal dependencies
+	 */
 	@SafeVarargs
 	public AssemblyFileDownloadGoal(P project, Goal<P>... deps) {
 		super(project, GSGoalKey.ASSEMBLYDOWNLOAD, deps);

@@ -43,10 +43,22 @@ import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Abstract base for goals that read the downloaded RefSeq {@code .fna} files (and any additional
+ * FASTA files) region by region, optionally in parallel via a pool of consumer threads, dispatching
+ * each region to a subclass-provided {@link AbstractRefSeqFastaReader}.
+ *
+ * @param <T> the type of result produced by this goal
+ * @param <P> the project type
+ */
 public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal<T, P> {
+    /** The goal supplying the set of RefSeq categories to read. */
     protected final ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal;
+    /** The goal supplying the set of required taxonomy nodes. */
     protected final ObjectGoal<Set<TaxTree.TaxIdNode>, P> taxNodesGoal;
+    /** The goal supplying the downloaded RefSeq {@code .fna} files. */
     protected final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
+    /** The goal supplying additional FASTA files mapped to their tax node. */
     protected final ObjectGoal<Map<File, TaxTree.TaxIdNode>, P> additionalGoal;
 
     private final ExecutionContext bundle;
@@ -56,6 +68,19 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
     private final AtomicInteger doneCounter = new AtomicInteger();
     private ProgressBar progressBar;
 
+    /**
+     * Creates the reader goal with its category, tax-node, RefSeq-file-download and additional-file
+     * dependency goals and the execution context that supplies the worker threads.
+     *
+     * @param project        the project this goal belongs to
+     * @param key            the key identifying this goal
+     * @param bundle         the execution context supplying the worker threads
+     * @param categoriesGoal the goal supplying the RefSeq categories to read
+     * @param taxNodesGoal   the goal supplying the required taxonomy nodes
+     * @param fnaFilesGoal   the goal supplying the downloaded RefSeq {@code .fna} files
+     * @param additionalGoal the goal supplying additional FASTA files mapped to their tax node
+     * @param dependencies   any further goals this goal depends on
+     */
     public FastaReaderGoal(P project, GoalKey key, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
                            ObjectGoal<Set<TaxTree.TaxIdNode>, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
                            ObjectGoal<Map<File, TaxTree.TaxIdNode>, P> additionalGoal, Goal<P>... dependencies) {
@@ -67,6 +92,12 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
         this.bundle = bundle;
     }
 
+    /**
+     * Reads all relevant RefSeq FASTA files and any additional FASTA files, single-threaded or via
+     * the configured pool of consumer threads, then invokes {@link #afterReadFastas}.
+     *
+     * @throws IOException if reading a FASTA file fails
+     */
     public void readFastas() throws IOException {
         BlockingQueue<FileAndNode> blockingQueue = null;
         AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid = new AbstractRefSeqFastaReader.StringLong2DigitTrie();
@@ -134,25 +165,51 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
         afterReadFastas(regionsPerTaxid);
     }
 
+    /**
+     * Creates the bounded queue that feeds FASTA files to the consumer threads.
+     *
+     * @param maxQueueSize the maximum number of queued files
+     * @return the newly created blocking queue
+     */
     protected BlockingQueue<FileAndNode> createBlockingQueue(int maxQueueSize) {
         // This simple blocking queue performs better than ArrayBlockingQueue.
         return new SimpleBlockingQueue<>(maxQueueSize);
         //return new ArrayBlockingQueue<>(maxQueueSize);
     }
 
+    /**
+     * Whether the downloaded RefSeq {@code .fna} files are part of this goal's input.
+     *
+     * @return {@code true} if the RefSeq {@code .fna} files should be read
+     */
     protected boolean isIncludeRefSeqFna() {
         return booleanConfigValue(GSConfigKey.REF_SEQ_DB);
     }
 
+    /**
+     * Hook invoked once all FASTA files have been read; the default implementation does nothing.
+     *
+     * @param regionsPerTaxid the trie tracking how many regions were seen per taxid
+     */
     protected void afterReadFastas(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
     }
 
+    /**
+     * Creates the progress bar spanning the given number of files, or {@code null} if progress bars
+     * are disabled.
+     *
+     * @param max the number of files the progress bar spans
+     * @return the progress bar, or {@code null} if progress bars are disabled
+     */
     protected ProgressBar createProgressBar(int max) {
         return booleanConfigValue(GSConfigKey.PROGRESS_BAR) ?
                 GSProgressBarCreator.newGSProgressBar(getKey().getName(), max, 60000, " files", null, getLogger(), false) :
                 null;
     }
 
+    /**
+     * Logs and rethrows any exceptions collected from the consumer threads.
+     */
     protected void checkAndLogConsumerThreadProblem() {
         if (!bundle.getThrowableList().isEmpty()) {
             for (Throwable t : bundle.getThrowableList()) {
@@ -165,6 +222,15 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
         }
     }
 
+    /**
+     * Creates a consumer {@link Runnable} that takes files from the queue and reads them with its
+     * own FASTA reader.
+     *
+     * @param i               the index of the consumer thread
+     * @param blockingQueue   the queue supplying files to read
+     * @param regionsPerTaxid the shared trie tracking how many regions were seen per taxid
+     * @return the consumer runnable
+     */
     protected Runnable createFastaReaderRunnable(int i,
                                                  BlockingQueue<DBGoal.FileAndNode> blockingQueue,
                                                  AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
@@ -196,31 +262,64 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
         };
     }
 
+    /**
+     * Creates the FASTA reader that processes each region; called once per reader thread. The shared
+     * {@code regionsPerTaxid} trie tracks how many regions have been seen per taxid.
+     *
+     * @param regionsPerTaxid the shared trie tracking how many regions were seen per taxid
+     * @return the FASTA reader that processes each region
+     */
     protected abstract AbstractRefSeqFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid);
 
+    /**
+     * In addition to discarding the result, stops and interrupts the consumer threads.
+     */
     public void dump() {
         super.dump();
         cleanUpThreads();
     }
 
+    /**
+     * Signals the consumer threads to stop and interrupts any that are blocked.
+     */
     protected void cleanUpThreads() {
         dump = true;
         bundle.interruptAll();
     }
 
+    /**
+     * A FASTA file paired with an optional tax node; a non-null node marks an additional FASTA whose
+     * node bypasses the accession map.
+     */
     protected static final class FileAndNode {
         private final File file;
         private final TaxTree.TaxIdNode node;
 
+        /**
+         * Creates a pairing of the given FASTA file and optional tax node.
+         *
+         * @param file the FASTA file
+         * @param node the associated tax node, or {@code null}
+         */
         public FileAndNode(File file, TaxTree.TaxIdNode node) {
             this.file = file;
             this.node = node;
         }
 
+        /**
+         * Returns the FASTA file.
+         *
+         * @return the file
+         */
         public File getFile() {
             return file;
         }
 
+        /**
+         * Returns the associated tax node, or {@code null} if there is none.
+         *
+         * @return the tax node
+         */
         public TaxTree.TaxIdNode getNode() {
             return node;
         }

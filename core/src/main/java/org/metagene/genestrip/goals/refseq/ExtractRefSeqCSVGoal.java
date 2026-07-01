@@ -38,9 +38,22 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.*;
 
+/**
+ * Goal that writes a CSV file listing each extracted RefSeq sequence description together with its
+ * taxid, taken from {@link ExtractRefSeqFastasGoal}'s result.
+ *
+ * @param <P> the project type
+ */
 public class ExtractRefSeqCSVGoal<P extends GSProject> extends FileListGoal<P> {
     private final ObjectGoal<Map<String, String>, P> extractFastaGoal;
 
+    /**
+     * Creates the goal, wiring the extraction goal that supplies the description-to-taxid map.
+     *
+     * @param project          the project this goal belongs to
+     * @param extractFastaGoal the goal supplying the description-to-taxid map
+     * @param deps             the goals this goal depends on
+     */
     @SafeVarargs
     public ExtractRefSeqCSVGoal(P project, ObjectGoal<Map<String, String>, P> extractFastaGoal, Goal<P>... deps) {
         super(project, GSGoalKey.EXTRACT_REFSEQ_CSV, project.getOutputFile(GSGoalKey.EXTRACT_REFSEQ_CSV.getName(), GSProject.GSFileType.CSV, false), Goal.append(deps, extractFastaGoal));

@@ -30,6 +30,11 @@ package org.metagene.genestrip.bloom;
 public class XORKMerBloomFilter extends AbstractKMerBloomFilter {
     private static final long serialVersionUID = 1L;
 
+    /**
+     * Creates a filter targeting the given false-positive probability.
+     *
+     * @param fpp the target false-positive probability
+     */
     public XORKMerBloomFilter(double fpp) {
         super(fpp);
     }
