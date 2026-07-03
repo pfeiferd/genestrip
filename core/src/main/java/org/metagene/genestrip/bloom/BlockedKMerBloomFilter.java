@@ -35,7 +35,7 @@ import java.util.Random;
  * lookup speed: every key sets/tests a few bits within a small block of adjacent {@code long} words,
  * so a query touches only one or two cache lines. Uses small ({@code int}-indexed) storage up to
  * {@link #MAX_SMALL_CAPACITY} and fastutil {@link BigArrays} beyond it.
- * <p/>
+ * <p></p>
  * This implementation is derived from
  * <a href="https://raw.githubusercontent.com/FastFilter/fastfilter_java/refs/heads/master/fastfilter/src/main/java/org/fastfilter/bloom/BlockedBloom.java">BlockedBloom.java</a>
  * The corresponding GitHub project is <a href="https://github.com/FastFilter/fastfilter_java">jastfilter_java</a>
