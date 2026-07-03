@@ -16,12 +16,18 @@ cd krakenuniq
 # This file must be deleted, it leads to a compile error as it is not C++
 rm src/gzstream/version
 
-# For fixes under iOS:
-# brew install gnu-sed
+# For fixes under macOS the GNU version of sed is required (BSD sed uses a
+# different -i syntax). Install it via: brew install gnu-sed
+# On macOS GNU sed is called "gsed", on Linux plain "sed" already is GNU sed.
+if command -v gsed >/dev/null 2>&1; then
+    SED=gsed
+else
+    SED=sed
+fi
 
 # Fix missing includes:
-gsed  -i '1i\#include <stdint.h>' src/uid_mapping.hpp
-gsed  -i '12i\#include <stdint.h>' src/report-cols.hpp
+$SED -i '1i\#include <stdint.h>' src/uid_mapping.hpp
+$SED -i '12i\#include <stdint.h>' src/report-cols.hpp
 
 # Now we can build...
 ./install_krakenuniq.sh -j .
