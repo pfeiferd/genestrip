@@ -32,9 +32,11 @@ dbs_built() {
     return 0
 }
 
-# Set FORCE_KU_INSTALL=1 to always (re-)build, even if usable databases exist.
-if [ "${FORCE_KU_INSTALL:-0}" = "1" ]; then
-    echo "FORCE_KU_INSTALL=1 set - (re-)building viral databases ..."
+# Set FORCE_DB_BUILD=1 to always (re-)build the databases, even if usable ones
+# exist. FORCE_KU_INSTALL=1 also forces a rebuild, since a freshly (re-)installed
+# KrakenUniq requires the databases to be rebuilt against it.
+if [ "${FORCE_DB_BUILD:-0}" = "1" ] || [ "${FORCE_KU_INSTALL:-0}" = "1" ]; then
+    echo "FORCE_DB_BUILD/FORCE_KU_INSTALL set - (re-)building viral databases ..."
 elif dbs_built; then
     echo "Viral databases and outputs already present - skipping build."
     exit 0
