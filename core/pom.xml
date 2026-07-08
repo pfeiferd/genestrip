@@ -253,7 +253,7 @@
                         <executions>
                             <execution>
                                 <id>download-refseq</id>
-                                <phase>process-test-classes/phase>
+                                <phase>process-test-classes</phase>
                                 <goals>
                                     <goal>java</goal>
                                 </goals>
