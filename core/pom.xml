@@ -150,6 +150,7 @@
                                     <arguments>
                                         <argument>viral</argument>
                                         <argument>extractrefseqcsv</argument>
+                                        <argument>refseqprop</argument>
                                     </arguments>
                                 </configuration>
                             </execution>
