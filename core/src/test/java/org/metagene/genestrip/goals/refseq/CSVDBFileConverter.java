@@ -27,11 +27,13 @@ package org.metagene.genestrip.goals.refseq;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
-import org.metagene.genestrip.*;
-import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.GSCommon;
+import org.metagene.genestrip.GSConfigKey;
+import org.metagene.genestrip.GSGoalKey;
+import org.metagene.genestrip.GSMaker;
+import org.metagene.genestrip.GSProject;
 
 import java.io.*;
-import java.util.Properties;
 
 public class CSVDBFileConverter {
     protected static final CSVFormat CSV_FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#')

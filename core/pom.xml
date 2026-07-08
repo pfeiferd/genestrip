@@ -123,10 +123,11 @@
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
                         <version>3.1.0</version>
+                        <!-- The executions here are all tied to 'process-test-classes' and NOT to 'generate-test-sources', because some test classes must already be compiled for this to work. -->
                         <executions>
                             <execution>
                                 <id>installku</id>
-                                <phase>generate-test-resources</phase>
+                                <phase>process-test-classes</phase>
                                 <goals>
                                     <goal>exec</goal>
                                 </goals>
@@ -139,7 +140,7 @@
                             </execution>
                             <execution>
                                 <id>extract</id>
-                                <phase>generate-test-resources</phase>
+                                <phase>process-test-classes</phase>
                                 <goals>
                                     <goal>java</goal>
                                 </goals>
@@ -154,7 +155,7 @@
                             </execution>
                             <execution>
                                 <id>inputcsv</id>
-                                <phase>generate-test-resources</phase>
+                                <phase>process-test-classes</phase>
                                 <goals>
                                     <goal>java</goal>
                                 </goals>
@@ -169,7 +170,7 @@
                             </execution>
                             <execution>
                                 <id>makeviraldb</id>
-                                <phase>generate-test-resources</phase>
+                                <phase>process-test-classes</phase>
                                 <goals>
                                     <goal>exec</goal>
                                 </goals>
@@ -189,7 +190,7 @@
                         <version>1.3.0</version>
                         <executions>
                             <execution>
-                                <phase>generate-test-resources</phase>
+                                <phase>process-test-classes</phase>
                                 <goals>
                                     <goal>read-project-properties</goal>
                                 </goals>
@@ -213,7 +214,7 @@
                                 <goals>
                                     <goal>install-file</goal>
                                 </goals>
-                                <phase>generate-test-resources</phase>
+                                <phase>process-test-classes</phase>
                                 <configuration>
                                     <groupId>org.genestrip</groupId>
                                     <artifactId>test.fasta</artifactId>
@@ -227,7 +228,7 @@
                                 <goals>
                                     <goal>install-file</goal>
                                 </goals>
-                                <phase>generate-test-resources</phase>
+                                <phase>process-test-classes</phase>
                                 <configuration>
                                     <groupId>org.genestrip</groupId>
                                     <artifactId>test16.fasta</artifactId>
@@ -252,7 +253,7 @@
                         <executions>
                             <execution>
                                 <id>download-refseq</id>
-                                <phase>generate-test-resources</phase>
+                                <phase>process-test-classes/phase>
                                 <goals>
                                     <goal>java</goal>
                                 </goals>
@@ -273,7 +274,7 @@
                         <version>1.3.0</version>
                         <executions>
                             <execution>
-                                <phase>generate-test-resources</phase>
+                                <phase>process-test-classes</phase>
                                 <goals>
                                     <goal>read-project-properties</goal>
                                 </goals>
@@ -294,7 +295,7 @@
                         <executions>
                             <execution>
                                 <id>copy-test-fasta-out</id>
-                                <phase>generate-test-resources</phase>
+                                <phase>process-test-classes</phase>
                                 <goals>
                                     <goal>copy</goal>
                                 </goals>
