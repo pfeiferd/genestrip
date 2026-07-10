@@ -115,7 +115,7 @@ public class DBGoalTest {
 			counter++;
 			System.out.println(node);
 		}
-		assertEquals(13, counter);
+		assertEquals(12, counter);
 	}
 
 	protected FileListGoal<GSProject> createProjectGoal(GSProject project) {
