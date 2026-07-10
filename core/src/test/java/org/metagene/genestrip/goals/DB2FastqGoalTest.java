@@ -100,6 +100,7 @@ public class DB2FastqGoalTest extends ComprehensiveFilterTest {
 			assertEquals(kmers[i], map.get(taxids[i]).getUniqueKMers());
 			// System.out.println(map.size());
 			// Depends on RefSeq version, apparently:
+			System.out.println(map.size());
 			assertTrue(12 == map.size() || 13 == map.size());
 		}
 		maker.dumpAll();
