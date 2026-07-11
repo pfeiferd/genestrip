@@ -101,7 +101,7 @@ public class DB2FastqGoalTest extends ComprehensiveFilterTest {
 			// System.out.println(map.size());
 			// Depends on RefSeq version, apparently:
 			System.out.println(map.size());
-			assertTrue(12 == map.size() || 13 == map.size());
+			assertTrue(12 == map.size() || 13 == map.size() || 14 == map.size());
 		}
 		maker.dumpAll();
 	}
