@@ -334,13 +334,7 @@ public abstract class AbstractKMerStore<V extends Serializable> implements Tunab
 
 	// --- Statistics -----------------------------------------------------------
 
-	/**
-	 * Counts, by visiting every entry, how many stored k-mers map to each value. The {@code null} key
-	 * maps to the total number of entries.
-	 *
-	 * @return a map from each value to its number of stored k-mers, with the {@code null} key
-	 *         mapping to the total number of entries
-	 */
+	@Override
 	public Object2LongMap<V> getNKmersPerTaxid() {
 		final long[] countArray = new long[getNValues()];
 		visit(new KMerStore.IndexedKMerStoreVisitor<V>() {

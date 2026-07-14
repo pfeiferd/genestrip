@@ -512,6 +512,42 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	}
 
 	@Override
+	public void setIndexAtPosition(long pos, int index) {
+		// A global storage position is bucketOffset[radix] + localPos (see getLong()/visit()); recover
+		// the owning bucket and rewrite its entry, keeping the remaining k-mer bits and swapping in the
+		// new value index.
+		int radix = radixForPos(pos);
+		long[] bucket = radixIndex[radix];
+		int localPos = (int) (pos - bucketOffset[radix]);
+		bucket[localPos] = entryOf(index, bucket[localPos] & remainingMask);
+	}
+
+	/**
+	 * Returns the radix bucket that owns the given global storage position. {@code bucketOffset} is
+	 * non-decreasing, so the owning bucket is the rightmost one whose offset does not exceed
+	 * {@code pos} (empty buckets share their successor's offset and are skipped naturally).
+	 *
+	 * @param pos the global storage position, as reported by {@link #getLong(long, long[])} or
+	 *            {@link #visit(KMerStore.IndexedKMerStoreVisitor)}
+	 * @return the radix of the bucket containing {@code pos}
+	 */
+	private int radixForPos(long pos) {
+		int lo = 0;
+		int hi = bucketOffset.length - 1;
+		int radix = 0;
+		while (lo <= hi) {
+			int mid = (lo + hi) >>> 1;
+			if (bucketOffset[mid] <= pos) {
+				radix = mid;
+				lo = mid + 1;
+			} else {
+				hi = mid - 1;
+			}
+		}
+		return radix;
+	}
+
+	@Override
 	public void visit(KMerStore.IndexedKMerStoreVisitor<V> visitor) {
 		for (int r = 0; r < radixIndex.length; r++) {
 			long[] bucket = radixIndex[r];

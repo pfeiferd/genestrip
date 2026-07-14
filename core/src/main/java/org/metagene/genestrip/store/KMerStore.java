@@ -189,6 +189,16 @@ public interface KMerStore<V extends Serializable> extends Serializable {
 	 */
 	public void visit(IndexedKMerStoreVisitor<V> visitor);
 
+	/**
+	 * Stores the given value index for the entry at the given storage position. The position is one
+	 * previously reported via {@link #getLong(long, long[])}'s {@code posStore} or
+	 * {@link IndexedKMerStoreVisitor#nextValue(KMerStore, long, int, long)}.
+	 *
+	 * @param pos   the storage position of the entry
+	 * @param index the value index to store
+	 */
+	public void setIndexAtPosition(long pos, int index);
+
 	// --- Statistics -----------------------------------------------------------
 
 	/**
@@ -202,6 +212,15 @@ public interface KMerStore<V extends Serializable> extends Serializable {
 	 * @return the (possibly cached, see {@link #fix()}) number of stored k-mers per value.
 	 */
 	public Object2LongMap<V> getFixedNKmersPerTaxid();
+
+	/**
+	 * Counts, by visiting every entry, how many stored k-mers map to each value. The {@code null} key
+	 * maps to the total number of entries.
+	 *
+	 * @return a map from each value to its number of stored k-mers, with the {@code null} key
+	 *         mapping to the total number of entries
+	 */
+	public Object2LongMap<V> getNKmersPerTaxid();
 
 	// --- Value conversion -----------------------------------------------------
 

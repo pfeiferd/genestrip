@@ -272,6 +272,7 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 	 * @param pos the storage position
 	 * @param index the value index to store
 	 */
+	@Override
 	public void setIndexAtPosition(long pos, int index) {
 		if (largeKmers != null) {
 			BigArrays.set(largeValueIndexes, pos, (short) (index + Short.MIN_VALUE));
