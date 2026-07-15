@@ -1,26 +1,26 @@
 /*
- * 
+ *
  * “Commons Clause” License Condition v1.0
- * 
- * The Software is provided to you by the Licensor under the License, 
+ *
+ * The Software is provided to you by the Licensor under the License,
  * as defined below, subject to the following condition.
- * 
- * Without limiting other conditions in the License, the grant of rights under the License 
+ *
+ * Without limiting other conditions in the License, the grant of rights under the License
  * will not include, and the License does not grant to you, the right to Sell the Software.
- * 
- * For purposes of the foregoing, “Sell” means practicing any or all of the rights granted 
- * to you under the License to provide to third parties, for a fee or other consideration 
- * (including without limitation fees for hosting or consulting/ support services related to 
- * the Software), a product or service whose value derives, entirely or substantially, from the 
- * functionality of the Software. Any license notice or attribution required by the License 
+ *
+ * For purposes of the foregoing, “Sell” means practicing any or all of the rights granted
+ * to you under the License to provide to third parties, for a fee or other consideration
+ * (including without limitation fees for hosting or consulting/ support services related to
+ * the Software), a product or service whose value derives, entirely or substantially, from the
+ * functionality of the Software. Any license notice or attribution required by the License
  * must also include this Commons Clause License Condition notice.
- * 
+ *
  * Software: genestrip
- * 
+ *
  * License: Apache 2.0
- * 
+ *
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
- * 
+ *
  */
 package org.metagene.genestrip.store;
 
@@ -52,25 +52,37 @@ import it.unimi.dsi.fastutil.objects.Object2LongMap;
 public class Database implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    /** ZIP entry name of the serialized database. */
+    /**
+     * ZIP entry name of the serialized database.
+     */
     public static final String DB_FILE = "db.ser";
-    /** ZIP entry name of the serialized probabilistic pre-filter. */
+    /**
+     * ZIP entry name of the serialized probabilistic pre-filter.
+     */
     public static final String INDEX_FILE = "bloom.ser";
-    /** ZIP entry name of the config-info properties. */
+    /**
+     * ZIP entry name of the config-info properties.
+     */
     public static final String CONFIG_INFO_FILE = "configInfo.properties";
 
-    /** The taxonomy tree this database was built against. */
+    /**
+     * The taxonomy tree this database was built against.
+     */
     private final SmallTaxTree taxTree;
-    /** The k-mer store keyed by taxonomic id. */
+    /**
+     * The k-mer store keyed by taxonomic id.
+     */
     private final KMerStore<String> kmerStore;
-    /** Configuration properties describing how this database was created. */
+    /**
+     * Configuration properties describing how this database was created.
+     */
     private Properties configInfo;
 
     /**
      * Creates a database from the given k-mer store, taxonomy tree and config-info properties.
      *
-     * @param kmerStore the k-mer store keyed by taxonomic id
-     * @param taxTree the taxonomy tree the store was built against
+     * @param kmerStore  the k-mer store keyed by taxonomic id
+     * @param taxTree    the taxonomy tree the store was built against
      * @param configInfo the configuration properties (a new empty {@link Properties} is used if {@code null})
      */
     public Database(KMerStore<String> kmerStore, SmallTaxTree taxTree, Properties configInfo) {
@@ -187,32 +199,31 @@ public class Database implements Serializable {
      * @throws java.io.IOException if writing fails
      */
     public void save(OutputStream os) throws IOException {
-        DigestOutputStream digo = null;
         try (ZipOutputStream zipOut = new ZipOutputStream(os)) {
-            ZipEntry zipEntry = null;
+            ZipEntry zipEntry;
 
             MessageDigest messageDigest = MessageDigest.getInstance("MD5");
-            // No try() here cause that would close the zip stream too.
-            {
-                digo = new DigestOutputStream(zipOut, messageDigest);
-                zipEntry = new ZipEntry(DB_FILE);
-                zipOut.putNextEntry(zipEntry);
-                ObjectOutputStream oOut = new ObjectOutputStream(digo);
-                oOut.writeObject(this);
-                zipOut.closeEntry();
+            DigestOutputStream digo = new DigestOutputStream(zipOut, messageDigest);
+            zipEntry = new ZipEntry(DB_FILE);
+            zipOut.putNextEntry(zipEntry);
+            ObjectOutputStream oOut = new ObjectOutputStream(digo);
+            oOut.writeObject(this);
+            zipOut.closeEntry();
 
-                zipEntry = new ZipEntry(INDEX_FILE);
-                zipOut.putNextEntry(zipEntry);
-                oOut = new ObjectOutputStream(digo);
-                // Only tunable stores expose a probabilistic pre-filter; for others none is written.
-                KMerProbFilter filter = kmerStore instanceof TunableKMerStore
-                        ? ((TunableKMerStore<String>) kmerStore).getFilter() : null;
-                oOut.writeObject(filter);
-                digo.flush(); // Make sure it all got written.
-                zipOut.closeEntry();
-            }
+            zipEntry = new ZipEntry(INDEX_FILE);
+            zipOut.putNextEntry(zipEntry);
+            oOut = new ObjectOutputStream(digo);
+            // Only tunable stores expose a probabilistic pre-filter; for others none is written.
+            KMerProbFilter filter = kmerStore instanceof TunableKMerStore
+                    ? ((TunableKMerStore<String>) kmerStore).getFilter() : null;
+            oOut.writeObject(filter);
+            digo.flush(); // Make sure it all got written.
+            zipOut.closeEntry();
 
-            // Zip out here, cause only DB itself shall be in the md5 finger print.
+            // We must NOT close digo, because it would close zipOut too.
+            // We just leave digo hanging, it is just a FilterOutputStream - no worries if never closed.
+
+            // From here on, we use zipOut directly, because only the core DB data shall be in the MD5 fingerprint.
             Properties configInfo = getConfigInfo();
             String md5 = Hex.encodeHexString(messageDigest.digest());
             configInfo.setProperty(GSProject.DB_MD5, md5);
@@ -222,20 +233,16 @@ public class Database implements Serializable {
             zipOut.closeEntry();
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
-        } finally {
-            if (digo != null) {
-                digo.close();
-            }
         }
     }
 
     /**
      * Loads a database from the given file, see {@link #load(InputStream, boolean)}.
      *
-     * @param file the database file to read
+     * @param file       the database file to read
      * @param withFilter whether to also load the probabilistic pre-filter
      * @return the loaded database
-     * @throws java.io.IOException if reading fails
+     * @throws java.io.IOException              if reading fails
      * @throws java.lang.ClassNotFoundException if a serialized class cannot be resolved
      */
     public static Database load(File file, boolean withFilter) throws IOException, ClassNotFoundException {
@@ -248,12 +255,12 @@ public class Database implements Serializable {
      * Loads a database from the given ZIP stream, restoring its store value indices. When
      * {@code withFilter} is set and the store is tunable, its probabilistic pre-filter is loaded too.
      *
-     * @param is the ZIP stream to read
+     * @param is         the ZIP stream to read
      * @param withFilter whether to also load the probabilistic pre-filter
      * @return the loaded database
      * @throws java.lang.ClassNotFoundException if a serialized class cannot be resolved
-     * @throws InvalidDatabaseClassException if the serialized classes are incompatible with the current
-     *         runtime (carrying the loaded config info for diagnostics).
+     * @throws InvalidDatabaseClassException    if the serialized classes are incompatible with the current
+     *                                          runtime (carrying the loaded config info for diagnostics).
      */
     public static Database load(InputStream is, boolean withFilter) throws IOException, ClassNotFoundException {
         Properties configInfo = new Properties();
