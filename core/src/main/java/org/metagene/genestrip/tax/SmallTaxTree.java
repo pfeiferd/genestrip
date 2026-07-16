@@ -60,7 +60,7 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 	public SmallTaxTree(TaxTree taxTree) {
 		root = taxTree.getRoot() == null ? null : new SmallTaxIdNode(taxTree.getRoot());
 		taxIdNodeTrie = new DigitTrie<SmallTaxIdNode>();
-		root.initTrie(taxIdNodeTrie);
+		root.initTrie(taxIdNodeTrie, 0);
 	}
 
 	/**
@@ -83,7 +83,7 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 	private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
 		root = SmallTaxIdNode.readTree(in);
 		taxIdNodeTrie = new DigitTrie<SmallTaxIdNode>();
-		root.initTrie(taxIdNodeTrie);
+		root.initTrie(taxIdNodeTrie, 0);
 	}
 
 	/**
@@ -98,7 +98,8 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		SmallTaxIdNode node = taxIdNodeTrie.get(taxId);
 		if (node != null) {
 			node.setSubNodes(subNodes);
-			node.initTrie(taxIdNodeTrie);
+			// Re-register the replaced subtree and refresh its depths from this node's own depth.
+			node.initTrie(taxIdNodeTrie, node.depth);
 		}
 
 		return node;
@@ -108,7 +109,7 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 	 * Recomputes the {@code position} of every node by a fresh depth-first traversal.
 	 */
 	public void reinitPositions() {
-		root.initPositions(0);
+		root.initPositions(0, 0);
 	}
 
 	/**
@@ -264,14 +265,27 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		if (node1 == node2) {
 			return node1;
 		}
-		for (SmallTaxIdNode res = node1; res != null; res = res.parent) {
-			for (SmallTaxIdNode ancestor2 = node2; ancestor2 != null; ancestor2 = ancestor2.parent) {
-				if (res == ancestor2) {
-					return res;
-				}
-			}
+		if (node1 == null || node2 == null) {
+			return null;
 		}
-		return null;
+		// Align the deeper node to the shallower one, then walk both up in lock-step until they meet.
+		// O(depth) using the per-node depth (kept current by initTrie()/initPositions()), and - unlike
+		// scanning node2's whole ancestor chain for each of node1's ancestors, O(d1 * d2) - it stops as
+		// soon as the paths join, so the common ancestor / nearby case (the bulk of look-ups) is cheap.
+		SmallTaxIdNode a = node1;
+		SmallTaxIdNode b = node2;
+		while (a.depth > b.depth) {
+			a = a.parent;
+		}
+		while (b.depth > a.depth) {
+			b = b.parent;
+		}
+		while (a != b) {
+			a = a.parent;
+			b = b.parent;
+		}
+		// a == b now: their common ancestor, or null if the two nodes live in different trees.
+		return a;
 	}
 
 	/**
@@ -305,19 +319,6 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		Collections.sort(taxids, taxIdComparator);
 		return taxids;
 	}
-
-	/* Apparently not needed:
-	protected int initPositions(int counter, SmallTaxIdNode taxIdNode) {
-		taxIdNode.position = counter;
-		SmallTaxIdNode[] subNodes = taxIdNode.subNodes;
-		if (subNodes != null) {
-			for (int i = 0; i < subNodes.length; i++) {
-				counter = initPositions(counter + 1, subNodes[i]);
-			}
-		}
-		return counter;
-	}
-	*/
 
 	/**
 	 * Returns the root node of the tree, or {@code null} if the tree is empty.
@@ -397,6 +398,11 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 
 		/** The parent of this node, or {@code null} for the root. */
 		protected transient SmallTaxIdNode parent;
+		// Transient (not part of the serialized format, so old databases stay loadable) and reassigned
+		// whenever the tree structure is established: initTrie() on build/load/attach and initPositions()
+		// on reinit. Cached form of getLevel() (root = 0), used by getLowestCommonAncestor().
+		/** The depth of this node (root = 0); see {@link #getLevel()}. */
+		private transient int depth;
 		private transient int[] counts;
 		private transient long[] countsInitKeys;
 		// Made public for inlining
@@ -462,11 +468,12 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 			return level;
 		}
 
-		private int initPositions(int counter) {
+		private int initPositions(int counter, int depth) {
 			position = counter;
+			this.depth = depth;
 			if (subNodes != null) {
 				for (int i = 0; i < subNodes.length; i++) {
-					counter = subNodes[i].initPositions(counter + 1);
+					counter = subNodes[i].initPositions(counter + 1, depth + 1);
 				}
 			}
 			return counter;
@@ -663,11 +670,12 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 			}
 		}
 
-		private final void initTrie(DigitTrie<SmallTaxIdNode> trie) {
+		private final void initTrie(DigitTrie<SmallTaxIdNode> trie, int depth) {
+			this.depth = depth;
 			trie.set(taxId, this);
 			if (subNodes != null) {
 				for (int i = 0; i < subNodes.length; i++) {
-					subNodes[i].initTrie(trie);
+					subNodes[i].initTrie(trie, depth + 1);
 				}
 			}
 		}

@@ -115,7 +115,7 @@ public class TaxTree {
 				}
 			}
 
-			root.initPositions(0);
+			root.initPositions(0, 0);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -162,14 +162,28 @@ public class TaxTree {
 		if (node1 == node2) {
 			return node1;
 		}
-		for (TaxIdNode res = node1; res != null; res = res.parent) {
-			for (TaxIdNode ancestor2 = node2; ancestor2 != null; ancestor2 = ancestor2.parent) {
-				if (res == ancestor2) {
-					return res;
-				}
-			}
+		if (node1 == null || node2 == null) {
+			return null;
 		}
-		return null;
+		// Align the deeper node to the shallower one, then walk both up in lock-step until they meet.
+		// This is O(depth) using the per-node depth assigned by initPositions(), and - unlike scanning
+		// node2's whole ancestor chain for each of node1's ancestors, O(d1 * d2) - it terminates as soon
+		// as the paths join, so the common ancestor / nearby case (the bulk of update look-ups) is cheap.
+		// Only parent pointers and the (immutable-after-build) depth are read, so it stays thread-safe.
+		TaxIdNode a = node1;
+		TaxIdNode b = node2;
+		while (a.depth > b.depth) {
+			a = a.parent;
+		}
+		while (b.depth > a.depth) {
+			b = b.parent;
+		}
+		while (a != b) {
+			a = a.parent;
+			b = b.parent;
+		}
+		// a == b now: their common ancestor, or null if the two nodes live in different trees.
+		return a;
 	}
 
 	/**
@@ -321,7 +335,7 @@ public class TaxTree {
 	 * Recomputes the {@code position} of every node by a fresh depth-first traversal.
 	 */
 	public void reinitPositions() {
-		root.initPositions(0);
+		root.initPositions(0, 0);
 	}
 
 	/**
@@ -378,6 +392,8 @@ public class TaxTree {
 		private List<TaxIdNode> subNodes;
 		/** The parent node, or {@code null} for the root. */
 		private TaxIdNode parent;
+		/** The depth of this node (root = 0), assigned by {@link #initPositions(int, int)}. */
+		private int depth;
 		/** Whether this node is required and must be retained in a {@link SmallTaxTree}. */
 		private boolean required;
 		/** The number of RefSeq regions associated with this node and its descendants. */
@@ -464,22 +480,35 @@ public class TaxTree {
 		}
 
 		/**
-		 * Assigns {@code position} values to this node and its descendants in depth-first
-		 * order, starting from {@code counter}, and returns the last position used.
+		 * Assigns {@code position} values (depth-first order, starting from {@code counter}) and
+		 * {@code depth} values (root = 0) to this node and its descendants, and returns the last
+		 * position used.
 		 *
 		 * @param counter the position to assign to this node
+		 * @param depth the depth to assign to this node (its distance from the root)
 		 * @return the last position assigned in this subtree
 		 */
-		protected int initPositions(int counter) {
+		protected int initPositions(int counter, int depth) {
 			position = counter;
+			this.depth = depth;
 			if (subNodes != null) {
 				// Not using iterator for more efficiency (less object burn)
 				int size = subNodes.size();
 				for (int i = 0; i < size; i++) {
-					counter = subNodes.get(i).initPositions(counter + 1);
+					counter = subNodes.get(i).initPositions(counter + 1, depth + 1);
 				}
 			}
 			return counter;
+		}
+
+		/**
+		 * Returns the depth of this node (root = 0), as assigned by the last
+		 * {@link #initPositions(int, int)} traversal.
+		 *
+		 * @return the depth of this node
+		 */
+		public int getDepth() {
+			return depth;
 		}
 
 		/**
@@ -537,6 +566,10 @@ public class TaxTree {
 				subNodes = new ArrayList<>();
 			}
 			node.parent = this;
+			// Keep the child's depth consistent with its parent. During the initial build the parent's
+			// depth is not final yet, but initPositions() overwrites every depth afterwards; for
+			// artificial nodes added after that traversal (data/file/id nodes) this keeps depth correct.
+			node.depth = depth + 1;
 			subNodes.add(node);
 		}
 

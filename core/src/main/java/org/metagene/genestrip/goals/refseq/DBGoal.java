@@ -231,7 +231,7 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 				batch = null;
 			}
 			provider = new UpdateValueProvider<>() {
-				// Caches for last results of getLeastCommonAncestor()
+				// Caches for last results of getLowestCommonAncestor()
 				private String lastOldValue;
 				private TaxIdNode lastNode;
 				private String lastLCA;
