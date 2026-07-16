@@ -331,6 +331,8 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
 
         SmallTaxIdNode taxIdNode;
         int max = entry.readSize - k + 1;
+        // Loop-invariant per read: hoisted out of the per-error-k-mer threshold check in the loop.
+        double maxReadTaxErrorCountTimesMax = maxReadTaxErrorCount * max;
         SmallTaxIdNode lastTaxid = null;
         int contigLen = 0;
         CountsPerTaxid stats = null;
@@ -358,17 +360,28 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             }
             taxIdNode = kmer == -1 ? INVALID_NODE :
                     kmerStore.getLong(CGAT.standardKMer(kmer, reverseKmer), entry.indexPos);
+            // Whether this k-mer starts a new contig (its tax node differs from the previous k-mer's).
+            // Computed before lastTaxid is updated further below, and used to run the per-contig-only
+            // work (the tax-path merge and the stats/reads1KMer resolution) once per contig rather than
+            // per k-mer.
+            final boolean newContig = taxIdNode != lastTaxid;
             if (readTaxErrorCount != -1) {
                 if (taxIdNode == null || taxIdNode == INVALID_NODE) {
                     readTaxErrorCount++;
                     if (maxReadTaxErrorCount >= 0) {
                         if ((maxReadTaxErrorCount >= 1 && readTaxErrorCount > maxReadTaxErrorCount)
-                                || (readTaxErrorCount > maxReadTaxErrorCount * max)) {
+                                || (readTaxErrorCount > maxReadTaxErrorCountTimesMax)) {
                             readTaxErrorCount = -1;
                         }
                     }
                 } else {
-                    updateReadTaxid(taxIdNode, entry, index);
+                    // incCount is the per-k-mer vote weight; the tax-path merge is idempotent within a
+                    // contig (repeated calls with the same node do not change the path set), so it only
+                    // needs to run at the contig start.
+                    taxTree.incCount(taxIdNode, index, entry.readNo);
+                    if (newContig) {
+                        mergeReadTaxidPath(taxIdNode, entry);
+                    }
                 }
             }
             if (taxIdNode != lastTaxid) {
@@ -405,17 +418,21 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             lastTaxid = taxIdNode;
             if (taxIdNode != null && taxIdNode != INVALID_NODE) {
                 found = true;
-                int vi = taxIdNode.getStoreIndex();
-                stats = getCountsPerTaxid(taxIdNode, vi);
-                // stats.kmers is accumulated once per contig in the contig-boundary block (and the
-                // tail) instead of once per k-mer, so this hot per-k-mer path no longer locks 'stats'.
-                // reads1KMer is counted once per (read, tax id); the guard row readNoPerCPerStat[index]
-                // is owned by this consumer thread alone, so the check is race-free and only the rare
-                // first hit of a tax id in a read needs the lock.
-                if (readNoPerCPerStat[index][vi] != entry.readNo) {
-                    readNoPerCPerStat[index][vi] = entry.readNo;
-                    synchronized (stats) {
-                        stats.reads1KMer++;
+                if (newContig) {
+                    // 'stats' and the reads1KMer bookkeeping are constant within a contig, so resolve
+                    // them once at the contig start; 'stats' is then carried across the contig for the
+                    // boundary flush. stats.kmers itself is accumulated per contig in the contig-boundary
+                    // block (and the tail), so this hot path no longer locks 'stats' per k-mer.
+                    int vi = taxIdNode.getStoreIndex();
+                    stats = getCountsPerTaxid(taxIdNode, vi);
+                    // reads1KMer is counted once per (read, tax id); the guard row readNoPerCPerStat[index]
+                    // is owned by this consumer thread alone, so the check is race-free and only the rare
+                    // first hit of a tax id in a read needs the lock.
+                    if (readNoPerCPerStat[index][vi] != entry.readNo) {
+                        readNoPerCPerStat[index][vi] = entry.readNo;
+                        synchronized (stats) {
+                            stats.reads1KMer++;
+                        }
                     }
                 }
                 if (uniqueCounter != null) {
@@ -536,18 +553,16 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
     }
 
     /**
-     * Records that the given tax id node was hit by a k-mer of the current read:
-     * increments its per-read count and merges it into the read's set of candidate
-     * taxonomic paths (collapsing paths that are ancestors of one another).
+     * Merges the given tax id node into the read's set of candidate taxonomic paths, collapsing paths
+     * that are ancestors of one another so that only the most specific nodes are kept. This operation
+     * is idempotent for a node already represented in the path set, so the matcher runs it only once
+     * per contig rather than once per k-mer.
      *
      * @param node  the tax id node hit by a k-mer of the current read
      * @param entry the read together with its per-read working state
-     * @param index the consumer thread index (selects the counter slot)
      */
     // Made final for potential inlining by JVM
-    protected final void updateReadTaxid(final SmallTaxIdNode node, final MatcherReadEntry entry, final int index) {
-        taxTree.incCount(node, index, entry.readNo);
-
+    protected final void mergeReadTaxidPath(final SmallTaxIdNode node, final MatcherReadEntry entry) {
         boolean found = false;
         for (int i = 0; i < entry.usedPaths; i++) {
             if (taxTree.isAncestorOf(node, entry.readTaxIdNode[i])) {
