@@ -336,6 +336,8 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         SmallTaxIdNode lastTaxid = null;
         int contigLen = 0;
         CountsPerTaxid stats = null;
+        // The consumer index is constant for this call, so hoist its per-store-index row once.
+        final long[] readNoRow = readNoPerCPerStat[index];
 
         long kmer = -1;
         long reverseKmer = -1;
@@ -350,12 +352,13 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                     reverseKmer = CGAT.kMerToLongReverse(entry.read, i, k, null);
                 }
             } else {
-                kmer = CGAT.nextKMerStraight(kmer, entry.read[i + k - 1], k);
+                final byte lastBase = entry.read[i + k - 1];
+                kmer = CGAT.nextKMerStraight(kmer, lastBase, k);
                 if (kmer == -1) {
                     oldIndex = i;
                     i += k - 1;
                 } else {
-                    reverseKmer = CGAT.nextKMerReverse(reverseKmer, entry.read[i + k - 1], k);
+                    reverseKmer = CGAT.nextKMerReverse(reverseKmer, lastBase, k);
                 }
             }
             taxIdNode = kmer == -1 ? INVALID_NODE :
@@ -428,8 +431,8 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                     // reads1KMer is counted once per (read, tax id); the guard row readNoPerCPerStat[index]
                     // is owned by this consumer thread alone, so the check is race-free and only the rare
                     // first hit of a tax id in a read needs the lock.
-                    if (readNoPerCPerStat[index][vi] != entry.readNo) {
-                        readNoPerCPerStat[index][vi] = entry.readNo;
+                    if (readNoRow[vi] != entry.readNo) {
+                        readNoRow[vi] = entry.readNo;
                         synchronized (stats) {
                             stats.reads1KMer++;
                         }
