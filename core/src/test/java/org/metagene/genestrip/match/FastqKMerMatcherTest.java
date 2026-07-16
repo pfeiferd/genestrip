@@ -28,6 +28,8 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Test;
 import org.metagene.genestrip.DefaultExecutionContext;
@@ -204,6 +206,109 @@ public class FastqKMerMatcherTest {
 					assertEquals(maxContigLen[j], stats.getMaxContigLen());
 				}
 			}
+		}
+	}
+
+	// Builds the CC/TT/AG store (as in testMatchReadHelp) wrapped in a MyFastqMatcher whose bundle is
+	// sized for the given number of consumer threads.
+	private MyFastqMatcher newConsistencyMatcher(StoreType type, int initialReadSize, int consumers) {
+		long ccKmer = CGAT.kMerToLong(new byte[] { 'C', 'C' }, 0, 2, null);
+		long ggKmer = CGAT.kMerToLong(new byte[] { 'G', 'G' }, 0, 2, null); // canonicalises to CC
+		long ttKmer = CGAT.kMerToLong(new byte[] { 'T', 'T' }, 0, 2, null);
+		long agKmer = CGAT.kMerToLong(new byte[] { 'A', 'G' }, 0, 2, null);
+
+		KMerStore<String> store = newStore(type, 2, new long[] { ccKmer, ttKmer, agKmer }, Arrays.asList(TAXIDS));
+		store.putLong(ccKmer, TAXIDS[0]);
+		store.putLong(ggKmer, TAXIDS[1]); // duplicate of CC, ignored
+		store.putLong(ttKmer, TAXIDS[1]);
+		store.putLong(agKmer, TAXIDS[2]);
+		store.optimize();
+
+		ExecutionContext bundle = new DefaultExecutionContext(null, consumers, 1000);
+		return new MyFastqMatcher(store, initialReadSize, 1, bundle);
+	}
+
+	private static void prepareEntry(MatcherReadEntry entry, byte[] read, long readNo) {
+		entry.bufferPos = 0;
+		entry.usedPaths = 0;
+		entry.classNode = null;
+		System.arraycopy(read, 0, entry.read, 0, read.length);
+		entry.readSize = read.length;
+		entry.readNo = readNo;
+	}
+
+	// Verifies that matching the same reads across several consumer threads (which share the stats
+	// objects) accumulates exactly the same per-tax-id statistics as processing them sequentially.
+	// This guards the lock-free/per-contig-batched update path in matchRead() against lost updates.
+	@Test
+	public void testConcurrentMatchReadConsistency() throws InterruptedException {
+		for (StoreType type : StoreType.values()) {
+			checkConcurrentConsistency(type);
+		}
+	}
+
+	private void checkConcurrentConsistency(StoreType type) throws InterruptedException {
+		final int readLength = 200;
+		final int numReads = 4000;
+		final int threads = 8;
+
+		// The same random reads feed both the sequential and the concurrent run.
+		Random rnd = new Random(4242);
+		byte[][] reads = new byte[numReads][readLength];
+		for (int r = 0; r < numReads; r++) {
+			for (int j = 0; j < readLength; j++) {
+				reads[r][j] = CGAT.DECODE_TABLE[rnd.nextInt(4)];
+			}
+		}
+
+		// Sequential reference run (single consumer, index 0).
+		MyFastqMatcher seq = newConsistencyMatcher(type, readLength * 2, 1);
+		seq.initStats();
+		MatcherReadEntry seqEntry = new MatcherReadEntry(readLength * 2, true, 4);
+		for (int r = 0; r < numReads; r++) {
+			prepareEntry(seqEntry, reads[r], r + 1);
+			seq.matchRead(seqEntry, 0);
+		}
+
+		// Concurrent run: reads partitioned across threads, each with its own consumer index and entry.
+		MyFastqMatcher con = newConsistencyMatcher(type, readLength * 2, threads);
+		con.initStats();
+		CountDownLatch start = new CountDownLatch(1);
+		AtomicReference<Throwable> failure = new AtomicReference<>();
+		Thread[] ts = new Thread[threads];
+		for (int t = 0; t < threads; t++) {
+			final int idx = t;
+			ts[t] = new Thread(() -> {
+				try {
+					MatcherReadEntry entry = new MatcherReadEntry(readLength * 2, true, 4);
+					start.await();
+					for (int r = idx; r < numReads; r += threads) {
+						prepareEntry(entry, reads[r], r + 1);
+						con.matchRead(entry, idx);
+					}
+				} catch (Throwable th) {
+					failure.compareAndSet(null, th);
+				}
+			});
+			ts[t].start();
+		}
+		start.countDown();
+		for (Thread th : ts) {
+			th.join();
+		}
+		assertNull(failure.get());
+
+		// Aggregate statistics are order-independent sums/maxima, so the concurrent run must match the
+		// sequential one exactly.
+		for (String tax : TAXIDS) {
+			CountsPerTaxid s = seq.getStats(tax);
+			CountsPerTaxid c = con.getStats(tax);
+			assertNotNull("tax " + tax + " should be hit (" + type + ")", s);
+			assertNotNull("tax " + tax + " missing in concurrent run (" + type + ")", c);
+			assertEquals("kmers (" + type + ", tax " + tax + ")", s.getKMers(), c.getKMers());
+			assertEquals("contigs (" + type + ", tax " + tax + ")", s.getContigs(), c.getContigs());
+			assertEquals("reads1KMer (" + type + ", tax " + tax + ")", s.reads1KMer, c.reads1KMer);
+			assertEquals("maxContigLen (" + type + ", tax " + tax + ")", s.getMaxContigLen(), c.getMaxContigLen());
 		}
 	}
 

@@ -378,6 +378,9 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                     }
                     if (stats != null) {
                         synchronized (stats) {
+                            // Batched per contig: for a matched contig contigLen equals the number of
+                            // its k-mers, so this replaces the former per-k-mer stats.kmers++.
+                            stats.kmers += contigLen;
                             stats.contigs++;
                             stats.contigLenSquaredSum += ((long) contigLen) * contigLen;
                             if (contigLen > stats.maxContigLen) {
@@ -401,14 +404,18 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             }
             lastTaxid = taxIdNode;
             if (taxIdNode != null && taxIdNode != INVALID_NODE) {
+                found = true;
                 int vi = taxIdNode.getStoreIndex();
                 stats = getCountsPerTaxid(taxIdNode, vi);
-                synchronized (stats) {
-                    stats.kmers++;
-                    found = true;
-                    if (readNoPerCPerStat[index][vi] != entry.readNo) {
+                // stats.kmers is accumulated once per contig in the contig-boundary block (and the
+                // tail) instead of once per k-mer, so this hot per-k-mer path no longer locks 'stats'.
+                // reads1KMer is counted once per (read, tax id); the guard row readNoPerCPerStat[index]
+                // is owned by this consumer thread alone, so the check is race-free and only the rare
+                // first hit of a tax id in a read needs the lock.
+                if (readNoPerCPerStat[index][vi] != entry.readNo) {
+                    readNoPerCPerStat[index][vi] = entry.readNo;
+                    synchronized (stats) {
                         stats.reads1KMer++;
-                        readNoPerCPerStat[index][vi] = entry.readNo;
                     }
                 }
                 if (uniqueCounter != null) {
@@ -429,6 +436,8 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             if (contigLen > 0) {
                 if (stats != null) {
                     synchronized (stats) {
+                        // Batched per contig (final contig): see the boundary block above.
+                        stats.kmers += contigLen;
                         stats.contigs++;
                         stats.contigLenSquaredSum += ((long) contigLen) * contigLen;
                         if (contigLen > stats.maxContigLen) {
