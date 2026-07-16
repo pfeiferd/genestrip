@@ -29,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.junit.Test;
+import org.metagene.genestrip.store.KMerStore.UpdateValueProvider;
 import org.metagene.genestrip.util.CGAT;
 
 /**
@@ -88,6 +89,49 @@ public class RadixKMerStoreTest extends AbstractKMerStoreTest {
 			for (Map.Entry<Long, Integer> e : kmerMap.entrySet()) {
 				assertEquals("radixBits=" + radixBits, e.getValue(), store.getLong(e.getKey(), null));
 			}
+		}
+	}
+
+	@Test
+	public void testUpdateBatchEqualsUpdate() {
+		// Two identical stores: one updated k-mer by k-mer, the other via updateBatch with a small
+		// capacity so the batch is flushed several times, ending on a partial flush - exactly the
+		// pattern the update reader uses (flush when full and at each region boundary). Both must end
+		// up with identical contents. A repeated k-mer checks that duplicates within a batch compose.
+		Map<Long, Integer> kmerMap = new LinkedHashMap<Long, Integer>();
+		generate(SMALL_SIZE, null, kmerMap);
+		long[] kmers = kmerArray(kmerMap);
+
+		RadixKMerStore<Integer> seq = (RadixKMerStore<Integer>) createKMerStore(Integer.class, k, kmers);
+		fill(seq, kmerMap);
+		seq.optimize();
+		RadixKMerStore<Integer> bat = (RadixKMerStore<Integer>) createKMerStore(Integer.class, k, kmers);
+		fill(bat, kmerMap);
+		bat.optimize();
+
+		// Move every stored value to 1 (idempotent: 1 -> 1 is a no-op); values 0 and 1 always exist.
+		UpdateValueProvider<Integer> toOne = oldValue -> 1;
+
+		long[] queries = new long[kmers.length + 1];
+		System.arraycopy(kmers, 0, queries, 0, kmers.length);
+		queries[kmers.length] = kmers[0]; // duplicate
+
+		for (long kmer : queries) {
+			seq.update(kmer, toOne);
+		}
+		RadixKMerStore.BatchBuffers buf = new RadixKMerStore.BatchBuffers(8);
+		for (long kmer : queries) {
+			if (buf.add(kmer)) {
+				bat.updateBatch(buf, toOne);
+			}
+		}
+		if (!buf.isEmpty()) {
+			bat.updateBatch(buf, toOne);
+		}
+
+		assertEquals(seq.getKMersMoved(), bat.getKMersMoved());
+		for (long kmer : kmers) {
+			assertEquals(seq.getLong(kmer, null), bat.getLong(kmer, null));
 		}
 	}
 

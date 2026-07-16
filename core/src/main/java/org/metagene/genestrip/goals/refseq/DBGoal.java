@@ -45,6 +45,7 @@ import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.store.KMerStore.UpdateValueProvider;
+import org.metagene.genestrip.store.RadixKMerStore;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
@@ -187,7 +188,16 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 	 * current node and the k-mer's new node.
 	 */
 	protected class MyFastaReader extends AbstractStoreFastaReader {
+		// Number of k-mers gathered before a batched flush; sized to overlap enough independent
+		// cache-missing lookups without the per-batch bookkeeping outweighing the memory-level
+		// parallelism it buys (see RadixKMerStore.updateBatch).
+		private static final int UPDATE_BATCH_SIZE = 128;
+
 		private final KMerStore<String> store;
+		// Non-null exactly when the store is a RadixKMerStore, in which case k-mers are updated in
+		// batches to expose memory-level parallelism instead of one at a time.
+		private final RadixKMerStore<String> radixStore;
+		private final RadixKMerStore.BatchBuffers batch;
 		private final UpdateValueProvider<String> provider;
 
 		/**
@@ -208,10 +218,18 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 		 * @param regionsPerTaxid the trie of regions per taxid
 		 * @param enableLowerCaseBases whether lowercase bases are treated as valid
 		 */
+		@SuppressWarnings("unchecked")
 		public MyFastaReader(int bufferSize, TaxTree taxTree, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, KMerStore<String> store,
 							 int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
 			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases);
 			this.store = store;
+			if (store instanceof RadixKMerStore) {
+				radixStore = (RadixKMerStore<String>) store;
+				batch = new RadixKMerStore.BatchBuffers(UPDATE_BATCH_SIZE);
+			} else {
+				radixStore = null;
+				batch = null;
+			}
 			provider = new UpdateValueProvider<>() {
 				// Caches for last results of getLeastCommonAncestor()
 				private String lastOldValue;
@@ -264,7 +282,13 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 
 		@Override
 		protected void endRegion() {
-			// Intentionally empty.
+			// Flush the current region's pending k-mers before infoLine() moves 'node' to the next
+			// region: every batch must consist of k-mers that share the region's node, since the
+			// provider merges against that node. A region is the coarsest safe flush boundary; the
+			// buffer is also flushed mid-region once it fills up (see handleStore()).
+			if (batch != null && !batch.isEmpty()) {
+				radixStore.updateBatch(batch, provider);
+			}
 		}
 
 		@Override
@@ -274,6 +298,15 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 
 		@Override
 		protected boolean handleStore() {
+			if (batch != null) {
+				if (batch.add(byteRingBuffer.getStandardKMer())) {
+					radixStore.updateBatch(batch, provider);
+				}
+				// The counted-k-mer return value is unused by this reader (endRegion does no region
+				// bookkeeping and isAllowMoreKmers() is always true), so the deferred move result of a
+				// batched k-mer need not be reported here.
+				return false;
+			}
 			return store.update(byteRingBuffer.getStandardKMer(), provider);
 		}
 	}

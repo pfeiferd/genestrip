@@ -96,6 +96,11 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
         this.accessionMapGoal = accessionMapGoal;
     }
 
+    /**
+     * Re-reads the genomic fasta files, comparing their *k*-mers against the database to accumulate the
+     * per-tax-id true-positive and positive counts, aggregates the counts up the selected ranks and
+     * stores the resulting map as this goal's value.
+     */
     @Override
     protected void doMakeThis() {
         try {
@@ -174,6 +179,13 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
         }
     }
 
+    /**
+     * Creates the fasta reader that compares genome *k*-mers against the database, configured from the
+     * project's configuration values.
+     *
+     * @param regionsPerTaxid the trie counting regions per tax id
+     * @return the fasta reader to use for reading the genomic fasta files
+     */
     @Override
     protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
         return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
@@ -217,11 +229,24 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
             super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases, booleanConfigValue(GSConfigKey.ID_NODES), booleanConfigValue(GSConfigKey.FILE_NODES), booleanConfigValue(GSConfigKey.DATA_NODES));
         }
 
+        /**
+         * Returns the taxonomy tree of the loaded database.
+         *
+         * @return the taxonomy tree
+         */
         @Override
         protected SmallTaxTree getTree() {
             return tree;
         }
 
+        /**
+         * Looks up the current *k*-mer in the database and, if it is stored and has not already been
+         * seen for the read's leaf node, records it in the bloom filter and updates the per-tax-id
+         * counts (incrementing the true-positive count when the stored node lies on the path from the
+         * leaf node).
+         *
+         * @return {@code true} if the *k*-mer was counted, {@code false} otherwise
+         */
         @Override
         protected boolean handleStore() {
             // There may be no corresponding node in the database:

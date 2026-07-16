@@ -466,6 +466,169 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		}
 	}
 
+	/**
+	 * Reusable scratch buffers for {@link #updateBatch(BatchBuffers, KMerStore.UpdateValueProvider)}.
+	 * A caller (typically one per reader thread) appends up to {@code capacity} k-mers via
+	 * {@link #add(long)} and then flushes the batch; reusing one instance keeps the batched update
+	 * allocation-free. A {@code BatchBuffers} instance is not thread-safe and must not be shared
+	 * between threads.
+	 */
+	public static final class BatchBuffers {
+		private final long[] kmers;
+		private final long[] remaining;
+		private final long[][] buckets;
+		private final int[] lo;
+		private final int[] hi;
+		private final int[] pos;
+		private int count;
+
+		/**
+		 * Creates buffers holding up to {@code capacity} k-mers per batch.
+		 *
+		 * @param capacity the maximum number of k-mers accumulated before a flush is required
+		 */
+		public BatchBuffers(int capacity) {
+			if (capacity < 1) {
+				throw new IllegalArgumentException("capacity must be >= 1, got " + capacity);
+			}
+			kmers = new long[capacity];
+			remaining = new long[capacity];
+			buckets = new long[capacity][];
+			lo = new int[capacity];
+			hi = new int[capacity];
+			pos = new int[capacity];
+		}
+
+		/**
+		 * Appends a k-mer to the batch.
+		 *
+		 * @param kmer the k-mer to add
+		 * @return {@code true} if the batch is now full and must be flushed before adding more
+		 */
+		public boolean add(long kmer) {
+			kmers[count] = kmer;
+			return ++count == kmers.length;
+		}
+
+		/**
+		 * Returns whether the batch currently holds no k-mers.
+		 *
+		 * @return {@code true} if empty
+		 */
+		public boolean isEmpty() {
+			return count == 0;
+		}
+	}
+
+	/**
+	 * Batched variant of {@link #update(long, KMerStore.UpdateValueProvider)} that processes all
+	 * k-mers accumulated in {@code b} together. It resolves the radix buckets, queries the pre-filter
+	 * and runs the per-bucket binary searches in separate passes over the whole batch, so many
+	 * independent cache-missing loads are in flight at the same time (memory-level parallelism)
+	 * instead of one at a time as in the per-k-mer {@link #update}. For a provider that is a pure
+	 * function of the stored value, the observable effect is identical to calling {@link #update} on
+	 * each buffered k-mer in insertion order. The batch is emptied on return.
+	 *
+	 * @param b        the buffers holding the batch of k-mers to update
+	 * @param provider supplies the new value from the currently stored value
+	 * @return the number of k-mers whose stored value was changed
+	 */
+	public int updateBatch(BatchBuffers b, KMerStore.UpdateValueProvider<V> provider) {
+		if (!sorted) {
+			throw new IllegalStateException("Update only works when optimized.");
+		}
+		final int n = b.count;
+		final long[] kmers = b.kmers;
+		final long[] remaining = b.remaining;
+		final long[][] buckets = b.buckets;
+		final int[] lo = b.lo;
+		final int[] hi = b.hi;
+		final int[] pos = b.pos;
+
+		// Pass 1: resolve each k-mer's radix bucket and pre-filter it. The radixIndex[] and bloom-filter
+		// loads are independent across the batch, so they overlap in flight. pos[i] is set to -1 for
+		// k-mers that are absent (null bucket or filtered out) and to -2 for the ones still to locate.
+		int active = 0;
+		for (int i = 0; i < n; i++) {
+			final long kmer = kmers[i];
+			final int radix = (int) (kmer & radixMask);
+			final long[] bucket = radixIndex[radix];
+			if (bucket == null || (filter != null && useFilter && !filter.containsLong(kmer))) {
+				pos[i] = -1;
+				buckets[i] = null;
+				continue;
+			}
+			buckets[i] = bucket;
+			remaining[i] = remainingOf(kmer);
+			lo[i] = 0;
+			hi[i] = bucketFill[radix] - 1;
+			pos[i] = -2;
+			active++;
+		}
+
+		// Pass 2: interleaved binary search. Each round performs at most one comparison per still-active
+		// k-mer, issuing that many independent bucket loads together. A k-mer settles to its found
+		// position (>= 0) or to "not found" (-1); the pass ends once none remain active.
+		while (active > 0) {
+			for (int i = 0; i < n; i++) {
+				if (pos[i] != -2) {
+					continue;
+				}
+				final int l = lo[i];
+				final int h = hi[i];
+				if (l > h) {
+					pos[i] = -1;
+					active--;
+					continue;
+				}
+				final int mid = (l + h) >>> 1;
+				final long midRem = buckets[i][mid] & remainingMask;
+				final long rem = remaining[i];
+				if (midRem < rem) {
+					lo[i] = mid + 1;
+				} else if (midRem > rem) {
+					hi[i] = mid - 1;
+				} else {
+					pos[i] = mid;
+					active--;
+				}
+			}
+		}
+
+		// Pass 3: apply the provider and write back moved entries, locking per (radix, pos) exactly as
+		// update() does. Each entry is re-read under the lock, so duplicate k-mers within the batch
+		// compose correctly.
+		int moved = 0;
+		for (int i = 0; i < n; i++) {
+			final int p = pos[i];
+			if (p < 0) {
+				continue;
+			}
+			final long[] bucket = buckets[i];
+			final int radix = (int) (kmers[i] & radixMask);
+			synchronized (syncs[((radix * 31) + p) & (syncs.length - 1)]) {
+				final long entry = bucket[p];
+				final int vi = (int) (entry >>> remainingBits);
+				final V oldValue = indexMap[vi];
+				final V newValue = provider.getUpdateValue(oldValue);
+				if (newValue == null) {
+					throw new NullPointerException("Null is not allowed as a value.");
+				}
+				if (newValue != oldValue && !newValue.equals(oldValue)) {
+					final int newVi;
+					synchronized (valueMap) {
+						newVi = getAddValueIndex(newValue);
+						kmersMoved++;
+					}
+					bucket[p] = entryOf(newVi, entry & remainingMask);
+					moved++;
+				}
+			}
+		}
+		b.count = 0;
+		return moved;
+	}
+
 	@Override
 	public void optimize() {
 		if (sorted) {

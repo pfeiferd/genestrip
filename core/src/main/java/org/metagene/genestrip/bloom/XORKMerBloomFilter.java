@@ -48,8 +48,13 @@ public class XORKMerBloomFilter extends AbstractKMerBloomFilter {
     // As I measured: It results in a very high fpp...
     // The more complex hash function from Lemire outweighs the cost of the modulo operator used here.
     // That's why we keep it simple and leave it as it is.
+    //
+    // The modulo is taken BEFORE the absolute value on purpose: v % bits is always in (-bits, bits)
+    // and hence never Long.MIN_VALUE, so Math.abs cannot overflow. Doing abs(v) first would break for
+    // v == Long.MIN_VALUE (its negation stays Long.MIN_VALUE), yielding a negative bit index and an
+    // out-of-bounds access - which does happen once a large filter is hammered with enough hashes.
     @Override
     protected final long reduce(final long v) {
-        return (v < 0 ? -v : v) % bits;
+        return Math.abs(v % bits);
     }
 }

@@ -24,6 +24,10 @@
  */
 package org.metagene.genestrip.bloom;
 
+import static org.junit.Assert.assertTrue;
+
+import org.junit.Test;
+
 public class XORKMerBloomFilterTest extends KMerBloomFilterTest {
 	@Override
 	protected KMerProbFilter createFilter(long size, double fpp) {
@@ -36,5 +40,19 @@ public class XORKMerBloomFilterTest extends KMerBloomFilterTest {
 	@Override
 	protected boolean isTestLarge() {
 		return false;
+	}
+
+	// Regression: when the XOR hash returns exactly Long.MIN_VALUE, reduce() used to negate it first
+	// (Math.abs(Long.MIN_VALUE) stays negative), producing a negative bit index and an out-of-bounds
+	// access. This happens in practice once a large filter is hammered with enough hashes. The filter
+	// is seeded deterministically, so craft an input whose hash 0 is exactly Long.MIN_VALUE.
+	@Test
+	public void testHashOfLongMinValueDoesNotOverflow() {
+		XORKMerBloomFilter filter = new XORKMerBloomFilter(0.0001);
+		filter.ensureExpectedSize(1000, false);
+		// hash(x, 0) == hashFactors[0] ^ x, so this x maps to Long.MIN_VALUE.
+		long x = filter.hashFactors[0] ^ Long.MIN_VALUE;
+		filter.putLong(x); // must not throw ArrayIndexOutOfBoundsException
+		assertTrue(filter.containsLong(x));
 	}
 }

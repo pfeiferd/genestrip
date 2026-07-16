@@ -68,11 +68,23 @@ public class DBQualityCSVGoal<P extends FTProject> extends FileGoal<P> {
         this.kmersPerTaxGoal = kmersPerTaxGoal;
     }
 
+    /**
+     * Returns the single CSV output file written by this goal.
+     *
+     * @return the list containing the CSV output file
+     */
     @Override
     public List<File> getFiles() {
         return Collections.singletonList(getProject().getOutputFile(getKey().getName(), GSProject.GSFileType.CSV, false));
     }
 
+    /**
+     * Writes the per-tax-id database-quality metrics to the given CSV file, ordered by the taxonomy
+     * tree.
+     *
+     * @param file the CSV file to write
+     * @throws IOException if writing the file fails
+     */
     @Override
     protected void makeFile(File file) throws IOException {
         Map<String, DBQualityCountsGoal.Counts> kmersPerTax = kmersPerTaxGoal.get();
