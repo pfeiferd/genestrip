@@ -101,9 +101,11 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
     public void readFastas() throws IOException {
         BlockingQueue<FileAndNode> blockingQueue = null;
         AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid = new AbstractRefSeqFastaReader.StringLong2DigitTrie();
-        // For minUpdate the fna files must be read in the same order as during the goals from before.
-        // Otherwise, the wrong k-mers will be compared to the ones from the DB.
-        // For !minUpdate multi-threading can be enabled.
+        // Reading order is irrelevant here (so multi-threading is safe), including for minUpdate:
+        // the update only touches k-mers already present in the DB, and each is merged into the
+        // lowest common ancestor of its stored node and the nodes of the regions it occurs in.
+        // That merge is commutative and associative, so the result depends only on the set of
+        // included regions - which is fixed - and not on the order in which the fna files are read.
         if (bundle.getThreads() > 0) {
             blockingQueue = createBlockingQueue(intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE));
             for (int i = 0; i < bundle.getThreads(); i++) {
