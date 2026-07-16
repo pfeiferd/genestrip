@@ -41,6 +41,23 @@ public interface KMerProbFilter extends Serializable {
      */
     public void putLong(final long data);
     /**
+     * Adds the given k-mer to the filter unless it is (probably) already present, and reports whether
+     * it was newly added. This is required to be equivalent to a {@code if (!containsLong(data))
+     * putLong(data)} sequence, but implementations combine it into a single pass and, where they
+     * support it, make it safe for concurrent (lock-free) use. Deliberately left without a default:
+     * a naive {@code containsLong}/{@code putLong} fallback would not be thread-safe, so every
+     * implementation must decide and document its own concurrency behaviour rather than silently
+     * inherit an unsafe one (see {@link AbstractKMerBloomFilter} and {@link BlockedKMerBloomFilter}).
+     * <p>
+     * For the concurrent implementations, two threads inserting the same absent k-mer may both
+     * observe it as new, so under concurrent use the returned flag — and hence {@link #getEntries()} —
+     * may marginally over-count; membership answers are never affected.
+     *
+     * @param data the k-mer, encoded as a {@code long}, to add
+     * @return {@code true} if the k-mer was not already present, {@code false} otherwise
+     */
+    public boolean putLongIfAbsent(final long data);
+    /**
      * Tests whether the given k-mer is (probably) contained in the filter.
      *
      * @param data the k-mer, encoded as a {@code long}, to test

@@ -34,8 +34,17 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
 
+/**
+ * Documentation-generation helper implemented as JUnit tests so it can be run on demand (typically
+ * only for releases). It regenerates the Markdown tables of FT configuration parameters and goals as
+ * well as the Graphviz goal-dependency graph of the finer-tree goal set.
+ */
 // Rendered as a test because normally not needed - just for releases...
 public class GenDocFiles {
+	/**
+	 * Regenerates the {@code ConfigParams.md} and {@code Goals.md} documentation files from
+	 * {@link FTConfigKey} and {@link FTGoalKey} in the project directory.
+	 */
 	@Test
 	public void writeDokuFiles() {
 		File configParamsFile = new File(getProjectDir(), "ConfigParams.md");
@@ -53,6 +62,13 @@ public class GenDocFiles {
 		}
 	}
 
+	/**
+	 * Regenerates the {@code GoalGraph.gv.txt} Graphviz file describing the finer-tree goal graph,
+	 * emitting one node per relevant goal and directed edges for their dependencies (dotted for weak
+	 * dependencies).
+	 *
+	 * @throws IOException if writing the graph file fails
+	 */
 	@Test
 	public void writeGraphFile() throws IOException {
 		File graphFile = new File(getProjectDir(), "GoalGraph.gv.txt");
@@ -149,6 +165,12 @@ public class GenDocFiles {
 		}
 	}
 
+	/**
+	 * Returns the base directory holding the release's project data, resolved as the {@code data}
+	 * subdirectory of the project directory.
+	 *
+	 * @return the base data directory
+	 */
 	// To find the base directory for any project file provided as part of the
 	// release.
 	// (This may have to be done differently for you own projects.)
@@ -156,6 +178,12 @@ public class GenDocFiles {
 		return new File(getProjectDir(), "data");
 	}
 
+	/**
+	 * Returns the project directory, taken from the {@code project.directory} system property if set
+	 * and otherwise derived from the location of this class's compiled code.
+	 *
+	 * @return the project directory
+	 */
 	public static File getProjectDir() {
 		String projectDir = System.getProperty("project.directory");
 		if (projectDir != null) {

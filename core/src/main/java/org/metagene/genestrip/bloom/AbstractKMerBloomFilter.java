@@ -27,15 +27,20 @@ package org.metagene.genestrip.bloom;
 import it.unimi.dsi.fastutil.BigArrays;
 import org.metagene.genestrip.util.LargeBitVector;
 
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.Random;
 
 /**
  * Base class for {@link KMerProbFilter} implementations backed by a {@link LargeBitVector}. It sizes
  * the bit vector and the number of hash functions from the expected insertions and target
  * false-positive probability, and derives each of the {@code hashes} bit indices from a
- * subclass-supplied {@link #hash} function. Subclasses only provide the hash.
+ * subclass-supplied {@link #hash} function. Subclasses only provide the hash. The concurrent
+ * entry-counting used by {@link #putLongIfAbsent(long)} is inherited from {@link
+ * AbstractCountingKMerProbFilter}; the plain {@link #entries} counter is kept here to preserve the
+ * serialized form.
  */
-public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
+public abstract class AbstractKMerBloomFilter extends AbstractCountingKMerProbFilter {
 	private static final long serialVersionUID = 1L;
 
 	/** The target false-positive probability. */
@@ -55,7 +60,7 @@ public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
 	protected int hashes;
 	/** The random factors used to derive the individual hashes. */
 	protected long[] hashFactors;
-	/** The number of k-mers added to the filter. */
+	/** The number of k-mers added via the plain {@link #putLong(long)} path. */
 	protected long entries;
 
 	/**
@@ -82,6 +87,9 @@ public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
 	public void clear() {
 		bitVector.clear();
 		entries = 0;
+		if (concurrentEntries != null) {
+			concurrentEntries.reset();
+		}
 	}
 
 	@Override
@@ -89,6 +97,7 @@ public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
 		if (expectedInsertions < 0) {
 			throw new IllegalArgumentException("expected insertions must be > 0");
 		}
+		ensureConcurrentEntries();
 		this.expectedInsertions = expectedInsertions;
 
 		bits = optimalNumOfBits(expectedInsertions, fpp);
@@ -150,7 +159,7 @@ public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
 
 	@Override
 	public long getEntries() {
-		return entries;
+		return entries + concurrentEntryCount();
 	}
 
 	/**
@@ -207,6 +216,38 @@ public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
 	}
 
 	/**
+	 * Adds the given k-mer to the filter and reports whether it was newly added, computing each hash
+	 * only once and setting the corresponding bits atomically. This combines the effect of a {@link
+	 * #containsLong(long)} check followed by {@link #putLong(long)} into a single hashing pass, and is
+	 * safe to call concurrently from multiple threads (each bit is set with an atomic OR, so no
+	 * concurrent update is lost and false negatives cannot occur). Because inserting an already
+	 * present k-mer only re-sets bits that are already set, the resulting filter state is identical to
+	 * a plain {@code if (!containsLong(data)) putLong(data)} sequence.
+	 * <p>
+	 * The returned "newly added" flag is exact under single-threaded use. Under concurrent use two
+	 * threads inserting the same absent k-mer may both observe it as new, so {@link #getEntries()} may
+	 * marginally over-count; this never affects the filter's membership answers.
+	 *
+	 * @param data the k-mer, encoded as a {@code long}, to add
+	 * @return {@code true} if the k-mer was not already present (at least one of its bits was newly
+	 *         set), {@code false} if it was already present
+	 */
+	@Override
+	public boolean putLongIfAbsent(final long data) {
+		boolean added = false;
+		for (int i = 0; i < hashes; i++) {
+			// Every bit must be set even once we know the element is new, so do not short-circuit.
+			if (bitVector.setAndTestWasUnset(reduce(hash(data, i)))) {
+				added = true;
+			}
+		}
+		if (added) {
+			countAdded();
+		}
+		return added;
+	}
+
+	/**
 	 * Computes the {@code i}-th hash of the given k-mer.
 	 *
 	 * @param data the k-mer, encoded as a {@code long}, to hash
@@ -223,5 +264,18 @@ public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
 	 */
 	protected long reduce(final long v) {
 		return Math.abs(v % bits);
+	}
+
+	/**
+	 * Folds any k-mers counted via the concurrent insert path into {@link #entries} before the default
+	 * serialization runs, so that a deserialized filter reports the correct entry count even though the
+	 * concurrent counter is transient.
+	 *
+	 * @param out the stream the filter is written to
+	 * @throws IOException if writing fails
+	 */
+	private void writeObject(ObjectOutputStream out) throws IOException {
+		entries += drainConcurrentEntries();
+		out.defaultWriteObject();
 	}
 }

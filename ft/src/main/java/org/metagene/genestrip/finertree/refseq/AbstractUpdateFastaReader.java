@@ -34,35 +34,37 @@ import org.metagene.genestrip.util.ByteArrayUtil;
 import java.util.Set;
 
 /**
- * Base fasta reader that, for each info line, resolves the leaf taxonomy node to which the following
- * *k*-mers belong, optionally descending into artificial id, file or data nodes of the finer tree.
+ * Abstract fasta reader for the finer-tree (FT) update phase. On top of the standard store reader it
+ * resolves, for each fasta info line, the current leaf node of the refined {@link SmallTaxTree} that
+ * a read's *k*-mers should be attributed to, descending from the plain tax node into id, file or data
+ * refinement nodes depending on the enabled refinement flags.
  */
 public abstract class AbstractUpdateFastaReader extends AbstractStoreFastaReader {
     private final boolean idNodes;
     private final boolean fileNodes;
     private final boolean dataNodes;
 
-    /** The leaf node of the finer tree to which the k-mers of the current region belong. */
     protected SmallTaxTree.SmallTaxIdNode leafNode;
 
     /**
-     * Creates a reader that resolves finer-tree leaf nodes for the k-mers of each region.
+     * Creates an update fasta reader that resolves refined leaf nodes according to the given
+     * refinement flags.
      *
-     * @param bufferSize             the input read buffer size
-     * @param taxNodes               the tax nodes to be included
-     * @param accessionMap           the map from accession numbers to tax nodes
-     * @param k                      the k-mer length
-     * @param maxGenomesPerTaxId     the maximum number of genomes to consider per tax id
-     * @param maxGenomesPerTaxIdRank the rank at which the per-tax-id genome limit applies
-     * @param maxKmersPerTaxId       the maximum number of k-mers to store per tax id
-     * @param maxDust                the maximum dust (low-complexity) threshold
-     * @param stepSize               the step size between stored k-mers
+     * @param bufferSize             the read buffer size in bytes
+     * @param taxNodes               the tax nodes the database is built for
+     * @param accessionMap           the map resolving accessions to tax ids
+     * @param k                      the *k*-mer length
+     * @param maxGenomesPerTaxId     the maximum number of genomes considered per tax id
+     * @param maxGenomesPerTaxIdRank the rank up to which {@code maxGenomesPerTaxId} is applied
+     * @param maxKmersPerTaxId       the maximum number of *k*-mers stored per tax id
+     * @param maxDust                the maximum dust (low-complexity) threshold for *k*-mers
+     * @param stepSize               the step size between consecutive *k*-mers
      * @param completeGenomesOnly    whether only complete genomes are considered
-     * @param regionsPerTaxid        the trie counting regions per tax id
-     * @param enableLowerCaseBases   whether lower-case bases are treated as regular bases
-     * @param idNodes                whether to descend into artificial id nodes
-     * @param fileNodes              whether to descend into artificial file nodes
-     * @param dataNodes              whether to descend into artificial data nodes
+     * @param regionsPerTaxid        the trie tracking the covered regions per tax id
+     * @param enableLowerCaseBases   whether lower-case bases are treated as valid bases
+     * @param idNodes                whether refinement into id nodes (by accession) is enabled
+     * @param fileNodes              whether refinement into file nodes (by file name) is enabled
+     * @param dataNodes              whether refinement into the data child node is enabled
      */
     public AbstractUpdateFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases, boolean idNodes, boolean fileNodes, boolean dataNodes) {
         super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases);
@@ -72,12 +74,15 @@ public abstract class AbstractUpdateFastaReader extends AbstractStoreFastaReader
     }
 
     /**
-     * Returns the taxonomy tree used to resolve finer-tree nodes.
+     * Returns the refined taxonomy tree whose nodes leaf resolution descends into.
      *
-     * @return the taxonomy tree used to resolve nodes for read tax ids
+     * @return the refined {@link SmallTaxTree} used to resolve leaf nodes
      */
     protected abstract SmallTaxTree getTree();
 
+    /**
+     * Processes a fasta info line and additionally re-resolves the current refined leaf node.
+     */
     @Override
     protected void infoLine() {
         super.infoLine();
@@ -85,8 +90,11 @@ public abstract class AbstractUpdateFastaReader extends AbstractStoreFastaReader
     }
 
     /**
-     * Sets {@link #leafNode} to the node for the current region's tax id, descending into a matching
-     * id, file or data child node when the respective feature is enabled.
+     * Resolves {@link #leafNode} to the most specific refined node for the current read, starting from
+     * the plain tax node and descending, in order, into an id node (matched by the accession in the
+     * info line), a file node (matched by the source file name) and finally the data child node, as
+     * far as the corresponding refinement flags are enabled and matching nodes exist. If the current
+     * region is not included, the leaf node is left unchanged.
      */
     protected void updateLeafNode() {
         if (includeRegion) {

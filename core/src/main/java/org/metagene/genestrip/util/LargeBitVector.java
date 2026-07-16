@@ -25,6 +25,8 @@
 package org.metagene.genestrip.util;
 
 import java.io.Serializable;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.Arrays;
 
 import it.unimi.dsi.fastutil.BigArrays;
@@ -39,6 +41,13 @@ public class LargeBitVector implements Serializable {
 
     /** Maximum capacity in longs for which the small {@code long[]} backing is used. */
     public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
+
+    /**
+     * Handle used to atomically OR a bit into a single backing word, so that {@link
+     * #setAndTestWasUnset(long)} can run lock-free from multiple threads without losing concurrent
+     * updates.
+     */
+    private static final VarHandle LONG_ARRAY_HANDLE = MethodHandles.arrayElementVarHandle(long[].class);
 
     // All made public for inlining (optimization):
     /** The current capacity in 64-bit words. */
@@ -162,6 +171,30 @@ public class LargeBitVector implements Serializable {
             // Original code:
             int arrayIndex = (int) (index >>> 6);
             bits[arrayIndex] = bits[arrayIndex] | (1L << (index & 0b111111));
+        }
+    }
+
+    /**
+     * Atomically sets (to 1) the bit at the given index and reports whether this call was the one
+     * that set it, i.e. whether the bit was previously 0. Unlike {@link #set(long)} this is safe for
+     * concurrent use by multiple threads: the word is updated with an atomic OR so no concurrent bit
+     * set on the same word is ever lost.
+     *
+     * @param index the bit index to set
+     * @return {@code true} if the bit transitioned from 0 to 1, {@code false} if it was already set
+     */
+    public final boolean setAndTestWasUnset(final long index) {
+        final long bit = 1L << (index & 0b111111);
+        if (largeBits != null) {
+            final long arrayIndex = index >>> 6;
+            final long[] segment = largeBits[BigArrays.segment(arrayIndex)];
+            final int displacement = BigArrays.displacement(arrayIndex);
+            final long old = (long) LONG_ARRAY_HANDLE.getAndBitwiseOr(segment, displacement, bit);
+            return (old & bit) == 0;
+        } else {
+            final int arrayIndex = (int) (index >>> 6);
+            final long old = (long) LONG_ARRAY_HANDLE.getAndBitwiseOr(bits, arrayIndex, bit);
+            return (old & bit) == 0;
         }
     }
 

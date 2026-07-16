@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicIntegerArray;
 
 import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
@@ -113,10 +114,9 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
     private int radixBits;
     // Deduplicated k-mer count per RadixKMerStore radix bucket (low radixBits bits of the k-mer),
     // computed alongside the total so a RadixKMerStore can later be sized per bucket. Shared by all
-    // reader threads; see MyFastaReader.handleStore() for the thread-safe update.
-    private int[] bucketSizes;
-
-    private final boolean multiThreading;
+    // reader threads and updated with atomic increments; see MyFastaReader.handleStore(). The counters
+    // are spread across the buckets, so contention is far lower than the previous single filter lock.
+    private AtomicIntegerArray bucketSizes;
 
     /**
      * Creates the goal, wiring the accession-map and expected-size goals alongside the FASTA inputs.
@@ -139,7 +139,6 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
         super(project, GSGoalKey.TEMPINDEX, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, accessionMapGoal, sizeGoal));
         this.accessionMapGoal = accessionMapGoal;
         this.sizeGoal = sizeGoal;
-        multiThreading = bundle.getThreads() > 0;
     }
 
     /**
@@ -165,7 +164,7 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
             }
             filter.ensureExpectedSize(sizeGoal.get(), false);
             radixBits = intConfigValue(GSConfigKey.RADIX_STORE_BITS);
-            bucketSizes = new int[1 << radixBits];
+            bucketSizes = new AtomicIntegerArray(1 << radixBits);
             logHeapInfo();
             readFastas();
             long entries = filter.getEntries();
@@ -179,11 +178,13 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
             double divisor = 1d - doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP);
             entries = (long) (entries / divisor);
             // Apply the same FPP correction per bucket so the bucket sizes stay consistent with the
-            // total (their sum stays approximately 'entries').
-            for (int i = 0; i < bucketSizes.length; i++) {
-                bucketSizes[i] = (int) (bucketSizes[i] / divisor);
+            // total (their sum stays approximately 'entries'), materializing the atomic counters into
+            // the plain int[] the DBSize / RadixKMerStore expects.
+            int[] correctedBucketSizes = new int[bucketSizes.length()];
+            for (int i = 0; i < correctedBucketSizes.length; i++) {
+                correctedBucketSizes[i] = (int) (bucketSizes.get(i) / divisor);
             }
-            set(new DBSize(entries, bucketSizes));
+            set(new DBSize(entries, correctedBucketSizes));
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
@@ -258,26 +259,13 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
         @Override
         protected boolean handleStore() {
             long kmer = byteRingBuffer.getStandardKMer();
-            if (!filter.containsLong(kmer)) {
-                int bucket = RadixKMerStore.radixOf(kmer, radixBits);
-                if (multiThreading) {
-                    synchronized (filter) {
-                        // This is a trick to enable more parallelism -
-                        // check again after synchronized to avoid synchronized further outside...
-                        if (!filter.containsLong(kmer)) {
-                            filter.putLong(kmer);
-                            // Counted under the same lock as the filter update, so the per-bucket
-                            // counts stay exactly in step with filter.getEntries() across threads
-                            // (and race losers, whose re-check fails, are not counted).
-                            bucketSizes[bucket]++;
-                            return true;
-                        }
-                    }
-                } else {
-                    filter.putLong(kmer);
-                    bucketSizes[bucket]++;
-                    return true;
-                }
+            // Lock-free combined membership-check-and-insert: the filter sets its bits atomically, so
+            // the previous global lock on the filter is no longer needed. Each k-mer counted as new is
+            // added to its radix bucket with an atomic increment, keeping the per-bucket counts in step
+            // with filter.getEntries() (both count exactly the k-mers reported as newly added).
+            if (filter.putLongIfAbsent(kmer)) {
+                bucketSizes.getAndIncrement(RadixKMerStore.radixOf(kmer, radixBits));
+                return true;
             }
             return false;
         }

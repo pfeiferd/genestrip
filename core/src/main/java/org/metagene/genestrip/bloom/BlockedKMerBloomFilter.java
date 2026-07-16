@@ -27,6 +27,10 @@ package org.metagene.genestrip.bloom;
 import it.unimi.dsi.fastutil.BigArrays;
 import it.unimi.dsi.fastutil.longs.LongBigArrays;
 
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -41,13 +45,20 @@ import java.util.Random;
  * The corresponding GitHub project is <a href="https://github.com/FastFilter/fastfilter_java">jastfilter_java</a>
  * is under Apache 2.0 license. It is highly optimized for best classification performance...
  */
-public class BlockedKMerBloomFilter implements KMerProbFilter {
+public class BlockedKMerBloomFilter extends AbstractCountingKMerProbFilter {
     /** Default false-positive probability. */
     public static double DEFAULT_FPP = 0.01d;
     /** Default number of bits allocated per key. */
     public static int DEFAULT_BITS_PER_KEY = 10;
 
     private static final long serialVersionUID = 1L;
+
+    /**
+     * Handle used to atomically OR bits into a single backing word, so that {@link
+     * #putLongIfAbsent(long)} can run lock-free from multiple threads without losing concurrent
+     * updates.
+     */
+    private static final VarHandle LONG_ARRAY_HANDLE = MethodHandles.arrayElementVarHandle(long[].class);
 
     /** Maximum capacity (in words) that still uses the small {@code int}-indexed storage. */
     public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
@@ -62,7 +73,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
     private long[] data;
     /** Large ({@code long}-indexed) bit storage, or {@code null} when small storage is used. */
     private long[][] largeData;
-    /** Number of keys inserted so far. */
+    /** Number of keys added via the plain {@link #putLong(long)} path. */
     private long entries;
 
     /**
@@ -113,6 +124,59 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
         }
     }
 
+    /**
+     * Adds the key to the filter and reports whether it was newly added, setting its bits with atomic
+     * ORs. This combines a {@link #containsLong(long)} check with {@link #putLong(long)} in a single
+     * pass and is safe to call concurrently from multiple threads: no concurrent bit set is lost, so
+     * false negatives cannot occur and the resulting filter state is identical to a plain {@code if
+     * (!containsLong(key)) putLong(key)} sequence.
+     * <p>
+     * The "newly added" flag is exact under single-threaded use. Under concurrent use two threads
+     * inserting the same absent key may both observe it as new, so {@link #getEntries()} may
+     * marginally over-count; this never affects the filter's membership answers.
+     *
+     * @param key the k-mer, encoded as a {@code long}, to add
+     * @return {@code true} if the key was not already present, {@code false} otherwise
+     */
+    @Override
+    public boolean putLongIfAbsent(long key) {
+        long hash = hash(key);
+        long start = reduce(hash);
+        hash = hash ^ Long.rotateLeft(hash, 32);
+        long m1 = (1L << hash) | (1L << (hash >> 6));
+        long m2 = (1L << (hash >> 12)) | (1L << (hash >> 18));
+        long oldA;
+        long oldB;
+        if (data != null) {
+            int s = (int) start;
+            oldA = (long) LONG_ARRAY_HANDLE.getAndBitwiseOr(data, s, m1);
+            oldB = (long) LONG_ARRAY_HANDLE.getAndBitwiseOr(data, s + 1 + (int) (hash >>> 60), m2);
+        } else {
+            oldA = orLarge(start, m1);
+            oldB = orLarge(start + 1 + (hash >>> 60), m2);
+        }
+        // Present iff both mask sets were already fully set before this insert.
+        boolean added = ((oldA & m1) != m1) || ((oldB & m2) != m2);
+        if (added) {
+            countAdded();
+        }
+        return added;
+    }
+
+    /**
+     * Atomically ORs the given mask into the large-storage word at the given index and returns the
+     * previous word value.
+     *
+     * @param index the word index into the large storage
+     * @param mask  the bit mask to OR in
+     * @return the word value before the OR
+     */
+    private long orLarge(long index, long mask) {
+        long[] segment = largeData[BigArrays.segment(index)];
+        int displacement = BigArrays.displacement(index);
+        return (long) LONG_ARRAY_HANDLE.getAndBitwiseOr(segment, displacement, mask);
+    }
+
     @Override
     public boolean containsLong(long key) {
         long hash = seed ^ key; // Super simple inlined hash function.
@@ -139,6 +203,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
         long bits = entryCount * bitsPerKey;
         long newSize = (bits + 63) / 64;
         entries = 0;
+        resetConcurrentEntries();
         if (newSize > buckets) {
             buckets = newSize;
             if (buckets + 16 + 1 > MAX_SMALL_CAPACITY || enforceLarge) {
@@ -200,6 +265,19 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
 
     @Override
     public long getEntries() {
-        return entries;
+        return entries + concurrentEntryCount();
+    }
+
+    /**
+     * Folds any keys counted via the concurrent insert path into {@link #entries} before the default
+     * serialization runs, so that a deserialized filter reports the correct entry count even though
+     * the concurrent counter is transient.
+     *
+     * @param out the stream the filter is written to
+     * @throws IOException if writing fails
+     */
+    private void writeObject(ObjectOutputStream out) throws IOException {
+        entries += drainConcurrentEntries();
+        out.defaultWriteObject();
     }
 }
