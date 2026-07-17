@@ -173,16 +173,6 @@ public interface KMerStore<V extends Serializable> extends Serializable {
 	public boolean update(long kmer, UpdateValueProvider<V> provider);
 
 	/**
-	 * Returns the number of k-mers whose value was moved by updates.
-	 *
-	 * @return the number of k-mers whose value was moved (changed) via {@link #update}.
-	 *         The default implementation returns {@code 0} for stores that do not track this.
-	 */
-	default long getKMersMoved() {
-		return 0;
-	}
-
-	/**
 	 * Visits all stored entries, exposing the store index and storage position of each.
 	 *
 	 * @param visitor the visitor notified for each stored entry

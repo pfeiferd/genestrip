@@ -333,18 +333,29 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 			return false;
 		}
 		if (filter != null && useFilter && filter.containsLong(kmer)) {
-			// Fail fast - (probably) already stored. Checking for sure would mean a linear scan.
-			// Honouring useFilter lets a bulk loader that has pre-counted distinct k-mers turn the
+			// Fail fast (lock-free) - (probably) already stored. Checking for sure would mean a linear
+			// scan. Honouring useFilter lets a bulk loader that has pre-counted distinct k-mers turn the
 			// (probabilistic) duplicate check off and fill the reserved buckets losslessly.
 			return false;
 		}
-		long remaining = remainingOf(kmer);
-		int pos;
-		int vi;
-		synchronized (this) {
-			if (filter != null && useFilter && filter.containsLong(kmer)) {
+		if (filter != null) {
+			// Atomic combined membership-check-and-insert - thread-safe via the filter's own stripe
+			// locks, so no global store lock is needed to keep the filter consistent. It marks the k-mer
+			// and reports whether it was new; when the filter is consulted (useFilter) a k-mer that was
+			// already present is a (probable) duplicate and is dropped, which also settles the race
+			// between the lock-free check above and this insert. When useFilter is off the result is
+			// ignored (the filter is only populated), matching the previous behaviour.
+			boolean newKmer = filter.putLongIfAbsent(kmer);
+			if (useFilter && !newKmer) {
 				return false;
 			}
+		}
+		long remaining = remainingOf(kmer);
+		// Reserve this k-mer's slot in its radix bucket under that bucket's stripe lock, so inserts into
+		// different radix buckets run in parallel - only k-mers sharing a radix (hence the same
+		// bucketFill counter) contend. This replaces the former global lock on the whole store.
+		int pos;
+		synchronized (syncFor(radix)) {
 			int fill = bucketFill[radix];
 			if (fill >= bucket.length) {
 				// Reserved capacity for this radix bucket is exhausted. The per-bucket sizes can be a
@@ -354,14 +365,29 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 			}
 			pos = fill;
 			bucketFill[radix] = fill + 1;
-			vi = getAddValueIndex(value);
-			if (filter != null) {
-				filter.putLong(kmer);
-			}
-			entries++;
 		}
+		// Resolve the value index with a lock-free read: all values are registered up front (the store's
+		// initialValues), so a value not found here is a caller error and fails fast. No global entry
+		// counter is kept during the fill: the stored k-mer count is the sum of the per-radix bucketFill
+		// counters, materialized into 'entries' by optimize() (see getEntries()).
+		int vi = getRegisteredValueIndex(value);
 		bucket[pos] = entryOf(vi, remaining);
 		return true;
+	}
+
+	@Override
+	public long getEntries() {
+		// 'entries' is not maintained during the concurrent fill (putLong keeps only the per-radix
+		// bucketFill counters); until optimize() materializes it, derive the count from those counters.
+		return sorted ? entries : sumBucketFill();
+	}
+
+	private long sumBucketFill() {
+		long sum = 0;
+		for (int fill : bucketFill) {
+			sum += fill;
+		}
+		return sum;
 	}
 
 	// Made final for potential (automated) inlining by JVM
@@ -445,7 +471,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 			return false;
 		}
 		// Synchronize only on accesses that (might) target the same entry; see KMerSortedArray.
-		synchronized (syncs[((radix * 31) + pos) & (syncs.length - 1)]) {
+		synchronized (syncFor((radix * 31L) + pos)) {
 			long entry = bucket[pos];
 			int vi = (int) (entry >>> remainingBits);
 			V oldValue = indexMap[vi];
@@ -454,11 +480,8 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 				throw new NullPointerException("Null is not allowed as a value.");
 			}
 			if (newValue != oldValue && !newValue.equals(oldValue)) {
-				int newVi;
-				synchronized (valueMap) {
-					newVi = getAddValueIndex(newValue);
-					kmersMoved++;
-				}
+				// Values are all pre-registered before the update phase, so this is a lock-free read.
+				int newVi = getRegisteredValueIndex(newValue);
 				bucket[pos] = entryOf(newVi, entry & remainingMask);
 				return true;
 			}
@@ -606,7 +629,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 			}
 			final long[] bucket = buckets[i];
 			final int radix = (int) (kmers[i] & radixMask);
-			synchronized (syncs[((radix * 31) + p) & (syncs.length - 1)]) {
+			synchronized (syncFor((radix * 31L) + p)) {
 				final long entry = bucket[p];
 				final int vi = (int) (entry >>> remainingBits);
 				final V oldValue = indexMap[vi];
@@ -615,11 +638,8 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 					throw new NullPointerException("Null is not allowed as a value.");
 				}
 				if (newValue != oldValue && !newValue.equals(oldValue)) {
-					final int newVi;
-					synchronized (valueMap) {
-						newVi = getAddValueIndex(newValue);
-						kmersMoved++;
-					}
+					// Values are all pre-registered before the update phase, so this is a lock-free read.
+					final int newVi = getRegisteredValueIndex(newValue);
 					bucket[p] = entryOf(newVi, entry & remainingMask);
 					moved++;
 				}
@@ -651,12 +671,15 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		}
 		sorted = true;
 		// Rebuild the position offsets from the actual fills: with partially filled buckets the
-		// capacity-based seed leaves gaps, so this restores a dense [0, entries) numbering.
+		// capacity-based seed leaves gaps, so this restores a dense [0, entries) numbering. The running
+		// offset ends at the total fill, which is exactly the stored k-mer count, so it also
+		// materializes 'entries' (not maintained during the concurrent fill; see getEntries()).
 		long offset = 0;
 		for (int r = 0; r < radixIndex.length; r++) {
 			bucketOffset[r] = offset;
 			offset += bucketFill[r];
 		}
+		entries = offset;
 		// Rework the bloom filter from the fill-time one into the optimized one.
 		filter = createOptimizedFilter();
 		if (filter != null) {

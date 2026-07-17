@@ -235,13 +235,11 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 				return false;
 			}
 		}
-		// We only must synchronize, if two threads access the same kmer in the same
-		// position. But we cannot synchronize on 'pos' because it is a primitive.
-		// The helper method getSynchronizationObject() likely returns different objects
-		// for different pos values, but always the same object for the same pos value
-		// in a multi-threading scenario. This trick greatly decreases synchronization
-		// bottlenecks.
-		synchronized (syncs[(int) (pos % 512)]) {
+		// We only must synchronize if two threads access the same kmer in the same position. Since we
+		// cannot synchronize on the primitive 'pos', syncFor(pos) maps it onto a fixed stripe-lock pool:
+		// the same pos always yields the same lock, different positions usually different ones. This
+		// trick greatly decreases synchronization bottlenecks.
+		synchronized (syncFor(pos)) {
 			int index;
 			if (largeKmers != null) {
 				index = BigArrays.get(largeValueIndexes, pos) - Short.MIN_VALUE;
@@ -254,11 +252,8 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 				throw new NullPointerException("Null is not allowed as a value.");
 			}
 			if (newValue != oldValue && !newValue.equals(oldValue)) {
-				// This is important in the multi-threading context:
-				synchronized (valueMap) {
-					index = getAddValueIndex(newValue);
-					kmersMoved++;
-				}
+				// Values are all pre-registered before the update phase, so this is a lock-free read.
+				index = getRegisteredValueIndex(newValue);
 				setIndexAtPosition(pos, index);
 				return true;
 			}

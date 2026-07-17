@@ -42,6 +42,7 @@ import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
 import org.metagene.genestrip.refseq.AbstractStoreFastaReader;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
+import org.metagene.genestrip.refseq.ReworkingStoreFastaReader;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.store.KMerStore.UpdateValueProvider;
@@ -49,7 +50,6 @@ import org.metagene.genestrip.store.RadixKMerStore;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
-import org.metagene.genestrip.util.ByteArrayUtil;
 
 /**
  * Goal ({@code UPDATE_DB}) that updates an already-filled database by re-reading the RefSeq (and
@@ -126,18 +126,9 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 		}
 	}
 
-	@Override
-	protected void afterReadFastas(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
-		if (getLogger().isInfoEnabled()) {
-			getLogger().info("KMers moved via update: " + store.getKMersMoved());
-		}
-	}
-
 	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
-		boolean idNodes = booleanConfigValue(GSConfigKey.ID_NODES);
-		boolean fileNodes = booleanConfigValue(GSConfigKey.FILE_NODES);
-		boolean dataNodes = booleanConfigValue(GSConfigKey.DATA_NODES);
-
+		// Lookup mode (createNodes = false): the artificial data/file/id nodes were created during the
+		// fill; the update only looks them up (using the same key computation as their creation).
 		return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxTreeGoal.get(), taxNodesGoal.get(),
 				accessionMapGoal.get(), store, intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
 				(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
@@ -146,48 +137,17 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 				intConfigValue(GSConfigKey.STEP_SIZE),
 				booleanConfigValue(GSConfigKey.UPDATE_WITH_COMPLETE_GENOMES_ONLY),
 				null,
-				booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES)) {
-			@Override
-			protected TaxIdNode reworkNode() {
-				TaxIdNode res = node;
-				if (dataNodes) {
-					if (Rank.DATA.ordinal() != res.getRankOrdinal()) {
-						TaxIdNode c = res.getDataChild();
-						if (c != null) {
-							res = c;
-						}
-					}
-				}
-				if (fileNodes && file != null) {
-					if (Rank.FILE.ordinal() != res.getRankOrdinal()) {
-						TaxIdNode c = res.getChildWithName(file.getName());
-						if (c != null) {
-							res = c;
-						}
-					}
-				}
-				if (idNodes) {
-					if (Rank.ID.ordinal() != res.getRankOrdinal()) {
-						int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
-						if (pos < 0) {
-							pos = size;
-						}
-						TaxIdNode c = res.getChildWithName(target, 1, pos);
-						if (c != null) {
-							res = c;
-						}
-					}
-				}
-				return res;
-			}
-		};
+				booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES),
+				booleanConfigValue(GSConfigKey.DATA_NODES),
+				booleanConfigValue(GSConfigKey.FILE_NODES),
+				booleanConfigValue(GSConfigKey.ID_NODES));
 	}
 
 	/**
 	 * FASTA reader that updates each existing k-mer's taxid to the lowest common ancestor of its
 	 * current node and the k-mer's new node.
 	 */
-	protected class MyFastaReader extends AbstractStoreFastaReader {
+	protected class MyFastaReader extends ReworkingStoreFastaReader {
 		// Number of k-mers gathered before a batched flush; sized to overlap enough independent
 		// cache-missing lookups without the per-batch bookkeeping outweighing the memory-level
 		// parallelism it buys (see RadixKMerStore.updateBatch).
@@ -217,11 +177,17 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 		 * @param completeGenomesOnly whether to restrict to complete genomes only
 		 * @param regionsPerTaxid the trie of regions per taxid
 		 * @param enableLowerCaseBases whether lowercase bases are treated as valid
+		 * @param dataNodes whether artificial {@code DATA} nodes are used
+		 * @param fileNodes whether artificial {@code FILE} nodes are used
+		 * @param idNodes whether artificial {@code ID} nodes are used
 		 */
 		@SuppressWarnings("unchecked")
 		public MyFastaReader(int bufferSize, TaxTree taxTree, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, KMerStore<String> store,
-							 int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
-			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases);
+							 int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases,
+							 boolean dataNodes, boolean fileNodes, boolean idNodes) {
+			// Lookup mode: the fill already created every artificial node, so no id generator is needed.
+			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases,
+					taxTree, dataNodes, fileNodes, idNodes, false, null);
 			this.store = store;
 			if (store instanceof RadixKMerStore) {
 				radixStore = (RadixKMerStore<String>) store;

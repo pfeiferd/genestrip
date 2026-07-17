@@ -24,13 +24,15 @@
  */
 package org.metagene.genestrip.bloom;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.util.concurrent.atomic.LongAdder;
 
 /**
- * Base class for {@link KMerProbFilter} implementations that support a lock-free {@link
+ * Base class for {@link KMerProbFilter} implementations that support a concurrent {@link
  * #putLongIfAbsent(long)} insert path. It factors out the (subtle) lifecycle of the concurrent
  * entry counter that path relies on: a {@link LongAdder} accumulating the newly-added k-mers without
- * synchronizing on a shared field.
+ * contending on a single shared counter field.
  * <p>
  * The plain {@code entries} counter (written by {@code putLong}) is deliberately <em>not</em> pulled
  * up here: each subclass keeps declaring it itself so that the on-disk serialization form of existing
@@ -55,6 +57,19 @@ public abstract class AbstractCountingKMerProbFilter implements KMerProbFilter {
 	 */
 	protected AbstractCountingKMerProbFilter() {
 		concurrentEntries = new LongAdder();
+	}
+
+	/**
+	 * Restores the transient concurrent counter after deserialization, so a reloaded filter can be
+	 * populated again via {@link #putLongIfAbsent(long)} without a {@code NullPointerException}.
+	 *
+	 * @param in the stream to read from
+	 * @throws IOException            if reading fails
+	 * @throws ClassNotFoundException if a serialized class cannot be resolved
+	 */
+	private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+		in.defaultReadObject();
+		ensureConcurrentEntries();
 	}
 
 	/**

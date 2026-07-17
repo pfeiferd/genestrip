@@ -112,7 +112,7 @@ public class RadixBatchUpdateBenchmark {
 		if (mismatches != 0) {
 			throw new AssertionError("Batched update differs from sequential in " + mismatches + " entries.");
 		}
-		System.out.printf("correctness OK: batched == sequential over %d entries (moved=%d)%n", n, b.getKMersMoved());
+		System.out.printf("correctness OK: batched == sequential over %d entries%n", n);
 	}
 
 	private static RadixKMerStore<String> buildStore(long[] kmers) {
@@ -122,6 +122,10 @@ public class RadixBatchUpdateBenchmark {
 			bucketSizes[RadixKMerStore.radixOf(kmer, RADIX_BITS)]++;
 		}
 		RadixKMerStore<String> store = new RadixKMerStore<>(K, RADIX_BITS, bucketSizes, 1e-4, 0.01, null, true);
+		// putLong resolves values with a lock-free read, so register the whole value pool up front.
+		for (int v = 0; v < VALUE_POOL; v++) {
+			store.getAddValueIndex(Integer.toString(v));
+		}
 		Random rnd = new Random(1234);
 		for (long kmer : kmers) {
 			store.putLong(kmer, Integer.toString(rnd.nextInt(VALUE_POOL)));

@@ -24,13 +24,9 @@
  */
 package org.metagene.genestrip.bloom;
 
-import it.unimi.dsi.fastutil.BigArrays;
-import it.unimi.dsi.fastutil.longs.LongBigArrays;
-
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -38,7 +34,10 @@ import java.util.Random;
  * A blocked Bloom filter for k-mers, derived from FastFilter's {@code BlockedBloom} and tuned for
  * lookup speed: every key sets/tests a few bits within a small block of adjacent {@code long} words,
  * so a query touches only one or two cache lines. Uses small ({@code int}-indexed) storage up to
- * {@link #MAX_SMALL_CAPACITY} and fastutil {@link BigArrays} beyond it.
+ * {@link #MAX_SMALL_CAPACITY} and a self-managed array of {@code long[]} buckets beyond it. The
+ * buckets serve only to address storage beyond a single {@code long[]}; they are made as few and large
+ * as the capacity requires and carry no lock — concurrency is provided by a separate pool of stripe
+ * locks (see {@link #putLongIfAbsent(long)}).
  * <p></p>
  * This implementation is derived from
  * <a href="https://raw.githubusercontent.com/FastFilter/fastfilter_java/refs/heads/master/fastfilter/src/main/java/org/fastfilter/bloom/BlockedBloom.java">BlockedBloom.java</a>
@@ -53,15 +52,20 @@ public class BlockedKMerBloomFilter extends AbstractCountingKMerProbFilter {
 
     private static final long serialVersionUID = 1L;
 
-    /**
-     * Handle used to atomically OR bits into a single backing word, so that {@link
-     * #putLongIfAbsent(long)} can run lock-free from multiple threads without losing concurrent
-     * updates.
-     */
-    private static final VarHandle LONG_ARRAY_HANDLE = MethodHandles.arrayElementVarHandle(long[].class);
-
     /** Maximum capacity (in words) that still uses the small {@code int}-indexed storage. */
     public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
+
+    /** Base-2 logarithm of {@link #BUCKET_SIZE}; a word index is split into bucket and displacement here. */
+    private static final int BUCKET_SHIFT = 27;
+    /** Number of {@code long} words per bucket of the large backing (all but the last are full). */
+    private static final int BUCKET_SIZE = 1 << BUCKET_SHIFT;
+    /** Mask selecting the in-bucket displacement of a word index. */
+    private static final int BUCKET_MASK = BUCKET_SIZE - 1;
+
+    /** Number of stripe locks used to serialize concurrent word updates. Must be a power of two. */
+    private static final int SYNCS = 512;
+    /** Mask selecting a stripe lock from a word index (power-of-two count, so a cheap AND replaces a modulo). */
+    private static final int SYNCS_MASK = SYNCS - 1;
 
     /** Number of bits allocated per key. */
     private final int bitsPerKey;
@@ -71,10 +75,16 @@ public class BlockedKMerBloomFilter extends AbstractCountingKMerProbFilter {
     private long buckets;
     /** Small ({@code int}-indexed) bit storage, or {@code null} when large storage is used. */
     private long[] data;
-    /** Large ({@code long}-indexed) bit storage, or {@code null} when small storage is used. */
+    /** Large (bucketed) bit storage, or {@code null} when small storage is used. */
     private long[][] largeData;
     /** Number of keys added via the plain {@link #putLong(long)} path. */
     private long entries;
+    /**
+     * Stripe locks serializing concurrent {@link #putLongIfAbsent(long)} word updates, keyed by word
+     * index. Transient (locks carry no state worth serializing) and rebuilt on construction and after
+     * deserialization.
+     */
+    private transient Object[] syncs;
 
     /**
      * Creates a filter with {@link #DEFAULT_BITS_PER_KEY} bits per key.
@@ -103,6 +113,26 @@ public class BlockedKMerBloomFilter extends AbstractCountingKMerProbFilter {
         this.seed = seed;
         buckets = 0;
         entries = 0;
+        initSyncs();
+    }
+
+    private void initSyncs() {
+        syncs = new Object[SYNCS];
+        for (int i = 0; i < syncs.length; i++) {
+            syncs[i] = new Object();
+        }
+    }
+
+    /**
+     * Rebuilds the transient stripe locks after deserialization.
+     *
+     * @param in the stream to read from
+     * @throws IOException            if reading fails
+     * @throws ClassNotFoundException if a serialized class cannot be resolved
+     */
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        initSyncs();
     }
 
     @Override
@@ -118,18 +148,34 @@ public class BlockedKMerBloomFilter extends AbstractCountingKMerProbFilter {
             data[s] |= m1;
             data[s + 1 + (int) (hash >>> 60)] |= m2;
         } else {
-            BigArrays.set(largeData, start, BigArrays.get(largeData, start) | m1);
-            long s2 = start + 1 + (hash >>> 60);
-            BigArrays.set(largeData, s2, BigArrays.get(largeData, s2) | m2);
+            // Single-threaded classic path: no locking needed.
+            setLargeOr(start, m1);
+            setLargeOr(start + 1 + (hash >>> 60), m2);
         }
     }
 
     /**
-     * Adds the key to the filter and reports whether it was newly added, setting its bits with atomic
-     * ORs. This combines a {@link #containsLong(long)} check with {@link #putLong(long)} in a single
-     * pass and is safe to call concurrently from multiple threads: no concurrent bit set is lost, so
-     * false negatives cannot occur and the resulting filter state is identical to a plain {@code if
-     * (!containsLong(key)) putLong(key)} sequence.
+     * ORs the given mask into the large-storage word at the given index without locking (single-threaded
+     * use only).
+     *
+     * @param index the word index into the large storage
+     * @param mask  the bit mask to OR in
+     */
+    private void setLargeOr(long index, long mask) {
+        largeData[(int) (index >>> BUCKET_SHIFT)][(int) (index & BUCKET_MASK)] |= mask;
+    }
+
+    /**
+     * Adds the key to the filter and reports whether it was newly added, ORing its bits into the
+     * backing words under stripe locks. This combines a {@link #containsLong(long)} check with {@link
+     * #putLong(long)} in a single pass and is safe to call concurrently from multiple threads: no
+     * concurrent bit set is lost, so false negatives cannot occur and the resulting filter state is
+     * identical to a plain {@code if (!containsLong(key)) putLong(key)} sequence.
+     * <p>
+     * Each of the two affected words is updated under the stripe lock ({@link #syncs}) selected by its
+     * own word index, so writes to distinct words run in parallel (up to {@link #SYNCS} at a time)
+     * regardless of how few buckets the large storage uses. The two words are locked independently and
+     * never held at the same time, so no lock-ordering deadlock is possible.
      * <p>
      * The "newly added" flag is exact under single-threaded use. Under concurrent use two threads
      * inserting the same absent key may both observe it as new, so {@link #getEntries()} may
@@ -149,8 +195,9 @@ public class BlockedKMerBloomFilter extends AbstractCountingKMerProbFilter {
         long oldB;
         if (data != null) {
             int s = (int) start;
-            oldA = (long) LONG_ARRAY_HANDLE.getAndBitwiseOr(data, s, m1);
-            oldB = (long) LONG_ARRAY_HANDLE.getAndBitwiseOr(data, s + 1 + (int) (hash >>> 60), m2);
+            int s2 = s + 1 + (int) (hash >>> 60);
+            oldA = orSmall(s, m1);
+            oldB = orSmall(s2, m2);
         } else {
             oldA = orLarge(start, m1);
             oldB = orLarge(start + 1 + (hash >>> 60), m2);
@@ -164,17 +211,51 @@ public class BlockedKMerBloomFilter extends AbstractCountingKMerProbFilter {
     }
 
     /**
-     * Atomically ORs the given mask into the large-storage word at the given index and returns the
-     * previous word value.
+     * ORs the given mask into the small-storage word at the given index under its stripe lock, and
+     * returns the previous word value.
+     *
+     * @param index the word index into the small storage
+     * @param mask  the bit mask to OR in
+     * @return the word value before the OR
+     */
+    private long orSmall(int index, long mask) {
+        synchronized (syncFor(index)) {
+            long old = data[index];
+            data[index] = old | mask;
+            return old;
+        }
+    }
+
+    /**
+     * Returns the stripe lock for the given word index, mapping it onto the fixed {@link #syncs} pool
+     * with a cheap mask (the pool size is a power of two, so no modulo is needed). Writers to the same
+     * word share a lock; writers to other words spread across the pool.
+     *
+     * @param wordIndex the affected word index
+     * @return the stripe lock to synchronize on
+     */
+    private Object syncFor(long wordIndex) {
+        return syncs[(int) (wordIndex & SYNCS_MASK)];
+    }
+
+    /**
+     * ORs the given mask into the large-storage word at the given index under the stripe lock selected
+     * by that word's index, and returns the previous word value. Serializing on the word's stripe keeps
+     * concurrent writes to the same word from losing updates while letting writes to other words (and
+     * hence, typically, other threads) proceed.
      *
      * @param index the word index into the large storage
      * @param mask  the bit mask to OR in
      * @return the word value before the OR
      */
     private long orLarge(long index, long mask) {
-        long[] segment = largeData[BigArrays.segment(index)];
-        int displacement = BigArrays.displacement(index);
-        return (long) LONG_ARRAY_HANDLE.getAndBitwiseOr(segment, displacement, mask);
+        long[] bucket = largeData[(int) (index >>> BUCKET_SHIFT)];
+        int displacement = (int) (index & BUCKET_MASK);
+        synchronized (syncFor(index)) {
+            long old = bucket[displacement];
+            bucket[displacement] = old | mask;
+            return old;
+        }
     }
 
     @Override
@@ -189,12 +270,39 @@ public class BlockedKMerBloomFilter extends AbstractCountingKMerProbFilter {
             a = data[s];
             b = data[s + 1 + (int) (hash >>> 60)];
         } else {
-            a = BigArrays.get(largeData, start);
-            b = BigArrays.get(largeData, start + 1 + (hash >>> 60));
+            a = getLarge(start);
+            b = getLarge(start + 1 + (hash >>> 60));
         }
         long m1 = (1L << hash) | (1L << (hash >> 6));
         long m2 = (1L << (hash >> 12)) | (1L << (hash >> 18));
         return ((m1 & a) == m1) && ((m2 & b) == m2);
+    }
+
+    /**
+     * Reads the large-storage word at the given index.
+     *
+     * @param index the word index into the large storage
+     * @return the word value at that index
+     */
+    private long getLarge(long index) {
+        return largeData[(int) (index >>> BUCKET_SHIFT)][(int) (index & BUCKET_MASK)];
+    }
+
+    /**
+     * Allocates the large (bucketed) backing for {@code words} words on the fixed {@link #BUCKET_SIZE}
+     * grid: every bucket holds {@link #BUCKET_SIZE} words except the last, which holds the remainder.
+     *
+     * @param words the desired capacity in words
+     * @return the freshly allocated (zeroed) large backing
+     */
+    private static long[][] newLargeGrid(long words) {
+        int bucketCount = (int) ((words + BUCKET_SIZE - 1) >>> BUCKET_SHIFT);
+        long[][] grid = new long[bucketCount][];
+        for (int b = 0; b < bucketCount; b++) {
+            long startWord = (long) b << BUCKET_SHIFT;
+            grid[b] = new long[(int) Math.min(BUCKET_SIZE, words - startWord)];
+        }
+        return grid;
     }
 
     @Override
@@ -208,8 +316,7 @@ public class BlockedKMerBloomFilter extends AbstractCountingKMerProbFilter {
             buckets = newSize;
             if (buckets + 16 + 1 > MAX_SMALL_CAPACITY || enforceLarge) {
                 data = null;
-                largeData = BigArrays.ensureCapacity(largeData == null ? LongBigArrays.EMPTY_BIG_ARRAY : largeData,
-                        buckets  + 16 + 1);
+                largeData = newLargeGrid(buckets + 16 + 1);
             } else {
                 largeData = null;
                 data = new long[(int) buckets + 16 + 1];
@@ -257,7 +364,9 @@ public class BlockedKMerBloomFilter extends AbstractCountingKMerProbFilter {
     @Override
     public void clear() {
         if (largeData != null) {
-            BigArrays.fill(largeData, 0L);
+            for (long[] bucket : largeData) {
+                Arrays.fill(bucket, 0L);
+            }
         } else if (data != null) {
             Arrays.fill(data, 0L);
         }

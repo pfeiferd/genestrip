@@ -27,13 +27,15 @@ package org.metagene.genestrip.util;
 import java.io.Serializable;
 import java.util.Arrays;
 
-import it.unimi.dsi.fastutil.BigArrays;
-import it.unimi.dsi.fastutil.shorts.ShortBigArrays;
-
 /**
  * A vector of short counters that transparently switches between a single {@code short[]} for small
- * capacities and fastutil big arrays for capacities beyond the range of a normal array, and never
- * shrinks.
+ * capacities and a self-managed array of {@code short[]} buckets for capacities beyond the range of a
+ * normal array, and never shrinks.
+ * <p>
+ * The large backing is a plain {@code short[][]} (an "array of arrays") laid out on a fixed grid:
+ * every bucket holds exactly {@link #BUCKET_SIZE} shorts except the last, which holds the remainder.
+ * The grid is self-managed (no external big-array library is involved); the bucket width matches the
+ * historic segmentation, so the serialized form is unchanged.
  */
 public class LargeShortVector implements Serializable {
 	private static final long serialVersionUID = 1L;
@@ -41,13 +43,20 @@ public class LargeShortVector implements Serializable {
 	/** Maximum capacity that still uses the small ({@code int}-indexed) array. */
 	public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
 
+	/** Base-2 logarithm of {@link #BUCKET_SIZE}; an index is split into bucket and displacement here. */
+	private static final int BUCKET_SHIFT = 27;
+	/** Number of shorts per bucket of the large backing (all but the last are full). */
+	private static final int BUCKET_SIZE = 1 << BUCKET_SHIFT;
+	/** Mask selecting the in-bucket displacement of an index. */
+	private static final int BUCKET_MASK = BUCKET_SIZE - 1;
+
 	/** Current size (number of shorts) of the vector. */
 	protected long size;
 	// Made public for inlining
 	/** Small ({@code int}-indexed) backing array, or {@code null} when large storage is used. */
 	public short[] shorts;
 	// Made public for inlining
-	/** Large ({@code long}-indexed) backing array, or {@code null} when small storage is used. */
+	/** Large (bucketed) backing array, or {@code null} when small storage is used. */
 	public short[][] largeShorts;
 
 	/**
@@ -75,7 +84,9 @@ public class LargeShortVector implements Serializable {
 	 */
 	public void clear() {
 		if (largeShorts != null) {
-			BigArrays.fill(largeShorts, (short) 0);
+			for (short[] bucket : largeShorts) {
+				Arrays.fill(bucket, (short) 0);
+			}
 		} else if (shorts != null) {
 			Arrays.fill(shorts, (short) 0);
 		}
@@ -91,13 +102,10 @@ public class LargeShortVector implements Serializable {
 	 */
 	public boolean ensureCapacity(long newSize, boolean enforceLarge) {
 		if (newSize > size) {
+			long oldCount = size;
 			size = newSize;
 			if (size > MAX_SMALL_CAPACITY || enforceLarge || largeShorts != null) {
-				if (shorts != null) {
-					largeShorts = BigArrays.wrap(shorts);
-				}
-				largeShorts = BigArrays
-						.ensureCapacity(largeShorts == null ? ShortBigArrays.EMPTY_BIG_ARRAY : largeShorts, size);
+				largeShorts = growLarge(shorts, largeShorts, oldCount, size);
 				shorts = null;
 			} else {
 				short[] oldShorts = shorts;
@@ -111,6 +119,50 @@ public class LargeShortVector implements Serializable {
 		} else {
 			return false;
 		}
+	}
+
+	/**
+	 * Allocates the large (bucketed) backing for {@code newCount} shorts on the fixed {@link
+	 * #BUCKET_SIZE} grid and copies the first {@code oldCount} shorts of the previous backing into it.
+	 * Exactly one of {@code smallOld} / {@code largeOld} is non-null (the previous backing), or both
+	 * are null on the very first allocation.
+	 *
+	 * @param smallOld the previous small backing, or {@code null}
+	 * @param largeOld the previous large backing, or {@code null}
+	 * @param oldCount the number of shorts to preserve from the previous backing
+	 * @param newCount the desired capacity in shorts
+	 * @return the freshly allocated large backing holding the preserved shorts
+	 */
+	private static short[][] growLarge(short[] smallOld, short[][] largeOld, long oldCount, long newCount) {
+		int bucketCount = (int) ((newCount + BUCKET_SIZE - 1) >>> BUCKET_SHIFT);
+		short[][] result = new short[bucketCount][];
+		for (int b = 0; b < bucketCount; b++) {
+			long start = (long) b << BUCKET_SHIFT;
+			result[b] = new short[(int) Math.min(BUCKET_SIZE, newCount - start)];
+		}
+		// Copy the retained shorts bucket-aligned. Source and destination share the same grid, so a
+		// block never straddles more than one source and one destination bucket.
+		long copied = 0;
+		while (copied < oldCount) {
+			int dstBucket = (int) (copied >>> BUCKET_SHIFT);
+			int dstOff = (int) (copied & BUCKET_MASK);
+			short[] src;
+			int srcOff;
+			int srcRoom;
+			if (largeOld != null) {
+				src = largeOld[(int) (copied >>> BUCKET_SHIFT)];
+				srcOff = (int) (copied & BUCKET_MASK);
+				srcRoom = src.length - srcOff;
+			} else {
+				src = smallOld;
+				srcOff = (int) copied;
+				srcRoom = smallOld.length - srcOff;
+			}
+			int n = (int) Math.min(Math.min(result[dstBucket].length - dstOff, srcRoom), oldCount - copied);
+			System.arraycopy(src, srcOff, result[dstBucket], dstOff, n);
+			copied += n;
+		}
+		return result;
 	}
 
 	/**
@@ -139,8 +191,7 @@ public class LargeShortVector implements Serializable {
 	 */
 	public final short inc(final long index) {
 		if (largeShorts != null) {
-			BigArrays.incr(largeShorts, index);
-			return BigArrays.get(largeShorts, index);
+			return ++largeShorts[(int) (index >>> BUCKET_SHIFT)][(int) (index & BUCKET_MASK)];
 		} else {
 			return ++shorts[(int) index];
 		}
@@ -154,7 +205,7 @@ public class LargeShortVector implements Serializable {
 	 */
 	public final short get(long index) {
 		if (largeShorts != null) {
-			return BigArrays.get(largeShorts, index);
+			return largeShorts[(int) (index >>> BUCKET_SHIFT)][(int) (index & BUCKET_MASK)];
 		} else {
 			return shorts[(int) index];
 		}

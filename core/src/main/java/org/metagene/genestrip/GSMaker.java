@@ -313,7 +313,7 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
         registerGoal(basicSizeGoal);
 
         ObjectGoal<FillBloomFilterGoal.DBSize, P> fillSizeGoal = new FillBloomFilterGoal(project, getExecutionContext(project), categoriesGoal,
-                taxNodesGoal, refSeqFnaFilesGoal, additionalFastasGoal, accessionMapGoal, basicSizeGoal);
+                taxNodesGoal, refSeqFnaFilesGoal, additionalFastasGoal, accessionMapGoal, taxTreeGoal, basicSizeGoal);
         registerGoal(fillSizeGoal);
 
         FillDBGoal<P> fillDBGoal = new FillDBGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, taxTreeGoal, refSeqFnaFilesGoal,

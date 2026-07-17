@@ -27,7 +27,6 @@ package org.metagene.genestrip.store;
 import java.util.HashMap;
 import java.util.Map;
 
-import it.unimi.dsi.fastutil.BigArrays;
 import org.metagene.genestrip.store.KMerStore.IndexedKMerStoreVisitor;
 import org.metagene.genestrip.util.LargeBitVector;
 import org.metagene.genestrip.util.LargeShortVector;
@@ -86,25 +85,9 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 
 	@Override
 	public final synchronized void put(final long kmer, final String taxid, final long index) {
-		if (bitVector.largeBits != null) {
-			long arrayIndex = index >>> 6;
-			BigArrays.set(bitVector.largeBits, arrayIndex, BigArrays.get(bitVector.largeBits, arrayIndex) | (1L << (index & 0b111111)));
-		} else {
-			// Using optimization instead of '%', see:
-			// http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
-			// and Line 34 in https://github.com/FastFilter/fastfilter_java/blob/master/fastfilter/src/main/java/org/fastfilter/utils/Hash.java
-			// Not sure whether it would also work for long - probably not.
-			//int arrayIndex = (int) ((((index >>> 6) & 0xffffffffL) * (size & 0xffffffffL)) >>> 32);
-			// Original code:
-			int arrayIndex = (int) (index >>> 6);
-			bitVector.bits[arrayIndex] = bitVector.bits[arrayIndex] | (1L << (index & 0b111111));
-		}
+		bitVector.set(index);
 		if (countsVector != null) {
-			if (countsVector.largeShorts != null) {
-				BigArrays.incr(countsVector.largeShorts, index);
-			} else {
-				++countsVector.shorts[(int) index];
-			}
+			countsVector.inc(index);
 		}
 	}
 
@@ -115,30 +98,13 @@ public class KMerUniqueCounterBits implements KMerUniqueCounter {
 	 * @param index the storage position of the k-mer within the backing store
 	 */
 	public final void putInlined(final long index) {
-		long arrayIndex = ((index >>> 6) % bitVector.size);
-		synchronized (locks[(int)(arrayIndex & LOCKS_MASK)]) {
-			// Inline start
-			if (bitVector.largeBits != null) {
-				long arrayIndex1 = index >>> 6;
-				BigArrays.set(bitVector.largeBits, arrayIndex1, BigArrays.get(bitVector.largeBits, arrayIndex1) | (1L << (index & 0b111111)));
-			} else {
-				// Using optimization instead of '%', see:
-				// http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
-				// and Line 34 in https://github.com/FastFilter/fastfilter_java/blob/master/fastfilter/src/main/java/org/fastfilter/utils/Hash.java
-				// Not sure whether it would also work for long - probably not.
-				//int arrayIndex = (int) ((((index >>> 6) & 0xffffffffL) * (size & 0xffffffffL)) >>> 32);
-				// Original code:
-				int arrayIndex1 = (int) (index >>> 6);
-				bitVector.bits[arrayIndex1] = bitVector.bits[arrayIndex1] | (1L << (index & 0b111111));
-			}
+		// LOCKS is a power of two, so the stripe is selected with a cheap AND (no modulo). Keying on the
+		// word index (index >>> 6) makes concurrent writers to the same word share a lock.
+		synchronized (locks[(int) ((index >>> 6) & LOCKS_MASK)]) {
+			bitVector.set(index);
 			if (countsVector != null) {
-				if (countsVector.largeShorts != null) {
-					BigArrays.incr(countsVector.largeShorts, index);
-				} else {
-					++countsVector.shorts[(int) index];
-				}
+				countsVector.inc(index);
 			}
-			// Inline end
 		}
 	}
 

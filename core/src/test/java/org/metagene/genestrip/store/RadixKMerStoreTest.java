@@ -129,7 +129,6 @@ public class RadixKMerStoreTest extends AbstractKMerStoreTest {
 			bat.updateBatch(buf, toOne);
 		}
 
-		assertEquals(seq.getKMersMoved(), bat.getKMersMoved());
 		for (long kmer : kmers) {
 			assertEquals(seq.getLong(kmer, null), bat.getLong(kmer, null));
 		}
@@ -185,6 +184,10 @@ public class RadixKMerStoreTest extends AbstractKMerStoreTest {
 		}
 		// A very low fpp so no k-mer is dropped on a fill-time filter false positive.
 		RadixKMerStore<Integer> store = new RadixKMerStore<Integer>(k, RADIX_BITS, bucketSizes, 1e-9, 1e-9, null, true);
+		// putLong resolves values with a lock-free read, so register them up front (idempotent).
+		for (Integer value : kmerMap.values()) {
+			store.getAddValueIndex(value);
+		}
 		for (Map.Entry<Long, Integer> e : kmerMap.entrySet()) {
 			assertTrue(store.putLong(e.getKey(), e.getValue()));
 		}

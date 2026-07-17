@@ -28,9 +28,8 @@ import java.util.Arrays;
 
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
-import it.unimi.dsi.fastutil.BigArrays;
-import it.unimi.dsi.fastutil.BigSwapper;
-import it.unimi.dsi.fastutil.longs.LongComparator;
+import it.unimi.dsi.fastutil.Swapper;
+import it.unimi.dsi.fastutil.ints.IntComparator;
 
 /**
  * An {@link AccessionMap} backed by parallel key and value arrays that, once {@link #optimize()} is
@@ -121,24 +120,26 @@ public class AccessionMapImpl implements AccessionMap {
 	}
 
 	public void optimize() {
-		BigArrays.quickSort(0, entries, new LongComparator() {
+		// The keys/values are plain int-indexed arrays, so a normal (non-big) index sort suffices; it
+		// permutes both arrays in lock-step via the swapper, ordering by the accession key.
+		it.unimi.dsi.fastutil.Arrays.quickSort(0, entries, new IntComparator() {
 			@Override
-			public int compare(long k1, long k2) {
-				byte[] key1 = keys[(int) k1];
-				byte[] key2 = keys[(int) k2];
+			public int compare(int k1, int k2) {
+				byte[] key1 = keys[k1];
+				byte[] key2 = keys[k2];
 				return compareBytes(key1, key2);
 			}
-		}, new BigSwapper() {
+		}, new Swapper() {
 			@Override
-			public void swap(long a, long b) {
-				byte[] key1 = keys[(int) a];
-				byte[] key2 = keys[(int) b];
-				keys[(int) b] = key1;
-				keys[(int) a] = key2;
-				TaxIdNode n1 = values[(int) a];
-				TaxIdNode n2 = values[(int) b];
-				values[(int) b] = n1;
-				values[(int) a] = n2;
+			public void swap(int a, int b) {
+				byte[] key1 = keys[a];
+				byte[] key2 = keys[b];
+				keys[b] = key1;
+				keys[a] = key2;
+				TaxIdNode n1 = values[a];
+				TaxIdNode n2 = values[b];
+				values[b] = n1;
+				values[a] = n2;
 			}
 		});
 		sorted = true;

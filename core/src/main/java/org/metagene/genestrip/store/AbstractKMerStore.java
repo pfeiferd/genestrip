@@ -100,8 +100,6 @@ public abstract class AbstractKMerStore<V extends Serializable> implements Tunab
 	/** Per-value k-mer count statistics, or {@code null} if not tracked. */
 	protected Object2LongMap<V> kmerPersTaxid;
 
-	/** The number of k-mers moved during optimization. */
-	protected transient long kmersMoved;
 	// Just for optimizing synchronization during updates.
 	/** The lock array used to serialize concurrent updates of the same entry. */
 	protected transient Object[] syncs;
@@ -139,7 +137,6 @@ public abstract class AbstractKMerStore<V extends Serializable> implements Tunab
 		this.filter = filter;
 		this.useFilter = filter != null;
 		this.kmerPersTaxid = null;
-		this.kmersMoved = 0;
 		initSyncs();
 	}
 
@@ -193,7 +190,6 @@ public abstract class AbstractKMerStore<V extends Serializable> implements Tunab
 	private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
 		ois.defaultReadObject();
 		initSyncs();
-		kmersMoved = 0;
 	}
 
 	private void initSyncs() {
@@ -201,6 +197,20 @@ public abstract class AbstractKMerStore<V extends Serializable> implements Tunab
 		for (int i = 0; i < syncs.length; i++) {
 			syncs[i] = new Object();
 		}
+	}
+
+	/**
+	 * Returns the stripe lock for the given key, mapping it onto the fixed {@link #syncs} pool with a
+	 * cheap mask (the pool size is a power of two, so no modulo is needed). Concurrent accesses should
+	 * derive the key from whatever state they guard, so that accesses which might touch the same state
+	 * hash to the same lock while unrelated ones spread across the pool. The key is a {@code long} so
+	 * that index mixing (e.g. {@code radix * 31 + pos}) cannot overflow.
+	 *
+	 * @param key the striping key
+	 * @return the stripe lock to synchronize on
+	 */
+	protected final Object syncFor(long key) {
+		return syncs[(int) (key & (syncs.length - 1))];
 	}
 
 	@Override
@@ -231,11 +241,6 @@ public abstract class AbstractKMerStore<V extends Serializable> implements Tunab
 	@Override
 	public boolean isOptimized() {
 		return sorted;
-	}
-
-	@Override
-	public long getKMersMoved() {
-		return kmersMoved;
 	}
 
 	// --- Optional pre-filter (TunableKMerStore) -------------------------------
@@ -310,6 +315,29 @@ public abstract class AbstractKMerStore<V extends Serializable> implements Tunab
 			index = nextValueIndex++;
 			valueMap.put(value, index);
 			indexMap[index] = value;
+		}
+		return index;
+	}
+
+	/**
+	 * Resolves an <em>already registered</em> value to its store index with a lock-free read, for the
+	 * concurrent fill and update paths. It never mutates {@code valueMap} (a plain, non-thread-safe hash
+	 * map), so it needs no synchronization: both phases run only after every value has been registered
+	 * up front (single-threaded — the fill via the store's {@code initialValues}, the update via {@link
+	 * Database#initStoreIndices()}), so no concurrent writer can race the reads. Encountering an
+	 * unregistered value would mean that invariant was violated; rather than silently mutate the map
+	 * from many threads (which is unsafe) it fails fast.
+	 *
+	 * @param value the value to resolve; must already be registered
+	 * @return the store index of the value
+	 * @throws IllegalStateException if the value was not registered up front
+	 */
+	protected final int getRegisteredValueIndex(V value) {
+		int index = getIndexForValue(value);
+		if (index < 0) {
+			throw new IllegalStateException("Encountered a value not registered before the concurrent phase: "
+					+ value + ". All values must be registered up front (fill: the store's initialValues;"
+					+ " update: Database.initStoreIndices()).");
 		}
 		return index;
 	}
