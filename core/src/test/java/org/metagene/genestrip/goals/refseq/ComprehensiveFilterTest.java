@@ -116,7 +116,7 @@ public class ComprehensiveFilterTest extends ComprehensiveMatchTest {
                     @Override
                     protected FastqKMerMatcher createMatcher(KMerStore<SmallTaxTree.SmallTaxIdNode> store, SmallTaxTree taxTree, ExecutionContext bundle, boolean withProbs, String dbMD5) {
                         return new FastqKMerMatcher(store, intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
-                                intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, withProbs, intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS),
+                                intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, withProbs,
                                 taxTree, intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS),
                                 doubleConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT),
                                 doubleConfigValue(GSConfigKey.MAX_READ_CLASS_ERROR_COUNT),

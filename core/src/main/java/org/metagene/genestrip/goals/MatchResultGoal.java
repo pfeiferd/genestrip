@@ -37,7 +37,6 @@ import org.metagene.genestrip.match.FastqKMerMatcher;
 import org.metagene.genestrip.match.MatchingResult;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.KMerStore;
-import org.metagene.genestrip.store.KMerUniqueCounterBits;
 import org.metagene.genestrip.store.TunableKMerStore;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
@@ -94,7 +93,6 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 			Map<String, MatchingResult> matchResults = new LinkedHashMap<>(); // To preserver order of keys.
 			Map<String, StreamingResourceStream> map = fastqMapGoal.get();
 			Database database = null;
-			KMerUniqueCounterBits uniqueCounter = null;
 
 			for (String key : map.keySet()) {
 				File filteredFile = null;
@@ -135,15 +133,9 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 							}
 						});
 					}
-					uniqueCounter = booleanConfigValue(GSConfigKey.COUNT_UNIQUE_KMERS)
-							? new KMerUniqueCounterBits(database.getKmerStore(),
-							intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS) > 0)
-							: null;
 				}
-				if (uniqueCounter != null) {
-					uniqueCounter.clear();
-				}
-				MatchingResult res = matcher.runMatcher(fastqs, filteredFile, krakenOutStyleFile, uniqueCounter);
+				MatchingResult res = matcher.runMatcher(fastqs, filteredFile, krakenOutStyleFile,
+						booleanConfigValue(GSConfigKey.COUNT_UNIQUE_KMERS));
 				res.completeResults(database);
 				matchResults.put(key, res);
 				if (afterMatchCallback != null) {
@@ -174,7 +166,7 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 	protected FastqKMerMatcher createMatcher(KMerStore<SmallTaxIdNode> store, SmallTaxTree taxTree,
 			ExecutionContext bundle, boolean withProbs, String dbMD5) {
 		return new FastqKMerMatcher(store, intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
-				intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, withProbs, intConfigValue(GSConfigKey.MAX_KMER_RES_COUNTS),
+				intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, withProbs,
 				taxTree, intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS),
 				doubleConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT),
 				doubleConfigValue(GSConfigKey.MAX_READ_CLASS_ERROR_COUNT),

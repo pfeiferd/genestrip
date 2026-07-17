@@ -85,7 +85,6 @@ public class APITest {
 		// Example of setting a configuration parameter programmatically (this overrides the value
 		// from the project's config files); see GSConfigKey for the available keys.
 		project.initConfigParam(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH, true);
-		//project.initConfigParam(GSConfigKey.MAX_KMER_RES_COUNTS, 35);
 		// Run the 'match' goal on the fastq file. Arguments:
 		//   1st boolean: use the 'matchlr' variant (matching without read classification, intended
 		//                for long reads) when true; 'false' selects the standard 'match'.

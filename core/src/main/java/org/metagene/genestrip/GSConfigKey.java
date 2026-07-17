@@ -339,9 +339,6 @@ public enum GSConfigKey implements ConfigKey {
 	/** Minimum total of k-mers under a taxon required to classify a read to it. */
 	@MDDescription("Can be set to adjust the minimal total of *k*-mers under taxon *t* required for a read to be classified to *t*. I.e., given a read *r* and taxon *t1* on the genus rank with two *k*-mers from *r* and taxon *t2* subordinate to *t1* on the species rank with one *k*-mer from *r*. Furthermore, *r* shall have no other *k*-mers matching any taxons. Then, if `minKMersForClass = 2`, *r* would not be classified to *t1* but to *t2* instead since the single *k*-mer under *t1* is below the threshold but the total of three *k*-mers under *t2* suffice.")
 	MIN_KMERS_FOR_CLASS("minKMersForClass", new IntConfigParamInfo(1, Integer.MAX_VALUE, 1)),
-	/** Number of most-frequent k-mer frequencies reported per tax id. */
-	@MDDescription("If > 0, the corresponding number of frequencies of the most frequent *k*-mers per tax id will be reported.")
-	MAX_KMER_RES_COUNTS("maxKMerResCounts", new IntConfigParamInfo(0, 65536, 0), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 	/** Size of the work queue between reader and consumer threads. */
 	THREAD_QUEUE_SIZE("threadQueueSize", new IntConfigParamInfo(1, 10000, 1000), true),
 	/** Initial read buffer size in bytes. */

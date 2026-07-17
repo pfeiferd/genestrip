@@ -41,13 +41,12 @@ import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.io.StreamingResourceListStream;
 import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.store.KMerStore;
-import org.metagene.genestrip.store.KMerUniqueCounterBits;
+import org.metagene.genestrip.util.LargeBitVector;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.CGAT;
 
-import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 /**
  * Matches the k-mers of FASTQ (or FASTA) reads against the k-mer database and classifies
@@ -66,12 +65,13 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
     protected final KMerStore<SmallTaxIdNode> kmerStore;
     /** MD5 checksum identifying the database used for matching. */
     protected final String dbMD5;
-    /** Maximum number of top k-mer counts to retain per tax id. */
-    protected final int maxKmerResCounts;
 
-    // Turned from KMerUniqueCounter to KMerUniqueCounterBits for potential method inlining.
-    /** Optional counter of unique k-mers per tax id, or {@code null} if unique counting is disabled. */
-    protected KMerUniqueCounterBits uniqueCounter;
+    /**
+     * Marks each matched k-mer by its storage position so distinct matched k-mers can be counted per
+     * tax id; {@code null} when unique counting is disabled. Set concurrently via {@link
+     * LargeBitVector#setAndTestWasUnset(long)}.
+     */
+    protected LargeBitVector uniqueKmerBits;
     /** Per-store-index statistics accumulators, indexed by a tax id node's store index. */
     protected final CountsPerTaxid[] statsIndex;
     /** Per-consumer, per-store-index last read number seen, used to count reads with at least one k-mer. */
@@ -115,7 +115,6 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
      * @param maxQueueSize          the maximum size of the read queue
      * @param bundle                the execution context providing the worker threads
      * @param withProbs             whether quality/probability information is processed
-     * @param maxKmerResCounts      the maximum number of top k-mer counts to retain per tax id
      * @param taxTree               the taxonomy tree used for voting and LCA resolution
      * @param maxPaths              the maximum number of candidate taxonomic paths per read
      * @param maxReadTaxErrorCount  the maximum allowed tax error count per read
@@ -125,7 +124,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
      * @param dbMD5                 the MD5 checksum identifying the database
      */
     public FastqKMerMatcher(KMerStore<SmallTaxIdNode> kmerStore, int initialReadSize, int maxQueueSize,
-                            ExecutionContext bundle, boolean withProbs, int maxKmerResCounts, SmallTaxTree taxTree, int maxPaths,
+                            ExecutionContext bundle, boolean withProbs, SmallTaxTree taxTree, int maxPaths,
                             double maxReadTaxErrorCount, double maxReadClassErrorCount, boolean writeAll, int threshold, String dbMD5) {
         super(kmerStore.getK(), initialReadSize, maxQueueSize, bundle, withProbs, maxPaths);
         consumers = bundle.getThreads() <= 0 ? 1 : bundle.getThreads();
@@ -133,7 +132,6 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         this.statsIndex = new CountsPerTaxid[kmerStore.getNValues()];
         this.readNoPerCPerStat = new long[consumers][kmerStore.getNValues()];
         this.initialReadSize = initialReadSize;
-        this.maxKmerResCounts = maxKmerResCounts;
         this.taxTree = taxTree;
         this.maxReadTaxErrorCount = maxReadTaxErrorCount;
         this.maxReadClassErrorCount = maxReadClassErrorCount;
@@ -152,19 +150,19 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
     }
 
     /**
-     * Convenience overload of {@link #runMatcher(StreamingResourceStream, File, File, KMerUniqueCounterBits)}
+     * Convenience overload of {@link #runMatcher(StreamingResourceStream, File, File, boolean)}
      * that matches a single FASTQ resource.
      *
      * @param fastq             the FASTQ resource to process
      * @param filteredFile      optional file to which matched reads are written, or {@code null}
      * @param krakenOutStyleFile optional file for Kraken-style per-read output, or {@code null}
-     * @param uniqueCounter     optional unique-k-mer counter, or {@code null} to skip unique counting
+     * @param countUniqueKmers  whether to count the distinct matched k-mers per tax id
      * @return the aggregated matching result
      * @throws IOException if reading the FASTQ resource or writing the output files fails
      */
     public MatchingResult runMatcher(StreamingResource fastq, File filteredFile, File krakenOutStyleFile,
-                                     KMerUniqueCounterBits uniqueCounter) throws IOException {
-        return runMatcher(new StreamingResourceListStream(fastq), filteredFile, krakenOutStyleFile, uniqueCounter);
+                                     boolean countUniqueKmers) throws IOException {
+        return runMatcher(new StreamingResourceListStream(fastq), filteredFile, krakenOutStyleFile, countUniqueKmers);
     }
 
     /**
@@ -174,12 +172,12 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
      * @param fastqs            the FASTQ resources to process
      * @param filteredFile      optional file to which matched reads are written, or {@code null}
      * @param krakenOutStyleFile optional file for Kraken-style per-read output, or {@code null}
-     * @param uniqueCounter     optional unique-k-mer counter, or {@code null} to skip unique counting
+     * @param countUniqueKmers  whether to count the distinct matched k-mers per tax id
      * @return the aggregated matching result
      * @throws IOException if reading the FASTQ streams or writing the output files fails
      */
     public MatchingResult runMatcher(StreamingResourceStream fastqs, File filteredFile, File krakenOutStyleFile,
-                                     KMerUniqueCounterBits uniqueCounter) throws IOException {
+                                     boolean countUniqueKmers) throws IOException {
         try (OutputStream lindexed = filteredFile != null ? StreamProvider.getOutputStreamForFile(filteredFile) : null;
              // A PrintStream is implicitly synchronized. So we don't need to worry about
              // multi threading when using it.
@@ -190,7 +188,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             out = lout;
 
             initStats();
-            initUniqueCounter(uniqueCounter);
+            initUniqueCounter(countUniqueKmers);
             processFastqStreams(fastqs);
         }
         out = null;
@@ -203,25 +201,29 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             }
         }
 
-        Map<String, short[]> countMap = null;
-        if (uniqueCounter != null) {
-            Object2LongMap<String> counts = uniqueCounter.getUniqueKmerCounts();
-            for (CountsPerTaxid stats : statsIndex) {
-                if (stats != null) {
-                    stats.uniqueKmers = counts.getLong(stats.getTaxid());
+        computeUniqueKmerCounts();
+
+        return new MatchingResult(kmerStore.getK(), taxid2Stats, dbMD5, totalReads, totalKMers, totalBPs);
+    }
+
+    /**
+     * Fills each tax id's {@code uniqueKmers} from the marked bit positions: the number of distinct
+     * matched k-mers per store value index (which {@link #statsIndex} is indexed by too), or {@code -1}
+     * when unique counting is disabled. Package-private so tests can drive it directly.
+     */
+    void computeUniqueKmerCounts() {
+        if (uniqueKmerBits != null) {
+            long[] uniquePerIndex = new long[statsIndex.length];
+            kmerStore.visit((store, kmer, index, pos) -> {
+                if (uniqueKmerBits.get(pos)) {
+                    uniquePerIndex[index]++;
+                }
+            });
+            for (int vi = 0; vi < statsIndex.length; vi++) {
+                if (statsIndex[vi] != null) {
+                    statsIndex[vi].uniqueKmers = uniquePerIndex[vi];
                 }
             }
-            if (uniqueCounter instanceof KMerUniqueCounterBits) {
-                if (((KMerUniqueCounterBits) uniqueCounter).isWithCounts()) {
-                    countMap = ((KMerUniqueCounterBits) uniqueCounter).getMaxCountsCounts(maxKmerResCounts);
-                    for (CountsPerTaxid stats : statsIndex) {
-                        if (stats != null) {
-                            stats.maxKMerCounts = countMap.get(stats.getTaxid());
-                        }
-                    }
-                }
-            }
-            this.uniqueCounter = null;
         } else {
             for (CountsPerTaxid stats : statsIndex) {
                 if (stats != null) {
@@ -229,9 +231,6 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                 }
             }
         }
-
-        return new MatchingResult(kmerStore.getK(), taxid2Stats, dbMD5, totalReads, totalKMers, totalBPs,
-                countMap == null ? null : countMap.get(null));
     }
 
     @Override
@@ -256,11 +255,16 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         Arrays.fill(statsIndex, null);
     }
 
-    void initUniqueCounter(KMerUniqueCounterBits uniqueCounter) {
-        // Turned from KMerUniqueCounter to KMerUniqueCounterBits for potential method inlining.
-        this.uniqueCounter = uniqueCounter;
-        if (uniqueCounter != null) {
-            uniqueCounter.clear();
+    void initUniqueCounter(boolean countUniqueKmers) {
+        if (countUniqueKmers) {
+            // One bit per store position; reused across FASTQ keys, so allocate once and clear.
+            if (uniqueKmerBits == null) {
+                uniqueKmerBits = new LargeBitVector(kmerStore.getEntries());
+            } else {
+                uniqueKmerBits.clear();
+            }
+        } else {
+            uniqueKmerBits = null;
         }
     }
 
@@ -438,12 +442,10 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                         }
                     }
                 }
-                if (uniqueCounter != null) {
-                    // This is a considerable optimization as found via profiling:
-                    // Old version:
-                    // uniqueCounter.put(CGAT.standardKMer(kmer, reverseKmer), taxIdNode.getTaxId(), entry.indexPos[0]);
-                    // Faster version:
-                    uniqueCounter.putInlined(entry.indexPos[0]);
+                if (uniqueKmerBits != null) {
+                    // Mark this matched k-mer's storage position; setAndTestWasUnset is thread-safe
+                    // (its return value - whether the bit was newly set - is not needed here).
+                    uniqueKmerBits.setAndTestWasUnset(entry.indexPos[0]);
                 }
             } else {
                 stats = null;

@@ -147,8 +147,6 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
     protected int maxContigLen;
     /** The read descriptor of the longest contig. */
     protected final byte[] maxContigDescriptor;
-    /** The frequencies of the most frequent unique k-mers in descending order. */
-    protected short[] maxKMerCounts;
     /** The sum of per-read k-mer error ratios. */
     protected double errorSum;
     /** The sum of squared per-read k-mer error ratios. */
@@ -202,15 +200,13 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
      * @param totalReads    the total number of reads
      * @param totalKmers    the total number of k-mers
      * @param totalBPs      the total number of base pairs
-     * @param totalMaxCounts the maximum k-mer counts
      */
-    public CountsPerTaxid(int level, String taxid, long totalReads, long totalKmers, long totalBPs, short[] totalMaxCounts) {
+    public CountsPerTaxid(int level, String taxid, long totalReads, long totalKmers, long totalBPs) {
         this.level = level;
         this.taxid = taxid;
         this.reads = totalReads;
         this.kmers = totalKmers;
         this.readsBPs = totalBPs;
-        this.maxKMerCounts = totalMaxCounts;
         maxContigDescriptor = new byte[0];
         extendedValues = new AccValues[ValueType.VALUES.length];
     }
@@ -576,18 +572,6 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
         CountsPerTaxid.AccValues accValues = getAccValuesFor(ValueType.READS);
         long reads = accValues == null ? 0 : accValues.getAccumulated();
         return Math.sqrt((accClassErrorSquaredSum  - (accClassErrorSum * accClassErrorSum) / reads) / (reads - 1));
-    }
-
-    /**
-     * Returns the frequencies of the most frequent unique k-mers in descending order.
-     *
-     * @return the maximum k-mer counts
-     */
-    @MDCDescription(pos = 2001, name="max kmer counts", desc = "The frequencies of the most frequent unique *k*-mers which are specific to the tax id's genome in descending order separated by `;`. " +
-            "This column is experimental and only present when the configuration parameter `maxKMerResCounts` is set to a value greater than 0 " +
-            "(see also Section [Configuration parameters](#configuration-parameters)).")
-    public short[] getMaxKMerCounts() {
-        return maxKMerCounts;
     }
 
     void completeValues(int pos, long dbKMers, SmallTaxTree.SmallTaxIdNode node) {

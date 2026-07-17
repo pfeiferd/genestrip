@@ -39,14 +39,12 @@ import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.store.KMerStore.ValueConverter;
-import org.metagene.genestrip.store.KMerUniqueCounterBits;
 import org.metagene.genestrip.store.RadixKMerStore;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.util.CGAT;
 
-import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 import static org.junit.Assert.*;
 
@@ -116,7 +114,6 @@ public class FastqKMerMatcherTest {
 		ExecutionContext bundle = new DefaultExecutionContext(null, 0, 1000);
 
 		FastqKMerMatcher matcher = new MyFastqMatcher(store, readLength * 10, 1, bundle);
-		KMerUniqueCounterBits uniqueCounter = new KMerUniqueCounterBits(store, true);
 
 		MatcherReadEntry entry = new MatcherReadEntry(2000, true, 4);
 		entry.readSize = readLength;
@@ -135,7 +132,7 @@ public class FastqKMerMatcherTest {
 			Arrays.fill(maxContigLen, 0);
 			Arrays.fill(used, false);
 			matcher.initStats();
-			matcher.initUniqueCounter(uniqueCounter);
+			matcher.initUniqueCounter(true);
 			entry.bufferPos = 0;
 			contigLen = 0;
 
@@ -193,15 +190,14 @@ public class FastqKMerMatcherTest {
 			System.out.println();
 			 */
 
-			Object2LongMap<String> map = uniqueCounter.getUniqueKmerCounts();
+			matcher.computeUniqueKmerCounts();
 			for (int j = 0; j < TAXIDS.length; j++) {
 				CountsPerTaxid stats = ((GetStats) matcher).getStats(TAXIDS[j]);
 				if (!used[j]) {
 					assertNull(stats);
 				} else {
 					assertEquals(counters[j], stats.getKMers());
-					assertEquals(1, uniqueCounter.getUniqueKmerCount(TAXIDS[j]));
-					assertEquals(1, map.getLong(TAXIDS[j]));
+					assertEquals(1, stats.getUniqueKMers());
 					assertEquals(contigs[j], stats.getContigs());
 					assertEquals(maxContigLen[j], stats.getMaxContigLen());
 				}
@@ -413,7 +409,7 @@ public class FastqKMerMatcherTest {
 
 	private FastqKMerMatcher createMatcher2(KMerStore<SmallTaxIdNode> kmerStore, ExecutionContext bundle, SmallTaxTree tree,
 											double error) {
-		return new FastqKMerMatcher (kmerStore, 1024, 100, bundle, false, 10, tree, 4, error, -1, true, 1, null);
+		return new FastqKMerMatcher (kmerStore, 1024, 100, bundle, false, tree, 4, error, -1, true, 1, null);
 	}
 
 	private void fillInRead(String cgat, MatcherReadEntry entry) {
@@ -452,7 +448,7 @@ public class FastqKMerMatcherTest {
 					node.setStoreIndex(kmerStore.getIndexForValue(value));
 					return node;
 				}
-			}), initialReadSize, maxQueueSize, bundle, false, 10, null, 4, 0, 0, true, 1, null);
+			}), initialReadSize, maxQueueSize, bundle, false, null, 4, 0, 0, true, 1, null);
 			orgKmerStore = kmerStore;
 			out = System.out;
 		}
@@ -466,7 +462,7 @@ public class FastqKMerMatcherTest {
 	protected static class MyFastqMatcher2 extends FastqKMerMatcher {
 		public MyFastqMatcher2(KMerStore<SmallTaxIdNode> kmerStore, ExecutionContext bundle, SmallTaxTree tree,
 				double error) {
-			super(kmerStore, 1024, 100, bundle, false, 10, tree, 4, error, -1, true, 1, null);
+			super(kmerStore, 1024, 100, bundle, false, tree, 4, error, -1, true, 1, null);
 		}
 	}
 }

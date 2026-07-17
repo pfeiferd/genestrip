@@ -60,12 +60,10 @@ public class MatchingResult implements Serializable {
 	 * @param totalReads     the total number of reads
 	 * @param totalKMers     the total number of k-mers
 	 * @param totalBPs       the total number of base pairs
-	 * @param totalMaxCounts the global maximum k-mer counts, or {@code null}
 	 */
-	public MatchingResult(int k, Map<String, CountsPerTaxid> taxid2Stats, String totalDesc, long totalReads, long totalKMers, long totalBPs,
-			short[] totalMaxCounts) {
+	public MatchingResult(int k, Map<String, CountsPerTaxid> taxid2Stats, String totalDesc, long totalReads, long totalKMers, long totalBPs) {
 		this.k = k;
-		globalStats =  new CountsPerTaxid(0, null, totalReads, totalKMers, totalBPs, totalMaxCounts);
+		globalStats =  new CountsPerTaxid(0, null, totalReads, totalKMers, totalBPs);
 		if (totalDesc != null) {
 			byte[] bytes = totalDesc.getBytes(StandardCharsets.UTF_8);
 			System.arraycopy(bytes, 0, globalStats.maxContigDescriptor,0, Math.min(bytes.length, globalStats.maxContigDescriptor.length));
@@ -133,15 +131,6 @@ public class MatchingResult implements Serializable {
 	 */
 	public Map<String, CountsPerTaxid> getTaxid2Stats() {
 		return Collections.unmodifiableMap(taxid2Stats);
-	}
-
-	/**
-	 * Whether per-tax-id maximum k-mer counts were collected during matching.
-	 *
-	 * @return {@code true} if maximum k-mer counts were collected
-	 */
-	public boolean isWithMaxKMerCounts() {
-		return globalStats.maxKMerCounts != null;
 	}
 
 	/**
