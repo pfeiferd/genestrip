@@ -210,7 +210,7 @@ public class ResultReporter {
                     out.print(type.getName());
                     out.print(';');
                 }
-            } else if (description.pos() != 2001 || res.isWithMaxKMerCounts()) {
+            } else {
                 out.print(methodAndDescription.getDescription().name());
                 out.print(';');
             }
@@ -242,7 +242,7 @@ public class ResultReporter {
                         }
                         out.print(';');
                     }
-                } else if (description.pos() != 2001 || res.isWithMaxKMerCounts()) {
+                } else {
                     Method method = methodAndDescription.getMethod();
                     try {
                         Object value = method.invoke(counts);
@@ -253,16 +253,6 @@ public class ResultReporter {
                             }
                         } else if (value instanceof byte[]) {
                             ByteArrayUtil.print((byte[]) value, out);
-                        } else if (methodAndDescription.getDescription().pos() == 2001 && res.isWithMaxKMerCounts()) {
-                            short[] maxKMerCounts = counts.getMaxKMerCounts();
-                            if (maxKMerCounts != null) {
-                                for (int i = 0; i < maxKMerCounts.length; i++) {
-                                    if (i > 0) {
-                                        out.print(';');
-                                    }
-                                    out.print(maxKMerCounts[i]);
-                                }
-                            }
                         } else {
                             out.print(value == null ? "" : value.toString());
                         }
