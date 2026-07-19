@@ -68,6 +68,24 @@ public class CheckRefSeqRNumGoal<P extends GSProject> extends ObjectGoal<CheckRe
 
     @Override
     protected void doMakeThis() {
+        // Record the locally stored release number first, independently of the network check below.
+        // This must not depend on reaching NCBI: downstream goals (e.g. RefSeqRNumPropsGoal) rely on
+        // this property being set, and a blocked or offline request must only skip the up-to-date
+        // comparison, not discard the release number we already have locally.
+        String releaseNumber;
+        try {
+            byte[] encoded = Files.readAllBytes(releaseNumberGoal.getFile().toPath());
+            releaseNumber = new String(encoded).trim();
+        }
+        catch (IOException e) {
+            set(Result.UNKNOWN);
+            if (getLogger().isErrorEnabled()) {
+                getLogger().error("The local RefSeq release number could not be read.", e);
+            }
+            return;
+        }
+        getProject().setAdditionalProperty(GSProject.REFSEQ_RELEASE, releaseNumber);
+
         try {
             String url = buildHttpURL();
             try (InputStream inputStream = new URL(url).openStream();
@@ -76,9 +94,6 @@ public class CheckRefSeqRNumGoal<P extends GSProject> extends ObjectGoal<CheckRe
                     out.write(c);
                 }
                 String currentReleaseNumber = out.toString().trim();
-                byte[] encoded = Files.readAllBytes(releaseNumberGoal.getFile().toPath());
-                String releaseNumber = new String(encoded).trim();
-                getProject().setAdditionalProperty(GSProject.REFSEQ_RELEASE, releaseNumber);
                 boolean equal = currentReleaseNumber.equals(releaseNumber);
                 if (!equal) {
                     if (getLogger().isWarnEnabled()) {
