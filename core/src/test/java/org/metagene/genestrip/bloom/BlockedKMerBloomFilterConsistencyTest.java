@@ -34,16 +34,13 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Random;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Test;
 
 /**
- * Verifies that {@link BlockedKMerBloomFilter#putLongIfAbsent(long)} — the lock-free combined insert
- * used by the temporary-index size estimator — behaves exactly like the previous {@code if
- * (!containsLong(x)) putLong(x)} sequence, single-threaded and under concurrent insertion, and that
- * the entry count survives serialization.
+ * Verifies that {@link BlockedKMerBloomFilter#putLongIfAbsent(long)} — the combined single-pass insert
+ * — behaves exactly like the previous {@code if (!containsLong(x)) putLong(x)} sequence (this filter is
+ * filled single-threaded only), and that membership survives serialization.
  */
 public class BlockedKMerBloomFilterConsistencyTest {
 
@@ -52,9 +49,17 @@ public class BlockedKMerBloomFilterConsistencyTest {
 	}
 
 	private static BlockedKMerBloomFilter newFilter(long expected, boolean large) {
-		BlockedKMerBloomFilter filter = new BlockedKMerBloomFilter();
-		filter.ensureExpectedSize(expected, large);
-		return filter;
+		// 'large' forces the bucketed backing at small sizes by lowering the small/large threshold
+		// the constructor consults (it is otherwise chosen from the size).
+		long saved = BlockedKMerBloomFilter.MAX_SMALL_CAPACITY;
+		if (large) {
+			BlockedKMerBloomFilter.MAX_SMALL_CAPACITY = 1;
+		}
+		try {
+			return new BlockedKMerBloomFilter(expected);
+		} finally {
+			BlockedKMerBloomFilter.MAX_SMALL_CAPACITY = saved;
+		}
 	}
 
 	private static long[] randomKMers(int n, long seed) {
@@ -115,67 +120,18 @@ public class BlockedKMerBloomFilterConsistencyTest {
 		}
 
 		// The two backing words a key touches are always distinct, so single-threaded "newly added"
-		// detection is exact and both the entry count and every membership answer must match.
-		assertEquals("entries", reference.getEntries(), candidate.getEntries());
+		// detection is exact and every membership answer must match.
 		assertEquivalent(reference, candidate, kmers, 999);
 	}
 
 	@Test
-	public void testConcurrentInsertMatchesSingleThreaded() throws InterruptedException {
-		int threadCount = 8;
-		int perThread = 25_000;
-		int total = threadCount * perThread;
-		long[] kmers = randomKMers(total, 27);
-
-		BlockedKMerBloomFilter reference = newFilter(total);
-		for (long kmer : kmers) {
-			reference.putLongIfAbsent(kmer);
-		}
-
-		BlockedKMerBloomFilter concurrent = newFilter(total);
-		CountDownLatch start = new CountDownLatch(1);
-		Thread[] threads = new Thread[threadCount];
-		AtomicReference<Throwable> failure = new AtomicReference<>();
-		for (int t = 0; t < threadCount; t++) {
-			final int from = t * perThread;
-			final int to = from + perThread;
-			threads[t] = new Thread(() -> {
-				try {
-					start.await();
-					for (int i = from; i < to; i++) {
-						concurrent.putLongIfAbsent(kmers[i]);
-					}
-				} catch (Throwable th) {
-					failure.compareAndSet(null, th);
-				}
-			});
-			threads[t].start();
-		}
-		start.countDown();
-		for (Thread thread : threads) {
-			thread.join();
-		}
-		assertEquals(null, failure.get());
-
-		// The concurrent OR of bits is order-independent, so both filters must answer identically.
-		assertEquivalent(reference, concurrent, kmers, 555);
-		// Distinct keys partitioned across threads: essentially all counted as new, with only rare
-		// collision-order slack.
-		long entries = concurrent.getEntries();
-		assertTrue("entries too low: " + entries, entries >= total - total / 100);
-		assertTrue("entries above insert count: " + entries, entries <= total);
-	}
-
-	@Test
-	public void testSerializationFoldsConcurrentEntries() throws IOException, ClassNotFoundException {
+	public void testSerializationPreservesMembership() throws IOException, ClassNotFoundException {
 		int n = 5_000;
 		long[] kmers = randomKMers(n, 4242);
 		BlockedKMerBloomFilter filter = newFilter(n);
 		for (long kmer : kmers) {
 			filter.putLongIfAbsent(kmer);
 		}
-		long entriesBefore = filter.getEntries();
-		assertTrue("some entries expected", entriesBefore > 0);
 
 		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
 		try (ObjectOutputStream out = new ObjectOutputStream(bytes)) {
@@ -186,7 +142,6 @@ public class BlockedKMerBloomFilterConsistencyTest {
 			loaded = (BlockedKMerBloomFilter) in.readObject();
 		}
 
-		assertEquals("entries survive serialization", entriesBefore, loaded.getEntries());
 		for (long kmer : kmers) {
 			assertTrue("no false negative after reload", loaded.containsLong(kmer));
 		}

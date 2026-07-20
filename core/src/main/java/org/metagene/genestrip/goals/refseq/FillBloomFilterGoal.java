@@ -37,7 +37,7 @@ import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.bloom.BlockedKMerBloomFilter;
+import org.metagene.genestrip.bloom.CountingKMerProbFilter;
 import org.metagene.genestrip.bloom.KMerProbFilter;
 import org.metagene.genestrip.bloom.MurmurKMerBloomFilter;
 import org.metagene.genestrip.bloom.XORKMerBloomFilter;
@@ -132,7 +132,9 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
     private final ObjectGoal<TaxTree, P> taxTreeGoal;
     private final ObjectGoal<Long, P> sizeGoal;
 
-    private KMerProbFilter filter;
+    // The temporary size-estimation filter is always an XOR/Murmur filter (both count their
+    // entries), and its entry count is read below to derive the store sizing.
+    private CountingKMerProbFilter filter;
     // Number of low k-mer bits used as the radix (from config); the radix store created later must
     // use the same value. Set in doMakeThis().
     private int radixBits;
@@ -179,15 +181,12 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
     protected void doMakeThis() {
         try {
             double tempFpp = doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP);
-            if (tempFpp == BlockedKMerBloomFilter.DEFAULT_FPP) {
-                filter = new BlockedKMerBloomFilter();
-            }
-            else {
-                filter = booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH) ?
-                        new XORKMerBloomFilter(tempFpp) :
-                        new MurmurKMerBloomFilter(tempFpp);
-            }
-            filter.ensureExpectedSize(sizeGoal.get(), false);
+            // The temporary size-estimation filter is filled concurrently by the reader threads, so it
+            // must support a thread-safe putLongIfAbsent; XOR/Murmur do (via their bit vector's bucket
+            // locks). BlockedKMerBloomFilter is deliberately not used here.
+            filter = booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH) ?
+                    new XORKMerBloomFilter(tempFpp, sizeGoal.get()) :
+                    new MurmurKMerBloomFilter(tempFpp, sizeGoal.get());
             radixBits = intConfigValue(GSConfigKey.RADIX_STORE_BITS);
             logHeapInfo();
             readFastas();
@@ -327,9 +326,10 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
             }
             long kmer = byteRingBuffer.getStandardKMer();
             // Lock-free combined membership-check-and-insert: the filter sets its bits atomically, so
-            // the previous global lock on the filter is no longer needed. Each k-mer counted as new is
-            // added to this reader's own radix-bucket counter, keeping the per-bucket counts in step
-            // with filter.getEntries() (both count exactly the k-mers reported as newly added).
+            // the previous global lock on the filter is no longer needed. Each k-mer reported as new is
+            // added to this reader's own radix-bucket counter; summed across readers these give the exact
+            // number of distinct k-mers inserted (whereas filter.getEntries() counts every insert call,
+            // i.e. k-mer occurrences including duplicates).
             if (filter.putLongIfAbsent(kmer)) {
                 bucketSizes[RadixKMerStore.radixOf(kmer, radixBits)]++;
                 return true;

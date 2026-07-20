@@ -50,8 +50,9 @@ public interface KMerProbFilter extends Serializable {
      * inherit an unsafe one (see {@link AbstractKMerBloomFilter} and {@link BlockedKMerBloomFilter}).
      * <p>
      * For the concurrent implementations, two threads inserting the same absent k-mer may both
-     * observe it as new, so under concurrent use the returned flag — and hence {@link #getEntries()} —
-     * may marginally over-count; membership answers are never affected.
+     * observe it as new, so under concurrent use the returned flag — and hence any entry count kept
+     * by a {@link CountingKMerProbFilter} — may marginally over-count; membership answers are never
+     * affected.
      *
      * @param data the k-mer, encoded as a {@code long}, to add
      * @return {@code true} if the k-mer was not already present, {@code false} otherwise
@@ -65,24 +66,9 @@ public interface KMerProbFilter extends Serializable {
      */
     public boolean containsLong(final long data);
     /**
-     * (Re)sizes the filter for the given expected number of insertions, using large backing storage
-     * when required or when {@code enforceLarge} is set.
-     *
-     * @param expectedInsertions the expected number of k-mers to be inserted
-     * @param enforceLarge        whether to force the use of large backing storage
-     * @return the resulting number of bits.
-     */
-    public long ensureExpectedSize(long expectedInsertions, boolean enforceLarge);
-    /**
      * Removes all entries, keeping the current capacity.
      */
     public void clear();
-    /**
-     * Returns the number of k-mers that have been added to the filter.
-     *
-     * @return the number of inserted entries
-     */
-    public long getEntries();
 
     /**
      * Serializes this filter to the given file.

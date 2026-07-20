@@ -31,15 +31,7 @@ import org.junit.Test;
 public class XORKMerBloomFilterTest extends KMerBloomFilterTest {
 	@Override
 	protected KMerProbFilter createFilter(long size, double fpp) {
-		KMerProbFilter res = new XORKMerBloomFilter(fpp);
-		res.clear();
-		res.ensureExpectedSize(size, isTestLarge());
-		return res;
-	}
-
-	@Override
-	protected boolean isTestLarge() {
-		return false;
+		return new XORKMerBloomFilter(fpp, size);
 	}
 
 	// Regression: when the XOR hash returns exactly Long.MIN_VALUE, reduce() used to negate it first
@@ -48,8 +40,7 @@ public class XORKMerBloomFilterTest extends KMerBloomFilterTest {
 	// is seeded deterministically, so craft an input whose hash 0 is exactly Long.MIN_VALUE.
 	@Test
 	public void testHashOfLongMinValueDoesNotOverflow() {
-		XORKMerBloomFilter filter = new XORKMerBloomFilter(0.0001);
-		filter.ensureExpectedSize(1000, false);
+		XORKMerBloomFilter filter = new XORKMerBloomFilter(0.0001, 1000);
 		// hash(x, 0) == hashFactors[0] ^ x, so this x maps to Long.MIN_VALUE.
 		long x = filter.hashFactors[0] ^ Long.MIN_VALUE;
 		filter.putLong(x); // must not throw ArrayIndexOutOfBoundsException

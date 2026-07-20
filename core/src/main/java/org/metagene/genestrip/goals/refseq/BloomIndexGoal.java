@@ -89,13 +89,12 @@ public class BloomIndexGoal<P extends GSProject> extends ObjectGoal<KMerProbFilt
 		double fpp = doubleConfigValue(GSConfigKey.INDEX_BLOOM_FILTER_FPP);
 		KMerProbFilter filter;
 		if (fpp == BlockedKMerBloomFilter.DEFAULT_FPP) {
-			filter = new BlockedKMerBloomFilter();
+			filter = new BlockedKMerBloomFilter(counter[0]);
 		}
 		else {
 			filter = booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH) ?
-					new XORKMerBloomFilter(fpp) : new MurmurKMerBloomFilter(fpp);
+					new XORKMerBloomFilter(fpp, counter[0]) : new MurmurKMerBloomFilter(fpp, counter[0]);
 		}
-		filter.ensureExpectedSize(counter[0], false);
 
 		store.visit(new IndexedKMerStoreVisitor<String>() {
 			@Override

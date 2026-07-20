@@ -122,9 +122,7 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 		} else {
 			long dedupSize = dbSize.getSize();
 			long size = resizeFactor == 1d ? dedupSize : (long) (dedupSize * resizeFactor);
-			KMerSortedArray<String> array = new KMerSortedArray<>(k, fillFpp, optFpp, initialValues, false, xor);
-			array.initSize(size);
-			store = array;
+			store = new KMerSortedArray<>(k, fillFpp, optFpp, initialValues, false, xor, size);
 		}
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Store size in kmers: " + store.getSize());

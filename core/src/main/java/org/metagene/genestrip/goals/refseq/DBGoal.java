@@ -106,7 +106,10 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 			Database wrapper = filledStoreGoal.get();
 			store = wrapper.getKmerStore();
 			readFastas();
-			store.fix();
+			// readFastas() reassigned k-mer values via the bulk update paths, which do not touch the
+			// per-taxid count cache; drop it so it is recomputed on the next read (and baked into the
+			// serialized database, see AbstractKMerStore#writeObject).
+			store.invalidateNKmersPerTaxid();
 			String gsVersion = GSProject.getGenestripRuntimeVersion();
 			if (gsVersion != null) {
 				getProject().setAdditionalProperty(GSProject.GENESTRIP_VERSION, gsVersion);

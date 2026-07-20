@@ -25,7 +25,7 @@
 package org.metagene.genestrip.store;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
@@ -53,12 +53,12 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
  * <li>the optional probabilistic pre-filter ({@link TunableKMerStore}: {@code getFilter} /
  *     {@code setFilter} / {@code setUseFilter} / {@code isUseFilter}) plus the
  *     {@link #createOptimizedFilter()} helper used when sorting,</li>
- * <li>the per-value k-mer count statistics ({@code fix} / {@code getFixedNKmersPerTaxid} /
- *     {@code getNKmersPerTaxid}), and</li>
- * <li>the lock array used to serialize concurrent updates of the same entry.</li>
+ * <li>the per-value k-mer count statistics ({@code getNKmersPerTaxid} /
+ *     {@code invalidateNKmersPerTaxid}, cached and baked into the serialized form on
+ *     {@code writeObject}).</li>
  * </ul>
- * The storage-specific operations ({@code initSize}, {@code putLong}, {@code getLong},
- * {@code update}, {@code optimize}, {@code visit}, {@code convertValues}) remain abstract.
+ * The storage-specific operations ({@code putLong}, {@code getLong}, {@code update},
+ * {@code optimize}, {@code visit}, {@code convertValues}) remain abstract.
  *
  * @param <V> the value type mapped to each k-mer
  */
@@ -100,10 +100,6 @@ public abstract class AbstractKMerStore<V extends Serializable> implements Tunab
 	/** Per-value k-mer count statistics, or {@code null} if not tracked. */
 	protected Object2LongMap<V> kmerPersTaxid;
 
-	// Just for optimizing synchronization during updates.
-	/** The lock array used to serialize concurrent updates of the same entry. */
-	protected transient Object[] syncs;
-
 	/**
 	 * Base constructor: sets {@code k} (which must be in {@code [1, 31]}), the value-index capacity,
 	 * the optional fill-time pre-filter and the post-optimize filter fpp, and registers any initial
@@ -137,7 +133,6 @@ public abstract class AbstractKMerStore<V extends Serializable> implements Tunab
 		this.filter = filter;
 		this.useFilter = filter != null;
 		this.kmerPersTaxid = null;
-		initSyncs();
 	}
 
 	/**
@@ -177,40 +172,6 @@ public abstract class AbstractKMerStore<V extends Serializable> implements Tunab
 				kmerPersTaxid.put(value, org.kmerPersTaxid.getLong(orgValue));
 			}
 		}
-		initSyncs();
-	}
-
-	/**
-	 * Restores the transient state after deserialization.
-	 *
-	 * @param ois the stream to read from
-	 * @throws ClassNotFoundException if a serialized class cannot be resolved
-	 * @throws IOException            if reading fails
-	 */
-	private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
-		ois.defaultReadObject();
-		initSyncs();
-	}
-
-	private void initSyncs() {
-		syncs = new Object[512];
-		for (int i = 0; i < syncs.length; i++) {
-			syncs[i] = new Object();
-		}
-	}
-
-	/**
-	 * Returns the stripe lock for the given key, mapping it onto the fixed {@link #syncs} pool with a
-	 * cheap mask (the pool size is a power of two, so no modulo is needed). Concurrent accesses should
-	 * derive the key from whatever state they guard, so that accesses which might touch the same state
-	 * hash to the same lock while unrelated ones spread across the pool. The key is a {@code long} so
-	 * that index mixing (e.g. {@code radix * 31 + pos}) cannot overflow.
-	 *
-	 * @param key the striping key
-	 * @return the stripe lock to synchronize on
-	 */
-	protected final Object syncFor(long key) {
-		return syncs[(int) (key & (syncs.length - 1))];
 	}
 
 	@Override
@@ -279,12 +240,11 @@ public abstract class AbstractKMerStore<V extends Serializable> implements Tunab
 		}
 		KMerProbFilter f;
 		if (optimizedFpp == BlockedKMerBloomFilter.DEFAULT_FPP) {
-			f = new BlockedKMerBloomFilter();
+			f = new BlockedKMerBloomFilter(entries);
 		} else {
 			boolean xor = filter instanceof XORKMerBloomFilter;
-			f = xor ? new XORKMerBloomFilter(optimizedFpp) : new MurmurKMerBloomFilter(optimizedFpp);
+			f = xor ? new XORKMerBloomFilter(optimizedFpp, entries) : new MurmurKMerBloomFilter(optimizedFpp, entries);
 		}
-		f.ensureExpectedSize(entries, false);
 		return f;
 	}
 
@@ -364,6 +324,21 @@ public abstract class AbstractKMerStore<V extends Serializable> implements Tunab
 
 	@Override
 	public Object2LongMap<V> getNKmersPerTaxid() {
+		// Lazily cached; the value-mutating operations (optimize() and setIndexAtPosition()) invalidate
+		// the cache, so a repeated read is free and a stale count is never returned.
+		if (this.kmerPersTaxid == null) {
+			this.kmerPersTaxid = computeNKmersPerTaxid();
+		}
+		return this.kmerPersTaxid;
+	}
+
+	/**
+	 * Counts, by visiting every entry, how many stored k-mers map to each value (the {@code null} key
+	 * maps to the total number of entries). Used to fill the {@link #kmerPersTaxid} cache.
+	 *
+	 * @return a freshly computed map from each value to its number of stored k-mers.
+	 */
+	private Object2LongMap<V> computeNKmersPerTaxid() {
 		final long[] countArray = new long[getNValues()];
 		visit(new KMerStore.IndexedKMerStoreVisitor<V>() {
 			@Override
@@ -384,15 +359,25 @@ public abstract class AbstractKMerStore<V extends Serializable> implements Tunab
 	}
 
 	@Override
-	public void fix() {
-		this.kmerPersTaxid = getNKmersPerTaxid();
+	public final void invalidateNKmersPerTaxid() {
+		// Guarded so that the hot, concurrent setIndexAtPosition() path only writes the field once per
+		// invalidation rather than on every call, keeping the shared field out of cache-line ping-pong.
+		if (this.kmerPersTaxid != null) {
+			this.kmerPersTaxid = null;
+		}
 	}
 
-	@Override
-	public Object2LongMap<V> getFixedNKmersPerTaxid() {
-		if (this.kmerPersTaxid == null) {
-			fix();
-		}
-		return this.kmerPersTaxid;
+	/**
+	 * Ensures the per-value k-mer counts are baked in before the store is serialized, so a loaded store
+	 * returns them without revisiting every entry. Filling the cache if absent suffices: value
+	 * reassignments invalidate it (automatically via {@link #setIndexAtPosition(long, int)}, or
+	 * explicitly via {@link #invalidateNKmersPerTaxid()} after a bulk update), so it is never stale here.
+	 *
+	 * @param out the stream to write to
+	 * @throws IOException if writing fails
+	 */
+	private void writeObject(ObjectOutputStream out) throws IOException {
+		getNKmersPerTaxid();
+		out.defaultWriteObject();
 	}
 }

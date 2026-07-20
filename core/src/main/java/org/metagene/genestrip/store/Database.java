@@ -154,10 +154,10 @@ public class Database implements Serializable {
     /**
      * Returns per-taxid store statistics.
      *
-     * @return the (fixed) number of stored k-mers per taxid, see {@link KMerStore#getFixedNKmersPerTaxid()}.
+     * @return the number of stored k-mers per taxid, see {@link KMerStore#getNKmersPerTaxid()}.
      */
     public Object2LongMap<String> getStats() {
-        return kmerStore.getFixedNKmersPerTaxid();
+        return kmerStore.getNKmersPerTaxid();
     }
 
     /**

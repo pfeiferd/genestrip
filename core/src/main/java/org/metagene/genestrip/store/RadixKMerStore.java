@@ -195,7 +195,27 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	public RadixKMerStore(int k, int radixBits, int[] bucketSizes, double entryFpp, double optimizedFpp,
 						  List<V> initialValues, boolean xor) {
 		this(k, radixBits, bucketSizes, initialValues,
-				xor ? new XORKMerBloomFilter(entryFpp) : new MurmurKMerBloomFilter(entryFpp), optimizedFpp);
+				xor ? new XORKMerBloomFilter(entryFpp, sumBucketSizes(bucketSizes))
+						: new MurmurKMerBloomFilter(entryFpp, sumBucketSizes(bucketSizes)),
+				optimizedFpp);
+	}
+
+	/**
+	 * Sums the per-bucket capacities, which is the total reserved capacity of the store and hence the
+	 * expected-insertion count the pre-filter must be sized for.
+	 *
+	 * @param bucketSizes the capacity of each radix bucket.
+	 * @return the total reserved capacity across all buckets.
+	 */
+	private static long sumBucketSizes(int[] bucketSizes) {
+		long total = 0;
+		for (int s : bucketSizes) {
+			if (s < 0) {
+				throw new IllegalArgumentException("Negative bucket size: " + s);
+			}
+			total += s;
+		}
+		return total;
 	}
 
 	/**
@@ -206,7 +226,8 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	 * @param radixBits the number of low k-mer bits used as the radix index.
 	 * @param bucketSizes the capacity of each radix bucket; length must be {@code 2^radixBits}.
 	 * @param initialValues the initial list of values.
-	 * @param filter the probabilistic pre-filter to use, or null for none.
+	 * @param filter the probabilistic pre-filter to use (already sized for the summed bucket
+	 *               capacities), or null for none.
 	 * @param optimizedFpp the target false-positive probability after optimization.
 	 */
 	protected RadixKMerStore(int k, int radixBits, int[] bucketSizes, List<V> initialValues, KMerProbFilter filter,
@@ -241,10 +262,6 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 			total += s;
 		}
 		this.size = total;
-		if (filter != null) {
-			filter.ensureExpectedSize(total, false);
-			filter.clear();
-		}
 	}
 
 	/**
@@ -278,19 +295,6 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	@Override
 	public <W extends Serializable> KMerStore<W> convertValues(KMerStore.ValueConverter<V, W> converter) {
 		return new RadixKMerStore<>(this, converter);
-	}
-
-	@Override
-	public void initSize(long size) {
-		// The capacity is determined by the per-bucket sizes passed to the constructor; this only
-		// (re)prepares the optional pre-filter so that the store behaves like other KMerStores.
-		if (size > this.size) {
-			throw new IllegalArgumentException("Requested size " + size + " exceeds reserved radix capacity " + this.size + ".");
-		}
-		if (filter != null) {
-			filter.ensureExpectedSize(this.size, false);
-			filter.clear();
-		}
 	}
 
 	// --- Insertion / lookup ---------------------------------------------------
@@ -351,11 +355,11 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 			}
 		}
 		long remaining = remainingOf(kmer);
-		// Reserve this k-mer's slot in its radix bucket under that bucket's stripe lock, so inserts into
-		// different radix buckets run in parallel - only k-mers sharing a radix (hence the same
+		// Reserve this k-mer's slot by locking on the radix bucket itself, so inserts into different
+		// radix buckets run in parallel - only k-mers sharing a radix (hence the same bucket and its
 		// bucketFill counter) contend. This replaces the former global lock on the whole store.
 		int pos;
-		synchronized (syncFor(radix)) {
+		synchronized (bucket) {
 			int fill = bucketFill[radix];
 			if (fill >= bucket.length) {
 				// Reserved capacity for this radix bucket is exhausted. The per-bucket sizes can be a
@@ -470,8 +474,9 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		if (pos < 0) {
 			return false;
 		}
-		// Synchronize only on accesses that (might) target the same entry; see KMerSortedArray.
-		synchronized (syncFor((radix * 31L) + pos)) {
+		// Lock on the bucket itself: entries only move within their bucket, so all accesses that might
+		// target the same entry share the bucket lock, while updates to different buckets run in parallel.
+		synchronized (bucket) {
 			long entry = bucket[pos];
 			int vi = (int) (entry >>> remainingBits);
 			V oldValue = indexMap[vi];
@@ -618,7 +623,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 			}
 		}
 
-		// Pass 3: apply the provider and write back moved entries, locking per (radix, pos) exactly as
+		// Pass 3: apply the provider and write back moved entries, locking on the bucket exactly as
 		// update() does. Each entry is re-read under the lock, so duplicate k-mers within the batch
 		// compose correctly.
 		int moved = 0;
@@ -628,8 +633,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 				continue;
 			}
 			final long[] bucket = buckets[i];
-			final int radix = (int) (kmers[i] & radixMask);
-			synchronized (syncFor((radix * 31L) + p)) {
+			synchronized (bucket) {
 				final long entry = bucket[p];
 				final int vi = (int) (entry >>> remainingBits);
 				final V oldValue = indexMap[vi];
@@ -706,6 +710,8 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		long[] bucket = radixIndex[radix];
 		int localPos = (int) (pos - bucketOffset[radix]);
 		bucket[localPos] = entryOf(index, bucket[localPos] & remainingMask);
+		// This entry's value changed, so any cached per-value k-mer counts are stale.
+		invalidateNKmersPerTaxid();
 	}
 
 	/**

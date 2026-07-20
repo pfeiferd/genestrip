@@ -32,10 +32,18 @@ public class BlockedKMerBloomFilterTest extends KMerBloomFilterTest {
 
 	@Override
 	protected KMerProbFilter createFilter(long size, double fpp) {
-		KMerProbFilter res = new BlockedKMerBloomFilter(10);
-		res.clear();
-		res.ensureExpectedSize(size, isTestLarge());
-		return res;
+		// The filter picks its backing (small array vs. bucketed grid) from the size relative to
+		// MAX_SMALL_CAPACITY at construction. To exercise the bucketed backing at small test sizes,
+		// temporarily lower that threshold so this size crosses it.
+		long saved = BlockedKMerBloomFilter.MAX_SMALL_CAPACITY;
+		if (isTestLarge()) {
+			BlockedKMerBloomFilter.MAX_SMALL_CAPACITY = 1;
+		}
+		try {
+			return new BlockedKMerBloomFilter(size, 10);
+		} finally {
+			BlockedKMerBloomFilter.MAX_SMALL_CAPACITY = saved;
+		}
 	}
 
 	@Override

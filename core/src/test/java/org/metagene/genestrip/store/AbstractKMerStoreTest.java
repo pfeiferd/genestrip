@@ -45,6 +45,7 @@ import org.metagene.genestrip.store.KMerStore.ValueConverter;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATRingBuffer;
 
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import junit.framework.TestCase;
 
 public abstract class AbstractKMerStoreTest extends TestCase {
@@ -158,6 +159,71 @@ public abstract class AbstractKMerStoreTest extends TestCase {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	private KMerStore<Integer> saveAndLoad(KMerStore<Integer> store) throws IOException, ClassNotFoundException {
+		File tmpdir = Files.createTempDirectory(Paths.get("target"), "nkmers-test").toFile();
+		tmpdir.deleteOnExit();
+		File saved = new File(tmpdir, "store.ser");
+		saved.deleteOnExit();
+		KMerStore.save(store, saved);
+		return KMerStore.load(saved);
+	}
+
+	@Test
+	public void testNKmersPerTaxidFreshnessAndSerialization() throws IOException, ClassNotFoundException {
+		Map<Long, Integer> kmerMap = new LinkedHashMap<Long, Integer>();
+		KMerStore<Integer> store = buildStore(testSize, null, kmerMap);
+
+		// Pick a stored k-mer and a different target value that also occurs in the store.
+		Map.Entry<Long, Integer> first = kmerMap.entrySet().iterator().next();
+		long kmer = first.getKey();
+		Integer oldValue = first.getValue();
+		Integer newValue = null;
+		for (Integer v : kmerMap.values()) {
+			if (!v.equals(oldValue)) {
+				newValue = v;
+				break;
+			}
+		}
+		assertNotNull(newValue);
+
+		long[] pos = new long[1];
+		assertEquals(oldValue, store.getLong(kmer, pos));
+
+		Object2LongMap<Integer> before = store.getNKmersPerTaxid();
+		long oldCount = before.getLong(oldValue);
+		long newCount = before.getLong(newValue);
+		long total = before.getLong(null);
+		assertTrue(oldCount > 0);
+
+		// Mutate in place: move the k-mer from oldValue to newValue.
+		store.setIndexAtPosition(pos[0], store.getAddValueIndex(newValue));
+
+		// The in-memory (never-serialized) store recomputes on read, so the move shows immediately -
+		// no stale cache even though nothing invalidated anything.
+		Object2LongMap<Integer> after = store.getNKmersPerTaxid();
+		assertEquals(oldCount - 1, after.getLong(oldValue));
+		assertEquals(newCount + 1, after.getLong(newValue));
+		assertEquals(total, after.getLong(null));
+
+		// Serialization bakes the current (post-mutation) counts into the store.
+		KMerStore<Integer> loaded = saveAndLoad(store);
+		Object2LongMap<Integer> loadedCounts = loaded.getNKmersPerTaxid();
+		assertEquals(oldCount - 1, loadedCounts.getLong(oldValue));
+		assertEquals(newCount + 1, loadedCounts.getLong(newValue));
+
+		// The loaded store carries a *populated* counts field. Mutate it and re-serialize WITHOUT reading
+		// its counts in between (the UpdateStoreGoal load -> mutate -> save pattern): the re-loaded store
+		// must show the newest counts, proving writeObject recomputes rather than persisting the stale
+		// baked field.
+		long[] pos2 = new long[1];
+		assertEquals(newValue, loaded.getLong(kmer, pos2));
+		loaded.setIndexAtPosition(pos2[0], loaded.getAddValueIndex(oldValue)); // move it back
+		KMerStore<Integer> reloaded = saveAndLoad(loaded);
+		Object2LongMap<Integer> reloadedCounts = reloaded.getNKmersPerTaxid();
+		assertEquals(oldCount, reloadedCounts.getLong(oldValue));
+		assertEquals(newCount, reloadedCounts.getLong(newValue));
 	}
 
 	@Test

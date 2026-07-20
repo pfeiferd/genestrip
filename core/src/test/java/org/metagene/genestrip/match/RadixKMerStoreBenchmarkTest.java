@@ -92,8 +92,7 @@ public class RadixKMerStoreBenchmarkTest {
     private static Stores buildStores(int k, int kmersPerTaxid, boolean enforceLarge, Random rng) {
         long total = (long) kmersPerTaxid * TAXIDS.length;
         KMerSortedArray<String> sorted = new KMerSortedArray<>(
-                k, 0.001, 0.001, Arrays.asList(TAXIDS), enforceLarge, true);
-        sorted.initSize(total);
+                k, 0.001, 0.001, Arrays.asList(TAXIDS), enforceLarge, true, total);
 
         byte[] seq = new byte[k];
         for (String taxid : TAXIDS) {

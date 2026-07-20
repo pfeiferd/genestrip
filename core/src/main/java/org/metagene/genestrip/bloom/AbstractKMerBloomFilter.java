@@ -1,46 +1,43 @@
 /*
- * 
+ *
  * “Commons Clause” License Condition v1.0
- * 
- * The Software is provided to you by the Licensor under the License, 
+ *
+ * The Software is provided to you by the Licensor under the License,
  * as defined below, subject to the following condition.
- * 
- * Without limiting other conditions in the License, the grant of rights under the License 
+ *
+ * Without limiting other conditions in the License, the grant of rights under the License
  * will not include, and the License does not grant to you, the right to Sell the Software.
- * 
- * For purposes of the foregoing, “Sell” means practicing any or all of the rights granted 
- * to you under the License to provide to third parties, for a fee or other consideration 
- * (including without limitation fees for hosting or consulting/ support services related to 
- * the Software), a product or service whose value derives, entirely or substantially, from the 
- * functionality of the Software. Any license notice or attribution required by the License 
+ *
+ * For purposes of the foregoing, “Sell” means practicing any or all of the rights granted
+ * to you under the License to provide to third parties, for a fee or other consideration
+ * (including without limitation fees for hosting or consulting/ support services related to
+ * the Software), a product or service whose value derives, entirely or substantially, from the
+ * functionality of the Software. Any license notice or attribution required by the License
  * must also include this Commons Clause License Condition notice.
- * 
+ *
  * Software: genestrip
- * 
+ *
  * License: Apache 2.0
- * 
+ *
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
- * 
+ *
  */
 package org.metagene.genestrip.bloom;
 
 import org.metagene.genestrip.util.LargeBitVector;
 
-import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.util.Random;
 
 /**
  * Base class for {@link KMerProbFilter} implementations backed by a {@link LargeBitVector}. It sizes
  * the bit vector and the number of hash functions from the expected insertions and target
  * false-positive probability, and derives each of the {@code hashes} bit indices from a
- * subclass-supplied {@link #hash} function. Subclasses only provide the hash. The concurrent
- * entry-counting used by {@link #putLongIfAbsent(long)} is inherited from {@link
- * AbstractCountingKMerProbFilter}; the plain {@link #entries} counter is kept here to preserve the
- * serialized form.
+ * subclass-supplied {@link #hash} function. Subclasses only provide the hash. The entry count is not
+ * tracked separately: {@link #getEntries()} derives it from the bit vector's set-operation count (see
+ * {@link LargeBitVector#getBitsEverSet()}) divided by the number of hash functions.
  */
-public abstract class AbstractKMerBloomFilter extends AbstractCountingKMerProbFilter {
-	private static final long serialVersionUID = 1L;
+public abstract class AbstractKMerBloomFilter implements CountingKMerProbFilter {
+	private static final long serialVersionUID = 2L;
 
 	/** The target false-positive probability. */
 	protected final double fpp;
@@ -53,62 +50,45 @@ public abstract class AbstractKMerBloomFilter extends AbstractCountingKMerProbFi
 	protected long bits;
 	/** The backing bit vector storing the filter's bits. */
 	protected LargeBitVector bitVector;
-	/** Whether the backing bit vector uses large storage. */
-	protected boolean largeBV;
 	/** The number of hash functions applied per k-mer. */
 	protected int hashes;
 	/** The random factors used to derive the individual hashes. */
 	protected long[] hashFactors;
-	/** The number of k-mers added via the plain {@link #putLong(long)} path. */
-	protected long entries;
 
 	/**
-	 * Creates an empty filter with the given target false-positive probability (which must lie strictly
-	 * between 0 and 1).
+	 * Creates a filter with the given target false-positive probability (which must lie strictly
+	 * between 0 and 1), sized for {@code expectedInsertions} k-mers. The bit vector and the number of
+	 * hash functions are derived from the sizing here, so the filter is ready for insertions
+	 * immediately; its size is fixed for the lifetime of the filter (the backing bit vector is always
+	 * the bucketed {@link LargeBitVector}, which itself grows only if needed, but this filter never
+	 * re-derives its {@link #bits}/{@link #hashes} sizing).
 	 *
 	 * @param fpp the target false-positive probability, strictly between 0 and 1
+	 * @param expectedInsertions the expected number of k-mers to be inserted (must be {@code >= 0})
 	 */
-	public AbstractKMerBloomFilter(double fpp) {
+	public AbstractKMerBloomFilter(double fpp, long expectedInsertions) {
 		if (fpp <= 0 || fpp >= 1) {
 			throw new IllegalArgumentException("fpp must be a probability");
 		}
+		if (expectedInsertions < 0) {
+			throw new IllegalArgumentException("expected insertions must be >= 0");
+		}
 		this.fpp = fpp;
-
 		random = new Random(42);
 
-		bitVector = new LargeBitVector(0);
-		largeBV = bitVector.isLarge();
-		entries = 0;
-		bits = 0;
+		this.expectedInsertions = expectedInsertions;
+		bits = optimalNumOfBits(expectedInsertions, fpp);
+		bitVector = new LargeBitVector(bits);
+		hashes = optimalNumOfHashFunctions(expectedInsertions, bits);
+		hashFactors = new long[hashes];
+		for (int i = 0; i < hashFactors.length; i++) {
+			hashFactors[i] = random.nextLong();
+		}
 	}
 
 	@Override
 	public void clear() {
 		bitVector.clear();
-		entries = 0;
-		if (concurrentEntries != null) {
-			concurrentEntries.reset();
-		}
-	}
-
-	@Override
-	public long ensureExpectedSize(long expectedInsertions, boolean enforceLarge) {
-		if (expectedInsertions < 0) {
-			throw new IllegalArgumentException("expected insertions must be > 0");
-		}
-		ensureConcurrentEntries();
-		this.expectedInsertions = expectedInsertions;
-
-		bits = optimalNumOfBits(expectedInsertions, fpp);
-		if (bitVector.ensureCapacity(bits, enforceLarge)) {
-			hashes = optimalNumOfHashFunctions(expectedInsertions, bits);
-			hashFactors = new long[hashes];
-			for (int i = 0; i < hashFactors.length; i++) {
-				hashFactors[i] = random.nextLong();
-			}
-		}
-		largeBV = bitVector.isLarge();
-		return bits;
 	}
 
 	/**
@@ -118,15 +98,6 @@ public abstract class AbstractKMerBloomFilter extends AbstractCountingKMerProbFi
 	 */
 	public long getExpectedInsertions() {
 		return expectedInsertions;
-	}
-
-	/**
-	 * Returns the number of hash functions applied per k-mer.
-	 *
-	 * @return the number of hash functions applied per k-mer.
-	 */
-	public int getHashes() {
-		return hashes;
 	}
 
 	/**
@@ -148,17 +119,17 @@ public abstract class AbstractKMerBloomFilter extends AbstractCountingKMerProbFi
 	}
 
 	/**
-	 * Returns whether the backing bit vector uses large storage.
+	 * Returns the number of inserted k-mers as the bit vector's set-operation count
+	 * ({@link LargeBitVector#getBitsEverSet()}) divided by {@link #hashes}. Since every insert sets
+	 * exactly {@code hashes} counted bits, this is the exact number of insert operations. It counts a
+	 * k-mer once per insert call, so inserting the same k-mer twice counts it twice (i.e. it counts
+	 * occurrences, which equals the distinct count when each k-mer is inserted once).
 	 *
-	 * @return whether the backing bit vector uses large storage.
+	 * @return the number of inserted k-mers
 	 */
-	public boolean isLarge() {
-		return bitVector.isLarge();
-	}
-
 	@Override
 	public long getEntries() {
-		return entries + concurrentEntryCount();
+		return hashes == 0 ? 0 : bitVector.getBitsEverSet() / hashes;
 	}
 
 	/**
@@ -185,7 +156,6 @@ public abstract class AbstractKMerBloomFilter extends AbstractCountingKMerProbFi
 
 	@Override
 	public void putLong(final long data) {
-		entries++;
 		for (int i = 0; i < hashes; i++) {
 			bitVector.set(reduce(hash(data, i)));
 		}
@@ -211,8 +181,10 @@ public abstract class AbstractKMerBloomFilter extends AbstractCountingKMerProbFi
 	 * a plain {@code if (!containsLong(data)) putLong(data)} sequence.
 	 * <p>
 	 * The returned "newly added" flag is exact under single-threaded use. Under concurrent use two
-	 * threads inserting the same absent k-mer may both observe it as new, so {@link #getEntries()} may
-	 * marginally over-count; this never affects the filter's membership answers.
+	 * threads inserting the same absent k-mer may both observe it as new; this never affects the
+	 * filter's membership answers. The flag feeds no counter — {@link #getEntries()} is derived purely
+	 * from the bit-set operations, which are tallied thread-safely under each bucket's lock — so this
+	 * benign race cannot skew the entry count.
 	 *
 	 * @param data the k-mer, encoded as a {@code long}, to add
 	 * @return {@code true} if the k-mer was not already present (at least one of its bits was newly
@@ -227,20 +199,25 @@ public abstract class AbstractKMerBloomFilter extends AbstractCountingKMerProbFi
 				added = true;
 			}
 		}
-		if (added) {
-			countAdded();
-		}
 		return added;
 	}
 
 	/**
-	 * Computes the {@code i}-th hash of the given k-mer.
+	 * Computes the {@code i}-th hash of the given k-mer. The default is a Lemire-style bit-mixing hash
+	 * (moved here from the former {@code LemireOptBloomFilter}); subclasses may override it with a
+	 * cheaper or otherwise preferable hash (see {@link XORKMerBloomFilter}, {@link MurmurKMerBloomFilter}).
 	 *
 	 * @param data the k-mer, encoded as a {@code long}, to hash
 	 * @param i    the index of the hash function to apply
 	 * @return the {@code i}-th hash of the given k-mer.
 	 */
-	protected abstract long hash(final long data, final int i);
+	protected long hash(final long data, final int i) {
+		long x = data + hashFactors[i];
+		x = (x ^ (x >>> 33)) * 0xff51afd7ed558ccdL;
+		x = (x ^ (x >>> 33)) * 0xc4ceb9fe1a85ec53L;
+		x = x ^ (x >>> 33);
+		return x;
+	}
 
 	/**
 	 * Maps a hash value onto a valid bit index of the backing bit vector.
@@ -250,18 +227,5 @@ public abstract class AbstractKMerBloomFilter extends AbstractCountingKMerProbFi
 	 */
 	protected long reduce(final long v) {
 		return Math.abs(v % bits);
-	}
-
-	/**
-	 * Folds any k-mers counted via the concurrent insert path into {@link #entries} before the default
-	 * serialization runs, so that a deserialized filter reports the correct entry count even though the
-	 * concurrent counter is transient.
-	 *
-	 * @param out the stream the filter is written to
-	 * @throws IOException if writing fails
-	 */
-	private void writeObject(ObjectOutputStream out) throws IOException {
-		entries += drainConcurrentEntries();
-		out.defaultWriteObject();
 	}
 }

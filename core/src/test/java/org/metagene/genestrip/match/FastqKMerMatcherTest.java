@@ -65,8 +65,7 @@ public class FastqKMerMatcherTest {
 		case SORTED_SMALL:
 		case SORTED_LARGE: {
 			KMerSortedArray<String> store = new KMerSortedArray<>(k, 0.0001, 0.0001, initialValues,
-					type == StoreType.SORTED_LARGE, true);
-			store.initSize(distinctKmers.length);
+					type == StoreType.SORTED_LARGE, true, distinctKmers.length);
 			return store;
 		}
 		case RADIX: {

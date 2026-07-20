@@ -31,30 +31,18 @@ public class XORKMerBloomFilter extends AbstractKMerBloomFilter {
     private static final long serialVersionUID = 1L;
 
     /**
-     * Creates a filter targeting the given false-positive probability.
+     * Creates a filter targeting the given false-positive probability, sized for
+     * {@code expectedInsertions} k-mers.
      *
      * @param fpp the target false-positive probability
+     * @param expectedInsertions the expected number of k-mers to be inserted
      */
-    public XORKMerBloomFilter(double fpp) {
-        super(fpp);
+    public XORKMerBloomFilter(double fpp, long expectedInsertions) {
+        super(fpp, expectedInsertions);
     }
 
     @Override
     protected final long hash(long x, final int i) {
         return hashFactors[i] ^ x;
-    }
-
-    // The super simple hash function from above cannot be combined here with Lemire's optimization.
-    // As I measured: It results in a very high fpp...
-    // The more complex hash function from Lemire outweighs the cost of the modulo operator used here.
-    // That's why we keep it simple and leave it as it is.
-    //
-    // The modulo is taken BEFORE the absolute value on purpose: v % bits is always in (-bits, bits)
-    // and hence never Long.MIN_VALUE, so Math.abs cannot overflow. Doing abs(v) first would break for
-    // v == Long.MIN_VALUE (its negation stays Long.MIN_VALUE), yielding a negative bit index and an
-    // out-of-bounds access - which does happen once a large filter is hammered with enough hashes.
-    @Override
-    protected final long reduce(final long v) {
-        return Math.abs(v % bits);
     }
 }

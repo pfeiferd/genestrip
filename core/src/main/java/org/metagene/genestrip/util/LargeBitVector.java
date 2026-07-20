@@ -24,124 +24,110 @@
  */
 package org.metagene.genestrip.util;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Arrays;
 
 /**
- * A bit vector that transparently switches between a single {@code long[]} for small capacities and a
- * self-managed array of {@code long[]} buckets for capacities beyond the range of a normal array, and
- * never shrinks.
+ * A bit vector backed by a self-managed array of {@code long[]} buckets that never shrinks.
  * <p>
- * The large backing is a plain {@code long[][]} (an "array of arrays") laid out on a fixed grid: every
- * bucket holds exactly {@link #BUCKET_SIZE} words except the last, which holds the remainder. The grid
- * is self-managed (no external big-array library is involved); the bucket width matches the historic
- * segmentation, so the serialized form is unchanged. The buckets serve only to address storage beyond
- * a single {@code long[]}; they are made as few and large as the capacity requires and carry no lock.
+ * The backing is a plain {@code long[][]} (an "array of arrays") laid out on a fixed, power-of-two
+ * grid: every bucket holds exactly {@code 1 << bucketShift} words except the last, which holds the
+ * remainder. The grid is self-managed (no external big-array library is involved). The bucket width is
+ * chosen once, at the first allocation, so that the vector holds at least {@code 2^minBucketBits}
+ * buckets (capped at the vector's word count) while keeping the buckets as few and large as that lower
+ * bound allows, up to {@link #MAX_BUCKET_SHIFT} words each.
  * <p>
- * Concurrent inserts go through {@link #setAndTestWasUnset(long)}, which is made thread-safe with a
- * fixed pool of {@link #SYNCS} stripe locks ({@link #syncs}) selected by the affected word index —
- * the same technique {@code AbstractKMerStore} uses for its entry updates. Decoupling the lock count
- * from the bucket count keeps concurrency high (up to {@link #SYNCS} writers in parallel) no matter
- * how few buckets the storage happens to use; two writers touching the same word always pick the same
- * stripe, so no update is lost.
+ * Concurrent inserts go through {@link #setAndTestWasUnset(long)}, which is made thread-safe by
+ * synchronizing on the bucket that owns the affected word — the same technique {@code RadixKMerStore}
+ * uses for its entry updates. The bucket is both the storage and the lock, so no separate stripe key
+ * has to be computed: two writers touching the same word share the same bucket (hence the same lock),
+ * while writers to different buckets proceed in parallel. The {@code 2^minBucketBits} floor therefore
+ * doubles as the lower bound on the number of independent locks, keeping concurrency high even for
+ * modestly sized vectors; the default floor is {@link #DEFAULT_MIN_BUCKET_BITS} bits.
  */
 public class LargeBitVector implements Serializable {
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
 
-    /** Maximum capacity in longs for which the small {@code long[]} backing is used. */
-    public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
-
-    /** Base-2 logarithm of {@link #BUCKET_SIZE}; a word index is split into bucket and displacement here. */
-    private static final int BUCKET_SHIFT = 27;
-    /** Number of {@code long} words per bucket of the large backing (all but the last are full). */
-    private static final int BUCKET_SIZE = 1 << BUCKET_SHIFT;
-    /** Mask selecting the in-bucket displacement of a word index. */
-    private static final int BUCKET_MASK = BUCKET_SIZE - 1;
-
-    /** Number of stripe locks used to serialize concurrent word updates. Must be a power of two. */
-    private static final int SYNCS = 512;
-    /** Mask selecting a stripe lock from a word index. */
-    private static final int SYNCS_MASK = SYNCS - 1;
-
-    // All made public for inlining (optimization):
-    /** The current capacity in 64-bit words. */
-    public long size;
-    /** The small backing array, or {@code null} when the large backing is used. */
-    public long[] bits;
-    /** The large (bucketed) backing, or {@code null} when the small backing is used. */
-    public long[][] largeBits;
     /**
-     * Stripe locks serializing concurrent {@link #setAndTestWasUnset(long)} calls, keyed by word
-     * index. Transient (locks carry no state worth serializing) and rebuilt on construction and after
-     * deserialization.
+     * Default {@link #minBucketBits}: {@code 9}, i.e. a floor of {@code 2^9 == 512} buckets — enough
+     * independent locks for efficient multi-threaded inserts.
      */
-    private transient Object[] syncs;
+    public static final int DEFAULT_MIN_BUCKET_BITS = 9;
+
+    /** Upper bound on {@link #minBucketBits}, keeping {@code 1 << minBucketBits} a sane bucket floor. */
+    private static final int MAX_MIN_BUCKET_BITS = 30;
 
     /**
-     * Creates a bit vector with at least the given initial capacity in bits.
+     * Maximum base-2 logarithm of the bucket width, i.e. the largest bucket holds {@code 1 << 27}
+     * words. Bounds each bucket's length to a comfortably int-addressable size and caps the outer
+     * array's growth; it also matches the historic bucket width.
+     */
+    private static final int MAX_BUCKET_SHIFT = 27;
+
+    /** The current capacity in 64-bit words. */
+    private long size;
+    /**
+     * Base-2 logarithm of the lower bound on the number of buckets: the vector holds at least
+     * {@code 1 << minBucketBits} buckets (hence independent locks), capped at its word count. Expressing
+     * the floor as a bit count keeps {@link #computeBucketShift} a plain subtraction of bit widths.
+     */
+    private final int minBucketBits;
+    /**
+     * Base-2 logarithm of the bucket width; a word index is split into bucket ({@code >>> bucketShift})
+     * and in-bucket displacement ({@code & bucketMask}). {@code -1} until the first non-empty
+     * allocation fixes it; unchanged afterwards so the grid stays stable as the vector grows.
+     */
+    private int bucketShift;
+    /** Mask selecting the in-bucket displacement of a word index ({@code (1 << bucketShift) - 1}). */
+    private int bucketMask;
+    /** The bucketed backing. */
+    private long[][] largeBits;
+    /**
+     * Per-bucket count of bits set through {@link #setAndTestWasUnset(long)}, one entry per bucket (so
+     * {@code setBitsPerBucket.length == largeBits.length}). Each counter is only ever touched under its
+     * own bucket's monitor, so the concurrent set path updates it without contending across buckets;
+     * {@link #getBitsEverSet()} sums the array. See that method for what is and isn't counted.
+     */
+    private long[] setBitsPerBucket;
+
+    /**
+     * Creates a bit vector with at least the given initial capacity in bits and the default bucket
+     * floor ({@link #DEFAULT_MIN_BUCKET_BITS}).
      *
      * @param initialSize the initial capacity in bits
      */
     public LargeBitVector(long initialSize) {
-        this(initialSize, false);
+        this(initialSize, DEFAULT_MIN_BUCKET_BITS);
     }
 
     /**
-     * Creates a bit vector with at least the given initial capacity in bits.
+     * Creates a bit vector with at least the given initial capacity in bits and at least
+     * {@code 1 << minBucketBits} buckets (once non-empty), so that concurrent inserts have at least that
+     * many independent locks to spread across.
      *
-     * @param initialSize  the initial capacity in bits
-     * @param enforceLarge if true, forces the big-array backing even when a normal array would fit.
+     * @param initialSize   the initial capacity in bits
+     * @param minBucketBits base-2 logarithm of the minimum bucket (and lock) count; in
+     *                      {@code [1, 30]}
      */
-    public LargeBitVector(long initialSize, boolean enforceLarge) {
-        size = -1;
-        initSyncs();
-        ensureCapacity(initialSize, enforceLarge);
-    }
-
-    private void initSyncs() {
-        syncs = new Object[SYNCS];
-        for (int i = 0; i < syncs.length; i++) {
-            syncs[i] = new Object();
+    public LargeBitVector(long initialSize, int minBucketBits) {
+        if (minBucketBits < 1 || minBucketBits > MAX_MIN_BUCKET_BITS) {
+            throw new IllegalArgumentException(
+                    "minBucketBits must be in [1, " + MAX_MIN_BUCKET_BITS + "], got " + minBucketBits);
         }
-    }
-
-    /**
-     * Returns the stripe lock for the given word index, mapping it onto the fixed {@link #syncs} pool
-     * with a cheap mask (the pool size is a power of two, so no modulo is needed). Writers to the same
-     * word share a lock; writers to other words spread across the pool.
-     *
-     * @param wordIndex the affected word index
-     * @return the stripe lock to synchronize on
-     */
-    private Object syncFor(long wordIndex) {
-        return syncs[(int) (wordIndex & SYNCS_MASK)];
-    }
-
-    /**
-     * Rebuilds the transient stripe locks after deserialization.
-     *
-     * @param ois the stream to read from
-     * @throws IOException            if reading fails
-     * @throws ClassNotFoundException if a serialized class cannot be resolved
-     */
-    private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
-        ois.defaultReadObject();
-        initSyncs();
+        size = -1;
+        this.minBucketBits = minBucketBits;
+        bucketShift = -1;
+        ensureCapacity(initialSize);
     }
 
     /**
      * Sets all bits to zero.
      */
     public void clear() {
-        if (largeBits != null) {
-            for (long[] bucket : largeBits) {
-                Arrays.fill(bucket, 0L);
-            }
-        } else {
-            Arrays.fill(bits, 0L);
+        for (long[] bucket : largeBits) {
+            Arrays.fill(bucket, 0L);
         }
+        Arrays.fill(setBitsPerBucket, 0L);
     }
 
     /**
@@ -149,24 +135,27 @@ public class LargeBitVector implements Serializable {
      * might be enlarged but never gets smaller in size.
      *
      * @param newSize The desired size in bits.
-     * @param enforceLarge if true, forces the big-array backing even when a normal array would fit.
      * @return Whether the vector got bigger or not.
      */
-    public boolean ensureCapacity(long newSize, boolean enforceLarge) {
+    public boolean ensureCapacity(long newSize) {
         newSize = (newSize + 63) / 64;
         if (newSize > size) {
             long oldWords = size < 0 ? 0 : size;
             size = newSize;
-            if (size > MAX_SMALL_CAPACITY || enforceLarge || largeBits != null) {
-                largeBits = growLarge(bits, largeBits, oldWords, size);
-                bits = null;
-            } else {
-                long[] oldBits = bits;
-                bits = new long[(int) size];
-                if (oldBits != null) {
-                    System.arraycopy(oldBits, 0, bits, 0, oldBits.length);
-                }
+            // Fix the bucket grid on the first non-empty allocation and keep it, so growth only adds
+            // buckets on the same grid (making the retained words a straight bucket-aligned copy).
+            if (bucketShift < 0 && newSize > 0) {
+                bucketShift = computeBucketShift(newSize, minBucketBits);
+                bucketMask = (1 << bucketShift) - 1;
             }
+            largeBits = growLarge(largeBits, oldWords, size);
+            // Grow the per-bucket counters to match; growth keeps the grid, so bucket b still holds the
+            // same preserved words - its count carries over, and the freshly added buckets start at 0.
+            long[] newCounters = new long[largeBits.length];
+            if (setBitsPerBucket != null) {
+                System.arraycopy(setBitsPerBucket, 0, newCounters, 0, setBitsPerBucket.length);
+            }
+            setBitsPerBucket = newCounters;
             return true;
         } else {
             return false;
@@ -174,56 +163,65 @@ public class LargeBitVector implements Serializable {
     }
 
     /**
-     * Allocates the large (bucketed) backing for {@code newWords} words on the fixed {@link
-     * #BUCKET_SIZE} grid and copies the first {@code oldWords} words of the previous backing into it.
-     * Exactly one of {@code smallOld} / {@code largeOld} is non-null (the previous backing), or both
-     * are null on the very first allocation.
+     * Chooses the bucket-width exponent for a vector of {@code words} words: the largest exponent (up
+     * to {@link #MAX_BUCKET_SHIFT}) that still yields at least {@code 2^minBucketBits} buckets, so the
+     * buckets are as few and large as the lock floor permits. Because both the floor and the bucket
+     * width are powers of two, this is just {@code floor(log2(words)) - minBucketBits}, clamped: a
+     * vector of {@code < 2^minBucketBits} words gets one word per bucket (the most locks it can support).
      *
-     * @param smallOld the previous small backing, or {@code null}
-     * @param largeOld the previous large backing, or {@code null}
-     * @param oldWords the number of words to preserve from the previous backing
-     * @param newWords the desired capacity in words
-     * @return the freshly allocated large backing holding the preserved words
+     * @param words         the capacity in words (must be positive)
+     * @param minBucketBits base-2 logarithm of the desired minimum bucket count
+     * @return the bucket-width exponent to use
      */
-    private static long[][] growLarge(long[] smallOld, long[][] largeOld, long oldWords, long newWords) {
-        int bucketCount = (int) ((newWords + BUCKET_SIZE - 1) >>> BUCKET_SHIFT);
-        long[][] result = new long[bucketCount][];
-        for (int b = 0; b < bucketCount; b++) {
-            long start = (long) b << BUCKET_SHIFT;
-            result[b] = new long[(int) Math.min(BUCKET_SIZE, newWords - start)];
+    private static int computeBucketShift(long words, int minBucketBits) {
+        int wordsLog2 = 63 - Long.numberOfLeadingZeros(words); // floor(log2(words)), words > 0
+        int shift = wordsLog2 - minBucketBits;
+        if (shift < 0) {
+            return 0;
         }
-        // Copy the retained words bucket-aligned. Source and destination share the same grid, so a
-        // block never straddles more than one source and one destination bucket.
-        long copied = 0;
-        while (copied < oldWords) {
-            int dstBucket = (int) (copied >>> BUCKET_SHIFT);
-            int dstOff = (int) (copied & BUCKET_MASK);
-            long[] src;
-            int srcOff;
-            int srcRoom;
-            if (largeOld != null) {
-                src = largeOld[(int) (copied >>> BUCKET_SHIFT)];
-                srcOff = (int) (copied & BUCKET_MASK);
-                srcRoom = src.length - srcOff;
-            } else {
-                src = smallOld;
-                srcOff = (int) copied;
-                srcRoom = smallOld.length - srcOff;
-            }
-            int n = (int) Math.min(Math.min(result[dstBucket].length - dstOff, srcRoom), oldWords - copied);
-            System.arraycopy(src, srcOff, result[dstBucket], dstOff, n);
-            copied += n;
-        }
-        return result;
+        return Math.min(shift, MAX_BUCKET_SHIFT);
+    }
+
+    /** Number of buckets of width {@code 1 << shift} needed to hold {@code words} words. */
+    private static long bucketCount(long words, int shift) {
+        return (words + (1L << shift) - 1) >>> shift;
     }
 
     /**
-     * Returns whether this vector currently uses the large (big-array) backing storage.
+     * Allocates the bucketed backing for {@code newWords} words on the fixed grid ({@link #bucketShift})
+     * and copies the first {@code oldWords} words of the previous backing into it. {@code largeOld} is
+     * the previous backing, or {@code null} on the very first allocation.
      *
-     * @return {@code true} if the large backing is in use
+     * @param largeOld the previous backing, or {@code null}
+     * @param oldWords the number of words to preserve from the previous backing
+     * @param newWords the desired capacity in words
+     * @return the freshly allocated backing holding the preserved words
      */
-    public boolean isLarge() {
-        return largeBits != null;
+    private long[][] growLarge(long[][] largeOld, long oldWords, long newWords) {
+        if (newWords == 0) {
+            return new long[0][];
+        }
+        final int bucketSize = 1 << bucketShift;
+        int bucketCount = (int) bucketCount(newWords, bucketShift);
+        long[][] result = new long[bucketCount][];
+        for (int b = 0; b < bucketCount; b++) {
+            long start = (long) b << bucketShift;
+            result[b] = new long[(int) Math.min(bucketSize, newWords - start)];
+        }
+        // Copy the retained words bucket-aligned. The old and new backings share the same grid (the
+        // shift is fixed after the first allocation), so a block never straddles more than one source
+        // and one destination bucket.
+        long copied = 0;
+        while (copied < oldWords) {
+            int bucket = (int) (copied >>> bucketShift);
+            int off = (int) (copied & bucketMask);
+            long[] src = largeOld[bucket];
+            int srcRoom = src.length - off;
+            int n = (int) Math.min(Math.min(result[bucket].length - off, srcRoom), oldWords - copied);
+            System.arraycopy(src, off, result[bucket], off, n);
+            copied += n;
+        }
+        return result;
     }
 
     /**
@@ -242,13 +240,8 @@ public class LargeBitVector implements Serializable {
      */
     public void clear(long index) {
         final long mask = ~(1L << (index & 0b111111));
-        if (largeBits != null) {
-            final long arrayIndex = index >>> 6;
-            largeBits[(int) (arrayIndex >>> BUCKET_SHIFT)][(int) (arrayIndex & BUCKET_MASK)] &= mask;
-        } else {
-            int arrayIndex = (int) (index >>> 6);
-            bits[arrayIndex] = bits[arrayIndex] & mask;
-        }
+        final long arrayIndex = index >>> 6;
+        largeBits[(int) (arrayIndex >>> bucketShift)][(int) (arrayIndex & bucketMask)] &= mask;
     }
 
     /**
@@ -257,27 +250,18 @@ public class LargeBitVector implements Serializable {
      * @param index the bit index to set
      */
     public final void set(final long index) {
-        if (largeBits != null) {
-            final long arrayIndex = index >>> 6;
-            largeBits[(int) (arrayIndex >>> BUCKET_SHIFT)][(int) (arrayIndex & BUCKET_MASK)] |= (1L << (index & 0b111111));
-        } else {
-            // Using optimization instead of '%', see:
-            // http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
-            // and Line 34 in https://github.com/FastFilter/fastfilter_java/blob/master/fastfilter/src/main/java/org/fastfilter/utils/Hash.java
-            // Not sure whether it would also work for long - probably not.
-            //int arrayIndex = (int) ((((index >>> 6) & 0xffffffffL) * (size & 0xffffffffL)) >>> 32);
-            // Original code:
-            int arrayIndex = (int) (index >>> 6);
-            bits[arrayIndex] = bits[arrayIndex] | (1L << (index & 0b111111));
-        }
+        final long arrayIndex = index >>> 6;
+        final int bucketIndex = (int) (arrayIndex >>> bucketShift);
+        largeBits[bucketIndex][(int) (arrayIndex & bucketMask)] |= (1L << (index & 0b111111));
+        setBitsPerBucket[bucketIndex]++;
     }
 
     /**
      * Sets (to 1) the bit at the given index and reports whether this call was the one that set it,
      * i.e. whether the bit was previously 0. Unlike {@link #set(long)} this is safe for concurrent use
-     * by multiple threads: the read-modify-write of the affected word runs under the stripe lock
-     * selected by that word's index, so no concurrent bit set on the same word is ever lost while
-     * writes to other words proceed in parallel (up to {@link #SYNCS} at a time).
+     * by multiple threads: the read-modify-write of the affected word runs under the lock of the bucket
+     * that owns it, so no concurrent bit set on the same word is ever lost while writes to other
+     * buckets proceed in parallel.
      *
      * @param index the bit index to set
      * @return {@code true} if the bit transitioned from 0 to 1, {@code false} if it was already set
@@ -285,23 +269,33 @@ public class LargeBitVector implements Serializable {
     public final boolean setAndTestWasUnset(final long index) {
         final long bit = 1L << (index & 0b111111);
         final long arrayIndex = index >>> 6;
-        final Object lock = syncFor(arrayIndex);
-        if (largeBits != null) {
-            final long[] bucket = largeBits[(int) (arrayIndex >>> BUCKET_SHIFT)];
-            final int displacement = (int) (arrayIndex & BUCKET_MASK);
-            synchronized (lock) {
-                final long old = bucket[displacement];
-                bucket[displacement] = old | bit;
-                return (old & bit) == 0;
-            }
-        } else {
-            final int i = (int) arrayIndex;
-            synchronized (lock) {
-                final long old = bits[i];
-                bits[i] = old | bit;
-                return (old & bit) == 0;
-            }
+        final int bucketIndex = (int) (arrayIndex >>> bucketShift);
+        final long[] bucket = largeBits[bucketIndex];
+        final int displacement = (int) (arrayIndex & bucketMask);
+        synchronized (bucket) {
+            // Count every set (like set() does), still under the bucket's monitor so the shared
+            // counter never races; this makes getBitsEverSet() total the number of set operations.
+            setBitsPerBucket[bucketIndex]++;
+            final long old = bucket[displacement];
+            bucket[displacement] = old | bit;
+            return (old & bit) == 0;
         }
+    }
+
+    /**
+     * Returns the number of set operations performed, i.e. every {@link #set(long)} and
+     * {@link #setAndTestWasUnset(long)} call is counted (even one that re-sets an already-set bit);
+     * cleared bits are not subtracted. So this is the total count of bit-set operations, not the number
+     * of distinct bits currently set.
+     *
+     * @return the number of set operations performed
+     */
+    public long getBitsEverSet() {
+        long total = 0;
+        for (long count : setBitsPerBucket) {
+            total += count;
+        }
+        return total;
     }
 
     /**
@@ -311,19 +305,8 @@ public class LargeBitVector implements Serializable {
      * @return {@code true} if the bit is set
      */
     public final boolean get(final long index) {
-        if (largeBits != null) {
-            final long arrayIndex = index >>> 6;
-            final long word = largeBits[(int) (arrayIndex >>> BUCKET_SHIFT)][(int) (arrayIndex & BUCKET_MASK)];
-            return ((word >> (index & 0b111111)) & 1L) == 1;
-        } else {
-            // Using optimization instead of '%', see:
-            // http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
-            // and Line 34 in https://github.com/FastFilter/fastfilter_java/blob/master/fastfilter/src/main/java/org/fastfilter/utils/Hash.java
-            // Not sure whether it would also work for long - probably not.
-            //int arrayIndex = (int) ((((index >>> 6) & 0xffffffffL) * (size & 0xffffffffL)) >>> 32);
-            // Original code:
-            int arrayIndex = (int) (index >>> 6);
-            return (((bits[arrayIndex] >> (index & 0b111111)) & 1L) == 1);
-        }
+        final long arrayIndex = index >>> 6;
+        final long word = largeBits[(int) (arrayIndex >>> bucketShift)][(int) (arrayIndex & bucketMask)];
+        return ((word >> (index & 0b111111)) & 1L) == 1;
     }
 }

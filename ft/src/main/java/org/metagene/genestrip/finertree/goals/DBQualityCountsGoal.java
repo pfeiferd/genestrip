@@ -118,8 +118,8 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
                     size += getPathSum(node, stats);
                 }
             }
-            filter = new XORKMerIndexBloomFilter(doubleConfigValue(FTConfigKey.FT_BLOOM_FILTER_FPP));
-            long bitSize = filter.ensureExpectedSize(size, false);
+            filter = new XORKMerIndexBloomFilter(doubleConfigValue(FTConfigKey.FT_BLOOM_FILTER_FPP), size);
+            long bitSize = filter.getBitSize();
             if (getLogger().isInfoEnabled()) {
                 getLogger().info("Filter size in MB: " + (bitSize / 8 / 1024 / 1024));
             }

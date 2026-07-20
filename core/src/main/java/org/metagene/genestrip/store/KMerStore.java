@@ -44,14 +44,6 @@ import it.unimi.dsi.fastutil.objects.Object2LongMap;
  */
 public interface KMerStore<V extends Serializable> extends Serializable {
 	/**
-	 * Reserves storage for the given number of expected k-mer entries. Must be called once before any
-	 * {@link #putLong} insertions.
-	 *
-	 * @param size the number of expected k-mer entries to reserve storage for
-	 */
-	public void initSize(long size);
-
-	/**
 	 * Returns the k-mer length (k) of this store.
 	 *
 	 * @return the k-mer length
@@ -192,25 +184,24 @@ public interface KMerStore<V extends Serializable> extends Serializable {
 	// --- Statistics -----------------------------------------------------------
 
 	/**
-	 * Fixes (caches) the number of k-mers per value so that it survives value updates.
-	 */
-	public void fix();
-
-	/**
-	 * Returns the number of stored k-mers per value.
-	 *
-	 * @return the (possibly cached, see {@link #fix()}) number of stored k-mers per value.
-	 */
-	public Object2LongMap<V> getFixedNKmersPerTaxid();
-
-	/**
-	 * Counts, by visiting every entry, how many stored k-mers map to each value. The {@code null} key
-	 * maps to the total number of entries.
+	 * Returns the number of stored k-mers per value (the {@code null} key maps to the total number of
+	 * entries), computed by visiting every entry. The result is cached, so a repeated call is free; the
+	 * cache is invalidated whenever k-mer values change - automatically by
+	 * {@link #setIndexAtPosition(long, int)} and explicitly via {@link #invalidateNKmersPerTaxid()}
+	 * after a bulk update - so a stale count is never returned. The cache is also baked into the
+	 * serialized form, so a store loaded from disk returns it without revisiting every entry.
 	 *
 	 * @return a map from each value to its number of stored k-mers, with the {@code null} key
 	 *         mapping to the total number of entries
 	 */
 	public Object2LongMap<V> getNKmersPerTaxid();
+
+	/**
+	 * Discards the cached per-value k-mer counts (see {@link #getNKmersPerTaxid()}), so the next call
+	 * recomputes them. {@link #setIndexAtPosition(long, int)} does this on its own; call it explicitly
+	 * after reassigning values through the bulk {@code update} paths.
+	 */
+	public void invalidateNKmersPerTaxid();
 
 	// --- Value conversion -----------------------------------------------------
 

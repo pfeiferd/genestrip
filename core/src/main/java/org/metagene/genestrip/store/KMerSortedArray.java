@@ -24,6 +24,8 @@
  */
 package org.metagene.genestrip.store;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
@@ -55,7 +57,7 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 	/** Maximum number of distinct values, capped by the short range of the value index. */
 	public static final int MAX_VALUES = ((int) Short.MAX_VALUE) - Short.MIN_VALUE;
 
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 2L;
 
 	/** Capacity threshold above which the store switches to big (paged) arrays. */
 	public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
@@ -73,13 +75,14 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 	/** Whether the big-array layout is enforced regardless of size. */
 	private final boolean enforceLarge;
 
-	/** Whether the store size has already been initialized. */
-	private boolean initSize;
+	// Just for optimizing synchronization during updates.
+	/** The lock array used to serialize concurrent updates of the same entry. */
+	private transient Object[] syncs;
 
 	/**
 	 * Creates a store with a fill-time pre-filter of the given {@code entryFpp} (an
 	 * {@link XORKMerBloomFilter} when {@code xor}, otherwise a {@link MurmurKMerBloomFilter}) and a
-	 * post-optimize filter targeting {@code optimizedFpp}.
+	 * post-optimize filter targeting {@code optimizedFpp}, sized to hold {@code size} k-mers.
 	 *
 	 * @param k the k-mer length
 	 * @param entryFpp the target false-positive probability of the fill-time pre-filter
@@ -87,24 +90,42 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 	 * @param initialValues the initial list of values
 	 * @param enforceLarge whether to enforce the big-array layout
 	 * @param xor whether to use an {@link XORKMerBloomFilter} (else a {@link MurmurKMerBloomFilter})
+	 * @param size the number of expected k-mer entries to reserve storage for (must be {@code >= 0})
 	 */
-	public KMerSortedArray(int k, double entryFpp, double optimizedFpp, List<V> initialValues, boolean enforceLarge, boolean xor) {
-		this(k, initialValues, enforceLarge, xor ? new XORKMerBloomFilter(entryFpp) : new MurmurKMerBloomFilter(entryFpp), optimizedFpp);
+	public KMerSortedArray(int k, double entryFpp, double optimizedFpp, List<V> initialValues, boolean enforceLarge, boolean xor, long size) {
+		this(k, initialValues, enforceLarge,
+				xor ? new XORKMerBloomFilter(entryFpp, size) : new MurmurKMerBloomFilter(entryFpp, size), optimizedFpp, size);
 	}
 
 	/**
-	 * Creates a store using the given fill-time pre-filter.
+	 * Creates a store using the given fill-time pre-filter, sized to hold {@code size} k-mers. The
+	 * backing k-mer/value arrays are allocated here and the pre-filter is expected to already be sized
+	 * for {@code size} insertions, so the store is ready for {@link #putLong} insertions immediately
+	 * after construction.
 	 *
 	 * @param k the k-mer length
 	 * @param initialValues the initial list of values
 	 * @param enforceLarge whether to enforce the big-array layout
-	 * @param filter the fill-time pre-filter to use
+	 * @param filter the fill-time pre-filter to use, already sized for {@code size} insertions
 	 * @param optimizedFpp the target false-positive probability after optimization
+	 * @param size the number of expected k-mer entries to reserve storage for (must be {@code >= 0})
 	 */
 	protected KMerSortedArray(int k, List<V> initialValues, boolean enforceLarge,
-							  KMerProbFilter filter, double optimizedFpp) {
+							  KMerProbFilter filter, double optimizedFpp, long size) {
 		super(k, MAX_VALUES, initialValues, filter, optimizedFpp);
 		this.enforceLarge = enforceLarge;
+		if (size < 0) {
+			throw new IllegalArgumentException("Expected insertions must be >= 0.");
+		}
+		this.size = size;
+		if (size > MAX_SMALL_CAPACITY || enforceLarge) {
+			largeKmers = BigArrays.ensureCapacity(BigArrays.wrap(new long[0]), size);
+			largeValueIndexes = BigArrays.ensureCapacity(BigArrays.wrap(new short[0]), size);
+		} else {
+			kmers = new long[(int) size];
+			valueIndexes = new short[(int) size];
+		}
+		initSyncs();
 	}
 
 	/**
@@ -122,34 +143,12 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 		largeKmers = org.largeKmers;
 		largeValueIndexes = org.largeValueIndexes;
 		enforceLarge = org.enforceLarge;
-		initSize = org.initSize;
+		initSyncs();
 	}
 
 	@Override
 	public <W extends Serializable> KMerStore<W> convertValues(KMerStore.ValueConverter<V, W> converter) {
 		return new KMerSortedArray<>(this, converter);
-	}
-
-	@Override
-	public void initSize(long size) {
-		if (initSize) {
-			throw new IllegalStateException("Cant initlialize size twice.");
-		}
-		if (size < 0) {
-			throw new IllegalArgumentException("Expected insertions must be > 0.");
-		}
-		initSize = true;
-		filter.ensureExpectedSize(size, false);
-		filter.clear();
-		this.size = size;
-
-		if (size > MAX_SMALL_CAPACITY || enforceLarge) {
-			largeKmers = BigArrays.ensureCapacity(BigArrays.wrap(new long[0]), size);
-			largeValueIndexes = BigArrays.ensureCapacity(BigArrays.wrap(new short[0]), size);
-		} else {
-			kmers = new long[(int) size];
-			valueIndexes = new short[(int) size];
-		}
 	}
 
 	/**
@@ -214,6 +213,39 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 		return getLong(CGAT.kMerToLong(nseq, start, k, null), indexStore);
 	}
 
+	/**
+	 * Restores the transient stripe-lock pool after deserialization.
+	 *
+	 * @param ois the stream to read from
+	 * @throws ClassNotFoundException if a serialized class cannot be resolved
+	 * @throws IOException            if reading fails
+	 */
+	private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
+		ois.defaultReadObject();
+		initSyncs();
+	}
+
+	private void initSyncs() {
+		syncs = new Object[512];
+		for (int i = 0; i < syncs.length; i++) {
+			syncs[i] = new Object();
+		}
+	}
+
+	/**
+	 * Returns the stripe lock for the given position, mapping it onto the fixed {@link #syncs} pool with
+	 * a cheap mask (the pool size is a power of two, so no modulo is needed): the same position always
+	 * yields the same lock, different positions usually different ones, so updates only contend when
+	 * they might touch the same entry. The key is a {@code long} so that a big-array position cannot
+	 * overflow the mixing.
+	 *
+	 * @param key the storage position to derive the lock from
+	 * @return the stripe lock to synchronize on
+	 */
+	private Object syncFor(long key) {
+		return syncs[(int) (key & (syncs.length - 1))];
+	}
+
 	@Override
 	public boolean update(long kmer, KMerStore.UpdateValueProvider<V> provider) {
 		if (!sorted) {
@@ -274,6 +306,8 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 		} else {
 			valueIndexes[(int) pos] = (short) (index + Short.MIN_VALUE);
 		}
+		// This entry's value changed, so any cached per-value k-mer counts are stale.
+		invalidateNKmersPerTaxid();
 	}
 
 	/**
@@ -431,15 +465,5 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 			}
 			visitor.nextValue(this, kmer, sindex  - Short.MIN_VALUE, i);
 		}
-	}
-
-	/**
-	 * @param <V> the source value type
-	 * @param <W> the target value type
-	 * @deprecated Use {@link KMerStore.ValueConverter} instead. Kept as a source-compatible
-	 *             alias so existing references continue to compile.
-	 */
-	@Deprecated
-	public interface ValueConverter<V, W extends Serializable> extends KMerStore.ValueConverter<V, W> {
 	}
 }

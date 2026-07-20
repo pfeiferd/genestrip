@@ -35,12 +35,14 @@ import org.metagene.genestrip.bloom.XORKMerBloomFilter;
  */
 public class XORKMerIndexBloomFilter extends XORKMerBloomFilter {
     /**
-     * Creates an index Bloom filter with the given target false-positive probability.
+     * Creates an index Bloom filter with the given target false-positive probability, sized for
+     * {@code expectedInsertions} (k-mer, index) pairs.
      *
      * @param fpp the desired false-positive probability of the filter
+     * @param expectedInsertions the expected number of (k-mer, index) pairs to be inserted
      */
-    public XORKMerIndexBloomFilter(double fpp) {
-        super(fpp);
+    public XORKMerIndexBloomFilter(double fpp, long expectedInsertions) {
+        super(fpp, expectedInsertions);
     }
 
     /**
