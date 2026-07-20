@@ -192,8 +192,8 @@ public class Database implements Serializable {
 
     /**
      * Writes this database to the stream as a ZIP with three entries: the serialized database, the
-     * probabilistic pre-filter (only for a {@link TunableKMerStore}, else {@code null}) and the
-     * config-info properties, the latter carrying an MD5 fingerprint of the serialized database bytes.
+     * probabilistic pre-filter (may be {@code null}) and the config-info properties, the latter
+     * carrying an MD5 fingerprint of the serialized database bytes.
      *
      * @param os the destination stream
      * @throws java.io.IOException if writing fails
@@ -213,9 +213,7 @@ public class Database implements Serializable {
             zipEntry = new ZipEntry(INDEX_FILE);
             zipOut.putNextEntry(zipEntry);
             oOut = new ObjectOutputStream(digo);
-            // Only tunable stores expose a probabilistic pre-filter; for others none is written.
-            KMerProbFilter filter = kmerStore instanceof TunableKMerStore
-                    ? ((TunableKMerStore<String>) kmerStore).getFilter() : null;
+            KMerProbFilter filter = kmerStore.getFilter();
             oOut.writeObject(filter);
             digo.flush(); // Make sure it all got written.
             zipOut.closeEntry();
@@ -303,8 +301,8 @@ public class Database implements Serializable {
                 }
                 database.setConfigInfo(configInfo);
                 database.initStoreIndices();
-                if (filter != null && database.getKmerStore() instanceof TunableKMerStore) {
-                    ((TunableKMerStore<String>) database.getKmerStore()).setFilter(filter);
+                if (filter != null) {
+                    database.getKmerStore().setFilter(filter);
                 }
             }
             return database;

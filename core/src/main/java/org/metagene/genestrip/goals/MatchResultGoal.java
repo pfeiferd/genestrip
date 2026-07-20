@@ -37,7 +37,6 @@ import org.metagene.genestrip.match.FastqKMerMatcher;
 import org.metagene.genestrip.match.MatchingResult;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.KMerStore;
-import org.metagene.genestrip.store.TunableKMerStore;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
@@ -113,11 +112,7 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 					SmallTaxTree taxTree = database.getTaxTree();
 					KMerStore<SmallTaxIdNode> store = database.convertKMerStore();
 
-					// The pre-filter is optional (see TunableKMerStore); apply it only when supported.
-					if (store instanceof TunableKMerStore) {
-						((TunableKMerStore<SmallTaxIdNode>) store)
-								.setUseFilter(booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH));
-					}
+					store.setUseFilter(booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH));
 
 					matcher = createMatcher(store,
 							(booleanConfigValue(GSConfigKey.CLASSIFY_READS) && !GSGoalKey.MATCHRESLR.equals(getKey()))

@@ -50,9 +50,8 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
  *     {@code getNValues} / {@code getValues} accessors),</li>
  * <li>the basic counters ({@code k}, {@code entries}, {@code size}, {@code sorted}) and their
  *     getters,</li>
- * <li>the optional probabilistic pre-filter ({@link TunableKMerStore}: {@code getFilter} /
- *     {@code setFilter} / {@code setUseFilter} / {@code isUseFilter}) plus the
- *     {@link #createOptimizedFilter()} helper used when sorting,</li>
+ * <li>the probabilistic pre-filter ({@code getFilter} / {@code setFilter} / {@code setUseFilter} /
+ *     {@code isUseFilter}) plus the {@link #createOptimizedFilter()} helper used when sorting,</li>
  * <li>the per-value k-mer count statistics ({@code getNKmersPerTaxid} /
  *     {@code invalidateNKmersPerTaxid}, cached and baked into the serialized form on
  *     {@code writeObject}).</li>
@@ -62,7 +61,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
  *
  * @param <V> the value type mapped to each k-mer
  */
-public abstract class AbstractKMerStore<V extends Serializable> implements TunableKMerStore<V> {
+public abstract class AbstractKMerStore<V extends Serializable> implements KMerStore<V> {
 	private static final long serialVersionUID = 1L;
 
 	/** The k-mer length; always in {@code [1, 31]}. */
@@ -204,7 +203,7 @@ public abstract class AbstractKMerStore<V extends Serializable> implements Tunab
 		return sorted;
 	}
 
-	// --- Optional pre-filter (TunableKMerStore) -------------------------------
+	// --- Probabilistic pre-filter ---------------------------------------------
 
 	@Override
 	public KMerProbFilter getFilter() {
