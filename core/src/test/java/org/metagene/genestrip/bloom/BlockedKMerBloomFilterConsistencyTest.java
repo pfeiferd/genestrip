@@ -38,7 +38,7 @@ import java.util.Random;
 import org.junit.Test;
 
 /**
- * Verifies that {@link BlockedKMerBloomFilter#putLongIfAbsent(long)} — the combined single-pass insert
+ * Verifies that {@link BlockedKMerBloomFilter#putLong(long)} — the combined single-pass insert
  * — behaves exactly like the previous {@code if (!containsLong(x)) putLong(x)} sequence (this filter is
  * filled single-threaded only), and that membership survives serialization.
  */
@@ -111,8 +111,8 @@ public class BlockedKMerBloomFilterConsistencyTest {
 
 		BlockedKMerBloomFilter candidate = newFilter(n, large);
 		for (long kmer : kmers) {
-			boolean firstAdded = candidate.putLongIfAbsent(kmer);
-			boolean secondAdded = candidate.putLongIfAbsent(kmer);
+			boolean firstAdded = candidate.putLong(kmer);
+			boolean secondAdded = candidate.putLong(kmer);
 			assertFalse("repeat insert must not be reported as new", secondAdded);
 			if (!firstAdded) {
 				assertTrue(candidate.containsLong(kmer));
@@ -130,7 +130,7 @@ public class BlockedKMerBloomFilterConsistencyTest {
 		long[] kmers = randomKMers(n, 4242);
 		BlockedKMerBloomFilter filter = newFilter(n);
 		for (long kmer : kmers) {
-			filter.putLongIfAbsent(kmer);
+			filter.putLong(kmer);
 		}
 
 		ByteArrayOutputStream bytes = new ByteArrayOutputStream();

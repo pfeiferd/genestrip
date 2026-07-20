@@ -35,12 +35,6 @@ import java.io.*;
  */
 public interface KMerProbFilter extends Serializable {
     /**
-     * Adds the given k-mer to the filter.
-     *
-     * @param data the k-mer, encoded as a {@code long}, to add
-     */
-    public void putLong(final long data);
-    /**
      * Adds the given k-mer to the filter unless it is (probably) already present, and reports whether
      * it was newly added. This is required to be equivalent to a {@code if (!containsLong(data))
      * putLong(data)} sequence, but implementations combine it into a single pass and, where they
@@ -50,14 +44,14 @@ public interface KMerProbFilter extends Serializable {
      * inherit an unsafe one (see {@link AbstractKMerBloomFilter} and {@link BlockedKMerBloomFilter}).
      * <p>
      * For the concurrent implementations, two threads inserting the same absent k-mer may both
-     * observe it as new, so under concurrent use the returned flag — and hence any entry count kept
-     * by a {@link CountingKMerProbFilter} — may marginally over-count; membership answers are never
-     * affected.
+     * observe it as new, so under concurrent use the returned flag may marginally over-count the
+     * newly-added k-mers; membership answers are never affected.
      *
      * @param data the k-mer, encoded as a {@code long}, to add
      * @return {@code true} if the k-mer was not already present, {@code false} otherwise
      */
-    public boolean putLongIfAbsent(final long data);
+    public boolean putLong(final long data);
+
     /**
      * Tests whether the given k-mer is (probably) contained in the filter.
      *

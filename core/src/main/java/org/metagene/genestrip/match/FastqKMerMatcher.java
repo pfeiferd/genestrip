@@ -69,7 +69,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
     /**
      * Marks each matched k-mer by its storage position so distinct matched k-mers can be counted per
      * tax id; {@code null} when unique counting is disabled. Set concurrently via {@link
-     * LargeBitVector#setAndTestWasUnset(long)}.
+     * LargeBitVector#set(long)}.
      */
     protected LargeBitVector uniqueKmerBits;
     /** Per-store-index statistics accumulators, indexed by a tax id node's store index. */
@@ -443,9 +443,9 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                     }
                 }
                 if (uniqueKmerBits != null) {
-                    // Mark this matched k-mer's storage position; setAndTestWasUnset is thread-safe
+                    // Mark this matched k-mer's storage position; set is thread-safe
                     // (its return value - whether the bit was newly set - is not needed here).
-                    uniqueKmerBits.setAndTestWasUnset(entry.indexPos[0]);
+                    uniqueKmerBits.set(entry.indexPos[0]);
                 }
             } else {
                 stats = null;

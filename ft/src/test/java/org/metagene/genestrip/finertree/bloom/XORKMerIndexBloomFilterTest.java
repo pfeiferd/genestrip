@@ -68,8 +68,8 @@ public class XORKMerIndexBloomFilterTest {
 
 		XORKMerIndexBloomFilter candidate = newFilter(n);
 		for (int i = 0; i < n; i++) {
-			boolean firstAdded = candidate.putLongIntIfAbsent(kmers[i], indices[i]);
-			boolean secondAdded = candidate.putLongIntIfAbsent(kmers[i], indices[i]);
+			boolean firstAdded = candidate.putLongInt(kmers[i], indices[i]);
+			boolean secondAdded = candidate.putLongInt(kmers[i], indices[i]);
 			assertFalse("repeat (k-mer, index) insert must not be reported as new", secondAdded);
 			if (!firstAdded) {
 				assertTrue(candidate.containsLongInt(kmers[i], indices[i]));
@@ -102,7 +102,7 @@ public class XORKMerIndexBloomFilterTest {
 
 		XORKMerIndexBloomFilter reference = newFilter(total);
 		for (int i = 0; i < total; i++) {
-			reference.putLongIntIfAbsent(kmers[i], indices[i]);
+			reference.putLongInt(kmers[i], indices[i]);
 		}
 
 		XORKMerIndexBloomFilter concurrent = newFilter(total);
@@ -116,7 +116,7 @@ public class XORKMerIndexBloomFilterTest {
 				try {
 					start.await();
 					for (int i = from; i < to; i++) {
-						concurrent.putLongIntIfAbsent(kmers[i], indices[i]);
+						concurrent.putLongInt(kmers[i], indices[i]);
 					}
 				} catch (Throwable th) {
 					failure.compareAndSet(null, th);
@@ -148,11 +148,6 @@ public class XORKMerIndexBloomFilterTest {
 					reference.containsLongInt(randomKmer, randomIndex),
 					concurrent.containsLongInt(randomKmer, randomIndex));
 		}
-		// Distinct pairs partitioned across threads: essentially all counted as new, with only rare
-		// collision-order slack.
-		long entries = concurrent.getEntries();
-		assertTrue("entries too low: " + entries, entries >= total - total / 100);
-		assertTrue("entries above insert count: " + entries, entries <= total);
 	}
 
 	@Test(expected = UnsupportedOperationException.class)
@@ -162,7 +157,7 @@ public class XORKMerIndexBloomFilterTest {
 
 	@Test(expected = UnsupportedOperationException.class)
 	public void testRawPutLongIfAbsentDisabled() {
-		newFilter(100).putLongIfAbsent(42L);
+		newFilter(100).putLong(42L);
 	}
 
 	@Test(expected = UnsupportedOperationException.class)

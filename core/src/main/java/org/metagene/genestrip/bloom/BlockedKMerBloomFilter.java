@@ -39,9 +39,7 @@ import java.util.Random;
  * bucketed backing uses as few buckets as the sizing requires, and can also be set explicitly.
  * <p>
  * This filter is not safe for concurrent insertion: unlike {@link AbstractKMerBloomFilter}, its
- * {@link #putLongIfAbsent(long)} does no locking (see that method). It is only ever filled
- * single-threaded (via {@link #putLong(long)} while building an index/database), so no stripe locks
- * are needed.
+ * {@link #putLong(long)} does no locking (see that method).
  * <p></p>
  * This implementation is derived from
  * <a href="https://raw.githubusercontent.com/FastFilter/fastfilter_java/refs/heads/master/fastfilter/src/main/java/org/fastfilter/bloom/BlockedBloom.java">BlockedBloom.java</a>
@@ -216,24 +214,6 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
         bucketMask = (1 << bucketShift) - 1;
     }
 
-    @Override
-    public void putLong(long key) {
-        long hash = hash(key);
-        long mixed = hash ^ Long.rotateLeft(hash, 32);
-        long m1 = (1L << mixed) | (1L << (mixed >> 6));
-        long m2 = (1L << (mixed >> 12)) | (1L << (mixed >> 18));
-        if (data != null) {
-            int s = reduceInt(hash);
-            data[s] |= m1;
-            data[s + 1 + (int) (mixed >>> 60)] |= m2;
-        } else {
-            // Single-threaded classic path: no locking needed.
-            long start = reduce(hash);
-            setLargeOr(start, m1);
-            setLargeOr(start + 1 + (mixed >>> 60), m2);
-        }
-    }
-
     /**
      * ORs the given mask into the large-storage word at the given index without locking (single-threaded
      * use only).
@@ -247,7 +227,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
 
     /**
      * Adds the key to the filter and reports whether it was newly added, ORing its bits into the
-     * backing words. This combines a {@link #containsLong(long)} check with {@link #putLong(long)} in a
+     * backing words. This combines a {@link #containsLong(long)} check with put in a
      * single pass; the resulting filter state is identical to a plain
      * {@code if (!containsLong(key)) putLong(key)} sequence.
      * <p>
@@ -260,7 +240,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
      * @return {@code true} if the key was not already present, {@code false} otherwise
      */
     @Override
-    public boolean putLongIfAbsent(long key) {
+    public boolean putLong(long key) {
         long hash = hash(key);
         long mixed = hash ^ Long.rotateLeft(hash, 32);
         long m1 = (1L << mixed) | (1L << (mixed >> 6));

@@ -46,18 +46,6 @@ public class XORKMerIndexBloomFilter extends XORKMerBloomFilter {
     }
 
     /**
-     * Unsupported: a plain k-mer cannot be added because this filter always folds an index into the
-     * k-mer. Use {@link #putLongInt(long, int)} instead.
-     *
-     * @param data the k-mer encoded as a long
-     * @throws UnsupportedOperationException always
-     */
-    @Override
-    public void putLong(long data) {
-        throw new UnsupportedOperationException();
-    }
-
-    /**
      * Unsupported: a plain k-mer cannot be queried because this filter always folds an index into
      * the k-mer. Use {@link #containsLongInt(long, int)} instead.
      *
@@ -72,27 +60,15 @@ public class XORKMerIndexBloomFilter extends XORKMerBloomFilter {
 
     /**
      * Unsupported: a plain k-mer cannot be added because this filter always folds an index into the
-     * k-mer. Use {@link #putLongIntIfAbsent(long, int)} instead.
+     * k-mer. Use {@link #putLongInt(long, int)} instead.
      *
      * @param data the k-mer encoded as a long
      * @return never returns normally
      * @throws UnsupportedOperationException always
      */
     @Override
-    public boolean putLongIfAbsent(long data) {
+    public boolean putLong(long data) {
         throw new UnsupportedOperationException();
-    }
-
-    /**
-     * Adds the given (k-mer, index) pair to the filter by XOR-folding the index into the k-mer (into
-     * both its low and high 32-bit halves) and delegating the result to the underlying Bloom filter.
-     *
-     * @param data  the k-mer encoded as a long
-     * @param index the integer index to associate with the k-mer
-     */
-    public void putLongInt(long data, final int index) {
-        data = data ^ ((long) index) ^ (((long) index) << 32);
-        super.putLong(data);
     }
 
     /**
@@ -107,9 +83,9 @@ public class XORKMerIndexBloomFilter extends XORKMerBloomFilter {
      * @param index the integer index to associate with the k-mer
      * @return {@code true} if the (k-mer, index) pair was not already present, {@code false} otherwise
      */
-    public boolean putLongIntIfAbsent(long data, final int index) {
+    public boolean putLongInt(long data, final int index) {
         data = data ^ ((long) index) ^ (((long) index) << 32);
-        return super.putLongIfAbsent(data);
+        return super.putLong(data);
     }
 
     /**

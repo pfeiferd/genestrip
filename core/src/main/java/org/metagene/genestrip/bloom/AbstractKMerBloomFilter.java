@@ -32,11 +32,9 @@ import java.util.Random;
  * Base class for {@link KMerProbFilter} implementations backed by a {@link LargeBitVector}. It sizes
  * the bit vector and the number of hash functions from the expected insertions and target
  * false-positive probability, and derives each of the {@code hashes} bit indices from a
- * subclass-supplied {@link #hash} function. Subclasses only provide the hash. The entry count is not
- * tracked separately: {@link #getEntries()} derives it from the bit vector's set-operation count (see
- * {@link LargeBitVector#getBitsEverSet()}) divided by the number of hash functions.
+ * subclass-supplied {@link #hash} function. Subclasses only provide the hash.
  */
-public abstract class AbstractKMerBloomFilter implements CountingKMerProbFilter {
+public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
 	private static final long serialVersionUID = 2L;
 
 	/** The target false-positive probability. */
@@ -119,20 +117,6 @@ public abstract class AbstractKMerBloomFilter implements CountingKMerProbFilter 
 	}
 
 	/**
-	 * Returns the number of inserted k-mers as the bit vector's set-operation count
-	 * ({@link LargeBitVector#getBitsEverSet()}) divided by {@link #hashes}. Since every insert sets
-	 * exactly {@code hashes} counted bits, this is the exact number of insert operations. It counts a
-	 * k-mer once per insert call, so inserting the same k-mer twice counts it twice (i.e. it counts
-	 * occurrences, which equals the distinct count when each k-mer is inserted once).
-	 *
-	 * @return the number of inserted k-mers
-	 */
-	@Override
-	public long getEntries() {
-		return hashes == 0 ? 0 : bitVector.getBitsEverSet() / hashes;
-	}
-
-	/**
 	 * Computes the optimal number of hash functions for the given sizing.
 	 *
 	 * @param n the expected number of insertions
@@ -152,13 +136,6 @@ public abstract class AbstractKMerBloomFilter implements CountingKMerProbFilter 
 	 */
 	protected long optimalNumOfBits(long n, double p) {
 		return Math.max(1L, (long) (-n * Math.log(p) / (Math.log(2) * Math.log(2))));
-	}
-
-	@Override
-	public void putLong(final long data) {
-		for (int i = 0; i < hashes; i++) {
-			bitVector.set(reduce(hash(data, i)));
-		}
 	}
 
 	@Override
@@ -182,20 +159,18 @@ public abstract class AbstractKMerBloomFilter implements CountingKMerProbFilter 
 	 * <p>
 	 * The returned "newly added" flag is exact under single-threaded use. Under concurrent use two
 	 * threads inserting the same absent k-mer may both observe it as new; this never affects the
-	 * filter's membership answers. The flag feeds no counter — {@link #getEntries()} is derived purely
-	 * from the bit-set operations, which are tallied thread-safely under each bucket's lock — so this
-	 * benign race cannot skew the entry count.
+	 * filter's membership answers.
 	 *
 	 * @param data the k-mer, encoded as a {@code long}, to add
 	 * @return {@code true} if the k-mer was not already present (at least one of its bits was newly
 	 *         set), {@code false} if it was already present
 	 */
 	@Override
-	public boolean putLongIfAbsent(final long data) {
+	public boolean putLong(final long data) {
 		boolean added = false;
 		for (int i = 0; i < hashes; i++) {
 			// Every bit must be set even once we know the element is new, so do not short-circuit.
-			if (bitVector.setAndTestWasUnset(reduce(hash(data, i)))) {
+			if (bitVector.set(reduce(hash(data, i)))) {
 				added = true;
 			}
 		}

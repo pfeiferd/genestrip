@@ -41,7 +41,7 @@ import org.junit.Test;
 import org.metagene.genestrip.util.LargeBitVector;
 
 /**
- * Verifies that the lock-free combined insert {@link AbstractKMerBloomFilter#putLongIfAbsent(long)}
+ * Verifies that the lock-free combined insert {@link AbstractKMerBloomFilter#putLong(long)}
  * yields a filter that is bit-for-bit identical to the classic {@code if (!containsLong(x))
  * putLong(x)} sequence, both single-threaded (small and large backing) and under concurrent
  * insertion.
@@ -91,8 +91,8 @@ public class PutLongIfAbsentConsistencyTest {
 
 		XORKMerBloomFilter candidate = newFilter(n, large);
 		for (long kmer : kmers) {
-			boolean firstAdded = candidate.putLongIfAbsent(kmer);
-			boolean secondAdded = candidate.putLongIfAbsent(kmer);
+			boolean firstAdded = candidate.putLong(kmer);
+			boolean secondAdded = candidate.putLong(kmer);
 			// The first insert of a genuinely new k-mer is reported as added; the immediate repeat is
 			// never reported as added.
 			assertFalse("repeat insert must not be reported as new", secondAdded);
@@ -123,15 +123,13 @@ public class PutLongIfAbsentConsistencyTest {
 	}
 
 	@Test
-	public void testEntriesSurviveSerialization() throws IOException, ClassNotFoundException {
+	public void testMembershipSurvivesSerialization() throws IOException, ClassNotFoundException {
 		int n = 5_000;
 		long[] kmers = randomKMers(n, 4242);
 		XORKMerBloomFilter filter = newFilter(n, false);
 		for (long kmer : kmers) {
-			filter.putLongIfAbsent(kmer);
+			filter.putLong(kmer);
 		}
-		long entriesBefore = filter.getEntries();
-		assertTrue("some entries expected", entriesBefore > 0);
 
 		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
 		try (ObjectOutputStream out = new ObjectOutputStream(bytes)) {
@@ -142,9 +140,6 @@ public class PutLongIfAbsentConsistencyTest {
 			loaded = (XORKMerBloomFilter) in.readObject();
 		}
 
-		// getEntries() is derived from the bit vector's set-operation counters, which are serialized,
-		// so the reloaded filter reports the same count without any separate counter to persist.
-		assertEquals("entries survive serialization", entriesBefore, loaded.getEntries());
 		for (long kmer : kmers) {
 			assertTrue("no false negative after reload", loaded.containsLong(kmer));
 		}
@@ -161,7 +156,7 @@ public class PutLongIfAbsentConsistencyTest {
 
 		XORKMerBloomFilter reference = newFilter(total, false);
 		for (long kmer : kmers) {
-			reference.putLongIfAbsent(kmer);
+			reference.putLong(kmer);
 		}
 
 		XORKMerBloomFilter concurrent = newFilter(total, false);
@@ -175,7 +170,7 @@ public class PutLongIfAbsentConsistencyTest {
 				try {
 					start.await();
 					for (int i = from; i < to; i++) {
-						concurrent.putLongIfAbsent(kmers[i]);
+						concurrent.putLong(kmers[i]);
 					}
 				} catch (Throwable th) {
 					failure.compareAndSet(null, th);
@@ -195,11 +190,5 @@ public class PutLongIfAbsentConsistencyTest {
 		for (long kmer : kmers) {
 			assertTrue("no false negative after concurrent insert", concurrent.containsLong(kmer));
 		}
-		// The distinct k-mers are partitioned across threads, so essentially all are counted as new;
-		// the only slack is the rare k-mer whose bits are fully covered by collisions, whose "new"
-		// verdict is insertion-order sensitive. Bound it loosely rather than requiring exact equality.
-		long entries = concurrent.getEntries();
-		assertTrue("entries too low: " + entries, entries >= total - total / 100);
-		assertTrue("entries above insert count: " + entries, entries <= total);
 	}
 }

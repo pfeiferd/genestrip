@@ -349,7 +349,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 			// already present is a (probable) duplicate and is dropped, which also settles the race
 			// between the lock-free check above and this insert. When useFilter is off the result is
 			// ignored (the filter is only populated), matching the previous behaviour.
-			boolean newKmer = filter.putLongIfAbsent(kmer);
+			boolean newKmer = filter.putLong(kmer);
 			if (useFilter && !newKmer) {
 				return false;
 			}

@@ -1,26 +1,26 @@
 /*
- * 
+ *
  * “Commons Clause” License Condition v1.0
- * 
- * The Software is provided to you by the Licensor under the License, 
+ *
+ * The Software is provided to you by the Licensor under the License,
  * as defined below, subject to the following condition.
- * 
- * Without limiting other conditions in the License, the grant of rights under the License 
+ *
+ * Without limiting other conditions in the License, the grant of rights under the License
  * will not include, and the License does not grant to you, the right to Sell the Software.
- * 
- * For purposes of the foregoing, “Sell” means practicing any or all of the rights granted 
- * to you under the License to provide to third parties, for a fee or other consideration 
- * (including without limitation fees for hosting or consulting/ support services related to 
- * the Software), a product or service whose value derives, entirely or substantially, from the 
- * functionality of the Software. Any license notice or attribution required by the License 
+ *
+ * For purposes of the foregoing, “Sell” means practicing any or all of the rights granted
+ * to you under the License to provide to third parties, for a fee or other consideration
+ * (including without limitation fees for hosting or consulting/ support services related to
+ * the Software), a product or service whose value derives, entirely or substantially, from the
+ * functionality of the Software. Any license notice or attribution required by the License
  * must also include this Commons Clause License Condition notice.
- * 
+ *
  * Software: genestrip
- * 
+ *
  * License: Apache 2.0
- * 
+ *
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
- * 
+ *
  */
 package org.metagene.genestrip.finertree.goals;
 
@@ -68,6 +68,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
     private KMerStore<SmallTaxTree.SmallTaxIdNode> kMerSortedArray;
     private XORKMerIndexBloomFilter filter;
     private Map<String, Counts> map;
+    private long entries;
 
     /**
      * Creates the goal, depending on the accession map and the loaded database in addition to the
@@ -106,6 +107,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
         try {
             map = new HashMap<>();
             tree = storeGoal.get().getTaxTree();
+            entries = 0;
             Object2LongMap<String> stats = storeGoal.get().getStats();
             // Estimate the filter size by summing up from species to root for each species in the DB.
             // It is a highly conservative estimate because k-mers on ranks above species are hardly
@@ -127,10 +129,10 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
 
             readFastas();
             if (getLogger().isInfoEnabled()) {
-                getLogger().info("Actual filter entries: " + filter.getEntries());
+                getLogger().info("Filter entries: " + entries);
             }
             if (getLogger().isErrorEnabled()) {
-                if (filter.getEntries() > 2 * size) {
+                if (entries > 2 * size) {
                     getLogger().error("Entries exceed filter size by over factor 2. Something went wrong!");
                 }
             }
@@ -257,10 +259,10 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
                 if (storedNode != null) {
                     int index = kMerSortedArray.getIndexForValue(leafNode);
                     if (index >= 0) {
-                        synchronized (filter) {
-                            // Checks whether it's a duplicate under that taxid.
-                            if (!filter.containsLongInt(kmer, index)) {
-                                filter.putLongInt(kmer, index);
+                        // Checks whether it's a duplicate under that taxid.
+                        if (filter.putLongInt(kmer, index)) {
+                            synchronized (map) {
+                                entries++;
                                 Counts counts = map.get(leafNode.getTaxId());
                                 if (counts == null) {
                                     counts = new Counts();
@@ -277,8 +279,8 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
                                     // Stored node on path from file node: True positive
                                     counts.tp++;
                                 }
-                                return true;
                             }
+                            return true;
                         }
                     } else if (getLogger().isWarnEnabled()) {
                         getLogger().warn("No kmer-index for taxid " + storedNode.getTaxId() + " found.");
@@ -295,7 +297,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
      * @param node the node to start from
      * @param r    the rank to look for
      * @return the nearest ancestor of {@code node} (or the node itself) having rank {@code r}, or
-     *         {@code null} if there is none
+     * {@code null} if there is none
      */
     protected SmallTaxTree.SmallTaxIdNode toRankedNode(SmallTaxTree.SmallTaxIdNode node, Rank r) {
         while (node != null && !r.equals(node.getRank())) {
@@ -310,7 +312,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
      * @param node  the node to start from
      * @param stats the per-tax-id stored k-mer counts keyed by tax id
      * @return the sum of the per-tax-id stored *k*-mer counts from {@code stats} along the path from
-     *         {@code node} up to the root
+     * {@code node} up to the root
      */
     protected long getPathSum(SmallTaxTree.SmallTaxIdNode node, Object2LongMap stats) {
         long res = 0L;
@@ -328,20 +330,34 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
     public static class Counts implements Serializable {
         private static final long serialVersionUID = 1L;
 
-        /** True positives plus false positives (all k-mers stored under this tax id). */
+        /**
+         * True positives plus false positives (all k-mers stored under this tax id).
+         */
         private long tpPlusFp;
-        /** True positives (k-mers correctly stored under this tax id). */
+        /**
+         * True positives (k-mers correctly stored under this tax id).
+         */
         private long tp;
-        /** True positives plus false negatives (all k-mers read from this tax id's genomes). */
+        /**
+         * True positives plus false negatives (all k-mers read from this tax id's genomes).
+         */
         private long tpPlusFn;
-        /** Number of child nodes aggregated into this tally. */
+        /**
+         * Number of child nodes aggregated into this tally.
+         */
         private int aggregations;
-        /** Sum of the aggregated children's precision values. */
+        /**
+         * Sum of the aggregated children's precision values.
+         */
         private double aggPrecisionSum;
-        /** Sum of the aggregated children's recall values. */
+        /**
+         * Sum of the aggregated children's recall values.
+         */
         private double aggRecallSum;
 
-        /** Creates an empty tally with all counts set to zero. */
+        /**
+         * Creates an empty tally with all counts set to zero.
+         */
         public Counts() {
         }
 
@@ -373,6 +389,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
         }
 
         // Weighted
+
         /**
          * Returns the weighted precision.
          *
@@ -383,22 +400,23 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
         }
 
         // Unweighted
+
         /**
          * Returns the unweighted average precision.
          *
          * @return the unweighted average precision over aggregated nodes, or {@link #getPrecision()}
-         *         if there was no aggregation
+         * if there was no aggregation
          */
         public double getAvgPrecision() {
             if (aggPrecisionSum == 0) {
                 return getPrecision();
-            }
-            else {
+            } else {
                 return aggPrecisionSum / aggregations;
             }
         }
 
         // Weighted
+
         /**
          * Returns the weighted recall.
          *
@@ -409,17 +427,17 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
         }
 
         // Unweighted
+
         /**
          * Returns the unweighted average recall.
          *
          * @return the unweighted average recall over aggregated nodes, or {@link #getRecall()} if
-         *         there was no aggregation
+         * there was no aggregation
          */
         public double getAvgRecall() {
             if (aggRecallSum == 0) {
                 return getRecall();
-            }
-            else {
+            } else {
                 return aggRecallSum / aggregations;
             }
         }
