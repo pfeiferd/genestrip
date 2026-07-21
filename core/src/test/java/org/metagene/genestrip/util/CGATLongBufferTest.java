@@ -33,6 +33,7 @@ import org.junit.Test;
 import junit.framework.TestCase;
 
 public class CGATLongBufferTest extends TestCase {
+	private static final byte[] DECODE_TABLE = CGAT.newDecodeTable();
 	private int k = 31;
 	private final int[] fib;
 
@@ -128,7 +129,7 @@ public class CGATLongBufferTest extends TestCase {
 			for (int h = 0; h < 100000; h++) {
 				assertEquals(h >= buffer.getSize(), buffer.isFilled());
 
-				byte c = CGAT.DECODE_TABLE[random.nextInt(4)];
+				byte c = DECODE_TABLE[random.nextInt(4)];
 				buffer.putForTest(c);
 
 				if (buffer.isFilled()) {
@@ -159,7 +160,7 @@ public class CGATLongBufferTest extends TestCase {
 					assertFalse(longBuffer.isFilled());
 					assertEquals(-1, longBuffer.getKMer());
 				}
-				byte c = CGAT.DECODE_TABLE[random.nextInt(4)];
+				byte c = DECODE_TABLE[random.nextInt(4)];
 				longBuffer.put(c);
 				ringBuffer.putForTest(c);
 
@@ -242,7 +243,7 @@ public class CGATLongBufferTest extends TestCase {
 
 		for (long j = 0; j < max; j++) {
 			for (int h = 0; h < k; h++) {
-				byte c = CGAT.DECODE_TABLE[random.nextInt(4)];
+				byte c = DECODE_TABLE[random.nextInt(4)];
 				buffer.putForTest(c);
 			}
 			int d = naiveDust(buffer, 2);

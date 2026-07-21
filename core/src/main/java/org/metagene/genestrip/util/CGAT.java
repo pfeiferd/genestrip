@@ -34,19 +34,19 @@ public class CGAT {
 	}
 
 	/** Lookup table mapping each nucleotide byte to its Watson-Crick complement; non-CGAT entries are -1. */
-	public static final byte[] CGAT_COMPLEMENT = new byte[127];
+	private static final byte[] CGAT_COMPLEMENT = new byte[127];
 	/** Lookup table mapping each nucleotide byte to its straight 2-bit code (C=0, G=1, A=2, T=3); non-CGAT entries are -1. */
-	public static final int[] CGAT_JUMP_TABLE;
+	static final int[] CGAT_JUMP_TABLE;
 	/** Lookup table mapping each nucleotide byte to the 2-bit code of its complement (C=1, G=0, A=3, T=2); non-CGAT entries are -1. */
-	public static final int[] CGAT_REVERSE_JUMP_TABLE;
+	static final int[] CGAT_REVERSE_JUMP_TABLE;
 
 	/** Maps a 2-bit code (0-3) back to its nucleotide letter C, G, A or T. */
-	public static final byte[] DECODE_TABLE = new byte[] { 'C', 'G', 'A', 'T' };
+	private static final byte[] DECODE_TABLE = new byte[] { 'C', 'G', 'A', 'T' };
 
 	/** Per-k bit masks retaining the low 2k bits, used when appending a base to a straight k-mer encoding. */
-	public static long SHIFT_FILTERS_STRAIGHT[] = new long[33]; // TODO ~(-1 << ((k - 1) * 2))
+	static final long SHIFT_FILTERS_STRAIGHT[] = new long[33]; // TODO ~(-1 << ((k - 1) * 2))
 	/** Per-k shift amounts ((k-1)*2), used when prepending a base to a reverse k-mer encoding. */
-	public static long SHIFT_FILTERS_REVERSE[] = new long[33]; // TODO ((k - 1) * 2)
+	static final long SHIFT_FILTERS_REVERSE[] = new long[33]; // TODO ((k - 1) * 2)
 
 	static {
 		for (int i = 0; i < CGAT_COMPLEMENT.length; i++) {
@@ -80,6 +80,16 @@ public class CGAT {
 		for (int i = 1; i < SHIFT_FILTERS_REVERSE.length; i++) {
 			SHIFT_FILTERS_REVERSE[i] = (i - 1) * 2;
 		}
+	}
+
+	/**
+	 * Returns a fresh copy of the 2-bit-code-to-nucleotide decode table (index 0-3 maps to C, G, A, T).
+	 * A copy is handed out so callers cannot mutate the shared internal table; fetch it once and reuse it.
+	 *
+	 * @return a new {@code byte[]} copy of the decode table
+	 */
+	public static byte[] newDecodeTable() {
+		return DECODE_TABLE.clone();
 	}
 
 	/**

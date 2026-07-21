@@ -49,6 +49,7 @@ import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import junit.framework.TestCase;
 
 public abstract class AbstractKMerStoreTest extends TestCase {
+	private static final byte[] DECODE_TABLE = CGAT.newDecodeTable();
 	protected final Random random = new Random(42);
 
 	protected int k = 31;
@@ -74,7 +75,7 @@ public abstract class AbstractKMerStoreTest extends TestCase {
 		for (int i = 0; i < nEntries; i++) {
 			List<Byte> readAsList = controlMap != null ? new ArrayList<Byte>() : null;
 			for (int j = 0; j < k; j++) {
-				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
+				read[j] = DECODE_TABLE[random.nextInt(4)];
 				if (readAsList != null) {
 					readAsList.add(read[j]);
 				}
@@ -291,7 +292,7 @@ public abstract class AbstractKMerStoreTest extends TestCase {
 		for (int i = 1; i <= negativeTestSize; i++) {
 			readAsList.clear();
 			for (int j = 0; j < read.length; j++) {
-				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
+				read[j] = DECODE_TABLE[random.nextInt(4)];
 				readAsList.add(read[j]);
 				ringBuffer.put(read[j]);
 			}

@@ -33,6 +33,8 @@ import junit.framework.TestCase;
 import static org.metagene.genestrip.util.CGAT.longToKMerStraight;
 
 public class NextKMerTest extends TestCase {
+	private static final byte[] DECODE_TABLE = CGAT.newDecodeTable();
+
 	@Test
 	public void testNextKMer() {
 		byte[] kmerBuffer = new byte[31];
@@ -43,7 +45,7 @@ public class NextKMerTest extends TestCase {
 			long oldKMer = -1;
 
 			for (int j = 0; j < 100000; j++) {
-				byte c = CGAT.DECODE_TABLE[random.nextInt(4)];
+				byte c = DECODE_TABLE[random.nextInt(4)];
 				buffer.putForTest(c);
 
 				if (buffer.isFilled()) {
@@ -66,7 +68,7 @@ public class NextKMerTest extends TestCase {
 			long oldKMer = -1;
 
 			for (int j = 0; j < 100000; j++) {
-				byte c = CGAT.DECODE_TABLE[random.nextInt(4)];
+				byte c = DECODE_TABLE[random.nextInt(4)];
 				buffer.putForTest(c);
 
 				if (buffer.isFilled()) {

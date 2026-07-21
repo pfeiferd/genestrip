@@ -37,6 +37,7 @@ import org.metagene.genestrip.util.CGAT;
  * radix-specific tests (the empty-bucket short circuit and the configurable radix width).
  */
 public class RadixKMerStoreTest extends AbstractKMerStoreTest {
+	private static final byte[] DECODE_TABLE = CGAT.newDecodeTable();
 	private static final int RADIX_BITS = RadixKMerStore.DEFAULT_RADIX_BITS;
 	// A k-mer set small enough that many radix buckets stay empty (for the early-out test).
 	private static final int SMALL_SIZE = 20000;
@@ -169,7 +170,7 @@ public class RadixKMerStoreTest extends AbstractKMerStoreTest {
 		int v = 0;
 		while (kmerMap.size() < n) {
 			for (int j = 0; j < k; j++) {
-				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
+				read[j] = DECODE_TABLE[random.nextInt(4)];
 			}
 			long kmer = CGAT.kMerToLong(read, 0, k, null);
 			if (!kmerMap.containsKey(kmer)) {

@@ -51,6 +51,8 @@ import org.metagene.genestrip.util.CGAT;
  */
 public class RadixKMerStoreBenchmarkTest {
 
+    private static final byte[] DECODE_TABLE = CGAT.newDecodeTable();
+
     // The benchmark is repeated for each of these k-mer sizes.
     private static final int[] K_VALUES = {16, 21, 31};
     // Three taxonomy ids spread across the store.
@@ -99,7 +101,7 @@ public class RadixKMerStoreBenchmarkTest {
             int added = 0;
             while (added < kmersPerTaxid) {
                 for (int j = 0; j < k; j++) {
-                    seq[j] = CGAT.DECODE_TABLE[rng.nextInt(4)];
+                    seq[j] = DECODE_TABLE[rng.nextInt(4)];
                 }
                 long canonical = CGAT.kMerToLong(seq, 0, k, null);
                 if (canonical != -1 && sorted.putLong(canonical, taxid)) {
@@ -153,7 +155,7 @@ public class RadixKMerStoreBenchmarkTest {
             long canonical;
             do {
                 for (int j = 0; j < k; j++) {
-                    seq[j] = CGAT.DECODE_TABLE[rng.nextInt(4)];
+                    seq[j] = DECODE_TABLE[rng.nextInt(4)];
                 }
                 canonical = CGAT.kMerToLong(seq, 0, k, null);
             } while (canonical == -1);
@@ -204,7 +206,7 @@ public class RadixKMerStoreBenchmarkTest {
             Random rng = new Random(98765L);
             for (int i = 0; i < 100_000; i++) {
                 for (int j = 0; j < k; j++) {
-                    seq[j] = CGAT.DECODE_TABLE[rng.nextInt(4)];
+                    seq[j] = DECODE_TABLE[rng.nextInt(4)];
                 }
                 long kmer = CGAT.kMerToLong(seq, 0, k, null);
                 if (kmer == -1) {

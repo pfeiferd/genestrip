@@ -209,7 +209,7 @@ public enum GSConfigKey implements ConfigKey {
 	/** Whether the database uses the radix-indexed k-mer store. */
 	@MDDescription("If `true`, the database's *k*-mer store uses the radix-indexed `RadixKMerStore` instead of the default sorted-array store. "
 			+ "It is sized per radix bucket from the deduplicated per-bucket *k*-mer counts (see goal `tempindex`) and tends to be faster for lookups on large databases that exceed the CPU cache.")
-	USE_RADIX_STORE("useRadixStore", new BooleanConfigParamInfo(false), false, GSGoalKey.FILL_DB),
+	USE_RADIX_STORE("useRadixStore", new BooleanConfigParamInfo(true), false, GSGoalKey.FILL_DB),
 	/** Number of low k-mer bits used as the radix index of the RadixKMerStore. */
 	@MDDescription("Number of low *k*-mer bits used as the radix index of the `RadixKMerStore` (only relevant when `useRadixStore` is `true`). "
 			+ "The store has `2^radixStoreBits` buckets; more bits give smaller, more cache-friendly buckets at the cost of a larger radix table. "

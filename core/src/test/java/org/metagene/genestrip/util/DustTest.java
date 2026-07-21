@@ -31,6 +31,7 @@ import java.util.Random;
 
 @Ignore
 public class DustTest extends TestCase {
+    private static final byte[] DECODE_TABLE = CGAT.newDecodeTable();
     private int k = 31;
     private final int[] fib;
 
@@ -69,7 +70,7 @@ public class DustTest extends TestCase {
             for (int h = 0; h < 100000; h++) {
                 assertEquals(h >= buffer.getSize(), buffer.isFilled());
 
-                byte c = CGAT.DECODE_TABLE[random.nextInt(4)];
+                byte c = DECODE_TABLE[random.nextInt(4)];
                 buffer.putForTest(c);
 
                 if (buffer.isFilled()) {

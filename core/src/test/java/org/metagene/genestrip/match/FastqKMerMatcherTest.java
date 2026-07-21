@@ -49,6 +49,7 @@ import org.metagene.genestrip.util.CGAT;
 import static org.junit.Assert.*;
 
 public class FastqKMerMatcherTest {
+	private static final byte[] DECODE_TABLE = CGAT.newDecodeTable();
 	private static final String[] TAXIDS = new String[] { "1", "2", "3" };
 
 	private final Random random = new Random(42);
@@ -139,7 +140,7 @@ public class FastqKMerMatcherTest {
 			int lastT = -1;
 			byte[] read = entry.read;
 			for (int j = 0; j < readLength; j++) {
-				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
+				read[j] = DECODE_TABLE[random.nextInt(4)];
 				if (j > 0) {
 					lastT = t;
 					if ((read[j - 1] == 'C' && read[j] == 'C') || (read[j - 1] == 'G' && read[j] == 'G')) {
@@ -252,7 +253,7 @@ public class FastqKMerMatcherTest {
 		byte[][] reads = new byte[numReads][readLength];
 		for (int r = 0; r < numReads; r++) {
 			for (int j = 0; j < readLength; j++) {
-				reads[r][j] = CGAT.DECODE_TABLE[rnd.nextInt(4)];
+				reads[r][j] = DECODE_TABLE[rnd.nextInt(4)];
 			}
 		}
 

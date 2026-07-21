@@ -34,6 +34,7 @@ import org.junit.Test;
 import org.metagene.genestrip.util.CGAT;
 
 public class KMerBloomFilterTest {
+	private static final byte[] DECODE_TABLE = CGAT.newDecodeTable();
 	protected Random random = new Random(42);
 	protected int k = 31;
 	protected int size = 5 * 1000 * 100;
@@ -53,7 +54,7 @@ public class KMerBloomFilterTest {
 		for (int i = 1; i < size; i++) {
 			byte[] read = new byte[k];
 			for (int j = 0; j < k; j++) {
-				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
+				read[j] = DECODE_TABLE[random.nextInt(4)];
 				reverseRead[k - j - 1] = CGAT.toComplement(read[j]);
 			}
 			reads.add(read);
@@ -75,7 +76,7 @@ public class KMerBloomFilterTest {
 		byte[] read = new byte[k];
 		for (int i = 1; i < size; i++) {
 			for (int j = 0; j < k; j++) {
-				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
+				read[j] = DECODE_TABLE[random.nextInt(4)];
 			}
 			if (contains(filter, read, 0, null)) {
 				err++;
@@ -97,7 +98,7 @@ public class KMerBloomFilterTest {
 
 		for (int i = 1; i < size; i++) {
 			for (int j = 0; j < k; j++) {
-				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
+				read[j] = DECODE_TABLE[random.nextInt(4)];
 			}
 			filter.putLong(CGAT.kMerToLong(read, 0, k, null));
 			reads.add(read.clone());
@@ -117,7 +118,7 @@ public class KMerBloomFilterTest {
 		int err = 0;
 		for (int i = 1; i < size; i++) {
 			for (int j = 0; j < k; j++) {
-				read[j] = CGAT.DECODE_TABLE[random.nextInt(4)];
+				read[j] = DECODE_TABLE[random.nextInt(4)];
 			}
 			if (contains(filter, read, 0, null)) {
 				err++;
