@@ -177,6 +177,10 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
+            map = null;
+            tree = null;
+            kMerSortedArray = null;
+            filter = null;
             cleanUpThreads();
         }
     }

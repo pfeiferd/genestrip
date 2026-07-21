@@ -165,6 +165,8 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 			throw new RuntimeException(e);
 		} finally {
 			store = null;
+			readers.clear();
+			System.gc(); // Time to run GC after potentially freeing up some memory.
 			cleanUpThreads();
 		}
 	}

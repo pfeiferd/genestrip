@@ -225,6 +225,7 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
             throw new RuntimeException(e);
         } finally {
             filter = null;
+            readers.clear();
             System.gc(); // Time to run GC after freeing up the bloom filter's memory.
             cleanUpThreads();
         }

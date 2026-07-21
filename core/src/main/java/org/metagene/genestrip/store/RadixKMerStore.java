@@ -208,14 +208,11 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	 * @return the total reserved capacity across all buckets.
 	 */
 	private static long sumBucketSizes(int[] bucketSizes) {
-		long total = 0;
-		for (int s : bucketSizes) {
-			if (s < 0) {
-				throw new IllegalArgumentException("Negative bucket size: " + s);
-			}
-			total += s;
+		long sum = 0;
+		for (int i = 0;  i < bucketSizes.length; i++) {
+			sum += bucketSizes[i];
 		}
-		return total;
+		return sum;
 	}
 
 	/**

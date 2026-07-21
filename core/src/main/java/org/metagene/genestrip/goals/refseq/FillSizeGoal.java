@@ -100,6 +100,7 @@ public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<Long, P> 
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {
+			readers.clear();
 			cleanUpThreads();
 		}
 	}

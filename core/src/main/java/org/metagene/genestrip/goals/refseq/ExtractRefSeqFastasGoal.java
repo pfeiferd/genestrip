@@ -54,8 +54,6 @@ import java.util.*;
  */
 public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoal<Map<String, String>, P> {
     private final ObjectGoal<AccessionMap, P> accessionMapGoal;
-    private final List<FillSizeGoal.MyFastaReader> readers;
-
     private Map<String, String> descr2TaxId;
 
     /**
@@ -75,7 +73,6 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
                                    ObjectGoal<AccessionMap, P> accessionMapGoal, Goal<P>... deps) {
         super(project, GSGoalKey.EXTRACT_REFSEQ_FASTA, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, null, Goal.append(deps, accessionMapGoal));
         this.accessionMapGoal = accessionMapGoal;
-        readers = new ArrayList<>();
         descr2TaxId = Collections.synchronizedMap(new HashMap<>());
     }
 
@@ -87,6 +84,7 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
+            descr2TaxId = null;
             cleanUpThreads();
         }
     }
