@@ -249,6 +249,13 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("Whether to accept lowercase bases for *k*-mers.")
 	ENABLE_LOWERCASE_BASES("lowerCaseBases", new BooleanConfigParamInfo(true), false, GSGoalKey.DB),
 
+	// K-mer rank statistics
+	/**
+	 * Tax id restricting the k-mer rank statistics CSV to species below that node. If empty (the
+	 * default), all species of the database are considered. Internal.
+	 */
+	KMER_RANK_STATS_TAXID("kmerRankStatsTaxid", new StringConfigParamInfo(""), true, GSGoalKey.KMER_RANK_STATS_CSV),
+
 	// SVG Database content
 	/** Font name for texts in the generated tree. */
 	@MDDescription("The font name for the texts in the generated tree.")

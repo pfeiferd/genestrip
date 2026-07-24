@@ -37,12 +37,16 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.tax.Rank;
+import org.metagene.genestrip.tax.SmallTaxTree;
+import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
 /**
  * Writes a CSV file summarizing the per-species k-mer rank statistics computed by
@@ -50,7 +54,17 @@ import org.metagene.genestrip.tax.Rank;
  * interval, the mean number of a species' k-mers falling into that interval (averaged over all
  * species) is written together with the (population) standard deviation over all species, as well as
  * the box-plot quartiles (first quartile {@code q1}, {@code median} and third quartile {@code q3}) of
- * the per-species interval sums.
+ * the per-species interval sums. In addition, the same statistics ({@code rel avg}, {@code rel stddev},
+ * {@code rel q1}, {@code rel median}, {@code rel q3}) are written for the per-species relative interval
+ * values - each species' interval sum divided by its total over the four intervals, so those ratios sum
+ * to one per species. The considered set of species is the actual species-rank taxa of the database (as
+ * keyed by {@link KMerRankStatsGoal}; higher-rank taxa are not pseudo-species). A species without any
+ * k-mers has no defined ratios and does not enter the statistics, so {@code species count} counts the
+ * database's species that carry k-mers and applies to both the absolute and the relative columns.
+ * <p>
+ * By default every species of the database contributes to these figures. If the configuration key
+ * {@link GSConfigKey#KMER_RANK_STATS_TAXID} is set to a tax id, only species that are taxonomic
+ * descendants of that node (the node itself included) are taken into account.
  * <p>
  * The rank intervals are:
  * <ul>
@@ -83,6 +97,7 @@ public class KMerRankStatsCSVGoal<P extends GSProject> extends FileGoal<P> {
 	private static final int[] INTERVAL_BY_ORDINAL = computeIntervalByOrdinal();
 
 	private final ObjectGoal<Map<String, long[]>, P> rankStatsGoal;
+	private final ObjectGoal<Database, P> dbGoal;
 
 	/**
 	 * Creates the goal writing the rank-interval summary CSV file.
@@ -90,13 +105,16 @@ public class KMerRankStatsCSVGoal<P extends GSProject> extends FileGoal<P> {
 	 * @param project       the project this goal belongs to
 	 * @param key           the key identifying this goal
 	 * @param rankStatsGoal the goal providing the per-species k-mer rank statistics
+	 * @param dbGoal        the goal supplying the loaded database, used to resolve the optional tax node
+	 *                      the statistics are restricted to (see {@link GSConfigKey#KMER_RANK_STATS_TAXID})
 	 * @param deps          any further goals this goal depends on
 	 */
 	@SafeVarargs
 	public KMerRankStatsCSVGoal(P project, GoalKey key, ObjectGoal<Map<String, long[]>, P> rankStatsGoal,
-								Goal<P>... deps) {
-		super(project, key, Goal.append(deps, rankStatsGoal));
+								ObjectGoal<Database, P> dbGoal, Goal<P>... deps) {
+		super(project, key, Goal.append(deps, rankStatsGoal, dbGoal));
 		this.rankStatsGoal = rankStatsGoal;
+		this.dbGoal = dbGoal;
 	}
 
 	@Override
@@ -109,21 +127,57 @@ public class KMerRankStatsCSVGoal<P extends GSProject> extends FileGoal<P> {
 	protected void makeFile(File file) throws IOException {
 		Map<String, long[]> stats = rankStatsGoal.get();
 
-		// Reduce each species' per-rank counts to its four per-interval sums.
+		// Optional restriction: if a tax id is configured, only species that are taxonomic descendants of
+		// that node (the node itself included) are included in the statistics. If unset, all species count.
+		String taxId = stringConfigValue(GSConfigKey.KMER_RANK_STATS_TAXID);
+		SmallTaxTree taxTree = null;
+		SmallTaxIdNode filterNode = null;
+		if (taxId != null && !taxId.isEmpty()) {
+			taxTree = dbGoal.get().getTaxTree();
+			filterNode = taxTree.getNodeByTaxId(taxId);
+			if (filterNode == null) {
+				throw new IllegalStateException("Config key " + GSConfigKey.KMER_RANK_STATS_TAXID.getName()
+						+ " refers to tax id " + taxId + " which is not in the database's taxonomy tree.");
+			}
+		}
+
+		// Reduce each species' per-rank counts to its four per-interval sums. In addition, each species is
+		// turned into its relative interval distribution (each interval sum divided by the species' total
+		// over the four intervals), so those four ratios sum to one per species. Species with no k-mers at
+		// all (total zero) have no defined ratios and are excluded from every statistic here.
 		List<long[]> perSpecies = new ArrayList<>(stats.size());
+		List<double[]> perSpeciesRel = new ArrayList<>(stats.size());
 		double[] sum = new double[INTERVAL_COUNT];
-		for (long[] counts : stats.values()) {
+		for (Map.Entry<String, long[]> entry : stats.entrySet()) {
+			if (filterNode != null) {
+				SmallTaxIdNode speciesNode = taxTree.getNodeByTaxId(entry.getKey());
+				if (speciesNode == null || !taxTree.isAncestorOf(speciesNode, filterNode)) {
+					continue;
+				}
+			}
+			long[] counts = entry.getValue();
 			long[] intervalSums = new long[INTERVAL_COUNT];
+			long total = 0;
 			for (int ordinal = 0; ordinal < counts.length; ordinal++) {
 				int interval = INTERVAL_BY_ORDINAL[ordinal];
 				if (interval >= 0) {
 					intervalSums[interval] += counts[ordinal];
+					total += counts[ordinal];
 				}
+			}
+			if (total == 0) {
+				// Species without any k-mers do not enter any statistic (absolute or relative).
+				continue;
 			}
 			perSpecies.add(intervalSums);
 			for (int i = 0; i < INTERVAL_COUNT; i++) {
 				sum[i] += intervalSums[i];
 			}
+			double[] rel = new double[INTERVAL_COUNT];
+			for (int i = 0; i < INTERVAL_COUNT; i++) {
+				rel[i] = (double) intervalSums[i] / total;
+			}
+			perSpeciesRel.add(rel);
 		}
 
 		int n = perSpecies.size();
@@ -162,8 +216,46 @@ public class KMerRankStatsCSVGoal<P extends GSProject> extends FileGoal<P> {
 			q3[i] = quantile(values, 0.75);
 		}
 
+		// The same set of statistics over the per-species relative interval values (which sum to one per
+		// species). The relative and absolute statistics now share the same species set (those with at
+		// least one k-mer), so their per-interval averages sum to one across the four intervals.
+		double[] relMean = new double[INTERVAL_COUNT];
+		for (double[] rel : perSpeciesRel) {
+			for (int i = 0; i < INTERVAL_COUNT; i++) {
+				relMean[i] += rel[i];
+			}
+		}
+		for (int i = 0; i < INTERVAL_COUNT; i++) {
+			relMean[i] = n == 0 ? 0 : relMean[i] / n;
+		}
+		double[] relSqDiff = new double[INTERVAL_COUNT];
+		for (double[] rel : perSpeciesRel) {
+			for (int i = 0; i < INTERVAL_COUNT; i++) {
+				double d = rel[i] - relMean[i];
+				relSqDiff[i] += d * d;
+			}
+		}
+		double[] relStd = new double[INTERVAL_COUNT];
+		for (int i = 0; i < INTERVAL_COUNT; i++) {
+			relStd[i] = n == 0 ? 0 : Math.sqrt(relSqDiff[i] / n);
+		}
+		double[] relQ1 = new double[INTERVAL_COUNT];
+		double[] relMedian = new double[INTERVAL_COUNT];
+		double[] relQ3 = new double[INTERVAL_COUNT];
+		for (int i = 0; i < INTERVAL_COUNT; i++) {
+			double[] values = new double[n];
+			for (int s = 0; s < n; s++) {
+				values[s] = perSpeciesRel.get(s)[i];
+			}
+			Arrays.sort(values);
+			relQ1[i] = quantile(values, 0.25);
+			relMedian[i] = quantile(values, 0.5);
+			relQ3[i] = quantile(values, 0.75);
+		}
+
 		try (PrintStream ps = new PrintStream(file, StandardCharsets.UTF_8)) {
-			ps.println("rank interval;avg kmers per species;stddev;q1;median;q3;species count;");
+			ps.println("rank interval;avg kmers per species;stddev;q1;median;q3;species count;"
+					+ "rel avg;rel stddev;rel q1;rel median;rel q3;");
 			for (int i = 0; i < INTERVAL_COUNT; i++) {
 				ps.print(INTERVAL_NAMES[i]);
 				ps.print(";");
@@ -179,6 +271,16 @@ public class KMerRankStatsCSVGoal<P extends GSProject> extends FileGoal<P> {
 				ps.print(";");
 				ps.print(n);
 				ps.print(";");
+				ps.print(DF.format(relMean[i]));
+				ps.print(";");
+				ps.print(DF.format(relStd[i]));
+				ps.print(";");
+				ps.print(DF.format(relQ1[i]));
+				ps.print(";");
+				ps.print(DF.format(relMedian[i]));
+				ps.print(";");
+				ps.print(DF.format(relQ3[i]));
+				ps.print(";");
 				ps.println();
 			}
 		}
@@ -193,6 +295,31 @@ public class KMerRankStatsCSVGoal<P extends GSProject> extends FileGoal<P> {
 	 * @return the interpolated quantile value, or {@code 0} if the array is empty
 	 */
 	protected static double quantile(long[] sorted, double p) {
+		int n = sorted.length;
+		if (n == 0) {
+			return 0;
+		}
+		if (n == 1) {
+			return sorted[0];
+		}
+		double pos = p * (n - 1);
+		int lower = (int) Math.floor(pos);
+		double frac = pos - lower;
+		if (lower + 1 >= n) {
+			return sorted[n - 1];
+		}
+		return sorted[lower] + frac * (sorted[lower + 1] - sorted[lower]);
+	}
+
+	/**
+	 * Computes the {@code p}-quantile of an already ascending-sorted array using linear interpolation
+	 * between the two closest ranks (the type-7 definition used by NumPy, R and matplotlib's box plots).
+	 *
+	 * @param sorted the values in ascending order
+	 * @param p      the quantile in {@code [0, 1]}, e.g. {@code 0.25} for the first quartile
+	 * @return the interpolated quantile value, or {@code 0} if the array is empty
+	 */
+	protected static double quantile(double[] sorted, double p) {
 		int n = sorted.length;
 		if (n == 0) {
 			return 0;

@@ -426,7 +426,7 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
         registerGoal(kmerRankStatsGoal);
 
         KMerRankStatsCSVGoal<P> kmerRankStatsCSVGoal = new KMerRankStatsCSVGoal(project, GSGoalKey.KMER_RANK_STATS_CSV,
-                kmerRankStatsGoal, projectSetupGoal);
+                kmerRankStatsGoal, loadDBGoal, projectSetupGoal);
         registerGoal(kmerRankStatsCSVGoal);
 
         // Use database and bloom filter

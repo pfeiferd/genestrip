@@ -62,9 +62,11 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
  * {@link Rank#values()}{@code .length} entries so that every rank has a fixed slot.
  * <p>
  * The species of a k-mer is determined by walking up from the region's tax node to its nearest
- * ancestor of rank {@link Rank#SPECIES}; if there is none, the region's own tax node is used. K-mers
- * not present in the database are ignored, as they did not land anywhere. Each qualifying k-mer
- * occurrence is counted (there is no de-duplication of k-mers that recur within a species' genomes).
+ * ancestor of rank {@link Rank#SPECIES}. Only actual species-rank taxa of the database are represented:
+ * a k-mer whose region has no species-rank ancestor is not attributed to any species and is not counted,
+ * and higher-rank taxa do not appear as pseudo-species keys. K-mers not present in the database are
+ * ignored, as they did not land anywhere. Each qualifying k-mer occurrence is counted (there is no
+ * de-duplication of k-mers that recur within a species' genomes).
  * <p>
  * A k-mer may land on a node whose rank has no well-defined level ({@link Rank#isIndeterminate()},
  * e.g. {@code clade} or {@code no rank}). Such a node cannot be placed on the rank axis by its rank
@@ -143,7 +145,12 @@ public class KMerRankStatsGoal<P extends GSProject> extends FastaReaderGoal<Map<
 			// 2. For every node whose own rank is indeterminate (e.g. clade / no rank), the ordinal of
 			//    the representative rank it is counted under, resolved from its position in the tree.
 			for (SmallTaxIdNode node : taxTree) {
-				map.computeIfAbsent(toSpeciesNode(node).getTaxId(), k -> new long[RANK_COUNT]);
+				// Only actual species-rank taxa of the database enter the statistic. Nodes without a
+				// species-rank ancestor (higher-rank taxa) are not represented as pseudo-species.
+				SmallTaxIdNode speciesNode = toSpeciesNode(node);
+				if (Rank.SPECIES.equals(speciesNode.getRank())) {
+					map.computeIfAbsent(speciesNode.getTaxId(), k -> new long[RANK_COUNT]);
+				}
 				Rank rank = node.getRank();
 				if (rank == null || rank.isIndeterminate()) {
 					Rank effectiveRank = resolveEffectiveRank(node);
@@ -290,6 +297,11 @@ public class KMerRankStatsGoal<P extends GSProject> extends FastaReaderGoal<Map<
 			// are shared), so synchronizing on it yields per-species mutual exclusion. Its long[] was
 			// pre-created in doMakeThis(), so the map is only read - never structurally modified - here.
 			TaxIdNode speciesNode = toSpeciesNode(node);
+			if (!Rank.SPECIES.equals(speciesNode.getRank())) {
+				// The region has no species-rank ancestor, so its k-mers belong to no species of the
+				// statistic and are not counted (matching the species-only map seeded in doMakeThis()).
+				return false;
+			}
 			long[] counts = map.get(speciesNode.getTaxId());
 			if (counts == null) {
 				// Should not happen: every tree species was pre-created. Skip rather than modify the
