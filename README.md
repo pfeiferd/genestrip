@@ -91,7 +91,7 @@ Caution: Running the tests requires development skills and a deeper understandin
 
 Some included tests employ [KrakenUniq](https://github.com/fbreitwieser/krakenuniq) as part of a comprehensive correctness check of Genestrip's read classification procedure.
 For this purpose, the maven command `mvn -P gentestdata install`
-ultimately generates sample output data via KrakenUniq. Later on (i.e. under the Maven profile `preinstall`), this data is compared against Genestrip's corresponding output.
+ultimately generates sample output data via KrakenUniq. Later on (i.e. under the Maven profile `prerelease`), this data is compared against Genestrip's corresponding output.
 Among other things, the Maven profile `gentestdata` runs a shell script to install KrakenUniq from its sources
 and also executes KrakenUniq but **this only works on Linux and macOS**.
 
