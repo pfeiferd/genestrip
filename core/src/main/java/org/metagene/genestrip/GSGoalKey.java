@@ -88,6 +88,16 @@ public enum GSGoalKey implements GoalKey {
 	/** Generates an SVG visualization of the database's taxonomy tree. */
 	@MDDescription("Generates a compact visual taxonomy tree in SVG-format to represent the database content.")
 	SVG_TAX_TREE("svgtaxtree", true),
+	/** Computes, per species, the taxonomic rank at which each of its k-mers landed in the database. */
+	@MDDescription("Compute, for each species, a statistic counting the taxonomic rank at which each of the species' "
+			+ "*k*-mers ended up in the project's database. The result is a map keyed by the species' tax id whose "
+			+ "value is an array of per-rank counts indexed by the ordinal of the `Rank` enum.")
+	KMER_RANK_STATS("kmerrankstats", true),
+	/** Writes a CSV file with the mean and standard deviation of k-mers per rank interval over all species. */
+	@MDDescription("Write a CSV file summarizing the `kmerrankstats` result: for the rank intervals `above phylum`, "
+			+ "`phylum to genus`, `genus to species` and `species and below`, the mean number of a species' *k*-mers in "
+			+ "that interval (averaged over all species) together with the standard deviation over all species.")
+	KMER_RANK_STATS_CSV("kmerrankstatscsv", true),
 
 	// Non user Goals
 	/** Transforms a fasta file or streaming resource to a fastq file. */

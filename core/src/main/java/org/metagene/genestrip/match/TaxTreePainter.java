@@ -67,6 +67,11 @@ public abstract class TaxTreePainter {
     protected double nodeIndentFactor;
     /** Whether per-node indentation is derived from evolutionary distance rather than k-mer count. */
     protected boolean distanceIndent;
+    /**
+     * When {@link #distanceIndent} is set, the rank at or above which nodes receive only the standard
+     * indentation instead of the distance-based one; {@code null} to distance-indent all nodes.
+     */
+    protected Rank distanceIndentBelowRank;
     /** The distance above which a node's connector line is drawn dashed. */
     protected double largeDistanceThreshold;
     /** Whether the longest evolutionary path is highlighted (in red). */
@@ -262,9 +267,7 @@ public abstract class TaxTreePainter {
      */
     protected int getMaxLevel(SmallTaxTree tree) {
         int maxLevel = 0;
-        Iterator<SmallTaxTree.SmallTaxIdNode> iterator = tree.iterator();
-        while (iterator.hasNext()) {
-            SmallTaxTree.SmallTaxIdNode node = iterator.next();
+        for (SmallTaxTree.SmallTaxIdNode node : tree) {
             maxLevel = Math.max(maxLevel, node.getLevel());
         }
 
@@ -304,10 +307,37 @@ public abstract class TaxTreePainter {
     protected int indentForNode(EvoDistanceEstimator.DistanceInfo info, long kmers, long maxKMers) {
         if (distanceIndent) {
             // distance == 1 gives no useful indentation (e.g. from nodes near the root)
-            return info.getDistance() == 1 ? 0 : (int) (info.getDistancePortion() * nodeIndentFactor);
+            if (info.getDistance() == 1) {
+                return 0;
+            }
+            // High-level nodes at or above the configured cutoff rank get only the standard indent.
+            if (distanceIndentBelowRank != null && !isBelowRank(info.getNode(), distanceIndentBelowRank)) {
+                return 0;
+            }
+            return (int) (info.getDistancePortion() * nodeIndentFactor);
         } else {
             return (int) ((((double) kmers) / maxKMers) * nodeIndentFactor);
         }
+    }
+
+    /**
+     * Returns whether the given node sits strictly below the given rank in the taxonomy. A node with a
+     * well-defined rank is compared directly; a node with an indeterminate rank ({@code clade} /
+     * {@code no rank}) is judged by its nearest ranked ancestor - being a strict descendant, it is below
+     * the cutoff as soon as that ancestor is at or below the cutoff rank.
+     *
+     * @param node the node to test
+     * @param rank the cutoff rank
+     * @return {@code true} if the node is strictly below the cutoff rank
+     */
+    protected boolean isBelowRank(SmallTaxTree.SmallTaxIdNode node, Rank rank) {
+        for (SmallTaxTree.SmallTaxIdNode n = node; n != null; n = n.getParent()) {
+            Rank r = n.getRank();
+            if (r != null && !r.isIndeterminate()) {
+                return n == node ? r.isBelow(rank) : !r.isAbove(rank);
+            }
+        }
+        return false;
     }
 
     /**

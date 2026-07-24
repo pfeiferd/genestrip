@@ -36,6 +36,7 @@ import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.match.TaxTreePainter;
 import org.metagene.genestrip.store.Database;
+import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 import org.metagene.genestrip.util.progressbar.GSProgressUpdate;
 import org.w3c.dom.DOMImplementation;
@@ -98,6 +99,7 @@ public class SVGTaxTreeGoal<P extends GSProject> extends FileGoal<P> {
                 xTextGap = (int) (fontSize * doubleConfigValue(GSConfigKey.SVG_TEXT_GAP_FACTOR));
                 nodeIndentFactor = doubleConfigValue(GSConfigKey.SVG_KMER_NODE_INDENT_FACTOR);
                 distanceIndent = booleanConfigValue(GSConfigKey.SVG_DISTANCE_INDENT);
+                distanceIndentBelowRank = (Rank) configValue(GSConfigKey.SVG_DISTANCE_INDENT_BELOW_RANK);
                 markLongestPath = booleanConfigValue(GSConfigKey.SVG_MARK_LONGEST_PATH);
                 showRank = booleanConfigValue(GSConfigKey.SVG_SHOW_RANK);
                 showDistance = booleanConfigValue(GSConfigKey.SVG_SHOW_DISTANCE);

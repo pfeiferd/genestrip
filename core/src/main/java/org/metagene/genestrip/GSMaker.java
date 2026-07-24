@@ -420,6 +420,15 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
         SVGTaxTreeGoal<P> svgTaxTreeGoal = new SVGTaxTreeGoal<P>(project, GSGoalKey.SVG_TAX_TREE, loadDBGoal, projectSetupGoal);
         registerGoal(svgTaxTreeGoal);
 
+        KMerRankStatsGoal<P> kmerRankStatsGoal = new KMerRankStatsGoal(project, GSGoalKey.KMER_RANK_STATS,
+                getExecutionContext(project), categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal, additionalFastasGoal,
+                accessionMapGoal, loadDBGoal, taxTreeGoal, projectSetupGoal);
+        registerGoal(kmerRankStatsGoal);
+
+        KMerRankStatsCSVGoal<P> kmerRankStatsCSVGoal = new KMerRankStatsCSVGoal(project, GSGoalKey.KMER_RANK_STATS_CSV,
+                kmerRankStatsGoal, projectSetupGoal);
+        registerGoal(kmerRankStatsCSVGoal);
+
         // Use database and bloom filter
 
         ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapGoal = new FastqMapGoal(project, true,

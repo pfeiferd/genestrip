@@ -271,6 +271,13 @@ public enum GSConfigKey implements ConfigKey {
 	/** Whether node indentation is based on evolutionary distance. */
 	@MDDescription("Whether to perform indentation based on the evolutionary distance *d* for `svgKmerNodeIndentFactor` instead of the number of differing *k*-mers.")
 	SVG_DISTANCE_INDENT("svgDistanceIndent", new BooleanConfigParamInfo(false), false, GSGoalKey.SVG_TAX_TREE),
+	/** Rank at or above which distance-based indentation is suppressed in favor of the standard indent. */
+	@MDDescription("Only relevant if `svgDistanceIndent=true`: The taxonomic rank up to which (inclusively) high-level "
+			+ "nodes are only indented by the minimal standard indentation instead of by their distance portion. Nodes "
+			+ "strictly below this rank keep the distance-based indentation. For example, setting this to `domain` indents "
+			+ "all nodes at rank `domain` and above by the standard indentation only. If unset, all nodes are indented by "
+			+ "their distance portion.")
+	SVG_DISTANCE_INDENT_BELOW_RANK("svgDistanceIndentBelowRank", new RankConfigParamInfo(null), false, GSGoalKey.SVG_TAX_TREE),
 	/** Whether requested tax ids are shown in bold. */
 	@MDDescription("Whether to use bold text for tax ids requested via the project file `taxids.txt`.")
 	SVG_REQ_NODES("svgReqNodesBold", new BooleanConfigParamInfo(true), false, GSGoalKey.SVG_TAX_TREE),
