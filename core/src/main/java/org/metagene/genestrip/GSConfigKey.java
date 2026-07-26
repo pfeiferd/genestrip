@@ -157,7 +157,7 @@ public enum GSConfigKey implements ConfigKey {
 	// Genbank data selection
 	/** Maximum number of Genbank fasta files used per tax id. */
 	@MDDescription("Determines the maximum number of fasta files used from Genbank per requested tax id. "
-			+ "If this value is <= 0 then all fasta files will be used. "
+			+ "If this value equals -1 then all fasta files will be used. "
 			+ "Otherwise, if the corresponding number of matching files exceeds `genbank.maxPerTaxid`, then  best ones according to `genbank.fastaQualities` will be retained while adhering to this maximum.")
 	MAX_FROM_GENBANK("genbank.maxPerTaxid", new IntConfigParamInfo(-1, Integer.MAX_VALUE, 1), GSGoalKey.DB),
 	/** Allowed quality levels of Genbank fasta files. */
