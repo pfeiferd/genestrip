@@ -1,37 +1,39 @@
 /*
- * 
+ *
  * “Commons Clause” License Condition v1.0
- * 
- * The Software is provided to you by the Licensor under the License, 
+ *
+ * The Software is provided to you by the Licensor under the License,
  * as defined below, subject to the following condition.
- * 
- * Without limiting other conditions in the License, the grant of rights under the License 
+ *
+ * Without limiting other conditions in the License, the grant of rights under the License
  * will not include, and the License does not grant to you, the right to Sell the Software.
- * 
- * For purposes of the foregoing, “Sell” means practicing any or all of the rights granted 
- * to you under the License to provide to third parties, for a fee or other consideration 
- * (including without limitation fees for hosting or consulting/ support services related to 
- * the Software), a product or service whose value derives, entirely or substantially, from the 
- * functionality of the Software. Any license notice or attribution required by the License 
+ *
+ * For purposes of the foregoing, “Sell” means practicing any or all of the rights granted
+ * to you under the License to provide to third parties, for a fee or other consideration
+ * (including without limitation fees for hosting or consulting/ support services related to
+ * the Software), a product or service whose value derives, entirely or substantially, from the
+ * functionality of the Software. Any license notice or attribution required by the License
  * must also include this Commons Clause License Condition notice.
- * 
+ *
  * Software: genestrip
- * 
+ *
  * License: Apache 2.0
- * 
+ *
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
- * 
+ *
  */
 package org.metagene.genestrip.finertree.goals;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
+import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.finertree.FTConfigKey;
 import org.metagene.genestrip.finertree.FTGoalKey;
 import org.metagene.genestrip.finertree.FTProject;
 import org.metagene.genestrip.finertree.bloom.XORKMerIndexBloomFilter;
 import org.metagene.genestrip.finertree.refseq.AbstractUpdateFastaReader;
+import org.metagene.genestrip.genbank.AssemblySummaryReader;
 import org.metagene.genestrip.goals.refseq.FastaReaderGoal;
 import org.metagene.genestrip.goals.refseq.RefSeqFnaFilesDownloadGoal;
 import org.metagene.genestrip.make.Goal;
@@ -68,7 +70,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
     private KMerStore<SmallTaxTree.SmallTaxIdNode> kMerSortedArray;
     private XORKMerIndexBloomFilter filter;
     private Map<String, Counts> map;
-    private long entries;
+    private List<MyFastaReader> readersList;
 
     /**
      * Creates the goal, depending on the accession map and the loaded database in addition to the
@@ -104,20 +106,45 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
      */
     @Override
     protected void doMakeThis() {
+        GSProject project = getProject();
+        if (!project.booleanConfigValue(GSConfigKey.DATA_NODES)) {
+            throw new IllegalStateException("This goal requires data nodes");
+        }
+        if (!project.booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY)) {
+            throw new IllegalStateException("This goal requires complete genomes only");
+        }
+        if (project.booleanConfigValue(GSConfigKey.FILE_NODES)) {
+            throw new IllegalStateException("This goal does not support file nodes");
+        }
+        if (project.booleanConfigValue(GSConfigKey.ID_NODES)) {
+            throw new IllegalStateException("This goal does not support id nodes");
+        }
+        if (project.intConfigValue(GSConfigKey.REQ_SEQ_LIMIT_FOR_GENBANK) > 0) {
+            List<AssemblySummaryReader.AssemblyQuality> list = (List<AssemblySummaryReader.AssemblyQuality>) project.configValue(GSConfigKey.FASTA_QUALITIES);
+            for (AssemblySummaryReader.AssemblyQuality assemblyQuality : list) {
+                if (!AssemblySummaryReader.AssemblyQuality.COMPLETE.equals(assemblyQuality) && !AssemblySummaryReader.AssemblyQuality.COMPLETE_LATEST.equals(assemblyQuality)) {
+                    throw new IllegalStateException("This goal does not support genbank qualities other than COMPLETE and COMPLETE_LATEST");
+                }
+            }
+        }
+
         try {
             map = new HashMap<>();
             tree = storeGoal.get().getTaxTree();
-            entries = 0;
             Object2LongMap<String> stats = storeGoal.get().getStats();
             // Estimate the filter size by summing up from species to root for each species in the DB.
             // It is a highly conservative estimate because k-mers on ranks above species are hardly
             // ever shared more than thrice (as found by measuring).
             long size = 0;
-            Iterator<SmallTaxTree.SmallTaxIdNode> iterator = tree.iterator();
-            while (iterator.hasNext()) {
-                SmallTaxTree.SmallTaxIdNode node = iterator.next();
-                if (node.getSubNodes() == null) {
-                    size += getPathSum(node, stats);
+            for (SmallTaxTree.SmallTaxIdNode node : tree) {
+                if (Rank.DATA.equals(node.getRank())) {
+                    Counts counts = new Counts();
+                    map.put(node.getTaxId(), counts);
+                    // Count tp plus fp
+                    // Add k-mers from species upwards for each species:
+                    long pathSum = getPathSum(node, stats);
+                    counts.tpPlusFp = pathSum;
+                    size += pathSum;
                 }
             }
             filter = new XORKMerIndexBloomFilter(doubleConfigValue(FTConfigKey.FT_BLOOM_FILTER_FPP), size);
@@ -127,7 +154,13 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
             }
             kMerSortedArray = storeGoal.get().convertKMerStore();
 
+            readersList = new ArrayList<>();
             readFastas();
+
+            long entries = 0;
+            for (MyFastaReader reader : readersList) {
+                entries += reader.entries;
+            }
             if (getLogger().isInfoEnabled()) {
                 getLogger().info("Filter entries: " + entries);
             }
@@ -136,24 +169,11 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
                     getLogger().error("Entries exceed filter size by over factor 2. Something went wrong!");
                 }
             }
-            // Count tp plus fp
-            // Add k-mers from species upwards for each species:
-            for (String taxid : map.keySet()) {
-                Counts counts = map.get(taxid);
-                SmallTaxTree.SmallTaxIdNode node = tree.getNodeByTaxId(taxid);
-                if (node != null) {
-                    counts.tpPlusFp += getPathSum(node, stats);
-                } else if (getLogger().isWarnEnabled()) {
-                    getLogger().warn("Missing node for taxid " + taxid + ".");
-                }
-            }
 
             // We need a separate map for averaging so that aggregations do not get mixed up e.g. between genus and species.
             Map<String, Counts> aggMap = new HashMap<>();
             List<Rank> aggRanks = Arrays.asList(Rank.CELLULAR_ROOT, Rank.ACELLULAR_ROOT, Rank.SPECIES, Rank.GENUS);
-            iterator = tree.iterator();
-            while (iterator.hasNext()) {
-                SmallTaxTree.SmallTaxIdNode node = iterator.next();
+            for (SmallTaxTree.SmallTaxIdNode node : tree) {
                 Counts counts = map.get(node.getTaxId());
                 if (counts != null) {
                     for (Rank rank : aggRanks) {
@@ -181,6 +201,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
             tree = null;
             kMerSortedArray = null;
             filter = null;
+            readersList = null;
             cleanUpThreads();
         }
     }
@@ -194,7 +215,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
      */
     @Override
     protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
-        return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
+        MyFastaReader reader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
                 taxNodesGoal.get(),
                 isIncludeRefSeqFna() ? accessionMapGoal.get() : null,
                 intConfigValue(GSConfigKey.KMER_SIZE),
@@ -206,6 +227,8 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
                 booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY),
                 regionsPerTaxid,
                 booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES));
+        readersList.add(reader);
+        return reader;
     }
 
     /**
@@ -214,6 +237,8 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
      * per-tax-id counts accordingly while deduplicating via the bloom filter.
      */
     protected class MyFastaReader extends AbstractUpdateFastaReader {
+        protected long entries;
+
         /**
          * Creates the reader, taking the id/file/data node flags from the goal's configuration.
          *
@@ -233,6 +258,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
         public MyFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap,
                              int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
             super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases, booleanConfigValue(GSConfigKey.ID_NODES), booleanConfigValue(GSConfigKey.FILE_NODES), booleanConfigValue(GSConfigKey.DATA_NODES));
+            entries = 0;
         }
 
         /**
@@ -265,13 +291,9 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
                     if (index >= 0) {
                         // Checks whether it's a duplicate under that taxid.
                         if (filter.putLongInt(kmer, index)) {
-                            synchronized (map) {
-                                entries++;
-                                Counts counts = map.get(leafNode.getTaxId());
-                                if (counts == null) {
-                                    counts = new Counts();
-                                    map.put(leafNode.getTaxId(), counts);
-                                }
+                            entries++;
+                            Counts counts = map.get(leafNode.getTaxId());
+                            synchronized (counts) {
                                 counts.tpPlusFn++;
                                 // Is the stored node on path of the file's node?
                                 // Moving up from the file node to the potentially higher ranked stored node.
