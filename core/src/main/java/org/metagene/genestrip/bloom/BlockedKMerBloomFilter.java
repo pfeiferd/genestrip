@@ -38,8 +38,14 @@ import java.util.Random;
  * smallest power of two that holds the whole filter (see {@link #minBucketShift(long, int)}), so the
  * bucketed backing uses as few buckets as the sizing requires, and can also be set explicitly.
  * <p>
- * This filter is not safe for concurrent insertion: unlike {@link AbstractKMerBloomFilter}, its
- * {@link #putLong(long)} does no locking (see that method).
+ * Insertion via {@link #putLong(long)} is safe for concurrent use: the small backing locks on its
+ * single {@code long[]}, the bucketed backing locks on the bucket owning the affected word — the same
+ * technique {@link org.metagene.genestrip.util.LargeBitVector} uses, where the bucket is both the
+ * storage and the lock. On the large path the lock striping therefore follows the bucket width: a
+ * smaller {@link #bucketShift} yields more, narrower buckets and hence more independent locks (see
+ * {@link #putLong(long)} for what concurrency does to its return value). Lookups via
+ * {@link #containsLong(long)} stay unsynchronized and may miss a concurrent insert until it is
+ * published by other means.
  * <p></p>
  * This implementation is derived from
  * <a href="https://raw.githubusercontent.com/FastFilter/fastfilter_java/refs/heads/master/fastfilter/src/main/java/org/fastfilter/bloom/BlockedBloom.java">BlockedBloom.java</a>
@@ -82,10 +88,18 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
     private transient int bucketMask;
     /** Number of buckets (words) available for bits. */
     private long buckets;
-    /** Small ({@code int}-indexed) bit storage, or {@code null} when large storage is used. */
-    private long[] data;
-    /** Large (bucketed) bit storage, or {@code null} when small storage is used. */
-    private long[][] largeData;
+    /**
+     * Small ({@code int}-indexed) bit storage, or {@code null} when large storage is used. Doubles as
+     * the lock guarding its own words in {@link #putLong(long)}, hence {@code final}: the reference must
+     * be safely published so that concurrent inserters cannot lock different objects.
+     */
+    private final long[] data;
+    /**
+     * Large (bucketed) bit storage, or {@code null} when small storage is used. Each bucket doubles as
+     * the lock guarding its own words in {@link #putLong(long)}; the grid is allocated once at
+     * construction and never reshaped, so those locks are stable for the filter's lifetime.
+     */
+    private final long[][] largeData;
 
     /**
      * Creates a filter sized for {@code expectedInsertions} k-mers with {@link #DEFAULT_BITS_PER_KEY}
@@ -220,26 +234,18 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
     }
 
     /**
-     * ORs the given mask into the large-storage word at the given index without locking (single-threaded
-     * use only).
-     *
-     * @param index the word index into the large storage
-     * @param mask  the bit mask to OR in
-     */
-    private void setLargeOr(long index, long mask) {
-        largeData[(int) (index >>> bucketShift)][(int) (index & bucketMask)] |= mask;
-    }
-
-    /**
      * Adds the key to the filter and reports whether it was newly added, ORing its bits into the
      * backing words. This combines a {@link #containsLong(long)} check with put in a
      * single pass; the resulting filter state is identical to a plain
      * {@code if (!containsLong(key)) putLong(key)} sequence.
      * <p>
-     * <strong>Not thread-safe:</strong> the bit ORs are unsynchronized, so concurrent inserts may lose
-     * updates. This filter is only ever filled single-threaded; a filter that needs concurrent
-     * inserts uses {@link AbstractKMerBloomFilter} instead (whose bit vector locks per bucket). The
-     * "newly added" flag is exact under this single-threaded use.
+     * <strong>Thread-safe:</strong> every read-modify-write of a backing word runs under a lock, so no
+     * concurrent insert is ever lost. The small backing holds one lock (its {@code long[]}) across both
+     * words, which makes the "newly added" flag exact there. The large backing locks each word under the
+     * bucket owning it, so writes to different buckets proceed in parallel; in exchange the two words of
+     * one key are not updated atomically together, so two threads inserting the <em>same</em> absent key
+     * concurrently may both be told they added it. The flag never under-reports: a {@code false} always
+     * means all the key's bits were already set.
      *
      * @param key the k-mer, encoded as a {@code long}, to add
      * @return {@code true} if the key was not already present, {@code false} otherwise
@@ -255,8 +261,10 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
         if (data != null) {
             int s = reduceInt(hash);
             int s2 = s + 1 + (int) (mixed >>> 60);
-            oldA = orSmall(s, m1);
-            oldB = orSmall(s2, m2);
+            synchronized (data) {
+                oldA = orSmall(s, m1);
+                oldB = orSmall(s2, m2);
+            }
         } else {
             long start = reduce(hash);
             oldA = orLarge(start, m1);
@@ -268,7 +276,8 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
 
     /**
      * ORs the given mask into the small-storage word at the given index and returns the previous word
-     * value (single-threaded use only).
+     * value. The caller must hold the {@link #data} lock; {@link #putLong(long)} takes it once for both
+     * of a key's words so that their combined "was it already there" verdict is atomic.
      *
      * @param index the word index into the small storage
      * @param mask  the bit mask to OR in
@@ -282,7 +291,9 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
 
     /**
      * ORs the given mask into the large-storage word at the given index and returns the previous word
-     * value (single-threaded use only).
+     * value. Safe for concurrent use: the read-modify-write runs under the lock of the bucket that owns
+     * the word, so no concurrent update to the same word is lost while writes to other buckets proceed
+     * in parallel.
      *
      * @param index the word index into the large storage
      * @param mask  the bit mask to OR in
@@ -291,9 +302,11 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
     private long orLarge(long index, long mask) {
         long[] bucket = largeData[(int) (index >>> bucketShift)];
         int displacement = (int) (index & bucketMask);
-        long old = bucket[displacement];
-        bucket[displacement] = old | mask;
-        return old;
+        synchronized (bucket) {
+            long old = bucket[displacement];
+            bucket[displacement] = old | mask;
+            return old;
+        }
     }
 
     @Override
