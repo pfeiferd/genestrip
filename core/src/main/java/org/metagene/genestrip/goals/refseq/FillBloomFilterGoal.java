@@ -181,8 +181,8 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
         try {
             double tempFpp = doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP);
             // The temporary size-estimation filter is filled concurrently by the reader threads, so it
-            // must support a thread-safe putLongIfAbsent; XOR/Murmur do (via their bit vector's bucket
-            // locks). BlockedKMerBloomFilter is deliberately not used here.
+            // must support a thread-safe putLong; XOR/Murmur do (via their bit vector's bucket locks),
+            // as does BlockedKMerBloomFilter, which is nonetheless not offered as an option here.
             filter = booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH) ?
                     new XORKMerBloomFilter(tempFpp, sizeGoal.get()) :
                     new MurmurKMerBloomFilter(tempFpp, sizeGoal.get());

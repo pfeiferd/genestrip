@@ -29,12 +29,10 @@ import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.bloom.BlockedKMerBloomFilter;
-import org.metagene.genestrip.finertree.FTConfigKey;
+import org.metagene.genestrip.bloom.KMerProbFilter;
 import org.metagene.genestrip.finertree.FTGoalKey;
 import org.metagene.genestrip.finertree.FTProject;
-import org.metagene.genestrip.finertree.bloom.KMerIndexBlockedBloomFilter;
-import org.metagene.genestrip.finertree.bloom.KMerIndexProbFilter;
-import org.metagene.genestrip.finertree.bloom.XORKMerIndexBloomFilter;
+import org.metagene.genestrip.finertree.bloom.KMerIndexFilterHelper;
 import org.metagene.genestrip.finertree.refseq.AbstractUpdateFastaReader;
 import org.metagene.genestrip.genbank.AssemblySummaryReader;
 import org.metagene.genestrip.goals.refseq.FastaReaderGoal;
@@ -71,7 +69,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
 
     private SmallTaxTree tree;
     private KMerStore<SmallTaxTree.SmallTaxIdNode> kMerSortedArray;
-    private KMerIndexProbFilter filter;
+    private KMerProbFilter filter;
     private Map<String, Counts> map;
     private List<MyFastaReader> readersList;
 
@@ -152,7 +150,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
                 map.put(node.getTaxId(), counts);
             }
             // Using a blocked bloom filter here for more speed (identified the old Bloom filter as a bottleneck).
-            filter = new XORKMerIndexBloomFilter(doubleConfigValue(FTConfigKey.FT_BLOOM_FILTER_FPP), size); //new KMerIndexBlockedBloomFilter(size); // new XORKMerIndexBloomFilter(doubleConfigValue(FTConfigKey.FT_BLOOM_FILTER_FPP), size);
+            filter = new BlockedKMerBloomFilter(size); // new XORKMerIndexBloomFilter(doubleConfigValue(FTConfigKey.FT_BLOOM_FILTER_FPP), size);
             long bitSize = filter.getBitSize();
             if (getLogger().isInfoEnabled()) {
                 getLogger().info("Filter size in MB: " + (bitSize / 8 / 1024 / 1024));
@@ -283,7 +281,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
                     int index = kMerSortedArray.getIndexForValue(leafNode);
                     if (index >= 0) {
                         // Checks whether it's a duplicate under that taxid.
-                        if (filter.putLongInt(kmer, index)) {
+                        if (filter.putLong(KMerIndexFilterHelper.combine(kmer, index))) {
                             entries++;
                             Counts counts = map.get(leafNode.getTaxId());
                             if (!counts.isForLeaf()) {
