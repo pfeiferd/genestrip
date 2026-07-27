@@ -194,6 +194,11 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
         }
     }
 
+    @Override
+    public long getBitSize() {
+        return buckets * bitsPerKey * 64;
+    }
+
     private static void checkBucketShift(int bucketShift) {
         if (bucketShift < MIN_BUCKET_SHIFT || bucketShift > MAX_BUCKET_SHIFT) {
             throw new IllegalArgumentException(

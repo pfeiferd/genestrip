@@ -91,11 +91,9 @@ public class DBQualityCSVGoal<P extends FTProject> extends FileGoal<P> {
         SmallTaxTree tree = storeGoal.get().getTaxTree();
 
         try (PrintStream ps = new PrintStream(file, StandardCharsets.UTF_8)) {
-            ps.println("taxid;name;rank;parent taxid;tp;tp+fp;tp+fn;precision;recall;weighted avg precision;weighted avg recall;");
+            ps.println("taxid;name;rank;parent taxid;tp;tp+fp;tp+fn;precision;recall;weighted avg precision;weighted avg recall;node precision");
             // We want result in order of the tree:
-            Iterator<SmallTaxTree.SmallTaxIdNode> iterator = tree.iterator();
-            while (iterator.hasNext()) {
-                SmallTaxTree.SmallTaxIdNode node = iterator.next();
+            for (SmallTaxTree.SmallTaxIdNode node : tree) {
                 DBQualityCountsGoal.Counts counts = kmersPerTax.get(node.getTaxId());
                 if (counts != null) {
                     ps.print(node.getTaxId());
@@ -120,6 +118,8 @@ public class DBQualityCSVGoal<P extends FTProject> extends FileGoal<P> {
                     ps.print(DF.format(counts.getPrecision()));
                     ps.print(";");
                     ps.print(DF.format(counts.getRecall()));
+                    ps.print(";");
+                    ps.print(DF.format(counts.getNodePrecision()));
                     ps.print(";");
                     ps.println();
                 }

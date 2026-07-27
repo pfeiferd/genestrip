@@ -28,9 +28,12 @@ import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSProject;
+import org.metagene.genestrip.bloom.BlockedKMerBloomFilter;
 import org.metagene.genestrip.finertree.FTConfigKey;
 import org.metagene.genestrip.finertree.FTGoalKey;
 import org.metagene.genestrip.finertree.FTProject;
+import org.metagene.genestrip.finertree.bloom.KMerIndexBlockedBloomFilter;
+import org.metagene.genestrip.finertree.bloom.KMerIndexProbFilter;
 import org.metagene.genestrip.finertree.bloom.XORKMerIndexBloomFilter;
 import org.metagene.genestrip.finertree.refseq.AbstractUpdateFastaReader;
 import org.metagene.genestrip.genbank.AssemblySummaryReader;
@@ -68,7 +71,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
 
     private SmallTaxTree tree;
     private KMerStore<SmallTaxTree.SmallTaxIdNode> kMerSortedArray;
-    private XORKMerIndexBloomFilter filter;
+    private KMerIndexProbFilter filter;
     private Map<String, Counts> map;
     private List<MyFastaReader> readersList;
 
@@ -137,17 +140,19 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
             // ever shared more than thrice (as found by measuring).
             long size = 0;
             for (SmallTaxTree.SmallTaxIdNode node : tree) {
-                if (Rank.DATA.equals(node.getRank())) {
-                    Counts counts = new Counts();
-                    map.put(node.getTaxId(), counts);
+                boolean dataNode = Rank.DATA.equals(node.getRank());
+                Counts counts = new Counts(dataNode, stats.getOrDefault(node.getTaxId(), 0L));
+                if (dataNode) {
                     // Count tp plus fp
                     // Add k-mers from species upwards for each species:
                     long pathSum = getPathSum(node, stats);
                     counts.tpPlusFp = pathSum;
                     size += pathSum;
                 }
+                map.put(node.getTaxId(), counts);
             }
-            filter = new XORKMerIndexBloomFilter(doubleConfigValue(FTConfigKey.FT_BLOOM_FILTER_FPP), size);
+            // Using a blocked bloom filter here for more speed (identified the old Bloom filter as a bottleneck).
+            filter = new XORKMerIndexBloomFilter(doubleConfigValue(FTConfigKey.FT_BLOOM_FILTER_FPP), size); //new KMerIndexBlockedBloomFilter(size); // new XORKMerIndexBloomFilter(doubleConfigValue(FTConfigKey.FT_BLOOM_FILTER_FPP), size);
             long bitSize = filter.getBitSize();
             if (getLogger().isInfoEnabled()) {
                 getLogger().info("Filter size in MB: " + (bitSize / 8 / 1024 / 1024));
@@ -170,29 +175,17 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
                 }
             }
 
-            // We need a separate map for averaging so that aggregations do not get mixed up e.g. between genus and species.
-            Map<String, Counts> aggMap = new HashMap<>();
-            List<Rank> aggRanks = Arrays.asList(Rank.CELLULAR_ROOT, Rank.ACELLULAR_ROOT, Rank.SPECIES, Rank.GENUS);
             for (SmallTaxTree.SmallTaxIdNode node : tree) {
                 Counts counts = map.get(node.getTaxId());
-                if (counts != null) {
-                    for (Rank rank : aggRanks) {
-                        SmallTaxTree.SmallTaxIdNode rankedNode = toRankedNode(node, rank);
-                        // No aggregation for node who are already contained in map.
-                        if (rankedNode != null && !map.containsKey(rankedNode.getTaxId())) {
-                            Counts c = aggMap.get(rankedNode.getTaxId());
-                            if (c == null) {
-                                c = new Counts();
-                                aggMap.put(rankedNode.getTaxId(), c);
-                            }
-                            // Leads to a weighted average:
-                            // Node weight is proportional to positives of each aggregated node
-                            c.aggregate(counts);
-                        }
+                if (counts.isForLeaf()) {
+                    for (SmallTaxTree.SmallTaxIdNode ancestor = node; ancestor != null; ancestor = ancestor.getParent()) {
+                        Counts c = map.get(ancestor.getTaxId());
+                        // Leads to a weighted average:
+                        // Node weight is proportional to positives of each aggregated node
+                        c.aggregate(counts);
                     }
                 }
             }
-            map.putAll(aggMap);
             set(map);
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -293,17 +286,26 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
                         if (filter.putLongInt(kmer, index)) {
                             entries++;
                             Counts counts = map.get(leafNode.getTaxId());
+                            if (!counts.isForLeaf()) {
+                                throw new IllegalStateException("Must be a count for a leaf node here.");
+                            }
+                            SmallTaxTree.SmallTaxIdNode pathNode = leafNode;
+                            while (pathNode != null && pathNode != storedNode) {
+                                pathNode = pathNode.getParent();
+                            }
                             synchronized (counts) {
                                 counts.tpPlusFn++;
-                                // Is the stored node on path of the file's node?
+                                // Is the stored node on path of the leaf's data node?
                                 // Moving up from the file node to the potentially higher ranked stored node.
-                                SmallTaxTree.SmallTaxIdNode pathNode = leafNode;
-                                while (pathNode != null && pathNode != storedNode) {
-                                    pathNode = pathNode.getParent();
-                                }
                                 if (pathNode == storedNode) {
                                     // Stored node on path from file node: True positive
                                     counts.tp++;
+                                }
+                            }
+                            if (pathNode == storedNode) {
+                                Counts nodeCounts = map.get(storedNode.getTaxId());
+                                synchronized (nodeCounts) {
+                                    nodeCounts.tpForNodePrecision++;
                                 }
                             }
                             return true;
@@ -315,21 +317,6 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
             }
             return false;
         }
-    }
-
-    /**
-     * Walks up the taxonomy tree until a node of the given rank is reached.
-     *
-     * @param node the node to start from
-     * @param r    the rank to look for
-     * @return the nearest ancestor of {@code node} (or the node itself) having rank {@code r}, or
-     * {@code null} if there is none
-     */
-    protected SmallTaxTree.SmallTaxIdNode toRankedNode(SmallTaxTree.SmallTaxIdNode node, Rank r) {
-        while (node != null && !r.equals(node.getRank())) {
-            node = node.getParent();
-        }
-        return node;
     }
 
     /**
@@ -356,6 +343,8 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
     public static class Counts implements Serializable {
         private static final long serialVersionUID = 1L;
 
+        private final boolean forLeaf;
+
         /**
          * True positives plus false positives (all k-mers stored under this tax id).
          */
@@ -381,10 +370,37 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
          */
         private double aggRecallSum;
 
+        private long tpForNodePrecision;
+        private long kmerSumForNode;
+        private int leaves;
+
         /**
          * Creates an empty tally with all counts set to zero.
          */
-        public Counts() {
+        public Counts(boolean forLeaf, long kmerSumForNode) {
+            this.forLeaf = forLeaf;
+            this.kmerSumForNode = kmerSumForNode;
+        }
+
+        public boolean isForLeaf() {
+            return forLeaf;
+        }
+
+        public long getTpForNodePrecision() {
+            return tpForNodePrecision;
+        }
+
+        public int getLeaves() {
+            return leaves;
+        }
+
+        public long getKmerSumForNode() {
+            return kmerSumForNode;
+        }
+
+        public double getNodePrecision() {
+            // Includes Laplace correction.
+            return ((double) (tpForNodePrecision + leaves)) / (leaves * (kmerSumForNode + 1));
         }
 
         /**
@@ -469,12 +485,15 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
         }
 
         private void aggregate(Counts counts) {
-            tp += counts.tp;
-            tpPlusFp += counts.tpPlusFp;
-            tpPlusFn += counts.tpPlusFn;
-            aggregations++;
-            aggPrecisionSum += counts.getAvgPrecision();
-            aggRecallSum += counts.getAvgRecall();
+            leaves++;
+            if (!isForLeaf()) {
+                tp += counts.tp;
+                tpPlusFp += counts.tpPlusFp;
+                tpPlusFn += counts.tpPlusFn;
+                aggregations++;
+                aggPrecisionSum += counts.getAvgPrecision();
+                aggRecallSum += counts.getAvgRecall();
+            }
         }
     }
 }

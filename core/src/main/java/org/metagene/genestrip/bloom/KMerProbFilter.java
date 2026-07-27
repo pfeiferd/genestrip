@@ -34,6 +34,8 @@ import java.io.*;
  * negative.
  */
 public interface KMerProbFilter extends Serializable {
+    public long getBitSize();
+
     /**
      * Adds the given k-mer to the filter unless it is (probably) already present, and reports whether
      * it was newly added. This is required to be equivalent to a {@code if (!containsLong(data))
