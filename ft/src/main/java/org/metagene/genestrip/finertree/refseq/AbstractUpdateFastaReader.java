@@ -44,6 +44,10 @@ public abstract class AbstractUpdateFastaReader extends AbstractStoreFastaReader
     private final boolean fileNodes;
     private final boolean dataNodes;
 
+    /**
+     * The refined leaf node the current fasta region's k-mers are attributed to, as resolved by
+     * {@link #updateLeafNode()}, or {@code null} if the region is not covered by the refined tree.
+     */
     protected SmallTaxTree.SmallTaxIdNode leafNode;
 
     /**

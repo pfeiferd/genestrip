@@ -228,6 +228,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
      * per-tax-id counts accordingly while deduplicating via the bloom filter.
      */
     protected class MyFastaReader extends AbstractUpdateFastaReader {
+        /** Number of distinct (k-mer, leaf node) pairs this reader added to the dedup filter. */
         protected long entries;
 
         /**
@@ -341,6 +342,10 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
     public static class Counts implements Serializable {
         private static final long serialVersionUID = 1L;
 
+        /**
+         * Whether this tally belongs to a leaf, i.e. a node of rank {@link Rank#DATA}. Only leaf
+         * tallies are filled from the genomic files; the others are aggregated from their leaves.
+         */
         private final boolean forLeaf;
 
         /**
@@ -368,34 +373,75 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
          */
         private double aggRecallSum;
 
+        /**
+         * True positives attributed to this node itself, i.e. k-mers read from a genome below it
+         * that are stored in the database under exactly this tax id.
+         */
         private long tpForNodePrecision;
+        /**
+         * Number of k-mers the database stores under exactly this tax id (not counting descendants).
+         */
         private long kmerSumForNode;
+        /**
+         * Number of leaves aggregated into this tally, including this node itself if it is a leaf.
+         */
         private int leaves;
 
         /**
          * Creates an empty tally with all counts set to zero.
+         *
+         * @param forLeaf        whether the tally belongs to a leaf node of rank {@link Rank#DATA}
+         * @param kmerSumForNode the number of k-mers the database stores under exactly this tax id
          */
         public Counts(boolean forLeaf, long kmerSumForNode) {
             this.forLeaf = forLeaf;
             this.kmerSumForNode = kmerSumForNode;
         }
 
+        /**
+         * Returns whether this tally belongs to a leaf node.
+         *
+         * @return whether this tally belongs to a leaf node of rank {@link Rank#DATA}
+         */
         public boolean isForLeaf() {
             return forLeaf;
         }
 
+        /**
+         * Returns the true positives attributed to this node itself.
+         *
+         * @return the number of read k-mers stored in the database under exactly this tax id
+         */
         public long getTpForNodePrecision() {
             return tpForNodePrecision;
         }
 
+        /**
+         * Returns the number of leaves aggregated into this tally.
+         *
+         * @return the number of leaves aggregated into this tally, including this node itself if it
+         *         is a leaf
+         */
         public int getLeaves() {
             return leaves;
         }
 
+        /**
+         * Returns the number of k-mers stored under this node alone.
+         *
+         * @return the number of k-mers the database stores under exactly this tax id
+         */
         public long getKmerSumForNode() {
             return kmerSumForNode;
         }
 
+        /**
+         * Returns the precision of the k-mers stored under this node alone, i.e. the share of them
+         * that were actually read from a genome below the node. The value is Laplace-corrected, so
+         * that nodes with few or no stored k-mers do not yield degenerate precisions.
+         *
+         * @return the Laplace-corrected precision of this node's own k-mers
+         */
         public double getNodePrecision() {
             // Includes Laplace correction.
             return ((double) (tpForNodePrecision + leaves)) / (leaves * (kmerSumForNode + 1));

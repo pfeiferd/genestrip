@@ -46,7 +46,7 @@ import java.util.Random;
  * {@link #putLong(long)} for what concurrency does to its return value). Lookups via
  * {@link #containsLong(long)} stay unsynchronized and may miss a concurrent insert until it is
  * published by other means.
- * <p></p>
+ * <p>
  * This implementation is derived from
  * <a href="https://raw.githubusercontent.com/FastFilter/fastfilter_java/refs/heads/master/fastfilter/src/main/java/org/fastfilter/bloom/BlockedBloom.java">BlockedBloom.java</a>
  * The corresponding GitHub project is <a href="https://github.com/FastFilter/fastfilter_java">jastfilter_java</a>

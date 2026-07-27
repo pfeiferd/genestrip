@@ -305,6 +305,11 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
          * @param completeGenomesOnly whether only complete genomes are considered
          * @param regionsPerTaxid the per-tax-id region counter
          * @param enableLowerCaseBases whether lower-case bases are processed
+         * @param taxTree the taxonomy tree into which artificial nodes are created
+         * @param dataNodes whether to rework into an artificial {@code DATA} node
+         * @param fileNodes whether to rework into an artificial {@code FILE} node
+         * @param idNodes whether to rework into an artificial {@code ID} node
+         * @param idStringGenerator generator for artificial tax ids
          */
         public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
                              KMerProbFilter filter, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases,
