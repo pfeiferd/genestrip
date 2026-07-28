@@ -34,6 +34,11 @@ import java.io.*;
  * negative.
  */
 public interface KMerProbFilter extends Serializable {
+    /**
+     * Returns the size of this filter's bit set, i.e. the number of bits it may address.
+     *
+     * @return the number of bits backing this filter
+     */
     public long getBitSize();
 
     /**
