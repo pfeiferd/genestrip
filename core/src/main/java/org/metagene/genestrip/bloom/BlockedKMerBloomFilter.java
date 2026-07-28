@@ -54,14 +54,17 @@ import java.util.Random;
  */
 public class BlockedKMerBloomFilter implements KMerProbFilter {
     /** Default false-positive probability. */
-    public static double DEFAULT_FPP = 0.01d;
+    public static final double DEFAULT_FPP = 0.01d;
     /** Default number of bits allocated per key. */
-    public static int DEFAULT_BITS_PER_KEY = 10;
+    public static final int DEFAULT_BITS_PER_KEY = 10;
 
     private static final long serialVersionUID = 2L;
 
+    /** Fixed hash seed used by the constructors that do not take one. */
+    private static final long DEFAULT_SEED = new Random(42).nextLong();
+
     /** Maximum capacity (in words) that still uses the small {@code int}-indexed storage. */
-    public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
+    public static final long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
 
     /**
      * Minimum base-2 logarithm of the large-backing bucket width (in {@code long} words). The grid only
@@ -119,7 +122,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
      * @param bitsPerKey the number of bits allocated per key
      */
     public BlockedKMerBloomFilter(long expectedInsertions, int bitsPerKey) {
-        this(expectedInsertions, bitsPerKey, new Random(42).nextLong());
+        this(expectedInsertions, bitsPerKey, DEFAULT_SEED);
     }
 
     /**
@@ -190,6 +193,28 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
      *                    {@code [}{@link #MIN_BUCKET_SHIFT}{@code , }{@link #MAX_BUCKET_SHIFT}{@code ]}
      */
     public BlockedKMerBloomFilter(long expectedInsertions, int bitsPerKey, long seed, int bucketShift) {
+        this(expectedInsertions, bitsPerKey, seed, bucketShift, false);
+    }
+
+    /**
+     * Creates a filter as {@link #BlockedKMerBloomFilter(long, int, long, int)} does, but able to take
+     * the bucketed backing regardless of the filter's size.
+     * <p>
+     * Reaching that backing through the size alone means allocating more than
+     * {@link #MAX_SMALL_CAPACITY} words, i.e. tens of gigabytes, so {@code forceLarge} is what lets a
+     * test exercise the bucketed path (and the per-bucket locking that goes with it) at a size that
+     * fits in memory. It is deliberately not public: production code selects its backing from the
+     * sizing alone.
+     *
+     * @param expectedInsertions the expected number of k-mers to be inserted
+     * @param bitsPerKey  the number of bits allocated per key
+     * @param seed        the hash seed used to derive bit positions
+     * @param bucketShift base-2 logarithm of the large-backing bucket width in words; must be in
+     *                    {@code [}{@link #MIN_BUCKET_SHIFT}{@code , }{@link #MAX_BUCKET_SHIFT}{@code ]}
+     * @param forceLarge  whether to use the bucketed backing even when the small one would suffice
+     */
+    BlockedKMerBloomFilter(long expectedInsertions, int bitsPerKey, long seed, int bucketShift,
+            boolean forceLarge) {
         checkBucketShift(bucketShift);
         this.bitsPerKey = bitsPerKey;
         this.seed = seed;
@@ -199,13 +224,53 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
         // Clamp to at least one key so the backing (and reduce()'s modulo) never sizes to zero words.
         long entryCount = Math.max(1, expectedInsertions);
         buckets = (entryCount * bitsPerKey + 63) / 64;
-        if (buckets + 16 + 1 > MAX_SMALL_CAPACITY) {
+        if (forceLarge || buckets + 16 + 1 > MAX_SMALL_CAPACITY) {
             data = null;
             largeData = newLargeGrid(buckets + 16 + 1);
         } else {
             largeData = null;
             data = new long[(int) buckets + 16 + 1];
         }
+    }
+
+    /**
+     * Creates a bucket-backed filter with the same defaults as
+     * {@link #BlockedKMerBloomFilter(long, int)}, for tests that need the bucketed backing at a size
+     * that fits in memory.
+     *
+     * @param expectedInsertions the expected number of k-mers to be inserted
+     * @param bitsPerKey the number of bits allocated per key
+     * @return a filter of the given sizing that uses the bucketed backing
+     */
+    static BlockedKMerBloomFilter newLargeBacked(long expectedInsertions, int bitsPerKey) {
+        return newLargeBacked(expectedInsertions, bitsPerKey, DEFAULT_SEED,
+                minBucketShift(expectedInsertions, bitsPerKey));
+    }
+
+    /**
+     * Creates a bucket-backed filter with the given seed and bucket width, for tests that need the
+     * bucketed backing at a size that fits in memory.
+     *
+     * @param expectedInsertions the expected number of k-mers to be inserted
+     * @param bitsPerKey  the number of bits allocated per key
+     * @param seed        the hash seed used to derive bit positions
+     * @param bucketShift base-2 logarithm of the large-backing bucket width in words
+     * @return a filter of the given sizing that uses the bucketed backing
+     */
+    static BlockedKMerBloomFilter newLargeBacked(long expectedInsertions, int bitsPerKey, long seed,
+            int bucketShift) {
+        return new BlockedKMerBloomFilter(expectedInsertions, bitsPerKey, seed, bucketShift, true);
+    }
+
+    /**
+     * Returns whether this filter uses the bucketed backing rather than the small one. Lets a test
+     * confirm that it really exercises the bucketed path, which is otherwise indistinguishable from
+     * the outside.
+     *
+     * @return whether this filter uses the bucketed (large) backing
+     */
+    boolean isLargeBacked() {
+        return largeData != null;
     }
 
     @Override

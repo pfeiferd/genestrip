@@ -49,17 +49,13 @@ public class BlockedKMerBloomFilterConsistencyTest {
 	}
 
 	private static BlockedKMerBloomFilter newFilter(long expected, boolean large) {
-		// 'large' forces the bucketed backing at small sizes by lowering the small/large threshold
-		// the constructor consults (it is otherwise chosen from the size).
-		long saved = BlockedKMerBloomFilter.MAX_SMALL_CAPACITY;
-		if (large) {
-			BlockedKMerBloomFilter.MAX_SMALL_CAPACITY = 1;
-		}
-		try {
-			return new BlockedKMerBloomFilter(expected);
-		} finally {
-			BlockedKMerBloomFilter.MAX_SMALL_CAPACITY = saved;
-		}
+		// 'large' asks for the bucketed backing, which the size alone would never reach at test sizes
+		// (it is otherwise chosen from the size relative to MAX_SMALL_CAPACITY).
+		BlockedKMerBloomFilter filter = large
+				? BlockedKMerBloomFilter.newLargeBacked(expected, BlockedKMerBloomFilter.DEFAULT_BITS_PER_KEY)
+				: new BlockedKMerBloomFilter(expected);
+		assertEquals("backing must match what was asked for", large, filter.isLargeBacked());
+		return filter;
 	}
 
 	private static long[] randomKMers(int n, long seed) {
