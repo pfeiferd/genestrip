@@ -408,7 +408,8 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
             protected void doMakeThis() {
             }
         };
-        registerDefaultGoal(all);
+        registerGoal(all);
+        setDefaultGoal(all);
 
         ObjectGoal<Set<SmallTaxIdNode>, P> db2fastqTaxNodesGoal = new DB2FastqTaxNodesGoal(project, loadDBGoal,
                 projectSetupGoal);

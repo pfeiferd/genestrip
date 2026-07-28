@@ -81,23 +81,9 @@ public abstract class Maker<P extends Project> {
 	}
 	
 	/**
-	 * Registers the given goal and marks it as this maker's default goal.
-	 *
-	 * @param goal the goal to register as the default goal
-	 * @throws IllegalStateException if a default goal has already been registered
-	 */
-	protected void registerDefaultGoal(Goal<P> goal) {
-		registerGoal(goal);
-		if (defaultGoal != null) {
-			throw new IllegalStateException("duplicate default goal");
-		}
-		defaultGoal = goal.getKey();
-	}
-
-	/**
-	 * Makes the given goal this maker's default goal, replacing any goal registered as default before.
-	 * This is meant for subclasses extending the goal graph of a superclass, which want a goal of their
-	 * own to be the default one instead of the superclass' default goal.
+	 * Makes the given goal this maker's default goal, replacing any goal set as default before. Hence,
+	 * subclasses extending the goal graph of a superclass may have a goal of their own become the
+	 * default one instead of the superclass' default goal.
 	 *
 	 * @param goal the already registered goal to become the default goal
 	 * @throws IllegalStateException if the goal is not registered under its key with this maker
