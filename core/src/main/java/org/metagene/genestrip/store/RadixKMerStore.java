@@ -500,6 +500,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	 */
 	public static final class BatchBuffers {
 		private final long[] kmers;
+		private final int[] payload;
 		private final long[] remaining;
 		private final long[][] buckets;
 		private final int[] lo;
@@ -517,6 +518,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 				throw new IllegalArgumentException("capacity must be >= 1, got " + capacity);
 			}
 			kmers = new long[capacity];
+			payload = new int[capacity];
 			remaining = new long[capacity];
 			buckets = new long[capacity][];
 			lo = new int[capacity];
@@ -531,7 +533,22 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		 * @return {@code true} if the batch is now full and must be flushed before adding more
 		 */
 		public boolean add(long kmer) {
+			return add(kmer, 0);
+		}
+
+		/**
+		 * Appends a k-mer to the batch along with a payload that
+		 * {@link #getBatch(BatchBuffers, BatchValueConsumer)} hands back with the k-mer's stored value.
+		 * It lets a caller carry per-k-mer context (which is only known while reading) through to the
+		 * deferred lookup. {@link #updateBatch(BatchBuffers, KMerStore.UpdateValueProvider)} ignores it.
+		 *
+		 * @param kmer    the k-mer to add
+		 * @param payload the payload to associate with the k-mer
+		 * @return {@code true} if the batch is now full and must be flushed before adding more
+		 */
+		public boolean add(long kmer, int payload) {
 			kmers[count] = kmer;
+			this.payload[count] = payload;
 			return ++count == kmers.length;
 		}
 
@@ -562,6 +579,88 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		if (!sorted) {
 			throw new IllegalStateException("Update only works when optimized.");
 		}
+		final int n = b.count;
+		final long[][] buckets = b.buckets;
+		final int[] pos = b.pos;
+
+		locateBatch(b);
+
+		// Pass 3: apply the provider and write back moved entries, locking on the bucket exactly as
+		// update() does. Each entry is re-read under the lock, so duplicate k-mers within the batch
+		// compose correctly.
+		int moved = 0;
+		for (int i = 0; i < n; i++) {
+			final int p = pos[i];
+			if (p < 0) {
+				continue;
+			}
+			final long[] bucket = buckets[i];
+			synchronized (bucket) {
+				final long entry = bucket[p];
+				final int vi = (int) (entry >>> remainingBits);
+				final V oldValue = indexMap[vi];
+				final V newValue = provider.getUpdateValue(oldValue);
+				if (newValue == null) {
+					throw new NullPointerException("Null is not allowed as a value.");
+				}
+				if (newValue != oldValue && !newValue.equals(oldValue)) {
+					// Values are all pre-registered before the update phase, so this is a lock-free read.
+					final int newVi = getRegisteredValueIndex(newValue);
+					bucket[p] = entryOf(newVi, entry & remainingMask);
+					moved++;
+				}
+			}
+		}
+		b.count = 0;
+		return moved;
+	}
+
+	/**
+	 * Batched variant of {@link #getLong(long, long[])} that looks up all k-mers accumulated in
+	 * {@code b} together, using the same phased passes as {@link #updateBatch(BatchBuffers,
+	 * KMerStore.UpdateValueProvider)} so that many independent cache-missing loads are in flight at the
+	 * same time (memory-level parallelism). The consumer is invoked in insertion order, but only for
+	 * those k-mers that are actually present in the store, and receives the payload the k-mer was
+	 * added with. Hence the observable effect is identical to calling {@link #getLong(long, long[])} on
+	 * each buffered k-mer in insertion order and skipping the {@code null} results. Like
+	 * {@link #getLong(long, long[])} this is a read-only operation taking no locks. The batch is
+	 * emptied on return.
+	 *
+	 * @param b        the buffers holding the batch of k-mers to look up
+	 * @param consumer receives the stored value of every k-mer of the batch that is present
+	 * @throws IllegalStateException if the store is not optimized yet
+	 */
+	public void getBatch(BatchBuffers b, BatchValueConsumer<V> consumer) {
+		if (!sorted) {
+			throw new IllegalStateException("Batched lookup only works when optimized.");
+		}
+		final int n = b.count;
+		final long[] kmers = b.kmers;
+		final int[] payload = b.payload;
+		final long[][] buckets = b.buckets;
+		final int[] pos = b.pos;
+
+		locateBatch(b);
+
+		for (int i = 0; i < n; i++) {
+			final int p = pos[i];
+			if (p < 0) {
+				continue;
+			}
+			consumer.accept(kmers[i], payload[i], indexMap[(int) (buckets[i][p] >>> remainingBits)]);
+		}
+		b.count = 0;
+	}
+
+	/**
+	 * Locates every k-mer of the batch, leaving {@code b.pos[i]} at the entry's position within
+	 * {@code b.buckets[i]} or at {@code -1} if the k-mer is absent. Shared by
+	 * {@link #updateBatch(BatchBuffers, KMerStore.UpdateValueProvider)} and
+	 * {@link #getBatch(BatchBuffers, BatchValueConsumer)}; it does not empty the batch.
+	 *
+	 * @param b the buffers holding the batch of k-mers to locate
+	 */
+	private void locateBatch(BatchBuffers b) {
 		final int n = b.count;
 		final long[] kmers = b.kmers;
 		final long[] remaining = b.remaining;
@@ -619,35 +718,23 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 				}
 			}
 		}
+	}
 
-		// Pass 3: apply the provider and write back moved entries, locking on the bucket exactly as
-		// update() does. Each entry is re-read under the lock, so duplicate k-mers within the batch
-		// compose correctly.
-		int moved = 0;
-		for (int i = 0; i < n; i++) {
-			final int p = pos[i];
-			if (p < 0) {
-				continue;
-			}
-			final long[] bucket = buckets[i];
-			synchronized (bucket) {
-				final long entry = bucket[p];
-				final int vi = (int) (entry >>> remainingBits);
-				final V oldValue = indexMap[vi];
-				final V newValue = provider.getUpdateValue(oldValue);
-				if (newValue == null) {
-					throw new NullPointerException("Null is not allowed as a value.");
-				}
-				if (newValue != oldValue && !newValue.equals(oldValue)) {
-					// Values are all pre-registered before the update phase, so this is a lock-free read.
-					final int newVi = getRegisteredValueIndex(newValue);
-					bucket[p] = entryOf(newVi, entry & remainingMask);
-					moved++;
-				}
-			}
-		}
-		b.count = 0;
-		return moved;
+	/**
+	 * Receives the stored values found by {@link #getBatch(BatchBuffers, BatchValueConsumer)}.
+	 *
+	 * @param <V> the store's value type
+	 */
+	@FunctionalInterface
+	public interface BatchValueConsumer<V> {
+		/**
+		 * Accepts one k-mer of the batch that is present in the store.
+		 *
+		 * @param kmer    the k-mer that was looked up
+		 * @param payload the payload the k-mer was added to the batch with
+		 * @param value   the value stored for the k-mer, never {@code null}
+		 */
+		void accept(long kmer, int payload, V value);
 	}
 
 	@Override

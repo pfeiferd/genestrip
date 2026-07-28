@@ -58,7 +58,11 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
     /** Default number of bits allocated per key. */
     public static final int DEFAULT_BITS_PER_KEY = 10;
 
-    private static final long serialVersionUID = 2L;
+    // Bumped from 2: both of a key's words now share a bucket and the large path reduces by
+    // multiply-shift instead of a modulo, so a key maps to different words than before. A filter
+    // serialized by an older version would answer queries wrongly rather than merely differently,
+    // hence it must fail to load instead - such filters have to be regenerated.
+    private static final long serialVersionUID = 3L;
 
     /** Fixed hash seed used by the constructors that do not take one. */
     private static final long DEFAULT_SEED = new Random(42).nextLong();
@@ -69,12 +73,18 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
     /**
      * Minimum base-2 logarithm of the large-backing bucket width (in {@code long} words). The grid only
      * ever allocates as many buckets as the requested capacity needs (see {@link #newLargeGrid(long)}),
-     * so a small width simply yields more, smaller buckets without wasting memory. It must stay {@code
-     * >= 1} because {@code bucketShift == 0} would make {@link #bucketMask} zero, collapsing every word
-     * onto one displacement. Widths below the ~17-word span a key touches do cost cache locality on the
-     * large path, but that is a performance trade-off, not a correctness one.
+     * so a small width simply yields more, smaller buckets without wasting memory. It must keep a
+     * bucket wider than the {@link #MAX_WORD_SPAN}-word span a key touches, because both of a key's
+     * words are placed in the same bucket (see {@link #secondWord(long[], int, long)}).
      */
-    public static final int MIN_BUCKET_SHIFT = 2;
+    public static final int MIN_BUCKET_SHIFT = 5;
+
+    /**
+     * Largest displacement between the two words of a key, i.e. {@code 1 + 15} for the four bits the
+     * displacement is taken from. A bucket must hold more words than this so that a key's second word
+     * can always be placed in the same bucket as its first.
+     */
+    private static final int MAX_WORD_SPAN = 16;
     /** Maximum base-2 logarithm of the large-backing bucket width; keeps a bucket int-indexable. */
     public static final int MAX_BUCKET_SHIFT = 27;
 
@@ -305,12 +315,10 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
      * {@code if (!containsLong(key)) putLong(key)} sequence.
      * <p>
      * <strong>Thread-safe:</strong> every read-modify-write of a backing word runs under a lock, so no
-     * concurrent insert is ever lost. The small backing holds one lock (its {@code long[]}) across both
-     * words, which makes the "newly added" flag exact there. The large backing locks each word under the
-     * bucket owning it, so writes to different buckets proceed in parallel; in exchange the two words of
-     * one key are not updated atomically together, so two threads inserting the <em>same</em> absent key
-     * concurrently may both be told they added it. The flag never under-reports: a {@code false} always
-     * means all the key's bits were already set.
+     * concurrent insert is ever lost, and both of a key's words are covered by one lock: its
+     * {@code long[]} on the small backing, the bucket holding both words on the large one. The "newly
+     * added" flag is therefore exact on both backings. On the large backing writes to different buckets
+     * still proceed in parallel, so the lock striping continues to follow the bucket width.
      *
      * @param key the k-mer, encoded as a {@code long}, to add
      * @return {@code true} if the key was not already present, {@code false} otherwise
@@ -327,56 +335,51 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
             int s = reduceInt(hash);
             int s2 = s + 1 + (int) (mixed >>> 60);
             synchronized (data) {
-                oldA = orSmall(s, m1);
-                oldB = orSmall(s2, m2);
+                oldA = data[s];
+                data[s] = oldA | m1;
+                oldB = data[s2];
+                data[s2] = oldB | m2;
             }
         } else {
             long start = reduce(hash);
-            oldA = orLarge(start, m1);
-            oldB = orLarge(start + 1 + (mixed >>> 60), m2);
+            // One walk through the outer array and one lock for both words, as they share a bucket.
+            long[] bucket = largeData[(int) (start >>> bucketShift)];
+            int first = (int) (start & bucketMask);
+            int second = secondWord(bucket, first, mixed);
+            synchronized (bucket) {
+                oldA = bucket[first];
+                bucket[first] = oldA | m1;
+                oldB = bucket[second];
+                bucket[second] = oldB | m2;
+            }
         }
         // Present iff both mask sets were already fully set before this insert.
         return ((oldA & m1) != m1) || ((oldB & m2) != m2);
     }
 
     /**
-     * ORs the given mask into the small-storage word at the given index and returns the previous word
-     * value. The caller must hold the {@link #data} lock; {@link #putLong(long)} takes it once for both
-     * of a key's words so that their combined "was it already there" verdict is atomic.
+     * Returns the displacement of a key's second word within the bucket holding its first, wrapping
+     * around the bucket's end so that both words always share a bucket - which lets
+     * {@link #putLong(long)} and {@link #containsLong(long)} reach the outer array once and lock once.
+     * The wrap is exact because a bucket holds more than {@link #MAX_WORD_SPAN} words (see
+     * {@link #MIN_BUCKET_SHIFT} and {@link #newLargeGrid(long)}), so subtracting its length once always
+     * lands back inside it.
      *
-     * @param index the word index into the small storage
-     * @param mask  the bit mask to OR in
-     * @return the word value before the OR
+     * @param bucket the bucket holding the key's first word
+     * @param first  the displacement of the key's first word within that bucket
+     * @param mixed  the mixed hash the displacement between the two words is taken from
+     * @return the displacement of the key's second word within the same bucket
      */
-    private long orSmall(int index, long mask) {
-        long old = data[index];
-        data[index] = old | mask;
-        return old;
+    private static int secondWord(long[] bucket, int first, long mixed) {
+        int second = first + 1 + (int) (mixed >>> 60);
+        return second >= bucket.length ? second - bucket.length : second;
     }
 
-    /**
-     * ORs the given mask into the large-storage word at the given index and returns the previous word
-     * value. Safe for concurrent use: the read-modify-write runs under the lock of the bucket that owns
-     * the word, so no concurrent update to the same word is lost while writes to other buckets proceed
-     * in parallel.
-     *
-     * @param index the word index into the large storage
-     * @param mask  the bit mask to OR in
-     * @return the word value before the OR
-     */
-    private long orLarge(long index, long mask) {
-        long[] bucket = largeData[(int) (index >>> bucketShift)];
-        int displacement = (int) (index & bucketMask);
-        synchronized (bucket) {
-            long old = bucket[displacement];
-            bucket[displacement] = old | mask;
-            return old;
-        }
-    }
+
 
     @Override
     public boolean containsLong(long key) {
-        long hash = seed ^ key; // Super simple inlined hash function.
+        long hash = hash(key);
         long mixed = hash ^ Long.rotateLeft(hash, 32);
         long a;
         long b;
@@ -386,23 +389,17 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
             b = data[s + 1 + (int) (mixed >>> 60)];
         } else {
             long start = reduce(hash);
-            a = getLarge(start);
-            b = getLarge(start + 1 + (mixed >>> 60));
+            // One walk through the outer array for both words, as they share a bucket.
+            long[] bucket = largeData[(int) (start >>> bucketShift)];
+            int first = (int) (start & bucketMask);
+            a = bucket[first];
+            b = bucket[secondWord(bucket, first, mixed)];
         }
         long m1 = (1L << mixed) | (1L << (mixed >> 6));
         long m2 = (1L << (mixed >> 12)) | (1L << (mixed >> 18));
         return ((m1 & a) == m1) && ((m2 & b) == m2);
     }
 
-    /**
-     * Reads the large-storage word at the given index.
-     *
-     * @param index the word index into the large storage
-     * @return the word value at that index
-     */
-    private long getLarge(long index) {
-        return largeData[(int) (index >>> bucketShift)][(int) (index & bucketMask)];
-    }
 
     /**
      * Allocates the large (bucketed) backing for {@code words} words on this filter's bucket grid: every
@@ -417,7 +414,11 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
         long[][] grid = new long[bucketCount][];
         for (int b = 0; b < bucketCount; b++) {
             long startWord = (long) b << bucketShift;
-            grid[b] = new long[(int) Math.min(bucketSize, words - startWord)];
+            int size = (int) Math.min(bucketSize, words - startWord);
+            // The trailing bucket holds only the remainder, which may be shorter than the span between
+            // a key's two words; widen it so that secondWord()'s single wrap stays inside it. Costs at
+            // most MAX_WORD_SPAN words once, and bucketSize is never smaller than that (MIN_BUCKET_SHIFT).
+            grid[b] = new long[Math.max(MAX_WORD_SPAN + 1, size)];
         }
         return grid;
     }
@@ -440,18 +441,30 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
     }
 
     /**
-     * Reduces a hash value to a valid start bucket index on the <em>large</em> backing. Uses a plain
-     * modulo because there {@link #buckets} can exceed {@code 2^32}, which would overflow the 32-bit
-     * multiply that {@link #reduceInt(long)} relies on. Historically this modulo was also used for the
-     * small backing: with the deliberately trivial {@code seed ^ x} hash, Lemire's multiply-shift
-     * reduction distributes the low bits worse than the modulo and can raise the false-positive rate,
-     * so switching the small path to {@link #reduceInt(long)} trades a little of that margin for speed.
+     * Reduces a hash value to a valid start bucket index on the <em>large</em> backing, using Lemire's
+     * multiply-shift reduction widened to 64 bits: the upper half of the 128-bit product of the hash
+     * (read as unsigned) with {@link #buckets} lands uniformly in {@code [0, buckets)}. That upper half
+     * is what {@link Math#multiplyHigh(long, long)} yields, so no {@code 2^32} limit applies and the
+     * 64-bit division of a modulo is avoided - it dominated this path, which the bucketed backing walks
+     * for every lookup and insert.
+     * <p>
+     * The hash is mixed by a multiplication first because the reduction is driven by the <em>high</em> bits of
+     * its input, whereas the deliberately trivial {@code seed ^ x} hash carries the k-mer's entropy in
+     * the low ones - the same low bits {@link #reduceInt(long)} multiplies on the small path. Without
+     * the rotation the index would be built from near-constant high bits.
      *
      * @param v the hash value to reduce
      * @return the start bucket index in {@code [0, buckets)} for the given hash value.
      */
     protected final long reduce(final long v) {
-        return Math.abs(v % buckets);
+        // Multiply-shift is driven by the high bits of its input, so the trivial 'seed ^ key' hash is
+        // mixed into them first: a multiplication propagates every input bit upwards through the
+        // carries. A k-mer carries its entropy in the low bits, which would otherwise hardly reach the
+        // index at all.
+        long mixedForIndex = v * 0x9E3779B97F4A7C15L;
+        // Math.multiplyHigh is signed, so a negative left operand needs the range added back to reach
+        // the unsigned product's upper half; 'buckets' is always positive, so only that side corrects.
+        return Math.multiplyHigh(mixedForIndex, buckets) + ((mixedForIndex >> 63) & buckets);
     }
 
     /**

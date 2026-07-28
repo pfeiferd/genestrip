@@ -41,6 +41,20 @@ public class XORKMerBloomFilter extends AbstractKMerBloomFilter {
         super(fpp, expectedInsertions);
     }
 
+    /**
+     * XORs the k-mer with the hash function's factor - no mixing whatsoever, which is what makes it
+     * fast.
+     * <p>
+     * <strong>This relies on {@link AbstractKMerBloomFilter#reduce(long)} being a modulo</strong>, i.e.
+     * on a reduction that consumes every bit of the hash. Since a k-mer keeps its entropy in the low
+     * bits and this hash leaves it there, any reduction driven by the high bits - such as a
+     * multiply-shift - degrades this filter's false-positive rate by orders of magnitude, and through
+     * the store's filter-based deduplication that costs k-mers. See {@code reduce} for the measurements.
+     *
+     * @param x the k-mer, encoded as a {@code long}, to hash
+     * @param i the index of the hash function to apply
+     * @return the {@code i}-th hash of the given k-mer
+     */
     @Override
     protected final long hash(long x, final int i) {
         return hashFactors[i] ^ x;

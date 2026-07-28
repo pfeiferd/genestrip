@@ -25,7 +25,9 @@
 package org.metagene.genestrip.store;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
@@ -132,6 +134,55 @@ public class RadixKMerStoreTest extends AbstractKMerStoreTest {
 
 		for (long kmer : kmers) {
 			assertEquals(seq.getLong(kmer, null), bat.getLong(kmer, null));
+		}
+	}
+
+	@Test
+	public void testGetBatchEqualsGetLong() {
+		// The batched lookup must report exactly what a k-mer by k-mer getLong() reports: the same
+		// values, for the same k-mers, in insertion order, with the payload each k-mer was added with.
+		// Queries mix stored k-mers, absent ones and a duplicate, and several batch capacities are used
+		// so that flushes land on full as well as on partial batches.
+		Map<Long, Integer> kmerMap = new LinkedHashMap<Long, Integer>();
+		generate(SMALL_SIZE, null, kmerMap);
+		long[] kmers = kmerArray(kmerMap);
+
+		RadixKMerStore<Integer> store = (RadixKMerStore<Integer>) createKMerStore(Integer.class, k, kmers);
+		fill(store, kmerMap);
+		store.optimize();
+
+		// Every second query is a k-mer that is (almost certainly) absent, so misses are covered too.
+		long[] queries = new long[2 * kmers.length + 1];
+		for (int i = 0; i < kmers.length; i++) {
+			queries[2 * i] = kmers[i];
+			queries[2 * i + 1] = ~kmers[i];
+		}
+		queries[queries.length - 1] = kmers[0]; // duplicate
+
+		List<String> expected = new ArrayList<String>();
+		for (int i = 0; i < queries.length; i++) {
+			Integer value = store.getLong(queries[i], null);
+			if (value != null) {
+				expected.add(queries[i] + "/" + i + "/" + value);
+			}
+		}
+		assertFalse("expected some hits", expected.isEmpty());
+
+		for (int capacity : new int[] { 1, 8, 128, queries.length + 10 }) {
+			List<String> actual = new ArrayList<String>();
+			RadixKMerStore.BatchValueConsumer<Integer> consumer = (kmer, payload, value) -> actual
+					.add(kmer + "/" + payload + "/" + value);
+			RadixKMerStore.BatchBuffers buf = new RadixKMerStore.BatchBuffers(capacity);
+			for (int i = 0; i < queries.length; i++) {
+				// The index travels as the payload, mirroring how the FT index goal carries its leaf node.
+				if (buf.add(queries[i], i)) {
+					store.getBatch(buf, consumer);
+				}
+			}
+			if (!buf.isEmpty()) {
+				store.getBatch(buf, consumer);
+			}
+			assertEquals("capacity=" + capacity, expected, actual);
 		}
 	}
 
