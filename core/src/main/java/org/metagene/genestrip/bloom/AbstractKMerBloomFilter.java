@@ -198,8 +198,9 @@ public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
 	 * Maps a hash value onto a valid bit index of the backing bit vector.
 	 * <p>
 	 * <strong>The modulo must stay.</strong> It looks like an obvious candidate for the multiply-shift
-	 * reduction that {@link BlockedKMerBloomFilter} and {@link SingleWordKMerBloomFilter} use on their
-	 * large paths, and it was tried: multiply-shift is driven by the <em>high</em> bits of its input,
+	 * reductions that {@link BlockedKMerBloomFilter} and {@link SingleWordKMerBloomFilter} use on both
+	 * of their paths - {@code reduceInt} on the small one, {@code reduce} on the large one - and it was
+	 * tried: every multiply-shift is driven by the <em>high</em> bits of its input,
 	 * whereas {@link XORKMerBloomFilter}'s {@code hashFactors[i] ^ x} deliberately does not mix at all
 	 * and leaves a k-mer's entropy in the <em>low</em> bits. Measured on k-mer-like keys the
 	 * false-positive rate then degrades by orders of magnitude - at a 1e-8 target 0.26% were measured,

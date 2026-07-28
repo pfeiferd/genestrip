@@ -473,7 +473,21 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
      * (<a href="http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/">reference</a>):
      * the top 32 bits of {@code (loWord(v) * buckets)} land uniformly in {@code [0, buckets)}. This is
      * only valid for the small backing, where {@code buckets < 2^31}, so the multiply cannot overflow a
-     * signed {@code long}; the large path must keep {@link #reduce(long)} (see there).
+     * signed {@code long}; the large path uses {@link #reduce(long)}, which widens the same idea to 64
+     * bits.
+     * <p>
+     * <strong>Do not carry this reduction over to {@link AbstractKMerBloomFilter}.</strong> Like every
+     * multiply-shift it consumes only part of the hash - here its low 32 bits - and so depends on where
+     * a key's entropy sits. This filter can afford that because it mixes its hash into {@code mixed}
+     * for the bit positions anyway, but {@link XORKMerBloomFilter}'s {@code hashFactors[i] ^ x} does not
+     * mix at all: there a reduction of this family costs orders of magnitude of false-positive rate and,
+     * through the store's filter-based deduplication, actual k-mers. That is why
+     * {@link AbstractKMerBloomFilter#reduce(long)} is and stays a modulo - see there for the numbers.
+     * <p>
+     * The same sensitivity is measurable here at small {@code k}: with only 32 significant key bits
+     * (k=16) this small path measures 5.2% against the large path's 1.4% at 10 bits per key, because
+     * {@code mixed}'s two halves then coincide up to a constant. At k=31 it is immaterial (1.33%
+     * against 1.30%).
      *
      * @param v the hash value to reduce
      * @return the start bucket index in {@code [0, buckets)} for the given hash value.

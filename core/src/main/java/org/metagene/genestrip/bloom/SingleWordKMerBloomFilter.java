@@ -441,8 +441,15 @@ public class SingleWordKMerBloomFilter implements KMerProbFilter {
      * Reduces a hash value to a valid word index on the <em>small</em> ({@code int}-indexed) backing,
      * using Lemire's multiply-shift alternative to the modulo: the top 32 bits of
      * {@code (loWord(v) * words)} land uniformly in {@code [0, words)}. Only valid where
-     * {@code words < 2^31} keeps the multiply from overflowing, hence the large backing keeps
-     * {@link #reduce(long)} - and its 64-bit division, which is why the small path avoids it.
+     * {@code words < 2^31} keeps the multiply from overflowing, hence the large backing uses
+     * {@link #reduce(long)}, which widens the same idea to 64 bits.
+     * <p>
+     * <strong>Do not carry this reduction over to {@link AbstractKMerBloomFilter}.</strong> Like every
+     * multiply-shift it consumes only part of the hash - here its low 32 bits - and so depends on where
+     * a key's entropy sits. {@link XORKMerBloomFilter}'s {@code hashFactors[i] ^ x} does not mix at all,
+     * so there a reduction of this family costs orders of magnitude of false-positive rate and, through
+     * the store's filter-based deduplication, actual k-mers. That is why
+     * {@link AbstractKMerBloomFilter#reduce(long)} is and stays a modulo - see there for the numbers.
      *
      * @param v the hash value to reduce
      * @return the word index in {@code [0, words)} for the given hash value
