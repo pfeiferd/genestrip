@@ -35,7 +35,7 @@ public abstract class TaxIdInfo implements Serializable, Comparable<TaxIdInfo> {
 	private static final long serialVersionUID = 1L;
 
 	/** The tax id prefix that marks an artificial (non-NCBI) node. */
-	public static String ARTIFICIAL_PREFIX = "00";
+	public static final String ARTIFICIAL_PREFIX = "00";
 
 	/** The tax id of this node. */
 	public final String taxId;

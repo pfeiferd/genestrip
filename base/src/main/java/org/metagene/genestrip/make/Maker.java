@@ -41,7 +41,7 @@ import org.metagene.genestrip.util.GSLogFactory;
  * @param <P> the type of {@link Project} this maker builds goals for
  */
 public abstract class Maker<P extends Project> {
-	private static GoalKey INTERNAL_KEY = new GoalKey.DefaultGoalKey("internalgoal");
+	private static final GoalKey INTERNAL_KEY = new GoalKey.DefaultGoalKey("internalgoal");
 
 	private final Log logger = GSLogFactory.getLog("maker");
 	

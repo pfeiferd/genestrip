@@ -45,7 +45,7 @@ import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
  * entry to {@link #handleEntry(byte[], int, int, int)}.
  */
 public abstract class AccessionFileProcessor {
-    private static int MAX_LINE_SIZE = 2048;
+    private static final int MAX_LINE_SIZE = 2048;
 
     /** Accession prefixes that mark any genomic (DNA) sequence. */
     protected static final String[] ALL_GENOMIC_ACCESSION_PREFIXES = {"AC_", "NC_", "NG_", "NT_", "NW_", "NZ_"};

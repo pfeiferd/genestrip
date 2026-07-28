@@ -60,7 +60,7 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 	private static final long serialVersionUID = 2L;
 
 	/** Capacity threshold above which the store switches to big (paged) arrays. */
-	public static long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
+	public static final long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
 
 	/** The k-mers, sorted after optimization (small-array layout). */
 	private long[] kmers;

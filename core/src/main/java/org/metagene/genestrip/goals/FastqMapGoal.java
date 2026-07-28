@@ -61,8 +61,8 @@ import static org.metagene.genestrip.fastq.AbstractLoggingFastqStreamer.FASTQ_TY
  * @param <P> the project type
  */
 public class FastqMapGoal<P extends GSProject> extends ObjectGoal<Map<String, StreamingResourceStream>, P> {
-	private static String[] FASTA_SUFFIXES = new String[] { "fasta", "fa", "fna", "fas", "fasta.gz", "fa.gz", "fna.gz", "fas.gz", "fasta.gzip", "fa.gzip", "fna.gzip", "fas.gzip" };
-	private static String[] FASTQ_SUFFIXES = new String[] { "fastq", "fq", "fq.gz", "fastq.gz", "fq.gzip", "fastq.gzip" };
+	private static final String[] FASTA_SUFFIXES = new String[] { "fasta", "fa", "fna", "fas", "fasta.gz", "fa.gz", "fna.gz", "fas.gz", "fasta.gzip", "fa.gzip", "fna.gzip", "fas.gzip" };
+	private static final String[] FASTQ_SUFFIXES = new String[] { "fastq", "fq", "fq.gz", "fastq.gz", "fq.gzip", "fastq.gzip" };
 
 	private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder().setQuote(null).setCommentMarker('#')
 			.setDelimiter(' ').setRecordSeparator('\n').build();
