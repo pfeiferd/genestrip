@@ -210,7 +210,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
 
     @Override
     public long getBitSize() {
-        return buckets * bitsPerKey * 64;
+        return buckets * 64;
     }
 
     private static void checkBucketShift(int bucketShift) {
