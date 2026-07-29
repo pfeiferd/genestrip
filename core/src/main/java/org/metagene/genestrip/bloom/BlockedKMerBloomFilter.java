@@ -65,7 +65,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
     private static final long serialVersionUID = 3L;
 
     /** Fixed hash seed used by the constructors that do not take one. */
-    private static final long DEFAULT_SEED = new Random(42).nextLong();
+    static final long DEFAULT_SEED = new Random(42).nextLong();
 
     /** Maximum capacity (in words) that still uses the small {@code int}-indexed storage. */
     public static final long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
@@ -91,7 +91,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
     /** Number of bits allocated per key. */
     private final int bitsPerKey;
     /** Hash seed used to derive bit positions. */
-    private final long seed;
+    protected final long seed;
     // A large-backing word index splits into bucket (>>> bucketShift) and in-bucket displacement
     // (& bucketMask). bucketShift is fixed at construction; bucketMask is derived (hence transient and
     // rebuilt in readObject).
@@ -100,7 +100,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
     /** Mask selecting the in-bucket displacement of a word index; derived from {@link #bucketShift}. */
     private transient int bucketMask;
     /** Number of buckets (words) available for bits. */
-    private long buckets;
+    protected long buckets;
     /**
      * Small ({@code int}-indexed) bit storage, or {@code null} when large storage is used. Doubles as
      * the lock guarding its own words in {@link #putLong(long)}, hence {@code final}: the reference must
@@ -424,20 +424,22 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
     }
 
     /**
-     * Computes the hash of the given key.
+     * Computes the hash of the given key by seeding it and running it through the MurmurHash3
+     * finalizer, which carries a k-mer's low-bit entropy over the whole word. Everything this filter
+     * derives from a hash is driven by its high bits - the word index through {@link #reduce(long)} and
+     * {@link #reduceInt(long)}, the bit positions through the rotation fold in {@link #putLong(long)} -
+     * so the mixing is what makes those sound. {@link XORBlockedKMerBloomFilter} overrides this with a
+     * bare exclusive or and consequently reduces by a modulo instead.
      *
      * @param x the key to hash
-     * @return the (deliberately trivial) hash of the given key.
+     * @return the hash of the given key.
      */
-    protected final long hash(long x) {
-        /*
+    protected long hash(long x) {
         x += seed;
         x = (x ^ (x >>> 33)) * 0xff51afd7ed558ccdL;
         x = (x ^ (x >>> 33)) * 0xc4ceb9fe1a85ec53L;
         x = x ^ (x >>> 33);
         return x;
-         */
-        return seed ^ x;
     }
 
     /**
@@ -448,23 +450,17 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
      * 64-bit division of a modulo is avoided - it dominated this path, which the bucketed backing walks
      * for every lookup and insert.
      * <p>
-     * The hash is mixed by a multiplication first because the reduction is driven by the <em>high</em> bits of
-     * its input, whereas the deliberately trivial {@code seed ^ x} hash carries the k-mer's entropy in
-     * the low ones - the same low bits {@link #reduceInt(long)} multiplies on the small path. Without
-     * the rotation the index would be built from near-constant high bits.
+     * Being a multiply-shift this is driven by the <em>high</em> bits of its input, which is sound only
+     * because {@link #hash(long)} mixes a k-mer's low-bit entropy up into them.
+     * {@link XORBlockedKMerBloomFilter}, whose hash does not, overrides this with a modulo.
      *
      * @param v the hash value to reduce
      * @return the start bucket index in {@code [0, buckets)} for the given hash value.
      */
-    protected final long reduce(final long v) {
-        // Multiply-shift is driven by the high bits of its input, so the trivial 'seed ^ key' hash is
-        // mixed into them first: a multiplication propagates every input bit upwards through the
-        // carries. A k-mer carries its entropy in the low bits, which would otherwise hardly reach the
-        // index at all.
-        long mixedForIndex = v * 0x9E3779B97F4A7C15L;
+    protected long reduce(final long v) {
         // Math.multiplyHigh is signed, so a negative left operand needs the range added back to reach
         // the unsigned product's upper half; 'buckets' is always positive, so only that side corrects.
-        return Math.multiplyHigh(mixedForIndex, buckets) + ((mixedForIndex >> 63) & buckets);
+        return Math.multiplyHigh(v, buckets) + ((v >> 63) & buckets);
     }
 
     /**
@@ -476,23 +472,14 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
      * signed {@code long}; the large path uses {@link #reduce(long)}, which widens the same idea to 64
      * bits.
      * <p>
-     * <strong>Do not carry this reduction over to {@link AbstractKMerBloomFilter}.</strong> Like every
-     * multiply-shift it consumes only part of the hash - here its low 32 bits - and so depends on where
-     * a key's entropy sits. This filter can afford that because it mixes its hash into {@code mixed}
-     * for the bit positions anyway, but {@link XORKMerBloomFilter}'s {@code hashFactors[i] ^ x} does not
-     * mix at all: there a reduction of this family costs orders of magnitude of false-positive rate and,
-     * through the store's filter-based deduplication, actual k-mers. That is why
-     * {@link AbstractKMerBloomFilter#reduce(long)} is and stays a modulo - see there for the numbers.
-     * <p>
-     * The same sensitivity is measurable here at small {@code k}: with only 32 significant key bits
-     * (k=16) this small path measures 5.2% against the large path's 1.4% at 10 bits per key, because
-     * {@code mixed}'s two halves then coincide up to a constant. At k=31 it is immaterial (1.33%
-     * against 1.30%).
+     * This consumes even less of the hash than {@link #reduce(long)} does - only its low 32 bits - and
+     * so depends all the more on {@link #hash(long)} having spread the key's entropy over the whole
+     * word. {@link XORBlockedKMerBloomFilter} overrides it with a modulo for that reason.
      *
      * @param v the hash value to reduce
      * @return the start bucket index in {@code [0, buckets)} for the given hash value.
      */
-    protected final int reduceInt(final long v) {
+    protected int reduceInt(final long v) {
         return (int) (((v & 0xffffffffL) * buckets) >>> 32);
     }
 

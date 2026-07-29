@@ -60,10 +60,13 @@ public class SingleWordKMerBloomFilter implements KMerProbFilter {
      */
     public static final int MAX_HASH_BITS = 10;
 
-    private static final long serialVersionUID = 1L;
+    // Bumped from 1: reduce() no longer pre-multiplies before the multiply-shift, now that hash() mixes,
+    // so a key maps to a different word than before. A filter serialized by an older version would
+    // answer queries wrongly rather than merely differently, hence it must fail to load instead.
+    private static final long serialVersionUID = 2L;
 
     /** Fixed hash seed used by the constructors that do not take one. */
-    private static final long DEFAULT_SEED = new Random(42).nextLong();
+    static final long DEFAULT_SEED = new Random(42).nextLong();
 
     /** Maximum capacity (in words) that still uses the small {@code int}-indexed storage. */
     public static final long MAX_SMALL_CAPACITY = Integer.MAX_VALUE - 8;
@@ -78,13 +81,13 @@ public class SingleWordKMerBloomFilter implements KMerProbFilter {
     /** Number of bits a key sets within its word. */
     private final int hashBits;
     /** Hash seed used to derive word index and bit positions. */
-    private final long seed;
+    protected final long seed;
     /** Base-2 logarithm of the large-backing bucket width (words per bucket). */
     private final int bucketShift;
     /** Mask selecting the in-bucket displacement of a word index; derived from {@link #bucketShift}. */
     private transient int bucketMask;
     /** Number of words available for bits. */
-    private long words;
+    protected long words;
     /**
      * Small ({@code int}-indexed) bit storage, or {@code null} when large storage is used. Doubles as
      * the lock guarding its words in {@link #putLong(long)}, hence {@code final}: the reference must be
@@ -405,13 +408,22 @@ public class SingleWordKMerBloomFilter implements KMerProbFilter {
     }
 
     /**
-     * Computes the hash of the given key, as trivially as {@link BlockedKMerBloomFilter} does.
+     * Computes the hash of the given key exactly as {@link BlockedKMerBloomFilter} does: seeded and run
+     * through the MurmurHash3 finalizer, which carries a k-mer's low-bit entropy over the whole word.
+     * Both the word index ({@link #reduce(long)}, {@link #reduceInt(long)}) and the bit positions
+     * ({@code mask}) are driven by the resulting high bits, so the mixing is what makes them
+     * sound. {@link XORSingleWordKMerBloomFilter} overrides this with a bare exclusive or and
+     * consequently reduces by a modulo instead.
      *
      * @param x the key to hash
-     * @return the (deliberately trivial) hash of the given key
+     * @return the hash of the given key
      */
-    protected final long hash(long x) {
-        return seed ^ x;
+    protected long hash(long x) {
+        x += seed;
+        x = (x ^ (x >>> 33)) * 0xff51afd7ed558ccdL;
+        x = (x ^ (x >>> 33)) * 0xc4ceb9fe1a85ec53L;
+        x = x ^ (x >>> 33);
+        return x;
     }
 
     /**
@@ -419,22 +431,19 @@ public class SingleWordKMerBloomFilter implements KMerProbFilter {
      * multiply-shift reduction widened to 64 bits: the upper half of the 128-bit product of the hash
      * (read as unsigned) with {@link #words}, which {@link Math#multiplyHigh(long, long)} yields, lands
      * uniformly in {@code [0, words)}. So no {@code 2^32} limit applies and the 64-bit division of a
-     * modulo is avoided. The hash is mixed by a multiplication first because the reduction is driven by its
-     * high bits, whereas the trivial {@code seed ^ x} hash carries the k-mer's entropy in the low ones,
-     * which the mixing multiplication carries upwards.
+     * modulo is avoided.
+     * <p>
+     * Being a multiply-shift this is driven by the <em>high</em> bits of its input, which is sound only
+     * because {@link #hash(long)} mixes a k-mer's low-bit entropy up into them.
+     * {@link XORSingleWordKMerBloomFilter}, whose hash does not, overrides this with a modulo.
      *
      * @param v the hash value to reduce
      * @return the word index in {@code [0, words)} for the given hash value
      */
-    protected final long reduce(final long v) {
-        // Multiply-shift is driven by the high bits of its input, so the trivial 'seed ^ key' hash is
-        // mixed into them first: a multiplication propagates every input bit upwards through the
-        // carries. A k-mer carries its entropy in the low bits, which would otherwise hardly reach the
-        // index at all.
-        long mixedForIndex = v * 0x9E3779B97F4A7C15L;
+    protected long reduce(final long v) {
         // Math.multiplyHigh is signed, so a negative left operand needs the range added back to reach
         // the unsigned product's upper half; 'words' is always positive, so only that side corrects.
-        return Math.multiplyHigh(mixedForIndex, words) + ((mixedForIndex >> 63) & words);
+        return Math.multiplyHigh(v, words) + ((v >> 63) & words);
     }
 
     /**
@@ -444,17 +453,14 @@ public class SingleWordKMerBloomFilter implements KMerProbFilter {
      * {@code words < 2^31} keeps the multiply from overflowing, hence the large backing uses
      * {@link #reduce(long)}, which widens the same idea to 64 bits.
      * <p>
-     * <strong>Do not carry this reduction over to {@link AbstractKMerBloomFilter}.</strong> Like every
-     * multiply-shift it consumes only part of the hash - here its low 32 bits - and so depends on where
-     * a key's entropy sits. {@link XORKMerBloomFilter}'s {@code hashFactors[i] ^ x} does not mix at all,
-     * so there a reduction of this family costs orders of magnitude of false-positive rate and, through
-     * the store's filter-based deduplication, actual k-mers. That is why
-     * {@link AbstractKMerBloomFilter#reduce(long)} is and stays a modulo - see there for the numbers.
+     * This consumes even less of the hash than {@link #reduce(long)} does - only its low 32 bits - and
+     * so depends all the more on {@link #hash(long)} having spread the key's entropy over the whole
+     * word. {@link XORSingleWordKMerBloomFilter} overrides it with a modulo for that reason.
      *
      * @param v the hash value to reduce
      * @return the word index in {@code [0, words)} for the given hash value
      */
-    protected final int reduceInt(final long v) {
+    protected int reduceInt(final long v) {
         return (int) (((v & 0xffffffffL) * words) >>> 32);
     }
 

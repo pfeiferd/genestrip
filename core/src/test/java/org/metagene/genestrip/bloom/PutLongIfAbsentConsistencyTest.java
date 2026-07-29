@@ -41,7 +41,7 @@ import org.junit.Test;
 import org.metagene.genestrip.util.LargeBitVector;
 
 /**
- * Verifies that the lock-free combined insert {@link AbstractKMerBloomFilter#putLong(long)}
+ * Verifies that the lock-free combined insert {@link KMerBloomFilter#putLong(long)}
  * yields a filter that is bit-for-bit identical to the classic {@code if (!containsLong(x))
  * putLong(x)} sequence, both single-threaded (small and large backing) and under concurrent
  * insertion.

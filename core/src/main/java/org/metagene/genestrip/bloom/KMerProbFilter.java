@@ -45,11 +45,11 @@ public interface KMerProbFilter extends Serializable {
      * Adds the given k-mer to the filter unless it is (probably) already present, and reports whether
      * it was newly added. This is required to be equivalent to a {@code if (!containsLong(data))
      * putLong(data)} sequence, but implementations combine it into a single pass and, where they
-     * support it, make it safe for concurrent use (lock-free in {@link AbstractKMerBloomFilter}, under
+     * support it, make it safe for concurrent use (lock-free in {@link KMerBloomFilter}, under
      * per-bucket locks in {@link BlockedKMerBloomFilter}). Deliberately left without a default:
      * a naive {@code containsLong}/{@code putLong} fallback would not be thread-safe, so every
      * implementation must decide and document its own concurrency behaviour rather than silently
-     * inherit an unsafe one (see {@link AbstractKMerBloomFilter} and {@link BlockedKMerBloomFilter}).
+     * inherit an unsafe one (see {@link KMerBloomFilter} and {@link BlockedKMerBloomFilter}).
      * <p>
      * For the concurrent implementations, two threads inserting the same absent k-mer may both
      * observe it as new, so under concurrent use the returned flag may marginally over-count the

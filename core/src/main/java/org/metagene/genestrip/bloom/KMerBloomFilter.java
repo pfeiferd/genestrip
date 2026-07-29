@@ -29,12 +29,28 @@ import org.metagene.genestrip.util.LargeBitVector;
 import java.util.Random;
 
 /**
- * Base class for {@link KMerProbFilter} implementations backed by a {@link LargeBitVector}. It sizes
- * the bit vector and the number of hash functions from the expected insertions and target
- * false-positive probability, and derives each of the {@code hashes} bit indices from a
- * subclass-supplied {@link #hash} function. Subclasses only provide the hash.
+ * The classical {@link KMerProbFilter}, backed by a {@link LargeBitVector}: it sizes the bit vector and
+ * the number of hash functions from the expected insertions and target false-positive probability, and
+ * sets one bit per hash function. Unlike {@link BlockedKMerBloomFilter} and
+ * {@link SingleWordKMerBloomFilter}, which confine a key to one or two adjacent words, those bits are
+ * spread over the whole vector, which buys the best rate per bit and costs one memory access per hash
+ * function.
+ * <p>
+ * This class is the <em>mixing</em> variant of its family, i.e. the counterpart of
+ * {@link XORKMerBloomFilter}. Like every filter of this package it exists in two variants that differ
+ * in one pair of choices which must always be made together:
+ * <ul>
+ * <li>a mixing hash - {@link #hash(long, int)} here, MurmurHash3 in {@link MurmurKMerBloomFilter} -
+ * which spreads a k-mer's entropy over the whole word and may therefore use the multiply-shift
+ * {@link #reduce(long)};</li>
+ * <li>a bare exclusive or - {@link XORKMerBloomFilter} - which must therefore reduce by a modulo, as it
+ * overrides {@link #reduce(long)} to do.</li>
+ * </ul>
+ * Pairing a non-mixing hash with a multiply-shift reduction costs orders of magnitude of
+ * false-positive rate, so the two always travel together; see {@link XORKMerBloomFilter#reduce(long)}
+ * for the measurements.
  */
-public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
+public class KMerBloomFilter implements KMerProbFilter {
 	private static final long serialVersionUID = 2L;
 
 	/** The target false-positive probability. */
@@ -64,7 +80,7 @@ public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
 	 * @param fpp the target false-positive probability, strictly between 0 and 1
 	 * @param expectedInsertions the expected number of k-mers to be inserted (must be {@code >= 0})
 	 */
-	public AbstractKMerBloomFilter(double fpp, long expectedInsertions) {
+	public KMerBloomFilter(double fpp, long expectedInsertions) {
 		if (fpp <= 0 || fpp >= 1) {
 			throw new IllegalArgumentException("fpp must be a probability");
 		}
@@ -178,9 +194,10 @@ public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
 	}
 
 	/**
-	 * Computes the {@code i}-th hash of the given k-mer. The default is a Lemire-style bit-mixing hash
-	 * (moved here from the former {@code LemireOptBloomFilter}); subclasses may override it with a
-	 * cheaper or otherwise preferable hash (see {@link XORKMerBloomFilter}, {@link MurmurKMerBloomFilter}).
+	 * Computes the {@code i}-th hash of the given k-mer by a bit-mixing hash (moved here from the former
+	 * {@code LemireOptBloomFilter}) that carries a k-mer's low-bit entropy upwards and hence pairs with
+	 * the multiply-shift {@link #reduce(long)}. A subclass overriding it with a hash that does not mix
+	 * must override {@link #reduce(long)} with a modulo as well - see {@link XORKMerBloomFilter}.
 	 *
 	 * @param data the k-mer, encoded as a {@code long}, to hash
 	 * @param i    the index of the hash function to apply
@@ -195,29 +212,24 @@ public abstract class AbstractKMerBloomFilter implements KMerProbFilter {
 	}
 
 	/**
-	 * Maps a hash value onto a valid bit index of the backing bit vector.
+	 * Maps a hash value onto a valid bit index of the backing bit vector, using Lemire's multiply-shift
+	 * alternative to the modulo widened to 64 bits: the upper half of the 128-bit product of the hash
+	 * (read as unsigned) with {@link #bits}, which {@link Math#multiplyHigh(long, long)} yields, lands
+	 * uniformly in {@code [0, bits)}. That avoids the 64-bit division a modulo costs per hash function.
 	 * <p>
-	 * <strong>The modulo must stay.</strong> It looks like an obvious candidate for the multiply-shift
-	 * reductions that {@link BlockedKMerBloomFilter} and {@link SingleWordKMerBloomFilter} use on both
-	 * of their paths - {@code reduceInt} on the small one, {@code reduce} on the large one - and it was
-	 * tried: every multiply-shift is driven by the <em>high</em> bits of its input,
-	 * whereas {@link XORKMerBloomFilter}'s {@code hashFactors[i] ^ x} deliberately does not mix at all
-	 * and leaves a k-mer's entropy in the <em>low</em> bits. Measured on k-mer-like keys the
-	 * false-positive rate then degrades by orders of magnitude - at a 1e-8 target 0.26% were measured,
-	 * at a 1% target 5.0% instead of 0.98%. That is not merely inaccurate: {@code AbstractKMerStore}
-	 * uses this filter to deduplicate while filling, so its false positives make the store <em>drop
-	 * k-mers</em>, which showed up as k-mers missing from a stored database. The modulo consumes all of
-	 * the hash's bits and keeps that intact.
-	 * <p>
-	 * Prefixing the multiply-shift with a mixing multiplication does repair the rate, but then costs two
-	 * multiplications per hash function and the modulo's advantage is gone. Should this ever be revisited,
-	 * measure {@link XORKMerBloomFilter} on keys with only {@code 2k} significant bits - random 64-bit
-	 * keys hide the problem entirely.
+	 * This is the reduction of the <em>mixing</em> filters of this package, and it is only sound for a
+	 * hash that mixes: every multiply-shift is driven by the <em>high</em> bits of its input, whereas a
+	 * k-mer carries its entropy in the low ones. {@link #hash(long, int)} and the hash of
+	 * {@link MurmurKMerBloomFilter} both carry that entropy upwards, so they may reduce this way.
+	 * A hash that does not mix must not - see {@link XORKMerBloomFilter#reduce(long)}, which overrides
+	 * this with a modulo for exactly that reason.
 	 *
 	 * @param v the hash value to reduce
 	 * @return the bit index in {@code [0, bits)} for the given hash value.
 	 */
 	protected long reduce(final long v) {
-		return Math.abs(v % bits);
+		// Math.multiplyHigh is signed, so a negative left operand needs the range added back to reach
+		// the unsigned product's upper half; 'bits' is always positive, so only that side corrects.
+		return Math.multiplyHigh(v, bits) + ((v >> 63) & bits);
 	}
 }

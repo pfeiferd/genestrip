@@ -25,10 +25,17 @@
 package org.metagene.genestrip.bloom;
 
 /**
- * An {@link AbstractKMerBloomFilter} that hashes k-mers with MurmurHash3.
+ * A {@link KMerBloomFilter} that hashes k-mers with MurmurHash3 rather than with the bit-mixing
+ * finalizer of {@link KMerBloomFilter#hash(long, int)}. Both mix, so this inherits the multiply-shift
+ * {@link KMerBloomFilter#reduce(long)} unchanged; only the hash differs. The {@code XOR} variant of the
+ * family, which does not mix and hence reduces by a modulo, is {@link XORKMerBloomFilter}.
  */
-public class MurmurKMerBloomFilter extends AbstractKMerBloomFilter {
-	private static final long serialVersionUID = 1L;
+public class MurmurKMerBloomFilter extends KMerBloomFilter {
+	// Bumped from 1: the inherited reduce() changed from a modulo to a multiply-shift, so a key maps to
+	// a different bit than before. A filter serialized by an older version would answer queries wrongly
+	// rather than merely differently, hence it must fail to load instead - such filters have to be
+	// regenerated. XORKMerBloomFilter keeps its modulo and hence its serial version.
+	private static final long serialVersionUID = 2L;
 
 	/**
 	 * Creates a filter with the given target false-positive probability, sized for

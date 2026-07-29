@@ -140,9 +140,10 @@ public class KMerBloomFilterTest {
 
 
 	protected KMerProbFilter createFilter(long size, double fpp) {
-		// Murmur/XOR are always backed by the (bucketed) LargeBitVector, so isTestLarge() has no
-		// bearing here; it only selects the bucketed backing for BlockedKMerBloomFilter (see that test).
-		return new MurmurKMerBloomFilter(fpp, size);
+		// The whole KMerBloomFilter family is always backed by the (bucketed) LargeBitVector, so
+		// isTestLarge() has no bearing here; it only selects the bucketed backing for
+		// BlockedKMerBloomFilter and SingleWordKMerBloomFilter (see those tests).
+		return new KMerBloomFilter(fpp, size);
 	}
 
 	protected boolean isTestLarge() {
