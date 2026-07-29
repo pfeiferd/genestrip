@@ -58,11 +58,22 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
     /** Default number of bits allocated per key. */
     public static final int DEFAULT_BITS_PER_KEY = 10;
 
-    // Bumped from 2: both of a key's words now share a bucket and the large path reduces by
-    // multiply-shift instead of a modulo, so a key maps to different words than before. A filter
-    // serialized by an older version would answer queries wrongly rather than merely differently,
-    // hence it must fail to load instead - such filters have to be regenerated.
-    private static final long serialVersionUID = 3L;
+    // Bumped from 3: hash() changed from the trivial 'seed ^ x' to the MurmurHash3 finalizer and
+    // reduce() dropped the mixing multiplication that used to compensate for it, so a key maps to
+    // different words and bits than before.
+    //
+    // The bump is what was missing when that change was made, and the consequence was severe: a
+    // database serialized beforehand still deserialized, because the version had not moved, and its
+    // store then answered "not present" for about 98% of the k-mers it actually held - the store
+    // pre-filters every lookup with this filter (see RadixKMerStore.locateBatch). Lookups do not fail
+    // loudly, they just return nothing, so k-mers went missing silently all the way into the FT
+    // intersection counts.
+    //
+    // Hence: whenever hash(), reduce(), reduceInt() or the bit derivation in putLong() changes, this
+    // version must be bumped, so that an incompatible filter fails to load instead of answering
+    // wrongly. Filters written by an older version have to be regenerated - as do the databases that
+    // embed them.
+    private static final long serialVersionUID = 4L;
 
     /** Fixed hash seed used by the constructors that do not take one. */
     static final long DEFAULT_SEED = new Random(42).nextLong();

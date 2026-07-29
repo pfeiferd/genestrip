@@ -34,17 +34,32 @@ public class KMerIndexFilterHelper {
     }
 
     /**
+     * Multiplier spreading the index over the whole key. Any odd constant does, as multiplying by one
+     * is a bijection modulo 2^64 and hence maps distinct indexes to distinct masks. It deliberately
+     * differs from the constant {@link org.metagene.genestrip.bloom.BlockedKMerBloomFilter} multiplies
+     * by when deriving a word position, so that the two steps cannot interact.
+     */
+    private static final long INDEX_MULTIPLIER = 0xD6E8FEB86659FD93L;
+
+    /**
      * Folds a child index into a k-mer so that the resulting pair can be stored in and queried from
-     * a filter over {@code long} keys. The index is mixed into both halves of the key, so that a
-     * k-mer combined with different indexes yields different keys across the full 64 bit range. The
-     * mapping is its own inverse with respect to the index, i.e. combining twice with the same index
-     * restores the original k-mer.
+     * a filter over {@code long} keys. The index is spread over all 64 bits by
+     * {@link #INDEX_MULTIPLIER} before being xored in, so that a k-mer combined with different
+     * indexes yields keys that differ in every part of the word.
+     * <p>
+     * That the whole word is affected is what the filters this feeds depend on: they hash a key
+     * trivially as {@code seed ^ key} and therefore rely on the key itself to carry the entropy.
+     * Xoring the index in unmixed - once into each half of the key - yields a mask that is invariant
+     * under a 32 bit rotation. Such a mask cancels out entirely where the filter folds the key by that
+     * rotation to derive the bit positions, and its low bits are dropped again where the filter derives
+     * the word position from the upper half of a product. The index would then hardly reach the filter
+     * at all, and k-mers stored under one index would be reported as present under any other.
      *
      * @param data  the k-mer, encoded as a {@code long}
      * @param index the index of the child subtree the k-mer is attributed to
      * @return the combined key identifying the (k-mer, child index) pair
      */
     public static long combine(final long data, final int index) {
-        return data ^ ((long) index) ^ (((long) index) << 32);
+        return data ^ (index * INDEX_MULTIPLIER);
     }
 }

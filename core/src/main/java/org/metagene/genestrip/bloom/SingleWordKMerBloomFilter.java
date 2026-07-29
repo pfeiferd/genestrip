@@ -60,9 +60,11 @@ public class SingleWordKMerBloomFilter implements KMerProbFilter {
      */
     public static final int MAX_HASH_BITS = 10;
 
-    // Bumped from 1: reduce() no longer pre-multiplies before the multiply-shift, now that hash() mixes,
-    // so a key maps to a different word than before. A filter serialized by an older version would
-    // answer queries wrongly rather than merely differently, hence it must fail to load instead.
+    // Bumped from 1: hash() changed from the trivial 'seed ^ x' to the MurmurHash3 finalizer and
+    // reduce() dropped the mixing multiplication that used to compensate for it, so a key maps to a
+    // different word than before. As in BlockedKMerBloomFilter, whenever hash(), reduce(), reduceInt()
+    // or mask() changes, this version must be bumped, so that an incompatible filter fails to load
+    // instead of answering wrongly - silently, since a filter reports absence rather than an error.
     private static final long serialVersionUID = 2L;
 
     /** Fixed hash seed used by the constructors that do not take one. */
