@@ -32,7 +32,7 @@ import org.metagene.genestrip.probfilter.BlockedBloomFilter;
 import org.metagene.genestrip.probfilter.ProbFilter;
 import org.metagene.genestrip.finertree.FTGoalKey;
 import org.metagene.genestrip.finertree.FTProject;
-import org.metagene.genestrip.finertree.bloom.KMerIndexFilterHelper;
+import org.metagene.genestrip.finertree.probfilter.KMerIndexFilterHelper;
 import org.metagene.genestrip.finertree.refseq.AbstractUpdateFastaReader;
 import org.metagene.genestrip.genbank.AssemblySummaryReader;
 import org.metagene.genestrip.goals.refseq.FastaReaderGoal;

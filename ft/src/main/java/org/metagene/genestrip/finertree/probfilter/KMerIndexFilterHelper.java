@@ -22,7 +22,7 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.finertree.bloom;
+package org.metagene.genestrip.finertree.probfilter;
 
 import org.metagene.genestrip.probfilter.BlockedBloomFilter;
 
