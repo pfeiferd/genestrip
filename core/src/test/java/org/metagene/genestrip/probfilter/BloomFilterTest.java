@@ -22,7 +22,7 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.bloom;
+package org.metagene.genestrip.probfilter;
 
 import static org.junit.Assert.assertTrue;
 
@@ -33,7 +33,7 @@ import java.util.Random;
 import org.junit.Test;
 import org.metagene.genestrip.util.CGAT;
 
-public class KMerBloomFilterTest {
+public class BloomFilterTest {
 	private static final byte[] DECODE_TABLE = CGAT.newDecodeTable();
 	protected Random random = new Random(42);
 	protected int k = 31;
@@ -46,7 +46,7 @@ public class KMerBloomFilterTest {
 
 	@Test
 	public void testPutContains() {
-		KMerProbFilter filter = createFilter(size, fpp);
+		ProbFilter filter = createFilter(size, fpp);
 
 		byte[] reverseRead = new byte[k];
 		List<byte[]> reads = new ArrayList<byte[]>();
@@ -90,7 +90,7 @@ public class KMerBloomFilterTest {
 
 	@Test
 	public void testPutGetEnumeratingStoredKMers() {
-		KMerProbFilter filter = createFilter(size, fpp);
+		ProbFilter filter = createFilter(size, fpp);
 
 		byte[] read = new byte[k];
 		byte[] reverseRead = new byte[k];
@@ -130,7 +130,7 @@ public class KMerBloomFilterTest {
 		assertTrue(testedFp <= fpp * 1.1);
 	}
 
-	public final boolean contains(KMerProbFilter filter, byte[] seq, int start, int[] badPos) {
+	public final boolean contains(ProbFilter filter, byte[] seq, int start, int[] badPos) {
 		long data = CGAT.kMerToLong(seq, start, k, badPos);
 		if (data == -1 && badPos != null && badPos[0] == -1) {
 			return false;
@@ -139,11 +139,11 @@ public class KMerBloomFilterTest {
 	}
 
 
-	protected KMerProbFilter createFilter(long size, double fpp) {
-		// The whole KMerBloomFilter family is always backed by the (bucketed) LargeBitVector, so
+	protected ProbFilter createFilter(long size, double fpp) {
+		// The whole BloomFilter family is always backed by the (bucketed) LargeBitVector, so
 		// isTestLarge() has no bearing here; it only selects the bucketed backing for
-		// BlockedKMerBloomFilter and SingleWordKMerBloomFilter (see those tests).
-		return new KMerBloomFilter(fpp, size);
+		// BlockedBloomFilter and SingleWordBloomFilter (see those tests).
+		return new BloomFilter(fpp, size);
 	}
 
 	protected boolean isTestLarge() {

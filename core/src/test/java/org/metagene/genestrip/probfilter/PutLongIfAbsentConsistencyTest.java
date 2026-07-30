@@ -22,7 +22,7 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.bloom;
+package org.metagene.genestrip.probfilter;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -41,7 +41,7 @@ import org.junit.Test;
 import org.metagene.genestrip.util.LargeBitVector;
 
 /**
- * Verifies that the lock-free combined insert {@link KMerBloomFilter#putLong(long)}
+ * Verifies that the lock-free combined insert {@link BloomFilter#putLong(long)}
  * yields a filter that is bit-for-bit identical to the classic {@code if (!containsLong(x))
  * putLong(x)} sequence, both single-threaded (small and large backing) and under concurrent
  * insertion.
@@ -49,10 +49,10 @@ import org.metagene.genestrip.util.LargeBitVector;
 public class PutLongIfAbsentConsistencyTest {
 	private static final double FPP = 0.001;
 
-	private static XORKMerBloomFilter newFilter(long expected, boolean large) {
+	private static XORBloomFilter newFilter(long expected, boolean large) {
 		// XOR is always backed by the (bucketed) LargeBitVector, so 'large' no longer selects a
 		// different backing; both parametrizations exercise the same storage.
-		return new XORKMerBloomFilter(FPP, expected);
+		return new XORBloomFilter(FPP, expected);
 	}
 
 	private static long[] randomKMers(int n, long seed) {
@@ -78,7 +78,7 @@ public class PutLongIfAbsentConsistencyTest {
 		int n = 20_000;
 		long[] kmers = randomKMers(n, 12345);
 
-		XORKMerBloomFilter reference = newFilter(n, large);
+		XORBloomFilter reference = newFilter(n, large);
 		for (long kmer : kmers) {
 			// Feed each k-mer twice to exercise the "already present" branch.
 			if (!reference.containsLong(kmer)) {
@@ -89,7 +89,7 @@ public class PutLongIfAbsentConsistencyTest {
 			}
 		}
 
-		XORKMerBloomFilter candidate = newFilter(n, large);
+		XORBloomFilter candidate = newFilter(n, large);
 		for (long kmer : kmers) {
 			boolean firstAdded = candidate.putLong(kmer);
 			boolean secondAdded = candidate.putLong(kmer);
@@ -126,7 +126,7 @@ public class PutLongIfAbsentConsistencyTest {
 	public void testMembershipSurvivesSerialization() throws IOException, ClassNotFoundException {
 		int n = 5_000;
 		long[] kmers = randomKMers(n, 4242);
-		XORKMerBloomFilter filter = newFilter(n, false);
+		XORBloomFilter filter = newFilter(n, false);
 		for (long kmer : kmers) {
 			filter.putLong(kmer);
 		}
@@ -135,9 +135,9 @@ public class PutLongIfAbsentConsistencyTest {
 		try (ObjectOutputStream out = new ObjectOutputStream(bytes)) {
 			out.writeObject(filter);
 		}
-		XORKMerBloomFilter loaded;
+		XORBloomFilter loaded;
 		try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray()))) {
-			loaded = (XORKMerBloomFilter) in.readObject();
+			loaded = (XORBloomFilter) in.readObject();
 		}
 
 		for (long kmer : kmers) {
@@ -154,12 +154,12 @@ public class PutLongIfAbsentConsistencyTest {
 		// added" count is exact even under the benign concurrent-overcount race.
 		long[] kmers = randomKMers(total, 99);
 
-		XORKMerBloomFilter reference = newFilter(total, false);
+		XORBloomFilter reference = newFilter(total, false);
 		for (long kmer : kmers) {
 			reference.putLong(kmer);
 		}
 
-		XORKMerBloomFilter concurrent = newFilter(total, false);
+		XORBloomFilter concurrent = newFilter(total, false);
 		CountDownLatch start = new CountDownLatch(1);
 		Thread[] threads = new Thread[threadCount];
 		AtomicReference<Throwable> failure = new AtomicReference<>();

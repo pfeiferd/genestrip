@@ -33,7 +33,7 @@ import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.GSProject.GSFileType;
-import org.metagene.genestrip.bloom.FastqBloomFilter;
+import org.metagene.genestrip.match.FastqFilter;
 import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
@@ -78,14 +78,14 @@ public class FilterGoal<P extends GSProject> extends MultiFileGoal<P> {
 
 	@Override
 	protected void makeFile(File file) throws IOException {
-		FastqBloomFilter f = null;
+		FastqFilter f = null;
 		try {
 			P project = getProject();
 			StreamingResourceStream resources = fileToFastqs.get(file);
 			File dumpFile = booleanConfigValue(GSConfigKey.WRITE_DUMPED_FASTQ)
 					? project.getOutputFile("dumped", null, file.getName(), GSFileType.FASTQ_RES, isUseGZip())
 					: null;
-			f = new FastqBloomFilter(intConfigValue(GSConfigKey.KMER_SIZE), indexedGoal.get(), intConfigValue(GSConfigKey.MIN_POS_COUNT_FILTER),
+			f = new FastqFilter(intConfigValue(GSConfigKey.KMER_SIZE), indexedGoal.get(), intConfigValue(GSConfigKey.MIN_POS_COUNT_FILTER),
 					doubleConfigValue(GSConfigKey.POS_RATIO_FILTER),
 					intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES), intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE),
 					executorServiceBundle, booleanConfigValue(GSConfigKey.WITH_PROBS)) {

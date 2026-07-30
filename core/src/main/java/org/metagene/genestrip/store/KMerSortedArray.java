@@ -30,9 +30,10 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 
-import org.metagene.genestrip.bloom.KMerProbFilter;
-import org.metagene.genestrip.bloom.MurmurKMerBloomFilter;
-import org.metagene.genestrip.bloom.XORKMerBloomFilter;
+import org.metagene.genestrip.probfilter.BloomFilter;
+import org.metagene.genestrip.probfilter.ProbFilter;
+import org.metagene.genestrip.probfilter.MurmurBloomFilter;
+import org.metagene.genestrip.probfilter.XORBloomFilter;
 import org.metagene.genestrip.util.CGAT;
 
 import it.unimi.dsi.fastutil.BigArrays;
@@ -81,7 +82,7 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 
 	/**
 	 * Creates a store with a fill-time pre-filter of the given {@code entryFpp} (an
-	 * {@link XORKMerBloomFilter} when {@code xor}, otherwise a {@link MurmurKMerBloomFilter}) and a
+	 * {@link XORBloomFilter} when {@code xor}, otherwise a {@link MurmurBloomFilter}) and a
 	 * post-optimize filter targeting {@code optimizedFpp}, sized to hold {@code size} k-mers.
 	 *
 	 * @param k the k-mer length
@@ -89,12 +90,12 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 	 * @param optimizedFpp the target false-positive probability after optimization
 	 * @param initialValues the initial list of values
 	 * @param enforceLarge whether to enforce the big-array layout
-	 * @param xor whether to use an {@link XORKMerBloomFilter} (else a {@link MurmurKMerBloomFilter})
+	 * @param xor whether to use an {@link XORBloomFilter} (else a {@link MurmurBloomFilter})
 	 * @param size the number of expected k-mer entries to reserve storage for (must be {@code >= 0})
 	 */
 	public KMerSortedArray(int k, double entryFpp, double optimizedFpp, List<V> initialValues, boolean enforceLarge, boolean xor, long size) {
 		this(k, initialValues, enforceLarge,
-				xor ? new XORKMerBloomFilter(entryFpp, size) : new MurmurKMerBloomFilter(entryFpp, size), optimizedFpp, size);
+				xor ? new XORBloomFilter(entryFpp, size) : new BloomFilter(entryFpp, size), optimizedFpp, size);
 	}
 
 	/**
@@ -111,7 +112,7 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 	 * @param size the number of expected k-mer entries to reserve storage for (must be {@code >= 0})
 	 */
 	protected KMerSortedArray(int k, List<V> initialValues, boolean enforceLarge,
-							  KMerProbFilter filter, double optimizedFpp, long size) {
+							  ProbFilter filter, double optimizedFpp, long size) {
 		super(k, MAX_VALUES, initialValues, filter, optimizedFpp);
 		this.enforceLarge = enforceLarge;
 		if (size < 0) {

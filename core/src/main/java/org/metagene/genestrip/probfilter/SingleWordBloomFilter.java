@@ -22,7 +22,7 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  *
  */
-package org.metagene.genestrip.bloom;
+package org.metagene.genestrip.probfilter;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -32,12 +32,12 @@ import java.util.Random;
 /**
  * Bloom filter whose every key sets all of its bits within one single {@code long} of the backing
  * array, so that a lookup as well as an insert touches exactly <em>one</em> word, where
- * {@link BlockedKMerBloomFilter} touches two.
+ * {@link BlockedBloomFilter} touches two.
  * <p>
  * A key's hash selects its word ({@code hash mod k}) and, from separate hash bits, the
  * {@link #getHashBits() n} bit positions it sets within that word's 64 bits. Insertion ORs those bits
  * in, so bits are only ever added and a key stays findable no matter what else lands in its word -
- * the filter therefore keeps the {@link KMerProbFilter} contract of never producing a false negative.
+ * the filter therefore keeps the {@link ProbFilter} contract of never producing a false negative.
  * A lookup reports the key as present if all of its bits are set.
  * <p>
  * Confining a key to one word costs some accuracy compared to spreading its bits over the whole
@@ -45,13 +45,13 @@ import java.util.Random;
  * rate for every key in it. That is the price for the single access.
  * <p>
  * Insertion via {@link #putLong(long)} is safe for concurrent use, locking like
- * {@link BlockedKMerBloomFilter}: the small backing on its single {@code long[]}, the bucketed backing
+ * {@link BlockedBloomFilter}: the small backing on its single {@code long[]}, the bucketed backing
  * on the bucket owning the affected word. As a key occupies one word only, that lock covers the whole
  * read-modify-write, so the "newly added" flag is exact on both backings. Lookups via
  * {@link #containsLong(long)} stay unsynchronized and may miss a concurrent insert until it is
  * published by other means.
  */
-public class SingleWordKMerBloomFilter implements KMerProbFilter {
+public class SingleWordBloomFilter implements ProbFilter {
     /** Default number of bits allocated per key. */
     public static final int DEFAULT_BITS_PER_KEY = 10;
     /**
@@ -62,7 +62,7 @@ public class SingleWordKMerBloomFilter implements KMerProbFilter {
 
     // Bumped from 1: hash() changed from the trivial 'seed ^ x' to the MurmurHash3 finalizer and
     // reduce() dropped the mixing multiplication that used to compensate for it, so a key maps to a
-    // different word than before. As in BlockedKMerBloomFilter, whenever hash(), reduce(), reduceInt()
+    // different word than before. As in BlockedBloomFilter, whenever hash(), reduce(), reduceInt()
     // or mask() changes, this version must be bumped, so that an incompatible filter fails to load
     // instead of answering wrongly - silently, since a filter reports absence rather than an error.
     private static final long serialVersionUID = 2L;
@@ -108,7 +108,7 @@ public class SingleWordKMerBloomFilter implements KMerProbFilter {
      *
      * @param expectedInsertions the expected number of k-mers to be inserted
      */
-    public SingleWordKMerBloomFilter(long expectedInsertions) {
+    public SingleWordBloomFilter(long expectedInsertions) {
         this(expectedInsertions, DEFAULT_BITS_PER_KEY);
     }
 
@@ -119,7 +119,7 @@ public class SingleWordKMerBloomFilter implements KMerProbFilter {
      * @param expectedInsertions the expected number of k-mers to be inserted
      * @param bitsPerKey         the number of bits allocated per key
      */
-    public SingleWordKMerBloomFilter(long expectedInsertions, int bitsPerKey) {
+    public SingleWordBloomFilter(long expectedInsertions, int bitsPerKey) {
         this(expectedInsertions, bitsPerKey, optimalHashBits(bitsPerKey));
     }
 
@@ -131,7 +131,7 @@ public class SingleWordKMerBloomFilter implements KMerProbFilter {
      * @param bitsPerKey         the number of bits allocated per key
      * @param hashBits           the number of bits a key sets within its word
      */
-    public SingleWordKMerBloomFilter(long expectedInsertions, int bitsPerKey, int hashBits) {
+    public SingleWordBloomFilter(long expectedInsertions, int bitsPerKey, int hashBits) {
         this(expectedInsertions, bitsPerKey, hashBits, DEFAULT_SEED, minBucketShift(expectedInsertions, bitsPerKey),
                 false);
     }
@@ -148,8 +148,8 @@ public class SingleWordKMerBloomFilter implements KMerProbFilter {
      * @param bucketShift        base-2 logarithm of the large-backing bucket width in words
      * @param forceLarge         whether to use the bucketed backing even when the small one would suffice
      */
-    SingleWordKMerBloomFilter(long expectedInsertions, int bitsPerKey, int hashBits, long seed, int bucketShift,
-            boolean forceLarge) {
+    SingleWordBloomFilter(long expectedInsertions, int bitsPerKey, int hashBits, long seed, int bucketShift,
+                          boolean forceLarge) {
         if (bucketShift < MIN_BUCKET_SHIFT || bucketShift > MAX_BUCKET_SHIFT) {
             throw new IllegalArgumentException(
                     "bucketShift must be in [" + MIN_BUCKET_SHIFT + ", " + MAX_BUCKET_SHIFT + "], got " + bucketShift);
@@ -195,7 +195,7 @@ public class SingleWordKMerBloomFilter implements KMerProbFilter {
 
     /**
      * Returns the number of words a filter of the given sizing allocates. Unlike
-     * {@link BlockedKMerBloomFilter} no padding is needed, as a key never reaches beyond its word.
+     * {@link BlockedBloomFilter} no padding is needed, as a key never reaches beyond its word.
      *
      * @param expectedInsertions the expected number of k-mers to be inserted
      * @param bitsPerKey         the number of bits allocated per key
@@ -234,8 +234,8 @@ public class SingleWordKMerBloomFilter implements KMerProbFilter {
      * @param bitsPerKey         the number of bits allocated per key
      * @return a filter of the given sizing that uses the bucketed backing
      */
-    static SingleWordKMerBloomFilter newLargeBacked(long expectedInsertions, int bitsPerKey) {
-        return new SingleWordKMerBloomFilter(expectedInsertions, bitsPerKey, optimalHashBits(bitsPerKey), DEFAULT_SEED,
+    static SingleWordBloomFilter newLargeBacked(long expectedInsertions, int bitsPerKey) {
+        return new SingleWordBloomFilter(expectedInsertions, bitsPerKey, optimalHashBits(bitsPerKey), DEFAULT_SEED,
                 minBucketShift(expectedInsertions, bitsPerKey), true);
     }
 
@@ -361,7 +361,7 @@ public class SingleWordKMerBloomFilter implements KMerProbFilter {
      */
     private long mask(long hash) {
         // Mixed so that the bit positions do not correlate with the word index, which reduce() takes
-        // from the same hash - exactly as BlockedKMerBloomFilter does it.
+        // from the same hash - exactly as BlockedBloomFilter does it.
         long mixed = hash ^ Long.rotateLeft(hash, 32);
         // Unrolled and falling through rather than looping with a running shift: every position is an
         // independent shift of 'mixed', so they issue in parallel instead of forming a dependency chain
@@ -410,11 +410,11 @@ public class SingleWordKMerBloomFilter implements KMerProbFilter {
     }
 
     /**
-     * Computes the hash of the given key exactly as {@link BlockedKMerBloomFilter} does: seeded and run
+     * Computes the hash of the given key exactly as {@link BlockedBloomFilter} does: seeded and run
      * through the MurmurHash3 finalizer, which carries a k-mer's low-bit entropy over the whole word.
      * Both the word index ({@link #reduce(long)}, {@link #reduceInt(long)}) and the bit positions
      * ({@code mask}) are driven by the resulting high bits, so the mixing is what makes them
-     * sound. {@link XORSingleWordKMerBloomFilter} overrides this with a bare exclusive or and
+     * sound. {@link XORSingleWordBloomFilter} overrides this with a bare exclusive or and
      * consequently reduces by a modulo instead.
      *
      * @param x the key to hash
@@ -437,7 +437,7 @@ public class SingleWordKMerBloomFilter implements KMerProbFilter {
      * <p>
      * Being a multiply-shift this is driven by the <em>high</em> bits of its input, which is sound only
      * because {@link #hash(long)} mixes a k-mer's low-bit entropy up into them.
-     * {@link XORSingleWordKMerBloomFilter}, whose hash does not, overrides this with a modulo.
+     * {@link XORSingleWordBloomFilter}, whose hash does not, overrides this with a modulo.
      *
      * @param v the hash value to reduce
      * @return the word index in {@code [0, words)} for the given hash value
@@ -457,7 +457,7 @@ public class SingleWordKMerBloomFilter implements KMerProbFilter {
      * <p>
      * This consumes even less of the hash than {@link #reduce(long)} does - only its low 32 bits - and
      * so depends all the more on {@link #hash(long)} having spread the key's entropy over the whole
-     * word. {@link XORSingleWordKMerBloomFilter} overrides it with a modulo for that reason.
+     * word. {@link XORSingleWordBloomFilter} overrides it with a modulo for that reason.
      *
      * @param v the hash value to reduce
      * @return the word index in {@code [0, words)} for the given hash value

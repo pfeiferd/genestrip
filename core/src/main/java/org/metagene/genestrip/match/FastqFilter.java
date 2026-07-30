@@ -22,7 +22,7 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.bloom;
+package org.metagene.genestrip.match;
 
 import java.io.File;
 import java.io.IOException;
@@ -32,17 +32,18 @@ import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.fastq.AbstractLoggingFastqStreamer;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.io.StreamingResourceStream;
+import org.metagene.genestrip.probfilter.ProbFilter;
 import org.metagene.genestrip.util.CGAT;
 
 /**
  * Streams FASTQ reads and classifies each read by how many of its (canonical) k-mers are found in a
- * {@link KMerProbFilter}: reads with enough matching k-mers are written to one output and the rest to
+ * {@link ProbFilter}: reads with enough matching k-mers are written to one output and the rest to
  * another.
  */
-public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
+public class FastqFilter extends AbstractLoggingFastqStreamer {
 	private final double positiveRatio;
 	private final int minPosCount;
-	private final KMerProbFilter filter;
+	private final ProbFilter filter;
 
 	private OutputStream indexed;
 	private OutputStream notIndexed;
@@ -60,8 +61,8 @@ public class FastqBloomFilter extends AbstractLoggingFastqStreamer {
 	 * @param bundle         the execution context driving the parallel processing
 	 * @param withProbs      if {@code true}, per-base quality probabilities are read and preserved
 	 */
-	public FastqBloomFilter(int k, KMerProbFilter filter, int minPosCount, double positiveRatio, int initialReadSize,
-							int maxQueueSize, ExecutionContext bundle, boolean withProbs) {
+	public FastqFilter(int k, ProbFilter filter, int minPosCount, double positiveRatio, int initialReadSize,
+					   int maxQueueSize, ExecutionContext bundle, boolean withProbs) {
 		super(k, initialReadSize, maxQueueSize, bundle, withProbs);
 		this.filter = filter;
 		this.minPosCount = minPosCount;

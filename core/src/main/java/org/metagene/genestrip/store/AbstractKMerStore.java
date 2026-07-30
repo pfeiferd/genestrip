@@ -30,10 +30,7 @@ import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
 
-import org.metagene.genestrip.bloom.BlockedKMerBloomFilter;
-import org.metagene.genestrip.bloom.KMerProbFilter;
-import org.metagene.genestrip.bloom.MurmurKMerBloomFilter;
-import org.metagene.genestrip.bloom.XORKMerBloomFilter;
+import org.metagene.genestrip.probfilter.*;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
@@ -92,7 +89,7 @@ public abstract class AbstractKMerStore<V extends Serializable> implements KMerS
 	protected final double optimizedFpp;
 	// Transient: the filter is (re)built on optimize() and stored separately by Database.
 	/** The optional probabilistic pre-filter, or {@code null} if none. */
-	protected transient KMerProbFilter filter;
+	protected transient ProbFilter filter;
 	/** Whether the pre-filter is currently in use. */
 	protected boolean useFilter;
 
@@ -111,7 +108,7 @@ public abstract class AbstractKMerStore<V extends Serializable> implements KMerS
 	 * @param optimizedFpp  the target false-positive probability of the post-optimize filter
 	 */
 	@SuppressWarnings("unchecked")
-	protected AbstractKMerStore(int k, int maxValues, List<V> initialValues, KMerProbFilter filter, double optimizedFpp) {
+	protected AbstractKMerStore(int k, int maxValues, List<V> initialValues, ProbFilter filter, double optimizedFpp) {
 		// k must be <= 31: at k=32 a k-mer fills all 64 bits, so the all-T k-mer collides with the
 		// -1L "invalid k-mer" sentinel used throughout CGAT/the matcher (see GSConfigKey.KMER_SIZE).
 		if (k < 1 || k > 31) {
@@ -206,12 +203,12 @@ public abstract class AbstractKMerStore<V extends Serializable> implements KMerS
 	// --- Probabilistic pre-filter ---------------------------------------------
 
 	@Override
-	public KMerProbFilter getFilter() {
+	public ProbFilter getFilter() {
 		return filter;
 	}
 
 	@Override
-	public void setFilter(KMerProbFilter filter) {
+	public void setFilter(ProbFilter filter) {
 		this.filter = filter;
 	}
 
@@ -233,16 +230,16 @@ public abstract class AbstractKMerStore<V extends Serializable> implements KMerS
 	 *
 	 * @return the newly created pre-filter, or {@code null} if {@code optimizedFpp >= 1}
 	 */
-	protected KMerProbFilter createOptimizedFilter() {
+	protected ProbFilter createOptimizedFilter() {
 		if (optimizedFpp >= 1) {
 			return null;
 		}
-		KMerProbFilter f;
-		if (optimizedFpp == BlockedKMerBloomFilter.DEFAULT_FPP) {
-			f = new BlockedKMerBloomFilter(entries);
+		ProbFilter f;
+		if (optimizedFpp == BlockedBloomFilter.DEFAULT_FPP) {
+			f = new BlockedBloomFilter(entries);
 		} else {
-			boolean xor = filter instanceof XORKMerBloomFilter;
-			f = xor ? new XORKMerBloomFilter(optimizedFpp, entries) : new MurmurKMerBloomFilter(optimizedFpp, entries);
+			boolean xor = filter instanceof XORBloomFilter;
+			f = xor ? new XORBloomFilter(optimizedFpp, entries) : new BloomFilter(optimizedFpp, entries);
 		}
 		return f;
 	}

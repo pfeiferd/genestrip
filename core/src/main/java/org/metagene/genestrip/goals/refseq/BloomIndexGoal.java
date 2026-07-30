@@ -27,10 +27,7 @@ package org.metagene.genestrip.goals.refseq;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.bloom.BlockedKMerBloomFilter;
-import org.metagene.genestrip.bloom.KMerProbFilter;
-import org.metagene.genestrip.bloom.MurmurKMerBloomFilter;
-import org.metagene.genestrip.bloom.XORKMerBloomFilter;
+import org.metagene.genestrip.probfilter.*;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.Database;
@@ -40,13 +37,13 @@ import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 
 /**
- * Goal that builds the index Bloom filter ({@link KMerProbFilter}) from the filled database: it
+ * Goal that builds the index Bloom filter ({@link ProbFilter}) from the filled database: it
  * inserts every k-mer whose stored taxid belongs to a requested tax node, sizing the filter from
  * the configured false-positive probability.
  *
  * @param <P> the project type
  */
-public class BloomIndexGoal<P extends GSProject> extends ObjectGoal<KMerProbFilter, P> {
+public class BloomIndexGoal<P extends GSProject> extends ObjectGoal<ProbFilter, P> {
 	private final ObjectGoal<Database, P> filledStoreGoal;
 
 	/**
@@ -87,13 +84,13 @@ public class BloomIndexGoal<P extends GSProject> extends ObjectGoal<KMerProbFilt
 		}
 
 		double fpp = doubleConfigValue(GSConfigKey.INDEX_BLOOM_FILTER_FPP);
-		KMerProbFilter filter;
-		if (fpp == BlockedKMerBloomFilter.DEFAULT_FPP) {
-			filter = new BlockedKMerBloomFilter(counter[0]);
+		ProbFilter filter;
+		if (fpp == BlockedBloomFilter.DEFAULT_FPP) {
+			filter = new BlockedBloomFilter(counter[0]);
 		}
 		else {
 			filter = booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH) ?
-					new XORKMerBloomFilter(fpp, counter[0]) : new MurmurKMerBloomFilter(fpp, counter[0]);
+					new XORBloomFilter(fpp, counter[0]) : new BloomFilter(fpp, counter[0]);
 		}
 
 		store.visit(new IndexedKMerStoreVisitor<String>() {

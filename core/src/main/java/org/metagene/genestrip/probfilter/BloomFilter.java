@@ -22,35 +22,35 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.bloom;
+package org.metagene.genestrip.probfilter;
 
 import org.metagene.genestrip.util.LargeBitVector;
 
 import java.util.Random;
 
 /**
- * The classical {@link KMerProbFilter}, backed by a {@link LargeBitVector}: it sizes the bit vector and
+ * The classical {@link ProbFilter}, backed by a {@link LargeBitVector}: it sizes the bit vector and
  * the number of hash functions from the expected insertions and target false-positive probability, and
- * sets one bit per hash function. Unlike {@link BlockedKMerBloomFilter} and
- * {@link SingleWordKMerBloomFilter}, which confine a key to one or two adjacent words, those bits are
+ * sets one bit per hash function. Unlike {@link BlockedBloomFilter} and
+ * {@link SingleWordBloomFilter}, which confine a key to one or two adjacent words, those bits are
  * spread over the whole vector, which buys the best rate per bit and costs one memory access per hash
  * function.
  * <p>
  * This class is the <em>mixing</em> variant of its family, i.e. the counterpart of
- * {@link XORKMerBloomFilter}. Like every filter of this package it exists in two variants that differ
+ * {@link XORBloomFilter}. Like every filter of this package it exists in two variants that differ
  * in one pair of choices which must always be made together:
  * <ul>
- * <li>a mixing hash - {@link #hash(long, int)} here, MurmurHash3 in {@link MurmurKMerBloomFilter} -
+ * <li>a mixing hash - {@link #hash(long, int)} here, MurmurHash3 in {@link MurmurBloomFilter} -
  * which spreads a k-mer's entropy over the whole word and may therefore use the multiply-shift
  * {@link #reduce(long)};</li>
- * <li>a bare exclusive or - {@link XORKMerBloomFilter} - which must therefore reduce by a modulo, as it
+ * <li>a bare exclusive or - {@link XORBloomFilter} - which must therefore reduce by a modulo, as it
  * overrides {@link #reduce(long)} to do.</li>
  * </ul>
  * Pairing a non-mixing hash with a multiply-shift reduction costs orders of magnitude of
- * false-positive rate, so the two always travel together; see {@link XORKMerBloomFilter#reduce(long)}
+ * false-positive rate, so the two always travel together; see {@link XORBloomFilter#reduce(long)}
  * for the measurements.
  */
-public class KMerBloomFilter implements KMerProbFilter {
+public class BloomFilter implements ProbFilter {
 	private static final long serialVersionUID = 2L;
 
 	/** The target false-positive probability. */
@@ -80,7 +80,7 @@ public class KMerBloomFilter implements KMerProbFilter {
 	 * @param fpp the target false-positive probability, strictly between 0 and 1
 	 * @param expectedInsertions the expected number of k-mers to be inserted (must be {@code >= 0})
 	 */
-	public KMerBloomFilter(double fpp, long expectedInsertions) {
+	public BloomFilter(double fpp, long expectedInsertions) {
 		if (fpp <= 0 || fpp >= 1) {
 			throw new IllegalArgumentException("fpp must be a probability");
 		}
@@ -197,7 +197,7 @@ public class KMerBloomFilter implements KMerProbFilter {
 	 * Computes the {@code i}-th hash of the given k-mer by a bit-mixing hash (moved here from the former
 	 * {@code LemireOptBloomFilter}) that carries a k-mer's low-bit entropy upwards and hence pairs with
 	 * the multiply-shift {@link #reduce(long)}. A subclass overriding it with a hash that does not mix
-	 * must override {@link #reduce(long)} with a modulo as well - see {@link XORKMerBloomFilter}.
+	 * must override {@link #reduce(long)} with a modulo as well - see {@link XORBloomFilter}.
 	 *
 	 * @param data the k-mer, encoded as a {@code long}, to hash
 	 * @param i    the index of the hash function to apply
@@ -220,8 +220,8 @@ public class KMerBloomFilter implements KMerProbFilter {
 	 * This is the reduction of the <em>mixing</em> filters of this package, and it is only sound for a
 	 * hash that mixes: every multiply-shift is driven by the <em>high</em> bits of its input, whereas a
 	 * k-mer carries its entropy in the low ones. {@link #hash(long, int)} and the hash of
-	 * {@link MurmurKMerBloomFilter} both carry that entropy upwards, so they may reduce this way.
-	 * A hash that does not mix must not - see {@link XORKMerBloomFilter#reduce(long)}, which overrides
+	 * {@link MurmurBloomFilter} both carry that entropy upwards, so they may reduce this way.
+	 * A hash that does not mix must not - see {@link XORBloomFilter#reduce(long)}, which overrides
 	 * this with a modulo for exactly that reason.
 	 *
 	 * @param v the hash value to reduce

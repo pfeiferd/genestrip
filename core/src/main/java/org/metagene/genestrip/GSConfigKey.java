@@ -28,7 +28,7 @@ import java.io.PrintStream;
 import java.lang.annotation.Annotation;
 import java.util.*;
 
-import org.metagene.genestrip.bloom.BlockedKMerBloomFilter;
+import org.metagene.genestrip.probfilter.BlockedBloomFilter;
 import org.metagene.genestrip.store.RadixKMerStore;
 import org.metagene.genestrip.genbank.AssemblySummaryReader.AssemblyQuality;
 import org.metagene.genestrip.make.*;
@@ -205,7 +205,7 @@ public enum GSConfigKey implements ConfigKey {
 	/** False positive probability of the final matching database's Bloom filter. */
 	@MDDescription("False positive probability (FPP) of the Bloom filter embedded in the final matching database after the *k*-mer store has been sorted and optimized. "
 			+ "This is the filter used during matching when `useBloomFilterForMatch=true`.")
-	OPT_BLOOM_FILTER_FPP("optBloomFilterFpp", new DoubleConfigParamInfo(0, 1, BlockedKMerBloomFilter.DEFAULT_FPP, true), true, GSGoalKey.FILL_DB),
+	OPT_BLOOM_FILTER_FPP("optBloomFilterFpp", new DoubleConfigParamInfo(0, 1, BlockedBloomFilter.DEFAULT_FPP, true), true, GSGoalKey.FILL_DB),
 	/** Whether the database uses the radix-indexed k-mer store. */
 	@MDDescription("If `true`, the database's *k*-mer store uses the radix-indexed `RadixKMerStore` instead of the default sorted-array store. "
 			+ "It is sized per radix bucket from the deduplicated per-bucket *k*-mer counts (see goal `tempindex`) and tends to be faster for lookups on large databases that exceed the CPU cache.")

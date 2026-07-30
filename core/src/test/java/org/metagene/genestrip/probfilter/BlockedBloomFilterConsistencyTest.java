@@ -22,7 +22,7 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.bloom;
+package org.metagene.genestrip.probfilter;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -38,22 +38,22 @@ import java.util.Random;
 import org.junit.Test;
 
 /**
- * Verifies that {@link BlockedKMerBloomFilter#putLong(long)} — the combined single-pass insert
+ * Verifies that {@link BlockedBloomFilter#putLong(long)} — the combined single-pass insert
  * — behaves exactly like the previous {@code if (!containsLong(x)) putLong(x)} sequence (this filter is
  * filled single-threaded only), and that membership survives serialization.
  */
-public class BlockedKMerBloomFilterConsistencyTest {
+public class BlockedBloomFilterConsistencyTest {
 
-	private static BlockedKMerBloomFilter newFilter(long expected) {
+	private static BlockedBloomFilter newFilter(long expected) {
 		return newFilter(expected, false);
 	}
 
-	private static BlockedKMerBloomFilter newFilter(long expected, boolean large) {
+	private static BlockedBloomFilter newFilter(long expected, boolean large) {
 		// 'large' asks for the bucketed backing, which the size alone would never reach at test sizes
 		// (it is otherwise chosen from the size relative to MAX_SMALL_CAPACITY).
-		BlockedKMerBloomFilter filter = large
-				? BlockedKMerBloomFilter.newLargeBacked(expected, BlockedKMerBloomFilter.DEFAULT_BITS_PER_KEY)
-				: new BlockedKMerBloomFilter(expected);
+		BlockedBloomFilter filter = large
+				? BlockedBloomFilter.newLargeBacked(expected, BlockedBloomFilter.DEFAULT_BITS_PER_KEY)
+				: new BlockedBloomFilter(expected);
 		assertEquals("backing must match what was asked for", large, filter.isLargeBacked());
 		return filter;
 	}
@@ -68,8 +68,8 @@ public class BlockedKMerBloomFilterConsistencyTest {
 	}
 
 	/** Asserts the two filters answer every membership query identically over a large probe set. */
-	private static void assertEquivalent(BlockedKMerBloomFilter expected, BlockedKMerBloomFilter actual,
-			long[] insertedKeys, long probeSeed) {
+	private static void assertEquivalent(BlockedBloomFilter expected, BlockedBloomFilter actual,
+                                         long[] insertedKeys, long probeSeed) {
 		for (long kmer : insertedKeys) {
 			assertEquals("membership on inserted key", expected.containsLong(kmer), actual.containsLong(kmer));
 		}
@@ -94,7 +94,7 @@ public class BlockedKMerBloomFilterConsistencyTest {
 		int n = 20_000;
 		long[] kmers = randomKMers(n, 314);
 
-		BlockedKMerBloomFilter reference = newFilter(n, large);
+		BlockedBloomFilter reference = newFilter(n, large);
 		for (long kmer : kmers) {
 			// Feed each k-mer twice to exercise the "already present" branch.
 			if (!reference.containsLong(kmer)) {
@@ -105,7 +105,7 @@ public class BlockedKMerBloomFilterConsistencyTest {
 			}
 		}
 
-		BlockedKMerBloomFilter candidate = newFilter(n, large);
+		BlockedBloomFilter candidate = newFilter(n, large);
 		for (long kmer : kmers) {
 			boolean firstAdded = candidate.putLong(kmer);
 			boolean secondAdded = candidate.putLong(kmer);
@@ -124,7 +124,7 @@ public class BlockedKMerBloomFilterConsistencyTest {
 	public void testSerializationPreservesMembership() throws IOException, ClassNotFoundException {
 		int n = 5_000;
 		long[] kmers = randomKMers(n, 4242);
-		BlockedKMerBloomFilter filter = newFilter(n);
+		BlockedBloomFilter filter = newFilter(n);
 		for (long kmer : kmers) {
 			filter.putLong(kmer);
 		}
@@ -133,9 +133,9 @@ public class BlockedKMerBloomFilterConsistencyTest {
 		try (ObjectOutputStream out = new ObjectOutputStream(bytes)) {
 			out.writeObject(filter);
 		}
-		BlockedKMerBloomFilter loaded;
+		BlockedBloomFilter loaded;
 		try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray()))) {
-			loaded = (BlockedKMerBloomFilter) in.readObject();
+			loaded = (BlockedBloomFilter) in.readObject();
 		}
 
 		for (long kmer : kmers) {

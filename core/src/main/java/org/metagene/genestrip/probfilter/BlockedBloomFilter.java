@@ -22,7 +22,7 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.bloom;
+package org.metagene.genestrip.probfilter;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -52,7 +52,7 @@ import java.util.Random;
  * The corresponding GitHub project is <a href="https://github.com/FastFilter/fastfilter_java">jastfilter_java</a>
  * is under Apache 2.0 license. It is highly optimized for best classification performance...
  */
-public class BlockedKMerBloomFilter implements KMerProbFilter {
+public class BlockedBloomFilter implements ProbFilter {
     /** Default false-positive probability. */
     public static final double DEFAULT_FPP = 0.01d;
     /** Default number of bits allocated per key. */
@@ -131,7 +131,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
      *
      * @param expectedInsertions the expected number of k-mers to be inserted
      */
-    public BlockedKMerBloomFilter(long expectedInsertions) {
+    public BlockedBloomFilter(long expectedInsertions) {
         this(expectedInsertions, DEFAULT_BITS_PER_KEY);
     }
 
@@ -142,7 +142,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
      * @param expectedInsertions the expected number of k-mers to be inserted
      * @param bitsPerKey the number of bits allocated per key
      */
-    public BlockedKMerBloomFilter(long expectedInsertions, int bitsPerKey) {
+    public BlockedBloomFilter(long expectedInsertions, int bitsPerKey) {
         this(expectedInsertions, bitsPerKey, DEFAULT_SEED);
     }
 
@@ -156,7 +156,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
      * @param bitsPerKey the number of bits allocated per key
      * @param seed       the hash seed used to derive bit positions
      */
-    public BlockedKMerBloomFilter(long expectedInsertions, int bitsPerKey, long seed) {
+    public BlockedBloomFilter(long expectedInsertions, int bitsPerKey, long seed) {
         this(expectedInsertions, bitsPerKey, seed, minBucketShift(expectedInsertions, bitsPerKey));
     }
 
@@ -213,12 +213,12 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
      * @param bucketShift base-2 logarithm of the large-backing bucket width in words; must be in
      *                    {@code [}{@link #MIN_BUCKET_SHIFT}{@code , }{@link #MAX_BUCKET_SHIFT}{@code ]}
      */
-    public BlockedKMerBloomFilter(long expectedInsertions, int bitsPerKey, long seed, int bucketShift) {
+    public BlockedBloomFilter(long expectedInsertions, int bitsPerKey, long seed, int bucketShift) {
         this(expectedInsertions, bitsPerKey, seed, bucketShift, false);
     }
 
     /**
-     * Creates a filter as {@link #BlockedKMerBloomFilter(long, int, long, int)} does, but able to take
+     * Creates a filter as {@link #BlockedBloomFilter(long, int, long, int)} does, but able to take
      * the bucketed backing regardless of the filter's size.
      * <p>
      * Reaching that backing through the size alone means allocating more than
@@ -234,8 +234,8 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
      *                    {@code [}{@link #MIN_BUCKET_SHIFT}{@code , }{@link #MAX_BUCKET_SHIFT}{@code ]}
      * @param forceLarge  whether to use the bucketed backing even when the small one would suffice
      */
-    BlockedKMerBloomFilter(long expectedInsertions, int bitsPerKey, long seed, int bucketShift,
-            boolean forceLarge) {
+    BlockedBloomFilter(long expectedInsertions, int bitsPerKey, long seed, int bucketShift,
+                       boolean forceLarge) {
         checkBucketShift(bucketShift);
         this.bitsPerKey = bitsPerKey;
         this.seed = seed;
@@ -256,14 +256,14 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
 
     /**
      * Creates a bucket-backed filter with the same defaults as
-     * {@link #BlockedKMerBloomFilter(long, int)}, for tests that need the bucketed backing at a size
+     * {@link #BlockedBloomFilter(long, int)}, for tests that need the bucketed backing at a size
      * that fits in memory.
      *
      * @param expectedInsertions the expected number of k-mers to be inserted
      * @param bitsPerKey the number of bits allocated per key
      * @return a filter of the given sizing that uses the bucketed backing
      */
-    static BlockedKMerBloomFilter newLargeBacked(long expectedInsertions, int bitsPerKey) {
+    static BlockedBloomFilter newLargeBacked(long expectedInsertions, int bitsPerKey) {
         return newLargeBacked(expectedInsertions, bitsPerKey, DEFAULT_SEED,
                 minBucketShift(expectedInsertions, bitsPerKey));
     }
@@ -278,9 +278,9 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
      * @param bucketShift base-2 logarithm of the large-backing bucket width in words
      * @return a filter of the given sizing that uses the bucketed backing
      */
-    static BlockedKMerBloomFilter newLargeBacked(long expectedInsertions, int bitsPerKey, long seed,
-            int bucketShift) {
-        return new BlockedKMerBloomFilter(expectedInsertions, bitsPerKey, seed, bucketShift, true);
+    static BlockedBloomFilter newLargeBacked(long expectedInsertions, int bitsPerKey, long seed,
+                                             int bucketShift) {
+        return new BlockedBloomFilter(expectedInsertions, bitsPerKey, seed, bucketShift, true);
     }
 
     /**
@@ -439,7 +439,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
      * finalizer, which carries a k-mer's low-bit entropy over the whole word. Everything this filter
      * derives from a hash is driven by its high bits - the word index through {@link #reduce(long)} and
      * {@link #reduceInt(long)}, the bit positions through the rotation fold in {@link #putLong(long)} -
-     * so the mixing is what makes those sound. {@link XORBlockedKMerBloomFilter} overrides this with a
+     * so the mixing is what makes those sound. {@link XORBlockedBloomFilter} overrides this with a
      * bare exclusive or and consequently reduces by a modulo instead.
      *
      * @param x the key to hash
@@ -463,7 +463,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
      * <p>
      * Being a multiply-shift this is driven by the <em>high</em> bits of its input, which is sound only
      * because {@link #hash(long)} mixes a k-mer's low-bit entropy up into them.
-     * {@link XORBlockedKMerBloomFilter}, whose hash does not, overrides this with a modulo.
+     * {@link XORBlockedBloomFilter}, whose hash does not, overrides this with a modulo.
      *
      * @param v the hash value to reduce
      * @return the start bucket index in {@code [0, buckets)} for the given hash value.
@@ -485,7 +485,7 @@ public class BlockedKMerBloomFilter implements KMerProbFilter {
      * <p>
      * This consumes even less of the hash than {@link #reduce(long)} does - only its low 32 bits - and
      * so depends all the more on {@link #hash(long)} having spread the key's entropy over the whole
-     * word. {@link XORBlockedKMerBloomFilter} overrides it with a modulo for that reason.
+     * word. {@link XORBlockedBloomFilter} overrides it with a modulo for that reason.
      *
      * @param v the hash value to reduce
      * @return the start bucket index in {@code [0, buckets)} for the given hash value.

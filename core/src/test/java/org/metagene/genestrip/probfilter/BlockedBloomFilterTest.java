@@ -22,21 +22,21 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.bloom;
+package org.metagene.genestrip.probfilter;
 
-public class BlockedKMerBloomFilterTest extends KMerBloomFilterTest {
+public class BlockedBloomFilterTest extends BloomFilterTest {
 	@Override
 	protected double createFpp() {
 		return 0.01;
 	}
 
 	@Override
-	protected KMerProbFilter createFilter(long size, double fpp) {
+	protected ProbFilter createFilter(long size, double fpp) {
 		// The filter picks its backing (small array vs. bucketed grid) from the size relative to
 		// MAX_SMALL_CAPACITY at construction, which no test-sized filter reaches, so ask for the
 		// bucketed backing explicitly.
-		return isTestLarge() ? BlockedKMerBloomFilter.newLargeBacked(size, 10)
-				: new BlockedKMerBloomFilter(size, 10);
+		return isTestLarge() ? BlockedBloomFilter.newLargeBacked(size, 10)
+				: new BlockedBloomFilter(size, 10);
 	}
 
 	@Override

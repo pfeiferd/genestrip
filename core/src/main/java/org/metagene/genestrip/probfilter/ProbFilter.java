@@ -22,7 +22,7 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.bloom;
+package org.metagene.genestrip.probfilter;
 
 import org.metagene.genestrip.io.StreamProvider;
 
@@ -33,7 +33,7 @@ import java.io.*;
  * pre-screen k-mer lookups: {@link #containsLong} may return a false positive but never a false
  * negative.
  */
-public interface KMerProbFilter extends Serializable {
+public interface ProbFilter extends Serializable {
     /**
      * Returns the size of this filter's bit set, i.e. the number of bits it may address.
      *
@@ -45,11 +45,11 @@ public interface KMerProbFilter extends Serializable {
      * Adds the given k-mer to the filter unless it is (probably) already present, and reports whether
      * it was newly added. This is required to be equivalent to a {@code if (!containsLong(data))
      * putLong(data)} sequence, but implementations combine it into a single pass and, where they
-     * support it, make it safe for concurrent use (lock-free in {@link KMerBloomFilter}, under
-     * per-bucket locks in {@link BlockedKMerBloomFilter}). Deliberately left without a default:
+     * support it, make it safe for concurrent use (lock-free in {@link BloomFilter}, under
+     * per-bucket locks in {@link BlockedBloomFilter}). Deliberately left without a default:
      * a naive {@code containsLong}/{@code putLong} fallback would not be thread-safe, so every
      * implementation must decide and document its own concurrency behaviour rather than silently
-     * inherit an unsafe one (see {@link KMerBloomFilter} and {@link BlockedKMerBloomFilter}).
+     * inherit an unsafe one (see {@link BloomFilter} and {@link BlockedBloomFilter}).
      * <p>
      * For the concurrent implementations, two threads inserting the same absent k-mer may both
      * observe it as new, so under concurrent use the returned flag may marginally over-count the
@@ -93,9 +93,9 @@ public interface KMerProbFilter extends Serializable {
      * @throws IOException            if the stream cannot be read
      * @throws ClassNotFoundException if the serialized filter class cannot be resolved
      */
-    public static KMerProbFilter load(InputStream is) throws IOException, ClassNotFoundException {
+    public static ProbFilter load(InputStream is) throws IOException, ClassNotFoundException {
         try (ObjectInputStream oOut = new ObjectInputStream(is)) {
-            return (KMerProbFilter) oOut.readObject();
+            return (ProbFilter) oOut.readObject();
         }
     }
 
@@ -107,7 +107,7 @@ public interface KMerProbFilter extends Serializable {
      * @throws IOException            if the file cannot be read
      * @throws ClassNotFoundException if the serialized filter class cannot be resolved
      */
-    public static KMerProbFilter load(File filterFile) throws IOException, ClassNotFoundException {
+    public static ProbFilter load(File filterFile) throws IOException, ClassNotFoundException {
         try (InputStream is = StreamProvider.getInputStreamForFile(filterFile)) {
             return load(is);
         }

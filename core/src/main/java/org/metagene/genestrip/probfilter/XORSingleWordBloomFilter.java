@@ -22,32 +22,32 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  *
  */
-package org.metagene.genestrip.bloom;
+package org.metagene.genestrip.probfilter;
 
 /**
- * The {@code XOR} variant of {@link SingleWordKMerBloomFilter}: it replaces the MurmurHash3 finalizer
- * of {@link SingleWordKMerBloomFilter#hash(long)} by a bare exclusive or with the seed, and pays for
+ * The {@code XOR} variant of {@link SingleWordBloomFilter}: it replaces the MurmurHash3 finalizer
+ * of {@link SingleWordBloomFilter#hash(long)} by a bare exclusive or with the seed, and pays for
  * that by reducing with a modulo instead of the base class' multiply-shift.
  * <p>
  * The two go together. A multiply-shift is driven by the <em>high</em> bits of its input while a k-mer
  * carries its entropy in the low ones, so it is only sound after a hash that has carried that entropy
  * upwards. This hash does not, hence the modulo, which consumes every bit of the hash instead.
  * <p>
- * As in {@link XORBlockedKMerBloomFilter} the mismatched pairing hurts less here than in
- * {@link XORKMerBloomFilter}, because the bit positions are folded out of the hash anyway, but it does
+ * As in {@link XORBlockedBloomFilter} the mismatched pairing hurts less here than in
+ * {@link XORBloomFilter}, because the bit positions are folded out of the hash anyway, but it does
  * hurt: measured over 1e6 k-mers at 10 bits per key, keeping the inherited multiply-shift costs 1.79%
  * against this variant's 1.80% at {@code k=31}, and 5.33% against 1.92% at {@code k=16}, where a key
  * has only 32 significant bits. Random 64-bit keys hide the effect entirely, so measure on k-mer-like
  * keys.
  * <p>
- * As in {@link XORBlockedKMerBloomFilter} the speed of this variant depends on the backing, since that
+ * As in {@link XORBlockedBloomFilter} the speed of this variant depends on the backing, since that
  * decides which reduction the mixing filter it is compared against uses. Measured over 1e7 k-mers at 10
  * bits per key, this variant looks up some 2 to 9% <em>slower</em> on the small {@code int}-indexed
  * backing, whose {@code reduceInt} is cheap, and some 11 to 21% <em>faster</em> on the bucketed one,
  * where the mixing filter pays a {@code Math.multiplyHigh}. The margins were measured on aarch64 -
  * re-measure before relying on them elsewhere.
  */
-public class XORSingleWordKMerBloomFilter extends SingleWordKMerBloomFilter {
+public class XORSingleWordBloomFilter extends SingleWordBloomFilter {
     private static final long serialVersionUID = 1L;
 
     /**
@@ -56,7 +56,7 @@ public class XORSingleWordKMerBloomFilter extends SingleWordKMerBloomFilter {
      *
      * @param expectedInsertions the expected number of k-mers to be inserted
      */
-    public XORSingleWordKMerBloomFilter(long expectedInsertions) {
+    public XORSingleWordBloomFilter(long expectedInsertions) {
         super(expectedInsertions);
     }
 
@@ -67,7 +67,7 @@ public class XORSingleWordKMerBloomFilter extends SingleWordKMerBloomFilter {
      * @param expectedInsertions the expected number of k-mers to be inserted
      * @param bitsPerKey         the number of bits allocated per key
      */
-    public XORSingleWordKMerBloomFilter(long expectedInsertions, int bitsPerKey) {
+    public XORSingleWordBloomFilter(long expectedInsertions, int bitsPerKey) {
         super(expectedInsertions, bitsPerKey);
     }
 
@@ -79,7 +79,7 @@ public class XORSingleWordKMerBloomFilter extends SingleWordKMerBloomFilter {
      * @param bitsPerKey         the number of bits allocated per key
      * @param hashBits           the number of bits a key sets within its word
      */
-    public XORSingleWordKMerBloomFilter(long expectedInsertions, int bitsPerKey, int hashBits) {
+    public XORSingleWordBloomFilter(long expectedInsertions, int bitsPerKey, int hashBits) {
         super(expectedInsertions, bitsPerKey, hashBits);
     }
 
@@ -94,8 +94,8 @@ public class XORSingleWordKMerBloomFilter extends SingleWordKMerBloomFilter {
      * @param bucketShift        base-2 logarithm of the large-backing bucket width in words
      * @param forceLarge         whether to use the bucketed backing even when the small one would suffice
      */
-    XORSingleWordKMerBloomFilter(long expectedInsertions, int bitsPerKey, int hashBits, long seed, int bucketShift,
-            boolean forceLarge) {
+    XORSingleWordBloomFilter(long expectedInsertions, int bitsPerKey, int hashBits, long seed, int bucketShift,
+                             boolean forceLarge) {
         super(expectedInsertions, bitsPerKey, hashBits, seed, bucketShift, forceLarge);
     }
 
@@ -107,8 +107,8 @@ public class XORSingleWordKMerBloomFilter extends SingleWordKMerBloomFilter {
      * @param bitsPerKey the number of bits allocated per key
      * @return a filter of the given sizing that uses the bucketed backing
      */
-    static XORSingleWordKMerBloomFilter newLargeBackedXOR(long expectedInsertions, int bitsPerKey) {
-        return new XORSingleWordKMerBloomFilter(expectedInsertions, bitsPerKey, optimalHashBits(bitsPerKey),
+    static XORSingleWordBloomFilter newLargeBackedXOR(long expectedInsertions, int bitsPerKey) {
+        return new XORSingleWordBloomFilter(expectedInsertions, bitsPerKey, optimalHashBits(bitsPerKey),
                 DEFAULT_SEED, minBucketShift(expectedInsertions, bitsPerKey), true);
     }
 
@@ -125,7 +125,7 @@ public class XORSingleWordKMerBloomFilter extends SingleWordKMerBloomFilter {
 
     /**
      * Reduces by a modulo rather than by the multiply-shift of
-     * {@link SingleWordKMerBloomFilter#reduce(long)}, because {@link #hash(long)} does not mix and a
+     * {@link SingleWordBloomFilter#reduce(long)}, because {@link #hash(long)} does not mix and a
      * multiply-shift would therefore build the word index from near-constant high bits.
      *
      * @param v the hash value to reduce

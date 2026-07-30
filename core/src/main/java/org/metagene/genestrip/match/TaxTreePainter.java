@@ -306,10 +306,6 @@ public abstract class TaxTreePainter {
      */
     protected int indentForNode(EvoDistanceEstimator.DistanceInfo info, long kmers, long maxKMers) {
         if (distanceIndent) {
-            // distance == 1 gives no useful indentation (e.g. from nodes near the root)
-            if (info.getDistance() == 1) {
-                return 0;
-            }
             // High-level nodes at or above the configured cutoff rank get only the standard indent.
             if (distanceIndentBelowRank != null && !isBelowRank(info.getNode(), distanceIndentBelowRank)) {
                 return 0;

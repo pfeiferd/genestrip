@@ -31,7 +31,7 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Iterator;
 
-import org.metagene.genestrip.bloom.KMerProbFilter;
+import org.metagene.genestrip.probfilter.ProbFilter;
 import org.metagene.genestrip.io.StreamProvider;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
@@ -211,14 +211,14 @@ public interface KMerStore<V extends Serializable> extends Serializable {
 	 *
 	 * @return the current pre-filter, or null if none is set.
 	 */
-	public KMerProbFilter getFilter();
+	public ProbFilter getFilter();
 
 	/**
 	 * Sets the probabilistic pre-filter used by this store.
 	 *
 	 * @param filter the pre-filter to use, or null for none.
 	 */
-	public void setFilter(KMerProbFilter filter);
+	public void setFilter(ProbFilter filter);
 
 	/**
 	 * Enables or disables use of the pre-filter for lookups.

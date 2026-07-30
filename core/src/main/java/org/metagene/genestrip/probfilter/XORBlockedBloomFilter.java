@@ -22,18 +22,18 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  *
  */
-package org.metagene.genestrip.bloom;
+package org.metagene.genestrip.probfilter;
 
 /**
- * The {@code XOR} variant of {@link BlockedKMerBloomFilter}: it replaces the MurmurHash3 finalizer of
- * {@link BlockedKMerBloomFilter#hash(long)} by a bare exclusive or with the seed, and pays for that by
+ * The {@code XOR} variant of {@link BlockedBloomFilter}: it replaces the MurmurHash3 finalizer of
+ * {@link BlockedBloomFilter#hash(long)} by a bare exclusive or with the seed, and pays for that by
  * reducing with a modulo instead of the base class' multiply-shift.
  * <p>
  * The two go together. A multiply-shift is driven by the <em>high</em> bits of its input while a k-mer
  * carries its entropy in the low ones, so it is only sound after a hash that has carried that entropy
  * upwards. This hash does not, hence the modulo, which consumes every bit of the hash instead.
  * <p>
- * This filter suffers less from the mismatched pairing than {@link XORKMerBloomFilter} would, because
+ * This filter suffers less from the mismatched pairing than {@link XORBloomFilter} would, because
  * it folds the hash by a 32 bit rotation for the bit positions anyway, but it does suffer: measured
  * over 1e6 k-mers at 10 bits per key, keeping the inherited multiply-shift costs 1.32% against this
  * variant's 1.30% at {@code k=31}, and 4.72% against 1.47% at {@code k=16}, where a key has only 32
@@ -43,13 +43,13 @@ package org.metagene.genestrip.bloom;
  * different places. On the small {@code int}-indexed backing the mixing filter reduces by the cheap
  * 32-bit {@code reduceInt}, and the division of the modulo then outweighs what the simpler hash saves:
  * measured over 1e7 k-mers at 10 bits per key this variant looks up some 7 to 15% <em>slower</em> than
- * {@link BlockedKMerBloomFilter}. On the bucketed backing the mixing filter reduces by
+ * {@link BlockedBloomFilter}. On the bucketed backing the mixing filter reduces by
  * {@code Math.multiplyHigh} instead, which tips the balance: there this variant is about as fast on
- * hits and some 11 to 17% <em>faster</em> on misses. Unlike {@link XORKMerBloomFilter}, which evaluates
+ * hits and some 11 to 17% <em>faster</em> on misses. Unlike {@link XORBloomFilter}, which evaluates
  * its hash seven times per lookup, this filter hashes once, so the margins are small either way and
  * they were measured on aarch64 - re-measure before relying on them elsewhere.
  */
-public class XORBlockedKMerBloomFilter extends BlockedKMerBloomFilter {
+public class XORBlockedBloomFilter extends BlockedBloomFilter {
     private static final long serialVersionUID = 1L;
 
     /**
@@ -58,7 +58,7 @@ public class XORBlockedKMerBloomFilter extends BlockedKMerBloomFilter {
      *
      * @param expectedInsertions the expected number of k-mers to be inserted
      */
-    public XORBlockedKMerBloomFilter(long expectedInsertions) {
+    public XORBlockedBloomFilter(long expectedInsertions) {
         super(expectedInsertions);
     }
 
@@ -69,7 +69,7 @@ public class XORBlockedKMerBloomFilter extends BlockedKMerBloomFilter {
      * @param expectedInsertions the expected number of k-mers to be inserted
      * @param bitsPerKey the number of bits allocated per key
      */
-    public XORBlockedKMerBloomFilter(long expectedInsertions, int bitsPerKey) {
+    public XORBlockedBloomFilter(long expectedInsertions, int bitsPerKey) {
         super(expectedInsertions, bitsPerKey);
     }
 
@@ -81,7 +81,7 @@ public class XORBlockedKMerBloomFilter extends BlockedKMerBloomFilter {
      * @param bitsPerKey the number of bits allocated per key
      * @param seed       the hash seed used to derive bit positions
      */
-    public XORBlockedKMerBloomFilter(long expectedInsertions, int bitsPerKey, long seed) {
+    public XORBlockedBloomFilter(long expectedInsertions, int bitsPerKey, long seed) {
         super(expectedInsertions, bitsPerKey, seed);
     }
 
@@ -94,7 +94,7 @@ public class XORBlockedKMerBloomFilter extends BlockedKMerBloomFilter {
      * @param seed        the hash seed used to derive bit positions
      * @param bucketShift base-2 logarithm of the large-backing bucket width in words
      */
-    public XORBlockedKMerBloomFilter(long expectedInsertions, int bitsPerKey, long seed, int bucketShift) {
+    public XORBlockedBloomFilter(long expectedInsertions, int bitsPerKey, long seed, int bucketShift) {
         super(expectedInsertions, bitsPerKey, seed, bucketShift);
     }
 
@@ -108,8 +108,8 @@ public class XORBlockedKMerBloomFilter extends BlockedKMerBloomFilter {
      * @param bucketShift base-2 logarithm of the large-backing bucket width in words
      * @param forceLarge  whether to use the bucketed backing even when the small one would suffice
      */
-    XORBlockedKMerBloomFilter(long expectedInsertions, int bitsPerKey, long seed, int bucketShift,
-            boolean forceLarge) {
+    XORBlockedBloomFilter(long expectedInsertions, int bitsPerKey, long seed, int bucketShift,
+                          boolean forceLarge) {
         super(expectedInsertions, bitsPerKey, seed, bucketShift, forceLarge);
     }
 
@@ -121,8 +121,8 @@ public class XORBlockedKMerBloomFilter extends BlockedKMerBloomFilter {
      * @param bitsPerKey the number of bits allocated per key
      * @return a filter of the given sizing that uses the bucketed backing
      */
-    static XORBlockedKMerBloomFilter newLargeBackedXOR(long expectedInsertions, int bitsPerKey) {
-        return new XORBlockedKMerBloomFilter(expectedInsertions, bitsPerKey, DEFAULT_SEED,
+    static XORBlockedBloomFilter newLargeBackedXOR(long expectedInsertions, int bitsPerKey) {
+        return new XORBlockedBloomFilter(expectedInsertions, bitsPerKey, DEFAULT_SEED,
                 minBucketShift(expectedInsertions, bitsPerKey), true);
     }
 
@@ -139,7 +139,7 @@ public class XORBlockedKMerBloomFilter extends BlockedKMerBloomFilter {
 
     /**
      * Reduces by a modulo rather than by the multiply-shift of
-     * {@link BlockedKMerBloomFilter#reduce(long)}, because {@link #hash(long)} does not mix and a
+     * {@link BlockedBloomFilter#reduce(long)}, because {@link #hash(long)} does not mix and a
      * multiply-shift would therefore build the word index from near-constant high bits.
      *
      * @param v the hash value to reduce

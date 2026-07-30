@@ -22,19 +22,19 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.bloom;
+package org.metagene.genestrip.probfilter;
 
 /**
- * A {@link KMerBloomFilter} that hashes k-mers with MurmurHash3 rather than with the bit-mixing
- * finalizer of {@link KMerBloomFilter#hash(long, int)}. Both mix, so this inherits the multiply-shift
- * {@link KMerBloomFilter#reduce(long)} unchanged; only the hash differs. The {@code XOR} variant of the
- * family, which does not mix and hence reduces by a modulo, is {@link XORKMerBloomFilter}.
+ * A {@link BloomFilter} that hashes k-mers with MurmurHash3 rather than with the bit-mixing
+ * finalizer of {@link BloomFilter#hash(long, int)}. Both mix, so this inherits the multiply-shift
+ * {@link BloomFilter#reduce(long)} unchanged; only the hash differs. The {@code XOR} variant of the
+ * family, which does not mix and hence reduces by a modulo, is {@link XORBloomFilter}.
  */
-public class MurmurKMerBloomFilter extends KMerBloomFilter {
+public class MurmurBloomFilter extends BloomFilter {
 	// Bumped from 1: the inherited reduce() changed from a modulo to a multiply-shift, so a key maps to
 	// a different bit than before. A filter serialized by an older version would answer queries wrongly
 	// rather than merely differently, hence it must fail to load instead - such filters have to be
-	// regenerated. XORKMerBloomFilter keeps its modulo and hence its serial version.
+	// regenerated. XORBloomFilter keeps its modulo and hence its serial version.
 	private static final long serialVersionUID = 2L;
 
 	/**
@@ -44,7 +44,7 @@ public class MurmurKMerBloomFilter extends KMerBloomFilter {
 	 * @param fpp the target false-positive probability
 	 * @param expectedInsertions the expected number of k-mers to be inserted
 	 */
-	public MurmurKMerBloomFilter(double fpp, long expectedInsertions) {
+	public MurmurBloomFilter(double fpp, long expectedInsertions) {
 		super(fpp, expectedInsertions);
 	}
 

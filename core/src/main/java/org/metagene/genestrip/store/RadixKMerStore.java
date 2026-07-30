@@ -27,9 +27,9 @@ package org.metagene.genestrip.store;
 import java.io.Serializable;
 import java.util.List;
 
-import org.metagene.genestrip.bloom.KMerProbFilter;
-import org.metagene.genestrip.bloom.MurmurKMerBloomFilter;
-import org.metagene.genestrip.bloom.XORKMerBloomFilter;
+import org.metagene.genestrip.probfilter.BloomFilter;
+import org.metagene.genestrip.probfilter.ProbFilter;
+import org.metagene.genestrip.probfilter.XORBloomFilter;
 
 import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.longs.LongComparator;
@@ -195,8 +195,8 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	public RadixKMerStore(int k, int radixBits, int[] bucketSizes, double entryFpp, double optimizedFpp,
 						  List<V> initialValues, boolean xor) {
 		this(k, radixBits, bucketSizes, initialValues,
-				xor ? new XORKMerBloomFilter(entryFpp, sumBucketSizes(bucketSizes))
-						: new MurmurKMerBloomFilter(entryFpp, sumBucketSizes(bucketSizes)),
+				xor ? new XORBloomFilter(entryFpp, sumBucketSizes(bucketSizes))
+						: new BloomFilter(entryFpp, sumBucketSizes(bucketSizes)),
 				optimizedFpp);
 	}
 
@@ -227,7 +227,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	 *               capacities), or null for none.
 	 * @param optimizedFpp the target false-positive probability after optimization.
 	 */
-	protected RadixKMerStore(int k, int radixBits, int[] bucketSizes, List<V> initialValues, KMerProbFilter filter,
+	protected RadixKMerStore(int k, int radixBits, int[] bucketSizes, List<V> initialValues, ProbFilter filter,
 							 double optimizedFpp) {
 		// maxValuesForRadix validates radixBits (before super allocates), and its result depends on
 		// radixBits: a wider radix reserves fewer remaining bits and so admits more distinct values.

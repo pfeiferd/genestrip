@@ -22,7 +22,7 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.bloom;
+package org.metagene.genestrip.probfilter;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -38,11 +38,11 @@ import java.util.Random;
 import org.junit.Test;
 
 /**
- * Verifies the configurable large-backing bucket width of {@link BlockedKMerBloomFilter}: a small
+ * Verifies the configurable large-backing bucket width of {@link BlockedBloomFilter}: a small
  * bucket shift (so a key's block frequently straddles a bucket boundary) yields no false negatives, the
  * width survives serialization, and an out-of-range width is rejected.
  */
-public class BlockedKMerBloomFilterBucketShiftTest {
+public class BlockedBloomFilterBucketShiftTest {
 
 	private static long[] randomKMers(int n, long seed) {
 		Random random = new Random(seed);
@@ -54,10 +54,10 @@ public class BlockedKMerBloomFilterBucketShiftTest {
 	}
 
 	/** Fills a large-backed filter of the given bucket shift with the keys and returns it. */
-	private static BlockedKMerBloomFilter filledLargeFilter(int bucketShift, long[] kmers) {
+	private static BlockedBloomFilter filledLargeFilter(int bucketShift, long[] kmers) {
 		// Ask for the bucketed backing explicitly - these small test sizes would never reach it
 		// through the size alone.
-		BlockedKMerBloomFilter filter = BlockedKMerBloomFilter.newLargeBacked(kmers.length, 10, 42L, bucketShift);
+		BlockedBloomFilter filter = BlockedBloomFilter.newLargeBacked(kmers.length, 10, 42L, bucketShift);
 		// Guards the seam itself: without this, a newLargeBacked() that quietly fell back to the small
 		// backing would leave every test below passing while testing the wrong path.
 		assertTrue("must use the bucketed backing", filter.isLargeBacked());
@@ -67,13 +67,13 @@ public class BlockedKMerBloomFilterBucketShiftTest {
 		return filter;
 	}
 
-	private static void assertNoFalseNegatives(BlockedKMerBloomFilter filter, long[] kmers) {
+	private static void assertNoFalseNegatives(BlockedBloomFilter filter, long[] kmers) {
 		for (long kmer : kmers) {
 			assertTrue("inserted key must be found", filter.containsLong(kmer));
 		}
 	}
 
-	private static byte[] serialize(BlockedKMerBloomFilter filter) throws IOException {
+	private static byte[] serialize(BlockedBloomFilter filter) throws IOException {
 		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
 		try (ObjectOutputStream out = new ObjectOutputStream(bytes)) {
 			out.writeObject(filter);
@@ -81,9 +81,9 @@ public class BlockedKMerBloomFilterBucketShiftTest {
 		return bytes.toByteArray();
 	}
 
-	private static BlockedKMerBloomFilter deserialize(byte[] data) throws IOException, ClassNotFoundException {
+	private static BlockedBloomFilter deserialize(byte[] data) throws IOException, ClassNotFoundException {
 		try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(data))) {
-			return (BlockedKMerBloomFilter) in.readObject();
+			return (BlockedBloomFilter) in.readObject();
 		}
 	}
 
@@ -92,20 +92,20 @@ public class BlockedKMerBloomFilterBucketShiftTest {
 		// A 2^10-word bucket over enough keys spans many buckets, so many keys' two-word blocks straddle a
 		// bucket boundary - which must still be addressed correctly (no lost bits).
 		long[] kmers = randomKMers(60_000, 7);
-		assertNoFalseNegatives(filledLargeFilter(BlockedKMerBloomFilter.MIN_BUCKET_SHIFT, kmers), kmers);
+		assertNoFalseNegatives(filledLargeFilter(BlockedBloomFilter.MIN_BUCKET_SHIFT, kmers), kmers);
 	}
 
 	@Test
 	public void testCustomBucketShiftSurvivesSerialization() throws IOException, ClassNotFoundException {
 		long[] kmers = randomKMers(60_000, 11);
-		BlockedKMerBloomFilter loaded = deserialize(serialize(filledLargeFilter(12, kmers)));
+		BlockedBloomFilter loaded = deserialize(serialize(filledLargeFilter(12, kmers)));
 		assertNoFalseNegatives(loaded, kmers);
 	}
 
 	@Test
 	public void testBucketShiftOutOfRangeRejected() {
 		try {
-			new BlockedKMerBloomFilter(1000, 10, 42L, BlockedKMerBloomFilter.MAX_BUCKET_SHIFT + 1);
+			new BlockedBloomFilter(1000, 10, 42L, BlockedBloomFilter.MAX_BUCKET_SHIFT + 1);
 			fail("expected IllegalArgumentException for out-of-range bucketShift");
 		} catch (IllegalArgumentException expected) {
 			// expected
@@ -118,11 +118,11 @@ public class BlockedKMerBloomFilterBucketShiftTest {
 		// shift is the smallest power of two that still holds every word.
 		int bitsPerKey = 10;
 		for (long expected : new long[] { 1, 100, 100_000, 10_000_000 }) {
-			int shift = BlockedKMerBloomFilter.minBucketShift(expected, bitsPerKey);
+			int shift = BlockedBloomFilter.minBucketShift(expected, bitsPerKey);
 			long words = (Math.max(1, expected) * bitsPerKey + 63) / 64 + 16 + 1;
 			assertTrue("one bucket must hold all words", (1L << shift) >= words);
 			assertTrue("no smaller power of two would suffice",
-					shift == BlockedKMerBloomFilter.MIN_BUCKET_SHIFT || (1L << (shift - 1)) < words);
+					shift == BlockedBloomFilter.MIN_BUCKET_SHIFT || (1L << (shift - 1)) < words);
 		}
 	}
 
@@ -131,7 +131,7 @@ public class BlockedKMerBloomFilterBucketShiftTest {
 		// A sizing too large for a single int-addressable bucket falls back to the widest permitted
 		// bucket, so the grid still uses as few buckets as the cap allows.
 		long huge = (1L << 40) / 10; // words far exceed 2^MAX_BUCKET_SHIFT
-		assertEquals(BlockedKMerBloomFilter.MAX_BUCKET_SHIFT,
-				BlockedKMerBloomFilter.minBucketShift(huge, 10));
+		assertEquals(BlockedBloomFilter.MAX_BUCKET_SHIFT,
+				BlockedBloomFilter.minBucketShift(huge, 10));
 	}
 }

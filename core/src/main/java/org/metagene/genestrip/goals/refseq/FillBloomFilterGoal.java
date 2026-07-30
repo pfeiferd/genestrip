@@ -37,9 +37,9 @@ import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.bloom.KMerProbFilter;
-import org.metagene.genestrip.bloom.MurmurKMerBloomFilter;
-import org.metagene.genestrip.bloom.XORKMerBloomFilter;
+import org.metagene.genestrip.probfilter.BloomFilter;
+import org.metagene.genestrip.probfilter.ProbFilter;
+import org.metagene.genestrip.probfilter.XORBloomFilter;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
@@ -133,7 +133,7 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
 
     // The temporary size-estimation filter is always an XOR/Murmur filter. The store sizing is
     // derived from the readers' per-radix-bucket counts of distinct k-mers, not from the filter.
-    private KMerProbFilter filter;
+    private ProbFilter filter;
     // Number of low k-mer bits used as the radix (from config); the radix store created later must
     // use the same value. Set in doMakeThis().
     private int radixBits;
@@ -181,11 +181,11 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
         try {
             double tempFpp = doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP);
             // The temporary size-estimation filter is filled concurrently by the reader threads, so it
-            // must support a thread-safe putLong; XOR/Murmur do (via their bit vector's bucket locks),
-            // as does BlockedKMerBloomFilter, which is nonetheless not offered as an option here.
+            // must support a thread-safe putLong; the two used here do (via their bit vector's bucket locks),
+            // as does BlockedBloomFilter, which is nonetheless not offered as an option here.
             filter = booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH) ?
-                    new XORKMerBloomFilter(tempFpp, sizeGoal.get()) :
-                    new MurmurKMerBloomFilter(tempFpp, sizeGoal.get());
+                    new XORBloomFilter(tempFpp, sizeGoal.get()) :
+                    new BloomFilter(tempFpp, sizeGoal.get());
             radixBits = intConfigValue(GSConfigKey.RADIX_STORE_BITS);
             logHeapInfo();
             readFastas();
@@ -279,7 +279,7 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
      * distinct k-mers per radix bucket in a thread-safe way.
      */
     protected class MyFastaReader extends ReworkingStoreFastaReader {
-        private final KMerProbFilter filter;
+        private final ProbFilter filter;
         // Thread-local per-radix-bucket k-mer counts and distinct store values - this reader runs on a
         // single thread, so no synchronization is needed; doMakeThis() merges all readers afterwards.
         private final int[] bucketSizes = new int[1 << radixBits];
@@ -312,7 +312,7 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
          * @param idStringGenerator generator for artificial tax ids
          */
         public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-                             KMerProbFilter filter, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases,
+                             ProbFilter filter, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases,
                              TaxTree taxTree, boolean dataNodes, boolean fileNodes, boolean idNodes, IDStringGenerator idStringGenerator) {
             super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases,
                     taxTree, dataNodes, fileNodes, idNodes, true, idStringGenerator);

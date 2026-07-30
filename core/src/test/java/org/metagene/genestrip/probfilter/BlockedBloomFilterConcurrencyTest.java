@@ -22,7 +22,7 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  *
  */
-package org.metagene.genestrip.bloom;
+package org.metagene.genestrip.probfilter;
 
 import static org.junit.Assert.assertTrue;
 
@@ -32,12 +32,12 @@ import java.util.concurrent.CyclicBarrier;
 import org.junit.Test;
 
 /**
- * Verifies that {@link BlockedKMerBloomFilter#putLong(long)} is safe for concurrent inserts on both
+ * Verifies that {@link BlockedBloomFilter#putLong(long)} is safe for concurrent inserts on both
  * backings: filling a filter from several threads must not lose any bits, i.e. every inserted key is
  * still found afterwards. Without locking the {@code word |= mask} read-modify-write can drop a
  * concurrent update to the same word, which shows up as a false negative here.
  */
-public class BlockedKMerBloomFilterConcurrencyTest {
+public class BlockedBloomFilterConcurrencyTest {
 
 	private static final int THREADS = 8;
 	private static final int KMERS_PER_THREAD = 20000;
@@ -56,20 +56,20 @@ public class BlockedKMerBloomFilterConcurrencyTest {
 	 * Creates a filter sized for the whole key set, with a bucket width small enough that keys spread
 	 * over many buckets (and so over many locks) when the bucketed backing is used.
 	 */
-	private static BlockedKMerBloomFilter newFilter(boolean large) {
+	private static BlockedBloomFilter newFilter(boolean large) {
 		long size = (long) THREADS * KMERS_PER_THREAD;
 		// The filter picks its backing from the size relative to MAX_SMALL_CAPACITY at construction,
 		// which this test size never reaches, so ask for the bucketed backing explicitly.
-		int bucketShift = BlockedKMerBloomFilter.MIN_BUCKET_SHIFT + 4;
-		return large ? BlockedKMerBloomFilter.newLargeBacked(size, 10, 42L, bucketShift)
-				: new BlockedKMerBloomFilter(size, 10, 42L, bucketShift);
+		int bucketShift = BlockedBloomFilter.MIN_BUCKET_SHIFT + 4;
+		return large ? BlockedBloomFilter.newLargeBacked(size, 10, 42L, bucketShift)
+				: new BlockedBloomFilter(size, 10, 42L, bucketShift);
 	}
 
 	/**
 	 * Fills the filter from {@link #THREADS} threads that start together, each inserting its own keys,
 	 * and asserts that every key is found once all of them have finished.
 	 */
-	private static void assertNoFalseNegativesAfterConcurrentFill(BlockedKMerBloomFilter filter) throws Exception {
+	private static void assertNoFalseNegativesAfterConcurrentFill(BlockedBloomFilter filter) throws Exception {
 		long[][] kmers = new long[THREADS][];
 		for (int t = 0; t < THREADS; t++) {
 			kmers[t] = randomKMers(KMERS_PER_THREAD, t);

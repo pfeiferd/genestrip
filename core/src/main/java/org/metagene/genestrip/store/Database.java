@@ -25,7 +25,6 @@
 package org.metagene.genestrip.store;
 
 import java.io.*;
-import java.security.DigestInputStream;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -36,7 +35,7 @@ import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.codec.binary.Hex;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.bloom.KMerProbFilter;
+import org.metagene.genestrip.probfilter.ProbFilter;
 import org.metagene.genestrip.store.KMerStore.ValueConverter;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
@@ -213,7 +212,7 @@ public class Database implements Serializable {
             zipEntry = new ZipEntry(INDEX_FILE);
             zipOut.putNextEntry(zipEntry);
             oOut = new ObjectOutputStream(digo);
-            KMerProbFilter filter = kmerStore.getFilter();
+            ProbFilter filter = kmerStore.getFilter();
             oOut.writeObject(filter);
             digo.flush(); // Make sure it all got written.
             zipOut.closeEntry();
@@ -269,7 +268,7 @@ public class Database implements Serializable {
         InvalidClassException deferred = null;
         try {
             Database database = null;
-            KMerProbFilter filter = null;
+            ProbFilter filter = null;
             try (ZipInputStream zis = new ZipInputStream(is)) {
                 for (ZipEntry zipEntry = zis.getNextEntry(); zipEntry != null; zipEntry = zis.getNextEntry()) {
                     String entryName = zipEntry.getName();
@@ -287,7 +286,7 @@ public class Database implements Serializable {
                     } else if (entryName.equals(INDEX_FILE) && withFilter && filter == null && deferred == null) {
                         ObjectInputStream oOut = new ObjectInputStream(zis);
                         try {
-                            filter = (KMerProbFilter) oOut.readObject();
+                            filter = (ProbFilter) oOut.readObject();
                         } catch (InvalidClassException e) {
                             deferred = e;
                         }
