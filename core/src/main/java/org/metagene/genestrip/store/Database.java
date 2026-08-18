@@ -101,7 +101,12 @@ public class Database implements Serializable {
 
     /**
      * Assigns a store value index to every taxon in the taxonomy tree (see
-     * {@link KMerStore#getAddValueIndex}).
+     * {@link KMerStore#getAddValueIndex}), making the database ready for matching. It runs when a
+     * database is built, when one is loaded, and after {@code ftupdatedb} has inserted refined nodes.
+     * <p>
+     * The tree's node positions are the tree's own business - it establishes them on construction, on
+     * load and when it is restructured - so nothing here writes to it. Matching does not write to it
+     * either, which is what allows one loaded database to serve several matchers.
      */
     public void initStoreIndices() {
         initStoreIndex(taxTree.getRoot());
@@ -163,7 +168,7 @@ public class Database implements Serializable {
      * Saves this database (and its pre-filter, if any) to the given file, see {@link #save(OutputStream)}.
      *
      * @param file the destination file
-     * @throws java.io.IOException if writing fails
+     * @throws IOException if writing fails
      */
     public void save(File file) throws IOException {
         try (OutputStream out = new FileOutputStream(file)) {
@@ -195,7 +200,7 @@ public class Database implements Serializable {
      * carrying an MD5 fingerprint of the serialized database bytes.
      *
      * @param os the destination stream
-     * @throws java.io.IOException if writing fails
+     * @throws IOException if writing fails
      */
     public void save(OutputStream os) throws IOException {
         try (ZipOutputStream zipOut = new ZipOutputStream(os)) {
@@ -239,8 +244,8 @@ public class Database implements Serializable {
      * @param file       the database file to read
      * @param withFilter whether to also load the probabilistic pre-filter
      * @return the loaded database
-     * @throws java.io.IOException              if reading fails
-     * @throws java.lang.ClassNotFoundException if a serialized class cannot be resolved
+     * @throws IOException              if reading fails
+     * @throws ClassNotFoundException if a serialized class cannot be resolved
      */
     public static Database load(File file, boolean withFilter) throws IOException, ClassNotFoundException {
         try (InputStream is = new FileInputStream(file)) {
@@ -255,7 +260,7 @@ public class Database implements Serializable {
      * @param is         the ZIP stream to read
      * @param withFilter whether to also load the probabilistic pre-filter
      * @return the loaded database
-     * @throws java.lang.ClassNotFoundException if a serialized class cannot be resolved
+     * @throws ClassNotFoundException if a serialized class cannot be resolved
      * @throws InvalidDatabaseClassException    if the serialized classes are incompatible with the current
      *                                          runtime (carrying the loaded config info for diagnostics).
      */
@@ -315,7 +320,7 @@ public class Database implements Serializable {
      *
      * @param file the database file to read
      * @return the config-info properties
-     * @throws java.io.IOException if reading fails
+     * @throws IOException if reading fails
      */
     public static Properties loadConfigInfo(File file) throws IOException {
         try (InputStream is = new FileInputStream(file)) {
@@ -329,7 +334,7 @@ public class Database implements Serializable {
      *
      * @param is the ZIP stream to read
      * @return the config-info properties
-     * @throws java.io.IOException if reading fails
+     * @throws IOException if reading fails
      */
     public static Properties loadConfigInfo(InputStream is) throws IOException {
         Properties configInfo = new Properties();

@@ -40,7 +40,6 @@ import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.refseq.ReworkingStoreFastaReader;
 import org.metagene.genestrip.store.Database;
-import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.store.RadixKMerStore;
 import org.metagene.genestrip.tax.Rank;
@@ -103,7 +102,6 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 		double optFpp = doubleConfigValue(GSConfigKey.OPT_BLOOM_FILTER_FPP);
 		boolean xor = booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH);
 		double resizeFactor = doubleConfigValue(GSConfigKey.DB_RESIZING_FACTOR);
-		boolean useRadixStore = booleanConfigValue(GSConfigKey.USE_RADIX_STORE);
 		FillBloomFilterGoal.DBSize dbSize = sizeGoal.get();
 
 		// All fill values are known up front (collected by the counting pass, which ran the same
@@ -112,18 +110,11 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 		// a lock-free read (the store treats a non-empty initialValues set as the complete value set).
 		List<String> initialValues = dbSize.getValues() == null ? null : new ArrayList<>(dbSize.getValues());
 
-		if (useRadixStore) {
-			// The radix store reserves capacity per radix bucket; the resizing factor scales each
-			// bucket (analogous to scaling the total for the sorted array). The radix width must
-			// match the one FillBloomFilterGoal used to count the per-bucket sizes.
-			int radixBits = intConfigValue(GSConfigKey.RADIX_STORE_BITS);
-			int[] bucketSizes = scaleBucketSizes(dbSize.getBucketSizes(), resizeFactor);
-			store = new RadixKMerStore<>(k, radixBits, bucketSizes, fillFpp, optFpp, initialValues, xor);
-		} else {
-			long dedupSize = dbSize.getSize();
-			long size = resizeFactor == 1d ? dedupSize : (long) (dedupSize * resizeFactor);
-			store = new KMerSortedArray<>(k, fillFpp, optFpp, initialValues, false, xor, size);
-		}
+		// The radix store reserves capacity per radix bucket; the resizing factor scales each bucket.
+		// The radix width must match the one FillBloomFilterGoal used to count the per-bucket sizes.
+		int radixBits = intConfigValue(GSConfigKey.RADIX_STORE_BITS);
+		int[] bucketSizes = scaleBucketSizes(dbSize.getBucketSizes(), resizeFactor);
+		store = new RadixKMerStore<>(k, radixBits, bucketSizes, fillFpp, optFpp, initialValues, xor);
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Store size in kmers: " + store.getSize());
 			getLogger().info("DB Size in MB (without Bloom filter): " + (store.getSize() * 10) / (1024 * 1024));
@@ -167,7 +158,6 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 			store = null;
 			readers.clear();
 			System.gc(); // Time to run GC after potentially freeing up some memory.
-			cleanUpThreads();
 		}
 	}
 
@@ -176,7 +166,7 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 	private static int[] scaleBucketSizes(int[] bucketSizes, double resizeFactor) {
 		if (bucketSizes == null) {
 			throw new IllegalStateException(
-					"useRadixStore is set but the size goal did not provide per-bucket k-mer counts.");
+					"The size goal did not provide the per-bucket k-mer counts the store is sized from.");
 		}
 		if (resizeFactor == 1d) {
 			return bucketSizes;
@@ -203,11 +193,11 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 				(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
 				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
 				intConfigValue(GSConfigKey.MAX_DUST),
-				intConfigValue(GSConfigKey.STEP_SIZE),
-				booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY),
+				intConfigValue(GSConfigKey.KMER_SAMPLING),
+				booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY),
 				regionsPerTaxid,
 				booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES),
-				taxTree, dataNodes, fileNodes, idNodes, null);
+				taxTree, dataNodes, fileNodes, idNodes, null, (Rank) configValue(GSConfigKey.FOLD_TAXA_BELOW));
 		readers.add(fastaReader);
 		return fastaReader;
 	}
@@ -231,8 +221,8 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 		 * @param maxGenomesPerTaxIdRank the rank at which the per-tax-id genome limit applies
 		 * @param maxKmersPerTaxId the maximum number of k-mers per tax id
 		 * @param maxDust the maximum allowed low-complexity (dust) run length
-		 * @param stepSize the k-mer sampling step size
-		 * @param completeGenomesOnly whether to include only complete genomes
+		 * @param kMerSampling the k-mer sampling step size
+		 * @param assemblyAccessionsOnly whether to include only complete genomes
 		 * @param regionsPerTaxid the per-taxid region trie
 		 * @param enableLowerCaseBases whether lower-case bases are included
 		 * @param taxTree the taxonomy tree into which artificial nodes are created
@@ -242,20 +232,21 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 		 * @param idStringGenerator generator for artificial tax ids
 		 */
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
-							 KMerStore<String> store, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases,
-							 TaxTree taxTree, boolean dataNodes, boolean fileNodes, boolean idNodes, TaxTree.IDStringGenerator idStringGenerator) {
-			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases,
-					taxTree, dataNodes, fileNodes, idNodes, false, idStringGenerator);
+							 KMerStore<String> store, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases,
+							 TaxTree taxTree, boolean dataNodes, boolean fileNodes, boolean idNodes, TaxTree.IDStringGenerator idStringGenerator,
+							 Rank foldTaxaBelow) {
+			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, regionsPerTaxid, enableLowerCaseBases,
+					taxTree, dataNodes, fileNodes, idNodes, false, idStringGenerator, foldTaxaBelow);
 			this.store = store;
 		}
 
 		@Override
-		protected boolean handleStore() {
+		protected boolean handleStore(long kmer) {
 			if (store.isFull()) {
 				tooManyCounter++;
 			} else {
 				if (node.getTaxId() != null) {
-					return store.putLong(byteRingBuffer.getStandardKMer(), node.getTaxId());
+					return store.putLong(kmer, node.getTaxId());
 				} else {
 					if (getLogger().isWarnEnabled()) {
 						getLogger().warn("Tax id node without taxid: " + node.getName());

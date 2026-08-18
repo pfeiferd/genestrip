@@ -24,10 +24,13 @@
  */
 package org.metagene.genestrip.finertree;
 
+import org.metagene.genestrip.finertree.cluster.SimpleAggloClustering;
+import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.make.MDDescription;
 import org.metagene.genestrip.make.ConfigKey;
 import org.metagene.genestrip.make.ConfigParamInfo;
 import org.metagene.genestrip.make.GoalKey;
+import org.metagene.genestrip.probfilter.BlockedBloomFilter;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxIdInfo;
 
@@ -40,11 +43,114 @@ import java.util.*;
  * binds a name to its {@link ConfigParamInfo} and the goals it applies to.
  */
 public enum FTConfigKey implements ConfigKey {
-    /**
-     * False positive probability of the Bloom filter used in Genestrip-FT.
-     */
-    @MDDescription("False positive probability of the Bloom filter used in Genestrip-FT.")
-    FT_BLOOM_FILTER_FPP("ftBloomFilterFpp", new ConfigParamInfo.DoubleConfigParamInfo(0, 1, 0.001d), false, FTGoalKey.DB_QUALITY_COUNTS);
+    /** The cluster distance method used when performing agglomerative clustering. */
+    @MDDescription("The cluster distance to be used when performing agglomerative clustering.")
+    CLUSTER_METHOD("clusterMethod", new MethodConfigParamInfo(SimpleAggloClustering.Method.SINGLE_LINKAGE), FTGoalKey.DENDROGRAM),
+    /** Whether the clustering merges on the Jaccard index rather than on containment. */
+    @MDDescription("Whether the similarity of two of a node's children is their Jaccard index - the *k*-mers they share over the *k*-mers either has - or, with `false`, their containment: the shared *k*-mers over the smaller of the two sets. "
+            + "It is what the clustering of `dendrogram` merges on. "
+            + "**The rule: `false` where the children are individual genomes of comparable true size but differing assembly quality, `true` where they are taxa.** "
+            + "A draft assembly's *k*-mer set is small because sequence is missing rather than different, and Jaccard reads the two alike, so a dendrogram over drafts clusters by assembly completeness; containment is invariant to that. "
+            + "Between a genus and its species the children are taxa whose *k*-mer sets legitimately differ by orders of magnitude, and containment would score a sparse child as identical to whichever dense one contains it.")
+    JACCARD_SIM("jaccardSim", new ConfigParamInfo.BooleanConfigParamInfo(true), FTGoalKey.INTERSECT_COUNT),
+    /** Whether the Jaccard-index denominator includes the k-mer counts of all descendants. */
+    @MDDescription("Whether to include the *k*-mer counts of *all* descendents for any two considered species in the denominator of the Jaccard-index. If not, only the *k*-mer counts right for the two considered species are used.")
+    WITH_DESCENDANT_COUNTS("withDescendantCounts", new ConfigParamInfo.BooleanConfigParamInfo(false), FTGoalKey.INTERSECT_COUNT),
+    /** Whether the LaTeX dendrogram is turned so that species names align horizontally. */
+    @MDDescription("Whether the dendrogram in LaTeX has the species names aligned horizontally (with the entired diagram turned) or not.")
+    TURN_LATEX("turnLatex", new ConfigParamInfo.BooleanConfigParamInfo(true), FTGoalKey.DENDRO_LATEX),
+    /** Stretch factor for the dendrogram in TikZ's native x coordinate. */
+    @MDDescription("The factory for stretching the dendrogram in TikZ's native *x* coordinate.")
+    X_FACTOR_LATEX("xFactorLatex", new ConfigParamInfo.DoubleConfigParamInfo(0, Double.MAX_VALUE, 1), FTGoalKey.DENDRO_LATEX),
+    /** Stretch factor for the dendrogram in TikZ's native y coordinate. */
+    @MDDescription("The factory for stretching the dendrogram in TikZ's native *y* coordinate.")
+    Y_FACTOR_LATEX("yFactorLatex", new ConfigParamInfo.DoubleConfigParamInfo(0, Double.MAX_VALUE, 8), FTGoalKey.DENDRO_LATEX),
+    /** Value of {@code scale} in the {@code tikzpicture} environment of a LaTeX dendrogram. */
+    @MDDescription("The factor for `scale` in the 'tikzpicture' environment of a LaTex dendrogram.")
+    TIKZ_SCALE_FACTOR("tikzScaleFactor", new ConfigParamInfo.DoubleConfigParamInfo(0, Double.MAX_VALUE, 1), FTGoalKey.DENDRO_LATEX),
+    /** Whether dendrogram similarities are scaled logarithmically. */
+    @MDDescription("Whether to do logarithmic scaling of the similarity `sim` in dendrograms (via `1 - log (sim) / log (min_sim)`.")
+    SIM_LOG_SCALING("simLogScaling", new ConfigParamInfo.BooleanConfigParamInfo(false), FTGoalKey.DENDRO_LATEX),
+    /** How the Bloom filter of {@code kmerindexbloom} is sized. */
+    @MDDescription("How the Bloom filter of `kmerindexbloom` is sized. `upperBound` uses the conservative bound, "
+            + "which assumes every *k*-mer of a taxon to occur in every one of its genomes and needs nothing read "
+            + "beforehand; genomes of one taxon share most of their *k*-mers, so that bound can exceed the truth by "
+            + "orders of magnitude and the filter with it. `distinct` uses the estimate of `kmerindexsize`, which "
+            + "reads the sequences once more to sketch the pairs. `auto` uses that estimate and falls back to the "
+            + "bound, reading a second time, should the estimate turn out to have fallen short.")
+    FT_BLOOM_FILTER_SIZING("ftBloomFilterSizing", new GSConfigKey.BloomFilterSizingConfigParamInfo(GSConfigKey.BloomFilterSizing.AUTO), FTGoalKey.KMER_INDEX_BLOOM),
+    /** False positive probability of the {@code kmerindexbloom} filter. */
+    @MDDescription("False positive probability (FPP) of the *k*-mer index filter built by `kmerindexbloom`. "
+            + "At the default and above, the filter is a `BlockedBloomFilter`, which reaches about 1.3 per cent "
+            + "once it holds what it was sized for and is the faster of the two; below it, a plain `BloomFilter` "
+            + "is used instead, since the blocked one sets a fixed four bits per key and so cannot reach a lower "
+            + "rate without spending far more memory than the optimal sizing needs. "
+            + "WHY IT MATTERS FOR REFINEMENT: `ftupdatedb` places a *k*-mer at the smallest refined node covering "
+            + "every child the filter reports it in, so a single false positive pushes it up the tree. The filter "
+            + "is asked once per direct child, which makes the rate that counts `1 - (1 - fpp)^(C + 1)` for a node "
+            + "with `C` children: harmless at twenty, but at the default FPP a node with 314 children leaves only "
+            + "1.6 per cent of its *k*-mers placeable at all. Pick the FPP from the largest child count a refined "
+            + "node has, roughly `-ln(P) / C` for a share `P` of *k*-mers to stay unaffected; at `C = 315` and "
+            + "`P = 0.95` that is about `1e-4`. Memory grows only with `log2(1 / fpp)`, so this costs about twice "
+            + "the bits per entry, and note that the filter has to be rebuilt - delete `<db>_storekmerindex.ser.gz`, "
+            + "which a stale run would otherwise load at the FPP it was written with.")
+    FT_INDEX_BLOOM_FILTER_FPP("ftIndexBloomFilterFpp", new ConfigParamInfo.DoubleConfigParamInfo(0, 1, BlockedBloomFilter.DEFAULT_FPP, true), FTGoalKey.KMER_INDEX_BLOOM),
+    /** One in how many k-mers {@code kmerindexsize} looks at, or 1 to look at all of them. */
+    @MDDescription("One in how many *k*-mers the goal `kmerindexsize` looks at when it estimates how many "
+            + "(*k*-mer, leaf) pairs the filter of `kmerindexbloom` will hold; `1` looks at all of them. The "
+            + "*k*-mers are selected by the *k*-mer itself, so one is either always looked at or never, however "
+            + "often it is met - which is what makes the count of the sample scale to the whole. Everything not "
+            + "selected is skipped before the store is consulted, which is where that pass spends its time. "
+            + "Measured against the true number of pairs of real RefSeq sequence, one in 16 was off by less than "
+            + "0.2 per cent and one in 64 by half a per cent, against a Bloom filter sizing that tolerates a few "
+            + "per cent. Note that a sampled estimate is no longer exact for a small index, where the sketch "
+            + "would otherwise have counted precisely; `upperBound` sizing ignores this setting altogether.")
+    FT_KMER_INDEX_SIZE_SAMPLING("ftKMerIndexSizeSampling", new ConfigParamInfo.IntConfigParamInfo(1, Integer.MAX_VALUE, 16), FTGoalKey.KMER_INDEX_SIZE),
+    /** Maximum number of dendrograms put into one LaTeX file by the {@code allinonelatex} goal. */
+    @MDDescription("Maximum number of dendrograms put in one LaTeX file via the goal `allinonelatex`.")
+    ALLINONE_CHUNK_SIZE("allInOneChunkSize", new ConfigParamInfo.IntConfigParamInfo(1, Integer.MAX_VALUE, 50)),
+    /** The ranks or tax ids at which the taxonomy tree is refined, as {@link RefinementPosition}s. */
+    @MDDescription("The ranks or tax ids for which the taxonomy tree is supposed to be refined.")
+    REFINEMENT_POSITIONS("refinementPositions", new ConfigParamInfo.ListConfigParamInfo<>(Collections.unmodifiableList(Collections.singletonList(RefinementPosition.ALL_POSITIONS)
+            // This was the old default here:
+            /* Arrays.asList(new RefinementPosition(Rank.GENUS), new RefinementPosition(Rank.SPECIES_GROUP), new RefinementPosition(Rank.SUBGENUS))*/)) {
+        @Override
+        public String getTypeDescriptor() {
+            return "comma-separated list of values of `<rank>`, `<taxid>` or else `*` which means all ranks and taxids are included. `>`, `<`, `>=`, `<=` and `=` may precede a rank which means nodes above, below the given rank etc. are included";
+        }
+
+        @Override
+        protected List<RefinementPosition> fromString(String qs) {
+            List<RefinementPosition> res = new ArrayList<>();
+            if (qs != null) {
+                StringTokenizer tokenizer = new StringTokenizer(qs, ",;");
+                while (tokenizer.hasMoreTokens()) {
+                    RefinementPosition r = RefinementPosition.valueOf(tokenizer.nextToken().trim());
+                    if (r != null) {
+                        res.add(r);
+                    }
+                }
+            }
+            return res;
+        }
+
+        @Override
+        public String getMDRangeDescriptor() {
+            StringBuilder sb = new StringBuilder();
+            sb.append("<rank> as subset of ");
+            boolean first = true;
+            for (Rank e : Rank.values()) {
+                if (!first) {
+                    sb.append(", ");
+                }
+                first = false;
+                sb.append('`');
+                sb.append(e.getName());
+                sb.append('`');
+            }
+            return sb.toString();
+        }
+    }, FTGoalKey.KMER_INDEX_BLOOM, FTGoalKey.DENDRO_LATEX, FTGoalKey.INTERSECT_COUNT, FTGoalKey.INTERSECT_CSV);
 
     private final String name;
     private final ConfigParamInfo<?> param;
@@ -71,11 +177,23 @@ public enum FTConfigKey implements ConfigKey {
         return internal;
     }
 
+    /**
+     * Returns the textual name of this configuration key as used in property files and on the
+     * command line.
+     *
+     * @return the configuration key's name
+     */
     @Override
     public String getName() {
         return name;
     }
 
+    /**
+     * Returns the parameter descriptor holding the type, value range and default value of this
+     * configuration key.
+     *
+     * @return the {@link ConfigParamInfo} associated with this key
+     */
     public ConfigParamInfo<?> getInfo() {
         return param;
     }
@@ -99,6 +217,76 @@ public enum FTConfigKey implements ConfigKey {
     @Override
     public String toString() {
         return getName();
+    }
+
+    /**
+     * Parameter descriptor for a {@link SimpleAggloClustering.Method}, i.e. the cluster-distance
+     * method used in agglomerative clustering. Values are nominal and parsed from the method's enum
+     * name.
+     */
+    public static class MethodConfigParamInfo extends ConfigParamInfo<SimpleAggloClustering.Method> {
+        /**
+         * Creates a method parameter descriptor with the given default clustering method.
+         *
+         * @param defaultValue the default clustering method
+         */
+        public MethodConfigParamInfo(SimpleAggloClustering.Method defaultValue) {
+            super(defaultValue);
+        }
+
+        /**
+         * Tests whether the given object is an acceptable value, i.e. {@code null} or a
+         * {@link SimpleAggloClustering.Method}.
+         *
+         * @param o the value to check
+         * @return whether the value is {@code null} or a clustering method
+         */
+        @Override
+        public boolean isValueInRange(Object o) {
+            return o == null || o instanceof SimpleAggloClustering.Method;
+        }
+
+        /**
+         * Parses a clustering method from its enum name.
+         *
+         * @param s the method name to parse
+         * @return the corresponding {@link SimpleAggloClustering.Method}
+         */
+        @Override
+        protected SimpleAggloClustering.Method fromString(String s) {
+            return SimpleAggloClustering.Method.valueOf(s);
+        }
+
+        /**
+         * Returns a Markdown fragment listing all available clustering method names as the value
+         * range of this parameter.
+         *
+         * @return a comma-separated Markdown list of the available clustering method names
+         */
+        @Override
+        public String getMDRangeDescriptor() {
+            StringBuilder builder = new StringBuilder();
+            SimpleAggloClustering.Method[] methods = SimpleAggloClustering.Method.values();
+            for (int i = 0; i < methods.length; i++) {
+                if (i > 0) {
+                    builder.append(", ");
+                }
+                builder.append('`');
+                builder.append(methods[i].name());
+                builder.append('`');
+            }
+            return builder.toString();
+        }
+
+        /**
+         * Returns the type descriptor of this parameter.
+         *
+         * @return the string {@code "nominal"}
+         */
+        @Override
+        public String getTypeDescriptor() {
+            return "nominal";
+        }
     }
 
     /**
@@ -236,12 +424,16 @@ public enum FTConfigKey implements ConfigKey {
              * @return the limit whose token the given string starts with, or {@code null} if none
              */
             public static Limit fromString(String token) {
+                // Pick the longest matching token so that two-character operators (">=", "<=") win
+                // over their single-character prefixes (">", "<") regardless of enum order.
+                Limit best = null;
                 for (Limit limit : Limit.values()) {
-                    if (token.startsWith(limit.comp)) {
-                        return limit;
+                    if (token.startsWith(limit.comp)
+                            && (best == null || limit.comp.length() > best.comp.length())) {
+                        best = limit;
                     }
                 }
-                return null;
+                return best;
             }
         }
 

@@ -45,7 +45,7 @@ public class FastqReaderTest {
 		AbstractFastqReader fastqReader = new AbstractFastqReader(2, 3, 0, new DefaultExecutionContext(null, 0, 1),
 				withProbs) {
 			@Override
-			protected void nextEntry(ReadEntry readStruct, int threadIndex) throws IOException {
+			protected void nextEntry(ReadEntry readStruct, ConsumerRunnable consumer) throws IOException {
 				calls[0]++;
 				if (calls[0] == 1) {
 					assertEquals("@S", ByteArrayUtil.toString(readStruct.readDescriptor));

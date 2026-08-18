@@ -38,8 +38,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 
 /**
- * Common base for the {@link KMerStore} implementations {@link KMerSortedArray} and
- * {@link RadixKMerStore}. It owns everything that does not depend on the concrete k-mer
+ * Common base for the {@link KMerStore} implementation {@link RadixKMerStore}. It owns everything that does not depend on the concrete k-mer
  * storage layout:
  * <ul>
  * <li>the value &lt;-&gt; store-index mapping ({@link #valueMap} / {@link #indexMap} and the
@@ -142,7 +141,7 @@ public abstract class AbstractKMerStore<V extends Serializable> implements KMerS
 	 */
 	@SuppressWarnings("unchecked")
 	protected <W extends Serializable> AbstractKMerStore(AbstractKMerStore<W> org,
-														 KMerStore.ValueConverter<W, V> converter) {
+														 ValueConverter<W, V> converter) {
 		k = org.k;
 		maxValues = org.maxValues;
 		optimizedFpp = org.optimizedFpp;
@@ -336,7 +335,7 @@ public abstract class AbstractKMerStore<V extends Serializable> implements KMerS
 	 */
 	private Object2LongMap<V> computeNKmersPerTaxid() {
 		final long[] countArray = new long[getNValues()];
-		visit(new KMerStore.IndexedKMerStoreVisitor<V>() {
+		visit(new IndexedKMerStoreVisitor<V>() {
 			@Override
 			public void nextValue(KMerStore<V> store, long kmer, int index, long pos) {
 				countArray[index]++;

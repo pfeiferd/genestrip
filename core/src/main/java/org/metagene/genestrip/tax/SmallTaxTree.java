@@ -37,19 +37,29 @@ import org.metagene.genestrip.util.DigitTrie;
 /**
  * A compact, serializable version of the taxonomy tree that only retains the nodes
  * required by a database and is used during read matching. In addition to tree
- * navigation and lowest-common-ancestor queries, it provides per-node counters that
- * can be updated concurrently by several matcher threads (one counter slot per thread)
- * and summed along the path from a node to the root. Iterating the tree yields its
- * nodes in depth-first order.
+ * navigation and lowest-common-ancestor queries. Iterating the tree yields its nodes in
+ * depth-first order.
+ * <p>
+ * The tree stays read-only while reads are matched: the per-read vote counters live in
+ * thread-private arrays held by the matcher and indexed by the nodes' dense
+ * {@link SmallTaxIdNode#getPosition()} (see {@link #reinitPositions()}). They used to sit in the
+ * nodes with one slot per matcher thread, which put all threads' slots on one cache line and made
+ * every vote on a hot node bounce that line between cores.
  */
 public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTaxIdNode> {
 	private static final long serialVersionUID = 1L;
 
 	private transient Comparator<String> taxIdComparator;
-	private transient int countSize;
+	// Number of nodes, i.e. the number of positions reinitPositions() assigned. Transient like the
+	// positions themselves, and set by every path that establishes them (build, load, restructure),
+	// so that matching can read it without having to (re)assign anything.
+	private transient int nodeCount;
+	// Whether the node positions and depths currently describe this tree. Restructuring clears it and
+	// reinitPositions() restores it; everything that depends on positions refuses to work in between,
+	// so a tree that was changed cannot silently be matched against with stale numbering.
+	private transient boolean positionsValid;
 	private transient SmallTaxIdNode root;
 	private transient DigitTrie<SmallTaxIdNode> taxIdNodeTrie;
-	private transient Object owner;
 
 	/**
 	 * Builds a compact tree from the given full {@link TaxTree}, keeping only the nodes
@@ -61,6 +71,7 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		root = taxTree.getRoot() == null ? null : new SmallTaxIdNode(taxTree.getRoot());
 		taxIdNodeTrie = new DigitTrie<SmallTaxIdNode>();
 		root.initTrie(taxIdNodeTrie, 0);
+		reinitPositions();
 	}
 
 	/**
@@ -84,150 +95,119 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		root = SmallTaxIdNode.readTree(in);
 		taxIdNodeTrie = new DigitTrie<SmallTaxIdNode>();
 		root.initTrie(taxIdNodeTrie, 0);
+		// Databases written before positions were densified carry the sparse numbering inherited from
+		// the full taxonomy, so they are renumbered on load rather than having to be rebuilt. The
+		// serialized format is unaffected - position is written either way.
+		reinitPositions();
 	}
 
 	/**
 	 * Replaces the sub-nodes of the node with the given tax id and re-registers the new
 	 * descendants in the lookup trie.
 	 *
+	 * Restructuring invalidates the node positions, so {@link #reinitPositions()} has to run before
+	 * the tree is used for matching again.
+	 *
 	 * @param taxId    the tax id of the node whose sub-nodes are replaced
 	 * @param subNodes the new sub-nodes to set
 	 * @return the modified node, or {@code null} if no node has the given tax id
 	 */
-	public SmallTaxIdNode setSubNodes(String taxId, SmallTaxIdNode[] subNodes) {
+	private SmallTaxIdNode setSubNodes(String taxId, SmallTaxIdNode[] subNodes) {
 		SmallTaxIdNode node = taxIdNodeTrie.get(taxId);
 		if (node != null) {
 			node.setSubNodes(subNodes);
 			// Re-register the replaced subtree and refresh its depths from this node's own depth.
 			node.initTrie(taxIdNodeTrie, node.depth);
+			// The tree gained or lost nodes, so the pre-order positions no longer describe it.
+			positionsValid = false;
 		}
 
 		return node;
 	}
 
 	/**
-	 * Recomputes the {@code position} of every node by a fresh depth-first traversal.
-	 */
-	public void reinitPositions() {
-		root.initPositions(0, 0);
-	}
-
-	/**
-	 * Sets the number of parallel counter slots per node (typically the number of
-	 * matcher threads). Can only be set once.
+	 * Replaces the sub-nodes of several nodes at once and re-establishes the node positions
+	 * afterwards, so the tree is immediately usable again.
+	 * <p>
+	 * Restructuring is offered in bulk only, and renumbering is not the caller's job: the positions
+	 * are the tree's own invariant, and a tree that has been changed but not renumbered must not
+	 * escape. Renumbering once for the whole batch also keeps this linear in the number of nodes
+	 * rather than linear per changed node.
 	 *
-	 * @param countSize the number of parallel counter slots per node
-	 * @throws IllegalArgumentException if {@code countSize} is not positive
-	 * @throws IllegalStateException    if it was already initialized to a different value
+	 * @param subNodesByTaxId the new sub-nodes per tax id; entries whose tax id is unknown are ignored
+	 * @return the number of nodes whose sub-nodes were replaced
 	 */
-	public void initCountSize(int countSize) {
-		if (countSize <= 0) {
-			throw new IllegalArgumentException("Initialization size must be >= 0.");
-		}
-		if (this.countSize > 0 && countSize != this.countSize) {
-			throw new IllegalStateException("Count count size can only be initialized once.");
-		}
-		this.countSize = countSize;
-	}
-
-	/**
-	 * Resets all node counts and claims the tree for the given owner. The tree must be
-	 * released by its current owner via {@link #releaseOwner()} before another owner can
-	 * reset it.
-	 *
-	 * @param owner the object claiming ownership of the tree
-	 * @throws IllegalArgumentException if the tree is still owned by a different owner
-	 */
-	public void resetCounts(Object owner) {
-		if (owner == null) {
-			throw new NullPointerException("owner must not be null");
-		}
-		if (this.owner == null) {
-			this.owner = owner;
-		} else if (this.owner != owner) {
-			throw new IllegalArgumentException("Tax tree not released by previous owner: " + this.owner);
-		}
-		root.resetCounts();
-	}
-
-	/**
-	 * Releases the current owner claimed via {@link #resetCounts(Object)}.
-	 */
-	public void releaseOwner() {
-		this.owner = null;
-	}
-
-	/**
-	 * Increments the counter of the given node in slot {@code index}. The {@code initKey}
-	 * identifies the current read so that counters left over from a previous read are
-	 * reset rather than accumulated.
-	 *
-	 * @param node    the node whose counter is incremented
-	 * @param index   the counter slot to increment
-	 * @param initKey the key identifying the current read
-	 */
-	// Made final for potential inlining by JVM
-	public final void incCount(final SmallTaxIdNode node, final int index, final long initKey) {
-		node.incCount(index, initKey, countSize);
-	}
-
-	/**
-	 * Sums the counts in slot {@code index} (matching {@code initKey}) along the path
-	 * from the given node up to the root.
-	 *
-	 * @param node    the node to start summing from
-	 * @param index   the counter slot to sum
-	 * @param initKey the key identifying the current read
-	 * @return the sum of the matching counts from the node to the root
-	 */
-	// Made final for potential inlining by JVM
-	public final int sumCounts(SmallTaxIdNode node, final int index, final long initKey) {
-		int res = 0;
-		while (node != null) {
-			if (node.counts != null && node.countsInitKeys != null && node.countsInitKeys[index] == initKey) {
-				res += node.counts[index];
+	public int setSubNodes(Map<String, SmallTaxIdNode[]> subNodesByTaxId) {
+		int changed = 0;
+		for (Map.Entry<String, SmallTaxIdNode[]> entry : subNodesByTaxId.entrySet()) {
+			if (setSubNodes(entry.getKey(), entry.getValue()) != null) {
+				changed++;
 			}
-			node = node.parent;
 		}
-		return res;
+		reinitPositions();
+		return changed;
 	}
 
 	/**
-	 * Walks from the given node up to the root, accumulating the counts in slot
-	 * {@code index} (matching {@code initKey}), and returns the first (lowest) node at
-	 * which the running sum reaches {@code threshold}, or {@code null} if it never does.
+	 * Recomputes the {@code position} of every node by a fresh depth-first traversal, numbering them
+	 * densely from zero, and returns the number of nodes.
+	 * <p>
+	 * Density is not cosmetic: matching keeps one counter per node and per consumer thread, so a
+	 * sparse numbering would inflate those arrays - and their cache footprint - by whatever factor it
+	 * is sparse. The nodes inherit their positions from the full taxonomy, of which this tree keeps
+	 * only the required ones, so they arrive sparse (measured on the viral database: 46,000 nodes
+	 * numbered up to 289,915). This is therefore called whenever a tree is built, loaded or
+	 * restructured, and callers may rely on positions being dense. It is not public: the tree
+	 * establishes its own numbering on construction, on load and after {@link #setSubNodes(Map)}, so
+	 * no caller can be left holding a tree it has to renumber itself.
 	 *
-	 * @param node      the node to start summing from
-	 * @param index     the counter slot to sum
-	 * @param initKey   the key identifying the current read
-	 * @param threshold the running sum to reach
-	 * @return the lowest node where the running sum reaches {@code threshold}, or
-	 *         {@code null} if it never does
+	 * @return the number of nodes in this tree
 	 */
-	// Made final for potential inlining by JVM
-	public final SmallTaxIdNode lowestNodeWhereSumAboveThreshold(SmallTaxIdNode node, final int index, final long initKey, int threshold) {
-		int res = 0;
-		while (node != null) {
-			if (node.counts != null && node.countsInitKeys != null && node.countsInitKeys[index] == initKey) {
-				res += node.counts[index];
-				if (res >= threshold) {
-					return node;
-				}
-			}
-			node = node.parent;
-		}
-		// TODO: Better return null here and handle null in calling code?
-		return null;
+	private int reinitPositions() {
+		nodeCount = root == null ? 0 : root.initPositions(0, 0) + 1;
+		positionsValid = true;
+		return nodeCount;
 	}
 
 	/**
-	 * Returns the number of parallel counter slots per node.
+	 * Returns whether the node positions and depths currently describe this tree, i.e. whether it has
+	 * not been restructured since the last {@link #reinitPositions()}.
 	 *
-	 * @return the configured count size
+	 * @return whether the positions are valid
 	 */
-	public int getCountSize() {
-		return countSize;
+	public boolean isPositionsValid() {
+		return positionsValid;
 	}
+
+	// Guards the one entry point every user of the positions has to pass first: a matcher sizes its
+	// per-node arrays from getNodeCount() before it matches anything, so a restructured tree fails
+	// loudly there instead of producing quietly wrong classifications. The per-node reads themselves
+	// (getPosition(), and the depths isAncestorOf()/getLowestCommonAncestor() use) are deliberately
+	// left unguarded: they run millions of times per file, while validity can only change between
+	// runs, not during one.
+	private void checkPositionsValid() {
+		if (!positionsValid) {
+			throw new IllegalStateException(
+					"The tax tree was restructured without re-establishing its node positions.");
+		}
+	}
+
+	/**
+	 * Returns the number of nodes, which is also the number of distinct
+	 * {@link SmallTaxIdNode#getPosition()} values - so an array indexed by position needs exactly this
+	 * many entries.
+	 * <p>
+	 * It is established when the tree is built, loaded or restructured (see
+	 * {@link #setSubNodes(Map)}), which is what lets matching size its per-node arrays without
+	 * writing to the tree: the tree stays read-only while reads are matched.
+	 *
+	 * @return the number of nodes in this tree
+	 */
+	public int getNodeCount() {
+		checkPositionsValid();
+		return nodeCount;
+	}
+
 
 	/**
 	 * Whether {@code ancestor} lies on the path from {@code node} up to the root,
@@ -240,15 +220,25 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 	 */
 	// Made final for potential inlining by JVM
 	public final boolean isAncestorOf(SmallTaxIdNode node, final SmallTaxIdNode ancestor) {
-		while (node != null) {
-			// == will do, faster than equals on works on closed set of nodes with equals not overriden.
-			if (node == ancestor) {
-				return true;
-			}
-			node = node.parent;
+		if (node == null || ancestor == null) {
+			return false;
 		}
-
-		return false;
+		// The per-node depth (kept current by initTrie()/initPositions(), and relied on by
+		// getLowestCommonAncestor() too) turns this into a bounded walk: an ancestor is never deeper
+		// than its descendant, so a greater depth rules it out without touching memory at all, and
+		// otherwise exactly depth-difference steps suffice. Walking to the root - the bulk of which
+		// was wasted whenever the two nodes are unrelated - is what this replaces; that walk showed up
+		// as the entire measurable cost of read classification in a profile of the matcher.
+		int steps = node.depth - ancestor.depth;
+		if (steps < 0) {
+			return false;
+		}
+		while (steps > 0) {
+			node = node.parent;
+			steps--;
+		}
+		// == will do, faster than equals on works on closed set of nodes with equals not overriden.
+		return node == ancestor;
 	}
 
 	/**
@@ -403,8 +393,6 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		// on reinit. Cached form of getLevel() (root = 0), used by getLowestCommonAncestor().
 		/** The depth of this node (root = 0); see {@link #getLevel()}. */
 		private transient int depth;
-		private transient int[] counts;
-		private transient long[] countsInitKeys;
 		// Made public for inlining
 		/** Index linking this node to its entry in the k-mer database, or {@code -1} if unset. */
 		public transient int storeIndex;
@@ -417,11 +405,32 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		 * @param rank  the taxonomic rank of the node
 		 */
 		public SmallTaxIdNode(String taxId, String name, Rank rank) {
+			this(taxId, name, rank, null);
+		}
+
+		/**
+		 * Creates a node with the given tax id, name, rank and sub-nodes, adopting the sub-nodes as its
+		 * children.
+		 * <p>
+		 * Building a node complete is the supported way to give it children: the structure of a tree
+		 * that is already in use may only be changed through {@link SmallTaxTree#setSubNodes(Map)},
+		 * which re-establishes the node positions afterwards. This constructor is for nodes that are
+		 * not attached to a tree yet.
+		 *
+		 * @param taxId    the tax id of the node
+		 * @param name     the name of the node
+		 * @param rank     the taxonomic rank of the node
+		 * @param subNodes the sub-nodes to adopt, or {@code null} for a leaf
+		 */
+		public SmallTaxIdNode(String taxId, String name, Rank rank, SmallTaxIdNode[] subNodes) {
 			super(taxId, rank);
 			this.name = name;
-			this.parent = parent;
-			subNodes = null;
 			storeIndex = -1;
+			if (subNodes == null) {
+				this.subNodes = null;
+			} else {
+				setSubNodes(subNodes);
+			}
 		}
 
 		private SmallTaxIdNode(TaxIdNode node) {
@@ -544,10 +553,15 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 
 		/**
 		 * Sets this node's sub-nodes and updates each sub-node's parent link to this node.
+		 * <p>
+		 * Not public: restructuring a node that belongs to a tree would leave the tree's node positions
+		 * describing a shape that no longer exists. Attached trees are restructured through
+		 * {@link SmallTaxTree#setSubNodes(Map)}, which renumbers afterwards; a detached node is built
+		 * complete via {@link #SmallTaxIdNode(String, String, Rank, SmallTaxIdNode[])}.
 		 *
 		 * @param subNodes the new sub-nodes to set
 		 */
-		public void setSubNodes(SmallTaxIdNode[] subNodes) {
+		void setSubNodes(SmallTaxIdNode[] subNodes) {
 			this.subNodes = subNodes;
 			for (SmallTaxIdNode subNode : subNodes) {
 				subNode.parent = this;
@@ -629,45 +643,6 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 				}
 			}
 			return null;
-		}
-
-		/**
-		 * Increments this node's counter in slot {@code index}, lazily allocating the
-		 * count arrays of the given {@code size}. The {@code initKey} identifies the
-		 * current read so a stale count from a previous read is reset to one.
-		 *
-		 * @param index   the counter slot to increment
-		 * @param initKey the key identifying the current read
-		 * @param size    the size of the count arrays to allocate lazily
-		 */
-		public final void incCount(final int index, final long initKey, final int size) {
-			if (counts == null || countsInitKeys == null) {
-				synchronized (this) {
-					if (counts == null) {
-						counts = new int[size];
-						countsInitKeys = new long[size];
-					}
-				}
-			}
-			if (countsInitKeys[index] == initKey) {
-				counts[index]++;
-			} else {
-				countsInitKeys[index] = initKey;
-				counts[index] = 1;
-			}
-		}
-
-		private final void resetCounts() {
-			if (countsInitKeys != null) {
-				for (int i = 0; i < countsInitKeys.length; i++) {
-					countsInitKeys[i] = -1;
-				}
-			}
-			if (subNodes != null) {
-				for (int i = 0; i < subNodes.length; i++) {
-					subNodes[i].resetCounts();
-				}
-			}
 		}
 
 		private final void initTrie(DigitTrie<SmallTaxIdNode> trie, int depth) {

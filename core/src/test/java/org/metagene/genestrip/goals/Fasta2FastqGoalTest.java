@@ -71,7 +71,7 @@ public class Fasta2FastqGoalTest extends DBGoalTest {
             new AbstractLoggingFastqStreamer(k, project.intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES), 0, new DefaultExecutionContext(null, 0, 1),
                     true) {
                 @Override
-                protected void nextEntry(AbstractFastqReader.ReadEntry readStruct, int threadIndex) throws IOException {
+                protected void nextEntry(ReadEntry readStruct, ConsumerRunnable consumer) throws IOException {
                     readStruct.write(ps);
                 }
             }.processFastqStreams(streamingResourceStream);
@@ -83,7 +83,7 @@ public class Fasta2FastqGoalTest extends DBGoalTest {
         new AbstractFastqReader(k, project.intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES), 0, new DefaultExecutionContext(null, 0, 1),
                 true) {
             @Override
-            protected void nextEntry(ReadEntry readStruct, int threadIndex) throws IOException {
+            protected void nextEntry(ReadEntry readStruct, ConsumerRunnable consumer) throws IOException {
             }
 
             @Override

@@ -50,8 +50,11 @@ public abstract class AccessionFileProcessor {
     /** Accession prefixes that mark any genomic (DNA) sequence. */
     protected static final String[] ALL_GENOMIC_ACCESSION_PREFIXES = {"AC_", "NC_", "NG_", "NT_", "NW_", "NZ_"};
 
-    /** Accession prefixes that mark a complete genomic (DNA) sequence. */
-    protected static final String[] COMPLETE_GENOMIC_ACCESSION_PREFIXES = {"AC_", "NC_", "NZ_"};
+    // What these select, against the NG_/NT_/NW_ of the full genomic set, are the accession kinds a
+    // genome assembly is made of - not finished genomes against drafts: NZ_ marks every non-curated
+    // genomic sequence of the release, whole-genome shotgun contigs included.
+    /** Accession prefixes considered when {@code refseq.assemblyAccessionsOnly} is set. */
+    protected static final String[] ASSEMBLY_ACCESSION_PREFIXES = {"AC_", "NC_", "NZ_"};
 
     /** Accession prefixes that mark a (non-messenger) RNA sequence. */
     protected static final String[] RNA_PREFIXES = {"NR_", "XR_"};
@@ -252,8 +255,8 @@ public abstract class AccessionFileProcessor {
      * @param start the start offset of the accession
      * @return whether the accession has a complete-genome prefix
      */
-    public static boolean isCompleteGenomicAccession(byte[] outerArray, int start) {
-        String[] prefixes = AccessionFileProcessor.COMPLETE_GENOMIC_ACCESSION_PREFIXES;
+    public static boolean isAssemblyAccession(byte[] outerArray, int start) {
+        String[] prefixes = AccessionFileProcessor.ASSEMBLY_ACCESSION_PREFIXES;
         for (int i = 0; i < prefixes.length; i++) {
             if (ByteArrayUtil.startsWith(outerArray, start, prefixes[i])) {
                 return true;

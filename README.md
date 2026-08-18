@@ -25,20 +25,27 @@
 
 ## Introduction
 
-Metagenomic analysis has become an extremely important field in bioinformatics. To analyse large sets of reads, researchers use highly efficient software tools based on *k*-mer matching and counting such as [Kraken](https://github.com/DerrickWood/kraken), [Kraken 2](https://github.com/DerrickWood/kraken2) or [KrakenUniq](https://github.com/fbreitwieser/krakenuniq). With regard to pathogen detection [KrakenUniq](https://github.com/fbreitwieser/krakenuniq) is particularly suited because of its
- [very low false positive rate](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1568-0) but also because of its efficiency, precision and sensitivity.
+Metagenomic analysis has become an extremely import field in bioinformatics. To analyse large sets of reads, researchers use highly efficient software tools based on *k*-mer matching and counting such as [Kraken](https://github.com/DerrickWood/kraken), [Kraken 2](https://github.com/DerrickWood/kraken2) or [KrakenUniq](https://github.com/fbreitwieser/krakenuniq). With regard to pathogen detection [KrakenUniq](https://github.com/fbreitwieser/krakenuniq) is particularly suited because of its
+ [very low false positive rate](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1568-0) but also because its efficiency, precision and sensitivity.
 
 To avoid false positive classifications of reads or mismatches of *k*-mers, all of these tools resort to very large databases, containing millions of encoded *k*-mers along with their respective tax ids. A database is usually loaded entirely into main memory and consumes tens of gigabytes of space. This requirement mandates specialized and expensive compute servers with very large main memory.
 
-If only a small group of a few dozen species or strains is to be considered, one could simply *generate a smaller database that contains just the *k*-mers of the respective genomes*. **However, when done improperly, this may lead to many false positives at read analysis time.** The reason for this is that due to the evolutionary relationship of organisms, *a large fraction of k-mers that belong to the genome of a species are unspecific* in a sense that they can as well be found in the genome of other species not considered for analysis.
+If only a small group of a few dozen species or strains is to be considered, one could simply *generate a smaller database that contains just the *k*-mers of the respective genomes*. **However, when done improperly, this may lead to many false positives at read analysis time.** The reason for this is that due to the evolutionary relationship of organisms, *a large fraction of k-mers that belong to the genome of a species are unspecific* in a sense that they can as well be found in the genome other species not considered for analysis.
 
 Genestrip offers an efficient and sophisticated database generation process that accounts for this problem: 
-* Genestrip's databases can be generated in a fully automated way on the basis of the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/). On top, genomic files from [Genbank](https://ftp.ncbi.nlm.nih.gov/genomes/genbank/) can be automatically included for the selected group of species or strains. Including such files may refine the database by adding species-related *k*-mers not found in the RefSeq alone.
+* Genstrips's databases can be generated in a fully automated way on the basis of the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/). On top, genomic files from [Genbank](https://ftp.ncbi.nlm.nih.gov/genomes/genbank/) can be automatically included for the selected group of species or strains. Including such files may refine the database by adding species-related *k*-mers not found in the RefSeq alone.
 * Species or strains, whose *k*-mers should be contained, are specified via a text file containing the corresponding [tax ids](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/). 
 * After the database generation has completed, it can be used for highly efficient *k*-mer matching.
 * As a Genestrip database comprises just the genomes of the specified tax ids, it tends to remain small. Therefore analysis can be performed on edge machines as well as on small sized PCs.
 * Much like KrakenUniq, Genestrip supports (exact) unique *k*-mer counting and total *k*-mer counting. Related results are stored in a CSV file. 
 * Moreover, a fastq file can be *filtered* via the *k*-mers of a database to reduce the size of the file considerably. Still, all reads containing *k*-mers of the selected tax ids will be kept in the filtered fastq file. A similar functionality can be achieved via [biobloom](https://github.com/bcgsc/biobloom), but preparing and applying related filters is very convenient with Genestrip.
+
+## Genestrip-FT
+
+This repository also contains **Genestrip-FT** (module `ft`), an extension that refines the taxonomy tree of a
+Genestrip database below the genus rank in order to improve accuracy at and under the species rank.
+Genestrip-FT is part of the executable `lib/genestrip.jar` built here, so its goals (e.g. `ftdb`, `ftdbinfo`, `ftmatch`)
+are available from `bin/genestrip.sh` right away. See [the Genestrip-FT documentation](ft/README.md) for details.
 
 ## License
 
@@ -46,10 +53,10 @@ Genestrip offers an efficient and sophisticated database generation process that
 
 ## How to cite
 
-A paper on Genestrip including an in-depth evaluation has been published [at BMC Bioinformatics](https://link.springer.com/article/10.1186/s12859-026-06512-1).
+A paper on Genestrip including an in-depth evaluation has been published in [BMC Bioinformatics](https://link.springer.com/journal/12859):
 
-**Citation Info:**
-Pfeifer, D., Graf, M. & Rurik, C. Genestrip: exact and efficient read classification for selected groups of organisms. BMC Bioinformatics 27, 134 (2026). https://doi.org/10.1186/s12859-026-06512-1
+> Pfeifer, D., Graf, M., Rurik, C.: Genestrip: exact and efficient read classification for selected groups of organisms.
+> *BMC Bioinformatics* **27**(1), 134 (2026). [doi:10.1186/s12859-026-06512-1](https://doi.org/10.1186/s12859-026-06512-1)
 
 ## Building and installing
 
@@ -63,12 +70,12 @@ These are the dependencies:
 <dependency>
 	<groupId>org.genestrip</groupId>
 	<artifactId>base</artifactId>
-	<version>2.9</version>
+	<version>3.0</version>
 </dependency>
 <dependency>
 	<groupId>org.genestrip</groupId>
 	<artifactId>core</artifactId>
-	<version>2.9</version>
+	<version>3.0</version>
 </dependency>
 ```
 You may check for higher versions and update the dependency accordingly...
@@ -84,7 +91,7 @@ execution under the relative location `..\lib\jre`. So the folders `bin` and `li
 
 [comment]: # (For convenience, the ready-made Zip folder `genestrip-${version}-windows-x64.zip` is also [publicly available for download on genestrip.it.hs-heilbronn.de]https://genestrip.it.hs-heilbronn.de/files/bin.)
 
-### Running the JUnit tests
+### Runnning the JUnit tests
 
 Running these tests is optional for installation and use of Genestrip.
 Caution: Running the tests requires development skills and a deeper understanding of Maven and beyond.
@@ -93,10 +100,22 @@ Some included tests employ [KrakenUniq](https://github.com/fbreitwieser/krakenun
 For this purpose, the maven command `mvn -P gentestdata install`
 ultimately generates sample output data via KrakenUniq. Later on (i.e. under the Maven profile `prerelease`), this data is compared against Genestrip's corresponding output.
 Among other things, the Maven profile `gentestdata` runs a shell script to install KrakenUniq from its sources
-and also executes KrakenUniq but **this only works on Linux and macOS**.
+and also executes KrakeUniq but **this only works on Linux and macOS**.
 
 Afterwards, the Maven command `mvn -P prerelease install` runs all the JUnit tests for 
 Genestrip and more. It will take time...
+
+### Regenerating the documentation
+
+The files [`ConfigParams.md`](ConfigParams.md), [`Goals.md`](Goals.md), [`CSVColumns.md`](CSVColumns.md),
+`GoalGraph.gv.txt` and `GoalGraph.svg` are *generated* from the code by the test class `GenDocFiles`
+(once under `core/src/test/java` for Genestrip and once under `ft/src/test/java` for Genestrip-FT).
+They should be regenerated whenever a goal or a configuration parameter is added or changed.
+
+Rendering `GoalGraph.svg` from `GoalGraph.gv.txt` requires the program `dot` from
+[Graphviz](https://graphviz.org/) to be installed and on the PATH
+(`brew install graphviz` on macOS, `sudo apt-get install graphviz` on Debian or Ubuntu).
+Without it, `GoalGraph.svg` is left as it is and the corresponding test is skipped instead of failing.
 
 [^1]: Counter to common belief, Java can well be used for such high performance applications when using its programming facilities the right way.
 
@@ -111,11 +130,11 @@ in order to generate the `human_virus` database and create a CSV file with basic
 Genestrip follows a goal-oriented approach in order to create any result files (in similarity to [make](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/make.html)). So, when generating the `human_virus` database, Genestrip will
 1. download the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip) and unzip it to `./data/common`,
 1. download the [RefSeq release catalog](https://ftp.ncbi.nlm.nih.gov/refseq/release/release-catalog/) to `./data/common/refseq`,
-1. download [all virus related RefSeq fna files](https://ftp.ncbi.nlm.nih.gov/refseq/release/viral/) to `./data/common/refseq` (which is currently just a single file),
+1. download [all virus related RefSeq fna files](https://ftp.ncbi.nlm.nih.gov/refseq/release/viral/) to `./data/commmon/refseq` (which is currently just a single file),
 1. perform several follow-up goals, until the database file `human_virus_db.zip` is finally made under `./data/projects/human_virus/db`, 
 1. create a CSV file `human_virus_dbinfo.csv` under `./data/projects/human_virus/csv`, which contains basic information about the database, i.e. the number of *k*-mers stored per tax id.
 
-The generated database comprises *k*-mers for all viruses according to the tax id file `./data/projects/human_virus/taxids.txt`.
+The generated database comprises *k*-mers for all viruses according to the tax id file `./data/project/human_virus/taxids.txt`.
 
 
 ### Generating your own database
@@ -145,7 +164,7 @@ In general, Genestrip organizes a project folder `./data/projects/<project_name>
 * `krakenout` is for output files in the style of [Kraken](https://ccb.jhu.edu/software/kraken/MANUAL.html#output-format). They may optionally be generated when analyzing fastq files.
 * `log` is reserved for future use in conjunction with a server-side integration of Genestrip.
 
-A database covering more species may require more memory - especially while generating the database. This can be addressed by adjusting the script `genestrip.sh` where the argument `-Xmx32g` sets the maximum heap space of the Java Virtual Machine to 32GB. E.g. to double it, simply replace `32g` by `64g`.
+A database covering more species may require more memory - especially while generating the database. This can be addressed by adjusting the script `genestrip.sh` where the argument `-Xmx32g` sets the maximum heap space of the Java Virtual Machine to 32GB. E.g. to double it, simple replace `32g` by `64g`.
 
 ### Some preconfigured and ready-made databases
 
@@ -161,11 +180,11 @@ sh ./bin/genestrip.sh human_virus match -f ./data/projects/human_virus/fastq/sam
 ```
 The resulting CSV file will be named `human_virus_match_sample.csv` under `./data/projects/human_virus/csv`. The same applies to your own projects under `./data/projects`.
 
-**Important: Regarding analysis and filtering (see below), files in fasta format (as recognized by the file name suffixes `.fasta`, `.fa`, `.fna`, `.fas` and additionally these suffixes with `.gz` or `.gzip` appended) can also be used instead of fastq files. However, for simplicity, we only speak of fastq files below.**
+**Important: Regarding analysis and filtering (see below), files in fasta format (as recognized by the file name suffixes `.fasta`, `.fa`, `.fna`, `.fas` and additionally these suffixes with  `.gz` or `.gzip` appended) can also be used instead of fastq files. However for simplicity, we only speak of fastq files below.**
 
 These are a few lines of its contents along with the header line:
 ```
-pos;level;name;rank;taxid;reads;kmers from reads;kmers;unique kmers;contigs;average contig length;max contig length;reads >=1 kmer;reads bps;avg. read length;db coverage;exp. unique kmers;unique kmers / exp.;db kmers;parent taxid;mean error;kmer error std. dev.;mean class error;class error std. dev.;contig len std. dev.;norm. reads;norm. kmers;norm. reads bps;norm. read >=1 kmer;norm. reads kmers;acc. reads;acc. norm. reads;acc. kmers;acc. norm. kmers;acc. reads bps;acc. norm. reads bps;acc. read >=1 kmer;acc. norm. read >=1 kmer;acc. reads kmers;acc. norm. reads kmers;max contig desc.;acc. mean error;acc. error std. dev.;acc. class mean error;acc. class error std. dev.;
+pos;level;name;rank;taxid;reads;kmers from reads;kmers;unique kmers;contigs;average contig length;max contig length;reads >=1 kmer;reads bps;avg. read length;db coverage;exp. unique kmers;unique kmers / exp.;db kmers;parent taxid;mean error;kmer error std. dev.;mean class error;class error std. dev.;contig len std. dev.;norm. reads;norm. kmers;norm. reads bps;norm. read >=1 kmer;norm. reads kmers;acc. reads;acc. norm. reads;acc. kmers;acc. norm. kmers;acc. reads bps;acc. norm. reads bps;acc. read >=1 kmer;acc. norm. read >=1 kmer;acc. reads kmers;acc. norm. reads kmers;max contig desc.;acc. mean error;acc. error std. dev.;acc. mean class error;acc. class error std. dev.;
 0;0;TOTAL;;;6565;0;461305;0;0;;0;0;658255;100.26732673267327;;;;3874865;;;;;;;;;;;;;;;;;;;;;;;;;;;
 1;0;root;no rank;1;0;0;0;0;0;;0;0;0;;;0.0;;0;;;;;;;;;;;;6565;110.80892379177433;63420;1187.656464706551;658255;11103.420673505594;11249;199.19525866157664;63403;667.6912937342508;;0.8623911780077301;0.14201033165147517;0.8624860079844158;0.1419158433310467;
 2;1;Viruses;acellular root;10239;192;1263;34590;92;3768;9.179936305732484;68;3390;19270;100.36458333333333;0.736;125.0;0.736;125;1;0.9063430519959522;0.07709736170622387;0.9065652183272735;0.07723713245855049;8.86754735652304;1.536;276.72;154.16;27.12;10.104;6565;110.80892379177433;63420;1187.656464706551;658255;11103.420673505594;11249;199.19525866157664;63403;667.6912937342508;NS500362:54:HT523BGX2:4:13606:8875:6204;0.8623911780077301;0.14201033165147517;0.8624860079844158;0.1419158433310467;
@@ -184,15 +203,16 @@ pos;level;name;rank;taxid;reads;kmers from reads;kmers;unique kmers;contigs;aver
 
 ### Reliability of results
 
-We cannot guarantee for any results returned by Genestrip. Use this software at your own risk.
+We cannot guarantee for any results returned by Genestrip. Use this software at your own risk. **Important: It is by no means meant to be used for any medical purposes** and it is purely experimental in nature.
 
-We tested Genestrip in the following ways:
+Despite of the these limitations, we tested the Genestrip in the following ways:
 * Critical code is covered by functional tests (using [JUnit](https://junit.org)).
 * Comprehensive automated tests check for *exact match* of read classification results obtained via KrakenUniq and Genestrip.
 * Genestrip's results have been evaluated using various benchmark datasets.
-* We applied Genestrip to many real-world fastq files, where the findings matched expectations.
+* We applied Genestrip to several real-world fastq files, 
+where the findings matched the expectations.
 
-A paper on Genestrip with an in-depth evaluation is published [at BMC Bioinformatics](https://link.springer.com/article/10.1186/s12859-026-06512-1).
+Take a look at [the Genestrip paper](https://doi.org/10.1186/s12859-026-06512-1) in [BMC Bioinformatics](https://link.springer.com/journal/12859) for evaluation details.
 
 ### Filtering fastq files
 
@@ -301,7 +321,7 @@ The following goal graph depicts the goals' dependencies (without the trivial go
 Regarding analysis, fastq files will processed in one of the following ways:
 1. Reading from the file system: This happens if a *file path* is given after the `-f` option.
 1. *Streaming* from the network: This happens if a *URL* is given after the `-f` option. (The corresponding fastq file will not be downloaded to the file system then.)
-1. *Downloading* from the network: This happens if a *URL* is given after the `-f` option *and if the option `-l` or `-ll`* is given, respectively. The corresponding fastq file will be downloaded if not yet present. Afterwards, the downloaded file will be processed from the file system.
+1. *Downloading* from the network: This happens if a *URL* is given after the `-f` option *and if the option `-l` or `-ll`* is given, respectively. The corresponding fastq file be downloaded if not yet present. Afterwards, the downloaded file will be processed from the file system.
 
 A comma-separated list of file paths or URLs or both may be put after `-f` without blanks. In this case, related fastq files will be analyzed together and the results will be merged.
 
@@ -321,7 +341,7 @@ and produces the result file `./someprojectname_match_mysample.csv`.
 
 ### Targets
 
-Genestrip supports four targets for each goal, namely `make`, `clean`, `cleanall` and `cleantotal`:
+Genestrip supports three targets for each goal, namely `make`, `clean`, `cleanall` and `cleantotal`:
 
 - `make` is the default target. It executes a given goal as explained before and creates the files associated with the goal in a lazy manner. If the corresponding files already exist, then `make` does nothing.
 - `clean` *deletes* all files associated with the given goal, but it does not delete any files of goals that the given goal depends on.
@@ -337,7 +357,9 @@ Entries per line should have the form
 ```
 [**This is a list of all configuration parameters**](ConfigParams.md)
 
-An optional configuration properties file `config.properties` may also be put under the project folder `<base dir>/projects/<project_name>`. Configuration entries from the project level override entries from the level `<base dir>`.
+An optional configuration properties file `config.properties` may also be put under the projects folder `<base dir>/projects`. Its entries apply to *all* projects and override entries from the level `<base dir>`.
+
+An optional configuration properties file `config.properties` may also be put under the project folder `<base dir>/projects/<project_name>`. Configuration entries from the project level override entries from the levels `<base dir>/projects` and `<base dir>`.
 
 Moreover, configuration parameters may be set on the command line like this:
 ```
@@ -358,10 +380,10 @@ The line format is
 <taxid> <path_to_fasta_file>
 ```
 where `<taxid>` is the (unique) tax id associated with the file's genomic data. (Multiple tax ids per fasta file are not supported in this context.) 
-If `<path_to_fasta_file>` is a file name without a path prefix, then the file is assumed to be located in `<base dir>/projects/<project_name>/fasta`. If not found there,
+If `<path_to_fastq_file>` is a file name without a path prefix, then the file is assumed to be located in `<base dir>/projects/<project_name>/fasta`. If not found there,
 the directory `<base dir>/common/fasta` will be checked as a secondary location.
 
-This adding of fasta files can also be used to *just* correct the least common ancestor of *k*-mers in the resulting database since the added fasta files will be automatically used during the update phase of the ``db`` goal. E.g., to correct the least common ancestor of *k*-mers occurring in a purely `protozoa`n database *but also* in the human genome, one may simply add
+This adding of fasta files can also be used to *just* correct the least common ancestor of *k*-mers in the resulting database since the added fasta files will be automatically used during the update phase of the ``db`` goal. E.g., to correct the least common ancestor of *k*-mers occurring in a purely `protozoa`n database *but also* in the human genome, one may simple add
 ```
 9606 <path_to_human_genome_fasta_file>
 ```

@@ -91,16 +91,29 @@ public class DBQualityCSVGoal<P extends FTProject> extends FileGoal<P> {
         SmallTaxTree tree = storeGoal.get().getTaxTree();
 
         try (PrintStream ps = new PrintStream(file, StandardCharsets.UTF_8)) {
-            ps.println("taxid;name;rank;parent taxid;tp;tp+fp;tp+fn;precision;recall;weighted avg precision;weighted avg recall;node precision");
+            // The tp/tp+fp/tp+fn columns refer to the paths from the data taxa under a node up to the
+            // root and back the unweighted averages and the recalls. The subtree columns refer to the
+            // paths up to the node itself and back the weighted avg precision, which is relative to the
+            // subtree it is reported for and is simply their quotient. The subtree precision refers to
+            // the same subtree and averages the per-k-mer precision over its "subtree kmers" k-mers.
+            // The last two columns restrict the subtree precision to the k-mers stored above the data
+            // taxa. A k-mer at a data taxon is fixed at a precision of one by construction, and such
+            // k-mers are the bulk of a database, so they dominate the unrestricted average while being
+            // incapable of improvement. They are appended rather than inserted so that the position of
+            // the existing columns stays as it was.
+            ps.println("taxid;name;rank;parent taxid;tp;tp+fp;tp+fn;subtree tp;subtree tp+fp;subtree kmers;unweighted avg precision;unweighted avg recall;weighted avg precision;weighted avg recall;node precision;subtree precision;subtree kmers above data;restricted subtree precision");
             // We want result in order of the tree:
             for (SmallTaxTree.SmallTaxIdNode node : tree) {
                 DBQualityCountsGoal.Counts counts = kmersPerTax.get(node.getTaxId());
-                if (counts != null) {
+                // Nodes without any data taxon underneath - in particular the artificial "OTHER" nodes
+                // introduced by the refinement - carry no genomic evidence at all. Precision and recall
+                // are undefined for them, so they are left out entirely instead of reporting NaN.
+                if (counts != null && counts.getLeaves() > 0) {
                     ps.print(node.getTaxId());
                     ps.print(";");
                     ps.print(node.getName());
                     ps.print(";");
-                    ps.print(node.getRank().getName());
+                    ps.print(node.getRank() == null ? "null" : node.getRank().getName());
                     ps.print(";");
                     SmallTaxTree.SmallTaxIdNode parent = node.getParent();
                     ps.print(parent == null ? "null" : parent.getTaxId());
@@ -111,19 +124,43 @@ public class DBQualityCSVGoal<P extends FTProject> extends FileGoal<P> {
                     ps.print(";");
                     ps.print(counts.getTpPlusFn());
                     ps.print(";");
-                    ps.print(DF.format(counts.getAvgPrecision()));
+                    ps.print(counts.getSubtreeTp());
                     ps.print(";");
-                    ps.print(DF.format(counts.getAvgRecall()));
+                    ps.print(counts.getSubtreeTpPlusFp());
                     ps.print(";");
-                    ps.print(DF.format(counts.getPrecision()));
+                    ps.print(counts.getSubtreeKmerSum());
                     ps.print(";");
-                    ps.print(DF.format(counts.getRecall()));
+                    ps.print(format(counts.getAvgPrecision()));
                     ps.print(";");
-                    ps.print(DF.format(counts.getNodePrecision()));
+                    ps.print(format(counts.getAvgRecall()));
+                    ps.print(";");
+                    ps.print(format(counts.getPrecision()));
+                    ps.print(";");
+                    ps.print(format(counts.getRecall()));
+                    ps.print(";");
+                    ps.print(format(counts.getNodePrecision()));
+                    ps.print(";");
+                    ps.print(format(counts.getSubtreePrecision()));
+                    ps.print(";");
+                    ps.print(counts.getSubtreeKMersAboveData());
+                    ps.print(";");
+                    ps.print(format(counts.getRestrictedSubtreePrecision()));
                     ps.print(";");
                     ps.println();
                 }
             }
         }
+    }
+
+    /**
+     * Formats a metric for the CSV, writing an empty field for an undefined value. Node precision is
+     * undefined for nodes without k-mers, and the subtree averages are undefined for subtrees without
+     * any, which {@link DBQualityCountsGoal.Counts} reports as {@code NaN}.
+     *
+     * @param value the metric to format
+     * @return the formatted value, or the empty string if it is undefined
+     */
+    private static String format(double value) {
+        return Double.isNaN(value) ? "" : DF.format(value);
     }
 }

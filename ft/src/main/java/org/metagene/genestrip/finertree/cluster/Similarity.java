@@ -22,14 +22,28 @@
  * Licensor: Daniel Pfeifer (daniel.pfeifer@progotec.de)
  * 
  */
-package org.metagene.genestrip.store;
+package org.metagene.genestrip.finertree.cluster;
 
-import java.io.Serializable;
+/**
+ * Provides pairwise similarity values over a fixed set of items, indexed from {@code 0} to
+ * {@link #values()}{@code  - 1}. Used as the input to hierarchical agglomerative clustering in
+ * {@link SimpleAggloClustering}.
+ */
+public interface Similarity {
+    /**
+     * Returns the number of items over which similarities are defined.
+     *
+     * @return the item count
+     */
+    public int values();
 
-public class KMerLargeSortedArrayTest extends AbstractKMerStoreTest {
-	@Override
-	public <V extends Serializable> KMerStore<V> createKMerStore(Class<V> clazz, int k, long[] kmers) {
-		KMerSortedArray<V> store = new KMerSortedArray<V>(k, 0.000001, 0.000001, null, true, true, kmers.length);
-		return store;
-	}
+    /**
+     * Returns the similarity between the items at indices {@code i} and {@code j}. Implementations
+     * are expected to be symmetric, i.e. {@code getSimilarity(i, j) == getSimilarity(j, i)}.
+     *
+     * @param i the index of the first item
+     * @param j the index of the second item
+     * @return the similarity between the two items
+     */
+    public double getSimilarity(int i, int j);
 }

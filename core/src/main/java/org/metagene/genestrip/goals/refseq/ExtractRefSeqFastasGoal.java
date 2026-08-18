@@ -46,9 +46,15 @@ import java.io.PrintStream;
 import java.util.*;
 
 /**
- * Goal that extracts the selected RefSeq regions into individual FASTA files (with kraken2-style
+ * Goal that extracts the selected regions into individual FASTA files (with kraken2-style
  * {@code |kraken:taxid|} headers) under the project's FASTA directory, and produces a map from each
  * sequence description to its taxid.
+ * <p>
+ * The selection matches the one of {@link FillDBGoal}: the same RefSeq categories, the same
+ * additional FASTA files -- those downloaded from Genbank and those named in the project's
+ * {@code additional.txt} -- and the same per-tax-id limits on genomes and $k$-mers. The extracted
+ * files therefore represent exactly the genomes a database is filled from, which is what makes them
+ * a valid basis for simulating reads against that database.
  *
  * @param <P> the project type
  */
@@ -57,21 +63,25 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
     private Map<String, String> descr2TaxId;
 
     /**
-     * Creates the goal, wiring the categories, tax-node, RefSeq-file and accession-map goals it reads.
+     * Creates the goal, wiring the categories, tax-node, RefSeq-file, additional-FASTA and
+     * accession-map goals it reads.
      *
      * @param project the project type
      * @param bundle the execution context providing threading and shared services
      * @param categoriesGoal the goal supplying the selected RefSeq categories
      * @param taxNodesGoal the goal supplying the selected taxonomic nodes
      * @param fnaFilesGoal the goal supplying the downloaded RefSeq FASTA files
+     * @param additionalGoal the goal supplying additional FASTA files mapped to their tax node,
+     *                       i.e. the Genbank downloads and the project's own additional files
      * @param accessionMapGoal the goal supplying the accession-to-tax-id map
      * @param deps the additional goals this goal depends on
      */
     @SafeVarargs
     public ExtractRefSeqFastasGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
                                    ObjectGoal<Set<TaxTree.TaxIdNode>, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+                                   ObjectGoal<Map<File, TaxTree.TaxIdNode>, P> additionalGoal,
                                    ObjectGoal<AccessionMap, P> accessionMapGoal, Goal<P>... deps) {
-        super(project, GSGoalKey.EXTRACT_REFSEQ_FASTA, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, null, Goal.append(deps, accessionMapGoal));
+        super(project, GSGoalKey.EXTRACT_REFSEQ_FASTA, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, accessionMapGoal));
         this.accessionMapGoal = accessionMapGoal;
         descr2TaxId = Collections.synchronizedMap(new HashMap<>());
     }
@@ -85,7 +95,6 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
             throw new RuntimeException(e);
         } finally {
             descr2TaxId = null;
-            cleanUpThreads();
         }
     }
 
@@ -96,8 +105,8 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
                 intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
                 (Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
                 longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
-                intConfigValue(GSConfigKey.STEP_SIZE),
-                booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY),
+                intConfigValue(GSConfigKey.KMER_SAMPLING),
+                booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY),
                 regionsPerTaxid,
                 booleanConfigValue(GSConfigKey.EXTRACT_REFSEQ_GZIP));
     }
@@ -120,14 +129,14 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
          * @param maxGenomesPerTaxId the maximum number of genomes kept per tax id
          * @param maxGenomesPerTaxIdRank the rank at which the genome limit is applied
          * @param maxKmersPerTaxId the maximum number of k-mers kept per tax id
-         * @param stepSize the k-mer sampling step size
-         * @param completeGenomesOnly whether only complete genomes are considered
+         * @param kMerSampling the k-mer sampling step size
+         * @param assemblyAccessionsOnly whether only complete genomes are considered
          * @param regionsPerTaxid the per-tax-id region counter
          * @param gzip whether the output FASTA files are GZIP-compressed
          */
         public MyFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-                             int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean gzip) {
-            super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, stepSize, completeGenomesOnly, regionsPerTaxid);
+                             int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie regionsPerTaxid, boolean gzip) {
+            super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, kMerSampling, assemblyAccessionsOnly, regionsPerTaxid);
             this.gzip = gzip;
         }
 
@@ -135,7 +144,15 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
         protected void infoLine() {
             super.infoLine();
             if (includeRegion) {
+                // The name is the accession, i.e. everything up to the description. A header without
+                // a description has none of the latter, so the region reaches to the end of the line.
                 int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
+                if (pos < 0) {
+                    pos = size;
+                    while (pos > 1 && (target[pos - 1] == '\n' || target[pos - 1] == '\r')) {
+                        pos--;
+                    }
+                }
                 String name = new String(target, 1, pos - 1, StandardCharsets.UTF_8);
                 String taxid = node.getTaxId();
                 descr2TaxId.put(name, taxid);

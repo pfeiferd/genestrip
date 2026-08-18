@@ -63,7 +63,7 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 	private final ObjectGoal<AccessionMap, P> accessionMapGoal;
 	private final ObjectGoal<TaxTree, P> taxTreeGoal;
 	private final ObjectGoal<Database, P> filledStoreGoal;
-	private final boolean minUpdate;
+	private final GSConfigKey.UpdateScope updateScope;
 
 	private KMerStore<String> store;
 
@@ -88,16 +88,62 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 				  ObjectGoal<Map<File, TaxIdNode>, P> additionalGoal,
 			ObjectGoal<AccessionMap, P> accessionMapGoal, ObjectGoal<Database, P> filledStoreGoal,
 			Goal<P>... deps) {
-		super(project, GSGoalKey.UPDATE_DB, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, taxTreeGoal, accessionMapGoal, filledStoreGoal));
+		// true, and not the configured `refseq.filldb': this pass reads the RefSeq whether or not the
+		// database was filled from it. A k-mer's tax id is the lowest common ancestor of the taxa of
+		// every genome containing it, and the genomes that would raise it above the requested taxa are
+		// precisely the ones of other taxa - which live in the RefSeq release. Skipping it here would
+		// leave every k-mer that a relative also carries claimed for the requested taxon, and reads of
+		// that relative would be reported as the requested one.
+		super(project, GSGoalKey.UPDATE_DB, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, true, Goal.append(deps, taxTreeGoal, accessionMapGoal, filledStoreGoal));
 		this.taxTreeGoal = taxTreeGoal;
 		this.accessionMapGoal = accessionMapGoal;
 		this.filledStoreGoal = filledStoreGoal;
-		minUpdate = project.booleanConfigValue(GSConfigKey.MIN_UPDATE);
+		updateScope = (GSConfigKey.UpdateScope) project.configValue(GSConfigKey.UPDATE_SCOPE);
 	}
 
-	@Override
-	protected boolean isIncludeRefSeqFna() {
-		return true;
+	/**
+	 * Decides whether a region takes part in the update, given the configured scope, the node the
+	 * region resolved to, and whether it comes from the RefSeq release.
+	 * <p>
+	 * The scope restricts the <em>release</em> and nothing else, which is what its name
+	 * {@code refseq.updateScope} says: a genome the project supplies itself - an entry of
+	 * {@code additional.txt} or one downloaded from Genbank - always takes part. Those genomes are
+	 * the ones the database was filled from, each under its own identity, so the update meets every
+	 * one of them under the identity the fill gave it and {@code LCA(n, n) = n} leaves it where it
+	 * is. What it does do there is the half of the update that a per-assembly database still needs:
+	 * a k-mer that two of those genomes share settles on their common ancestor instead of staying
+	 * claimed for whichever of them happened to be read first. Only the release presents the same
+	 * genome a second time under another identity, so only the release is worth restricting.
+	 * <p>
+	 * A {@code null} node means the region's accession is not in the accession map, so its taxon is
+	 * unknown. Such a region cannot raise anything - the lowest common ancestor with no node is the
+	 * stored value - and it is treated as belonging to no selected taxon, which is what
+	 * {@link GSConfigKey.UpdateScope#OTHER_TAXA_ONLY} says about it and why
+	 * {@link GSConfigKey.UpdateScope#OWN_TAXA_ONLY} leaves it out.
+	 *
+	 * @param scope the configured update scope
+	 * @param taxNodes the tax nodes selected for the database, including their descendants
+	 * @param node the node the region resolved to, or {@code null} if its taxon is unknown
+	 * @param fromRefSeqRelease whether the region stems from the RefSeq release rather than from a
+	 *                          fasta the project supplies itself
+	 * @return whether the region's k-mers are to be merged into the store
+	 */
+	static boolean isRegionInScope(GSConfigKey.UpdateScope scope, Set<TaxIdNode> taxNodes, TaxIdNode node,
+			boolean fromRefSeqRelease) {
+		if (!fromRefSeqRelease) {
+			return true;
+		}
+		switch (scope) {
+		case OWN_TAXA_ONLY:
+			// An empty selection means no restriction, so every known region qualifies as "ours".
+			return node != null && (taxNodes.isEmpty() || taxNodes.contains(node));
+		case OTHER_TAXA_ONLY:
+			// No special case for an empty selection is needed here: nothing is then "ours", so
+			// nothing is skipped, which is the same no-restriction reading as above.
+			return !taxNodes.contains(node);
+		default:
+			return true;
+		}
 	}
 
 	@Override
@@ -125,7 +171,6 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 			throw new RuntimeException(e);
 		} finally {
 			store = null;
-			cleanUpThreads();
 		}
 	}
 
@@ -137,13 +182,14 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 				(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
 				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
 				intConfigValue(GSConfigKey.MAX_DUST),
-				intConfigValue(GSConfigKey.STEP_SIZE),
-				booleanConfigValue(GSConfigKey.UPDATE_WITH_COMPLETE_GENOMES_ONLY),
+				intConfigValue(GSConfigKey.KMER_SAMPLING),
+				booleanConfigValue(GSConfigKey.UPDATE_WITH_ASSEMBLY_ACCESSIONS_ONLY),
 				null,
 				booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES),
 				booleanConfigValue(GSConfigKey.DATA_NODES),
 				booleanConfigValue(GSConfigKey.FILE_NODES),
-				booleanConfigValue(GSConfigKey.ID_NODES));
+				booleanConfigValue(GSConfigKey.ID_NODES),
+				(Rank) configValue(GSConfigKey.FOLD_TAXA_BELOW));
 	}
 
 	/**
@@ -176,8 +222,8 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 		 * @param maxGenomesPerTaxIdRank the rank at which the genome limit applies
 		 * @param maxKmersPerTaxId the maximum number of k-mers per taxid
 		 * @param maxDust the maximum dust (low-complexity) threshold
-		 * @param stepSize the k-mer sampling step size
-		 * @param completeGenomesOnly whether to restrict to complete genomes only
+		 * @param kMerSampling the k-mer sampling step size
+		 * @param assemblyAccessionsOnly whether to restrict to complete genomes only
 		 * @param regionsPerTaxid the trie of regions per taxid
 		 * @param enableLowerCaseBases whether lowercase bases are treated as valid
 		 * @param dataNodes whether artificial {@code DATA} nodes are used
@@ -186,11 +232,11 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 		 */
 		@SuppressWarnings("unchecked")
 		public MyFastaReader(int bufferSize, TaxTree taxTree, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, KMerStore<String> store,
-							 int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases,
-							 boolean dataNodes, boolean fileNodes, boolean idNodes) {
+							 int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases,
+							 boolean dataNodes, boolean fileNodes, boolean idNodes, Rank foldTaxaBelow) {
 			// Lookup mode: the fill already created every artificial node, so no id generator is needed.
-			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases,
-					taxTree, dataNodes, fileNodes, idNodes, false, null);
+			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, regionsPerTaxid, enableLowerCaseBases,
+					taxTree, dataNodes, fileNodes, idNodes, false, null, foldTaxaBelow);
 			this.store = store;
 			if (store instanceof RadixKMerStore) {
 				radixStore = (RadixKMerStore<String>) store;
@@ -233,15 +279,7 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 				updateNodeFromInfoLine();
 			}
 
-			if (minUpdate) {
-				// This means we use all regions that overlap deal with our taxids.
-				// It might be more than what is in the DB but still less than the entire RefSeq.
-				if (node != null && (taxNodes.isEmpty() || taxNodes.contains(node))) {
-					includeRegion = true;
-					node = reworkNode();
-				}
-			}
-			else {
+			if (isRegionInScope(updateScope, taxNodes, node, isRefSeqReleaseRegion())) {
 				includeRegion = true;
 				if (node != null) {
 					node = reworkNode();
@@ -266,9 +304,9 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 		}
 
 		@Override
-		protected boolean handleStore() {
+		protected boolean handleStore(long kmer) {
 			if (batch != null) {
-				if (batch.add(byteRingBuffer.getStandardKMer())) {
+				if (batch.add(kmer)) {
 					radixStore.updateBatch(batch, provider);
 				}
 				// The counted-k-mer return value is unused by this reader (endRegion does no region
@@ -276,7 +314,7 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 				// batched k-mer need not be reported here.
 				return false;
 			}
-			return store.update(byteRingBuffer.getStandardKMer(), provider);
+			return store.update(kmer, provider);
 		}
 	}
 }

@@ -44,9 +44,19 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected final Set<TaxIdNode> taxNodes;
 	/** Maps sequence accessions to their tax id nodes. */
 	protected final AccessionMap accessionMap;
-	/** Maximum number of genomes (regions) to include per tax id, or unlimited if non-positive. */
+	/**
+	 * Maximum number of genomes (regions) to include per tax id. There is no value standing for "no
+	 * limit": the limit is switched off by setting it high, which is what its configured default of
+	 * {@code Integer.MAX_VALUE} does. A value of zero or less admits nothing at all, since the count
+	 * of an existing entry is never below it.
+	 */
 	protected final int maxGenomesPerTaxId;
-	/** Maximum number of k-mers to include per tax id, or unlimited if non-positive. */
+	/**
+	 * Maximum number of k-mers to include per tax id. As with the genome limit there is no value
+	 * standing for "no limit"; it is switched off by setting it high. Note that zero is within the
+	 * configured range of {@code maxKMersPerTaxid} and yields an <em>empty</em> database rather than an
+	 * unlimited one.
+	 */
 	protected final long maxKmersPerTaxId;
 	/** Taxonomic rank at which the per-tax-id genome limit is applied. */
 	protected final Rank maxGenomesPerTaxIdRank;
@@ -54,9 +64,9 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected final StringLong2DigitTrie regionsPerTaxid;
 	/** The k-mer length. */
 	protected final int k;
-	/** The step size between successive k-mers. */
-	protected final int stepSize;
-	private final boolean completeGenomesOnly;
+	/** One k-mer in this many is kept, selected by the k-mer itself; see {@code KMerSampling}. */
+	protected final int kMerSampling;
+	private final boolean assemblyAccessionsOnly;
 
 	/** Whether the current region is being included. */
 	protected boolean includeRegion;
@@ -71,7 +81,10 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 
 	/** Whether accession-map lookups are currently bypassed in favor of {@link #mappedNode}. */
 	protected boolean ignoreMap;
-	/** Number of base pairs seen in the current region. */
+	/**
+	 * Number of base pairs seen in the current region. Kept as a statistic; it no longer decides which
+	 * k-mers are stored, which the k-mer itself does now.
+	 */
 	protected long bpsInRegion;
 	/** Number of k-mers seen in the current region. */
 	protected long kmersInRegion;
@@ -89,18 +102,18 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	 * @param maxGenomesPerTaxId     the maximum number of genomes per tax id
 	 * @param maxGenomesPerTaxIdRank the rank at which the genome limit is applied
 	 * @param maxKmersPerTaxId       the maximum number of k-mers per tax id
-	 * @param stepSize               the step size between successive k-mers
-	 * @param completeGenomesOnly    whether only complete genomes are considered
+	 * @param kMerSampling               the step size between successive k-mers
+	 * @param assemblyAccessionsOnly    whether only complete genomes are considered
 	 * @param regionsPerTaxid        the trie counting included regions per tax id
 	 */
 	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId,
 									 Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId,
-									 int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid) {
+									 int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie regionsPerTaxid) {
 		super(bufferSize);
 		this.taxNodes = taxNodes;
 		this.accessionMap = accessionMap;
 		this.k = k;
-		this.stepSize = stepSize;
+		this.kMerSampling = kMerSampling;
 		includeRegion = false;
 		ignoreMap = false;
 		includedKmers = 0;
@@ -108,7 +121,7 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		this.maxGenomesPerTaxId = maxGenomesPerTaxId;
 		this.maxGenomesPerTaxIdRank = maxGenomesPerTaxIdRank;
 		this.maxKmersPerTaxId = maxKmersPerTaxId;
-		this.completeGenomesOnly = completeGenomesOnly;
+		this.assemblyAccessionsOnly = assemblyAccessionsOnly;
 	}
 
 	/**
@@ -140,6 +153,26 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	}
 
 	/**
+	 * Returns whether the file currently being read is one of the RefSeq release's own fna files.
+	 * <p>
+	 * The two kinds of input differ in exactly one way, and that is what this reads off: a release
+	 * file carries genomes of arbitrary taxa and its regions are resolved through the accession map,
+	 * while a file the project supplies itself - an entry of {@code additional.txt} or a genome
+	 * downloaded from Genbank - arrives with the tax node it belongs to and is read with the map
+	 * bypassed. {@link #ignoreAccessionMap(TaxIdNode)} is what sets the two apart, and
+	 * {@code FastaReaderGoal.readFastas()} calls it before every file so that the answer describes
+	 * the file in hand and not one read earlier.
+	 * <p>
+	 * Callers that treat the release differently from the project's own genomes ask this rather than
+	 * {@link #ignoreMap} directly, since it is the distinction and not the map lookup they mean.
+	 *
+	 * @return whether the current region stems from the RefSeq release rather than from a project fasta
+	 */
+	protected final boolean isRefSeqReleaseRegion() {
+		return !ignoreMap;
+	}
+
+	/**
 	 * Resets the per-region flags and counters at the start of a new region.
 	 */
 	@Override
@@ -167,6 +200,12 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	/**
 	 * Processes a region header: resolves the region's tax id node and decides whether the region is
 	 * included, based on the configured per-tax-id genome and k-mer limits.
+	 * <p>
+	 * With a {@code maxGenomesPerTaxIdRank} configured, the limits are counted at the first ancestor of
+	 * that rank. A lineage that has no such ancestor - and the taxonomy is full of them - is capped at
+	 * its own node instead. Leaving it uncapped, as this once did by falling out of the search loop
+	 * without checking anything, means that configuring a rank silently exempts part of the tree from a
+	 * limit that was set to bound the database.
 	 */
 	@Override
 	protected void infoLine() {
@@ -181,28 +220,23 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 			node = reworkNode();
 			includeRegion = true;
 			kMersForNode = 0;
-			if (maxGenomesPerTaxIdRank == null) {
-				StringLong2DigitTrie.StringLong2 sl = (StringLong2DigitTrie.StringLong2) regionsPerTaxid.get(node.getTaxId());
-				if (sl != null) {
-					kMersForNode = sl.longValue2;
-					if (kMersForNode >= maxKmersPerTaxId || sl.getLongValue() >= maxGenomesPerTaxId) {
-						includeRegion = false;
+			TaxIdNode limitNode = node;
+			if (maxGenomesPerTaxIdRank != null) {
+				for (TaxIdNode n = node; n != null; n = n.getParent()) {
+					if (maxGenomesPerTaxIdRank.equals(n.getRank())) {
+						limitNode = n;
+						break;
 					}
 				}
 			}
-			else {
-				for (TaxIdNode n = node; n != null; n = n.getParent()) {
-					if (maxGenomesPerTaxIdRank.equals(n.getRank())) {
-						StringLong2DigitTrie.StringLong2 sl =
-								(StringLong2DigitTrie.StringLong2) regionsPerTaxid.get(n.getTaxId());
-						if (sl != null) {
-							kMersForNode = sl.longValue2;
-							if (kMersForNode >= maxKmersPerTaxId || sl.getLongValue() >= maxGenomesPerTaxId) {
-								includeRegion = false;
-							}
-						}
-						break;
-					}
+			StringLong2DigitTrie.StringLong2 sl =
+					(StringLong2DigitTrie.StringLong2) regionsPerTaxid.get(limitNode.getTaxId());
+			if (sl != null) {
+				// Read without holding the entry's monitor, so these may be behind what other reader
+				// threads have already added; see the class comment of the trie entry.
+				kMersForNode = sl.longValue2;
+				if (kMersForNode >= maxKmersPerTaxId || sl.getLongValue() >= maxGenomesPerTaxId) {
+					includeRegion = false;
 				}
 			}
 		}
@@ -214,6 +248,11 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	/**
 	 * Returns whether more k-mers may still be added for the current node without exceeding the
 	 * configured per-tax-id k-mer limit.
+	 * <p>
+	 * The limit is approximate in two ways, both of which let it be exceeded rather than undercut. It
+	 * is asked once per fasta line rather than once per k-mer, so a region can overshoot by up to a
+	 * line's worth; and {@code kMersForNode} is taken when the region starts, so what other reader
+	 * threads add while it is being read does not count against it.
 	 *
 	 * @return {@code true} if more k-mers may still be added for the current node
 	 */
@@ -228,7 +267,7 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected void updateNodeFromInfoLine() {
 		int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
 		if (pos >= 0) {
-			node = accessionMap.get(target, 1, pos, completeGenomesOnly);
+			node = accessionMap.get(target, 1, pos, assemblyAccessionsOnly);
 		}
 		else {
 			if (getLogger().isWarnEnabled()) {
@@ -298,6 +337,13 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		/**
 		 * A {@link StringLong} that additionally holds a second long value (the accumulated k-mer
 		 * count), where the inherited long value counts regions (genomes).
+		 * <p>
+		 * Both counters are written under this object's monitor and read without it, by every reader
+		 * thread of a pass. A reader deciding whether a region still fits under a limit may therefore
+		 * see counts that are behind, and admit a region that a stricter accounting would have turned
+		 * away: the limits bound the database roughly, not to the genome. Reading them once all readers
+		 * have finished - which is where every other consumer reads them - is safe, since the pass only
+		 * ends after their completion has been observed through an atomic counter.
 		 */
 		public static class StringLong2 extends StringLong {
 			/** The accumulated k-mer count; the inherited long value counts regions (genomes). */

@@ -62,7 +62,7 @@ public class GSProject extends Project {
     /** Database property key for the MD5 checksum of the database. */
     public static final String DB_MD5 = "dbMD5";
 
-    /** Name of the configuration properties file loaded from project and base directories. */
+    /** Name of the configuration properties file loaded from the project, projects and base directories. */
     public static final String CONFIG_PROPERTIES = "config.properties";
 
     /**
@@ -208,8 +208,10 @@ public class GSProject extends Project {
 
     /**
      * Creates a fully configured project. Command line properties as well as the
-     * {@code config.properties} files in the project and base directories are loaded and validated,
-     * and the logger is configured accordingly.
+     * {@code config.properties} files in the project, projects and base directories are loaded and
+     * validated, and the logger is configured accordingly. They take effect in this order of
+     * decreasing priority, i.e. a value set for the project itself overrides one shared by all
+     * projects, which in turn overrides one from the base directory.
      *
      * @param config           the shared system configuration
      * @param name             the project name (also the project directory name)
@@ -241,13 +243,16 @@ public class GSProject extends Project {
             configureLogger();
         }
 
-        properties = new Properties[3];
+        properties = new Properties[4];
         properties[0] = commandLineProps == null ? new Properties() : commandLineProps;
         if (taxids != null) {
             properties[0].setProperty(GSConfigKey.TAX_IDS.getName(), taxids);
         }
+        // In decreasing priority: the project's own folder, the shared projects folder
+        // (settings common to all projects) and finally the base folder.
         properties[1] = loadConfigProperties(getProjectDir(), quietInit);
-        properties[2] = loadConfigProperties(getCommon().getBaseDir(), quietInit);
+        properties[2] = loadConfigProperties(getProjectsDir(), quietInit);
+        properties[3] = loadConfigProperties(getCommon().getBaseDir(), quietInit);
 
         initConfigParams(properties);
         configureLogger();

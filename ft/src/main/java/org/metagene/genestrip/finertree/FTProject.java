@@ -55,6 +55,11 @@ public class FTProject extends GSProject {
             this.suffix = suffix;
         }
 
+        /**
+         * Returns the file-name suffix associated with this file type.
+         *
+         * @return the file-name suffix
+         */
         public String getSuffix() {
             return suffix;
         }

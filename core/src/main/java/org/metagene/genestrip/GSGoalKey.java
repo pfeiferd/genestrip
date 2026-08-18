@@ -77,7 +77,7 @@ public enum GSGoalKey implements GoalKey {
 	@MDDescription("Analyze fastq files as given by the `-f` or `-m` option. The resulting CSV file(s) will be stored in `<base dir>/projects/<project_name>/csv` unless specified otherwise via the `-r` option.")
 	MATCH("match", true),
 	/** Same as {@code match} but without read classification. */
-	@MDDescription("Same as `match` but without doing read classification. This corresponds to the configuration setting `classifyReads=false`.")
+	@MDDescription("Same as `match` but without doing read classification, which is what long reads normally want.")
 	MATCHLR("matchlr", true),
 	/** Filters fastq files given via the {@code -f} or {@code -m} option. */
 	@MDDescription("Filter fastq files as given by the `-f` or `-m` option. The resulting filtered fastq file(s) `filtered_...` will be stored under `<base dir>/projects/<project_name>/fastq/` unless specified otherwise via the `-r` option.")
@@ -142,9 +142,6 @@ public enum GSGoalKey implements GoalKey {
 	/** Downloads the genomic files from RefSeq for the requested categories. */
 	@MDDescription("Download the genomic files from RefSeq for the requested categories.")
 	REFSEQFNA("refseqfna", false, false),
-	/** Computes the number of RefSeq accession entries to keep in memory. */
-	@MDDescription("Compute the number of RefSeq accession entries to be kept in memory.")
-	ACCMAPSIZE("accmapsize"),
 	/** Loads the required RefSeq accession entries into memory. */
 	@MDDescription("Load the required RefSeq accession entries into memory.")
 	ACCMAP("accmap"),
@@ -214,12 +211,6 @@ public enum GSGoalKey implements GoalKey {
 	/** Downloads requested fasta files given via URLs. */
 	@MDDescription("Download fasta files given via URLs as requested.")
 	FASTA_DOWNLOAD("fastadownload", false, false),
-	/** For internal use: invokes kraken and counts results. */
-	@MDDescription("For internal use (to invoke kraken and count results).")
-	KRAKENCOUNT("krakencount"),
-	/** For internal use: writes kraken results to a file. */
-	@MDDescription("For internal use (to write kraken results to a file).")
-	KRAKENRES("krakenres"),
 	/** Downloads and installs a project's database from a given URL. */
 	@MDDescription("Download and install a project's database via a given URL.")
 	DB_DOWNLOAD("dbdownload", false, false),

@@ -64,7 +64,7 @@ public class KMerIndexFilterHelper {
      * present under every other, at 86% cross index false positives against 1.3% with the multiplication.
      * <p>
      * A plain {@code data ^ index} fails for a second and simpler reason: an index bounded by
-     * {@link org.metagene.genestrip.store.KMerSortedArray#MAX_VALUES} occupies the low 16 bits only and
+     * {@link org.metagene.genestrip.store.RadixKMerStore#getMaxValues()} occupies the low 16 bits only and
      * never reaches the upper half of the key at all. Placing it there by a shift instead would collide
      * as soon as a store offers more values than a shift of that width can hold.
      *

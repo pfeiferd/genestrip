@@ -89,7 +89,7 @@ public class ExtractGoal<P extends GSProject> extends Goal<P> {
 					matcher = new AbstractLoggingFastqStreamer(intConfigValue(GSConfigKey.KMER_SIZE), intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
 							intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, true) {
 						@Override
-						protected void nextEntry(ReadEntry readStruct, int threadIndex) throws IOException {
+						protected void nextEntry(ReadEntry readStruct, ConsumerRunnable consumer) throws IOException {
 							if (ByteArrayUtil.startsWith(readStruct.readDescriptor, 1, filter)) {
 								readStruct.write(psRef[0]);
 							}

@@ -68,7 +68,7 @@ import static org.junit.Assert.assertTrue;
  */
 public class KMerIndexFilterHelperTest {
     /**
-     * Number of store indexes covered. They are bounded by {@code KMerSortedArray.MAX_VALUES}; a viral
+     * Number of store indexes covered. They are bounded by the store's {@code MAX_VALUES}; a viral
      * database has roughly 46000 tree nodes and hence that many distinct ones.
      */
     private static final int INDEXES = 65535;

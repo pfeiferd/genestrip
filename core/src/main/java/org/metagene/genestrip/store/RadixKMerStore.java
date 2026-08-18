@@ -24,8 +24,12 @@
  */
 package org.metagene.genestrip.store;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.metagene.genestrip.probfilter.BloomFilter;
 import org.metagene.genestrip.probfilter.ProbFilter;
@@ -62,9 +66,8 @@ import it.unimi.dsi.fastutil.longs.LongComparator;
  * {@code radixBits} needs fewer remaining bits, it leaves more high bits for the value index, so the
  * number of distinct values the store can hold ({@link #getMaxValues()} /
  * {@link #maxValuesForRadix(int)}) grows with {@code radixBits}. This packing plays the role that
- * {@code valueIndexes}/{@code largeValueIndexes} play in {@link KMerSortedArray}; here it lives in
- * the spare high bits of each k-mer entry, so no separate value-index array (and no large/small
- * variant) is needed — each radix bucket holds at most {@code entries / 2^radixBits} k-mers and
+ * a separate value-index array would play; here it lives in the spare high bits of each k-mer entry,
+ * so no such array is needed — each radix bucket holds at most {@code entries / 2^radixBits} k-mers and
  * therefore fits in a plain {@code int}-indexed {@code long[]} even for very large databases.
  * <p>
  * A lookup first indexes the radix table: a {@code null} bucket means there is no k-mer with that
@@ -127,6 +130,26 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	/** Bit mask selecting the low {@code remainingBits} bits of an entry. */
 	private final long remainingMask;
 
+	/**
+	 * The entry's top bit, reserved as the "visited" mark (see {@link #setMarkVisited(boolean)}).
+	 * {@link #valueBitsForRadix(int)} keeps the value index below it for every radix width, so this
+	 * bit is free in every store this class creates.
+	 */
+	private static final long MARK_BIT = 1L << (Long.SIZE - 1);
+
+	// Transient: derived from the (serialized) layout fields, so old databases - which predate these
+	// fields - get them recomputed on load rather than deserializing zeros. See readObject().
+	/** Mask selecting the value index once an entry has been shifted down by {@code remainingBits}. */
+	private transient long valueIndexMask;
+	/** Whether lookups through <em>this</em> instance mark the entries they hit; the hot-path flag. */
+	private transient boolean markVisited;
+	/**
+	 * Whether any user of this database is marking, shared by every converted copy of the store just
+	 * as the buckets are. The marks live in those shared buckets, so two matchers marking at once
+	 * would mix their results; this is what lets the second one be turned away.
+	 */
+	private transient AtomicBoolean markClaim;
+
 	// radixIndex[r] holds all k-mers whose low radixBits bits equal r, or null if there are none.
 	/** Per-radix buckets: {@code radixIndex[r]} holds all entries whose radix is {@code r}, or null if none. */
 	private final long[][] radixIndex;
@@ -169,8 +192,20 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	 */
 	public static int maxValuesForRadix(int radixBits) {
 		checkRadixBits(radixBits);
-		int valueBits = Math.min(MAX_VALUE_INDEX_BITS, Long.SIZE - remainingBitsForRadix(radixBits));
-		return 1 << valueBits;
+		return 1 << valueBitsForRadix(radixBits);
+	}
+
+	/**
+	 * Width of the value index for the given radix width. One entry bit above the value index is
+	 * permanently reserved as the {@linkplain #setMarkVisited(boolean) visited mark}, so that a mark
+	 * bit exists for every configurable radix width rather than only for those whose remaining-bit
+	 * count happens to leave one spare.
+	 *
+	 * @param radixBits the radix width of the store.
+	 * @return the number of entry bits holding the value index.
+	 */
+	private static int valueBitsForRadix(int radixBits) {
+		return Math.min(MAX_VALUE_INDEX_BITS, Long.SIZE - 1 - remainingBitsForRadix(radixBits));
 	}
 
 	private static void checkRadixBits(int radixBits) {
@@ -236,6 +271,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		// no per-k fit check is needed here.
 		this.remainingBits = remainingBitsForRadix(radixBits);
 		this.remainingMask = (1L << remainingBits) - 1;
+		initLayout();
 		int radixSize = 1 << radixBits;
 		if (bucketSizes.length != radixSize) {
 			throw new IllegalArgumentException("bucketSizes must have length 2^radixBits = " + radixSize
@@ -268,7 +304,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	 * @param org the store to copy the radix structure from.
 	 * @param converter the converter from the source value type to this store's value type.
 	 */
-	public <W extends Serializable> RadixKMerStore(RadixKMerStore<W> org, KMerStore.ValueConverter<W, V> converter) {
+	public <W extends Serializable> RadixKMerStore(RadixKMerStore<W> org, ValueConverter<W, V> converter) {
 		super(org, converter);
 		radixBits = org.radixBits;
 		radixMask = org.radixMask;
@@ -278,6 +314,9 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		bucketFill = org.bucketFill;
 		// The offsets depend only on the (shared) bucket capacities, so they can be shared too.
 		bucketOffset = org.bucketOffset;
+		initLayout();
+		// The marks live in the shared buckets, so the claim on them has to be shared as well.
+		markClaim = org.markClaim;
 	}
 
 	/**
@@ -290,7 +329,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	}
 
 	@Override
-	public <W extends Serializable> KMerStore<W> convertValues(KMerStore.ValueConverter<V, W> converter) {
+	public <W extends Serializable> KMerStore<W> convertValues(ValueConverter<V, W> converter) {
 		return new RadixKMerStore<>(this, converter);
 	}
 
@@ -317,6 +356,143 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 
 	private long entryOf(int valueIndex, long remaining) {
 		return (((long) valueIndex) << remainingBits) | remaining;
+	}
+
+	/**
+	 * Initializes the fields derived from the layout. Called from every constructor and from
+	 * {@link #readObject} so that a store loaded from an older database - written before these fields
+	 * existed - is set up identically to a freshly built one.
+	 */
+	private void initLayout() {
+		if (markClaim == null) {
+			markClaim = new AtomicBoolean();
+		}
+		// Exclude the mark bit from the value index whenever the store's values provably stay below it.
+		// This has to hold from construction, not just while marking is switched on: entries keep their
+		// marks until cleared, buckets are shared with every converted copy of the store, and a copy
+		// that decoded with a wider mask would read a mark as part of the value index.
+		long safeValues = 1L << valueBitsForRadix(radixBits);
+		valueIndexMask = (maxValues <= safeValues || (getNValues() > 0 && getNValues() <= safeValues))
+				? safeValues - 1
+				: ((long) maxValues) - 1;
+	}
+
+	/**
+	 * Deserializes the store and re-establishes the fields derived from its layout, which are
+	 * transient and therefore absent from the stream - also for a database written before they existed.
+	 *
+	 * @param in the stream to read the store from
+	 * @throws IOException            if reading fails
+	 * @throws ClassNotFoundException if a serialized class cannot be resolved
+	 */
+	private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+		in.defaultReadObject();
+		initLayout();
+	}
+
+	/**
+	 * Serializes the store, clearing the visited marks first so that per-run scratch state can never
+	 * reach a database file.
+	 *
+	 * @param out the stream to write the store to
+	 * @throws IOException if writing fails
+	 */
+	private void writeObject(ObjectOutputStream out) throws IOException {
+		// Marks are per-run scratch state living inside the entries, so they must never reach the
+		// database file - a stored mark would be read back as part of a value index.
+		clearVisitedMarks();
+		out.defaultWriteObject();
+	}
+
+	/**
+	 * Turns the "visited" marking of lookups on or off. While it is on, every lookup that finds a
+	 * k-mer sets {@link #MARK_BIT} in its entry, so the distinct k-mers a run has matched can be
+	 * counted afterwards with {@link #countVisitedPerValueIndex(long[])} - without the second random
+	 * memory access per matched k-mer that a separate bit vector costs, because the entry's cache line
+	 * has just been loaded by the lookup itself.
+	 * <p>
+	 * Marking mutates the store, so a store being marked must not be shared with another reader that
+	 * expects it to be immutable, and {@link #clearVisitedMarks()} has to run before a new count
+	 * starts. Setting a single bit needs no atomics: every writer of an entry writes the same bit and
+	 * neighbouring entries are separate array elements, so no update can be lost.
+	 * <p>
+	 * Marking is refused (returning {@code false}) for a store whose value indices can reach into the
+	 * mark bit. That cannot happen for a store this class creates, but an older database may have been
+	 * written with a layout that used the bit for its value index.
+	 *
+	 * @param markVisited whether lookups should mark the entries they hit
+	 * @return whether marking could be enabled; {@code false} means the caller must count distinct
+	 *         k-mers by other means
+	 */
+	@Override
+	public boolean setMarkVisited(boolean markVisited) {
+		if (markVisited) {
+			// The mark bit is only free if no value index reaches it. Stores built by this class
+			// guarantee that by construction; a store loaded from a database written with the older,
+			// one-bit-wider value field qualifies as long as it does not actually use that bit.
+			long safeValues = 1L << valueBitsForRadix(radixBits);
+			if (getNValues() > safeValues) {
+				return false;
+			}
+			// Re-entrant for the holder: a matcher claims once per run and may start several runs.
+			if (!this.markVisited && !markClaim.compareAndSet(false, true)) {
+				// Someone else is already marking these buckets.
+				return false;
+			}
+			// Values may have been registered since the layout was set up, so settle the mask again.
+			valueIndexMask = safeValues - 1;
+		} else if (this.markVisited) {
+			markClaim.set(false);
+		}
+		this.markVisited = markVisited;
+		return true;
+	}
+
+	/**
+	 * Clears the "visited" mark of every entry, so that a following run counts only its own matches.
+	 */
+	@Override
+	public boolean isMarkVisited() {
+		// The shared claim, not this instance's flag: the question callers ask is whether anybody is
+		// marking this database, and every converted copy writes into the same buckets.
+		return markClaim.get();
+	}
+
+	@Override
+	public void clearVisitedMarks() {
+		for (int r = 0; r < radixIndex.length; r++) {
+			final long[] bucket = radixIndex[r];
+			if (bucket == null) {
+				continue;
+			}
+			final int fill = bucketFill[r];
+			for (int i = 0; i < fill; i++) {
+				bucket[i] &= ~MARK_BIT;
+			}
+		}
+	}
+
+	/**
+	 * Adds up, per value index, how many of its entries are marked as visited, i.e. how many distinct
+	 * k-mers of each value the run has matched.
+	 *
+	 * @param counts the per-value-index counters to add to; must be at least {@link #getMaxValues()} long
+	 */
+	@Override
+	public void countVisitedPerValueIndex(long[] counts) {
+		for (int r = 0; r < radixIndex.length; r++) {
+			final long[] bucket = radixIndex[r];
+			if (bucket == null) {
+				continue;
+			}
+			final int fill = bucketFill[r];
+			for (int i = 0; i < fill; i++) {
+				final long entry = bucket[i];
+				if ((entry & MARK_BIT) != 0) {
+					counts[(int) ((entry >>> remainingBits) & valueIndexMask)]++;
+				}
+			}
+		}
 	}
 
 	@Override
@@ -361,7 +537,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 			if (fill >= bucket.length) {
 				// Reserved capacity for this radix bucket is exhausted. The per-bucket sizes can be a
 				// slight under-estimate (Bloom-filter FPP variance between counting and filling), so
-				// the k-mer is dropped instead of failing the whole build, like a full KMerSortedArray.
+				// the k-mer is dropped instead of failing the whole build.
 				return false;
 			}
 			pos = fill;
@@ -435,11 +611,16 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		if (posStore != null) {
 			posStore[0] = bucketOffset[radix] + pos;
 		}
-		return indexMap[(int) (bucket[pos] >>> remainingBits)];
+		final long entry = bucket[pos];
+		if (markVisited) {
+			// Reuses the cache line the search just loaded; see setMarkVisited(boolean).
+			bucket[pos] = entry | MARK_BIT;
+		}
+		return indexMap[(int) ((entry >>> remainingBits) & valueIndexMask)];
 	}
 
 	@Override
-	public boolean update(long kmer, KMerStore.UpdateValueProvider<V> provider) {
+	public boolean update(long kmer, UpdateValueProvider<V> provider) {
 		if (!sorted) {
 			throw new IllegalStateException("Update only works when optimized.");
 		}
@@ -475,7 +656,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		// target the same entry share the bucket lock, while updates to different buckets run in parallel.
 		synchronized (bucket) {
 			long entry = bucket[pos];
-			int vi = (int) (entry >>> remainingBits);
+			int vi = (int) ((entry >>> remainingBits) & valueIndexMask);
 			V oldValue = indexMap[vi];
 			V newValue = provider.getUpdateValue(oldValue);
 			if (newValue == null) {
@@ -492,7 +673,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	}
 
 	/**
-	 * Reusable scratch buffers for {@link #updateBatch(BatchBuffers, KMerStore.UpdateValueProvider)}.
+	 * Reusable scratch buffers for {@link #updateBatch(BatchBuffers, UpdateValueProvider)}.
 	 * A caller (typically one per reader thread) appends up to {@code capacity} k-mers via
 	 * {@link #add(long)} and then flushes the batch; reusing one instance keeps the batched update
 	 * allocation-free. A {@code BatchBuffers} instance is not thread-safe and must not be shared
@@ -540,7 +721,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		 * Appends a k-mer to the batch along with a payload that
 		 * {@link #getBatch(BatchBuffers, BatchValueConsumer)} hands back with the k-mer's stored value.
 		 * It lets a caller carry per-k-mer context (which is only known while reading) through to the
-		 * deferred lookup. {@link #updateBatch(BatchBuffers, KMerStore.UpdateValueProvider)} ignores it.
+		 * deferred lookup. {@link #updateBatch(BatchBuffers, UpdateValueProvider)} ignores it.
 		 *
 		 * @param kmer    the k-mer to add
 		 * @param payload the payload to associate with the k-mer
@@ -563,7 +744,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	}
 
 	/**
-	 * Batched variant of {@link #update(long, KMerStore.UpdateValueProvider)} that processes all
+	 * Batched variant of {@link #update(long, UpdateValueProvider)} that processes all
 	 * k-mers accumulated in {@code b} together. It resolves the radix buckets, queries the pre-filter
 	 * and runs the per-bucket binary searches in separate passes over the whole batch, so many
 	 * independent cache-missing loads are in flight at the same time (memory-level parallelism)
@@ -575,7 +756,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	 * @param provider supplies the new value from the currently stored value
 	 * @return the number of k-mers whose stored value was changed
 	 */
-	public int updateBatch(BatchBuffers b, KMerStore.UpdateValueProvider<V> provider) {
+	public int updateBatch(BatchBuffers b, UpdateValueProvider<V> provider) {
 		if (!sorted) {
 			throw new IllegalStateException("Update only works when optimized.");
 		}
@@ -597,7 +778,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 			final long[] bucket = buckets[i];
 			synchronized (bucket) {
 				final long entry = bucket[p];
-				final int vi = (int) (entry >>> remainingBits);
+				final int vi = (int) ((entry >>> remainingBits) & valueIndexMask);
 				final V oldValue = indexMap[vi];
 				final V newValue = provider.getUpdateValue(oldValue);
 				if (newValue == null) {
@@ -618,7 +799,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	/**
 	 * Batched variant of {@link #getLong(long, long[])} that looks up all k-mers accumulated in
 	 * {@code b} together, using the same phased passes as {@link #updateBatch(BatchBuffers,
-	 * KMerStore.UpdateValueProvider)} so that many independent cache-missing loads are in flight at the
+	 * UpdateValueProvider)} so that many independent cache-missing loads are in flight at the
 	 * same time (memory-level parallelism). The consumer is invoked in insertion order, but only for
 	 * those k-mers that are actually present in the store, and receives the payload the k-mer was
 	 * added with. Hence the observable effect is identical to calling {@link #getLong(long, long[])} on
@@ -647,15 +828,75 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 			if (p < 0) {
 				continue;
 			}
-			consumer.accept(kmers[i], payload[i], indexMap[(int) (buckets[i][p] >>> remainingBits)]);
+			final long entry = buckets[i][p];
+			if (markVisited) {
+				buckets[i][p] = entry | MARK_BIT;
+			}
+			consumer.accept(kmers[i], payload[i], indexMap[(int) ((entry >>> remainingBits) & valueIndexMask)]);
 		}
 		b.count = 0;
 	}
 
 	/**
+	 * Batched lookup as in {@link #getBatch(BatchBuffers, BatchValueConsumer)}, but the consumer also
+	 * receives each k-mer's storage position - the same value {@link #getLong(long, long[])} reports
+	 * through its {@code posStore}. Callers that mark entries by position (counting distinct matched
+	 * k-mers, say) need it, and it is only available while the batch's buckets are still resolved.
+	 *
+	 * @param b        the buffers holding the batch of k-mers to look up
+	 * @param consumer receives the stored value and position of every k-mer of the batch that is present
+	 * @throws IllegalStateException if the store is not optimized yet
+	 */
+	public void getBatch(BatchBuffers b, BatchPositionConsumer<V> consumer) {
+		if (!sorted) {
+			throw new IllegalStateException("Batched lookup only works when optimized.");
+		}
+		final int n = b.count;
+		final long[] kmers = b.kmers;
+		final int[] payload = b.payload;
+		final long[][] buckets = b.buckets;
+		final int[] pos = b.pos;
+
+		locateBatch(b);
+
+		for (int i = 0; i < n; i++) {
+			final int p = pos[i];
+			if (p < 0) {
+				continue;
+			}
+			// The radix is recomputed rather than kept: kmers[i] is in cache here, the radix is a
+			// single mask, and keeping it would grow the batch buffers by an int per entry.
+			final long position = bucketOffset[(int) (kmers[i] & radixMask)] + p;
+			final long entry = buckets[i][p];
+			if (markVisited) {
+				buckets[i][p] = entry | MARK_BIT;
+			}
+			consumer.accept(kmers[i], payload[i], indexMap[(int) ((entry >>> remainingBits) & valueIndexMask)], position);
+		}
+		b.count = 0;
+	}
+
+	/**
+	 * Receives the result of one k-mer of a batched lookup, including its storage position.
+	 *
+	 * @param <V> the value type of the store
+	 */
+	public interface BatchPositionConsumer<V> {
+		/**
+		 * Accepts one k-mer of the batch that is present in the store.
+		 *
+		 * @param kmer     the k-mer that was looked up
+		 * @param payload  the payload the k-mer was added to the batch with
+		 * @param value    the value stored for the k-mer, never {@code null}
+		 * @param position the k-mer's storage position, as {@link #getLong(long, long[])} reports it
+		 */
+		void accept(long kmer, int payload, V value, long position);
+	}
+
+	/**
 	 * Locates every k-mer of the batch, leaving {@code b.pos[i]} at the entry's position within
 	 * {@code b.buckets[i]} or at {@code -1} if the k-mer is absent. Shared by
-	 * {@link #updateBatch(BatchBuffers, KMerStore.UpdateValueProvider)} and
+	 * {@link #updateBatch(BatchBuffers, UpdateValueProvider)} and
 	 * {@link #getBatch(BatchBuffers, BatchValueConsumer)}; it does not empty the batch.
 	 *
 	 * @param b the buffers holding the batch of k-mers to locate
@@ -804,7 +1045,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	 * {@code pos} (empty buckets share their successor's offset and are skipped naturally).
 	 *
 	 * @param pos the global storage position, as reported by {@link #getLong(long, long[])} or
-	 *            {@link #visit(KMerStore.IndexedKMerStoreVisitor)}
+	 *            {@link #visit(IndexedKMerStoreVisitor)}
 	 * @return the radix of the bucket containing {@code pos}
 	 */
 	private int radixForPos(long pos) {
@@ -824,7 +1065,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	}
 
 	@Override
-	public void visit(KMerStore.IndexedKMerStoreVisitor<V> visitor) {
+	public void visit(IndexedKMerStoreVisitor<V> visitor) {
 		for (int r = 0; r < radixIndex.length; r++) {
 			long[] bucket = radixIndex[r];
 			if (bucket == null) {
@@ -836,7 +1077,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 				long entry = bucket[i];
 				// Reassemble the full k-mer: remaining bits shifted back above the radix bits.
 				long kmer = ((entry & remainingMask) << radixBits) | r;
-				visitor.nextValue(this, kmer, (int) (entry >>> remainingBits), base + i);
+				visitor.nextValue(this, kmer, (int) ((entry >>> remainingBits) & valueIndexMask), base + i);
 			}
 		}
 	}

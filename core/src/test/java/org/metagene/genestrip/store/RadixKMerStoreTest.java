@@ -198,9 +198,10 @@ public class RadixKMerStoreTest extends AbstractKMerStoreTest {
 		}
 	}
 
-	// Exercises value indices beyond KMerSortedArray's cap (65535) and beyond 2^(63-remainingBits) -
-	// i.e. into the range where the packed entry's high bit is set (a negative long) - to verify the
-	// widened value field actually delivers the expanded per-radix MAX_VALUES and round-trips.
+	// Exercises value indices beyond a short's range (65535), up against the per-radix MAX_VALUES,
+	// to verify the widened value field actually delivers the expanded capacity and round-trips. The
+	// entry's top bit is reserved as the visited mark (see RadixKMerStore#setMarkVisited), so value
+	// indices stop below it and a stored entry stays non-negative.
 	@Test
 	public void testValueCapacityBeyondSortedArray() {
 		// The value count is derived from the store's actual per-radix capacity (which depends on
@@ -208,12 +209,12 @@ public class RadixKMerStoreTest extends AbstractKMerStoreTest {
 		// hence maxValuesForRadix() - changes. Half-way between the top-bit threshold and the cap, it
 		// is guaranteed to satisfy all three bounds below.
 		int remainingBits = RadixKMerStore.remainingBitsForRadix(RADIX_BITS);
-		int topBitThreshold = 1 << (63 - remainingBits); // above this, value indices set the entry's top bit
 		int maxValues = RadixKMerStore.maxValuesForRadix(RADIX_BITS);
-		int n = topBitThreshold + (maxValues - topBitThreshold) / 2;
-		assertTrue(n > KMerSortedArray.MAX_VALUES
-				&& n > topBitThreshold // some indices set the entry's top bit
-				&& n < maxValues);
+		// The value field must stop below the reserved mark bit, whatever the radix width is.
+		assertEquals("the top entry bit must stay reserved for the visited mark", 1 << (63 - remainingBits),
+				maxValues);
+		int n = maxValues - maxValues / 4;
+		assertTrue(n > Short.MAX_VALUE && n < maxValues);
 
 		// n distinct k-mers, each with a distinct value -> value index == insertion order.
 		Map<Long, Integer> kmerMap = new LinkedHashMap<Long, Integer>();

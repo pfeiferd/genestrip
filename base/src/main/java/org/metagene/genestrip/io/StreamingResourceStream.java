@@ -35,7 +35,7 @@ public interface StreamingResourceStream extends Iterable<StreamingResource> {
 	 * Returns the combined size in bytes of all resources in the stream, or {@code -1} if unknown.
 	 *
 	 * @return the combined size in bytes, or {@code -1} if unknown
-	 * @throws java.io.IOException if determining the size requires I/O that fails
+	 * @throws IOException if determining the size requires I/O that fails
 	 */
 	default long getTotalByteSize() throws IOException {
 		return -1;

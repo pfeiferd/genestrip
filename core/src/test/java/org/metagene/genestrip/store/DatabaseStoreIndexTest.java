@@ -82,7 +82,8 @@ public class DatabaseStoreIndexTest {
 	 * that the test also covers the ids {@link Database#initStoreIndices()} has to add itself.
 	 */
 	private Database buildDatabase(SmallTaxTree tree) {
-		KMerStore<String> store = new KMerSortedArray<>(2, 0.0001, 0.0001, Arrays.asList("1", "2"), false, true, 3);
+		KMerStore<String> store = new RadixKMerStore<>(2, RadixKMerStore.MIN_RADIX_BITS,
+				new int[1 << RadixKMerStore.MIN_RADIX_BITS], 0.0001, 0.0001, Arrays.asList("1", "2"), true);
 		return new Database(store, tree, null);
 	}
 
@@ -147,7 +148,7 @@ public class DatabaseStoreIndexTest {
 
 		int nValues = db.getKmerStore().getNValues();
 		assertTrue("Expected at least one value per tax id", nValues >= IDS.length);
-		assertTrue("Value count must stay within the store's limit", nValues <= KMerSortedArray.MAX_VALUES);
+		assertTrue("Value count must stay within the store's limit", nValues <= db.getKmerStore().getMaxValues());
 		for (SmallTaxIdNode node : tree) {
 			if (node.taxId != null) {
 				assertTrue("Store index of " + node.taxId + " out of range: " + node.getStoreIndex(),

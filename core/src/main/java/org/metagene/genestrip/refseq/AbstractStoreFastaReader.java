@@ -30,11 +30,12 @@ import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.CGAT;
 import org.metagene.genestrip.util.CGATLongBuffer;
+import org.metagene.genestrip.util.KMerSampling;
 
 /**
  * Abstract RefSeq FASTA reader that streams each region's bases through a {@link CGATLongBuffer}
- * (applying the step size and DUST low-complexity filter) and hands every qualifying k-mer to
- * {@link #handleStore()}.
+ * (applying the sampling rate and DUST low-complexity filter) and hands every qualifying k-mer to
+ * {@link #handleStore(long)}.
  */
 public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader {
 	/** The ring buffer accumulating bases into k-mers. */
@@ -45,6 +46,11 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 	protected long totalKmers;
 
 	private boolean enableLowerCaseBases;
+	/**
+	 * The threshold selecting one k-mer in {@code kMerSampling}, or {@link KMerSampling#ALL} when every
+	 * k-mer is taken. Held as the derived value so that the hot path needs no division.
+	 */
+	private final long samplingThreshold;
 
 	/**
 	 * Creates the reader.
@@ -57,18 +63,19 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 	 * @param maxGenomesPerTaxIdRank the rank at which the per-tax-id genome limit applies
 	 * @param maxKmersPerTaxId the maximum number of k-mers per tax id
 	 * @param maxDust the maximum allowed low-complexity (dust) run length
-	 * @param stepSize the k-mer sampling step size
-	 * @param completeGenomesOnly whether to include only complete genomes
+	 * @param kMerSampling the k-mer sampling step size
+	 * @param assemblyAccessionsOnly whether to include only complete genomes
 	 * @param regionsPerTaxid the per-taxid region trie
 	 * @param enableLowerCaseBases whether lower-case bases are included
 	 */
 	public AbstractStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank,
-									long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid,
+									long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie regionsPerTaxid,
 									boolean enableLowerCaseBases) {
-		super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, stepSize, completeGenomesOnly, regionsPerTaxid);
+		super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, kMerSampling, assemblyAccessionsOnly, regionsPerTaxid);
 		byteRingBuffer = new CGATLongBuffer(k, maxDust);
 		dustCounter = 0;
 		this.enableLowerCaseBases = enableLowerCaseBases;
+		this.samplingThreshold = KMerSampling.thresholdForOneIn(kMerSampling);
 	}
 
 	/**
@@ -81,8 +88,8 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 	}
 
 	/**
-	 * Feeds a data line's bases through the k-mer ring buffer and, every {@code stepSize} bases,
-	 * stores each filled non-low-complexity k-mer via {@link #handleStore()}.
+	 * Feeds a data line's bases through the k-mer ring buffer and hands every filled, non-low-complexity
+	 * k-mer that belongs to the sample to {@link #handleStore(long)}.
 	 */
 	@Override
 	protected void dataLine() {
@@ -98,11 +105,16 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 				for (int i = 0; i < end; i++) {
 					byteRingBuffer.put(enableLowerCaseBases ? CGAT.cgatToUpperCase(target[i]) : target[i]);
 					bpsInRegion++;
-					if (bpsInRegion % stepSize == 0) {
-						if (byteRingBuffer.isFilled()) {
+					if (byteRingBuffer.isFilled()) {
+						// Which k-mers are kept follows from the k-mer, not from where in the region it sits,
+						// so a k-mer is kept in every genome it occurs in or in none - see KMerSampling for
+						// why the database would otherwise misplace the ones it does keep. The canonical
+						// encoding travels on to handleStore(), which would only have to compute it again.
+						long kmer = byteRingBuffer.getStandardKMer();
+						if (KMerSampling.isSampled(kmer, samplingThreshold)) {
 							if (byteRingBuffer.isDust()) {
 								dustCounter++;
-							} else if (handleStore()) {
+							} else if (handleStore(kmer)) {
 								kmersInRegion++;
 							}
 							totalKmers++;
@@ -114,10 +126,10 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 	}
 
 	/**
-	 * Stores the current k-mer (available via the ring buffer); returns whether it was counted as
-	 * included.
+	 * Stores the given k-mer; returns whether it was counted as included.
 	 *
+	 * @param kmer the canonical k-mer, as {@link CGATLongBuffer#getStandardKMer()} yields it
 	 * @return whether the k-mer was counted as included
 	 */
-	protected abstract boolean handleStore();
+	protected abstract boolean handleStore(long kmer);
 }

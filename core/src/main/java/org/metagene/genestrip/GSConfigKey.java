@@ -101,6 +101,17 @@ public enum GSConfigKey implements ConfigKey {
 			+ "If not set, the completion will traverse down to the lowest possible levels of the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip). "
 			+ "Typical values could be `species` or `strain`, but  all values used for assigning ranks in the taxonomy are possible.")
 	RANK_COMPLETION_DEPTH("rankCompletionDepth", new RankConfigParamInfo(null), GSGoalKey.DB),
+	/** Rank at which a genome is filed, taxa below it being folded into it. */
+	@MDDescription("The rank at which a genome is filed in the taxonomy tree: a genome whose accession resolves to a taxon *below* this rank is attached to its ancestor at this rank instead, "
+			+ "and the taxa in between, having nothing left that requires them, drop out of the tree. If not set, every genome is filed where the taxonomy puts it. "
+			+ "Typical value is `species`. "
+			+ "WHY: the NCBI taxonomy carries a strain node for a small and arbitrary minority of the genomes of a well-sequenced species -- the reference strains -- and none for the rest. "
+			+ "Those strain nodes become children of the species beside the node holding everything else, which costs twice. "
+			+ "A *k*-mer shared between a reference strain and the bulk then has its lowest common ancestor at the species and is stranded there, and the genomes under a strain node are invisible to a refinement of the species' children, so no clustering can ever place them beside their relatives. "
+			+ "Folding them into the species removes both effects at once. "
+			+ "REQUIRES `fileNodes=true`: without a file node per genome, folding would put every genome of the species on one node and leave the refinement with nothing to cluster, which is the opposite of the intent. "
+			+ "A rank that no ancestor of a genome carries leaves that genome where it is.")
+	FOLD_TAXA_BELOW("foldTaxaBelow", new RankConfigParamInfo(null), GSGoalKey.DB, GSGoalKey.FILL_DB, GSGoalKey.TEMPINDEX),
 	/** Whether md5 checksums may be skipped via a cached {@code .md5ok} marker file. */
 	@MDDescription("If true, then md5 check sums may be skipped by creating and accessing a file named `<file>.md5ok` " +
 			"that marks whether the md5 check sum of `<file>` was found to be ok after a previous download of `<file>`.")
@@ -109,15 +120,23 @@ public enum GSConfigKey implements ConfigKey {
 	// Limit database size
 	/** Maximum number of genomes per tax id included in the database. */
 	@MDDescription("The maximum number of genomes per tax id to be included in the database. "
-			+ "Note, that this is an important parameter to control database size, because in some cases, there are thousands of genomic entries per tax id.")
+			+ "Note, that this is an important parameter to control database size, because in some cases, there are thousands of genomic entries per tax id. "
+			+ "The limit is approximate and bounds the database roughly rather than to the genome: the genomes are read by several threads at once, "
+			+ "and each admits a genome while the count it sees is still below the limit, so a few more may get in and *which* of a tax id's genomes "
+			+ "get in depends on the order the threads happen to read them. A database built with this limit set is therefore not reproducible "
+			+ "genome for genome across runs or thread counts. There is no value meaning \"no limit\"; the limit is switched off by leaving it at its default.")
 	MAX_GENOMES_PER_TAXID("maxGenomesPerTaxid", new IntConfigParamInfo(1, Integer.MAX_VALUE, Integer.MAX_VALUE),
 			GSGoalKey.DB),
 	/** Maximum number of k-mers stored per tax id. */
 	@MDDescription("The limit for the number of *k*-mers per tax id at which adding more *k*-mers for this tax id to the database stops. "
-			+ "Note, that this is an important parameter to control database size, because in some cases, there are millions of *k*-mers per tax id.")
+			+ "Note, that this is an important parameter to control database size, because in some cases, there are millions of *k*-mers per tax id. "
+			+ "As with `maxGenomesPerTaxid` the limit is approximate, and always in the direction of admitting a few too many: it is checked once per "
+			+ "fasta line rather than per *k*-mer, and against a count taken when the region began. A value of `0` is within the range and stops "
+			+ "everything, which yields an empty database; there is no value meaning \"no limit\", which is what the default stands for.")
 	MAX_KMERS_PER_TAXID("maxKMersPerTaxid", new LongConfigParamInfo(0, Long.MAX_VALUE, Long.MAX_VALUE)),
 	/** Rank at which the per-tax-id genome and k-mer limits apply. */
-	@MDDescription("The rank for which to consider the parameters `maxGenomesPerTaxid` and `maxKMersPerTaxid`. If `null`, then maximum number of genomes is considered with respect to the direct tax id under which a genome is stored.")
+	@MDDescription("The rank for which to consider the parameters `maxGenomesPerTaxid` and `maxKMersPerTaxid`. If `null`, then maximum number of genomes is considered with respect to the direct tax id under which a genome is stored. "
+			+ "A lineage that has no ancestor of the given rank - and the taxonomy is full of them - is counted at the tax id under which the genome is stored, so that setting a rank never leaves part of the tree without a limit.")
 	MAX_GENOMES_PER_TAXID_RANK("maxPerTaxidRank", new RankConfigParamInfo(null)),
 	/** Whether downloaded fastq/fasta files are always assumed to be gzipped. */
 	@MDDescription("If `true`, a fastq or fasta file which is downloaded via a URL is always assumed to be g-zipped. Otherwise, it will be considered g-zipped only if the" +
@@ -128,10 +147,16 @@ public enum GSConfigKey implements ConfigKey {
 	/** Whether the RefSeq is used as the basis for filling the database. */
 	@MDDescription("Whether the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) should be used as the basis for filling the database.")
 	REF_SEQ_DB("refseq.filldb", new BooleanConfigParamInfo(true), false, GSGoalKey.FILL_DB),
-	/** Whether to consider only complete-genome accession prefixes when filling the database. */
-	@MDDescription("If `true`, then only genomic accessions with the prefixes `AC`, `NC_`, `NZ_` will be considered when filling the database. "
-			+ "Otherwise, all genomic accessions will be considered. See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.")
-	COMPLETE_GENOMES_ONLY("refseq.completeGenomesOnly", new BooleanConfigParamInfo(false), GSGoalKey.FILL_DB),
+	/** Whether to keep only the accession prefixes a genome assembly uses when filling the database. */
+	@MDDescription("If `true`, then of the genomic accessions only those with the prefixes `AC_`, `NC_` and `NZ_` are considered "
+			+ "when filling the database, which drops `NG_`, `NT_` and `NW_`. Otherwise all genomic accessions are considered. "
+			+ "Note that this is not an assembly-level filter and does not select finished genomes: `NZ_` is RefSeq's prefix for "
+			+ "every non-curated genomic sequence, whole-genome shotgun contigs of draft assemblies included, and those usually "
+			+ "make up the bulk of a species' accessions. Restricting a database to finished genomes is done through "
+			+ "`genbank.fastaQualities`. RNA and mRNA accessions pass this filter unchanged, so that setting it cannot empty a "
+			+ "database of those, and it has no effect while `refseq.filldb=false`. "
+			+ "See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.")
+	ASSEMBLY_ACCESSIONS_ONLY("refseq.assemblyAccessionsOnly", new BooleanConfigParamInfo(false), GSGoalKey.FILL_DB),
 	/** Threshold below which Genbank is consulted for additional genomes. */
 	@MDDescription("Determines whether Genestrip should try to lookup genomic fasta files from Genbank, "
 			+ "if the number of corresponding reference genomes from the RefSeq is below the given limit for a requested tax id including its descendants. "
@@ -188,12 +213,20 @@ public enum GSConfigKey implements ConfigKey {
 	MAX_DUST("maxDust", new IntConfigParamInfo(-1, Integer.MAX_VALUE, -1), GSGoalKey.DB),
 	/** False positive probability of the temporary Bloom filter used by the tempindex goal. */
 	TEMP_BLOOM_FILTER_FPP("tempBloomFilterFpp", new DoubleConfigParamInfo(0, 1, 0.001d, true), true, GSGoalKey.TEMPINDEX),
+	/** Which of the two k-mer counts the temporary Bloom filter is sized from. */
+	@MDDescription("Which of the two counts reported by `fillsize` the temporary Bloom filter of `tempindex` is "
+			+ "sized from. The difference between them is the duplication factor of the reference data, and it can "
+			+ "be enormous: a database of many near-identical genomes of one species reaches a factor of 256, where "
+			+ "sizing from the count with duplicates asks for a filter of 25 GB in place of 100 MB. `distinct` uses "
+			+ "the HyperLogLog estimate, `upperBound` the exact count, and `auto` uses the estimate but reads "
+			+ "the sequences a second time with the exact count should the estimate turn out to have fallen short.")
+	BLOOM_FILTER_SIZING("bloomFilterSizing", new BloomFilterSizingConfigParamInfo(BloomFilterSizing.AUTO), GSGoalKey.TEMPINDEX),
 	/** Scaling factor applied to the estimated k-mer count when sizing the store. */
 	@MDDescription("A scaling factor applied to the pre-computed *k*-mer count estimate (from the goal `fillsize`) to determine the allocated size of the *k*-mer store before filling it. "
 			+ "A value greater than `1.0` reserves more space than the estimate; a value less than `1.0` reserves less. "
 			+ "The default `1.0` uses the estimate as-is. Adjusting this value can be useful if the estimate from `fillsize` is slightly off.")
 	// Exclusive lower bound: a factor of 0 would size the store to 0 -> a silently empty DB.
-	DB_RESIZING_FACTOR("dbResizingFactor", new DoubleConfigParamInfo(0, Double.MAX_VALUE, 1, true), GSGoalKey.DB),
+	DB_RESIZING_FACTOR("dbResizingFactor", new DoubleConfigParamInfo(0, Double.MAX_VALUE, 1.001, true), GSGoalKey.DB),
 	/** False positive probability of the filtering database's Bloom filter. */
 	@MDDescription("False positive probability (FPP) of the Bloom filter embedded in the filtering database (used by the goal `filter`). "
 			+ "A lower value reduces false positives during filtering at the cost of a larger filter.")
@@ -206,34 +239,55 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("False positive probability (FPP) of the Bloom filter embedded in the final matching database after the *k*-mer store has been sorted and optimized. "
 			+ "This is the filter used during matching when `useBloomFilterForMatch=true`.")
 	OPT_BLOOM_FILTER_FPP("optBloomFilterFpp", new DoubleConfigParamInfo(0, 1, BlockedBloomFilter.DEFAULT_FPP, true), true, GSGoalKey.FILL_DB),
-	/** Whether the database uses the radix-indexed k-mer store. */
-	@MDDescription("If `true`, the database's *k*-mer store uses the radix-indexed `RadixKMerStore` instead of the default sorted-array store. "
-			+ "It is sized per radix bucket from the deduplicated per-bucket *k*-mer counts (see goal `tempindex`) and tends to be faster for lookups on large databases that exceed the CPU cache.")
-	USE_RADIX_STORE("useRadixStore", new BooleanConfigParamInfo(true), false, GSGoalKey.FILL_DB),
 	/** Number of low k-mer bits used as the radix index of the RadixKMerStore. */
-	@MDDescription("Number of low *k*-mer bits used as the radix index of the `RadixKMerStore` (only relevant when `useRadixStore` is `true`). "
+	@MDDescription("Number of low *k*-mer bits used as the radix index of the `RadixKMerStore`, which every database uses. "
 			+ "The store has `2^radixStoreBits` buckets; more bits give smaller, more cache-friendly buckets at the cost of a larger radix table. "
-			+ "It also raises the store's value capacity (`MAX_VALUES`, the number of distinct values it can hold): each *k*-mer entry reserves `62 - radixStoreBits` low bits for the remaining *k*-mer bits (sized for the worst-case `k=31`) and uses the high `2 + radixStoreBits` bits (capped at 30) for the value index, so a wider radix leaves more bits for values. "
+			+ "It also raises the store's value capacity (`MAX_VALUES`, the number of distinct values it can hold): each *k*-mer entry reserves `62 - radixStoreBits` low bits for the remaining *k*-mer bits (sized for the worst-case `k=31`), one high bit marks a *k*-mer as matched while a sample is classified, and the bits in between (capped at 30) hold the value index, so a wider radix leaves more bits for values. "
 			+ "Because the value capacity grows with `radixStoreBits`, so does the memory of the store's value-index array; this scales with the larger databases that warrant a wider radix.")
 	RADIX_STORE_BITS("radixStoreBits", new IntConfigParamInfo(RadixKMerStore.MIN_RADIX_BITS, 24, RadixKMerStore.DEFAULT_RADIX_BITS), false, GSGoalKey.TEMPINDEX, GSGoalKey.FILL_DB),
 	/** Whether to XOR-combine the Bloom filter hash functions. */
 	XOR_BLOOM_HASH("xorBloomHash", new BooleanConfigParamInfo(true)),
 	/** Line length in bytes for generated fasta files. */
 	FASTA_LINE_SIZE_BYTES("fastaLineSizeBytes", new IntConfigParamInfo(4096, 65536, 4096), true, GSGoalKey.DB),
-	/** Whether the least-common-ancestor update uses only the database's own genomes. */
-	@MDDescription("Perform database update regarding least common ancestors only based on genomes of tax ids as selected for the database generation (and not via all of a super-kingdom's RefSeq genomes).")
-	MIN_UPDATE("minUpdate", new BooleanConfigParamInfo(false), false, GSGoalKey.UPDATE_DB),
-	/** Whether to consider only complete-genome accession prefixes when updating the database. */
-	@MDDescription("If `true`, then only genomic accessions with the prefixes `AC`, `NC_`, `NZ_` will be considered when updating the database. "
-			+ "Otherwise, all genomic accessions will be considered for the update phase. See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.")
-	UPDATE_WITH_COMPLETE_GENOMES_ONLY("refseq.updateWithCompleteGenomesOnly", new BooleanConfigParamInfo(false), GSGoalKey.UPDATE_DB),
+	/** Which regions of the RefSeq release the least-common-ancestor update of {@code updatedb} takes into account. */
+	@MDDescription("Which regions **of the RefSeq release** the least common ancestor update takes into account. "
+			+ "It restricts the release and nothing else: the fasta files a project supplies itself - the entries of "
+			+ "its `additional.txt` and the genomes downloaded from Genbank - always take part in the update, "
+			+ "whatever this is set to. "
+			+ "`all` uses every region of the release, which is what the update exists for: a *k*-mer that a genome "
+			+ "of some other taxon also carries is raised to the common ancestor of both and thus stops being "
+			+ "claimed for the requested taxon. `ownTaxaOnly` uses only the release's regions of the tax ids "
+			+ "selected for the database - that is more than what the database holds but far less than the entire "
+			+ "release, and it leaves *k*-mers of other taxa claimed. `otherTaxaOnly` is the complement: every "
+			+ "region of the release *except* those of the selected tax ids. "
+			+ "It exists for databases that already hold the genomes of the requested taxon under their own "
+			+ "identity, e.g. one fasta file per assembly. There the release presents the very same genome a second "
+			+ "time under a different identity, and the update would raise a genome's *k*-mers with its own copy - "
+			+ "`LCA(FILE(A), DATA(t)) = DATA(t)` - which leaves nothing below the data node. Skipping those regions "
+			+ "keeps what the update is for and drops what it would destroy, while the project's own fastas still "
+			+ "settle a *k*-mer that several of them share on the common ancestor of those. It is only correct if "
+			+ "the database holds the genomes of the selected tax ids *completely*: a *k*-mer of a genome that is in "
+			+ "the release but not in the database keeps a specificity it has not got.")
+	UPDATE_SCOPE("refseq.updateScope", new UpdateScopeConfigParamInfo(UpdateScope.ALL), false, GSGoalKey.UPDATE_DB),
+	/** Whether to keep only the accession prefixes a genome assembly uses when updating the database. */
+	@MDDescription("The same restriction as `refseq.assemblyAccessionsOnly`, applied to the update phase instead of the fill: "
+			+ "if `true`, then of the genomic accessions only those with the prefixes `AC_`, `NC_` and `NZ_` are considered, "
+			+ "which drops `NG_`, `NT_` and `NW_`. Otherwise all genomic accessions are considered. Note that this is not an "
+			+ "assembly-level filter and does not select finished genomes; see `refseq.assemblyAccessionsOnly`. "
+			+ "See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.")
+	UPDATE_WITH_ASSEMBLY_ACCESSIONS_ONLY("refseq.updateWithAssemblyAccessionsOnly", new BooleanConfigParamInfo(false), GSGoalKey.UPDATE_DB),
 	/** Whether to delete the temporary database after saving the final one. */
 	@MDDescription("Whether to delete the temporary database after the final database has been saved or not.")
 	REMOVE_TEMP_DB("removeTempDB", new BooleanConfigParamInfo(true), false, GSGoalKey.DB),
-	/** Store only every stepSize-th k-mer of a genome. */
-	@MDDescription("Stores *k*-mers in steps of `stepSize`. " +
-			"E.g. if `stepSize=2` then only every second *k*-mer from a genome is considered for entry into the database.")
-	STEP_SIZE("stepSize", new IntConfigParamInfo(1, Integer.MAX_VALUE, 1), GSGoalKey.DB),
+	/** Store only one k-mer in kMerSampling, selected by the k-mer itself. */
+	@MDDescription("Stores one *k*-mer in `kMerSampling`. E.g. if `kMerSampling=2` then about every second *k*-mer of a "
+			+ "genome is considered for entry into the database. Which ones those are follows from the *k*-mer "
+			+ "itself and not from its position in the genome, so a *k*-mer is kept in every genome it occurs in "
+			+ "or in none of them. That is what keeps the tax id of a stored *k*-mer right: it is the lowest "
+			+ "common ancestor of the taxa of every region the *k*-mer was met in, and a *k*-mer kept in one "
+			+ "genome but passed over in another would come out looking more specific than it is, so that reads "
+			+ "of the taxon whose occurrence was missed would be attributed to the other one.")
+	KMER_SAMPLING("kMerSampling", new IntConfigParamInfo(1, Integer.MAX_VALUE, 1), GSGoalKey.DB),
 	/** Whether to add artificial DATA-rank nodes as intermediate children of tax ids. */
 	@MDDescription("Whether to add artificial nodes of rank `DATA` in the taxonomy tree as intermediate children of tax id nodes when filling the database. "
 			+ "K-mers are then assigned to these intermediate DATA nodes rather than directly to the tax id, enabling finer-grained attribution within a taxon. "
@@ -309,17 +363,14 @@ public enum GSConfigKey implements ConfigKey {
 	/** Number of reads per file between matching-progress log messages. */
 	@MDDescription("Affects the log level `trace`: Defines after how many reads per fastq file, information on the matching progress is logged. If less than 1, then no progress information is logged.")
 	LOG_PROGRESS_UPDATE_CYCLE("logProgressUpdateCycle", new LongConfigParamInfo(0, Long.MAX_VALUE, 1000000), GSGoalKey.MATCH, GSGoalKey.MATCHLR, GSGoalKey.FILTER),
-	/** Whether to perform Kraken-style read classification. */
-	@MDDescription("Whether to do read classification in the style of Kraken and KrakenUniq. Matching is faster without "
-			+ "read classification and the columns `kmers`, `unique kmers` and `max contig length` in resulting CSV files are usually more conclusive anyways - "
-			+ "in particular with respect to long reads. When read classification is off, the columns `reads` and `kmers from reads` will be 0 in resulting CSV files.")
-	CLASSIFY_READS("classifyReads", new BooleanConfigParamInfo(true), GSGoalKey.MATCH),
-	/** Whether unique k-mers are counted and reported. */
-	@MDDescription("If `true`, the number of unique *k*-mers will be counted and reported. This requires less than 5% of additional main memory.")
-	COUNT_UNIQUE_KMERS("countUniqueKMers", new BooleanConfigParamInfo(true), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 	/** Whether the match goal also writes filtered fastq files. */
 	@MDDescription("If `true`, then the goal `match` writes filtered fastq files in the same way that the goal `filter` does.")
 	WRITE_FILTERED_FASTQ("writeFilteredFastq", new BooleanConfigParamInfo(false), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
+	/** Whether matchers keep their own unique-k-mer bits so several can share one database. */
+	@MDDescription("If `true`, a matching run counts the distinct matched *k*-mers in a bit vector of its own instead of marking them inside the database. "
+			+ "That leaves the database untouched, so several matching runs can work on one loaded database at the same time - which is the point of the setting. "
+			+ "It costs one bit per stored *k*-mer per run (a database of 400 million *k*-mers needs about 48 MB) and one extra memory access per matched *k*-mer, so leave it off unless runs really do share a database.")
+	PARALLEL_DB_MATCHING("parallelDbMatching", new BooleanConfigParamInfo(false), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 	/** Whether Kraken-style {@code .out} output files are written. */
 	@MDDescription("If `true`, Genestrip will write output files with suffix `.out` in the [Kraken output format](https://ccb.jhu.edu/software/kraken/MANUAL.html#output-format) "
 			+ "under `<base dir>/projects/<project_name>/krakenout` covering all reads with at least one matching *k*-mer.")
@@ -397,15 +448,7 @@ public enum GSConfigKey implements ConfigKey {
 		public String getTypeDescriptor() {
 			return "list of Strings";
 		}
-	}, GSGoalKey.DB2FASTQ_TAXIDS, GSGoalKey.DB2FASTQ),
-
-	// Kraken
-	/** Name of the Kraken/KrakenUniq binary. */
-	KRAKEN_BIN("krakenBin", new StringConfigParamInfo("krakenuniq"), true),
-	/** Name of the Kraken database. */
-	KRAKEN_DB("krakenDB", new StringConfigParamInfo("krakenuniq"), true),
-	/** Command-line expression template for invoking Kraken. */
-	KRAKEN_EXEC_EXPR("krakenExecExpr", new StringConfigParamInfo("{0} -db {1} {2}"), true);
+	}, GSGoalKey.DB2FASTQ_TAXIDS, GSGoalKey.DB2FASTQ);
 
 	/** Default false positive probability for the fill-phase Bloom filter. */
 	public static final double FILL_BLOOM_FILTER_FPP_DEFAULT =  0.00000000001d;
@@ -724,6 +767,209 @@ public enum GSConfigKey implements ConfigKey {
 	/**
 	 * Parameter info for a taxonomic {@link Rank} value (or {@code null} for no rank).
 	 */
+	/**
+	 * How the temporary Bloom filter of {@code tempindex} is sized, i.e. which of the two counts that
+	 * {@code fillsize} reports it is built for.
+	 */
+	public enum BloomFilterSizing {
+		/**
+		 * From the estimated number of distinct k-mers. This is what the filter comes to hold, so it
+		 * is sized just right, but the number is a HyperLogLog estimate and one that falls short
+		 * leaves the filter too small to be trusted.
+		 */
+		DISTINCT("distinct"),
+		/**
+		 * From a count that cannot be exceeded: for the database's k-mers the exact number including
+		 * duplicates, for the k-mer index the bound that assumes every k-mer of a taxon to occur in
+		 * every one of its genomes. The filter can then never be too small - and is larger than
+		 * needed by however far that bound lies above the truth, which runs into the hundreds for a
+		 * set of near-identical genomes.
+		 */
+		UPPER_BOUND("upperBound"),
+		/**
+		 * From the estimate, falling back to the bound above and reading the sequences a second time
+		 * if that estimate turns out to have fallen short.
+		 */
+		AUTO("auto");
+
+		private final String name;
+
+		BloomFilterSizing(String name) {
+			this.name = name;
+		}
+
+		/**
+		 * Returns the name this value carries in a configuration file.
+		 *
+		 * @return the configuration name of this value
+		 */
+		public String getName() {
+			return name;
+		}
+
+		/**
+		 * Returns the value of the given configuration name, or {@code null} if there is none.
+		 *
+		 * @param name the configuration name to look up
+		 * @return the matching value, or {@code null}
+		 */
+		public static BloomFilterSizing byName(String name) {
+			for (BloomFilterSizing each : values()) {
+				if (each.name.equalsIgnoreCase(name)) {
+					return each;
+				}
+			}
+			return null;
+		}
+	}
+
+	/** Parameter info for {@link BloomFilterSizing}. */
+	public static class BloomFilterSizingConfigParamInfo extends ConfigParamInfo<BloomFilterSizing> {
+		/**
+		 * Creates parameter info for the sizing of the temporary Bloom filter.
+		 *
+		 * @param defaultValue the default sizing
+		 */
+		public BloomFilterSizingConfigParamInfo(BloomFilterSizing defaultValue) {
+			super(defaultValue);
+		}
+
+		@Override
+		public boolean isValueInRange(Object o) {
+			return o instanceof BloomFilterSizing;
+		}
+
+		@Override
+		protected BloomFilterSizing fromString(String s) {
+			return BloomFilterSizing.byName(s);
+		}
+
+		@Override
+		public String getMDRangeDescriptor() {
+			StringBuilder builder = new StringBuilder();
+			BloomFilterSizing[] values = BloomFilterSizing.values();
+			for (int i = 0; i < values.length; i++) {
+				if (i > 0) {
+					builder.append(", ");
+				}
+				builder.append('`').append(values[i].getName()).append('`');
+			}
+			return builder.toString();
+		}
+	}
+
+	/**
+	 * Which regions <em>of the RefSeq release</em> the least-common-ancestor update of
+	 * {@code updatedb} takes into account. The update merges each stored k-mer's tax id with the node
+	 * of every region that carries it; which regions it is shown therefore decides what the database
+	 * ends up claiming.
+	 * <p>
+	 * None of these values touches the fasta files a project supplies itself - the entries of its
+	 * {@code additional.txt} and the genomes downloaded from Genbank. Those always take part; see
+	 * {@code DBGoal#isRegionInScope} for why only the release is worth restricting.
+	 */
+	public enum UpdateScope {
+		/**
+		 * Every region of the release. This is what the update exists for: a k-mer carried by a genome
+		 * of another taxon is raised to the common ancestor of both and so stops being claimed for the
+		 * requested taxon.
+		 */
+		ALL("all"),
+		/**
+		 * Only the release's regions of the tax ids selected for the database. That is more than the
+		 * database holds but far less than the entire release, and k-mers that genomes of other taxa
+		 * carry stay claimed for the requested taxon.
+		 */
+		OWN_TAXA_ONLY("ownTaxaOnly"),
+		/**
+		 * Every region of the release except those of the selected tax ids - the complement of
+		 * {@link #OWN_TAXA_ONLY}. For a database that holds the genomes of the requested taxon under
+		 * their own identity (one fasta file per assembly, say), the release presents those very
+		 * genomes a second time under a different one, and the update would raise a genome's k-mers
+		 * with its own copy. Skipping their regions keeps what the update is for and drops what it
+		 * would destroy; it is correct only if the database holds those genomes completely.
+		 */
+		OTHER_TAXA_ONLY("otherTaxaOnly");
+
+		private final String name;
+
+		UpdateScope(String name) {
+			this.name = name;
+		}
+
+		/**
+		 * Returns the name this value carries in a configuration file.
+		 *
+		 * @return the configuration name of this value
+		 */
+		public String getName() {
+			return name;
+		}
+
+		/**
+		 * Returns the value of the given configuration name, or {@code null} if there is none.
+		 *
+		 * @param name the configuration name to look up
+		 * @return the matching value, or {@code null}
+		 */
+		public static UpdateScope byName(String name) {
+			for (UpdateScope each : values()) {
+				if (each.name.equalsIgnoreCase(name)) {
+					return each;
+				}
+			}
+			return null;
+		}
+	}
+
+	/** Parameter info for {@link UpdateScope}. */
+	public static class UpdateScopeConfigParamInfo extends ConfigParamInfo<UpdateScope> {
+		/**
+		 * Creates parameter info for the scope of the least-common-ancestor update.
+		 *
+		 * @param defaultValue the default scope
+		 */
+		public UpdateScopeConfigParamInfo(UpdateScope defaultValue) {
+			super(defaultValue);
+		}
+
+		@Override
+		public boolean isValueInRange(Object o) {
+			return o instanceof UpdateScope;
+		}
+
+		@Override
+		protected UpdateScope fromString(String s) {
+			return UpdateScope.byName(s);
+		}
+
+		@Override
+		public String getMDDefaultValue() {
+			// The configuration name, not the constant's - what the docs show has to be a value that
+			// can actually be put into a properties file.
+			UpdateScope value = defaultValue();
+			return value == null ? "" : value.getName();
+		}
+
+		@Override
+		public String getMDRangeDescriptor() {
+			StringBuilder builder = new StringBuilder();
+			UpdateScope[] values = UpdateScope.values();
+			for (int i = 0; i < values.length; i++) {
+				if (i > 0) {
+					builder.append(", ");
+				}
+				builder.append('`').append(values[i].getName()).append('`');
+			}
+			return builder.toString();
+		}
+
+		@Override
+		public String getTypeDescriptor() {
+			return "nominal";
+		}
+	}
+
 	public static class RankConfigParamInfo extends ConfigParamInfo<Rank> {
 		/**
 		 * Creates parameter info for a taxonomic rank.

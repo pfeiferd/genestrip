@@ -535,7 +535,7 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
      */
     @MDCDescription(pos = 1001, name = "acc. mean error", desc = "The accumulated `mean error`.")
     public double getAccMeanError() {
-        CountsPerTaxid.AccValues accValues = getAccValuesFor(ValueType.READS);
+        AccValues accValues = getAccValuesFor(ValueType.READS);
         return accErrorSum / (accValues == null ? 0 : accValues.getAccumulated());
     }
 
@@ -546,7 +546,7 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
      */
     @MDCDescription(pos = 1002, name = "acc. error std. dev.", desc = "The standard deviation of the `acc. mean error`.")
     public double getAccErrorStdDev() {
-        CountsPerTaxid.AccValues accValues = getAccValuesFor(ValueType.READS);
+        AccValues accValues = getAccValuesFor(ValueType.READS);
         long reads = accValues == null ? 0 : accValues.getAccumulated();
         return Math.sqrt((accErrorSquaredSum  - (accErrorSum * accErrorSum) / reads) / (reads - 1));
     }
@@ -558,7 +558,7 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
      */
     @MDCDescription(pos = 1003, name = "acc. mean class error", desc = "The accumulated `mean class error`.")
     public double getAccClassMeanError() {
-        CountsPerTaxid.AccValues accValues = getAccValuesFor(ValueType.READS);
+        AccValues accValues = getAccValuesFor(ValueType.READS);
         return accClassErrorSum / (accValues == null ? 0 : accValues.getAccumulated());
     }
 
@@ -569,7 +569,7 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
      */
     @MDCDescription(pos = 1004, name = "acc. class error std. dev.", desc = "The standard deviation of the `acc. mean class error`.")
     public double getAccClassStdErrorDev() {
-        CountsPerTaxid.AccValues accValues = getAccValuesFor(ValueType.READS);
+        AccValues accValues = getAccValuesFor(ValueType.READS);
         long reads = accValues == null ? 0 : accValues.getAccumulated();
         return Math.sqrt((accClassErrorSquaredSum  - (accClassErrorSum * accClassErrorSum) / reads) / (reads - 1));
     }

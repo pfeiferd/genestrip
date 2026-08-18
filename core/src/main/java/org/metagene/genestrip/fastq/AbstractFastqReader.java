@@ -42,7 +42,7 @@ import org.metagene.genestrip.util.SimpleBlockingQueue;
 /**
  * Abstract multi-threaded FASTQ/FASTA reader. It parses reads into a pool of reusable
  * {@link ReadEntry} buffers and either processes them inline or hands them to a configurable number
- * of consumer threads via a blocking queue, calling {@link #nextEntry(ReadEntry, int)} for each.
+ * of consumer threads via a blocking queue, calling {@link #nextEntry(ReadEntry, ConsumerRunnable)} for each.
  */
 public abstract class AbstractFastqReader {
     private static final byte[] LINE_3 = new byte[]{'+', '\n'};
@@ -70,6 +70,9 @@ public abstract class AbstractFastqReader {
     /** The execution context providing the consumer threads and error handling. */
     protected final ExecutionContext bundle;
 
+    /** The consumers, one per consumer thread (or a single one when reads are processed inline). */
+    private final ConsumerRunnable[] consumerRunnables;
+
     /**
      * Creates a reader for k-mers of length {@code k}, allocating read buffers of
      * {@code initialSizeBytes} and starting the number of consumer threads given by the execution
@@ -96,11 +99,31 @@ public abstract class AbstractFastqReader {
         blockingQueue = consumerNumber == 0 ? null
                 : createBlockingQueue(maxQueueSize);
 
+        // One consumer object per consumer thread - and one even when reads are processed inline
+        // (consumerNumber == 0), so that nextEntry() always has a consumer to work with. Subclasses
+        // hang their per-thread scratch off these objects, which is what makes that state private to
+        // a thread by construction rather than by convention.
+        consumerRunnables = new ConsumerRunnable[consumerNumber == 0 ? 1 : consumerNumber];
+        for (int i = 0; i < consumerRunnables.length; i++) {
+            consumerRunnables[i] = createRunnable(i, config);
+        }
         if (blockingQueue != null) {
-            for (int i = 0; i < consumerNumber; i++) {
-                bundle.execute(createRunnable(i, config));
+            for (ConsumerRunnable consumer : consumerRunnables) {
+                bundle.execute(consumer);
             }
         }
+    }
+
+    /**
+     * Returns the consumer belonging to the given consumer index. Subclasses that keep per-thread
+     * state on their own {@link ConsumerRunnable} subclass use this to reach it - typically right
+     * after their own constructor has computed what that state needs.
+     *
+     * @param index the consumer index.
+     * @return the consumer for that index.
+     */
+    protected final ConsumerRunnable getConsumer(int index) {
+        return consumerRunnables[index];
     }
 
     /**
@@ -143,45 +166,74 @@ public abstract class AbstractFastqReader {
     }
 
     /**
-     * Creates the worker {@link Runnable} for a consumer thread, which takes read entries from the
-     * queue, processes them via {@link #nextEntry(ReadEntry, int)} and returns them to the pool.
+     * Creates the consumer for the given index, which takes read entries from the queue, processes
+     * them via {@link #nextEntry(ReadEntry, ConsumerRunnable)} and returns them to the pool.
+     * Subclasses override this to supply their own {@link ConsumerRunnable} subclass carrying their
+     * per-thread state.
      *
      * @param rindex the index identifying this consumer thread.
      * @param config optional configuration for the consumer thread.
      * @return the runnable executed by the consumer thread.
      */
-    protected Runnable createRunnable(int rindex, Object... config) {
-        return new Runnable() {
-            private final int index = rindex;
+    protected ConsumerRunnable createRunnable(int rindex, Object... config) {
+        return new ConsumerRunnable(this, rindex);
+    }
 
-            @Override
-            public void run() {
-                while (!dump) {
-                    try {
-                        ReadEntry readStruct = blockingQueue.take();
-//						try {
-                        nextEntry(readStruct, index);
-//						} finally {
-//							if (readsDone) {
-//								synchronized (mainThread) {
-//									readStruct.pooled = true;
-//									mainThread.notify();
-//								}
-//							} else {
-                        readStruct.pooled = true;
-//							}
-//						}
-//					}
-                    } catch (IOException e) {
+    /**
+     * One consumer thread of the reader: it takes read entries from the queue and hands them to
+     * {@link #nextEntry(ReadEntry, ConsumerRunnable)} until the reader is dumped.
+     * <p>
+     * It is a named (and static) class rather than an anonymous runnable so that subclasses can
+     * extend it and keep their per-thread scratch - counters, buffers, prefetch arrays - in its
+     * fields. That makes the ownership structural: a consumer can only reach its own state, so no
+     * two threads can end up writing neighbouring slots of one shared array.
+     * <p>
+     * Note it is created from the reader's constructor, i.e. before a subclass constructor has run.
+     * A subclass therefore fills in its state afterwards, via {@link #getConsumer(int)}; the queue's
+     * handoff establishes the happens-before edge that publishes it to the consumer thread.
+     */
+    protected static class ConsumerRunnable implements Runnable {
+        /** The reader this consumer belongs to. */
+        protected final AbstractFastqReader reader;
+        /** The index of this consumer among the reader's consumers. */
+        protected final int index;
+
+        /**
+         * Creates the consumer for the given reader and index.
+         *
+         * @param reader the reader this consumer belongs to.
+         * @param index the index of this consumer among the reader's consumers.
+         */
+        public ConsumerRunnable(AbstractFastqReader reader, int index) {
+            this.reader = reader;
+            this.index = index;
+        }
+
+        /**
+         * Returns the index of this consumer among the reader's consumers.
+         *
+         * @return the consumer index.
+         */
+        public final int getIndex() {
+            return index;
+        }
+
+        @Override
+        public void run() {
+            while (!reader.dump) {
+                try {
+                    ReadEntry readStruct = reader.blockingQueue.take();
+                    reader.nextEntry(readStruct, this);
+                    readStruct.pooled = true;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (InterruptedException e) {
+                    if (!reader.dump) {
                         throw new RuntimeException(e);
-                    } catch (InterruptedException e) {
-                        if (!dump) {
-                            throw new RuntimeException(e);
-                        }
                     }
                 }
             }
-        };
+        }
     }
 
     /**
@@ -348,7 +400,7 @@ public abstract class AbstractFastqReader {
             }
             readBPs += readStruct.readSize;
             if (blockingQueue == null) {
-                nextEntry(readStruct, 0);
+                nextEntry(readStruct, consumerRunnables[0]);
                 readStruct.pooled = true;
                 if (dump) {
                     throw new FastqReaderInterruptedException();
@@ -416,7 +468,7 @@ public abstract class AbstractFastqReader {
             readBPs += readStruct.readSize;
             readStruct.readProbsSize = -1; // Indicate no probs available.
             if (blockingQueue == null) {
-                nextEntry(readStruct, 0);
+                nextEntry(readStruct, consumerRunnables[0]);
                 readStruct.pooled = true;
                 if (dump) {
                     throw new FastqReaderInterruptedException();
@@ -481,11 +533,11 @@ public abstract class AbstractFastqReader {
      * freely operate on the given read entry.
      *
      * @param readStruct the read entry to process.
-     * @param threadIndex the index of the consumer thread invoking this method.
+     * @param consumer the consumer invoking this method, carrying its per-thread state.
      * @throws IOException if processing the read entry fails.
      */
     // Must be thread safe. Can freely operate on readStruct.
-    protected abstract void nextEntry(ReadEntry readStruct, int threadIndex) throws IOException;
+    protected abstract void nextEntry(ReadEntry readStruct, ConsumerRunnable consumer) throws IOException;
 
     /**
      * Hook called after all reads have been processed; does nothing by default.

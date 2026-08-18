@@ -147,9 +147,19 @@ public class DefaultExecutionContext implements ExecutionContext {
 	}
 
 	/**
-	 * Creates the thread factory used for the pool. Each produced thread is named, registered for
-	 * interruption and equipped with a handler that records uncaught exceptions and interrupts all
-	 * other threads.
+	 * Creates the thread factory used for the pool. Each produced thread is named, made a daemon,
+	 * registered for interruption and equipped with a handler that records uncaught exceptions and
+	 * interrupts all other threads.
+	 * <p>
+	 * Daemon threads because a pool thread must not be what keeps the virtual machine alive. The
+	 * orderly way to end the pool is {@link #dump()}, which shuts the executor down, and every caller
+	 * that owns a context is expected to take it -- but a caller that forgets leaves threads sitting
+	 * idle on the executor's queue, and a non-daemon thread there means the process prints its
+	 * results, reports success and then never exits. Under Maven it is the forked virtual machine
+	 * that hangs, so the failure looks like the run itself hanging rather than like a missing call.
+	 * Making them daemons does not weaken the shutdown: work is always waited for by whoever
+	 * submitted it, so at the moment the last non-daemon thread ends there is nothing left running
+	 * that anyone is waiting on.
 	 *
 	 * @return the thread factory for the pool
 	 */
@@ -161,6 +171,7 @@ public class DefaultExecutionContext implements ExecutionContext {
 			public Thread newThread(Runnable r) {
 				Thread t = new Thread(r);
 				t.setName(threadBaseName + " #" + newCounter++);
+				t.setDaemon(true);
 				t.setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
 					@Override
 					public void uncaughtException(Thread t, Throwable e) {

@@ -129,10 +129,20 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
 
     private final ObjectGoal<AccessionMap, P> accessionMapGoal;
     private final ObjectGoal<TaxTree, P> taxTreeGoal;
-    private final ObjectGoal<Long, P> sizeGoal;
+    private final ObjectGoal<FillSizeGoal.KMerCounts, P> sizeGoal;
 
     // The temporary size-estimation filter is always an XOR/Murmur filter. The store sizing is
     // derived from the readers' per-radix-bucket counts of distinct k-mers, not from the filter.
+    /**
+     * The false-positive rate beyond which the k-mer counts are refused rather than used. Set from
+     * where {@link BloomFilter#estimateDistinctValues(long)} was measured to leave the range in which
+     * it is good to a fraction of a percent: at a reached rate of 0.14 it is out by 0.3 %, at 0.33 by
+     * 3 %, at 0.46 by 9 %. Refusing above 0.25 therefore draws the line where the number stops being
+     * an estimate, rather than where it becomes nonsense.
+     */
+    private static final double MAX_TRUSTED_FPP = 0.25;
+
+
     private ProbFilter filter;
     // Number of low k-mer bits used as the radix (from config); the radix store created later must
     // use the same value. Set in doMakeThis().
@@ -152,7 +162,7 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
      * @param additionalGoal the goal supplying additional FASTA files mapped to tax nodes
      * @param accessionMapGoal the goal supplying the accession-to-tax-id map
      * @param taxTreeGoal the goal supplying the taxonomy tree (into which artificial fill nodes are created)
-     * @param sizeGoal the goal supplying the expected k-mer count for filter sizing
+     * @param sizeGoal the goal supplying the k-mer counts the filter is sized from
      * @param deps the additional goals this goal depends on
      */
     @SafeVarargs
@@ -160,7 +170,7 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
                                ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
                                ObjectGoal<Map<File, TaxIdNode>, P> additionalGoal,
                                ObjectGoal<AccessionMap, P> accessionMapGoal, ObjectGoal<TaxTree, P> taxTreeGoal,
-                               ObjectGoal<Long, P> sizeGoal, Goal<P>... deps) {
+                               ObjectGoal<FillSizeGoal.KMerCounts, P> sizeGoal, Goal<P>... deps) {
         super(project, GSGoalKey.TEMPINDEX, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, accessionMapGoal, taxTreeGoal, sizeGoal));
         this.accessionMapGoal = accessionMapGoal;
         this.taxTreeGoal = taxTreeGoal;
@@ -178,56 +188,188 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
 
     @Override
     protected void doMakeThis() {
+        FillSizeGoal.KMerCounts counts = sizeGoal.get();
+        GSConfigKey.BloomFilterSizing sizing = (GSConfigKey.BloomFilterSizing) configValue(GSConfigKey.BLOOM_FILTER_SIZING);
+        // AUTO is DISTINCT with a second attempt held in reserve. The reserve is used at most once:
+        // the count with duplicates is exact and an upper bound, so a filter built for it cannot be
+        // too small and there is nothing a third attempt could try.
+        boolean fromDistinct = sizing != GSConfigKey.BloomFilterSizing.UPPER_BOUND;
+        boolean mayRetry = sizing == GSConfigKey.BloomFilterSizing.AUTO;
         try {
-            double tempFpp = doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP);
-            // The temporary size-estimation filter is filled concurrently by the reader threads, so it
-            // must support a thread-safe putLong; the two used here do (via their bit vector's bucket locks),
-            // as does BlockedBloomFilter, which is nonetheless not offered as an option here.
-            filter = booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH) ?
-                    new XORBloomFilter(tempFpp, sizeGoal.get()) :
-                    new BloomFilter(tempFpp, sizeGoal.get());
-            radixBits = intConfigValue(GSConfigKey.RADIX_STORE_BITS);
-            logHeapInfo();
-            readFastas();
-            // Merge the per-thread counts/values now that all readers have finished (no synchronization
-            // needed during the read).
-            int[] bucketSizes = new int[1 << radixBits];
-            Set<String> collectedValues = new HashSet<>();
-            for (MyFastaReader reader : readers) {
-                int[] readerBuckets = reader.getBucketSizes();
-                for (int i = 0; i < bucketSizes.length; i++) {
-                    bucketSizes[i] += readerBuckets[i];
+            try {
+                set(onePass(counts, fromDistinct));
+            } catch (UnusableFilterException e) {
+                if (!mayRetry) {
+                    throw new IllegalStateException(e.explain(counts, fromDistinct,
+                            GSConfigKey.BloomFilterSizing.UPPER_BOUND.getName()));
                 }
-                collectedValues.addAll(reader.getValues());
-            }
-            // We have to account for the missing entries in the bloom filter due to
-            // inherent FPP. The formula from below works really well,
-            // so we can allow for a low FPP for the bloom filter from 'bloomFilterGoal'
-            // and save memory during db construction.
-            // It is a conservative estimate too, since collisions occur in the process
-            // of filling (as opposed to the FPP formula that considers a filled
-            // bloom filter).
-            double divisor = 1d - doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP);
-            // Apply the same FPP correction per bucket so the bucket sizes stay consistent with the
-            // total (their sum stays approximately 'entries').
-            int[] correctedBucketSizes = new int[bucketSizes.length];
-            for (int i = 0; i < correctedBucketSizes.length; i++) {
-                correctedBucketSizes[i] = (int) (bucketSizes[i] / divisor) + 1;
-            }
-            DBSize dbSize = new DBSize(correctedBucketSizes, collectedValues);
-            set(dbSize);
-            if (getLogger().isInfoEnabled()) {
-                long size = dbSize.getSize();
-                getLogger().info("Bloom filter size in kmers: " + dbSize.getSize());
-                getLogger().info("Duplication factor: " + ((double) sizeGoal.get()) / dbSize.getSize());
+                if (getLogger().isWarnEnabled()) {
+                    getLogger().warn(e.explain(counts, fromDistinct, null)
+                            + " Reading the sequences again with the exact count, as '"
+                            + GSConfigKey.BLOOM_FILTER_SIZING.getName() + "="
+                            + GSConfigKey.BloomFilterSizing.AUTO.getName() + "' asks for. This doubles the"
+                            + " time this goal takes; set it to '"
+                            + GSConfigKey.BloomFilterSizing.UPPER_BOUND.getName()
+                            + "' to go straight there next time.");
+                }
+                // The first pass has ended its own consumers, so only this goal's own state is
+                // left to reset before another one reads.
+                readers.clear();
+                try {
+                    set(onePass(counts, false));
+                } catch (UnusableFilterException second) {
+                    // The exact count is an upper bound, so this cannot happen for want of size, and
+                    // reporting it as though it could would send the reader looking in the wrong place.
+                    throw new IllegalStateException(second.explain(counts, false, null)
+                            + " This second attempt was sized from the exact count including duplicates,"
+                            + " which no data can exceed, so the cause lies elsewhere - the k-mers counted"
+                            + " here outnumber every k-mer the size goal reported seeing.");
+                }
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
             filter = null;
             readers.clear();
-            System.gc(); // Time to run GC after freeing up the bloom filter's memory.
-            cleanUpThreads();
+            // The filter is sized for the whole database and is dead the moment this goal is done
+            // with it, while the goal that follows is the one that allocates the k-mer store. Handing
+            // the memory back here rather than waiting for the virtual machine to feel the pressure is
+            // therefore worth the collection - this is about the memory, not about the figure the
+            // logging takes, which collects on its own account and only when it is switched on.
+            System.gc();
+        }
+    }
+
+    /**
+     * Reads all sequences once through a temporary filter of the given sizing and returns the
+     * database size derived from what it counted.
+     *
+     * @param counts the two k-mer counts the filter may be sized from
+     * @param fromDistinct whether to size it from the estimated distinct count rather than the exact one
+     * @return the resulting database size
+     * @throws UnusableFilterException if the filter ended up too full for its counts to be trusted
+     * @throws IOException if a sequence file cannot be read
+     */
+    protected DBSize onePass(FillSizeGoal.KMerCounts counts, boolean fromDistinct)
+            throws UnusableFilterException, IOException {
+        double tempFpp = doubleConfigValue(GSConfigKey.TEMP_BLOOM_FILTER_FPP);
+        long sizingCount = fromDistinct ? counts.getDistinct() : counts.getWithDuplicates();
+        if (getLogger().isInfoEnabled()) {
+            getLogger().info("Sizing the temporary bloom filter for " + sizingCount + " k-mers, the "
+                    + (fromDistinct ? "estimated distinct" : "exact with-duplicates") + " count of " + counts);
+        }
+        // The temporary size-estimation filter is filled concurrently by the reader threads, so it
+        // must support a thread-safe putLong; the two used here do (via their bit vector's bucket locks),
+        // as does BlockedBloomFilter, which is nonetheless not offered as an option here.
+        // Kept as a BloomFilter beside the field, which is a ProbFilter: the correction below
+        // asks it for the false-positive rate it reached, which only a bloom filter can answer.
+        BloomFilter tempFilter = booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH) ?
+                new XORBloomFilter(tempFpp, sizingCount) :
+                new BloomFilter(tempFpp, sizingCount);
+        filter = tempFilter;
+        radixBits = intConfigValue(GSConfigKey.RADIX_STORE_BITS);
+        logHeapInfo();
+        readFastas();
+        // Merge the per-thread counts/values now that all readers have finished (no synchronization
+        // needed during the read).
+        int[] bucketSizes = new int[1 << radixBits];
+        Set<String> collectedValues = new HashSet<>();
+        for (MyFastaReader reader : readers) {
+            int[] readerBuckets = reader.getBucketSizes();
+            for (int i = 0; i < bucketSizes.length; i++) {
+                bucketSizes[i] += readerBuckets[i];
+            }
+            collectedValues.addAll(reader.getValues());
+        }
+        // We have to account for the missing entries in the bloom filter due to inherent FPP: a k-mer
+        // the filter falsely reports as present is never counted, so the counts are short by about the
+        // filter's false-positive rate. Correcting for it lets 'bloomFilterGoal' run at a low FPP and
+        // saves memory during db construction.
+        //
+        // The rate to correct by is neither the one the filter was sized for nor the one it ends up
+        // at. A k-mer is offered while the filter is still filling, so what hides it is the rate at
+        // that moment: with c counted so far, dc/dT = 1 - fpp(c), and the correction is the integral
+        // of 1/(1 - fpp(c)) over c, which BloomFilter.estimateDistinctValues does.
+        long entries = 0;
+        for (int i = 0; i < bucketSizes.length; i++) {
+            entries += bucketSizes[i];
+        }
+        double reachedFpp = tempFilter.getFpp(entries);
+        if (reachedFpp > MAX_TRUSTED_FPP) {
+            // Beyond this rate the filter hides k-mers faster than the correction recovers them, so
+            // the counts are a lower bound of unknown tightness. Sizing the k-mer store from them
+            // would not make a smaller database but a wrong one.
+            throw new UnusableFilterException(sizingCount, entries, reachedFpp);
+        }
+        double correctedEntries = tempFilter.estimateDistinctValues(entries);
+        // Applied as one factor across the buckets, so that they keep their proportions and their sum
+        // stays the corrected total.
+        double factor = entries > 0 ? correctedEntries / entries : 1d;
+        int[] correctedBucketSizes = new int[bucketSizes.length];
+        for (int i = 0; i < correctedBucketSizes.length; i++) {
+            correctedBucketSizes[i] = (int) (bucketSizes[i] * factor) + 1;
+        }
+        DBSize dbSize = new DBSize(correctedBucketSizes, collectedValues);
+        if (getLogger().isInfoEnabled()) {
+            getLogger().info("Bloom filter size in kmers: " + dbSize.getSize());
+            getLogger().info("Duplication factor: " + ((double) counts.getWithDuplicates()) / dbSize.getSize());
+        }
+        return dbSize;
+    }
+
+    /**
+     * Signals that a pass ended with a filter too full for what it counted to be worth using.
+     */
+    protected static class UnusableFilterException extends Exception {
+        private static final long serialVersionUID = 1L;
+
+        private final long sizingCount;
+        private final long entries;
+        private final double reachedFpp;
+
+        UnusableFilterException(long sizingCount, long entries, double reachedFpp) {
+            super("temporary bloom filter too full to count with");
+            this.sizingCount = sizingCount;
+            this.entries = entries;
+            this.reachedFpp = reachedFpp;
+        }
+
+        /**
+         * Returns the numbers of this failure in words, and what to do about it.
+         *
+         * @param counts the two counts the filter could have been sized from
+         * @param fromDistinct whether the failed pass was sized from the estimate
+         * @param remedyValue the configuration value to recommend, or {@code null} for no recommendation
+         * @return the explanation
+         */
+        String explain(FillSizeGoal.KMerCounts counts, boolean fromDistinct, String remedyValue) {
+            StringBuilder text = new StringBuilder();
+            text.append("The temporary bloom filter is too full for its counts to be trusted: it was sized for ")
+                    .append(sizingCount).append(" k-mers")
+                    .append(fromDistinct ? " (the estimated number of distinct ones)"
+                            : " (the exact number including duplicates)")
+                    .append(" but holds ").append(entries)
+                    .append(", which brings its false-positive rate to ")
+                    .append(String.format("%.3f", reachedFpp))
+                    .append(", where anything above ").append(MAX_TRUSTED_FPP)
+                    .append(" is unusable. A database size derived from it would be too small, and the k-mer")
+                    .append(" store built to that size would lose k-mers.");
+            if (fromDistinct) {
+                text.append(" The sizing rests on a HyperLogLog estimate, and this one fell short of the ")
+                        .append(entries).append(" k-mers actually counted.");
+                if (remedyValue != null) {
+                    text.append(" Set '").append(GSConfigKey.BLOOM_FILTER_SIZING.getName()).append("=")
+                            .append(remedyValue)
+                            .append("' in the project's config.properties and run the goal again: the count")
+                            .append(" including duplicates is exact and an upper bound, so it cannot fall short")
+                            .append(" - at the price of a filter larger by the duplication factor of the data (")
+                            .append(String.format("%.1f", counts.getWithDuplicates()
+                                    / (double) Math.max(1, counts.getDistinct())))
+                            .append(" here, i.e. ").append(counts.getWithDuplicates())
+                            .append(" k-mers to size it for).");
+                }
+            }
+            return text.toString();
         }
     }
 
@@ -261,15 +403,16 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
                 (Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
                 longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
                 intConfigValue(GSConfigKey.MAX_DUST),
-                intConfigValue(GSConfigKey.STEP_SIZE),
-                booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY),
+                intConfigValue(GSConfigKey.KMER_SAMPLING),
+                booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY),
                 regionsPerTaxid,
                 booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES),
                 taxTreeGoal.get(),
                 booleanConfigValue(GSConfigKey.DATA_NODES),
                 booleanConfigValue(GSConfigKey.FILE_NODES),
                 booleanConfigValue(GSConfigKey.ID_NODES),
-                idStringGenerator);
+                idStringGenerator,
+                (Rank) configValue(GSConfigKey.FOLD_TAXA_BELOW));
         readers.add(fastaReader);
         return fastaReader;
     }
@@ -301,8 +444,8 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
          * @param maxGenomesPerTaxIdRank the rank at which the genome limit is applied
          * @param maxKmersPerTaxId the maximum number of k-mers kept per tax id
          * @param maxDust the maximum allowed low-complexity (dust) run length
-         * @param stepSize the k-mer sampling step size
-         * @param completeGenomesOnly whether only complete genomes are considered
+         * @param kMerSampling the k-mer sampling step size
+         * @param assemblyAccessionsOnly whether only complete genomes are considered
          * @param regionsPerTaxid the per-tax-id region counter
          * @param enableLowerCaseBases whether lower-case bases are processed
          * @param taxTree the taxonomy tree into which artificial nodes are created
@@ -312,15 +455,16 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
          * @param idStringGenerator generator for artificial tax ids
          */
         public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-                             ProbFilter filter, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases,
-                             TaxTree taxTree, boolean dataNodes, boolean fileNodes, boolean idNodes, IDStringGenerator idStringGenerator) {
-            super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases,
-                    taxTree, dataNodes, fileNodes, idNodes, true, idStringGenerator);
+                             ProbFilter filter, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases,
+                             TaxTree taxTree, boolean dataNodes, boolean fileNodes, boolean idNodes, IDStringGenerator idStringGenerator,
+                             Rank foldTaxaBelow) {
+            super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, regionsPerTaxid, enableLowerCaseBases,
+                    taxTree, dataNodes, fileNodes, idNodes, true, idStringGenerator, foldTaxaBelow);
             this.filter = filter;
         }
 
         @Override
-        protected boolean handleStore() {
+        protected boolean handleStore(long kmer) {
             // Collect the region's store value (matching what the DB fill would putLong: node.getTaxId()
             // when non-null). Guarded on a node change so it runs per region, not per k-mer.
             if (node != lastCollectedNode) {
@@ -329,7 +473,6 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
                     values.add(node.getTaxId());
                 }
             }
-            long kmer = byteRingBuffer.getStandardKMer();
             // Lock-free combined membership-check-and-insert: the filter sets its bits atomically, so
             // the previous global lock on the filter is no longer needed. Each k-mer reported as new is
             // added to this reader's own radix-bucket counter; summed across readers these give the exact

@@ -37,7 +37,7 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.AccessionFileProcessor;
 import org.metagene.genestrip.refseq.AccessionMap;
-import org.metagene.genestrip.refseq.AccessionMapImpl;
+import org.metagene.genestrip.refseq.AccessionMapTrieImpl;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
@@ -45,37 +45,32 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 /**
  * Goal that builds the {@link AccessionMap}: it scans the RefSeq release catalog and maps every
  * accession range to its taxonomy node, incrementing that node's RefSeq region count. Depends on
- * the tax tree, the selected categories, the downloaded catalog and the pre-computed map size.
+ * the tax tree, the selected categories and the downloaded catalog.
  *
  * @param <P> the project type
  */
 public class AccessionMapGoal<P extends GSProject> extends ObjectGoal<AccessionMap, P> implements Goal.LogHeapInfo {
 	private final ObjectGoal<TaxTree, P> taxTreeGoal;
 	private final RefSeqCatalogDownloadGoal catalogGoal;
-	private final ObjectGoal<Integer, P> accessionMapSizeGoal;
 	private final ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal;
 
 	/**
-	 * Creates the goal, wiring the tax tree, categories, catalog download and map-size goals it reads.
+	 * Creates the goal, wiring the tax tree, categories and catalog download goals it reads.
 	 *
 	 * @param project the project
 	 * @param categoriesGoal goal providing the selected RefSeq categories
 	 * @param taxTreeGoal goal providing the taxonomy tree
 	 * @param catalogGoal goal providing the downloaded RefSeq catalog
-	 * @param accessionMapSizeGoal goal providing the pre-computed accession-map size
 	 * @param deps additional goal dependencies
 	 */
 	@SafeVarargs
 	public AccessionMapGoal(P project, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
 			ObjectGoal<TaxTree, P> taxTreeGoal, RefSeqCatalogDownloadGoal catalogGoal,
-			ObjectGoal<Integer, P> accessionMapSizeGoal,
 			Goal<P>... deps) {
-		super(project, GSGoalKey.ACCMAP,
-				Goal.append(deps, taxTreeGoal, categoriesGoal, catalogGoal, accessionMapSizeGoal));
+		super(project, GSGoalKey.ACCMAP, Goal.append(deps, taxTreeGoal, categoriesGoal, catalogGoal));
 		this.categoriesGoal = categoriesGoal;
 		this.taxTreeGoal = taxTreeGoal;
 		this.catalogGoal = catalogGoal;
-		this.accessionMapSizeGoal = accessionMapSizeGoal;
 	}
 
 	@Override
@@ -83,7 +78,9 @@ public class AccessionMapGoal<P extends GSProject> extends ObjectGoal<AccessionM
 		AccessionFileProcessor processor = new AccessionFileProcessor(categoriesGoal.get(),
 				(SeqType) configValue(GSConfigKey.SEQ_TYPE), (List<GSConfigKey.RefSeqStatus>) configValue(GSConfigKey.RES_SEQ_STATUS)) {
 			private TaxTree taxTree = taxTreeGoal.get();
-			private AccessionMap map = new AccessionMapImpl(accessionMapSizeGoal.get());
+			// The map grows as entries arrive, so the catalog is read once here instead of once to
+			// count the entries and once more to fill them in.
+			private AccessionMap map = new AccessionMapTrieImpl();
 
 			@Override
 			public void processCatalog(StreamingResource catalogFile) {

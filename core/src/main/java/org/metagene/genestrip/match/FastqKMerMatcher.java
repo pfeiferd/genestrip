@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.metagene.genestrip.ExecutionContext;
+import org.metagene.genestrip.fastq.AbstractFastqReader;
 import org.metagene.genestrip.fastq.AbstractLoggingFastqStreamer;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.io.StreamingResource;
@@ -42,6 +43,7 @@ import org.metagene.genestrip.io.StreamingResourceListStream;
 import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.util.LargeBitVector;
+import org.metagene.genestrip.store.RadixKMerStore;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
@@ -67,15 +69,66 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
     protected final String dbMD5;
 
     /**
-     * Marks each matched k-mer by its storage position so distinct matched k-mers can be counted per
-     * tax id; {@code null} when unique counting is disabled. Set concurrently via {@link
-     * LargeBitVector#set(long)}.
+     * This matcher's own record of the distinct k-mers it matched, one bit per store position, or
+     * {@code null} when the marks are kept in the database instead (see {@link #isOwnUniqueKMerBits}).
+     * Marking inside the database is cheaper - the lookup has just loaded that cache line - but it
+     * writes to the database, so it rules out running several matchers against one loaded database.
      */
     protected LargeBitVector uniqueKmerBits;
     /** Per-store-index statistics accumulators, indexed by a tax id node's store index. */
     protected final CountsPerTaxid[] statsIndex;
-    /** Per-consumer, per-store-index last read number seen, used to count reads with at least one k-mer. */
-    protected final long readNoPerCPerStat[][];
+
+    /**
+     * The store as a {@link RadixKMerStore} when its batched lookup can be used, otherwise
+     * {@code null}. Looking a read's k-mers up one at a time serializes their cache misses, because
+     * each miss is only issued once the previous one has returned; the batched lookup resolves a whole
+     * batch in passes, keeping many independent misses in flight (memory-level parallelism). A read's
+     * k-mers are ideal for this: their lookups do not depend on each other.
+     */
+    private final RadixKMerStore<SmallTaxIdNode> batchStore;
+
+    /** Number of k-mers looked up per batch. Beyond ~128 the gain flattens out (measured). */
+    private static final int BATCH_SIZE = 128;
+
+    /**
+     * One matching consumer thread and everything that belongs to it alone: the per-read vote
+     * counters, the batch buffers and the prefetched lookup results. Keeping them here rather than in
+     * arrays indexed by a consumer index means a thread can only reach its own state, so no two
+     * threads can write neighbouring slots of a shared array - the mistake that per-node counter
+     * slots used to make.
+     * <p>
+     * The fields are filled in by the matcher's constructor (see {@link #initConsumers}), because a
+     * consumer is created by the reader's constructor, before this class's own fields exist.
+     */
+    protected static class MatcherConsumer extends ConsumerRunnable {
+        /** Vote counters of the current read, indexed by node position; {@code null} without classification. */
+        protected int[] nodeCounts;
+        /** Read key per counter: a counter only counts for the read whose number is stored here. */
+        protected long[] nodeCountInitKeys;
+        /** Last read number seen per store index, to count reads with at least one k-mer once. */
+        protected long[] readNoPerStat;
+        /** Buffers collecting a read's k-mers for the batched lookup; {@code null} without batching. */
+        protected RadixKMerStore.BatchBuffers buffers;
+        /** Prefetched node per k-mer start position of the current read, or {@code null} for a miss. */
+        protected SmallTaxIdNode[] prefetchedNodes;
+        /** Prefetched storage positions, valid where the corresponding node is not {@code null}. */
+        protected long[] prefetchedPositions;
+
+        /**
+         * Creates the consumer for the given matcher and index.
+         *
+         * @param reader the matcher this consumer belongs to.
+         * @param index the index of this consumer among the matcher's consumers.
+         */
+        public MatcherConsumer(AbstractFastqReader reader, int index) {
+            super(reader, index);
+        }
+    }
+
+    @Override
+    protected ConsumerRunnable createRunnable(int rindex, Object... config) {
+        return new MatcherConsumer(this, rindex);
+    }
 
     /** Maximum number of candidate taxonomic paths tracked per read. */
     protected final int maxPaths;
@@ -130,7 +183,6 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         consumers = bundle.getThreads() <= 0 ? 1 : bundle.getThreads();
         this.kmerStore = kmerStore;
         this.statsIndex = new CountsPerTaxid[kmerStore.getNValues()];
-        this.readNoPerCPerStat = new long[consumers][kmerStore.getNValues()];
         this.initialReadSize = initialReadSize;
         this.taxTree = taxTree;
         this.maxReadTaxErrorCount = maxReadTaxErrorCount;
@@ -139,9 +191,190 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         this.writeAll = writeAll;
         this.threshold = threshold;
         this.dbMD5 = dbMD5;
-        if (taxTree != null) {
-            taxTree.initCountSize(consumers);
+        // Only an optimized radix store can serve batched lookups; anything else keeps the per-k-mer
+        // path (a store that is not optimized yet has no buckets to search).
+        batchStore = kmerStore instanceof RadixKMerStore && kmerStore.isOptimized()
+                ? (RadixKMerStore<SmallTaxIdNode>) kmerStore : null;
+        initConsumers(kmerStore, initialReadSize);
+    }
+
+    /**
+     * Whether this matcher counts its distinct matched k-mers in a bit vector of its own rather than
+     * marking them in the database. Keeping them here leaves the database untouched, so several
+     * matchers can share one - at the price of a bit per stored k-mer and an extra memory access per
+     * matched k-mer. Off by default; {@code MatchResultGoal} overrides it from the configuration.
+     *
+     * @return whether to keep the unique-k-mer bits in this matcher
+     */
+    protected boolean isOwnUniqueKMerBits() {
+        return false;
+    }
+
+    /**
+     * Fills in the per-consumer state. The consumers themselves are created by the reader's
+     * constructor, which runs before this class's fields exist, so their contents can only be
+     * computed here. The consumer threads are already started but blocked on the queue, and the
+     * queue's handoff publishes these writes to them.
+     *
+     * @param kmerStore the store being matched against
+     * @param initialReadSize the initial read size in bytes, sizing the prefetch arrays
+     */
+    private void initConsumers(KMerStore<SmallTaxIdNode> kmerStore, int initialReadSize) {
+        // Positions are established when the tree is built, loaded or restructured, so the counters
+        // can be sized from a plain read: the tree is never written to from here, which keeps it
+        // read-only for the whole of matching and lets several matchers share one database.
+        int nodes = taxTree == null ? 0 : taxTree.getNodeCount();
+        for (int i = 0; i < consumers; i++) {
+            MatcherConsumer consumer = (MatcherConsumer) getConsumer(i);
+            consumer.readNoPerStat = new long[kmerStore.getNValues()];
+            if (taxTree != null) {
+                consumer.nodeCounts = new int[nodes];
+                consumer.nodeCountInitKeys = new long[nodes];
+            }
+            if (batchStore != null) {
+                consumer.buffers = new RadixKMerStore.BatchBuffers(BATCH_SIZE);
+                consumer.prefetchedNodes = new SmallTaxIdNode[initialReadSize];
+                consumer.prefetchedPositions = new long[initialReadSize];
+            }
         }
+    }
+
+    /**
+     * Looks up every k-mer of the read in batches and records the results per k-mer start position,
+     * so that {@link #matchRead} can consume them without stalling on one cache miss at a time. The
+     * k-mer walk mirrors the one in {@link #matchRead} exactly - it is pure arithmetic on the read's
+     * bytes and touches no memory that could miss, so repeating it is far cheaper than serializing
+     * the lookups it feeds.
+     *
+     * @param entry the read whose k-mers are looked up
+     * @param max   the number of k-mer start positions in the read
+     * @param consumer the consumer whose private buffers and prefetch arrays are used
+     */
+    private void prefetchKMers(final MatcherReadEntry entry, final int max, final MatcherConsumer consumer) {
+        if (consumer.prefetchedNodes.length < max) {
+            // Reads may grow beyond the initial buffer size; grow with them and keep the arrays.
+            consumer.prefetchedNodes = new SmallTaxIdNode[max];
+            consumer.prefetchedPositions = new long[max];
+        }
+        final SmallTaxIdNode[] lnodes = consumer.prefetchedNodes;
+        final long[] positions = consumer.prefetchedPositions;
+        // A miss leaves no result behind, so stale nodes from the previous read must be cleared.
+        Arrays.fill(lnodes, 0, max, null);
+
+        final RadixKMerStore.BatchBuffers buffers = consumer.buffers;
+        final LargeBitVector bits = uniqueKmerBits;
+        final RadixKMerStore.BatchPositionConsumer<SmallTaxIdNode> resultSink = (kmer, payload, value, position) -> {
+            lnodes[payload] = value;
+            positions[payload] = position;
+            if (bits != null) {
+                // Set here rather than while classifying: this loop runs right after the batch was
+                // resolved, so these writes overlap with each other instead of being spread out.
+                bits.set(position);
+            }
+        };
+
+        long kmer = -1;
+        long reverseKmer = -1;
+        for (int i = 0; i < max; i++) {
+            if (kmer == -1) {
+                kmer = CGAT.kMerToLongStraight(entry.read, i, k, entry.badPos);
+                if (kmer == -1) {
+                    i = entry.badPos[0];
+                } else {
+                    reverseKmer = CGAT.kMerToLongReverse(entry.read, i, k, null);
+                }
+            } else {
+                final byte lastBase = entry.read[i + k - 1];
+                kmer = CGAT.nextKMerStraight(kmer, lastBase, k);
+                if (kmer == -1) {
+                    i += k - 1;
+                } else {
+                    reverseKmer = CGAT.nextKMerReverse(reverseKmer, lastBase, k);
+                }
+            }
+            if (kmer != -1 && buffers.add(CGAT.standardKMer(kmer, reverseKmer), i)) {
+                batchStore.getBatch(buffers, resultSink);
+            }
+        }
+        if (!buffers.isEmpty()) {
+            batchStore.getBatch(buffers, resultSink);
+        }
+    }
+
+    /**
+     * Counts one vote of the current read for the given node, on this consumer's own counters.
+     * {@code initKey} identifies the read, so a counter left from a previous read restarts instead of
+     * accumulating.
+     *
+     * @param node    the node to count a vote for
+     * @param consumer the consumer whose private counters are used
+     * @param initKey the key identifying the current read
+     */
+    // Made final for potential inlining by JVM
+    protected final void incCount(final SmallTaxIdNode node, final MatcherConsumer consumer, final long initKey) {
+        final int pos = node.getPosition();
+        final long[] initKeys = consumer.nodeCountInitKeys;
+        final int[] counts = consumer.nodeCounts;
+        if (initKeys[pos] == initKey) {
+            counts[pos]++;
+        } else {
+            initKeys[pos] = initKey;
+            counts[pos] = 1;
+        }
+    }
+
+    /**
+     * Sums this consumer's counters belonging to {@code initKey} along the path from the node to the
+     * root.
+     *
+     * @param node    the node to start summing from
+     * @param consumer the consumer whose private counters are used
+     * @param initKey the key identifying the current read
+     * @return the sum of the matching counts from the node to the root
+     */
+    // Made final for potential inlining by JVM
+    protected final int sumCounts(SmallTaxIdNode node, final MatcherConsumer consumer, final long initKey) {
+        final long[] initKeys = consumer.nodeCountInitKeys;
+        final int[] counts = consumer.nodeCounts;
+        int res = 0;
+        while (node != null) {
+            final int pos = node.getPosition();
+            if (initKeys[pos] == initKey) {
+                res += counts[pos];
+            }
+            node = node.getParent();
+        }
+        return res;
+    }
+
+    /**
+     * Walks from the node to the root accumulating this consumer's counters belonging to
+     * {@code initKey}, and returns the lowest node at which the running sum reaches {@code threshold}.
+     *
+     * @param node      the node to start summing from
+     * @param consumer  the consumer whose private counters are used
+     * @param initKey   the key identifying the current read
+     * @param threshold the running sum to reach
+     * @return the lowest node where the running sum reaches {@code threshold}, or {@code null}
+     */
+    // Made final for potential inlining by JVM
+    protected final SmallTaxIdNode lowestNodeWhereSumAboveThreshold(SmallTaxIdNode node,
+                                                                   final MatcherConsumer consumer,
+                                                                   final long initKey, int threshold) {
+        final long[] initKeys = consumer.nodeCountInitKeys;
+        final int[] counts = consumer.nodeCounts;
+        int res = 0;
+        while (node != null) {
+            final int pos = node.getPosition();
+            if (initKeys[pos] == initKey) {
+                res += counts[pos];
+                if (res >= threshold) {
+                    return node;
+                }
+            }
+            node = node.getParent();
+        }
+        return null;
     }
 
     @Override
@@ -150,19 +383,18 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
     }
 
     /**
-     * Convenience overload of {@link #runMatcher(StreamingResourceStream, File, File, boolean)}
+     * Convenience overload of {@link #runMatcher(StreamingResourceStream, File, File)}
      * that matches a single FASTQ resource.
      *
      * @param fastq             the FASTQ resource to process
      * @param filteredFile      optional file to which matched reads are written, or {@code null}
      * @param krakenOutStyleFile optional file for Kraken-style per-read output, or {@code null}
-     * @param countUniqueKmers  whether to count the distinct matched k-mers per tax id
      * @return the aggregated matching result
      * @throws IOException if reading the FASTQ resource or writing the output files fails
      */
-    public MatchingResult runMatcher(StreamingResource fastq, File filteredFile, File krakenOutStyleFile,
-                                     boolean countUniqueKmers) throws IOException {
-        return runMatcher(new StreamingResourceListStream(fastq), filteredFile, krakenOutStyleFile, countUniqueKmers);
+    public MatchingResult runMatcher(StreamingResource fastq, File filteredFile, File krakenOutStyleFile)
+            throws IOException {
+        return runMatcher(new StreamingResourceListStream(fastq), filteredFile, krakenOutStyleFile);
     }
 
     /**
@@ -172,12 +404,11 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
      * @param fastqs            the FASTQ resources to process
      * @param filteredFile      optional file to which matched reads are written, or {@code null}
      * @param krakenOutStyleFile optional file for Kraken-style per-read output, or {@code null}
-     * @param countUniqueKmers  whether to count the distinct matched k-mers per tax id
      * @return the aggregated matching result
      * @throws IOException if reading the FASTQ streams or writing the output files fails
      */
-    public MatchingResult runMatcher(StreamingResourceStream fastqs, File filteredFile, File krakenOutStyleFile,
-                                     boolean countUniqueKmers) throws IOException {
+    public MatchingResult runMatcher(StreamingResourceStream fastqs, File filteredFile, File krakenOutStyleFile)
+            throws IOException {
         try (OutputStream lindexed = filteredFile != null ? StreamProvider.getOutputStreamForFile(filteredFile) : null;
              // A PrintStream is implicitly synchronized. So we don't need to worry about
              // multi threading when using it.
@@ -188,7 +419,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             out = lout;
 
             initStats();
-            initUniqueCounter(countUniqueKmers);
+            initUniqueCounter();
             processFastqStreams(fastqs);
         }
         out = null;
@@ -207,47 +438,42 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
     }
 
     /**
-     * Fills each tax id's {@code uniqueKmers} from the marked bit positions: the number of distinct
-     * matched k-mers per store value index (which {@link #statsIndex} is indexed by too), or {@code -1}
-     * when unique counting is disabled. Package-private so tests can drive it directly.
+     * Fills each tax id's {@code uniqueKmers} from the store's visited marks: the number of distinct
+     * matched k-mers per store value index (which {@link #statsIndex} is indexed by too).
+     * Package-private so tests can drive it directly.
      */
     void computeUniqueKmerCounts() {
+        long[] uniquePerIndex = new long[statsIndex.length];
         if (uniqueKmerBits != null) {
-            long[] uniquePerIndex = new long[statsIndex.length];
+            final LargeBitVector bits = uniqueKmerBits;
             kmerStore.visit((store, kmer, index, pos) -> {
-                if (uniqueKmerBits.get(pos)) {
+                if (bits.get(pos)) {
                     uniquePerIndex[index]++;
                 }
             });
-            for (int vi = 0; vi < statsIndex.length; vi++) {
-                if (statsIndex[vi] != null) {
-                    statsIndex[vi].uniqueKmers = uniquePerIndex[vi];
-                }
-            }
         } else {
-            for (CountsPerTaxid stats : statsIndex) {
-                if (stats != null) {
-                    stats.uniqueKmers = -1;
-                }
+            kmerStore.countVisitedPerValueIndex(uniquePerIndex);
+        }
+        for (int vi = 0; vi < statsIndex.length; vi++) {
+            if (statsIndex[vi] != null) {
+                statsIndex[vi].uniqueKmers = uniquePerIndex[vi];
             }
         }
     }
 
     @Override
     protected void readFastq(InputStream inputStream, boolean fasta) throws IOException {
-        try {
-            if (taxTree != null) {
-                taxTree.resetCounts(this);
+        // Read numbers restart at zero for every file, so counters still carrying a key from the
+        // previous file would be mistaken for the current read's and must be invalidated. The
+        // consumers have drained by this point, so nothing reads them concurrently.
+        for (int i = 0; i < consumers; i++) {
+            MatcherConsumer consumer = (MatcherConsumer) getConsumer(i);
+            if (consumer.nodeCountInitKeys != null) {
+                Arrays.fill(consumer.nodeCountInitKeys, -1);
             }
-            for (long[] a : readNoPerCPerStat) {
-                Arrays.fill(a, -1);
-            }
-            super.readFastq(inputStream, fasta);
-        } finally {
-            if (taxTree != null) {
-                taxTree.releaseOwner();
-            }
+            Arrays.fill(consumer.readNoPerStat, -1);
         }
+        super.readFastq(inputStream, fasta);
     }
 
     // Package private for testing purposes.
@@ -255,22 +481,49 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         Arrays.fill(statsIndex, null);
     }
 
-    void initUniqueCounter(boolean countUniqueKmers) {
-        if (countUniqueKmers) {
-            // One bit per store position; reused across FASTQ keys, so allocate once and clear.
+    void initUniqueCounter() {
+        if (isOwnUniqueKMerBits()) {
+            // The database is left alone so that other matchers may read it at the same time. The
+            // vector is indexed by store position, which is dense and ordered by radix bucket, so it
+            // is touched in much the same pattern as the store itself.
             if (uniqueKmerBits == null) {
                 uniqueKmerBits = new LargeBitVector(kmerStore.getEntries());
             } else {
                 uniqueKmerBits.clear();
             }
-        } else {
-            uniqueKmerBits = null;
+            return;
         }
+        uniqueKmerBits = null;
+        // The lookup has just loaded the entry's cache line, so marking it there avoids the second
+        // random memory access a separate bit vector needs. It writes to the database though, so it
+        // can only be claimed by one matcher at a time.
+        if (!kmerStore.setMarkVisited(true)) {
+            if (kmerStore.isMarkVisited()) {
+                throw new IllegalStateException(
+                        "Another matcher is already marking this database. Set parallelDbMatching=true"
+                                + " on every matching run that shares a database, so each keeps its own"
+                                + " unique-k-mer bits.");
+            }
+            throw new IllegalStateException("The database cannot mark visited k-mers: it holds "
+                    + kmerStore.getNValues() + " values, which reaches into the entry bit reserved for the"
+                    + " mark. Rebuild it (optionally with a wider radixStoreBits) to match it.");
+        }
+        kmerStore.clearVisitedMarks();
+    }
+
+    @Override
+    public void dump() {
+        // Release the database's marking so a following matcher can claim it.
+        if (!isOwnUniqueKMerBits()) {
+            kmerStore.setMarkVisited(false);
+        }
+        super.dump();
     }
 
     @Override
     // Made final for potential inlining by JVM
-    protected final void nextEntry(ReadEntry entry, int index) throws IOException {
+    protected final void nextEntry(ReadEntry entry, ConsumerRunnable consumerRunnable) throws IOException {
+        final MatcherConsumer consumer = (MatcherConsumer) consumerRunnable;
         MatcherReadEntry myEntry = (MatcherReadEntry) entry;
         myEntry.bufferPos = 0;
 
@@ -281,7 +534,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             myEntry.counts[i] = 0;
         }
 
-        boolean found = matchRead(myEntry, index);
+        boolean found = matchRead(myEntry, consumer);
         afterMatch(myEntry, found);
         if (afterMatchCallback != null) {
             afterMatchCallback.afterMatch(myEntry, found);
@@ -329,6 +582,18 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
      * @return whether at least one k-mer of the read matched the database
      */
     protected boolean matchRead(final MatcherReadEntry entry, final int index) {
+        return matchRead(entry, (MatcherConsumer) getConsumer(index));
+    }
+
+    /**
+     * Matches one read against the database on behalf of the given consumer, using only that
+     * consumer's private state.
+     *
+     * @param entry the read to match
+     * @param consumer the consumer performing the match
+     * @return whether the read matched the database at all
+     */
+    protected boolean matchRead(final MatcherReadEntry entry, final MatcherConsumer consumer) {
         boolean found = false;
         int prints = 0;
         int readTaxErrorCount = taxTree == null ? -1 : 0;
@@ -341,7 +606,20 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         int contigLen = 0;
         CountsPerTaxid stats = null;
         // The consumer index is constant for this call, so hoist its per-store-index row once.
-        final long[] readNoRow = readNoPerCPerStat[index];
+        final long[] readNoRow = consumer.readNoPerStat;
+
+        // Resolve all of this read's k-mers up front when the store supports batched lookups, so the
+        // loop below consumes results instead of stalling on one cache miss after another.
+        final SmallTaxIdNode[] prefetched;
+        final long[] prefetchedPositions;
+        if (batchStore != null) {
+            prefetchKMers(entry, max, consumer);
+            prefetched = consumer.prefetchedNodes;
+            prefetchedPositions = consumer.prefetchedPositions;
+        } else {
+            prefetched = null;
+            prefetchedPositions = null;
+        }
 
         long kmer = -1;
         long reverseKmer = -1;
@@ -365,8 +643,19 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                     reverseKmer = CGAT.nextKMerReverse(reverseKmer, lastBase, k);
                 }
             }
-            taxIdNode = kmer == -1 ? INVALID_NODE :
-                    kmerStore.getLong(CGAT.standardKMer(kmer, reverseKmer), entry.indexPos);
+            if (kmer == -1) {
+                taxIdNode = INVALID_NODE;
+            } else if (prefetched != null) {
+                taxIdNode = prefetched[i];
+                if (taxIdNode != null) {
+                    entry.indexPos[0] = prefetchedPositions[i];
+                }
+            } else {
+                taxIdNode = kmerStore.getLong(CGAT.standardKMer(kmer, reverseKmer), entry.indexPos);
+                if (taxIdNode != null && uniqueKmerBits != null) {
+                    uniqueKmerBits.set(entry.indexPos[0]);
+                }
+            }
             // Whether this k-mer starts a new contig (its tax node differs from the previous k-mer's).
             // Computed before lastTaxid is updated further below, and used to run the per-contig-only
             // work (the tax-path merge and the stats/reads1KMer resolution) once per contig rather than
@@ -385,7 +674,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                     // incCount is the per-k-mer vote weight; the tax-path merge is idempotent within a
                     // contig (repeated calls with the same node do not change the path set), so it only
                     // needs to run at the contig start.
-                    taxTree.incCount(taxIdNode, index, entry.readNo);
+                    incCount(taxIdNode, consumer, entry.readNo);
                     if (newContig) {
                         mergeReadTaxidPath(taxIdNode, entry);
                     }
@@ -442,11 +731,6 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                         }
                     }
                 }
-                if (uniqueKmerBits != null) {
-                    // Mark this matched k-mer's storage position; set is thread-safe
-                    // (its return value - whether the bit was newly set - is not needed here).
-                    uniqueKmerBits.set(entry.indexPos[0]);
-                }
             } else {
                 stats = null;
             }
@@ -476,7 +760,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             if (readTaxErrorCount != -1) {
                 int ties = 0;
                 for (int i = 0; i < entry.usedPaths; i++) {
-                    int sum = taxTree.sumCounts(entry.readTaxIdNode[i], index, entry.readNo);
+                    int sum = sumCounts(entry.readTaxIdNode[i], consumer, entry.readNo);
                     if (sum > entry.counts[0]) {
                         entry.counts[0] = sum;
                         entry.readTaxIdNode[0] = entry.readTaxIdNode[i];
@@ -489,7 +773,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                 }
                 if (threshold > 1) {
                     for (int i = 0; i <= ties; i++) {
-                        entry.readTaxIdNode[i] = taxTree.lowestNodeWhereSumAboveThreshold(entry.readTaxIdNode[i], index, entry.readNo, threshold);
+                        entry.readTaxIdNode[i] = lowestNodeWhereSumAboveThreshold(entry.readTaxIdNode[i], consumer, entry.readNo, threshold);
                     }
                 }
                 SmallTaxIdNode node = entry.readTaxIdNode[0];
@@ -506,7 +790,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
                 // When threshold > 1, readTaxIdNode[0] was promoted to an ancestor above, so the
                 // voting-time entry.counts[0] is stale; recompute sumCounts for the actual node.
                 int readKmers = (ties > 0 || threshold > 1)
-                        ? taxTree.sumCounts(entry.readTaxIdNode[0], index, entry.readNo) : entry.counts[0];
+                        ? sumCounts(entry.readTaxIdNode[0], consumer, entry.readNo) : entry.counts[0];
                 int classErrC = max - readKmers;
                 if (maxReadClassErrorCount < 0 || (maxReadClassErrorCount >= 1 && classErrC <= maxReadClassErrorCount)
                         || (classErrC <= maxReadClassErrorCount * max)) {

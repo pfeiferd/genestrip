@@ -49,6 +49,9 @@ public abstract class ReworkingStoreFastaReader extends AbstractStoreFastaReader
 	private final boolean idNodes;
 	private final boolean createNodes;
 	private final IDStringGenerator idStringGenerator;
+	/** Rank a genome is filed at, taxa below it being folded into it; {@code null} to file it where
+	 * the taxonomy puts it. See {@code GSConfigKey#FOLD_TAXA_BELOW}. */
+	private final Rank foldTaxaBelow;
 
 	/**
 	 * Creates the reworking reader.
@@ -61,8 +64,8 @@ public abstract class ReworkingStoreFastaReader extends AbstractStoreFastaReader
 	 * @param maxGenomesPerTaxIdRank the rank at which the per-tax-id genome limit applies
 	 * @param maxKmersPerTaxId the maximum number of k-mers per tax id
 	 * @param maxDust the maximum allowed low-complexity (dust) run length
-	 * @param stepSize the k-mer sampling step size
-	 * @param completeGenomesOnly whether to include only complete genomes
+	 * @param kMerSampling the k-mer sampling step size
+	 * @param assemblyAccessionsOnly whether to include only complete genomes
 	 * @param regionsPerTaxid the per-taxid region trie
 	 * @param enableLowerCaseBases whether lower-case bases are included
 	 * @param taxTree the taxonomy tree holding the artificial nodes
@@ -73,26 +76,107 @@ public abstract class ReworkingStoreFastaReader extends AbstractStoreFastaReader
 	 *                    to only look up already-created ones (fill)
 	 * @param idStringGenerator generator for artificial tax ids (its buffer is mutated, so one per
 	 *                          reader); only used (and required) when {@code createNodes} is set
+	 * @param foldTaxaBelow the rank a genome is filed at, taxa below it being folded into it, or
+	 *                      {@code null} to file it where the taxonomy puts it
+	 * @throws IllegalArgumentException if {@code foldTaxaBelow} is set without {@code fileNodes}
 	 */
 	public ReworkingStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-			int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize,
-			boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases,
+			int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling,
+			boolean assemblyAccessionsOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases,
 			TaxTree taxTree, boolean dataNodes, boolean fileNodes, boolean idNodes, boolean createNodes,
-			IDStringGenerator idStringGenerator) {
+			IDStringGenerator idStringGenerator, Rank foldTaxaBelow) {
 		super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId,
-				maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases);
+				maxDust, kMerSampling, assemblyAccessionsOnly, regionsPerTaxid, enableLowerCaseBases);
+		checkFoldConfig(foldTaxaBelow, fileNodes);
 		this.taxTree = taxTree;
 		this.dataNodes = dataNodes;
 		this.fileNodes = fileNodes;
 		this.idNodes = idNodes;
 		this.createNodes = createNodes;
 		this.idStringGenerator = idStringGenerator;
+		this.foldTaxaBelow = foldTaxaBelow;
+	}
+
+	/**
+	 * Refuses a fold that is asked for without a file node per genome.
+	 * <p>
+	 * Checked here and not in the goals, because all three of them build one of these reader and the
+	 * combination silently does the opposite of what it is asked for rather than failing: folding
+	 * files every genome of a taxon at that taxon, so without a file node of its own each genome
+	 * becomes indistinguishable from its neighbours and the taxon is left with nothing below it to
+	 * refine. A configuration that reads as {@code file the genomes one rank higher} would then quietly
+	 * mean {@code merge them all}, which is worth a refusal rather than a warning.
+	 *
+	 * @param foldTaxaBelow the rank to file genomes at, or {@code null} for no fold
+	 * @param fileNodes whether a file node is created per genome
+	 * @throws IllegalArgumentException if a fold is asked for without file nodes
+	 */
+	static void checkFoldConfig(Rank foldTaxaBelow, boolean fileNodes) {
+		if (foldTaxaBelow != null && !fileNodes) {
+			throw new IllegalArgumentException("'foldTaxaBelow=" + foldTaxaBelow.getName()
+					+ "' requires 'fileNodes=true': folding files every genome of a taxon at the same"
+					+ " node, so without a file node of its own each genome becomes indistinguishable"
+					+ " from its neighbours and there is nothing left below the taxon to refine.");
+		}
+	}
+
+	/**
+	 * Returns the node a genome resolving to the given one is to be filed at: its lowest ancestor
+	 * (itself included) whose rank <em>is</em> {@code below}, or the node unchanged when there is
+	 * none and when {@code below} is {@code null}.
+	 * <p>
+	 * Nodes without a rank are walked through rather than stopped at, and so are nodes whose rank
+	 * cannot be ordered against {@code below}: the taxonomy assigns plenty of ranks that the
+	 * {@link Rank} enum does not carry -- cohort, parvorder, pathogroup and a dozen more resolve to
+	 * {@code null} here -- and stopping at one of them would file a genome at a level nobody asked
+	 * for, differently for each lineage that happens to have one.
+	 * <p>
+	 * The walk stops at the named rank and never passes it. A lineage that carries no node of that
+	 * rank -- a rankless node hanging directly under the genus, of which the taxonomy has many --
+	 * leaves the genome where it is, and is deliberately not lifted to whatever happens to sit above
+	 * instead: asked to file genomes at the species, filing one at its genus would be a coarser
+	 * answer than the taxonomy already gave, and one the caller never asked for.
+	 * <p>
+	 * Nor is a genome ever lifted out of {@code taxNodes}. A region is only read at all when its
+	 * node is one of those (see {@code AbstractRefSeqFastaReader}), so without this check a
+	 * {@code taxids.txt} naming a strain, together with a fold at the species, would file that
+	 * strain's genomes at a species nobody requested and put a node in the database that is outside
+	 * the requested set. Where the target is not requested the genome stays where it is. An empty
+	 * {@code taxNodes} means no restriction was asked for and imposes none here either.
+	 *
+	 * @param node the node the accession resolved to
+	 * @param below the rank to file at, or {@code null} to keep the node
+	 * @param taxNodes the requested tax nodes, empty for no restriction
+	 * @return the node to file the genome at
+	 */
+	static TaxIdNode foldUp(TaxIdNode node, Rank below, Set<TaxIdNode> taxNodes) {
+		if (below == null || node == null) {
+			return node;
+		}
+		for (TaxIdNode n = node; n != null; n = n.getParent()) {
+			Rank rank = n.getRank();
+			if (rank == null || !rank.isComparableTo(below)) {
+				continue;
+			}
+			if (rank == below) {
+				return taxNodes == null || taxNodes.isEmpty() || taxNodes.contains(n) ? n : node;
+			}
+			if (rank.isAbove(below)) {
+				// Past the rank asked for without having met it.
+				return node;
+			}
+		}
+		return node;
 	}
 
 	@Override
 	protected TaxIdNode reworkNode() {
-		node.markRequired();
-		TaxIdNode res = node;
+		// The fold happens before anything else and before the node is marked: a taxon nothing is
+		// filed at is required by nobody, and markRequired() is the only thing that keeps a node in
+		// the SmallTaxTree. The strain nodes a fold skips over therefore disappear by themselves,
+		// with no second pass to prune them.
+		TaxIdNode res = foldUp(node, foldTaxaBelow, taxNodes);
+		res.markRequired();
 		if (dataNodes && Rank.DATA.ordinal() != res.getRankOrdinal()) {
 			TaxIdNode child = createNodes ? taxTree.dataNode(res, idStringGenerator) : res.getDataChild();
 			if (child != null) {

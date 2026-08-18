@@ -36,7 +36,6 @@ import org.metagene.genestrip.DefaultExecutionContext;
 import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.match.FastqKMerMatcher.MatcherReadEntry;
 import org.metagene.genestrip.store.Database;
-import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.store.KMerStore.ValueConverter;
 import org.metagene.genestrip.store.RadixKMerStore;
@@ -54,32 +53,20 @@ public class FastqKMerMatcherTest {
 
 	private final Random random = new Random(42);
 
-	// The KMerStore implementations the matcher is tested against (via the common KMerStore interface).
+	// The KMerStore implementation the matcher is tested against (via the common KMerStore interface).
 	private enum StoreType {
-		SORTED_SMALL, SORTED_LARGE, RADIX
+		RADIX
 	}
 
-	// Creates an empty KMerStore<String> of the given type, sized to hold exactly the given distinct
-	// k-mers, with the taxid values pre-registered.
+	// Creates an empty KMerStore<String> sized to hold exactly the given distinct k-mers, with the
+	// taxid values pre-registered.
 	private KMerStore<String> newStore(StoreType type, int k, long[] distinctKmers, List<String> initialValues) {
-		switch (type) {
-		case SORTED_SMALL:
-		case SORTED_LARGE: {
-			KMerSortedArray<String> store = new KMerSortedArray<>(k, 0.0001, 0.0001, initialValues,
-					type == StoreType.SORTED_LARGE, true, distinctKmers.length);
-			return store;
+		int radixBits = RadixKMerStore.DEFAULT_RADIX_BITS;
+		int[] bucketSizes = new int[1 << radixBits];
+		for (long kmer : distinctKmers) {
+			bucketSizes[RadixKMerStore.radixOf(kmer, radixBits)]++;
 		}
-		case RADIX: {
-			int radixBits = RadixKMerStore.DEFAULT_RADIX_BITS;
-			int[] bucketSizes = new int[1 << radixBits];
-			for (long kmer : distinctKmers) {
-				bucketSizes[RadixKMerStore.radixOf(kmer, radixBits)]++;
-			}
-			return new RadixKMerStore<>(k, radixBits, bucketSizes, 0.0001, 0.0001, initialValues, true);
-		}
-		default:
-			throw new IllegalArgumentException("Unknown store type: " + type);
-		}
+		return new RadixKMerStore<>(k, radixBits, bucketSizes, 0.0001, 0.0001, initialValues, true);
 	}
 
 	@Test
@@ -132,7 +119,7 @@ public class FastqKMerMatcherTest {
 			Arrays.fill(maxContigLen, 0);
 			Arrays.fill(used, false);
 			matcher.initStats();
-			matcher.initUniqueCounter(true);
+			matcher.initUniqueCounter();
 			entry.bufferPos = 0;
 			contigLen = 0;
 

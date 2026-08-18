@@ -90,7 +90,7 @@ public class FastqFilter extends AbstractLoggingFastqStreamer {
 	}
 
 	@Override
-	protected void nextEntry(ReadEntry readStruct, int index) throws IOException {
+	protected void nextEntry(ReadEntry readStruct, ConsumerRunnable consumer) throws IOException {
 		MyReadEntry re = (MyReadEntry) readStruct;
 
 		boolean res = isAcceptRead(re);

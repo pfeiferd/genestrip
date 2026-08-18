@@ -114,10 +114,9 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 
 					store.setUseFilter(booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH));
 
+					// The long-read variant matches without classifying reads; everything else classifies.
 					matcher = createMatcher(store,
-							(booleanConfigValue(GSConfigKey.CLASSIFY_READS) && !GSGoalKey.MATCHRESLR.equals(getKey()))
-									? taxTree
-									: null,
+							GSGoalKey.MATCHRESLR.equals(getKey()) ? null : taxTree,
 							bundle, booleanConfigValue(GSConfigKey.WITH_PROBS),
 							database.getConfigInfo().getProperty(GSProject.DB_MD5));
 					if (afterMatchCallback != null) {
@@ -129,8 +128,7 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 						});
 					}
 				}
-				MatchingResult res = matcher.runMatcher(fastqs, filteredFile, krakenOutStyleFile,
-						booleanConfigValue(GSConfigKey.COUNT_UNIQUE_KMERS));
+				MatchingResult res = matcher.runMatcher(fastqs, filteredFile, krakenOutStyleFile);
 				res.completeResults(database);
 				matchResults.put(key, res);
 				if (afterMatchCallback != null) {
@@ -168,6 +166,11 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 				booleanConfigValue(GSConfigKey.WRITE_ALL),
 				intConfigValue(GSConfigKey.MIN_KMERS_FOR_CLASS),
 				dbMD5) {
+			@Override
+			protected boolean isOwnUniqueKMerBits() {
+				return booleanConfigValue(GSConfigKey.PARALLEL_DB_MATCHING);
+			}
+
 			@Override
 			protected boolean isProgressBar() {
 				return booleanConfigValue(GSConfigKey.PROGRESS_BAR);

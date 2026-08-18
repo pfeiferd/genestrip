@@ -191,7 +191,7 @@ public class TaxTree {
 	 * preferring scientific names.
 	 *
 	 * @param stream the {@code names.dmp} input stream to read
-	 * @throws java.io.IOException if reading the stream fails
+	 * @throws IOException if reading the stream fails
 	 */
 	protected void readNamesFromStream(InputStream stream) throws IOException {
 		try (BufferedLineReader br = new BufferedLineReader(stream)) {
@@ -221,7 +221,7 @@ public class TaxTree {
 	 *
 	 * @param stream the {@code nodes.dmp} input stream to read
 	 * @return the root node (tax id "1")
-	 * @throws java.io.IOException if reading the stream fails
+	 * @throws IOException if reading the stream fails
 	 */
 	protected TaxIdNode readNodesFromStream(InputStream stream) throws IOException {
 		TaxIdNode res = null;

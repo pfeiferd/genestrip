@@ -26,14 +26,22 @@ package org.metagene.genestrip.finertree;
 
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSMaker;
+import org.metagene.genestrip.finertree.cluster.DendrogramNode;
 import org.metagene.genestrip.finertree.goals.*;
+import org.metagene.genestrip.goals.*;
 import org.metagene.genestrip.goals.refseq.RefSeqFnaFilesDownloadGoal;
+import org.metagene.genestrip.goals.refseq.SVGTaxTreeGoal;
+import org.metagene.genestrip.goals.refseq.StoreDBGoal;
+import org.metagene.genestrip.io.StreamingResourceStream;
+import org.metagene.genestrip.make.FileGoal;
 import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.match.MatchingResult;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.store.Database;
+import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.TaxTree;
 
 import java.io.File;
@@ -109,6 +117,85 @@ public class FinerTreeMaker<P extends FTProject> extends GSMaker<P> {
         ObjectGoal<Map<File, TaxTree.TaxIdNode>, P> additionalGoal = (ObjectGoal<Map<File, TaxTree.TaxIdNode>, P>) getGoal(GSGoalKey.ADD_FASTAS);
         ObjectGoal<AccessionMap, P> accessionMapGoal = (ObjectGoal<AccessionMap, P>) getGoal(GSGoalKey.ACCMAP);
         ObjectGoal<Database, P> storeGoal = (ObjectGoal<Database, P>) getGoal(GSGoalKey.LOAD_DB);
+        // The sizing goal is registered like any other but depended upon lazily: being an ObjectGoal it
+        // is never made on its own account, only when the bloom goal asks it for its value, which it
+        // does exactly when `kmerIndexSizing' calls for the estimate. Configured to the conservative
+        // bound, this goal never runs and nothing is read twice.
+        KMerIndexSizeGoal<P> indexSizeGoal = new KMerIndexSizeGoal(project, getExecutionContext(project),
+                categoriesGoal, taxNodesGoal, taxTreeGoal, fnaFilesGoal, additionalGoal, accessionMapGoal, storeGoal);
+        registerGoal(indexSizeGoal);
+
+        KMerIndexBloomGoal<P> bloomGoal = new KMerIndexBloomGoal(project, getExecutionContext(project),
+                categoriesGoal, taxNodesGoal, taxTreeGoal, fnaFilesGoal, additionalGoal, accessionMapGoal, storeGoal,
+                indexSizeGoal);
+        registerGoal(bloomGoal);
+
+        StoreKMerIndexGoal<P> storeKMerIndexGoal = new StoreKMerIndexGoal(project, bloomGoal);
+        registerGoal(storeKMerIndexGoal);
+
+        LoadKMerIndexGoal<P> loadKMerIndexGoal = new LoadKMerIndexGoal(project, bloomGoal, storeKMerIndexGoal);
+        registerGoal(loadKMerIndexGoal);
+
+        KMerIntersectCountGoal<P> intersectCountGoal = new KMerIntersectCountGoal(project, storeGoal, loadKMerIndexGoal);
+        registerGoal(intersectCountGoal);
+
+        KMerIntersectCSVGoal<P> csvGoal = new KMerIntersectCSVGoal(project, storeGoal, intersectCountGoal);
+        registerGoal(csvGoal);
+
+        KMerBranchHistoGoal<P> branchHistoGoal = new KMerBranchHistoGoal(project, storeGoal, loadKMerIndexGoal);
+        registerGoal(branchHistoGoal);
+
+        KMerBranchHistoCSVGoal<P> branchHistoCSVGoal = new KMerBranchHistoCSVGoal(project, storeGoal, branchHistoGoal);
+        registerGoal(branchHistoCSVGoal);
+
+        KMerBranchHistoRankCSVGoal<P> branchHistoRankCSVGoal = new KMerBranchHistoRankCSVGoal(project, storeGoal, branchHistoGoal);
+        registerGoal(branchHistoRankCSVGoal);
+
+        ObjectGoal<Map<SmallTaxTree.SmallTaxIdNode, DendrogramNode>, P> dendrogramGoal = new DendrogramGoal(project, intersectCountGoal);
+        registerGoal(dendrogramGoal);
+
+        DengrogramLaTeXGoal<P> laTeXGoal = new DengrogramLaTeXGoal(project, storeGoal, dendrogramGoal, projectSetupGoal);
+        registerGoal(laTeXGoal);
+
+        UpdateStoreGoal<P> updateStoreGoal = new UpdateStoreGoal(project, storeGoal, dendrogramGoal, loadKMerIndexGoal);
+        registerGoal(updateStoreGoal);
+
+        StoreDBGoal<P> storeUpdatedDBGoal = new StoreDBGoal(project, FTGoalKey.FTDB,
+                project.getOutputFile(FTGoalKey.FTDB.getName(), P.GSFileType.DB, false), updateStoreGoal);
+        registerGoal(storeUpdatedDBGoal);
+
+        LoadDBGoal<P> loadFTDBGoal = new LoadDBGoal(project, FTGoalKey.LOAD_FTDB, updateStoreGoal, storeUpdatedDBGoal);
+        registerGoal(loadFTDBGoal);
+
+        FTDBInfoGoal infoGoal = new FTDBInfoGoal(project, loadFTDBGoal);
+        registerGoal(infoGoal);
+
+        FileGoal<P> allInOneLaTeXGoal = new AllInOneLaTeXGoal(project, laTeXGoal, projectSetupGoal);
+        registerGoal(allInOneLaTeXGoal);
+
+        ObjectGoal<Map<String, StreamingResourceStream>, P> fastqMapTransfGoal = (ObjectGoal<Map<String, StreamingResourceStream>, P>) getGoal(GSGoalKey.FASTQ_MAP_TRANSFORM);
+        FastqDownloadsGoal<P> fastqDownloadsGoal = (FastqDownloadsGoal<P>) getGoal(GSGoalKey.FASTQ_DOWNLOAD);
+
+        ObjectGoal<Map<String, MatchingResult>, P> ftmatchResGoal = new MatchResultGoal(getProject(), FTGoalKey.FTMATCHRES, fastqMapTransfGoal, loadFTDBGoal,
+                getExecutionContext(getProject()), projectSetupGoal, fastqDownloadsGoal);
+        registerGoal(ftmatchResGoal);
+
+        Goal<P> ftmatchGoal = new MatchGoal(project, FTGoalKey.FTMATCH, fastqMapTransfGoal, ftmatchResGoal, projectSetupGoal);
+        registerGoal(ftmatchGoal);
+
+        ObjectGoal<Set<SmallTaxTree.SmallTaxIdNode>, P> db2fastqTaxNodesGoal = (ObjectGoal<Set<SmallTaxTree.SmallTaxIdNode>, P>) getGoal(GSGoalKey.DB2FASTQ_TAXIDS);
+        Goal<P> db2fastqGoal = new DB2FastqGoal(project, FTGoalKey.FTDB2FASTQ, db2fastqTaxNodesGoal, loadFTDBGoal, projectSetupGoal);
+        registerGoal(db2fastqGoal);
+
+        SVGTaxTreeGoal<P> svgTaxTreeGoal = new SVGTaxTreeGoal<P>(project, FTGoalKey.FT_SVG_TAX_TREE, loadFTDBGoal, projectSetupGoal);
+        registerGoal(svgTaxTreeGoal);
+
+        ObjectGoal<Map<String, DBQualityCountsGoal.Counts>, P> ftKmersPerTaxGoal = new DBQualityCountsGoal<>(project, FTGoalKey.FT_QUALITY_COUNTS, getExecutionContext(project),
+                categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, accessionMapGoal, loadFTDBGoal, taxTreeGoal /* taxTreeGoal is only REQUIRED so that the tree is not dropped too early! */);
+        registerGoal(ftKmersPerTaxGoal);
+
+        Goal<P> ftQualityGoal = new DBQualityCSVGoal<>(project, FTGoalKey.FT_QUALITY, loadFTDBGoal, ftKmersPerTaxGoal);
+        registerGoal(ftQualityGoal);
 
         ObjectGoal<Map<String, DBQualityCountsGoal.Counts>, P> kmersPerTaxGoal = new DBQualityCountsGoal<>(project, FTGoalKey.DB_QUALITY_COUNTS, getExecutionContext(project),
                 categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, accessionMapGoal, storeGoal, taxTreeGoal /* taxTreeGoal is only REQUIRED so that the tree is not dropped too early! */);
@@ -116,5 +203,55 @@ public class FinerTreeMaker<P extends FTProject> extends GSMaker<P> {
 
         Goal<P> dbQualityGoal = new DBQualityCSVGoal<>(project, FTGoalKey.DB_QUALITY, storeGoal, kmersPerTaxGoal);
         registerGoal(dbQualityGoal);
+
+        Goal<P> ftAll = new Goal<P>(project, FTGoalKey.FTGENALL, getGoal(GSGoalKey.GENALL), infoGoal) {
+            @Override
+            public boolean isMade() {
+                return false;
+            }
+
+            @Override
+            protected void doMakeThis() {
+            }
+        };
+        registerGoal(ftAll);
+        // Supersedes GSGoalKey.GENALL, which GSMaker registers as its default goal.
+        setDefaultGoal(ftAll);
+
+        Goal<P> clearGoal = getGoal(GSGoalKey.CLEAR);
+        Goal<P> ftclearGoal = new FileListGoal<P>(project, FTGoalKey.FTCLEAR, Arrays
+                .asList(project.getTeXDir()), clearGoal) {
+            @Override
+            public boolean isMade() {
+                return false;
+            }
+
+            @Override
+            protected void makeFile(File file) throws IOException {
+            }
+
+            @Override
+            protected void doMakeThis() {
+                doCleanThis();
+            }
+        };
+        registerGoal(ftclearGoal);
+    }
+
+    /**
+     * Returns the goal used to load the database for API access, choosing the FT database
+     * ({@link FTGoalKey#LOAD_FTDB}) when {@link #isUseFTDBForAPI()} is set and otherwise the standard
+     * Genestrip load goal.
+     *
+     * @return the load-database goal used for API access
+     */
+    @Override
+    protected LoadDBGoal<P> getLoadDBGoal() {
+        if (isUseFTDBForAPI()) {
+            return (LoadDBGoal) getGoal(FTGoalKey.LOAD_FTDB);
+        }
+        else {
+            return super.getLoadDBGoal();
+        }
     }
 }

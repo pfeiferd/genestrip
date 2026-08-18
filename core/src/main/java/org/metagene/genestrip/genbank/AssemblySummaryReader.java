@@ -68,7 +68,7 @@ public class AssemblySummaryReader {
 	 * @param baseDir the directory containing the summary file
 	 * @param genBank if {@code true}, reads the Genbank summary file, otherwise the RefSeq one
 	 * @param taxTree the taxonomy tree used to resolve tax ids
-	 * @throws java.io.IOException if the summary file cannot be accessed
+	 * @throws IOException if the summary file cannot be accessed
 	 */
 	public AssemblySummaryReader(File baseDir, boolean genBank, TaxTree taxTree) throws IOException {
 		this(baseDir, genBank ? ASSEMLY_SUM_GENBANK : ASSEMLY_SUM_REFSEQ, taxTree);
@@ -80,7 +80,7 @@ public class AssemblySummaryReader {
 	 * @param baseDir the directory containing the summary file
 	 * @param assFileName the summary file name
 	 * @param taxTree the taxonomy tree used to resolve tax ids
-	 * @throws java.io.IOException if the summary file cannot be accessed
+	 * @throws IOException if the summary file cannot be accessed
 	 */
 	public AssemblySummaryReader(File baseDir, String assFileName, TaxTree taxTree) throws IOException {
 		this.baseDir = baseDir;
@@ -99,7 +99,7 @@ public class AssemblySummaryReader {
 	 * @param totalEntries                if non-{@code null}, its first element receives the total number
 	 *                                    of processed records
 	 * @return a map from taxonomy node to its relevant assembly entries
-	 * @throws java.io.IOException if the summary file cannot be read
+	 * @throws IOException if the summary file cannot be read
 	 */
 	public Map<TaxIdNode, List<AssemblyEntry>> getRelevantEntries(final Set<TaxIdNode> filter,
 																  final List<AssemblyQuality> fastaQualities, final boolean referenceOnly, final boolean useSpeciesTaxidForFiltering, final int[] totalEntries) throws IOException {

@@ -31,7 +31,7 @@ import java.time.Duration;
 import java.util.Optional;
 
 /**
- * Factory for tongfei {@link me.tongfei.progressbar.ProgressBar} instances configured for Genestrip:
+ * Factory for tongfei {@link ProgressBar} instances configured for Genestrip:
  * ASCII style, a custom renderer that pulls live current/max values from a {@link GSProgressUpdate},
  * a configurable update interval and unit name, and optional rendering of the bar to a {@link Log}
  * at debug level.

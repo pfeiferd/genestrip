@@ -67,7 +67,7 @@ public class StreamingFileResource implements StreamingResource {
 		return Files.size(file.toPath());
 	}
 
-	public StreamingResource.StreamAccess openStream() throws IOException {
+	public StreamAccess openStream() throws IOException {
 		return getByteCountingInputStreamForFile(file, noGZ);
 	}
 
@@ -79,7 +79,7 @@ public class StreamingFileResource implements StreamingResource {
 		} else {
 			res[0] = new BufferedInputStream(in, StreamProvider.getBufferSize());
 		}
-		StreamingResource.StreamAccess result = new StreamingResource.StreamAccess() {
+		StreamAccess result = new StreamAccess() {
 			@Override
 			public long getBytesRead() {
 				return in.getBytesRead();

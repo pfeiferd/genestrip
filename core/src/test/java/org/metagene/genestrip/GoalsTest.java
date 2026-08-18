@@ -48,13 +48,11 @@ public class GoalsTest {
 		GSMaker<GSProject> maker = new GSMaker(project);
 		for (Goal<GSProject> goal : maker.getGoals()) {
 			GoalKey key = goal.getKey();
-			if (!GSGoalKey.KRAKENRES.equals(key) && !GSGoalKey.KRAKENCOUNT.equals(key)) {
-				// Don't download NCBI stuff over and over again via tests:
-				if (!GSGoalKey.COMMON_SETUP.equals(key) && !(goal instanceof GSFileDownloadGoal)) {
-					goal.cleanThis();
-				}
-				goal.make();
+			// Don't download NCBI stuff over and over again via tests:
+			if (!GSGoalKey.COMMON_SETUP.equals(key) && !(goal instanceof GSFileDownloadGoal)) {
+				goal.cleanThis();
 			}
+			goal.make();
 		}
 		maker.dumpAll();
 	}

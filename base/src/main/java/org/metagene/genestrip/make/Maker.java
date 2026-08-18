@@ -24,13 +24,13 @@
  */
 package org.metagene.genestrip.make;
 
+import org.apache.commons.logging.Log;
+import org.metagene.genestrip.util.GSLogFactory;
+
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.commons.logging.Log;
-import org.metagene.genestrip.util.GSLogFactory;
 
 /**
  * Holds the goal graph of a {@link Project}: goals are created in {@link #createGoals()} and

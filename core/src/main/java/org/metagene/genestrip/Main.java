@@ -65,7 +65,7 @@ public abstract class Main<P extends GSProject> {
      *
      * @param args the command line arguments
      * @throws ParseException if the arguments are malformed or the project name is missing
-     * @throws java.io.IOException if project creation requires I/O that fails
+     * @throws IOException if project creation requires I/O that fails
      */
     public void parse(String[] args) throws ParseException, IOException {
         CommandLine line = new DefaultParser().parse(options, args);

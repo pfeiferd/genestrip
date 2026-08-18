@@ -65,7 +65,7 @@ public class ResultReporter {
     public void printStoreInfo(Database database, PrintStream out) {
         Object2LongMap<String> stats = database.getStats();
         final double invK = 1d / database.getKmerStore().getK();
-        Map<SmallTaxTree.SmallTaxIdNode, EvoDistanceEstimator.DistanceInfo> distanceInfoMap = new EvoDistanceEstimator().computeDistances(database);
+        Map<SmallTaxIdNode, EvoDistanceEstimator.DistanceInfo> distanceInfoMap = new EvoDistanceEstimator().computeDistances(database);
 
         out.println("pos;level;name;rank;taxid;stored kmers;requested;distance;distance portion;");
 

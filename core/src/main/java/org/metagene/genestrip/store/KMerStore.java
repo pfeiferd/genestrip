@@ -84,10 +84,43 @@ public interface KMerStore<V extends Serializable> extends Serializable {
 	 * Returns the value-index capacity of this store.
 	 *
 	 * @return the maximum number of distinct values this store can hold (the value-index capacity).
-	 *         Defined per implementation; see e.g. {@link KMerSortedArray#MAX_VALUES} and
+	 *         Defined per implementation; see e.g. {@link RadixKMerStore#getMaxValues()} and
 	 *         {@link RadixKMerStore#maxValuesForRadix(int)}.
 	 */
 	public int getMaxValues();
+
+	/**
+	 * Turns the marking of visited (i.e. matched) k-mers on or off. While it is on, every lookup that
+	 * finds a k-mer records that in the store itself, so the number of distinct k-mers matched per
+	 * value can be obtained afterwards from {@link #countVisitedPerValueIndex(long[])} - without the
+	 * extra random memory access per matched k-mer that a separate bit vector would cost.
+	 * <p>
+	 * Marking mutates the store, so a store being marked must not be shared with a reader that
+	 * expects it to be immutable, and {@link #clearVisitedMarks()} has to run before a new count.
+	 *
+	 * @param markVisited whether lookups should mark the k-mers they find
+	 * @return whether marking could be enabled
+	 */
+	public boolean setMarkVisited(boolean markVisited);
+
+	/**
+	 * Returns whether lookups currently mark the k-mers they find.
+	 *
+	 * @return whether visited marking is on
+	 */
+	public boolean isMarkVisited();
+
+	/**
+	 * Clears the visited mark of every k-mer, so a following run counts only its own matches.
+	 */
+	public void clearVisitedMarks();
+
+	/**
+	 * Adds up, per value index, how many of that value's k-mers are marked as visited.
+	 *
+	 * @param counts the per-value-index counters to add to
+	 */
+	public void countVisitedPerValueIndex(long[] counts);
 
 	/**
 	 * Returns the number of distinct values currently registered.

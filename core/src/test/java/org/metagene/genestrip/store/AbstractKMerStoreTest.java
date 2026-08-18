@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -80,7 +81,7 @@ public abstract class AbstractKMerStoreTest extends TestCase {
 					readAsList.add(read[j]);
 				}
 			}
-			int v = i % KMerSortedArray.MAX_VALUES;
+			int v = i % RadixKMerStore.maxValuesForRadix(RadixKMerStore.DEFAULT_RADIX_BITS);
 			if (controlMap != null) {
 				controlMap.put(readAsList, v);
 			}
@@ -122,6 +123,23 @@ public abstract class AbstractKMerStoreTest extends TestCase {
 
 	// --- Shared tests ---------------------------------------------------------
 
+	/**
+	 * The directory temporary files of these tests are written to, created if absent.
+	 * <p>
+	 * Not the bare relative {@code target}: that resolves against the working directory the tests happen
+	 * to be started from, which is the module's own only when Maven starts them, and the aggregator
+	 * build removes and recreates it in between. A run from elsewhere then failed here for want of a
+	 * directory rather than for want of a working store.
+	 *
+	 * @return the directory to create temporary files in
+	 * @throws IOException if the directory cannot be created
+	 */
+	private static Path buildDirectory() throws IOException {
+		Path dir = Paths.get(System.getProperty("buildDirectory", "target"));
+		Files.createDirectories(dir);
+		return dir;
+	}
+
 	@Test
 	public void testPutGet() {
 		Map<List<Byte>, Integer> controlMap = new HashMap<List<Byte>, Integer>();
@@ -143,7 +161,7 @@ public abstract class AbstractKMerStoreTest extends TestCase {
 		KMerStore<Integer> store = buildStore(testSize, controlMap, kmerMap);
 
 		try {
-			File tmpdir = Files.createTempDirectory(Paths.get("target"), "serialization-test").toFile();
+			File tmpdir = Files.createTempDirectory(buildDirectory(), "serialization-test").toFile();
 			tmpdir.deleteOnExit();
 			File saved = new File(tmpdir, "saved_store.ser");
 			saved.deleteOnExit();
@@ -163,7 +181,7 @@ public abstract class AbstractKMerStoreTest extends TestCase {
 	}
 
 	private KMerStore<Integer> saveAndLoad(KMerStore<Integer> store) throws IOException, ClassNotFoundException {
-		File tmpdir = Files.createTempDirectory(Paths.get("target"), "nkmers-test").toFile();
+		File tmpdir = Files.createTempDirectory(buildDirectory(), "nkmers-test").toFile();
 		tmpdir.deleteOnExit();
 		File saved = new File(tmpdir, "store.ser");
 		saved.deleteOnExit();
@@ -236,7 +254,7 @@ public abstract class AbstractKMerStoreTest extends TestCase {
 		long kmer = first.getKey();
 		// Update to a different value that is already present (values 0 and 1 always are), so no new
 		// value index is created even when the store is filled up to its MAX_VALUES distinct values
-		// (as KMerSortedArray is here).
+		// (as the store is here).
 		final int newValue = first.getValue() == 0 ? 1 : 0;
 		assertTrue(store.update(kmer, new UpdateValueProvider<Integer>() {
 			@Override

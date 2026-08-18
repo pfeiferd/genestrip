@@ -42,6 +42,12 @@ public abstract class FinerTreeMain<P extends FTProject> extends Main<P> {
     protected FinerTreeMain() {
     }
 
+    /**
+     * Creates the {@link FinerTreeMaker} that provides the FT-specific goals for the given project.
+     *
+     * @param project the FT project
+     * @return the finer-tree maker for {@code project}
+     */
     @Override
     protected FinerTreeMaker<P> createMaker(P project) {
         return new FinerTreeMaker<P>(project);

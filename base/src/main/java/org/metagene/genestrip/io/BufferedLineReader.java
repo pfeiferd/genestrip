@@ -161,14 +161,43 @@ public class BufferedLineReader implements Closeable {
 		int size = startPos;
 		while (bufferFill != -1) {
 			if (pos < bufferFill) {
-				byte c = -1;
-				for (; size < target.length && pos < bufferFill && c != '\n'; pos++) {
-					target[size] = c = buffer[pos];
-					if (c != 0) {
-						size++;
+				// Scan the buffered bytes for the line end (or a null to drop) without touching the
+				// target, then move the whole run at once. Copying byte by byte - a load, a store, a
+				// null test and two bounds checks each - dominated the profile of every line-oriented
+				// reader in the system; the scan alone is a simple loop the JIT handles far better and
+				// the move becomes an intrinsic. Nulls are rare in practice, so handling them stays on
+				// the slow side of a branch instead of costing something per byte.
+				boolean lineEnd = false;
+				while (pos < bufferFill && size < target.length) {
+					// Never scan beyond what the target can take, so the copy below always fits.
+					final int limit = Math.min(bufferFill, pos + (target.length - size));
+					int i = pos;
+					byte c = 0;
+					while (i < limit) {
+						c = buffer[i];
+						if (c == '\n' || c == 0) {
+							break;
+						}
+						i++;
 					}
+					final int run = i - pos;
+					if (run > 0) {
+						System.arraycopy(buffer, pos, target, size, run);
+						size += run;
+						pos = i;
+					}
+					if (i == limit) {
+						break; // Buffer chunk consumed, or the target is full - both handled below.
+					}
+					pos++; // Consume the byte the scan stopped at.
+					if (c == '\n') {
+						target[size++] = '\n';
+						lineEnd = true;
+						break;
+					}
+					// A null byte: skipped and not counted, as the byte-wise loop did.
 				}
-				if (c == '\n') {
+				if (lineEnd) {
 					return size;
 				}
 				if (size == target.length) {

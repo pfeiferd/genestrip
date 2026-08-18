@@ -34,8 +34,6 @@ import org.metagene.genestrip.goals.genbank.AssemblyFileDownloadGoal;
 import org.metagene.genestrip.goals.genbank.FastaFilesFromGenbankGoal;
 import org.metagene.genestrip.goals.genbank.FastaFilesGenbankDownloadGoal;
 import org.metagene.genestrip.goals.genbank.TaxNodesFromGenbankGoal;
-import org.metagene.genestrip.goals.kraken.KrakenResCountGoal;
-import org.metagene.genestrip.goals.kraken.KrakenResFileGoal;
 import org.metagene.genestrip.goals.refseq.*;
 import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.make.FileGoal;
@@ -266,12 +264,8 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
                 refSeqCatalogGoal, checkSumMapGoal, checkRefSeqRNumGoal);
         registerGoal(refSeqFnaFilesGoal);
 
-        ObjectGoal<Integer, P> accessMapSizeGoal = new AccessionMapSizeGoal(project, categoriesGoal,
-                refSeqCatalogGoal);
-        registerGoal(accessMapSizeGoal);
-
         ObjectGoal<AccessionMap, P> accessionMapGoal = new AccessionMapGoal(project, categoriesGoal, taxTreeGoal,
-                refSeqCatalogGoal, accessMapSizeGoal);
+                refSeqCatalogGoal);
         registerGoal(accessionMapGoal);
 
         // Genbank related additional fastas:
@@ -299,8 +293,11 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
                 additionalDownloadsGoal);
         registerGoal(additionalFastasGoal);
 
+        // The additional fastas are passed here for the same reason as to the fill goals below: the
+        // extraction must cover the Genbank downloads too, or it would misrepresent every database
+        // that draws on them - which for a project with `refSeq.limitForGenbankAccess' is most of it.
         ExtractRefSeqFastasGoal<P> extractFastasGoal = new ExtractRefSeqFastasGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal,
-                accessionMapGoal);
+                additionalFastasGoal, accessionMapGoal);
         registerGoal(extractFastasGoal);
 
         ExtractRefSeqCSVGoal<P> extractCSVGoal = new ExtractRefSeqCSVGoal(project, extractFastasGoal);
@@ -308,7 +305,7 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
 
         // Create database and bloom filter
 
-        ObjectGoal<Long, P> basicSizeGoal = new FillSizeGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal,
+        ObjectGoal<FillSizeGoal.KMerCounts, P> basicSizeGoal = new FillSizeGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, refSeqFnaFilesGoal,
                 additionalFastasGoal, accessionMapGoal);
         registerGoal(basicSizeGoal);
 
@@ -481,15 +478,6 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
 
         Goal<P> fastq2fastaGoal = new Fasta2FastqGoal(project, GSGoalKey.FASTA2FASTQ, fastaMapTransfGoal, projectSetupGoal, fastaDownloadsGoal);
         registerGoal(fastq2fastaGoal);
-
-        // Use kraken
-        KrakenResCountGoal<P> krakenResCountGoal = new KrakenResCountGoal(project, fastqMapTransfGoal, taxNodesGoal,
-                projectSetupGoal, fastqDownloadsGoal);
-        registerGoal(krakenResCountGoal);
-
-        KrakenResFileGoal krakenResFileGoal = new KrakenResFileGoal(project, fastqMapTransfGoal, taxNodesGoal,
-                krakenResCountGoal, projectSetupGoal, fastqDownloadsGoal);
-        registerGoal(krakenResFileGoal);
     }
 
     /**

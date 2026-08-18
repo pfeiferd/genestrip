@@ -29,11 +29,18 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.util.List;
 import java.util.Arrays;
 import java.util.Map;
 
 import org.junit.Test;
 import org.metagene.genestrip.APITest;
+import org.metagene.genestrip.goals.refseq.DBGoalTest;
+import org.metagene.genestrip.make.FileListGoal;
+import org.metagene.genestrip.make.Goal;
+import org.metagene.genestrip.make.GoalKey.DefaultGoalKey;
 import org.metagene.genestrip.GSCommon;
 import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
@@ -65,16 +72,29 @@ public class DB2FastqGoalTest extends ComprehensiveFilterTest {
 
 	@Test
 	public void testDB2FastqGoal() throws IOException {
-		GSCommon config = new GSCommon(getBaseDir());
+		// The project gets a copy of its own below the build output, so that this test neither reads
+		// nor writes what the other tests of the release's `human_virus' do - they configure it
+		// differently, and whichever ran last would decide what this one finds in its database.
+		// Everything that is downloaded rather than configured stays shared: the common folder is the
+		// release's, since re-fetching the RefSeq catalogue and the viral genomes for a test would
+		// cost gigabytes.
+		File releaseCommon = new File(APITest.getBaseDir(), "common");
+		GSCommon config = new GSCommon(getBaseDir()) {
+			@Override
+			public File getCommonDir() {
+				return releaseCommon;
+			}
+		};
 
 		String[] taxids = new String[] { "64320", "12637", "11053", "11060", "11069", "11070" };
 
-		// Create the 'human_virus' project (whose config files are part of the
-		// release).
+		// Create the 'human_virus' project, whose configuration files are copied in below.
 		GSProject project = new GSProject(config, "human_virus", null, null, null, null, null, "64320,12637+",
 				null, null, null, false);
 		project.initConfigParam(GSConfigKey.GZIP_FASTQ_OUTPUT, false);
 		project.initConfigParam(GSConfigKey.TAX_IDS, Arrays.asList(taxids));
+
+		new HumanVirusProjectGoal(project).make();
 
 		GSMaker maker = new GSMaker(project);
 
@@ -104,5 +124,42 @@ public class DB2FastqGoalTest extends ComprehensiveFilterTest {
 			assertTrue(12 == map.size() || 13 == map.size() || 14 == map.size());
 		}
 		maker.dumpAll();
+	}
+
+	/**
+	 * Puts the configuration files of the {@code human_virus} project in place below the build output,
+	 * copying them from the test resources exactly as {@link DBGoalTest.Dengue1ProjectGoal} does for
+	 * its own project. Only the files that describe the project are copied; everything else is derived
+	 * from them.
+	 */
+	public static class HumanVirusProjectGoal extends FileListGoal<GSProject> {
+		@SafeVarargs
+		public HumanVirusProjectGoal(GSProject project, Goal<GSProject>... dependencies) {
+			super(project, new DefaultGoalKey("human_virus_project"), (List<File>) null, dependencies);
+			addFile(new File(project.getProjectDir(), "taxids.txt"));
+			addFile(new File(project.getProjectDir(), "categories.txt"));
+		}
+
+		@Override
+		protected void makeFile(File file) throws IOException {
+			// Every directory the maker's own setup goal would create, not just the ones holding the
+			// configuration: that goal creates them with mkdir(), which fails silently when its parent
+			// is missing, and a clean-and-remake cycle within one maker does not run it a second time.
+			for (File dir : new File[] { getProject().getCommon().getBaseDir(), getProject().getProjectsDir(),
+					getProject().getProjectDir(), getProject().getFastaDir(), getProject().getFastqDir(),
+					getProject().getDBDir(), getProject().getKrakenOutDir(), getProject().getResultsDir(),
+					getProject().getLogDir(), getProject().getFastqResDir() }) {
+				if (!dir.exists()) {
+					dir.mkdirs();
+				}
+			}
+			if (!file.exists()) {
+				URL resource = getClass().getClassLoader().getResource("projects/human_virus/" + file.getName());
+				if (resource == null) {
+					throw new IOException("Missing test resource projects/human_virus/" + file.getName());
+				}
+				Files.copy(new File(resource.getFile()).toPath(), file.toPath());
+			}
+		}
 	}
 }

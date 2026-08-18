@@ -81,7 +81,7 @@ public class AdditionalFastasGoal<P extends GSProject> extends ObjectGoal<Map<Fi
 	@Override
 	protected void doMakeThis() {
 		TaxTree taxTree = taxTreeGoal.get();
-		Map<File, TaxIdNode> res = new HashMap<File, TaxTree.TaxIdNode>();
+		Map<File, TaxIdNode> res = new HashMap<File, TaxIdNode>();
 		File additonalEntryFile = getProject().getAdditionalFile();
 		if (additonalEntryFile.exists()) {
 			try (CSVParser parser = FORMAT

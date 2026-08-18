@@ -62,16 +62,16 @@ public abstract class AbstractUpdateFastaReader extends AbstractStoreFastaReader
      * @param maxGenomesPerTaxIdRank the rank up to which {@code maxGenomesPerTaxId} is applied
      * @param maxKmersPerTaxId       the maximum number of *k*-mers stored per tax id
      * @param maxDust                the maximum dust (low-complexity) threshold for *k*-mers
-     * @param stepSize               the step size between consecutive *k*-mers
-     * @param completeGenomesOnly    whether only complete genomes are considered
+     * @param kMerSampling               the step size between consecutive *k*-mers
+     * @param assemblyAccessionsOnly    whether only complete genomes are considered
      * @param regionsPerTaxid        the trie tracking the covered regions per tax id
      * @param enableLowerCaseBases   whether lower-case bases are treated as valid bases
      * @param idNodes                whether refinement into id nodes (by accession) is enabled
      * @param fileNodes              whether refinement into file nodes (by file name) is enabled
      * @param dataNodes              whether refinement into the data child node is enabled
      */
-    public AbstractUpdateFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases, boolean idNodes, boolean fileNodes, boolean dataNodes) {
-        super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases);
+    public AbstractUpdateFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases, boolean idNodes, boolean fileNodes, boolean dataNodes) {
+        super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, regionsPerTaxid, enableLowerCaseBases);
         this.idNodes = idNodes;
         this.fileNodes = fileNodes;
         this.dataNodes = dataNodes;

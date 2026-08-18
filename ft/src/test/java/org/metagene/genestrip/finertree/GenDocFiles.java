@@ -24,13 +24,16 @@
  */
 package org.metagene.genestrip.finertree;
 
+import org.junit.Assume;
 import org.junit.Test;
 import org.metagene.genestrip.*;
 import org.metagene.genestrip.make.*;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.Collection;
 
@@ -65,9 +68,9 @@ public class GenDocFiles {
 	/**
 	 * Regenerates the {@code GoalGraph.gv.txt} Graphviz file describing the finer-tree goal graph,
 	 * emitting one node per relevant goal and directed edges for their dependencies (dotted for weak
-	 * dependencies).
+	 * dependencies), and renders it as {@code GoalGraph.svg} via {@link #writeSVGFile(File)}.
 	 *
-	 * @throws IOException if writing the graph file fails
+	 * @throws IOException if writing the graph file or rendering it fails
 	 */
 	@Test
 	public void writeGraphFile() throws IOException {
@@ -141,6 +144,53 @@ public class GenDocFiles {
 			ps.println("}");
 		} catch (FileNotFoundException e) {
 			throw new RuntimeException(e);
+		}
+		writeSVGFile(graphFile);
+	}
+
+	/**
+	 * Renders the given Graphviz file next to itself as an SVG file (with the {@code .gv...} part of its
+	 * name replaced by {@code .svg}) by running {@code dot} from Graphviz (https://graphviz.org/).
+	 * If {@code dot} is not on the PATH, the SVG file is left as it is and the calling test is skipped
+	 * rather than failed.
+	 *
+	 * @param graphFile the Graphviz file to render
+	 * @throws IOException if {@code dot} could not be run to completion or reported a failure
+	 */
+	public static void writeSVGFile(File graphFile) throws IOException {
+		String name = graphFile.getName();
+		int index = name.indexOf(".gv");
+		File svgFile = new File(graphFile.getParentFile(), (index < 0 ? name : name.substring(0, index)) + ".svg");
+
+		ProcessBuilder builder = new ProcessBuilder("dot", "-Tsvg", graphFile.getAbsolutePath(), "-o",
+				svgFile.getAbsolutePath());
+		builder.redirectErrorStream(true);
+		Process process;
+		try {
+			process = builder.start();
+		} catch (IOException e) {
+			String message = "Graphviz's 'dot' is not on the PATH, so " + svgFile
+					+ " was not regenerated. Install Graphviz (https://graphviz.org/) for that.";
+			System.err.println(message);
+			Assume.assumeNoException(message, e);
+			return;
+		}
+		StringBuilder output = new StringBuilder();
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+			for (String line = reader.readLine(); line != null; line = reader.readLine()) {
+				output.append(line).append('\n');
+			}
+		}
+		int exitValue;
+		try {
+			exitValue = process.waitFor();
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new IOException("Interrupted while waiting for 'dot' to create " + svgFile, e);
+		}
+		if (exitValue != 0) {
+			throw new IOException("'dot' failed with exit value " + exitValue + " when creating " + svgFile + ": "
+					+ output);
 		}
 	}
 

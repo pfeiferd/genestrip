@@ -62,7 +62,7 @@ public class TaxIdCollector {
 	 * @param file the file to read tax ids from
 	 * @param excludes the set receiving nodes for excluded (minus-prefixed) tax ids
 	 * @return the set of included nodes
-	 * @throws java.io.IOException if the file cannot be read
+	 * @throws IOException if the file cannot be read
 	 */
 	public Set<TaxIdNode> readFromFile(File file, Set<TaxIdNode> excludes) throws IOException {
 		Set<TaxIdNode> res = new HashSet<TaxIdNode>();
@@ -117,7 +117,7 @@ public class TaxIdCollector {
 	 * @return a new set of the given nodes together with their (bounded) descendants
 	 */
 	public Set<TaxIdNode> withDescendants(Set<TaxIdNode> taxIds, Rank depth) {
-		Set<TaxIdNode> res = new HashSet<TaxTree.TaxIdNode>();
+		Set<TaxIdNode> res = new HashSet<TaxIdNode>();
 
 		for (TaxIdNode node : taxIds) {
 			completeFilterlist(res, node, depth);
@@ -134,7 +134,7 @@ public class TaxIdCollector {
 	 * @return the subset of nodes that are descendants of (or equal to) the ancestor
 	 */
 	public Set<TaxIdNode> restrictToAncestor(TaxIdNode ancestor, Set<TaxIdNode> taxIds) {
-		Set<TaxIdNode> res = new HashSet<TaxTree.TaxIdNode>();
+		Set<TaxIdNode> res = new HashSet<TaxIdNode>();
 
 		for (TaxIdNode node : taxIds) {
 			if (taxTree.isAncestorOf(node, ancestor)) {
@@ -153,7 +153,7 @@ public class TaxIdCollector {
 	 * @return the subset of nodes that are descendants of (or equal to) any ancestor
 	 */
 	public Set<TaxIdNode> restrictToAncestors(Set<TaxIdNode> ancestors, Set<TaxIdNode> taxIds) {
-		Set<TaxIdNode> res = new HashSet<TaxTree.TaxIdNode>();
+		Set<TaxIdNode> res = new HashSet<TaxIdNode>();
 
 		for (TaxIdNode node : taxIds) {
 			for (TaxIdNode ancestor : ancestors) {

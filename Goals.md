@@ -12,10 +12,12 @@
 |`db2fastq`|X|X|Generate fastq files from the database. A respective fastq file will contain all *k*-mers specifically associated with a single tax id from the database where each *k*-mer is represented by a read consisting of *k* bases. Respective fastq files will be stored in `<base dir>/projects/<project_name>/fastq` with the file name format `<project_name>_db2fastq_<taxid>.fastq.gz`. The command line option `tx` serves at selecting the corresponding tax ids for the fastq files to be generated. If the option is omitted, then fastq files for *all* tax ids from the database will be generated.|
 |`index`|X|X|Generate a filtering database with respect to a given project.|
 |`match`|X|X|Analyze fastq files as given by the `-f` or `-m` option. The resulting CSV file(s) will be stored in `<base dir>/projects/<project_name>/csv` unless specified otherwise via the `-r` option.|
-|`matchlr`|X|X|Same as `match` but without doing read classification. This corresponds to the configuration setting `classifyReads=false`.|
+|`matchlr`|X|X|Same as `match` but without doing read classification, which is what long reads normally want.|
 |`filter`|X|X|Filter fastq files as given by the `-f` or `-m` option. The resulting filtered fastq file(s) `filtered_...` will be stored under `<base dir>/projects/<project_name>/fastq/` unless specified otherwise via the `-r` option.|
 |`extract`|X|X|Extract reads from fastq files based on matching descriptors. See also config key `extractKey`.|
 |`svgtaxtree`|X|X|Generates a compact visual taxonomy tree in SVG-format to represent the database content.|
+|`kmerrankstats`||X|Compute, for each species, a statistic counting the taxonomic rank at which each of the species' *k*-mers ended up in the project's database. The result is a map keyed by the species' tax id whose value is an array of per-rank counts indexed by the ordinal of the `Rank` enum.|
+|`kmerrankstatscsv`||X|Write a CSV file summarizing the `kmerrankstats` result: for the rank intervals `above phylum`, `phylum to genus`, `genus to species` and `species and below`, the mean number of a species' *k*-mers in that interval (averaged over all species) together with the standard deviation and the box-plot quartiles (`q1`, `median`, `q3`) over all species.|
 |`fasta2fastq`||X|Transform a fasta file or streaming resource to fastq file.|
 |`matchres`||X|Analyze fastq files as given by the `-f` or `-m` option.|
 |`matchreslr`||X|Same as `matchres` but without doing read classification.|
@@ -30,7 +32,6 @@
 |`checksummap`|||Load MD5 checksums for RefSeq files into memory|
 |`categories`||X|Load the RefSeq category names as requested for the project's database.|
 |`refseqfna`|||Download the genomic files from RefSeq for the requested categories.|
-|`accmapsize`||X|Compute the number of RefSeq accession entries to be kept in memory.|
 |`accmap`||X|Load the required RefSeq accession entries into memory.|
 |`taxfromgenbank`||X|Determine for tax ids for which additional fasta files from Genbank should be downloaded.|
 |`assemblydownload`|||Download Genbank's assembly catalog file.|
@@ -54,8 +55,6 @@
 |`fastamaptransform`||X|Transform URLs of fasta files to be downloaded to local paths.|
 |`fastqdownload`|||Download fastq files given via URLs as requested.|
 |`fastadownload`|||Download fasta files given via URLs as requested.|
-|`krakencount`||X|For internal use (to invoke kraken and count results).|
-|`krakenres`||X|For internal use (to write kraken results to a file).|
 |`dbdownload`|||Download and install a project's database via a given URL.|
 |`checkrefseqrnum`||X|Check whether the downloaded RefSeq release is equal to the current release on the download server.|
 |`extractrefseqfasta`||X|Extract gzipped fasta files as individual files from RefSeq's bundled offering as used for database entry.|

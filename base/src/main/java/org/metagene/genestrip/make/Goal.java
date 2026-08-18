@@ -275,17 +275,47 @@ public abstract class Goal<P extends Project> {
 	 * otherwise.
 	 */
 	protected void logHeapInfo() {
-		if ((this instanceof LogHeapInfo && getLogger().isInfoEnabled())) {
+		logHeapInfo(null);
+	}
+
+	/**
+	 * Logs the current heap usage, naming the point of the goal's making it was taken at, at info
+	 * level for {@link LogHeapInfo} goals and at debug level otherwise.
+	 * <p>
+	 * A single figure per goal cannot say where the memory of a run goes, because it is taken once
+	 * the goal is done and so misses whatever the goal held while it worked. Taken before and after,
+	 * the pair brackets a goal instead, and the difference tells what it retained.
+	 *
+	 * @param phase the point the figure was taken at, appended to the message, or null for none
+	 */
+	protected void logHeapInfo(String phase) {
+		boolean info = this instanceof LogHeapInfo && getLogger().isInfoEnabled();
+		if (info || getLogger().isDebugEnabled()) {
+			if (info) {
+				// Collecting first is what makes the figure a figure: read as it stands, it is not the
+				// size of what the goal holds but of whatever the heap happens to contain, since a
+				// virtual machine with room to spare has no reason to collect anything and a goal that
+				// read gigabytes leaves them lying about long after it is done with them.
+				//
+				// This serves the logging and nothing else - it is not here to hand memory back, which
+				// is the virtual machine's business - so it is paid for only where the figure was
+				// actually asked for. The debug branch below deliberately does not force one: there
+				// every goal reports, and a full collection per goal would disturb what is being
+				// observed more than the figures would explain.
+				System.gc();
+			}
 			long total = Runtime.getRuntime().totalMemory();
 			long free = Runtime.getRuntime().freeMemory();
-			getLogger().info("Total heap size: " + (total / 1024 / 1024) + " MB");
-			getLogger().info("Used heap size: " + ((total - free) / 1024 / 1024) + " MB");
-		}
-		else if (getLogger().isDebugEnabled()) {
-			long total = Runtime.getRuntime().totalMemory();
-			long free = Runtime.getRuntime().freeMemory();
-			getLogger().debug("Total heap size: " + (total / 1024 / 1024) + " MB");
-			getLogger().debug("Used heap size: " + ((total - free) / 1024 / 1024) + " MB");
+			String suffix = phase == null ? "" : " " + phase;
+			String totalMessage = "Total heap size" + suffix + ": " + (total / 1024 / 1024) + " MB";
+			String usedMessage = "Used heap size" + suffix + ": " + ((total - free) / 1024 / 1024) + " MB";
+			if (info) {
+				getLogger().info(totalMessage);
+				getLogger().info(usedMessage);
+			} else {
+				getLogger().debug(totalMessage);
+				getLogger().debug(usedMessage);
+			}
 		}
 	}
 
@@ -319,9 +349,17 @@ public abstract class Goal<P extends Project> {
 			if (getLogger().isDebugEnabled()) {
 				getLogger().debug("Making this " + this);
 			}
-			// logHeapInfo();
+			logHeapInfo("before making");
+			// Timed here and not in logHeapInfo(): that method reports memory and nothing else. What
+			// a goal costs is otherwise only readable by subtracting log timestamps, which is what one
+			// ends up doing when a build takes hours and it is unclear which goal is responsible.
+			long startedAt = System.currentTimeMillis();
 			doMakeThis();
-			logHeapInfo();
+			long millis = System.currentTimeMillis() - startedAt;
+			logHeapInfo("after making");
+			if (getLogger().isInfoEnabled()) {
+				getLogger().info("Making " + getKey().getName() + " took " + (millis / 1000) + " s");
+			}
 			for (Goal<P> dep : dependencies) {
 				if (dep != null) {
 					dep.dependentMade(this);

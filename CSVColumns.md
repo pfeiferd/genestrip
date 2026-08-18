@@ -32,4 +32,3 @@
 |`acc. error std. dev.`|The standard deviation of the `acc. mean error`.|
 |`acc. mean class error`|The accumulated `mean class error`.|
 |`acc. class error std. dev.`|The standard deviation of the `acc. mean class error`.|
-|`max kmer counts`|The frequencies of the most frequent unique *k*-mers which are specific to the tax id's genome in descending order separated by `;`. This column is experimental and only present when the configuration parameter `maxKMerResCounts` is set to a value greater than 0 (see also Section [Configuration parameters](#configuration-parameters)).|

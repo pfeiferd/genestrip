@@ -20,10 +20,169 @@
 [comment]: # ()
 [comment]: # (Licensor: Daniel Pfeifer, daniel.pfeifer@progotec.de)
 
-**Genestrip-FT**: Exploring extensibility of Genestrip
+**Genestrip-FT**: Optimizing Genestrip's *k*-mer databases for accuracy on the genus level
 ===============================================
 
 ## Introduction
 
-The main purpose of this module is to ensure the extensibility of Genestrip by providing two additional goals in a separate module.
-These goals measure the intrinsic quality of a Genestrip database for future purposes.
+Genestrip-FT is an **extension** of [Genestrip](..), so most of its functionality is inherited from
+Genestrip. Please consult [Genestrip's documentation](../README.md) before dealing with this project.
+
+Genestrip-FT addresses a major problem
+of *k*-mer databases under the genus rank: Due to the lowest common ancestor update (LCA update) for each stored *k*-mer, a *k*-mer 
+is pushed to the genus already if it is shared by just two species subordinate to that genus.
+As a result, a *k*-mer database's accuracy tends to descrease under the species rank when used for metagenomic analysis given that the collection
+of genomes used for the LCA update is large. The effect has been studied in detail in [this research publication](https://link.springer.com/article/10.1186/s13059-018-1554-6).
+
+Genestrip-FT addresses this problem by *refining the NCBI's [taxonomy tree](https://www.ncbi.nlm.nih.gov/taxonomy/)* as included in a Genestrip database via the following steps:
+1) Based on the goal `kmerindexbloom`: Genestrip-FT performs an analysis for each *k*-mer stored right under the genus rank in order to determine from which species it was pushed up as part of the
+LCA update that happened when the database was built. 
+2) Based on the goal `intersectcount`: After collecting statistics on all related *k*-mers it computes a degree of intersection between
+any two species that belong to the same genus using the Jaccard-index. The intersection is computed via the number
+of joint *k*-mers between such two species as stored right under the genus rank.
+3) Based on the goal `dendrogram`: The Jaccard-indices of any two species under the same genus form a symmetric real-valued matrix. The matrix entries constitute a pair-wise similarity measure that aids in computing a dendrogram via agglomerative clustering
+using single linkage as the cluster distance. 
+4) Based on the goal `ftupdatedb`: The tree represented by the dendrogram is used
+to refine the actual taxonomy tree as stored along with the database. In addition, the *k*-mers originally assigned to 
+the genus are pushed down to their according, newly included nodes in the refined taxonomy tree.
+5) Based on the goal `ftdb`: Finally, the reworked Genestrip database gets stored and can then be used for improved metagenomic analysis.
+
+By default, the taxonomy tree is refined at *every* rank (the configuration parameter `refinementPositions` defaults to `*`).
+It can be restricted to selected ranks - e.g. `genus`, `subgenus` and `species group` - or to specific tax ids via that
+[configuration parameter](ConfigParams.md).
+
+### Generating and optimizing the sample database
+
+After [building Genestrip](../README.md#building-and-installing), you may call
+`sh ./bin/genestrip.sh human_virus ftdbinfo`
+in order to generate the basic *and the optimized* `human_virus` database and create CSV files with information on their content.
+The optimized database file `human_virus_ftdb.zip` will be stored under `./data/projects/human_virus/db` and 
+the respective CSV file `human_virus_ftdbinfo.csv` will be stored under `./data/projects/human_virus/csv`
+
+When comparing the CSV file `human_virus_dbinfo.csv` with the optimized database's info file `human_virus_ftdbinfo.csv`, you will
+notice additional entries reflecting the refined taxonomy under genus rank.
+E.g., when comparing the two files, the following entries changed from
+```
+387;9;Orthopoxvirus;genus;10242;267284;
+388;10;Orthopoxvirus vaccinia;species;10245;37726;
+389;11;Horsepox virus;no rank;397342;39804;
+390;10;Orthopoxvirus cowpox;species;3431481;0;
+391;11;Cowpox virus;no rank;10243;70054;
+392;10;Orthopoxvirus monkeypox;species;3431483;0;
+393;11;Monkeypox virus;no rank;10244;86029;
+394;10;Orthopoxvirus variola;species;3431487;0;
+395;11;Variola virus;no rank;10255;59611;
+...
+```
+to
+```
+432;15;Orthopoxvirus;genus;10242;144386;
+433;16;10245/.../3431487;no rank;000163;62029;
+434;17;10245/.../3431481;no rank;000164;42172;
+435;18;10245/OTHER;no rank;000165;18697;
+436;19;Orthopoxvirus vaccinia;species;10245;37726;
+437;20;Horsepox virus;no rank;397342;39804;
+438;20;OTHER;no rank;00035;0;
+439;19;OTHER;no rank;000166;0;
+440;18;Orthopoxvirus cowpox;species;3431481;0;
+441;19;Cowpox virus;no rank;10243;70054;
+442;17;Orthopoxvirus variola;species;3431487;0;
+443;18;Variola virus;no rank;10255;59611;
+444;16;Orthopoxvirus monkeypox;species;3431483;0;
+445;17;Monkeypox virus;no rank;10244;86029;
+446;15;OTHER;no rank;0003;0;
+...
+```
+This indicates that additional artificial tree nodes were created and *k*-mers
+from taxid `10242` were pushed down for example to the artifical tax id `000163`
+that holds the original two children with the tax ids `3431487` and `397342` as ancestors.
+
+## Examining intermediate results
+
+The counts for *k*-mer intersections and the associated matrix with the Jaccard-indices from step 2 from above can be written
+to a CSV file via the goal `intersectcsv`. A separate CSV file will be written for each affected parent node (e.g. each genus).
+The corresponding files will be saved under `<base dir>/projects/<project_name>/csv` following the
+pattern `<project_name>_intersectcsv_<tax_id>.csv`.
+
+Similarly, dendrograms from step 3 from above can be exported as LaTeX extracts via the goal `dendrolatex`.
+A separate file will be written for each affected parent node (e.g. each genus).
+The corresponding files will be saved under `<base dir>/projects/<project_name>/tex` following the
+pattern `<project_name>_dendrolatex_<tax_id>.tex`. 
+A corresponding extract is meant to be embedded in a [LaTeX](https://www.latex-project.org/) document and requires the LaTeX package [TikZ](https://github.com/pgf-tikz/pgf).
+
+You may apply the two goals to the included sample project `human_virus` via
+`sh ./bin/genestrip.sh human_virus intersectcsv dendrolatex`. This generates over 94 LaTeX extract files
+in total for various viral ranks (but also the CSV files with counts for *k*-mer intersections).
+E.g., the following dendrogram was produced via a corresponding file `human_virus_dendrolatex_10242.tex`:
+<p align="center">
+  <img src="dendrogram_10242.svg" width="1400"/>
+</p>
+
+If there are many dendrograms, the goal `allinonelatex` merges the extracts of a project into complete LaTeX documents
+under `<base dir>/projects/<project_name>/tex` following the pattern `<project_name>_allinonelatex_<n>.tex`
+(with at most `allInOneChunkSize` dendrograms per document).
+
+The following dendrogram results from applying the goal `dendrolatex` to the Genestrip project `borrelia` from [Genestrip-DB](https://github.com/pfeiferd/genestrip-db/).
+As it is based on the *k*-mers shared between any two species under the genus Borreliella, it forms a phylogenetic tree.
+Indeed, the tree's structure is very similar to [the phylogenetic tree for Borreliella established by current research](https://doi.org/10.3390/life13040972).
+<p align="center">
+  <img src="dendrogram_64895.svg" width="1400"/>
+</p>
+
+
+## Assessing the quality of a refinement
+
+The goals `dbquality` and `ftquality` quantify what the refinement achieves. They re-read the genomic files a database
+was built from and determine, per tax id, how many of its *k*-mers are stored at the right place in the database
+(tp, tp+fp, tp+fn and the resulting precision and recall values, per node as well as per subtree).
+`dbquality` does so for the original Genestrip database, `ftquality` for the refined Genestrip-FT database, so that
+the two CSV files `<project_name>_dbquality.csv` and `<project_name>_ftquality.csv` under
+`<base dir>/projects/<project_name>/csv` can be compared directly.
+
+The goals `branchhistocsv` and `branchhistorankcsv` describe *why* a refinement can or cannot succeed: for every tree
+node with refined *k*-mers they report how many of its *k*-mers occur in exactly 1, 2, ... of the node's child subtrees
+(`branchhistocsv`), and aggregate these distributions per taxonomic rank (`branchhistorankcsv`).
+
+## License
+
+[Genestrip-FT is under the same license as Genestrip itself.](../LICENSE.txt) Please contact [daniel.pfeifer@progotec.de](mailto:daniel.pfeifer@progotec.de) if you are interested in a commercial license.
+
+## Technical documentation
+
+### Usage and goals
+
+The usage of Genestrip-FT is [the same as for Genestrip](../README.md).
+
+### Additional goals
+
+[**This is a list of all goals**](Goals.md)
+[in addition to the ones from Genestrip](../Goals.md).
+
+The extended goal graph is shown below. Dashed boxes are goals inherited from Genestrip -
+so this is where Genestrip-FT (also) relies on Genestrip's respective implementations.
+Please keep in mind that the entire graph is a union of the graph from below and [Genstrip's original goal graph](../GoalGraph.svg).
+
+<p align="center">
+  <img src="GoalGraph.svg" width="1400"/>
+</p>
+
+### Additional configuration parameters
+
+[**This is a list of all configuration parameters**](ConfigParams.md)
+[in addition to the ones from Genestrip](../ConfigParams.md).
+
+These are the ones that affect a refinement most:
+* `refinementPositions` selects the ranks and tax ids where the taxonomy tree is refined (default `*`, i.e. everywhere).
+* `clusterMethod` is the cluster distance of the agglomerative clustering (default `SINGLE_LINKAGE`).
+* `jaccardSim` decides whether two children are compared via their Jaccard index (default) or via containment.
+  Use containment (`false`) when the children are individual genomes of differing assembly quality.
+* `ftIndexBloomFilterFpp` is the false positive probability of the *k*-mer index filter of `kmerindexbloom`.
+  It matters because a false positive pushes a *k*-mer up the refined tree, and the filter is queried once per child:
+  for a node with many children, the default of `0.01` leaves few *k*-mers placeable, so lower it accordingly.
+* `ftBloomFilterSizing` decides how that filter is sized - via the estimate of `kmerindexsize` (`distinct`),
+  via a conservative upper bound (`upperBound`) or via the estimate with a fallback to the bound (`auto`, the default).
+
+In addition, Genestrip's own parameter [`foldTaxaBelow`](../ConfigParams.md) is worth considering when building the
+database to be refined: it files each genome at the given rank (typically `species`) instead of at a strain node below
+it, so that the genomes of a species end up beside each other and become visible to the clustering.
+It requires `fileNodes=true`.

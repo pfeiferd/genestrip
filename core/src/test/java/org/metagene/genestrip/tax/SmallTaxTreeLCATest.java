@@ -36,6 +36,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.Test;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
@@ -139,5 +141,57 @@ public class SmallTaxTreeLCATest {
 
 	private static SmallTaxIdNode node(SmallTaxTree t, String id) {
 		return t.getNodeByTaxId(id);
+	}
+
+	// isAncestorOf() uses the cached depth to bound its walk instead of climbing to the root. That is
+	// only equivalent while every node's depth is one more than its parent's, so this pins it against
+	// the straightforward walking implementation for every ordered pair of nodes - including after a
+	// serialization round trip, where depth is recomputed rather than read from the stream.
+	@Test
+	public void testIsAncestorOfMatchesWalkingImplementation() throws Exception {
+		for (SmallTaxTree tree : new SmallTaxTree[] { buildSmallTree(), roundTrip(buildSmallTree()) }) {
+			for (String a : IDS) {
+				for (String b : IDS) {
+					SmallTaxIdNode node = tree.getNodeByTaxId(a);
+					SmallTaxIdNode ancestor = tree.getNodeByTaxId(b);
+					assertEquals("isAncestorOf(" + a + ", " + b + ")", walkIsAncestorOf(node, ancestor),
+							tree.isAncestorOf(node, ancestor));
+				}
+			}
+			assertEquals(false, tree.isAncestorOf(null, tree.getNodeByTaxId("1")));
+			assertEquals(false, tree.isAncestorOf(tree.getNodeByTaxId("1"), null));
+		}
+	}
+
+	// The original implementation: climb from the node to the root looking for the candidate.
+	private boolean walkIsAncestorOf(SmallTaxIdNode node, SmallTaxIdNode ancestor) {
+		while (node != null) {
+			if (node == ancestor) {
+				return true;
+			}
+			node = node.getParent();
+		}
+		return false;
+	}
+
+
+	// Restructuring goes through the bulk entry point, which re-establishes the node positions itself:
+	// the tree must be immediately usable again, with the new node numbered and counted.
+	@Test
+	public void testRestructuringRenumbersTheTree() throws IOException {
+		SmallTaxTree tree = buildSmallTree();
+		assertEquals(true, tree.isPositionsValid());
+		assertEquals(IDS.length, tree.getNodeCount());
+
+		Map<String, SmallTaxIdNode[]> changes = new HashMap<>();
+		changes.put("7", new SmallTaxIdNode[] { new SmallTaxIdNode("8", "eight", null) });
+		changes.put("unknown taxid", new SmallTaxIdNode[] { new SmallTaxIdNode("9", "nine", null) });
+		assertEquals("only the known tax id counts as changed", 1, tree.setSubNodes(changes));
+
+		assertEquals(true, tree.isPositionsValid());
+		assertEquals(IDS.length + 1, tree.getNodeCount());
+		// The new node took part in the renumbering, so its position is within the tree's range.
+		SmallTaxIdNode added = tree.getNodeByTaxId("8");
+		assertEquals(true, added.getPosition() > 0 && added.getPosition() < tree.getNodeCount());
 	}
 }

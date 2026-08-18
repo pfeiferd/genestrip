@@ -168,7 +168,6 @@ public class KMerRankStatsGoal<P extends GSProject> extends FastaReaderGoal<Map<
 			store = null;
 			taxTree = null;
 			effectiveOrdinalByTaxid = null;
-			cleanUpThreads();
 		}
 	}
 
@@ -179,7 +178,7 @@ public class KMerRankStatsGoal<P extends GSProject> extends FastaReaderGoal<Map<
 				intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
 				(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
 				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID), intConfigValue(GSConfigKey.MAX_DUST),
-				intConfigValue(GSConfigKey.STEP_SIZE), booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY),
+				intConfigValue(GSConfigKey.KMER_SAMPLING), booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY),
 				regionsPerTaxid, booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES));
 	}
 
@@ -250,26 +249,26 @@ public class KMerRankStatsGoal<P extends GSProject> extends FastaReaderGoal<Map<
 		 * @param maxGenomesPerTaxIdRank the rank at which the per-tax-id genome limit applies
 		 * @param maxKmersPerTaxId       the maximum number of k-mers per tax id
 		 * @param maxDust                the maximum allowed low-complexity (dust) run length
-		 * @param stepSize               the k-mer sampling step size
-		 * @param completeGenomesOnly    whether to include only complete genomes
+		 * @param kMerSampling               the k-mer sampling step size
+		 * @param assemblyAccessionsOnly    whether to include only complete genomes
 		 * @param regionsPerTaxid        the per-taxid region trie
 		 * @param enableLowerCaseBases   whether lower-case bases are included
 		 */
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
 							 int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust,
-							 int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid,
+							 int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie regionsPerTaxid,
 							 boolean enableLowerCaseBases) {
 			super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId,
-					maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases);
+					maxDust, kMerSampling, assemblyAccessionsOnly, regionsPerTaxid, enableLowerCaseBases);
 		}
 
 		@Override
-		protected boolean handleStore() {
+		protected boolean handleStore(long kmer) {
 			if (node == null || node.getTaxId() == null) {
 				return false;
 			}
 			// Look the k-mer up in the database: which tax id (if any) did it end up under?
-			String storedTaxId = store.getLong(byteRingBuffer.getStandardKMer(), null);
+			String storedTaxId = store.getLong(kmer, null);
 			if (storedTaxId == null) {
 				// K-mer is not in the database - it did not land anywhere.
 				return false;

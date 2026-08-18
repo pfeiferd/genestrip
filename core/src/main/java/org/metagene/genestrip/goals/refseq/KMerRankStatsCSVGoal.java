@@ -53,11 +53,12 @@ import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
  * {@link KMerRankStatsGoal}. The taxonomic ranks are grouped into four intervals and, for each
  * interval, the mean number of a species' k-mers falling into that interval (averaged over all
  * species) is written together with the (population) standard deviation over all species, as well as
- * the box-plot quartiles (first quartile {@code q1}, {@code median} and third quartile {@code q3}) of
- * the per-species interval sums. In addition, the same statistics ({@code rel avg}, {@code rel stddev},
- * {@code rel q1}, {@code rel median}, {@code rel q3}) are written for the per-species relative interval
- * values - each species' interval sum divided by its total over the four intervals, so those ratios sum
- * to one per species. The considered set of species is the actual species-rank taxa of the database (as
+ * the box-plot quartiles (first quartile {@code q1}, {@code median} and third quartile {@code q3}) and
+ * the Tukey whiskers ({@code whisker low}, {@code whisker high}) of the per-species interval sums. In
+ * addition, the same statistics ({@code rel avg}, {@code rel stddev}, {@code rel q1},
+ * {@code rel median}, {@code rel q3}, {@code rel whisker low}, {@code rel whisker high}) are written
+ * for the per-species relative interval values - each species' interval sum divided by its total over
+ * the four intervals, so those ratios sum to one per species. The considered set of species is the actual species-rank taxa of the database (as
  * keyed by {@link KMerRankStatsGoal}; higher-rank taxa are not pseudo-species). A species without any
  * k-mers has no defined ratios and does not enter the statistics, so {@code species count} counts the
  * database's species that carry k-mers and applies to both the absolute and the relative columns.
@@ -201,12 +202,15 @@ public class KMerRankStatsCSVGoal<P extends GSProject> extends FileGoal<P> {
 		// The box-plot quartiles (Q1, median, Q3) of the per-species interval sums. For each interval the
 		// species values are gathered into their own array and sorted, then the quartiles are read off by
 		// linear interpolation (the type-7 / matplotlib / R / NumPy default). These give the box bounds
-		// (Q1, Q3) and the median line; the 1.5*IQR whiskers can be derived downstream from Q1 and Q3.
+		// (Q1, Q3) and the median line, while the whiskers are the Tukey whiskers derived from the same
+		// sorted values (see #whiskers(double[], double, double)).
 		double[] q1 = new double[INTERVAL_COUNT];
 		double[] median = new double[INTERVAL_COUNT];
 		double[] q3 = new double[INTERVAL_COUNT];
+		double[] whiskerLow = new double[INTERVAL_COUNT];
+		double[] whiskerHigh = new double[INTERVAL_COUNT];
 		for (int i = 0; i < INTERVAL_COUNT; i++) {
-			long[] values = new long[n];
+			double[] values = new double[n];
 			for (int s = 0; s < n; s++) {
 				values[s] = perSpecies.get(s)[i];
 			}
@@ -214,6 +218,9 @@ public class KMerRankStatsCSVGoal<P extends GSProject> extends FileGoal<P> {
 			q1[i] = quantile(values, 0.25);
 			median[i] = quantile(values, 0.5);
 			q3[i] = quantile(values, 0.75);
+			double[] w = whiskers(values, q1[i], q3[i]);
+			whiskerLow[i] = w[0];
+			whiskerHigh[i] = w[1];
 		}
 
 		// The same set of statistics over the per-species relative interval values (which sum to one per
@@ -242,6 +249,8 @@ public class KMerRankStatsCSVGoal<P extends GSProject> extends FileGoal<P> {
 		double[] relQ1 = new double[INTERVAL_COUNT];
 		double[] relMedian = new double[INTERVAL_COUNT];
 		double[] relQ3 = new double[INTERVAL_COUNT];
+		double[] relWhiskerLow = new double[INTERVAL_COUNT];
+		double[] relWhiskerHigh = new double[INTERVAL_COUNT];
 		for (int i = 0; i < INTERVAL_COUNT; i++) {
 			double[] values = new double[n];
 			for (int s = 0; s < n; s++) {
@@ -251,11 +260,15 @@ public class KMerRankStatsCSVGoal<P extends GSProject> extends FileGoal<P> {
 			relQ1[i] = quantile(values, 0.25);
 			relMedian[i] = quantile(values, 0.5);
 			relQ3[i] = quantile(values, 0.75);
+			double[] w = whiskers(values, relQ1[i], relQ3[i]);
+			relWhiskerLow[i] = w[0];
+			relWhiskerHigh[i] = w[1];
 		}
 
 		try (PrintStream ps = new PrintStream(file, StandardCharsets.UTF_8)) {
-			ps.println("rank interval;avg kmers per species;stddev;q1;median;q3;species count;"
-					+ "rel avg;rel stddev;rel q1;rel median;rel q3;");
+			ps.println("rank interval;avg kmers per species;stddev;q1;median;q3;whisker low;whisker high;"
+					+ "species count;rel avg;rel stddev;rel q1;rel median;rel q3;"
+					+ "rel whisker low;rel whisker high;");
 			for (int i = 0; i < INTERVAL_COUNT; i++) {
 				ps.print(INTERVAL_NAMES[i]);
 				ps.print(";");
@@ -269,6 +282,10 @@ public class KMerRankStatsCSVGoal<P extends GSProject> extends FileGoal<P> {
 				ps.print(";");
 				ps.print(DF.format(q3[i]));
 				ps.print(";");
+				ps.print(DF.format(whiskerLow[i]));
+				ps.print(";");
+				ps.print(DF.format(whiskerHigh[i]));
+				ps.print(";");
 				ps.print(n);
 				ps.print(";");
 				ps.print(DF.format(relMean[i]));
@@ -281,9 +298,56 @@ public class KMerRankStatsCSVGoal<P extends GSProject> extends FileGoal<P> {
 				ps.print(";");
 				ps.print(DF.format(relQ3[i]));
 				ps.print(";");
+				ps.print(DF.format(relWhiskerLow[i]));
+				ps.print(";");
+				ps.print(DF.format(relWhiskerHigh[i]));
+				ps.print(";");
 				ps.println();
 			}
 		}
+	}
+
+	/**
+	 * Computes the Tukey whiskers of an already ascending-sorted array, i.e. the most extreme values
+	 * that still lie within 1.5 times the inter-quartile range beyond the quartiles. This is the
+	 * convention used by NumPy, R and matplotlib, so the whiskers always coincide with actual observed
+	 * values rather than with the fences themselves; values outside them are the outliers. The result is
+	 * clamped to the quartiles so that a whisker never ends up inside the box.
+	 *
+	 * @param sorted the values in ascending order
+	 * @param q1     the first quartile of {@code sorted}
+	 * @param q3     the third quartile of {@code sorted}
+	 * @return an array holding the lower and the upper whisker, or {@code {0, 0}} if the array is empty
+	 */
+	protected static double[] whiskers(double[] sorted, double q1, double q3) {
+		int n = sorted.length;
+		if (n == 0) {
+			return new double[] { 0, 0 };
+		}
+		double iqr = q3 - q1;
+		double lowFence = q1 - 1.5 * iqr;
+		double highFence = q3 + 1.5 * iqr;
+		// The arrays are sorted, so the first value at or above the lower fence and the last value at or
+		// below the upper fence are the whiskers. Both fences lie between the quartiles' neighbours, so
+		// the loops always find a value and the whiskers never cross the box.
+		double low = sorted[n - 1];
+		for (int i = 0; i < n; i++) {
+			if (sorted[i] >= lowFence) {
+				low = sorted[i];
+				break;
+			}
+		}
+		double high = sorted[0];
+		for (int i = n - 1; i >= 0; i--) {
+			if (sorted[i] <= highFence) {
+				high = sorted[i];
+				break;
+			}
+		}
+		// A quartile obtained by interpolation can lie beyond the nearest value within the fences, which
+		// happens for small samples with strong outliers. Clamping keeps the whiskers outside of the box
+		// so that the resulting box plot stays well-formed.
+		return new double[] { Math.min(low, q1), Math.max(high, q3) };
 	}
 
 	/**

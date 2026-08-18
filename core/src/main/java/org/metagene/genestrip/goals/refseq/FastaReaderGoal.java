@@ -63,10 +63,20 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
 
     private final ExecutionContext bundle;
 
+    /**
+     * Queued once per consumer when a pass has read everything it was given, telling each to return;
+     * see {@link #endOfPass(BlockingQueue)}. Recognised by identity, so it carries neither file nor
+     * node.
+     */
+    private static final FileAndNode END_OF_PASS = new FileAndNode(null, null);
+
     // volatile / atomic: written by dump() and the consumer threads, read by the producer's spin loop.
     private volatile boolean dump;
     private final AtomicInteger doneCounter = new AtomicInteger();
     private ProgressBar progressBar;
+    // Decided once, when the goal is created, because it also decides whether the RefSeq download
+    // goal becomes a dependency - and dependencies are fixed at construction time.
+    private final boolean includeRefSeqFna;
 
     /**
      * Creates the reader goal with its category, tax-node, RefSeq-file-download and additional-file
@@ -84,12 +94,40 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
     public FastaReaderGoal(P project, GoalKey key, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
                            ObjectGoal<Set<TaxTree.TaxIdNode>, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
                            ObjectGoal<Map<File, TaxTree.TaxIdNode>, P> additionalGoal, Goal<P>... dependencies) {
-        super(project, key, Goal.append(dependencies, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal));
+        this(project, key, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal,
+                project.booleanConfigValue(GSConfigKey.REF_SEQ_DB), dependencies);
+    }
+
+    /**
+     * Creates the reader goal, stating explicitly whether it reads the RefSeq release.
+     * <p>
+     * A goal that does not read it does not depend on it either: the download goal is then left out
+     * of the dependencies, so that requesting such a goal does not fetch and verify a RefSeq release
+     * whose content it will never look at. Only the goal that computes the lowest common ancestors
+     * passes {@code true} regardless of the configuration - see {@code DBGoal} for why.
+     *
+     * @param project           the project this goal belongs to
+     * @param key               the key identifying this goal
+     * @param bundle            the execution context supplying the worker threads
+     * @param categoriesGoal    the goal supplying the RefSeq categories to read
+     * @param taxNodesGoal      the goal supplying the required taxonomy nodes
+     * @param fnaFilesGoal      the goal supplying the downloaded RefSeq {@code .fna} files
+     * @param additionalGoal    the goal supplying additional FASTA files mapped to their tax node
+     * @param includeRefSeqFna  whether this goal reads the RefSeq release at all
+     * @param dependencies      any further goals this goal depends on
+     */
+    public FastaReaderGoal(P project, GoalKey key, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
+                           ObjectGoal<Set<TaxTree.TaxIdNode>, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+                           ObjectGoal<Map<File, TaxTree.TaxIdNode>, P> additionalGoal, boolean includeRefSeqFna,
+                           Goal<P>... dependencies) {
+        super(project, key, Goal.append(dependencies, categoriesGoal, taxNodesGoal,
+                includeRefSeqFna ? fnaFilesGoal : null, additionalGoal));
         this.categoriesGoal = categoriesGoal;
         this.taxNodesGoal = taxNodesGoal;
         this.fnaFilesGoal = fnaFilesGoal;
         this.additionalGoal = additionalGoal;
         this.bundle = bundle;
+        this.includeRefSeqFna = includeRefSeqFna;
     }
 
     /**
@@ -99,13 +137,28 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
      * @throws IOException if reading a FASTA file fails
      */
     public void readFastas() throws IOException {
+        // Cleared here so that a goal aborted through dump() is not finished for good; a pass that
+        // ends normally leaves it false anyway, because it ends its own consumers instead - see
+        // endOfPass(). It did not always: the flag doubled as the end-of-pass signal, every subclass
+        // set it from its own finally, and nothing put it back, so a goal that had read once queued
+        // everything the next time and read none of it while reporting success.
+        readyForAnotherPass();
         BlockingQueue<FileAndNode> blockingQueue = null;
         AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid = new AbstractRefSeqFastaReader.StringLong2DigitTrie();
-        // Reading order is irrelevant here (so multi-threading is safe), including for minUpdate:
-        // the update only touches k-mers already present in the DB, and each is merged into the
-        // lowest common ancestor of its stored node and the nodes of the regions it occurs in.
-        // That merge is commutative and associative, so the result depends only on the set of
-        // included regions - which is fixed - and not on the order in which the fna files are read.
+        // Reading order does not affect what a k-mer ends up mapped to, whatever `updateScope' is: the
+        // update only touches k-mers already present in the DB, and each is merged into the lowest
+        // common ancestor of its stored node and the nodes of the regions it occurs in. That merge is
+        // commutative and associative, so the outcome depends only on the set of included regions and
+        // not on the order in which the fna files are read.
+        //
+        // Which regions those are is a different matter, and is not order-independent once a per-taxon
+        // limit binds: a region is admitted while its taxon's counters are still below the limit, and
+        // which thread reaches a taxon first decides which of its genomes get in. A database built
+        // with maxGenomesPerTaxid or maxKMersPerTaxid set is therefore not reproducible across runs or
+        // thread counts, and the passes sharing those limits - fillsize, tempindex and filldb - may
+        // pick somewhat different subsets, which is why the size they agree on is an estimate and the
+        // filter built from it is checked against what actually arrived. At the defaults, where
+        // neither limit binds, the set of included regions is fixed and everything here is exact.
         if (bundle.getThreads() > 0) {
             blockingQueue = createBlockingQueue(intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE));
             for (int i = 0; i < bundle.getThreads(); i++) {
@@ -125,11 +178,17 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
                 RefSeqCategory cat = fnaFilesGoal.getCategoryForFile(fnaFile);
                 if (categoriesGoal.get().contains(cat)) {
                     if (blockingQueue == null) {
+                        // Stated rather than left to the reader's initial state: a release file is
+                        // the one case where no node comes with the file, and a pass that tells the
+                        // two apart - see AbstractRefSeqFastaReader#isRefSeqReleaseRegion() - must
+                        // not depend on the release happening to be read before the project's own
+                        // fastas. The queued path below passes the same null through FileAndNode.
+                        fastaReader.ignoreAccessionMap(null);
                         fastaReader.readFasta(fnaFile);
                     } else {
                         try {
                             doneCounter.incrementAndGet();
-                            blockingQueue.put(new DBGoal.FileAndNode(fnaFile, null));
+                            blockingQueue.put(new FileAndNode(fnaFile, null));
                         } catch (InterruptedException e) {
                             throw new RuntimeException(e);
                         }
@@ -145,7 +204,7 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
                     } else {
                         try {
                             doneCounter.incrementAndGet();
-                            blockingQueue.put(new DBGoal.FileAndNode(additionalFasta, additionalMap.get(additionalFasta)));
+                            blockingQueue.put(new FileAndNode(additionalFasta, additionalMap.get(additionalFasta)));
                         } catch (InterruptedException e) {
                             throw new RuntimeException(e);
                         }
@@ -162,9 +221,47 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
                     // Ignore.
                 }
             }
+            endOfPass(blockingQueue);
         }
         bundle.clearThrowableList();
         afterReadFastas(regionsPerTaxid);
+    }
+
+    /**
+     * Ends the consumer threads of a pass that has read everything it was given.
+     * <p>
+     * They do not end on their own: a consumer loops on {@code blockingQueue.take()} and the only
+     * thing that ever released it used to be the flag {@link #dump}, which is meant for aborting.
+     * Leaving a pass unended is not merely untidy - the pool is a fixed one, sized to exactly as many
+     * threads as a pass has consumers, so every finished pass would keep all of them parked and the
+     * next pass would get no thread at all. So each subclass ended the pass itself, by setting the
+     * abort flag from its own {@code finally}, and since nothing put that flag back the goal could
+     * never read a second time. Ending the pass here rather than there is what lets the flag mean
+     * only what its name says.
+     * <p>
+     * One sentinel per consumer, rather than the flag: it is put only after the wait loop above, so
+     * no file is ever left queued behind it, and each consumer takes exactly one and returns. No
+     * interrupt is involved and no window exists in which the flag has to hold a particular value,
+     * which is what a flag shared between two passes could not offer.
+     *
+     * @param blockingQueue the queue the consumers of this pass are waiting on, or {@code null} when
+     *                      the pass read single-threaded and has no consumers
+     */
+    private void endOfPass(BlockingQueue<FileAndNode> blockingQueue) {
+        if (blockingQueue == null || dump) {
+            // An aborted pass has ended its consumers through the flag already.
+            return;
+        }
+        try {
+            for (int i = 0; i < bundle.getThreads(); i++) {
+                blockingQueue.put(END_OF_PASS);
+            }
+        } catch (InterruptedException e) {
+            // The reading is complete and its result is in hand, so this is not a failure of the pass.
+            // Being interrupted here means someone is aborting, and the flag they set ends the
+            // consumers anyway.
+            Thread.currentThread().interrupt();
+        }
     }
 
     /**
@@ -184,8 +281,8 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
      *
      * @return {@code true} if the RefSeq {@code .fna} files should be read
      */
-    protected boolean isIncludeRefSeqFna() {
-        return booleanConfigValue(GSConfigKey.REF_SEQ_DB);
+    protected final boolean isIncludeRefSeqFna() {
+        return includeRefSeqFna;
     }
 
     /**
@@ -234,16 +331,25 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
      * @return the consumer runnable
      */
     protected Runnable createFastaReaderRunnable(int i,
-                                                 BlockingQueue<DBGoal.FileAndNode> blockingQueue,
+                                                 BlockingQueue<FileAndNode> blockingQueue,
                                                  AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
         AbstractRefSeqFastaReader fastaReader = createFastaReader(regionsPerTaxid);
         return new Runnable() {
             @Override
             public void run() {
+                // A pass is ended by interrupting the consumers, and a thread that was not waiting at
+                // that moment carries the interrupt back into the pool with it. Clearing it here keeps
+                // it from striking the next pass, which would take it for a failure of its own.
+                Thread.interrupted();
                 while (!dump) {
                     try {
                         try {
-                            DBGoal.FileAndNode fileAndNode = blockingQueue.take();
+                            FileAndNode fileAndNode = blockingQueue.take();
+                            if (fileAndNode == END_OF_PASS) {
+                                // Returned, not broken out of: the enclosing finally would otherwise
+                                // count down for a file that was never counted up.
+                                return;
+                            }
                             fastaReader.ignoreAccessionMap(fileAndNode.getNode());
                             fastaReader.readFasta(fileAndNode.getFile());
                             if (progressBar != null) {
@@ -274,7 +380,7 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
     protected abstract AbstractRefSeqFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid);
 
     /**
-     * In addition to discarding the result, stops and interrupts the consumer threads.
+     * In addition to discarding the result, aborts a pass that may still be reading.
      */
     public void dump() {
         super.dump();
@@ -282,11 +388,30 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
     }
 
     /**
-     * Signals the consumer threads to stop and interrupts any that are blocked.
+     * Aborts the pass that is reading, if one is: signals its consumer threads to stop and interrupts
+     * any that are blocked.
+     * <p>
+     * For aborting only. A pass that has read everything ends its own consumers - see
+     * {@link #endOfPass(BlockingQueue)} - and calling this at the end of one instead, as every
+     * subclass used to do from its {@code finally}, leaves the flag set behind: nothing clears it on
+     * the way out, so the goal reads nothing at all the next time it is made, and reports success for
+     * it. Note also that {@link ExecutionContext#interruptAll()} interrupts the calling thread along
+     * with the consumers, which a caller that goes on to read again has to survive.
      */
     protected void cleanUpThreads() {
         dump = true;
         bundle.interruptAll();
+    }
+
+    /**
+     * Clears the abort flag so that this goal can read again.
+     * <p>
+     * {@link #readFastas()} calls this itself, at the start of every pass, so that a goal aborted
+     * through {@link #dump()} is not thereby finished for good. Nothing else has to call it: a pass
+     * that ends normally never sets the flag in the first place.
+     */
+    protected void readyForAnotherPass() {
+        dump = false;
     }
 
     /**

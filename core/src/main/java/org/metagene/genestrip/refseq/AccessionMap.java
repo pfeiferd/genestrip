@@ -45,10 +45,10 @@ public interface AccessionMap {
 	 * @param array the byte array containing the accession key.
 	 * @param start the start index of the key (inclusive).
 	 * @param end the end index of the key (exclusive).
-	 * @param completeGenomesOnly if true, only complete-genome, RNA and mRNA accessions are resolved.
+	 * @param assemblyAccessionsOnly if true, only complete-genome, RNA and mRNA accessions are resolved.
 	 * @return the tax id node for the accession key, or null if none.
 	 */
-	public TaxIdNode get(byte[] array, int start, int end, boolean completeGenomesOnly);
+	public TaxIdNode get(byte[] array, int start, int end, boolean assemblyAccessionsOnly);
 	/**
 	 * Prepares the map for lookups; must be called after all {@link #put} calls and before any
 	 * {@link #get}.

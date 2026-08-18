@@ -28,6 +28,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+
+import org.metagene.genestrip.APITest;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
@@ -71,6 +73,33 @@ public class DBGoalTest {
 
 	protected static File getBaseDir() {
 		return new File(getTargetDir(), "data");
+	}
+
+	/**
+	 * Returns the base directory that holds the given sample project.
+	 * <p>
+	 * Most of these tests bring their project along as test resources and copy it into the build
+	 * output, which is what {@link #getBaseDir()} points at. Others use a project that ships with the
+	 * release instead, and that one lives beside the sources rather than in the build output. Looking
+	 * for the project rather than assuming a location lets both run, and in particular lets the
+	 * latter run without {@code project.build.directory} being set - which it is under Maven and is
+	 * not when the tests are started directly.
+	 *
+	 * @param projectName the name of the project to locate
+	 * @return the base directory holding it, or the build output if it is nowhere to be found
+	 */
+	protected static File getBaseDirFor(String projectName) {
+		File fromTarget = getBaseDir();
+		if (new File(fromTarget, "projects/" + projectName).isDirectory()) {
+			return fromTarget;
+		}
+		File fromRelease = APITest.getBaseDir();
+		if (new File(fromRelease, "projects/" + projectName).isDirectory()) {
+			return fromRelease;
+		}
+		// Neither has it: hand back the usual one, so that the failure names the place the project was
+		// expected in rather than some fallback the reader has never heard of.
+		return fromTarget;
 	}
 
 	protected static File getTargetDir() {

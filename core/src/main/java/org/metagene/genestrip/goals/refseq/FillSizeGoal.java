@@ -26,10 +26,13 @@ package org.metagene.genestrip.goals.refseq;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import net.agkn.hll.HLL;
 
 import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
@@ -38,6 +41,7 @@ import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
+import org.metagene.genestrip.util.MurmurHash3DropIn;
 import org.metagene.genestrip.refseq.AbstractStoreFastaReader;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
@@ -50,7 +54,73 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
  *
  * @param <P> the project type
  */
-public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<Long, P> {
+public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<FillSizeGoal.KMerCounts, P> {
+	/**
+	 * How many k-mers a fill would see, counted both ways: once as they come, duplicates and all, and
+	 * once as distinct values.
+	 * <p>
+	 * The two differ by a lot - a k-mer shared by many genomes of the same species is counted once
+	 * for every one of them in the first number and once altogether in the second - and which of them
+	 * is wanted depends on the question. Sizing a structure that stores every k-mer separately calls
+	 * for the first; sizing one that deduplicates, such as the temporary Bloom filter, calls for the
+	 * second, and using the first there merely wastes memory.
+	 */
+	public static class KMerCounts implements Serializable {
+		private static final long serialVersionUID = 1L;
+
+		private final long withDuplicates;
+		private final long distinct;
+
+		/**
+		 * Creates the pair of counts.
+		 *
+		 * @param withDuplicates the number of k-mers counted as they come, duplicates included
+		 * @param distinct the estimated number of distinct k-mers among them
+		 */
+		public KMerCounts(long withDuplicates, long distinct) {
+			this.withDuplicates = withDuplicates;
+			this.distinct = distinct;
+		}
+
+		/**
+		 * Returns the number of k-mers a fill would see, duplicates included. This one is exact.
+		 *
+		 * @return the number of k-mers including duplicates
+		 */
+		public long getWithDuplicates() {
+			return withDuplicates;
+		}
+
+		/**
+		 * Returns the estimated number of distinct k-mers among them.
+		 * <p>
+		 * Estimated, not counted: holding every k-mer seen would need the very memory this figure is
+		 * meant to size. It comes from a HyperLogLog sketch of some 24 KB per reader thread, whose
+		 * relative error is around half a percent and which may fall on either side of the truth.
+		 *
+		 * @return the estimated number of distinct k-mers
+		 */
+		public long getDistinct() {
+			return distinct;
+		}
+
+		@Override
+		public String toString() {
+			return withDuplicates + " k-mers with duplicates, " + distinct + " distinct (estimated)";
+		}
+	}
+
+	// The sketches of the reader threads are merged at the end, so every reader needs to hash a k-mer
+	// to the same value: one base for all of them, fixed rather than random so that two runs over the
+	// same data give the same size.
+	private static final long HASH_BASE = 0x2545F4914F6CDD1DL;
+	// Sizing of the HyperLogLog sketch: 2^15 registers of 6 bits, i.e. some 24 KB once it is fully
+	// materialised, for a relative error of about half a percent. Six bits rather than the customary
+	// five because a register has to count the leading zeroes of the largest run seen, and these
+	// sketches take billions of k-mers.
+	private static final int HLL_LOG2M = 15;
+	private static final int HLL_REGISTER_WIDTH = 6;
+
 	private final ObjectGoal<AccessionMap, P> accessionMapGoal;
 	private final List<MyFastaReader> readers;
 
@@ -84,15 +154,27 @@ public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<Long, P> 
 			long dustSum = 0;
 			long totalKmerSum = 0;
 
+			// Each reader sketched its own k-mers without any locking; merging the sketches afterwards
+			// yields the same estimate as one sketch fed by all of them would have, because they hash
+			// a k-mer alike and a register keeps a maximum, which does not care in what order or by
+			// whom it was raised.
+			HLL distinctSketch = newSketch();
 			for (MyFastaReader reader : readers) {
 				counter += reader.getIncludedKmers();
 				dustSum += reader.getDustCounter();
 				totalKmerSum += reader.getTotalKmers();
+				distinctSketch.union(reader.getDistinctSketch());
 			}
-			set(counter);
+			long distinct = distinctSketch.cardinality();
+			set(new KMerCounts(counter, distinct));
 			if (getLogger().isInfoEnabled()) {
 				getLogger().info("All included kmers with duplicates: " + counter);
+				getLogger().info("Estimated distinct kmers: " + distinct);
+				if (counter > 0) {
+					getLogger().info("Duplication factor: " + ((double) counter) / distinct);
+				}
 				getLogger().info("Estimated DB size in MB (without Bloom filter, with duplicates): " + (counter * 10) / (1024 * 1024) );
+				getLogger().info("Estimated DB size in MB (without Bloom filter, distinct only): " + (distinct * 10) / (1024 * 1024) );
 				if (intConfigValue(GSConfigKey.MAX_DUST) >= 0) {
 					getLogger().info("Dust ratio: " + ((double) dustSum) / totalKmerSum);
 				}
@@ -101,8 +183,23 @@ public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<Long, P> 
 			throw new RuntimeException(e);
 		} finally {
 			readers.clear();
-			cleanUpThreads();
 		}
+	}
+
+	/**
+	 * Creates a HyperLogLog sketch of the sizing all readers share, so that theirs can be merged.
+	 * <p>
+	 * The sketch is left to promote itself through the library's representations - an exact list of
+	 * values while there are few, a sparse map of registers next, the fully materialised registers in
+	 * the end - rather than being forced to the last of them. That costs nothing here, since a sketch
+	 * fed a database's worth of k-mers arrives at the full representation within its first moments,
+	 * and it buys an <em>exact</em> count for a project small enough never to get there, where the
+	 * full representation would have answered 101 to a hundred distinct k-mers.
+	 *
+	 * @return a new, empty sketch
+	 */
+	protected static HLL newSketch() {
+		return new HLL(HLL_LOG2M, HLL_REGISTER_WIDTH);
 	}
 
 	@Override
@@ -113,8 +210,8 @@ public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<Long, P> 
 				(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
 				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
 				intConfigValue(GSConfigKey.MAX_DUST),
-				intConfigValue(GSConfigKey.STEP_SIZE),
-				booleanConfigValue(GSConfigKey.COMPLETE_GENOMES_ONLY),
+				intConfigValue(GSConfigKey.KMER_SAMPLING),
+				booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY),
 				regionsPerTaxid,
 				booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES));
 		readers.add(fastaReader);
@@ -125,6 +222,10 @@ public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<Long, P> 
 	 * FASTA reader that only counts k-mers (included, total and dust) without storing them.
 	 */
 	protected static class MyFastaReader extends AbstractStoreFastaReader {
+		// One sketch per reader, merged by the goal once the readers are done. A single shared sketch
+		// would have to be locked for every k-mer, which is the hottest path there is here.
+		private final HLL distinctSketch = newSketch();
+
 		/**
 		 * Creates a counting FASTA reader.
 		 *
@@ -136,15 +237,15 @@ public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<Long, P> 
 		 * @param maxGenomesPerTaxIdRank the rank at which the genome limit applies
 		 * @param maxKmersPerTaxId the maximum number of k-mers per tax id
 		 * @param maxDust the maximum dust value, or a negative value to disable dust filtering
-		 * @param stepSize the k-mer step size
-		 * @param completeGenomesOnly whether only complete-genome accessions are considered
+		 * @param kMerSampling the k-mer step size
+		 * @param assemblyAccessionsOnly whether only complete-genome accessions are considered
 		 * @param regionsPerTaxid the per-tax-id genome region trie
 		 * @param enableLowerCaseBases whether lowercase bases are accepted
 		 */
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-				int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int stepSize, boolean completeGenomesOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
+				int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
 			super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId,
-					maxDust, stepSize, completeGenomesOnly, regionsPerTaxid, enableLowerCaseBases);
+					maxDust, kMerSampling, assemblyAccessionsOnly, regionsPerTaxid, enableLowerCaseBases);
 		}
 
 		/**
@@ -174,8 +275,21 @@ public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<Long, P> 
 			return dustCounter;
 		}
 
+		/**
+		 * Returns this reader's sketch of the distinct k-mers it saw, to be merged with the others.
+		 *
+		 * @return the sketch of this reader's k-mers
+		 */
+		public HLL getDistinctSketch() {
+			return distinctSketch;
+		}
+
 		@Override
-		protected boolean handleStore() {
+		protected boolean handleStore(long kmer) {
+			// Hashing first matters: HyperLogLog reads its register index and its leading zeroes out of
+			// the bits it is given, and a k-mer encodes two bits per base, so neighbouring k-mers would
+			// otherwise land in neighbouring registers and the estimate would come out badly.
+			distinctSketch.addRaw(MurmurHash3DropIn.hash64(kmer, HASH_BASE));
 			return true;
 		}
 	}

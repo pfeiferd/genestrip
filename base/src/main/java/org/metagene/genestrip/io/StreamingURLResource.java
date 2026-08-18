@@ -71,7 +71,7 @@ public class StreamingURLResource implements StreamingResource {
 		return noGZ;
 	}
 
-	public StreamingResource.StreamAccess openStream() throws IOException {
+	public StreamAccess openStream() throws IOException {
 		URLConnection connection = url.openConnection();
 		connection.connect();
 		ByteCountingInputStream is = createByteCountingInputStream(connection.getInputStream());

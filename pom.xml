@@ -30,7 +30,7 @@
 
     <properties>
         <revision>3.0</revision>
-        <java.version>11</java.version>
+        <java.version>9</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <javapackager.jdkPath>C:/java/jdk-25</javapackager.jdkPath>
         <main.class>org.metagene.genestrip.Main</main.class>
@@ -76,11 +76,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-exec</artifactId>
-                <version>1.3</version>
-            </dependency>
             <dependency>
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
