@@ -254,6 +254,19 @@ public class Database implements Serializable {
     }
 
     /**
+     * Turns a {@link ClassNotFoundException} raised while deserializing into an
+     * {@link InvalidClassException}, so that a database written by a library version which still had that
+     * class is reported as the version mismatch it is, rather than as a bare missing-class error.
+     *
+     * @param e the exception raised while deserializing
+     * @return the equivalent invalid-class exception
+     */
+    private static InvalidClassException toInvalidClassException(ClassNotFoundException e) {
+        return new InvalidClassException(e.getMessage(),
+                "class does not exist in the runtime library (anymore) - the database must be regenerated");
+    }
+
+    /**
      * Loads a database from the given ZIP stream, restoring its store value indices. When
      * {@code withFilter} is set and the store is tunable, its probabilistic pre-filter is loaded too.
      *
@@ -262,7 +275,9 @@ public class Database implements Serializable {
      * @return the loaded database
      * @throws ClassNotFoundException if a serialized class cannot be resolved
      * @throws InvalidDatabaseClassException    if the serialized classes are incompatible with the current
-     *                                          runtime (carrying the loaded config info for diagnostics).
+     *                                          runtime - either because they changed incompatibly or because
+     *                                          one of them no longer exists at all (carrying the loaded config
+     *                                          info for diagnostics).
      */
     public static Database load(InputStream is, boolean withFilter) throws IOException, ClassNotFoundException {
         Properties configInfo = new Properties();
@@ -286,6 +301,8 @@ public class Database implements Serializable {
                             database = (Database) oOut.readObject();
                         } catch (InvalidClassException e) {
                             deferred = e;
+                        } catch (ClassNotFoundException e) {
+                            deferred = toInvalidClassException(e);
                         }
                         zis.closeEntry();
                     } else if (entryName.equals(INDEX_FILE) && withFilter && filter == null && deferred == null) {
@@ -294,6 +311,8 @@ public class Database implements Serializable {
                             filter = (ProbFilter) oOut.readObject();
                         } catch (InvalidClassException e) {
                             deferred = e;
+                        } catch (ClassNotFoundException e) {
+                            deferred = toInvalidClassException(e);
                         }
                         zis.closeEntry();
                     }

@@ -44,13 +44,16 @@ import org.metagene.genestrip.make.Goal;
  * </ul>
  * In both cases, making a {@code match} or {@code filter} goal automatically pulls in whatever
  * upstream goals are still missing - e.g. the {@code db} goal that builds the database - so the
- * examples run end to end even on a fresh checkout.
+ * examples run end to end even on a fresh checkout - and the databases are deleted before the tests
+ * run, so they are always rebuilt by the code under test.
  */
 public class APITest {
-	// Runs once before all tests in this class: run the 'clear' goal, which empties the project's
-	// generated-output folders (csv, log and krakenout) so each test starts from a clean slate.
-	// Note: 'clear' does not delete the database itself; the match/filter goals below rebuild their
-	// own results and (re)create the database only if it is missing.
+	// Runs once before all tests in this class, so that each test starts from a clean slate:
+	// - the 'clear' goal empties the project's generated-output folders (csv, log and krakenout),
+	// - the 'clean' target on the 'db' and 'index' goals deletes the two databases themselves.
+	// The latter matters because 'clear' leaves the databases alone: one written by an earlier version
+	// of Genestrip cannot be loaded by this build - its serialized classes may not even exist here any
+	// more - and the match/filter goals below would then fail on it instead of rebuilding it.
 	@BeforeClass
 	public static void clearDB() throws IOException {
 		File baseDir = getBaseDir();
@@ -63,6 +66,12 @@ public class APITest {
 		GSProject project = new GSProject(config, "human_virus");
 		GSMaker<GSProject> maker = new GSMaker<>(project);
 		maker.getGoal(GSGoalKey.CLEAR).make();
+
+		// Apply the 'clean' target to the matching database and to the filtering database. cleanThis()
+		// removes just those goals' own files - as opposed to clean(), which would also take the
+		// downloaded RefSeq and taxonomy files with it and turn every run into a full download.
+		maker.getGoal(GSGoalKey.DB).cleanThis();
+		maker.getGoal(GSGoalKey.INDEX).cleanThis();
 
 		// Release the resources held by the maker (data cached in memory and its worker threads).
 		maker.dumpAll();

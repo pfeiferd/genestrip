@@ -179,22 +179,25 @@
   "bundles": [],
   "serialization": [
     {
+      "type": "int[]"
+    },
+    {
+      "type": "it.unimi.dsi.fastutil.objects.AbstractObject2IntFunction"
+    },
+    {
+      "type": "it.unimi.dsi.fastutil.objects.AbstractObject2IntMap"
+    },
+    {
       "type": "it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction"
     },
     {
       "type": "it.unimi.dsi.fastutil.objects.AbstractObject2LongMap"
     },
     {
-      "type": "it.unimi.dsi.fastutil.objects.AbstractObject2ShortFunction"
-    },
-    {
-      "type": "it.unimi.dsi.fastutil.objects.AbstractObject2ShortMap"
+      "type": "it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap"
     },
     {
       "type": "it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap"
-    },
-    {
-      "type": "it.unimi.dsi.fastutil.objects.Object2ShortOpenHashMap"
     },
     {
       "type": "java.io.Serializable[]"
@@ -212,6 +215,12 @@
       "type": "java.lang.String"
     },
     {
+      "type": "java.util.Hashtable"
+    },
+    {
+      "type": "java.util.Properties"
+    },
+    {
       "type": "java.util.Random"
     },
     {
@@ -224,19 +233,34 @@
       "type": "org.junit.runner.Result$SerializedForm"
     },
     {
-      "type": "org.metagene.genestrip.bloom.MurmurCGATBloomFilter"
+      "type": "org.metagene.genestrip.probfilter.BlockedBloomFilter"
+    },
+    {
+      "type": "org.metagene.genestrip.probfilter.BloomFilter"
+    },
+    {
+      "type": "org.metagene.genestrip.probfilter.MurmurBloomFilter"
+    },
+    {
+      "type": "org.metagene.genestrip.probfilter.SingleWordBloomFilter"
+    },
+    {
+      "type": "org.metagene.genestrip.probfilter.XORBlockedBloomFilter"
+    },
+    {
+      "type": "org.metagene.genestrip.probfilter.XORBloomFilter"
+    },
+    {
+      "type": "org.metagene.genestrip.probfilter.XORSingleWordBloomFilter"
+    },
+    {
+      "type": "org.metagene.genestrip.store.AbstractKMerStore"
     },
     {
       "type": "org.metagene.genestrip.store.Database"
     },
     {
-      "type": "org.metagene.genestrip.store.KMerSortedArray"
-    },
-    {
-      "type": "org.metagene.genestrip.store.KMerTrie"
-    },
-    {
-      "type": "org.metagene.genestrip.store.KMerTrie$SmallNode"
+      "type": "org.metagene.genestrip.store.RadixKMerStore"
     },
     {
       "type": "org.metagene.genestrip.tax.SmallTaxTree"
