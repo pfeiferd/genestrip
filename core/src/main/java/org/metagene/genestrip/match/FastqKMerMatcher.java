@@ -251,6 +251,17 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
      * @param consumer the consumer whose private buffers and prefetch arrays are used
      */
     private void prefetchKMers(final MatcherReadEntry entry, final int max, final MatcherConsumer consumer) {
+        if (max <= 0) {
+            // A read shorter than k has no k-mer start position at all: max = readSize - k + 1 is
+            // zero or negative. The walk below would do nothing either way, but Arrays.fill rejects
+            // a negative toIndex outright --
+            //   IllegalArgumentException: fromIndex(0) > toIndex(-2)
+            // -- so this has to return before it. The matching loop in matchRead handles such a read
+            // by simply not running, and this mirrors that: no k-mer, no match, no error. Only the
+            // batched path comes through here, so the store without batched lookups was never
+            // affected; Nanopore data routinely holds reads of a few dozen bases and hits it.
+            return;
+        }
         if (consumer.prefetchedNodes.length < max) {
             // Reads may grow beyond the initial buffer size; grow with them and keep the arrays.
             consumer.prefetchedNodes = new SmallTaxIdNode[max];
