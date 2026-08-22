@@ -37,9 +37,8 @@ import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.util.KMerSampling;
-import org.metagene.genestrip.util.MurmurHash3DropIn;
+import org.metagene.genestrip.finertree.probfilter.DistinctPairSketch;
 
-import net.agkn.hll.HLL;
 
 import java.io.File;
 import java.io.IOException;
@@ -70,26 +69,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * @param <P> the concrete {@link FTProject} type this goal operates on
  */
 public class KMerIndexSizeGoal<P extends FTProject> extends AbstractKMerIndexGoal<Long, P> {
-    // Sizing of the sketches: 2^15 registers of 6 bits for a relative error of about half a percent,
-    // and one hash base for all readers, since sketches can only be merged when they hashed alike.
-    private static final int HLL_LOG2M = 15;
-    private static final int HLL_REGISTER_WIDTH = 6;
-
-    // The seed all sketches hash with. Merging two sketches is only meaningful when they hashed
-    // their input alike, so this is a constant and not drawn per reader.
-    private static final long HASH_BASE = 0x2545F4914F6CDD1DL;
-
-    // Below this many pairs in the sample, scaling it up says more about the sample than about the
-    // index, and the run says so rather than reporting a number that looks as precise as any other.
-    private static final long THIN_SAMPLE = 100_000;
-
-    // One sketch per reader thread, so that nothing is locked on the reading path, held in a thread
-    // local rather than looked up per pair: the pairs are counted in the billions, and a map keyed
-    // by the thread id would cost a lookup and - the key being a boxed long - an allocation on every
-    // single one of them. The sketches are collected as they are created so that they can be merged
-    // afterwards, whichever threads happen to have run.
-    private final Collection<HLL> sketches = new ConcurrentLinkedQueue<>();
-
     // The bound the sampling decision compares against, derived from the configured rate so that no
     // division has to happen per k-mer. Final: the question is put for every k-mer of every reference
     // sequence, from every reader thread.
@@ -108,11 +87,10 @@ public class KMerIndexSizeGoal<P extends FTProject> extends AbstractKMerIndexGoa
     // population.
     private final double sampleScale;
 
-    private final ThreadLocal<HLL> sketch = ThreadLocal.withInitial(() -> {
-        HLL created = newSketch();
-        sketches.add(created);
-        return created;
-    });
+    // The counting itself lives in DistinctPairSketch, which dbqualcounts uses for the same
+    // purpose through a different reader hierarchy. What stays here is which pairs this goal
+    // forms and how much of the population it looks at.
+    private DistinctPairSketch sketch;
 
     /**
      * Creates the goal.
@@ -143,17 +121,6 @@ public class KMerIndexSizeGoal<P extends FTProject> extends AbstractKMerIndexGoa
         sampleScale = ((double) Math.max(kMerSampling, sampling)) / kMerSampling;
     }
 
-    /**
-     * Creates a sketch of the sizing all readers share, so that theirs can be merged.
-     *
-     * @return a new, empty sketch
-     */
-    protected static HLL newSketch() {
-        // Left to promote itself through the library's representations rather than forced to the fully
-        // materialised one: an index of few pairs is then counted exactly.
-        return new HLL(HLL_LOG2M, HLL_REGISTER_WIDTH);
-    }
-
     @Override
     protected boolean considerKMer(long kmer) {
         return KMerSampling.isSampled(kmer, samplingThreshold);
@@ -167,7 +134,7 @@ public class KMerIndexSizeGoal<P extends FTProject> extends AbstractKMerIndexGoa
         // k-mer is two bits per base and leaves the top of the word untouched for every k below 32 -
         // registers would go unused and the count would come out wrong. The finalizer costs a few
         // multiplications against a pass over every reference sequence.
-        sketch.get().addRaw(MurmurHash3DropIn.hash64(hash, HASH_BASE));
+        sketch.record(hash);
         // The sketch cannot say whether this pair was new, and nothing here needs to know: the count
         // that matters is the one it gives at the end.
         return true;
@@ -176,6 +143,7 @@ public class KMerIndexSizeGoal<P extends FTProject> extends AbstractKMerIndexGoa
     @Override
     protected void doMakeThis() {
         try {
+            sketch = new DistinctPairSketch(sampleScale);
             prepare();
             readFastas();
             for (MyFastaReader reader : readers) {
@@ -183,12 +151,8 @@ public class KMerIndexSizeGoal<P extends FTProject> extends AbstractKMerIndexGoa
                 // recorded here, single-threaded, before the sketches are merged.
                 reader.flushBatch();
             }
-            HLL merged = newSketch();
-            for (HLL each : sketches) {
-                merged.union(each);
-            }
-            long inSample = merged.cardinality();
-            long estimated = Math.round(inSample * sampleScale);
+            long estimated = sketch.estimate();
+            long inSample = sketch.getSampledCount();
             set(estimated);
             if (getLogger().isInfoEnabled()) {
                 // How this compares to the conservative bound is logged by the goal that uses both,
@@ -197,7 +161,7 @@ public class KMerIndexSizeGoal<P extends FTProject> extends AbstractKMerIndexGoa
                         + (sampleScale == 1 ? "" : " (from " + inSample + " counted in a sample of one k-mer in "
                         + String.format("%.0f", sampleScale) + " of those the database keeps)"));
             }
-            if (sampleScale > 1 && inSample < THIN_SAMPLE && getLogger().isWarnEnabled()) {
+            if (sketch.isThin() && getLogger().isWarnEnabled()) {
                 getLogger().warn("Only " + inSample + " pair(s) were sampled, so this estimate is a coarse one."
                         + " Set " + FTConfigKey.FT_KMER_INDEX_SIZE_SAMPLING.getName() + " to 1 to count them all;"
                         + " for an index this small, reading everything costs little.");
@@ -205,7 +169,7 @@ public class KMerIndexSizeGoal<P extends FTProject> extends AbstractKMerIndexGoa
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
-            sketches.clear();
+            sketch.clear();
             releaseAfterPass();
         }
     }

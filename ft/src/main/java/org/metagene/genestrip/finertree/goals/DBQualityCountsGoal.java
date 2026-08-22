@@ -32,6 +32,8 @@ import org.metagene.genestrip.probfilter.BlockedBloomFilter;
 import org.metagene.genestrip.probfilter.ProbFilter;
 import org.metagene.genestrip.finertree.FTGoalKey;
 import org.metagene.genestrip.finertree.FTProject;
+import org.metagene.genestrip.finertree.FTConfigKey;
+import org.metagene.genestrip.finertree.probfilter.DistinctPairSketch;
 import org.metagene.genestrip.finertree.probfilter.KMerIndexFilterHelper;
 import org.metagene.genestrip.finertree.refseq.AbstractUpdateFastaReader;
 import org.metagene.genestrip.genbank.AssemblySummaryReader;
@@ -78,6 +80,11 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
     private SmallTaxTree tree;
     private KMerStore<SmallTaxTree.SmallTaxIdNode> kMerSortedArray;
     private ProbFilter filter;
+    /**
+     * Non-null only during the sizing pass, when the readers sketch their (k-mer, leaf) pairs instead
+     * of counting them. See the sizing block of {@link #doMakeThis()}.
+     */
+    private DistinctPairSketch sketch;
     private Map<String, Counts> map;
     private List<MyFastaReader> readersList;
     // The reading path addresses a node by its dense position and never by its tax id: the map above
@@ -169,6 +176,40 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
                 countsByPos[pos] = counts;
                 leafByPos[pos] = dataNode;
             }
+            // How large the filter has to be. `size' above is the conservative bound: for every leaf it
+            // sums the k-mers stored along its path to the root, i.e. it assumes each of them to occur
+            // in every leaf below its node. That holds for a database whose k-mers sit close to the
+            // leaves and fails badly for one whose weight is at a single high node -- `strepto' keeps
+            // 222 million k-mers at the genus, on the path of every one of its several hundred leaves,
+            // and the bound comes to some 10^11 entries. At ten bits each the filter alone would want
+            // tens of gigabytes, and the run dies in newLargeGrid() before it reads a single base.
+            //
+            // The truth is roughly three times the stored k-mers, since a k-mer above the species is
+            // hardly ever carried by more than three leaves. Rather than assume that factor, the pass
+            // below sketches the pairs with HyperLogLog and counts them, exactly as `kmerindexsize'
+            // does for the index filter -- same sketch class, same trade of one extra read for a
+            // filter of the right size.
+            GSConfigKey.BloomFilterSizing sizing =
+                    (GSConfigKey.BloomFilterSizing) configValue(FTConfigKey.DB_QUALITY_FILTER_SIZING);
+            long bound = size;
+            if (sizing != GSConfigKey.BloomFilterSizing.UPPER_BOUND) {
+                sketch = new DistinctPairSketch(1);
+                readersList = new ArrayList<>();
+                try {
+                    readFastas();
+                    for (MyFastaReader reader : readersList) {
+                        reader.flushBatch();
+                    }
+                    size = sketch.estimate();
+                } finally {
+                    sketch = null;
+                    readersList = null;
+                }
+                if (getLogger().isInfoEnabled()) {
+                    getLogger().info("Estimated distinct filter entries: " + size
+                            + ", against a bound of " + bound);
+                }
+            }
             // Using a blocked bloom filter here for more speed (identified the old Bloom filter as a bottleneck).
             filter = new BlockedBloomFilter(size);
             long bitSize = filter.getBitSize();
@@ -191,9 +232,20 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
             if (getLogger().isInfoEnabled()) {
                 getLogger().info("Filter entries: " + entries);
             }
-            if (getLogger().isErrorEnabled()) {
-                if (entries > 2 * size) {
-                    getLogger().error("Entries exceed filter size by over factor 2. Something went wrong!");
+            if (entries > 2 * size) {
+                // Under the bound this means something went wrong. Under an estimate it may simply mean
+                // the estimate fell short, and `auto' then says so with the remedy rather than leaving a
+                // filter that was too small to have deduplicated reliably.
+                if (sizing == GSConfigKey.BloomFilterSizing.UPPER_BOUND) {
+                    if (getLogger().isErrorEnabled()) {
+                        getLogger().error("Entries exceed filter size by over factor 2. Something went wrong!");
+                    }
+                } else {
+                    throw new IllegalStateException("The sketched estimate of " + size + " distinct pairs fell short:"
+                            + " " + entries + " were counted, over twice as many, so the filter was too small to"
+                            + " deduplicate reliably. Set " + FTConfigKey.DB_QUALITY_FILTER_SIZING.getName() + "="
+                            + GSConfigKey.BloomFilterSizing.UPPER_BOUND.getName() + " to use the conservative bound of "
+                            + bound + " instead, if it can be allocated.");
                 }
             }
 
@@ -206,6 +258,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
             tree = null;
             kMerSortedArray = null;
             filter = null;
+            sketch = null;
             readersList = null;
             nodeByPos = null;
             countsByPos = null;
@@ -408,6 +461,13 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
          * @return whether the pair was new, i.e. whether it was counted
          */
         private boolean count(long kmer, int leafPos, SmallTaxTree.SmallTaxIdNode storedNode) {
+            if (sketch != null) {
+                // The sizing pass: how many distinct pairs there are is the whole question, so the pair
+                // is sketched and nothing is counted. The filter does not exist yet -- its size is what
+                // this pass is for.
+                sketch.record(KMerIndexFilterHelper.combine(kmer, leafPos));
+                return true;
+            }
             // Checks whether it's a duplicate under that leaf.
             if (!filter.putLong(KMerIndexFilterHelper.combine(kmer, leafPos))) {
                 return false;

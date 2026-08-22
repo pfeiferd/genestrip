@@ -79,6 +79,17 @@ public enum FTConfigKey implements ConfigKey {
             + "reads the sequences once more to sketch the pairs. `auto` uses that estimate and falls back to the "
             + "bound, reading a second time, should the estimate turn out to have fallen short.")
     FT_BLOOM_FILTER_SIZING("ftBloomFilterSizing", new GSConfigKey.BloomFilterSizingConfigParamInfo(GSConfigKey.BloomFilterSizing.AUTO), FTGoalKey.KMER_INDEX_BLOOM),
+    /** How the deduplication filter of {@code dbqualcounts} is sized. */
+    @MDDescription("How the filter is sized through which `dbqualcounts` deduplicates its (*k*-mer, leaf) pairs. "
+            + "The values mean what they mean for `ftBloomFilterSizing`, and for the same reason: `upperBound` sums, "
+            + "for every leaf, the *k*-mers stored along its path to the root, which assumes every one of them to occur "
+            + "in every leaf below its node. Where a genus holds hundreds of millions of *k*-mers over hundreds of "
+            + "leaves that bound exceeds the truth by orders of magnitude, and the filter is then too large to allocate "
+            + "at all -- the database `strepto` of the paper reaches some 10^11 estimated entries against a truth of "
+            + "roughly three times its stored *k*-mers. `distinct` reads the sequences once more and sketches the pairs "
+            + "with HyperLogLog instead, as `kmerindexsize` does for the index. `auto` uses that estimate and falls "
+            + "back to the bound should it turn out to have fallen short.")
+    DB_QUALITY_FILTER_SIZING("dbQualityFilterSizing", new GSConfigKey.BloomFilterSizingConfigParamInfo(GSConfigKey.BloomFilterSizing.AUTO), FTGoalKey.DB_QUALITY_COUNTS),
     /** False positive probability of the {@code kmerindexbloom} filter. */
     @MDDescription("False positive probability (FPP) of the *k*-mer index filter built by `kmerindexbloom`. "
             + "At the default and above, the filter is a `BlockedBloomFilter`, which reaches about 1.3 per cent "
