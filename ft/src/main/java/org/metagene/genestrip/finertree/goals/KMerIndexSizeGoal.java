@@ -43,8 +43,6 @@ import org.metagene.genestrip.finertree.probfilter.DistinctPairSketch;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.Collection;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Estimates how many (k-mer, leaf index) pairs the k-mer index filter will have to hold, by reading
@@ -128,12 +126,8 @@ public class KMerIndexSizeGoal<P extends FTProject> extends AbstractKMerIndexGoa
 
     @Override
     protected boolean record(long hash) {
-        // Hashed here rather than taken as it comes: HyperLogLog reads the register index off the low
-        // bits of its input and the leading zeros off the rest, so it needs input that is spread over
-        // the whole word. KMerIndexFilterHelper.combine() folds the leaf index into the k-mer, but a
-        // k-mer is two bits per base and leaves the top of the word untouched for every k below 32 -
-        // registers would go unused and the count would come out wrong. The finalizer costs a few
-        // multiplications against a pass over every reference sequence.
+        // The pair goes in as it comes; DistinctPairSketch.record() hashes it, and says there why it
+        // has to.
         sketch.record(hash);
         // The sketch cannot say whether this pair was new, and nothing here needs to know: the count
         // that matters is the one it gives at the end.
@@ -143,6 +137,8 @@ public class KMerIndexSizeGoal<P extends FTProject> extends AbstractKMerIndexGoa
     @Override
     protected void doMakeThis() {
         try {
+            // Created before anything that can fail, so that the finally block below always has a
+            // sketch to clear.
             sketch = new DistinctPairSketch(sampleScale);
             prepare();
             readFastas();

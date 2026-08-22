@@ -104,6 +104,12 @@ public enum FTGoalKey implements GoalKey {
     /** Behaves like Genestrip's {@code svgtaxtree} goal but for an FT database. */
     @MDDescription("Same as `svgtaxtree` but for an FT database.")
     FT_SVG_TAX_TREE("ftsvgtaxtree", true),
+    /** Estimates how many distinct (k-mer, leaf) pairs {@link #DB_QUALITY_COUNTS} will have to hold. */
+    @MDDescription("Estimate how many distinct (*k*-mer, leaf) pairs `dbqualcounts` will produce, by reading the sequences once and sketching them with HyperLogLog. Only made when `dbQualityFilterSizing` asks for that estimate; it sizes the filter `dbqualcounts` deduplicates through, which the conservative bound cannot do for a database whose *k*-mers sit at one high node.")
+    DB_QUALITY_SIZE("dbqualsize", false),
+    /** Same as {@link #DB_QUALITY_SIZE} but for an FT database. */
+    @MDDescription("Same as `dbqualsize` but for an FT database.")
+    FT_QUALITY_SIZE("ftqualsize", false),
     /** Counts, per tax id, the genomic k-mers that are also in the ordinary database. */
     @MDDescription("Counts the *k*-mers per taxid directly from the underlying genomic files given a corresponding *k*-mer is in the database at all.")
     DB_QUALITY_COUNTS("dbqualcounts", false),

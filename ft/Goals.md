@@ -23,6 +23,8 @@
 |`ftdb2fastq`|X|Generate fastq files according to Genestrip's `db2fastq` but from a Genestrip-FT database instead.|
 |`ftclear`|X|Same as goal `clear`, but also clears `tex` the folder.|
 |`ftsvgtaxtree`|X|Same as `svgtaxtree` but for an FT database.|
+|`dbqualsize`||Estimate how many distinct (*k*-mer, leaf) pairs `dbqualcounts` will produce, by reading the sequences once and sketching them with HyperLogLog. Only made when `dbQualityFilterSizing` asks for that estimate; it sizes the filter `dbqualcounts` deduplicates through, which the conservative bound cannot do for a database whose *k*-mers sit at one high node.|
+|`ftqualsize`||Same as `dbqualsize` but for an FT database.|
 |`dbqualcounts`||Counts the *k*-mers per taxid directly from the underlying genomic files given a corresponding *k*-mer is in the database at all.|
 |`ftqualcounts`||Same as `dbqualcounts` but for an FT database.|
 |`dbquality`||Write the per-taxid quality metrics (tp, tp+fp, tp+fn, precision and recall) derived from `dbqualcounts` to a CSV file.|

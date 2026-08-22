@@ -27,28 +27,19 @@ package org.metagene.genestrip.finertree.goals;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import org.metagene.genestrip.ExecutionContext;
 import org.metagene.genestrip.GSConfigKey;
-import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.probfilter.BlockedBloomFilter;
-import org.metagene.genestrip.probfilter.ProbFilter;
+import org.metagene.genestrip.finertree.FTConfigKey;
 import org.metagene.genestrip.finertree.FTGoalKey;
 import org.metagene.genestrip.finertree.FTProject;
-import org.metagene.genestrip.finertree.FTConfigKey;
-import org.metagene.genestrip.finertree.probfilter.DistinctPairSketch;
 import org.metagene.genestrip.finertree.probfilter.KMerIndexFilterHelper;
-import org.metagene.genestrip.finertree.refseq.AbstractUpdateFastaReader;
-import org.metagene.genestrip.genbank.AssemblySummaryReader;
-import org.metagene.genestrip.goals.refseq.FastaReaderGoal;
 import org.metagene.genestrip.goals.refseq.RefSeqFnaFilesDownloadGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
+import org.metagene.genestrip.probfilter.BlockedBloomFilter;
+import org.metagene.genestrip.probfilter.ProbFilter;
 import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
-import org.metagene.genestrip.refseq.AbstractStoreFastaReader;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.store.Database;
-import org.metagene.genestrip.store.KMerStore;
-import org.metagene.genestrip.store.RadixKMerStore;
-import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.TaxTree;
 
@@ -62,43 +53,24 @@ import java.util.*;
  * files and comparing the *k*-mers they contain against those stored in the database. For each tax id
  * it accumulates true positives, true-positives-plus-false-positives and true-positives-plus-false-
  * negatives (from which precision and recall are derived), aggregating results up selected ranks. A
- * XOR bloom filter is used to detect duplicate (k-mer, tax id) pairs.
+ * bloom filter is used to detect duplicate (k-mer, tax id) pairs.
+ * <p>
+ * The reading itself lives in {@link AbstractDBQualityGoal}; the tallies are here, because only this
+ * goal has any.
  *
  * @param <P> the concrete FT project type
  */
-public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Map<String, DBQualityCountsGoal.Counts>, P> implements Goal.LogHeapInfo {
-    /**
-     * Number of k-mers a reader buffers before looking them up in one batch. Sized to keep enough
-     * independent cache-missing lookups in flight for the memory-level parallelism to pay, without the
-     * per-batch bookkeeping outweighing it - the same value {@code AbstractKMerIndexGoal} uses.
-     */
-    protected static final int BATCH_SIZE = 128;
-
-    private final ObjectGoal<AccessionMap, P> accessionMapGoal;
-    private final ObjectGoal<Database, P> storeGoal;
-
-    private SmallTaxTree tree;
-    private KMerStore<SmallTaxTree.SmallTaxIdNode> kMerSortedArray;
+public class DBQualityCountsGoal<P extends FTProject> extends AbstractDBQualityGoal<Map<String, DBQualityCountsGoal.Counts>, P> {
+    /** Supplies the number of distinct pairs to size {@link #filter} for. */
+    private final ObjectGoal<Long, P> sizeGoal;
+    /** Deduplicates the pairs; held for the duration of the pass. */
     private ProbFilter filter;
-    /**
-     * Non-null only during the sizing pass, when the readers sketch their (k-mer, leaf) pairs instead
-     * of counting them. See the sizing block of {@link #doMakeThis()}.
-     */
-    private DistinctPairSketch sketch;
     private Map<String, Counts> map;
-    private List<MyFastaReader> readersList;
-    // The reading path addresses a node by its dense position and never by its tax id: the map above
-    // is keyed by a String, and looking a Counts up in it twice per (k-mer, data taxon) pair hashed a
-    // string a few billion times per run. SmallTaxTree numbers its nodes densely for exactly this
-    // (see SmallTaxTree#getNodeCount), so an array does the same job with an indexed read.
-    private SmallTaxTree.SmallTaxIdNode[] nodeByPos;
     private Counts[] countsByPos;
-    private boolean[] leafByPos;
-    private int nodeCount;
 
     /**
-     * Creates the goal, depending on the accession map and the loaded database in addition to the
-     * standard fasta-reader dependencies.
+     * Creates the goal, depending on the accession map, the loaded database and the sizing goal in
+     * addition to the standard fasta-reader dependencies.
      *
      * @param project          the FT project
      * @param key              the goal key
@@ -109,6 +81,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
      * @param additionalGoal   the goal providing additional fasta files mapped to tax nodes
      * @param accessionMapGoal the goal providing the accession-to-tax-node map
      * @param storeGoal        the goal providing the loaded database
+     * @param sizeGoal         the goal estimating the number of distinct pairs
      * @param deps             further goals this goal depends on
      */
     @SafeVarargs
@@ -117,10 +90,11 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
                                RefSeqFnaFilesDownloadGoal fnaFilesGoal,
                                ObjectGoal<Map<File, TaxTree.TaxIdNode>, P> additionalGoal,
                                ObjectGoal<AccessionMap, P> accessionMapGoal, ObjectGoal<Database, P> storeGoal,
+                               ObjectGoal<Long, P> sizeGoal,
                                Goal<P>... deps) {
-        super(project, key, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, accessionMapGoal, storeGoal));
-        this.storeGoal = storeGoal;
-        this.accessionMapGoal = accessionMapGoal;
+        super(project, key, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal,
+                accessionMapGoal, storeGoal, Goal.append(deps, sizeGoal));
+        this.sizeGoal = sizeGoal;
     }
 
     /**
@@ -130,53 +104,10 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
      */
     @Override
     protected void doMakeThis() {
-        GSProject project = getProject();
-        // Data nodes, and not merely one of the three kinds of artificial node. What a leaf is has to
-        // agree between the fill and this measure, and `dataNodes' is what makes that agreement
-        // simple: with it on, ReworkingStoreFastaReader.reworkNode() files every genome at a DATA
-        // node or deeper, so no taxonomy node ever holds a genome's k-mers and a node without
-        // children is exactly a node the fill filed a genome at. isLeafNode() is then one test and
-        // needs to know nothing about ranks.
-        //
-        // Requiring it is not what used to shut this goal out of a database refined below the
-        // species -- that was the second half of the old guard, which REJECTED `fileNodes' while
-        // only a DATA node could be recognised as a leaf. Both halves went at once; only the first
-        // is coming back. `fileNodes' and `idNodes' stay free, and the `cdiff' project of
-        // ft-db-exp2, which needs file nodes because the taxonomy supplies no children below the
-        // species, has data nodes on as every project here does.
-        if (!project.booleanConfigValue(GSConfigKey.DATA_NODES)) {
-            throw new IllegalStateException("This goal requires data nodes (dataNodes=true)");
-        }
-
         try {
-            map = new HashMap<>();
-            tree = storeGoal.get().getTaxTree();
-            Object2LongMap<String> stats = storeGoal.get().getStats();
-            // Estimate the filter size by summing up from species to root for each species in the DB.
-            // It is a highly conservative estimate because k-mers on ranks above species are hardly
-            // ever shared more than thrice (as found by measuring).
-            nodeCount = tree.getNodeCount();
-            nodeByPos = new SmallTaxTree.SmallTaxIdNode[nodeCount];
-            countsByPos = new Counts[nodeCount];
-            leafByPos = new boolean[nodeCount];
-            long size = 0;
-            for (SmallTaxTree.SmallTaxIdNode node : tree) {
-                boolean dataNode = isLeafNode(node);
-                Counts counts = new Counts(dataNode, stats.getOrDefault(node.getTaxId(), 0L));
-                if (dataNode) {
-                    // Count tp plus fp
-                    // Add k-mers from species upwards for each species:
-                    long pathSum = getPathSum(node, stats);
-                    counts.tpPlusFp = pathSum;
-                    size += pathSum;
-                }
-                map.put(node.getTaxId(), counts);
-                int pos = node.getPosition();
-                nodeByPos[pos] = node;
-                countsByPos[pos] = counts;
-                leafByPos[pos] = dataNode;
-            }
-            kMerSortedArray = storeGoal.get().convertKMerStore();
+            prepare();
+            long size = buildCounts();
+            long bound = size;
 
             // How large the filter has to be. `size' above is the conservative bound: for every leaf it
             // sums the k-mers stored along its path to the root, i.e. it assumes each of them to occur
@@ -188,28 +119,18 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
             //
             // The truth is roughly three times the stored k-mers, since a k-mer above the species is
             // hardly ever carried by more than three leaves. Rather than assume that factor, the pass
-            // below sketches the pairs with HyperLogLog and counts them, exactly as `kmerindexsize'
+            // in `dbqualsize' sketches the pairs with HyperLogLog and counts them, exactly as `kmerindexsize'
             // does for the index filter -- same sketch class, same trade of one extra read for a
             // filter of the right size.
             GSConfigKey.BloomFilterSizing sizing =
                     (GSConfigKey.BloomFilterSizing) configValue(FTConfigKey.DB_QUALITY_FILTER_SIZING);
-            long bound = size;
             if (sizing != GSConfigKey.BloomFilterSizing.UPPER_BOUND) {
-                sketch = new DistinctPairSketch(1);
-                readersList = new ArrayList<>();
-                try {
-                    readFastas();
-                    for (MyFastaReader reader : readersList) {
-                        reader.flushBatch();
-                    }
-                    size = sketch.estimate();
-                } finally {
-                    sketch = null;
-                    readersList = null;
-                }
+                // Asking is what makes the sizing goal run: an ObjectGoal is a weak dependency, so
+                // under the bound its pass over the sequences never happens at all.
+                size = sizeGoal.get();
                 if (getLogger().isInfoEnabled()) {
-                    getLogger().info("Estimated distinct filter entries: " + size
-                            + ", against a bound of " + bound);
+                    getLogger().info("Sizing the filter for " + size + " entries, the estimated number"
+                            + " of distinct ones, against a bound of " + bound);
                 }
             }
 
@@ -223,15 +144,14 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
                 getLogger().info("Filter size in MB: " + (bitSize / 8 / 1024 / 1024));
             }
 
-            readersList = new ArrayList<>();
             readFastas();
 
             long entries = 0;
-            for (MyFastaReader reader : readersList) {
+            for (MyFastaReader reader : readers) {
                 // The readers are done, so whatever the last (partial) batch still holds is looked up
                 // and counted here, single-threaded, before their tallies are merged.
                 reader.flushBatch();
-                reader.mergeInto(countsByPos);
+                ((CountingReader) reader).mergeInto(countsByPos);
                 entries += reader.entries;
             }
             if (getLogger().isInfoEnabled()) {
@@ -260,98 +180,71 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
             throw new RuntimeException(e);
         } finally {
             map = null;
-            tree = null;
-            kMerSortedArray = null;
-            filter = null;
-            sketch = null;
-            readersList = null;
-            nodeByPos = null;
             countsByPos = null;
-            leafByPos = null;
+            filter = null;
+            releaseAfterPass();
         }
     }
 
     /**
-     * Creates the fasta reader that compares genome *k*-mers against the database, configured from the
-     * project's configuration values.
+     * Builds the per-node tallies over the tree {@link #prepare()} loaded and returns the conservative
+     * bound on how many pairs the pass will produce.
+     * <p>
+     * Separate from {@code prepare()} because only this goal has tallies: the sizing goal needs the
+     * same tree, the same leaves and the same store, but counts nothing.
      *
-     * @param regionsPerTaxid the trie counting regions per tax id
-     * @return the fasta reader to use for reading the genomic fasta files
+     * @return the bound: for every leaf, the k-mers stored along its path to the root, summed
      */
+    private long buildCounts() {
+        Object2LongMap<String> stats = storeGoal.get().getStats();
+        map = new HashMap<>();
+        countsByPos = new Counts[nodeCount];
+        // Estimate the filter size by summing up from species to root for each species in the DB.
+        // It is a highly conservative estimate because k-mers on ranks above species are hardly
+        // ever shared more than thrice (as found by measuring).
+        long size = 0;
+        for (SmallTaxTree.SmallTaxIdNode node : tree) {
+            int pos = node.getPosition();
+            boolean dataNode = leafByPos[pos];
+            Counts counts = new Counts(dataNode, stats.getOrDefault(node.getTaxId(), 0L));
+            if (dataNode) {
+                // Count tp plus fp
+                // Add k-mers from species upwards for each species:
+                long pathSum = getPathSum(node, stats);
+                counts.tpPlusFp = pathSum;
+                size += pathSum;
+            }
+            map.put(node.getTaxId(), counts);
+            countsByPos[pos] = counts;
+        }
+        return size;
+    }
+
     @Override
-    protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
-        MyFastaReader reader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
-                taxNodesGoal.get(),
-                isIncludeRefSeqFna() ? accessionMapGoal.get() : null,
-                intConfigValue(GSConfigKey.KMER_SIZE),
-                intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
-                (Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
-                longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
-                intConfigValue(GSConfigKey.MAX_DUST),
-                intConfigValue(GSConfigKey.KMER_SAMPLING),
-                booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY),
-                regionsPerTaxid,
-                booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES));
-        readersList.add(reader);
-        return reader;
+    protected MyFastaReader newReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
+        return new CountingReader(regionsPerTaxid);
     }
 
     /**
-     * Fasta reader that, for each *k*-mer read from a genome, checks whether it is stored in the
-     * database and whether the stored node lies on the path from the read's leaf node, updating the
-     * per-tax-id counts accordingly while deduplicating via the bloom filter.
+     * Reader of this pass: it deduplicates every pair against the shared filter and tallies what
+     * survives, per thread, into arrays that {@link CountingReader#mergeInto} adds up afterwards.
      */
-    protected class MyFastaReader extends AbstractUpdateFastaReader
-            implements RadixKMerStore.BatchValueConsumer<SmallTaxTree.SmallTaxIdNode> {
-        /** Number of distinct (k-mer, leaf node) pairs this reader added to the dedup filter. */
-        protected long entries;
-
-        /**
-         * Buffers for the batched store lookup, or {@code null} when it cannot be used. The store
-         * lookup is memory-latency bound, and a batch lets many of its cache misses overlap - see
-         * {@link RadixKMerStore#getBatch}.
-         */
-        private final RadixKMerStore.BatchBuffers batch;
+    protected class CountingReader extends MyFastaReader {
         /** Tallies of this reader alone, indexed by node position; merged by {@link #mergeInto}. */
         private final long[] tp;
         private final long[] tpPlusFn;
         private final long[] tpForNode;
-        /** The current region's leaf and its position, resolved once per region rather than per k-mer. */
-        private SmallTaxTree.SmallTaxIdNode cachedLeaf;
-        private int cachedLeafPos = -1;
 
         /**
-         * Creates the reader, taking the id/file/data node flags from the goal's configuration.
+         * Creates the reader and its tallies.
          *
-         * @param bufferSize             the input read buffer size
-         * @param taxNodes               the tax nodes to be included
-         * @param accessionMap           the map from accession numbers to tax nodes
-         * @param k                      the k-mer length
-         * @param maxGenomesPerTaxId     the maximum number of genomes to consider per tax id
-         * @param maxGenomesPerTaxIdRank the rank at which the per-tax-id genome limit applies
-         * @param maxKmersPerTaxId       the maximum number of k-mers to store per tax id
-         * @param maxDust                the maximum dust (low-complexity) threshold
-         * @param kMerSampling               the step size between stored k-mers
-         * @param assemblyAccessionsOnly    whether only complete genomes are considered
-         * @param regionsPerTaxid        the trie counting regions per tax id
-         * @param enableLowerCaseBases   whether lower-case bases are treated as regular bases
+         * @param regionsPerTaxid the trie counting regions per tax id
          */
-        public MyFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap,
-                             int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
-            super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, regionsPerTaxid, enableLowerCaseBases, booleanConfigValue(GSConfigKey.ID_NODES), booleanConfigValue(GSConfigKey.FILE_NODES), booleanConfigValue(GSConfigKey.DATA_NODES));
-            entries = 0;
+        CountingReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
+            super(regionsPerTaxid);
             tp = new long[nodeCount];
             tpPlusFn = new long[nodeCount];
             tpForNode = new long[nodeCount];
-            // Batched only while no per-taxon limit binds. A batched k-mer is counted after
-            // handleStore() has already returned, so the return value can no longer say whether it
-            // was, and that value feeds kmersInRegion - which endRegion() adds to the per-taxon
-            // counters that maxGenomesPerTaxid and maxKMersPerTaxid are enforced from. At the
-            // defaults neither binds and nothing reads those counters back; with either set, the
-            // one-at-a-time path keeps the accounting exact.
-            boolean unlimited = maxGenomesPerTaxId == Integer.MAX_VALUE && maxKmersPerTaxId == Long.MAX_VALUE;
-            batch = (kMerSortedArray instanceof RadixKMerStore && unlimited)
-                    ? new RadixKMerStore.BatchBuffers(BATCH_SIZE) : null;
         }
 
         /**
@@ -369,95 +262,6 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
         }
 
         /**
-         * Looks the buffered k-mers up in one batch and counts those the database holds. Called when
-         * the buffer fills and, for the trailing ones, after all fastas have been read.
-         */
-        protected void flushBatch() {
-            if (batch != null && !batch.isEmpty()) {
-                ((RadixKMerStore<SmallTaxTree.SmallTaxIdNode>) kMerSortedArray).getBatch(batch, this);
-            }
-        }
-
-        /**
-         * Resolves the region's leaf as usual and caches its position, so that the reading path costs
-         * a field read per k-mer instead of a lookup. The leaf changes per region; the k-mers of a
-         * region are legion.
-         */
-        @Override
-        protected void updateLeafNode() {
-            super.updateLeafNode();
-            if (leafNode != cachedLeaf) {
-                cachedLeaf = leafNode;
-                cachedLeafPos = -1;
-                if (leafNode != null) {
-                    if (leafNode.storeIndex < 0) {
-                        // A leaf the store knows no value for. Database.initStoreIndex() gives every
-                        // node of the tree one, so this says the tree and the store have come apart -
-                        // worth a word, and once per region rather than once per k-mer.
-                        if (getLogger().isWarnEnabled()) {
-                            getLogger().warn("No kmer-index for taxid " + leafNode.getTaxId() + " found.");
-                        }
-                    } else {
-                        cachedLeafPos = leafNode.getPosition();
-                    }
-                }
-            }
-        }
-
-        /**
-         * Returns the taxonomy tree of the loaded database.
-         *
-         * @return the taxonomy tree
-         */
-        @Override
-        protected SmallTaxTree getTree() {
-            return tree;
-        }
-
-        /**
-         * Looks up the current *k*-mer in the database and, if it is stored and has not already been
-         * seen for the read's leaf node, records it in the bloom filter and updates the per-tax-id
-         * counts (incrementing the true-positive count when the stored node lies on the path from the
-         * leaf node).
-         *
-         * @return {@code true} if the *k*-mer was counted, {@code false} otherwise
-         */
-        @Override
-        protected boolean handleStore(long kmer) {
-            if (cachedLeafPos < 0) {
-                return false;
-            }
-            if (batch != null) {
-                // The leaf is only known while reading, so its position travels with the k-mer as the
-                // batch's payload and the counting happens in accept() once the whole batch has been
-                // looked up. Whether this k-mer will be counted is not known yet, hence false.
-                if (batch.add(kmer, cachedLeafPos)) {
-                    flushBatch();
-                }
-                return false;
-            }
-            SmallTaxTree.SmallTaxIdNode storedNode = kMerSortedArray.getLong(kmer, null);
-            // There may be no corresponding node in the database:
-            if (storedNode == null) {
-                return false;
-            }
-            return count(kmer, cachedLeafPos, storedNode);
-        }
-
-        /**
-         * Counts one k-mer of a flushed batch, which by construction the database holds - so the
-         * {@code null} check of the unbatched path is implicit here.
-         *
-         * @param kmer       the k-mer that was looked up
-         * @param leafPos    the position of the leaf it was read in, as buffered with it
-         * @param storedNode the node the database stores it at
-         */
-        @Override
-        public void accept(long kmer, int leafPos, SmallTaxTree.SmallTaxIdNode storedNode) {
-            count(kmer, leafPos, storedNode);
-        }
-
-        /**
          * Counts one (k-mer, leaf) pair unless it was seen before.
          *
          * @param kmer       the k-mer
@@ -465,14 +269,8 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
          * @param storedNode the node the database stores it at
          * @return whether the pair was new, i.e. whether it was counted
          */
-        private boolean count(long kmer, int leafPos, SmallTaxTree.SmallTaxIdNode storedNode) {
-            if (sketch != null) {
-                // The sizing pass: how many distinct pairs there are is the whole question, so the pair
-                // is sketched and nothing is counted. The filter does not exist yet -- its size is what
-                // this pass is for.
-                sketch.record(KMerIndexFilterHelper.combine(kmer, leafPos));
-                return true;
-            }
+        @Override
+        protected boolean count(long kmer, int leafPos, SmallTaxTree.SmallTaxIdNode storedNode) {
             // Checks whether it's a duplicate under that leaf.
             if (!filter.putLong(KMerIndexFilterHelper.combine(kmer, leafPos))) {
                 return false;
@@ -543,82 +341,6 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
                 }
             }
         }
-    }
-
-    /**
-     * Whether the given node is where a genomic file's k-mers come to rest, and therefore the unit
-     * this goal's measures are taken over.
-     * <p>
-     * The database fill nests the artificial nodes: {@link org.metagene.genestrip.refseq.ReworkingStoreFastaReader#reworkNode()}
-     * descends a tax id into its {@link Rank#DATA} child, that into a {@link Rank#FILE} child, and
-     * that into a {@link Rank#ID} child, as far as {@code dataNodes}, {@code fileNodes} and
-     * {@code idNodes} are enabled, and stores the k-mers at whichever it ends on. Reading the fastas
-     * back, {@link AbstractUpdateFastaReader#updateLeafNode()} walks the same chain from the other
-     * end -- ID, then FILE, then DATA, returning at the first that exists. Both therefore land on the
-     * <em>deepest</em> of the three, which is what this method identifies: an origin-rank node with
-     * no origin-rank child.
-     * <p>
-     * Testing for {@link Rank#DATA} alone, as this did before, is only equivalent while
-     * {@code fileNodes} and {@code idNodes} are both off. With either on, the data node becomes an
-     * empty intermediate holding no k-mers of its own while the reader resolves records to the file
-     * or id node below it, and the two halves of this goal disagree about what a leaf is -- which
-     * {@link DBQualityCountsGoal.MyFastaReader#handleStore(long)} catches and turns into an {@link IllegalStateException}.
-     * <p>
-     * {@link Rank#REFINED} is deliberately not an origin rank. A refined node is inserted by the
-     * refinement <em>above</em> the origin nodes and holds the k-mers it moved down there, so it is
-     * internal in exactly the way a taxonomy node is, and the measures restricted to what sits above
-     * the data (see {@link Counts#aggregateSubtree}) have to keep counting it.
-     *
-     * @param node the node to test
-     * @return whether the node is the deepest artificial node on its branch
-     */
-    protected static boolean isLeafNode(SmallTaxTree.SmallTaxIdNode node) {
-        // A node the fill filed a genome at, which with data nodes on (see doMakeThis) is exactly a
-        // node without children: every genome gets a DATA node or something below it, and whatever
-        // the refinement inserts between a node and its original children gives that node children
-        // and so keeps it internal. Asking about the children's ranks instead is what got this
-        // wrong: after a refinement a data node's file nodes are no longer its children, the data
-        // node passed for a leaf, and its k-mers -- the ones a refinement has the most to gain on --
-        // dropped out of every average restricted to what sits above the data taxa. On cdiff that
-        // alone lifted the reported sp* from 0.236 to 0.338 with no k-mer moving.
-        SmallTaxTree.SmallTaxIdNode[] subNodes = node.getSubNodes();
-        if (subNodes != null && subNodes.length != 0) {
-            return false;
-        }
-        // ... with one exception: the "OTHER" placeholder the refinement inserts is childless but is
-        // not a data taxon. Section "Data taxa and path correctness" defines one as a taxon with a
-        // complete genome directly associated whose k-mers are stored in the database, whereas OTHER
-        // stands for exactly the taxa that are *not* in the database and merely caused a k-mer to be
-        // pushed above the species during the LCA update. It therefore never receives a k-mer -- in
-        // the six databases of the paper all 1,876 of them are empty -- and counting it as a leaf
-        // added one to |D_n| for every node the refinement touched, dividing p(a) = c(a)/|D_nu(a)|
-        // accordingly without a single k-mer having moved. Where a genus held a single species that
-        // was a halving: vineyard's Coniella, Pseudopezicula and Trichothecium each reported a
-        // restricted subtree precision of exactly 0.5 against 1.0 before the refinement.
-        //
-        // The test is structural rather than by name. UpdateStoreGoal.createNode gives the REFINED
-        // rank to two kinds of node: internal dendrogram nodes, which always have two children, and
-        // the OTHER bucket, which is a leaf. A childless REFINED node is therefore the placeholder
-        // and nothing else -- checked against all six databases, where the two sets coincide exactly.
-        // getRankOrdinal() rather than getRank(), which is null for a rank the Rank enum does not
-        // know; REFINED always has one, but the null-safe accessor keeps the guard honest.
-        return node.getRankOrdinal() != Rank.REFINED.ordinal();
-    }
-
-    /**
-     * Sums the per-tax-id stored k-mer counts along the path from a node up to the root.
-     *
-     * @param node  the node to start from
-     * @param stats the per-tax-id stored k-mer counts keyed by tax id
-     * @return the sum of the per-tax-id stored *k*-mer counts from {@code stats} along the path from
-     * {@code node} up to the root
-     */
-    protected long getPathSum(SmallTaxTree.SmallTaxIdNode node, Object2LongMap stats) {
-        long res = 0L;
-        for (; node != null; node = node.getParent()) {
-            res += stats.getOrDefault(node.getTaxId(), 0L);
-        }
-        return res;
     }
 
     /**
@@ -871,24 +593,6 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
         }
 
         /**
-         * Returns the subtree precision of the subtree rooted at this node, i.e. the mean of the
-         * per-k-mer precisions p(a) over the k-mers residing in that subtree. It is the same average
-         * as {@link #getNodePrecision()}, just taken over the k-mers of a whole subtree instead of
-         * those of a single node.
-         * <p>
-         * Equivalently, it is the mean of the node precisions within the subtree, each weighted by that
-         * node's share of the subtree's k-mers; a node without k-mers has no share and simply does not
-         * occur. Since every k-mer counts equally, inserting an inner node into the taxonomy - which
-         * leaves every p(a) untouched - cannot change the value. Moving a k-mer downwards, in turn,
-         * leaves c(a) untouched (path correctness fixes it) while shrinking |D| of its node, so p(a)
-         * can only rise: the value responds to nothing but the actual relocation of k-mers, and it
-         * responds to it in the right direction. Note that the k-mers residing above this node do not
-         * enter, as they are shared by all data taxa underneath.
-         *
-         * @return the subtree precision of this node's subtree, or {@link Double#NaN} if the subtree
-         * holds no k-mer for which the per-k-mer precision is defined
-         */
-        /**
          * Returns the subtree precision restricted to the k-mers stored above the data taxa, i.e.
          * averaged over those k-mers alone. This is where a refinement can act: a k-mer at a data
          * taxon is fixed at a precision of one by construction.
@@ -913,10 +617,22 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
         }
 
         /**
-         * Returns this subtree's precision: the k-mer-weighted mean of the per-node precisions over
-         * all of the subtree's k-mers, or {@link Double#NaN} if the subtree holds none.
+         * Returns the subtree precision of the subtree rooted at this node, i.e. the mean of the
+         * per-k-mer precisions p(a) over the k-mers residing in that subtree. It is the same average
+         * as {@link #getNodePrecision()}, just taken over the k-mers of a whole subtree instead of
+         * those of a single node.
+         * <p>
+         * Equivalently, it is the mean of the node precisions within the subtree, each weighted by that
+         * node's share of the subtree's k-mers; a node without k-mers has no share and simply does not
+         * occur. Since every k-mer counts equally, inserting an inner node into the taxonomy - which
+         * leaves every p(a) untouched - cannot change the value. Moving a k-mer downwards, in turn,
+         * leaves c(a) untouched (path correctness fixes it) while shrinking |D| of its node, so p(a)
+         * can only rise: the value responds to nothing but the actual relocation of k-mers, and it
+         * responds to it in the right direction. Note that the k-mers residing above this node do not
+         * enter, as they are shared by all data taxa underneath.
          *
-         * @return the subtree precision, or {@code NaN} if the subtree holds no k-mers
+         * @return the subtree precision of this node's subtree, or {@link Double#NaN} if the subtree
+         * holds no k-mer for which the per-k-mer precision is defined
          */
         public double getSubtreePrecision() {
             if (subtreeKmerSum == 0) {

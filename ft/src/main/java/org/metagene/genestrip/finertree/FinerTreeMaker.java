@@ -190,15 +190,23 @@ public class FinerTreeMaker<P extends FTProject> extends GSMaker<P> {
         SVGTaxTreeGoal<P> svgTaxTreeGoal = new SVGTaxTreeGoal<P>(project, FTGoalKey.FT_SVG_TAX_TREE, loadFTDBGoal, projectSetupGoal);
         registerGoal(svgTaxTreeGoal);
 
+        ObjectGoal<Long, P> ftQualitySizeGoal = new DBQualitySizeGoal<>(project, FTGoalKey.FT_QUALITY_SIZE, getExecutionContext(project),
+                categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, accessionMapGoal, loadFTDBGoal, taxTreeGoal);
+        registerGoal(ftQualitySizeGoal);
+
         ObjectGoal<Map<String, DBQualityCountsGoal.Counts>, P> ftKmersPerTaxGoal = new DBQualityCountsGoal<>(project, FTGoalKey.FT_QUALITY_COUNTS, getExecutionContext(project),
-                categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, accessionMapGoal, loadFTDBGoal, taxTreeGoal /* taxTreeGoal is only REQUIRED so that the tree is not dropped too early! */);
+                categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, accessionMapGoal, loadFTDBGoal, ftQualitySizeGoal, taxTreeGoal /* taxTreeGoal is only REQUIRED so that the tree is not dropped too early! */);
         registerGoal(ftKmersPerTaxGoal);
 
         Goal<P> ftQualityGoal = new DBQualityCSVGoal<>(project, FTGoalKey.FT_QUALITY, loadFTDBGoal, ftKmersPerTaxGoal);
         registerGoal(ftQualityGoal);
 
+        ObjectGoal<Long, P> dbQualitySizeGoal = new DBQualitySizeGoal<>(project, FTGoalKey.DB_QUALITY_SIZE, getExecutionContext(project),
+                categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, accessionMapGoal, storeGoal, taxTreeGoal);
+        registerGoal(dbQualitySizeGoal);
+
         ObjectGoal<Map<String, DBQualityCountsGoal.Counts>, P> kmersPerTaxGoal = new DBQualityCountsGoal<>(project, FTGoalKey.DB_QUALITY_COUNTS, getExecutionContext(project),
-                categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, accessionMapGoal, storeGoal, taxTreeGoal /* taxTreeGoal is only REQUIRED so that the tree is not dropped too early! */);
+                categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, accessionMapGoal, storeGoal, dbQualitySizeGoal, taxTreeGoal /* taxTreeGoal is only REQUIRED so that the tree is not dropped too early! */);
         registerGoal(kmersPerTaxGoal);
 
         Goal<P> dbQualityGoal = new DBQualityCSVGoal<>(project, FTGoalKey.DB_QUALITY, storeGoal, kmersPerTaxGoal);
