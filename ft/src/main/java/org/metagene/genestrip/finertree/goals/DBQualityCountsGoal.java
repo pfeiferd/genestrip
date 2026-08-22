@@ -517,7 +517,27 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
         // dropped out of every average restricted to what sits above the data taxa. On cdiff that
         // alone lifted the reported sp* from 0.236 to 0.338 with no k-mer moving.
         SmallTaxTree.SmallTaxIdNode[] subNodes = node.getSubNodes();
-        return subNodes == null || subNodes.length == 0;
+        if (subNodes != null && subNodes.length != 0) {
+            return false;
+        }
+        // ... with one exception: the "OTHER" placeholder the refinement inserts is childless but is
+        // not a data taxon. Section "Data taxa and path correctness" defines one as a taxon with a
+        // complete genome directly associated whose k-mers are stored in the database, whereas OTHER
+        // stands for exactly the taxa that are *not* in the database and merely caused a k-mer to be
+        // pushed above the species during the LCA update. It therefore never receives a k-mer -- in
+        // the six databases of the paper all 1,876 of them are empty -- and counting it as a leaf
+        // added one to |D_n| for every node the refinement touched, dividing p(a) = c(a)/|D_nu(a)|
+        // accordingly without a single k-mer having moved. Where a genus held a single species that
+        // was a halving: vineyard's Coniella, Pseudopezicula and Trichothecium each reported a
+        // restricted subtree precision of exactly 0.5 against 1.0 before the refinement.
+        //
+        // The test is structural rather than by name. UpdateStoreGoal.createNode gives the REFINED
+        // rank to two kinds of node: internal dendrogram nodes, which always have two children, and
+        // the OTHER bucket, which is a leaf. A childless REFINED node is therefore the placeholder
+        // and nothing else -- checked against all six databases, where the two sets coincide exactly.
+        // getRankOrdinal() rather than getRank(), which is null for a rank the Rank enum does not
+        // know; REFINED always has one, but the null-safe accessor keeps the guard honest.
+        return node.getRankOrdinal() != Rank.REFINED.ordinal();
     }
 
     /**
