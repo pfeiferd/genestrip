@@ -55,6 +55,8 @@ public class DistinctPairSketch {
     private long sampledCount;
 
     /**
+     * Creates an empty sketch.
+     *
      * @param sampleScale what the count of the sample has to be multiplied by to stand for the whole;
      *                    one where the pass sees the entire population
      */
@@ -96,18 +98,26 @@ public class DistinctPairSketch {
     }
 
     /**
+     * Returns the size of the sample behind the last estimate, before it was scaled up.
+     *
      * @return how many distinct pairs the sample itself held, as of the last {@link #estimate()}
      */
     public long getSampledCount() {
         return sampledCount;
     }
 
-    /** @return by what the sample was scaled up */
+    /**
+     * Returns the factor the sample is scaled by to stand for the whole population.
+     *
+     * @return by what the sample was scaled up
+     */
     public double getSampleScale() {
         return sampleScale;
     }
 
     /**
+     * Returns whether so few pairs were sampled that the estimate should be read as coarse.
+     *
      * @return whether the sample was too thin for the estimate to be more than coarse
      */
     public boolean isThin() {

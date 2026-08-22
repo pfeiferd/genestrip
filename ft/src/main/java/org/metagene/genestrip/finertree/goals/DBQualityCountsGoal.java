@@ -53,7 +53,7 @@ import java.util.*;
  * files and comparing the *k*-mers they contain against those stored in the database. For each tax id
  * it accumulates true positives, true-positives-plus-false-positives and true-positives-plus-false-
  * negatives (from which precision and recall are derived), aggregating results up selected ranks. A
- * bloom filter is used to detect duplicate (k-mer, tax id) pairs.
+ * bloom filter is used to detect duplicate (k-mer, leaf) pairs.
  * <p>
  * The reading itself lives in {@link AbstractDBQualityGoal}; the tallies are here, because only this
  * goal has any.
@@ -135,9 +135,9 @@ public class DBQualityCountsGoal<P extends FTProject> extends AbstractDBQualityG
             }
 
             // Using a blocked bloom filter here for more speed (identified the old Bloom filter as a
-            // bottleneck). Allocated only now: under any sizing but the bound, `size' is what the pass
-            // above counted, and that pass needs the store -- a k-mer that the database does not hold
-            // forms no pair -- so the order is store, then size, then filter.
+            // bottleneck). Allocated only now: under any sizing but the bound, `size' is what
+            // `dbqualsize' counted, and that pass needs the store -- a k-mer that the database does not
+            // hold forms no pair -- so the order is store, then size, then filter.
             filter = new BlockedBloomFilter(size);
             long bitSize = filter.getBitSize();
             if (getLogger().isInfoEnabled()) {
@@ -227,7 +227,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends AbstractDBQualityG
 
     /**
      * Reader of this pass: it deduplicates every pair against the shared filter and tallies what
-     * survives, per thread, into arrays that {@link CountingReader#mergeInto} adds up afterwards.
+     * survives, per thread, into arrays that {@link #mergeInto} adds up afterwards.
      */
     protected class CountingReader extends MyFastaReader {
         /** Tallies of this reader alone, indexed by node position; merged by {@link #mergeInto}. */

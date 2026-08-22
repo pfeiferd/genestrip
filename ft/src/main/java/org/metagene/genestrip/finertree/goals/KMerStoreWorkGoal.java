@@ -221,6 +221,14 @@ public abstract class KMerStoreWorkGoal<T, P extends FTProject> extends ObjectGo
         }
     }
 
+    /**
+     * Returns the child subtrees whose membership is to be recorded for a k-mer stored at the given
+     * node, or {@code null} where that node is not at a refinement position and its k-mers are of no
+     * interest here.
+     *
+     * @param parent the node a k-mer is stored at
+     * @return its child subtrees, or {@code null} if the node is not being refined
+     */
     protected SmallTaxIdNode[] getSubNodes(SmallTaxIdNode parent) {
         // A bit test, and not the rank/tax id matching itself: whether a node sits at a refinement
         // position depends on the node alone, while this is asked once per stored k-mer - eighty
@@ -248,6 +256,8 @@ public abstract class KMerStoreWorkGoal<T, P extends FTProject> extends ObjectGo
      *               slot, each {@code true} when the *k*-mer occurs in that subtree
      * @param spread the number of {@code true} slots in {@code bits}, i.e. how many subtrees the
      *               *k*-mer is spread across
+     * @param setSlots the indices of those {@code true} slots, filled up to {@code spread}, so that a
+     *               subclass can walk them without scanning {@code bits}
      */
     protected abstract void inKMerStoreWork(SmallTaxIdNode parent, long pos, boolean[] bits, int spread,
                                             int[] setSlots);

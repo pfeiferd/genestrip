@@ -246,8 +246,9 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
         }
 
         /**
-         * Looks the buffered k-mers up in one batch and counts those the database holds. Called when
-         * the buffer fills and, for the trailing ones, after all fastas have been read.
+         * Looks the buffered k-mers up in one batch and hands those the database holds to
+         * {@link #count}. Called when the buffer fills and, for the trailing ones, after all fastas
+         * have been read.
          */
         protected void flushBatch() {
             if (batch != null && !batch.isEmpty()) {
@@ -292,12 +293,13 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
         }
 
         /**
-         * Looks up the current *k*-mer in the database and, if it is stored and has not already been
-         * seen for the read's leaf node, records it in the bloom filter and updates the per-tax-id
-         * counts (incrementing the true-positive count when the stored node lies on the path from the
-         * leaf node).
+         * Looks the current *k*-mer up in the database and, if it holds it, forms the pair with the
+         * leaf of the region being read and hands it to {@link #count}. A *k*-mer read in a region
+         * that resolved to no leaf, or one the database does not hold, forms no pair.
          *
-         * @return {@code true} if the *k*-mer was counted, {@code false} otherwise
+         * @param kmer the *k*-mer just read
+         * @return what {@link #count} answered, or {@code false} where no pair was formed -- including
+         * the batched case, where the pair is only formed once the batch comes back
          */
         @Override
         protected boolean handleStore(long kmer) {
@@ -322,8 +324,8 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
         }
 
         /**
-         * Counts one k-mer of a flushed batch, which by construction the database holds - so the
-         * {@code null} check of the unbatched path is implicit here.
+         * Takes one k-mer of a flushed batch, which by construction the database holds - so the
+         * {@code null} check of the unbatched path is implicit here - and hands it to {@link #count}.
          *
          * @param kmer       the k-mer that was looked up
          * @param leafPos    the position of the leaf it was read in, as buffered with it
@@ -347,7 +349,7 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
 
     /**
      * Whether the given node is where a genomic file's k-mers come to rest, and therefore the unit
-     * this goal's measures are taken over.
+     * the measures of these two goals are taken over.
      * <p>
      * The database fill nests the artificial nodes: {@link org.metagene.genestrip.refseq.ReworkingStoreFastaReader#reworkNode()}
      * descends a tax id into its {@link Rank#DATA} child, that into a {@link Rank#FILE} child, and
@@ -362,7 +364,8 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
      * {@code fileNodes} and {@code idNodes} are both off. With either on, the data node becomes an
      * empty intermediate holding no k-mers of its own while the reader resolves records to the file
      * or id node below it, and the two halves of this goal disagree about what a leaf is -- which
-     * {@link DBQualityCountsGoal.MyFastaReader#handleStore(long)} catches and turns into an {@link IllegalStateException}.
+     * {@code DBQualityCountsGoal.CountingReader.count} catches and turns into an
+     * {@link IllegalStateException}.
      * <p>
      * {@link Rank#REFINED} is deliberately not an origin rank. A refined node is inserted by the
      * refinement <em>above</em> the origin nodes and holds the k-mers it moved down there, so it is
