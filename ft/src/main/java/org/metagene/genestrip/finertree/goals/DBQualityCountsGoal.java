@@ -176,6 +176,8 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
                 countsByPos[pos] = counts;
                 leafByPos[pos] = dataNode;
             }
+            kMerSortedArray = storeGoal.get().convertKMerStore();
+
             // How large the filter has to be. `size' above is the conservative bound: for every leaf it
             // sums the k-mers stored along its path to the root, i.e. it assumes each of them to occur
             // in every leaf below its node. That holds for a database whose k-mers sit close to the
@@ -210,13 +212,16 @@ public class DBQualityCountsGoal<P extends FTProject> extends FastaReaderGoal<Ma
                             + ", against a bound of " + bound);
                 }
             }
-            // Using a blocked bloom filter here for more speed (identified the old Bloom filter as a bottleneck).
+
+            // Using a blocked bloom filter here for more speed (identified the old Bloom filter as a
+            // bottleneck). Allocated only now: under any sizing but the bound, `size' is what the pass
+            // above counted, and that pass needs the store -- a k-mer that the database does not hold
+            // forms no pair -- so the order is store, then size, then filter.
             filter = new BlockedBloomFilter(size);
             long bitSize = filter.getBitSize();
             if (getLogger().isInfoEnabled()) {
                 getLogger().info("Filter size in MB: " + (bitSize / 8 / 1024 / 1024));
             }
-            kMerSortedArray = storeGoal.get().convertKMerStore();
 
             readersList = new ArrayList<>();
             readFastas();
