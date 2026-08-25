@@ -26,6 +26,7 @@
 |`taxdownload`|||Download the taxonomy.|
 |`taxtree`||X|Load the taxonomy into memory.|
 |`taxnodes`||X|Compute the taxids for the project's database.|
+|`excludedtaxnodes`||X|Compute the taxids that `taxids.txt` excludes by a leading `-`, along with everything below them. Only `updateScope=allButExcluded` reads it; the exclusion of these taxa from the database's *content* needs no goal of its own, `taxnodes` having subtracted them already.|
 |`refseqrelease`||X|Download the RefSeq release number.|
 |`refseqprop`||X|Store the RefSeq release number in a properties file.|
 |`refseqcat`|||Download the RefSeq release catalog files.|

@@ -349,7 +349,10 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
         };
         registerGoal(tempDbInfoGoal);
 
-        DBGoal<P> updateDBGoal = new DBGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, taxTreeGoal,
+        ExcludedTaxNodesGoal<P> excludedTaxNodesGoal = new ExcludedTaxNodesGoal<P>(project, taxTreeGoal);
+        registerGoal(excludedTaxNodesGoal);
+
+        DBGoal<P> updateDBGoal = new DBGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, excludedTaxNodesGoal, taxTreeGoal,
                 refSeqFnaFilesGoal, additionalFastasGoal, accessionMapGoal, filledDBGoal, tempDbInfoGoal, projectSetupGoal);
         registerGoal(updateDBGoal);
 

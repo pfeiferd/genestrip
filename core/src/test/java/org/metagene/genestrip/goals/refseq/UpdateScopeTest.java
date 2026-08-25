@@ -60,6 +60,17 @@ public class UpdateScopeTest {
 	private final TaxIdNode requested = new TaxIdNode("1496");
 	private final TaxIdNode strainBelowRequested = new TaxIdNode("1163671");
 	private final TaxIdNode other = new TaxIdNode("1280");
+	/** A taxon `taxids.txt' struck out with a leading `-', and one below it. */
+	private final TaxIdNode excluded = new TaxIdNode("2608887");
+	private final TaxIdNode belowExcluded = new TaxIdNode("1306");
+
+	private Set<TaxIdNode> exclusion() {
+		// What ExcludedTaxNodesGoal hands the update: the struck-out tax ids *with* their descendants.
+		Set<TaxIdNode> nodes = new HashSet<>();
+		nodes.add(excluded);
+		nodes.add(belowExcluded);
+		return nodes;
+	}
 
 	private Set<TaxIdNode> selection() {
 		// What TaxNodesGoal hands the update: the requested tax ids *with* their descendants.
@@ -70,8 +81,8 @@ public class UpdateScopeTest {
 	}
 
 	/** {@link DBGoal#isRegionInScope} for a region of the release, which is what the scope restricts. */
-	private static boolean inScope(UpdateScope scope, Set<TaxIdNode> taxNodes, TaxIdNode node) {
-		return DBGoal.isRegionInScope(scope, taxNodes, node, FROM_RELEASE);
+	private boolean inScope(UpdateScope scope, Set<TaxIdNode> taxNodes, TaxIdNode node) {
+		return DBGoal.isRegionInScope(scope, taxNodes, exclusion(), node, FROM_RELEASE);
 	}
 
 	@Test
@@ -134,7 +145,7 @@ public class UpdateScopeTest {
 		for (UpdateScope scope : UpdateScope.values()) {
 			for (TaxIdNode node : new TaxIdNode[] { requested, strainBelowRequested, other, null }) {
 				assertTrue(scope.getName() + " / " + node,
-						DBGoal.isRegionInScope(scope, taxNodes, node, FROM_PROJECT_FASTA));
+						DBGoal.isRegionInScope(scope, taxNodes, exclusion(), node, FROM_PROJECT_FASTA));
 			}
 		}
 	}
@@ -175,5 +186,50 @@ public class UpdateScopeTest {
 		ConfigParamInfo<?> info = GSConfigKey.UPDATE_SCOPE.getInfo();
 		assertEquals("all", info.getMDDefaultValue());
 		assertTrue(info.isValid(info.getMDDefaultValue()));
+	}
+
+	/**
+	 * {@code allButExcluded} is {@code all} with the struck-out branches taken out of it, which is
+	 * what {@code all} does not do: an exclusion in {@code taxids.txt} keeps a branch out of the
+	 * database but, under {@code all}, its genomes still meet the kept taxa in the update and raise
+	 * their k-mers to a common ancestor.
+	 */
+	@Test
+	public void allButExcludedSkipsTheStruckOutBranch() {
+		Set<TaxIdNode> taxNodes = selection();
+		assertFalse(inScope(UpdateScope.ALL_BUT_EXCLUDED, taxNodes, excluded));
+		assertFalse(inScope(UpdateScope.ALL_BUT_EXCLUDED, taxNodes, belowExcluded));
+	}
+
+	/** Everything else takes part, which is what separates it from {@code ownTaxaOnly}. */
+	@Test
+	public void allButExcludedKeepsEverythingElse() {
+		Set<TaxIdNode> taxNodes = selection();
+		assertTrue(inScope(UpdateScope.ALL_BUT_EXCLUDED, taxNodes, requested));
+		assertTrue(inScope(UpdateScope.ALL_BUT_EXCLUDED, taxNodes, strainBelowRequested));
+		// The point of the scope: a genome of another taxon still raises k-mers, so a species does
+		// not keep a specificity that its relatives disprove.
+		assertTrue(inScope(UpdateScope.ALL_BUT_EXCLUDED, taxNodes, other));
+	}
+
+	/**
+	 * A region whose accession is not in the map has no taxon and cannot be one of the excluded ones,
+	 * so it takes part as it does under {@code all}. It cannot raise anything either way.
+	 */
+	@Test
+	public void allButExcludedKeepsARegionOfUnknownTaxon() {
+		assertTrue(inScope(UpdateScope.ALL_BUT_EXCLUDED, selection(), null));
+	}
+
+	/** With nothing struck out the scope is {@code all}, node for node. */
+	@Test
+	public void allButExcludedWithoutExclusionsIsAll() {
+		Set<TaxIdNode> taxNodes = selection();
+		for (TaxIdNode node : new TaxIdNode[] { requested, strainBelowRequested, other, excluded, null }) {
+			assertEquals("node " + node,
+					DBGoal.isRegionInScope(UpdateScope.ALL, taxNodes, new HashSet<TaxIdNode>(), node, FROM_RELEASE),
+					DBGoal.isRegionInScope(UpdateScope.ALL_BUT_EXCLUDED, taxNodes, new HashSet<TaxIdNode>(), node,
+							FROM_RELEASE));
+		}
 	}
 }

@@ -267,7 +267,10 @@ public enum GSConfigKey implements ConfigKey {
 			+ "keeps what the update is for and drops what it would destroy, while the project's own fastas still "
 			+ "settle a *k*-mer that several of them share on the common ancestor of those. It is only correct if "
 			+ "the database holds the genomes of the selected tax ids *completely*: a *k*-mer of a genome that is in "
-			+ "the release but not in the database keeps a specificity it has not got.")
+			+ "the release but not in the database keeps a specificity it has not got."
+			+ " `allButExcluded` is `all` minus the regions of the tax ids that `taxids.txt` excluded with a leading `-`: "
+			+ "those genomes then neither enter the database nor raise anything in it. It has the same caveat as `ownTaxaOnly`, in the small: "
+			+ "a *k*-mer that only an excluded genome carries besides the requested taxon stays claimed for that taxon.")
 	UPDATE_SCOPE("refseq.updateScope", new UpdateScopeConfigParamInfo(UpdateScope.ALL), false, GSGoalKey.UPDATE_DB),
 	/** Whether to keep only the accession prefixes a genome assembly uses when updating the database. */
 	@MDDescription("The same restriction as `refseq.assemblyAccessionsOnly`, applied to the update phase instead of the fill: "
@@ -889,7 +892,26 @@ public enum GSConfigKey implements ConfigKey {
 		 * with its own copy. Skipping their regions keeps what the update is for and drops what it
 		 * would destroy; it is correct only if the database holds those genomes completely.
 		 */
-		OTHER_TAXA_ONLY("otherTaxaOnly");
+		OTHER_TAXA_ONLY("otherTaxaOnly"),
+		/**
+		 * Every region of the release except those of the tax ids {@code taxids.txt} excluded with a
+		 * leading {@code -}. {@link #ALL} with a hole in it, and the hole is the one the file already
+		 * describes.
+		 * <p>
+		 * Excluding a branch from {@code taxids.txt} keeps it out of the database but not out of the
+		 * reckoning: under {@link #ALL} its genomes still meet the k-mers of the taxa that were kept
+		 * and still raise them to a common ancestor. Where the excluded branch is a sibling of the
+		 * ones that matter -- an {@code unclassified} bucket beside the named species of a genus, say
+		 * -- that ancestor is the genus, and a species can lose its k-mers to genomes the database
+		 * does not even contain.
+		 * <p>
+		 * What it costs is what {@link #OWN_TAXA_ONLY} costs in the small: a k-mer that only an
+		 * excluded genome carries besides the requested taxon stays claimed for that taxon, and the
+		 * claim is wrong wherever the excluded genome was in truth a different organism. Use it when
+		 * the excluded branch is one whose members cannot be told apart from the kept ones anyway, and
+		 * not as a way of making a database look more specific than it is.
+		 */
+		ALL_BUT_EXCLUDED("allButExcluded");
 
 		private final String name;
 
