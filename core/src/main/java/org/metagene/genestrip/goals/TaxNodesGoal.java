@@ -80,9 +80,8 @@ public class TaxNodesGoal<P extends GSProject> extends ObjectGoal<Set<TaxIdNode>
 				getLogger().debug("Requested tax ids: " + taxIdNodes);
 				getLogger().debug("Excluded tax ids: " + excludes);
 			}
-			taxIdNodes = taxIdCollector.withDescendants(taxIdNodes, (Rank) configValue(GSConfigKey.RANK_COMPLETION_DEPTH));
-			excludes = taxIdCollector.withDescendants(excludes, null);
-			taxIdNodes.removeAll(excludes);
+			taxIdNodes = taxIdCollector.completeAndExclude(taxIdNodes, excludes,
+					(Rank) configValue(GSConfigKey.RANK_COMPLETION_DEPTH));
 			if (getLogger().isDebugEnabled()) {
 				getLogger().debug("Number of completed tax ids: " + taxIdNodes.size());
 			}

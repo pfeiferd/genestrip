@@ -142,6 +142,15 @@ The generated database comprises *k*-mers for all viruses according to the tax i
 Generating your own database is straight-forward:
 1. Create a project folder `<project_name>` under `./data/projects/`. This is the place for all subsequent files that specify the content of a database to be generated. It is also the core name of a related database.
 1. Create a text file `./data/projects/<project_name>/taxids.txt` with one tax id per line. The database will *only* contain *k*-mers from genomes that belong to tax ids referenced in the file `taxids.txt`. If `taxids.txt` contains a tax id from a non-leaf node of the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip), then all subordinate tax ids and *k*-mers from respective [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/) genomes will be included in the database as well.
+1. A line may also *exclude* a tax id instead of including one, by prefixing it with `-`. The excluded tax id and its entire subtree are then left out, no matter how far down they sit under an included one. This is meant for the common case where a genus is wanted but one of its branches is not:
+```
+1301        # the genus Streptococcus ...
+-2608887    # ... but not its 468 unnamed `Streptococcus sp.' genomes,
+-83426      # ... and not its environmental samples either
+```
+The order of the lines does not matter: all inclusions are expanded first, then all exclusions are subtracted. Excluding a tax id that no included tax id covers simply has no effect. Note that an exclusion is not merely cosmetic for a database: under the least common ancestor update, a genome that the taxonomy cannot place properly pulls the *k*-mers it shares with its relatives up to their common ancestor, which for an unnamed branch beside a genus is the genus itself. Leaving such branches out can therefore change what the rest of the database can still tell apart.
+
+`taxids.txt` also accepts comments: everything from a `#` to the end of a line is ignored, as is a line that starts with one. If a line contains tabs, the tax id is read from the part after the last tab, so a two-column list of names and tax ids can be used as it stands.
 1. Create a text file `./data/projects/<project_name>/categories.txt`. This file tells Genestrip, which categories of organisms should be *considered* when generating the database and when determining a least common ancestor tax id for *k*-mers in the finalized database. You also have to ensure that the categories from `categories.txt` comprise all of the tax ids from `taxids.txt`: Only genomes of comprised tax ids will be used to generate the database.
 1. The following categories are allowed, and originate from the [RefSeq](https://ftp.ncbi.nlm.nih.gov/refseq/release/):
 `archaea`, `bacteria`, `complete`, `fungi`, `invertebrate`, `mitochondrion`, `other`, `plant`, `plasmid`, `plastid`, `protozoa`, `vertebrate_mammalian`, `vertebrate_other` and `viral`. You may enter one category per line.
