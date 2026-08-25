@@ -42,6 +42,7 @@ import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.TaxTree;
+import org.metagene.genestrip.tax.TaxNodeSelection;
 
 import java.io.File;
 import java.io.IOException;
@@ -86,7 +87,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends AbstractDBQualityG
      */
     @SafeVarargs
     public DBQualityCountsGoal(P project, FTGoalKey key, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
-                               ObjectGoal<Set<TaxTree.TaxIdNode>, P> taxNodesGoal,
+                               ObjectGoal<TaxNodeSelection, P> taxNodesGoal,
                                RefSeqFnaFilesDownloadGoal fnaFilesGoal,
                                ObjectGoal<Map<File, TaxTree.TaxIdNode>, P> additionalGoal,
                                ObjectGoal<AccessionMap, P> accessionMapGoal, ObjectGoal<Database, P> storeGoal,

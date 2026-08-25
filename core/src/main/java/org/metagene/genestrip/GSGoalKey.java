@@ -124,9 +124,6 @@ public enum GSGoalKey implements GoalKey {
 	/** Computes the tax ids for the project's database. */
 	@MDDescription("Compute the taxids for the project's database.")
 	TAXNODES("taxnodes"),
-	/** Computes the tax ids that {@code taxids.txt} excludes with a leading {@code -}. */
-	@MDDescription("Compute the taxids that `taxids.txt` excludes by a leading `-`, along with everything below them. Only `updateScope=allButExcluded` reads it; the exclusion of these taxa from the database's *content* needs no goal of its own, `taxnodes` having subtracted them already.")
-	EXCLUDED_TAXNODES("excludedtaxnodes"),
 	/** Downloads the RefSeq release number. */
 	@MDDescription("Download the RefSeq release number.")
 	REFSEQRELEASE("refseqrelease"),

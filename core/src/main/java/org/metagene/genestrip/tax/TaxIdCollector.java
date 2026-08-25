@@ -108,28 +108,6 @@ public class TaxIdCollector {
 	}
 
 	/**
-	 * Completes the included tax ids down the tree and removes the excluded ones, which is what a
-	 * {@code taxids.txt} means: a line naming a tax id brings its subtree in, a line prefixed with
-	 * {@code -} takes one out.
-	 * <p>
-	 * The two sides are not completed alike. An inclusion stops at {@code depth}, since that is how far
-	 * the caller asked for the taxonomy to be followed; an exclusion is completed all the way down,
-	 * because leaving a branch out has to mean the whole branch and not the part of it above some rank.
-	 * Exclusions are subtracted afterwards rather than skipped while descending, so the order of the
-	 * lines in the file does not matter and an exclusion that no inclusion covers simply does nothing.
-	 *
-	 * @param included the tax ids named in the file
-	 * @param excluded the tax ids the file prefixed with {@code -}
-	 * @param depth    the rank at which completion of the included tax ids stops, or {@code null} for all
-	 * @return the tax ids that remain
-	 */
-	public Set<TaxIdNode> completeAndExclude(Set<TaxIdNode> included, Set<TaxIdNode> excluded, Rank depth) {
-		Set<TaxIdNode> res = withDescendants(included, depth);
-		res.removeAll(withDescendants(excluded, null));
-		return res;
-	}
-
-	/**
 	 * Returns a new set containing the given nodes together with all of their
 	 * descendants, descending only into sub-nodes that are not below the given rank
 	 * {@code depth} (or all descendants if {@code depth} is {@code null}).

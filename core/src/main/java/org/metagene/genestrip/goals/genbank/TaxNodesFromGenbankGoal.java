@@ -37,6 +37,7 @@ import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.tax.TaxNodeSelection;
 
 /**
  * Produces the set of tax ids whose sequence data should additionally be fetched from GenBank: either all
@@ -46,7 +47,7 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
  */
 public class TaxNodesFromGenbankGoal<P extends GSProject> extends ObjectGoal<Set<TaxIdNode>, P> {
 	private final ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal;
-	private final ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal;
+	private final ObjectGoal<TaxNodeSelection, P> taxNodesGoal;
 	private final ObjectGoal<AccessionMap, P> accessionMapGoal;
 
 	/**
@@ -61,7 +62,7 @@ public class TaxNodesFromGenbankGoal<P extends GSProject> extends ObjectGoal<Set
 	@SafeVarargs
 	public TaxNodesFromGenbankGoal(P project,
 			ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
-			ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal,
+			ObjectGoal<TaxNodeSelection, P> taxNodesGoal,
 			ObjectGoal<AccessionMap, P> accessionMapGoal, Goal<P>... deps) {
 		super(project, GSGoalKey.TAXFROMGENBANK, Goal.append(deps, categoriesGoal, taxNodesGoal, accessionMapGoal));
 		this.categoriesGoal = categoriesGoal;
@@ -74,7 +75,7 @@ public class TaxNodesFromGenbankGoal<P extends GSProject> extends ObjectGoal<Set
 			boolean refSeqDB = booleanConfigValue(GSConfigKey.REF_SEQ_DB);
 			Set<TaxIdNode> missingTaxIds = new HashSet<TaxIdNode>();
 			if (!refSeqDB) {
-				missingTaxIds.addAll(taxNodesGoal.get());
+				missingTaxIds.addAll(taxNodesGoal.get().getSelected());
 			}
 			else {
 				// We only get Genomic data from genbank (so far) - so if just RNA is wanted, there is no need to access it.
@@ -83,7 +84,7 @@ public class TaxNodesFromGenbankGoal<P extends GSProject> extends ObjectGoal<Set
 					int limit = intConfigValue(GSConfigKey.REQ_SEQ_LIMIT_FOR_GENBANK);
 					if (limit > 0) {
 						Rank checkRank = (Rank) configValue(GSConfigKey.REQ_SEQ_LIMIT_FOR_GENBANK_RANK);
-						for (TaxIdNode node : taxNodesGoal.get()) {
+						for (TaxIdNode node : taxNodesGoal.get().getSelected()) {
 							if (checkRank == null || checkRank.equals(node.getRank())) {
 								if (node.getRefSeqRegions() < limit) {
 									missingTaxIds.add(node);

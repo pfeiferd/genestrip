@@ -40,6 +40,7 @@ import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.tax.TaxTree;
+import org.metagene.genestrip.tax.TaxNodeSelection;
 
 import java.io.File;
 import java.io.IOException;
@@ -117,7 +118,7 @@ public class KMerIndexBloomGoal<P extends FTProject> extends AbstractKMerIndexGo
      */
     @SafeVarargs
     public KMerIndexBloomGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
-                              ObjectGoal<Set<TaxTree.TaxIdNode>, P> taxNodesGoal,
+                              ObjectGoal<TaxNodeSelection, P> taxNodesGoal,
                               ObjectGoal<TaxTree, P> taxTreeGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
                               ObjectGoal<Map<File, TaxTree.TaxIdNode>, P> additionalGoal,
                               ObjectGoal<AccessionMap, P> accessionMapGoal, ObjectGoal<Database, P> storeGoal,

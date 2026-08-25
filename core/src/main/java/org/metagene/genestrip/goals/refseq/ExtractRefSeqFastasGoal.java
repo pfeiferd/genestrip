@@ -38,6 +38,7 @@ import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.util.ByteArrayUtil;
+import org.metagene.genestrip.tax.TaxNodeSelection;
 
 import java.io.File;
 import java.io.IOException;
@@ -78,7 +79,7 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
      */
     @SafeVarargs
     public ExtractRefSeqFastasGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
-                                   ObjectGoal<Set<TaxTree.TaxIdNode>, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+                                   ObjectGoal<TaxNodeSelection, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
                                    ObjectGoal<Map<File, TaxTree.TaxIdNode>, P> additionalGoal,
                                    ObjectGoal<AccessionMap, P> accessionMapGoal, Goal<P>... deps) {
         super(project, GSGoalKey.EXTRACT_REFSEQ_FASTA, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, accessionMapGoal));
@@ -101,7 +102,7 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
     @Override
     protected AbstractRefSeqFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
         return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
-                taxNodesGoal.get(), isIncludeRefSeqFna() ? accessionMapGoal.get() : null, intConfigValue(GSConfigKey.KMER_SIZE),
+                taxNodesGoal.get().getSelected(), isIncludeRefSeqFna() ? accessionMapGoal.get() : null, intConfigValue(GSConfigKey.KMER_SIZE),
                 intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
                 (Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
                 longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),

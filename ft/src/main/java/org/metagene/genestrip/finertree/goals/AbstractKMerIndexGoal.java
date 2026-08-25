@@ -46,6 +46,7 @@ import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.TaxIdCollector;
 import org.metagene.genestrip.tax.TaxTree;
+import org.metagene.genestrip.tax.TaxNodeSelection;
 
 import java.io.File;
 import java.util.*;
@@ -114,7 +115,7 @@ public abstract class AbstractKMerIndexGoal<T, P extends FTProject> extends Fast
     @SafeVarargs
     public AbstractKMerIndexGoal(P project, GoalKey goalKey, ExecutionContext bundle,
                                  ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
-                                 ObjectGoal<Set<TaxTree.TaxIdNode>, P> taxNodesGoal,
+                                 ObjectGoal<TaxNodeSelection, P> taxNodesGoal,
                                  ObjectGoal<TaxTree, P> taxTreeGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
                                  ObjectGoal<Map<File, TaxTree.TaxIdNode>, P> additionalGoal,
                                  ObjectGoal<AccessionMap, P> accessionMapGoal, ObjectGoal<Database, P> storeGoal,
@@ -142,7 +143,7 @@ public abstract class AbstractKMerIndexGoal<T, P extends FTProject> extends Fast
         TaxIdCollector collector = new TaxIdCollector(taxTreeGoal.get());
         // Quite inefficient but should be good enough at this place.
         Set<TaxTree.TaxIdNode> nodesWithRank = new HashSet<>();
-        for (TaxTree.TaxIdNode node : taxNodesGoal.get()) {
+        for (TaxTree.TaxIdNode node : taxNodesGoal.get().getSelected()) {
             while (node != null) {
                 if (FTConfigKey.RefinementPosition.getMatchingNodeFor(node, refinementIntervals) != null) {
                     nodesWithRank.add(node);

@@ -47,6 +47,7 @@ import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.tax.TaxNodeSelection;
 
 /**
  * Builds the Genestrip goal graph for a project and wires up their dependencies. Also offers
@@ -194,7 +195,7 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
         };
         registerGoal(taxTreeGoal);
 
-        ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal = new TaxNodesGoal(project, taxTreeGoal);
+        ObjectGoal<TaxNodeSelection, P> taxNodesGoal = new TaxNodesGoal<P>(project, taxTreeGoal);
         registerGoal(taxNodesGoal);
 
         // General stuff from RefSeq
@@ -349,10 +350,7 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
         };
         registerGoal(tempDbInfoGoal);
 
-        ExcludedTaxNodesGoal<P> excludedTaxNodesGoal = new ExcludedTaxNodesGoal<P>(project, taxTreeGoal);
-        registerGoal(excludedTaxNodesGoal);
-
-        DBGoal<P> updateDBGoal = new DBGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, excludedTaxNodesGoal, taxTreeGoal,
+        DBGoal<P> updateDBGoal = new DBGoal(project, getExecutionContext(project), categoriesGoal, taxNodesGoal, taxTreeGoal,
                 refSeqFnaFilesGoal, additionalFastasGoal, accessionMapGoal, filledDBGoal, tempDbInfoGoal, projectSetupGoal);
         registerGoal(updateDBGoal);
 

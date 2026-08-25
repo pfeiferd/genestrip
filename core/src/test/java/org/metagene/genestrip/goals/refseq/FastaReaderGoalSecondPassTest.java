@@ -45,6 +45,7 @@ import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
+import org.metagene.genestrip.tax.TaxNodeSelection;
 import org.metagene.genestrip.tax.TaxTree;
 
 /**
@@ -98,7 +99,8 @@ public class FastaReaderGoalSecondPassTest {
                      ObjectGoal<Map<File, TaxTree.TaxIdNode>, GSProject> additionalGoal) {
             super(project, GSGoalKey.FILLSIZE, bundle, constant(project, GSGoalKey.CATEGORIES,
                             Collections.<org.metagene.genestrip.refseq.RefSeqCategory>emptySet()),
-                    constant(project, GSGoalKey.TAXNODES, Collections.<TaxTree.TaxIdNode>emptySet()),
+                    constant(project, GSGoalKey.TAXNODES, new TaxNodeSelection(
+                              Collections.<TaxTree.TaxIdNode>emptySet(), Collections.<TaxTree.TaxIdNode>emptySet())),
                     null, additionalGoal, false);
         }
 

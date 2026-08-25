@@ -54,6 +54,7 @@ import org.metagene.genestrip.tax.TaxTree.IDStringGenerator;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.StringLongDigitTrie;
+import org.metagene.genestrip.tax.TaxNodeSelection;
 
 /**
  * Goal that estimates the deduplicated database size: it streams all selected k-mers through a
@@ -167,7 +168,7 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
      */
     @SafeVarargs
     public FillBloomFilterGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
-                               ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+                               ObjectGoal<TaxNodeSelection, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
                                ObjectGoal<Map<File, TaxIdNode>, P> additionalGoal,
                                ObjectGoal<AccessionMap, P> accessionMapGoal, ObjectGoal<TaxTree, P> taxTreeGoal,
                                ObjectGoal<FillSizeGoal.KMerCounts, P> sizeGoal, Goal<P>... deps) {
@@ -395,7 +396,7 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
             return new String(idBuffer, 0, len);
         };
         MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
-                taxNodesGoal.get(),
+                taxNodesGoal.get().getSelected(),
                 isIncludeRefSeqFna() ? accessionMapGoal.get() : null,
                 intConfigValue(GSConfigKey.KMER_SIZE),
                 filter,

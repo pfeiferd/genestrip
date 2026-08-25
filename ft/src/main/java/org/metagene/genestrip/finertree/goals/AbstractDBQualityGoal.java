@@ -45,6 +45,7 @@ import org.metagene.genestrip.store.RadixKMerStore;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.TaxTree;
+import org.metagene.genestrip.tax.TaxNodeSelection;
 
 import java.io.File;
 import java.util.*;
@@ -112,7 +113,7 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
      */
     @SafeVarargs
     protected AbstractDBQualityGoal(P project, FTGoalKey key, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
-                                    ObjectGoal<Set<TaxTree.TaxIdNode>, P> taxNodesGoal,
+                                    ObjectGoal<TaxNodeSelection, P> taxNodesGoal,
                                     RefSeqFnaFilesDownloadGoal fnaFilesGoal,
                                     ObjectGoal<Map<File, TaxTree.TaxIdNode>, P> additionalGoal,
                                     ObjectGoal<AccessionMap, P> accessionMapGoal, ObjectGoal<Database, P> storeGoal,
@@ -219,7 +220,7 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
          * @param regionsPerTaxid the trie counting regions per tax id
          */
         protected MyFastaReader(StringLong2DigitTrie regionsPerTaxid) {
-            super(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxNodesGoal.get(),
+            super(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxNodesGoal.get().getSelected(),
                     isIncludeRefSeqFna() ? accessionMapGoal.get() : null,
                     intConfigValue(GSConfigKey.KMER_SIZE),
                     intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),

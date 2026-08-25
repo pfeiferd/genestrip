@@ -47,6 +47,7 @@ import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.tax.TaxNodeSelection;
 
 /**
  * Goal that counts the total number of included k-mers (duplicates included) across the selected
@@ -138,7 +139,7 @@ public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<FillSizeG
 	 */
 	@SafeVarargs
 	public FillSizeGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
-						ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+						ObjectGoal<TaxNodeSelection, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
 						ObjectGoal<Map<File, TaxIdNode>, P> additionalGoal,
 						ObjectGoal<AccessionMap, P> accessionMapGoal, Goal<P>... deps) {
 		super(project, GSGoalKey.FILLSIZE, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, Goal.append(deps, accessionMapGoal));
@@ -205,7 +206,7 @@ public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<FillSizeG
 	@Override
 	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
 		MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
-				taxNodesGoal.get(), isIncludeRefSeqFna() ? accessionMapGoal.get() : null, intConfigValue(GSConfigKey.KMER_SIZE),
+				taxNodesGoal.get().getSelected(), isIncludeRefSeqFna() ? accessionMapGoal.get() : null, intConfigValue(GSConfigKey.KMER_SIZE),
 				intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
 				(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
 				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),

@@ -35,6 +35,7 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxIdCollector;
+import org.metagene.genestrip.tax.TaxNodeSelection;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
@@ -44,7 +45,7 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
  *
  * @param <P> the project type
  */
-public class TaxNodesGoal<P extends GSProject> extends ObjectGoal<Set<TaxIdNode>, P> {
+public class TaxNodesGoal<P extends GSProject> extends ObjectGoal<TaxNodeSelection, P> {
 	private final ObjectGoal<TaxTree, P> taxTreeGoal;
 
 	/**
@@ -80,13 +81,25 @@ public class TaxNodesGoal<P extends GSProject> extends ObjectGoal<Set<TaxIdNode>
 				getLogger().debug("Requested tax ids: " + taxIdNodes);
 				getLogger().debug("Excluded tax ids: " + excludes);
 			}
-			taxIdNodes = taxIdCollector.completeAndExclude(taxIdNodes, excludes,
+			// The two sides are not completed alike. An inclusion stops at the configured rank, since
+			// that is how far the taxonomy was asked to be followed; an exclusion reaches all the way
+			// down, because leaving a branch out has to mean the whole branch. Subtracting afterwards
+			// rather than skipping while descending is what makes the order of the lines in the file
+			// irrelevant and an exclusion that no inclusion covers simply do nothing.
+			// The two sides are not completed alike. An inclusion stops at the configured rank, since
+			// that is how far the taxonomy was asked to be followed; an exclusion reaches all the way
+			// down, because leaving a branch out has to mean the whole branch. Subtracting afterwards
+			// rather than skipping while descending is what makes the order of the lines in the file
+			// irrelevant and an exclusion that no inclusion covers simply do nothing.
+			Set<TaxIdNode> excludedTaxNodes = taxIdCollector.withDescendants(excludes, null);
+			taxIdNodes = taxIdCollector.withDescendants(taxIdNodes,
 					(Rank) configValue(GSConfigKey.RANK_COMPLETION_DEPTH));
+			taxIdNodes.removeAll(excludedTaxNodes);
 			if (getLogger().isDebugEnabled()) {
 				getLogger().debug("Number of completed tax ids: " + taxIdNodes.size());
 			}
 			
-			set(taxIdNodes);
+			set(new TaxNodeSelection(taxIdNodes, excludedTaxNodes));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

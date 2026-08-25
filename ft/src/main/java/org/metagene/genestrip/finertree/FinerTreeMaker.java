@@ -43,6 +43,7 @@ import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.TaxTree;
+import org.metagene.genestrip.tax.TaxNodeSelection;
 
 import java.io.File;
 import java.io.IOException;
@@ -111,7 +112,7 @@ public class FinerTreeMaker<P extends FTProject> extends GSMaker<P> {
         registerGoal(projectSetupGoal);
 
         ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal = (ObjectGoal<Set<RefSeqCategory>, P>) getGoal(GSGoalKey.CATEGORIES);
-        ObjectGoal<Set<TaxTree.TaxIdNode>, P> taxNodesGoal = (ObjectGoal<Set<TaxTree.TaxIdNode>, P>) getGoal(GSGoalKey.TAXNODES);
+        ObjectGoal<TaxNodeSelection, P> taxNodesGoal = (ObjectGoal<TaxNodeSelection, P>) getGoal(GSGoalKey.TAXNODES);
         ObjectGoal<TaxTree, P> taxTreeGoal = (ObjectGoal<TaxTree, P>) getGoal(GSGoalKey.TAXTREE);
         RefSeqFnaFilesDownloadGoal fnaFilesGoal = (RefSeqFnaFilesDownloadGoal) getGoal(GSGoalKey.REFSEQFNA);
         ObjectGoal<Map<File, TaxTree.TaxIdNode>, P> additionalGoal = (ObjectGoal<Map<File, TaxTree.TaxIdNode>, P>) getGoal(GSGoalKey.ADD_FASTAS);

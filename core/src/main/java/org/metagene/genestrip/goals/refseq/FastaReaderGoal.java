@@ -36,6 +36,7 @@ import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.util.SimpleBlockingQueue;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
+import org.metagene.genestrip.tax.TaxNodeSelection;
 
 import java.io.File;
 import java.io.IOException;
@@ -55,7 +56,7 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
     /** The goal supplying the set of RefSeq categories to read. */
     protected final ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal;
     /** The goal supplying the set of required taxonomy nodes. */
-    protected final ObjectGoal<Set<TaxTree.TaxIdNode>, P> taxNodesGoal;
+    protected final ObjectGoal<TaxNodeSelection, P> taxNodesGoal;
     /** The goal supplying the downloaded RefSeq {@code .fna} files. */
     protected final RefSeqFnaFilesDownloadGoal fnaFilesGoal;
     /** The goal supplying additional FASTA files mapped to their tax node. */
@@ -92,7 +93,7 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
      * @param dependencies   any further goals this goal depends on
      */
     public FastaReaderGoal(P project, GoalKey key, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
-                           ObjectGoal<Set<TaxTree.TaxIdNode>, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+                           ObjectGoal<TaxNodeSelection, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
                            ObjectGoal<Map<File, TaxTree.TaxIdNode>, P> additionalGoal, Goal<P>... dependencies) {
         this(project, key, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal,
                 project.booleanConfigValue(GSConfigKey.REF_SEQ_DB), dependencies);
@@ -117,7 +118,7 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
      * @param dependencies      any further goals this goal depends on
      */
     public FastaReaderGoal(P project, GoalKey key, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
-                           ObjectGoal<Set<TaxTree.TaxIdNode>, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+                           ObjectGoal<TaxNodeSelection, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
                            ObjectGoal<Map<File, TaxTree.TaxIdNode>, P> additionalGoal, boolean includeRefSeqFna,
                            Goal<P>... dependencies) {
         super(project, key, Goal.append(dependencies, categoriesGoal, taxNodesGoal,

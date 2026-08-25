@@ -47,6 +47,7 @@ import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.tax.TaxNodeSelection;
 
 /**
  * Goal ({@code FILL_DB}) that allocates the k-mer store (a {@link RadixKMerStore} or a sorted array
@@ -81,7 +82,7 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 	 */
 	@SafeVarargs
 	public FillDBGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
-					  ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal,
+					  ObjectGoal<TaxNodeSelection, P> taxNodesGoal,
 					  ObjectGoal<TaxTree, P> taxTreeGoal,
 					  RefSeqFnaFilesDownloadGoal<P> fnaFilesGoal,
 					  ObjectGoal<Map<File, TaxIdNode>, P> additionalGoal,
@@ -139,7 +140,7 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 						" (corresponds to " + ((100d * unused) / store.getSize()) + " %)");
 			}
 			SmallTaxTree smallTaxTree = taxTree.toSmallTaxTree();
-			for (TaxIdNode node : taxNodesGoal.get()) {
+			for (TaxIdNode node : taxNodesGoal.get().getSelected()) {
 				SmallTaxIdNode smallNode = smallTaxTree.getNodeByTaxId(node.getTaxId());
 				if (smallNode != null) {
 					smallNode.setRequested(true);
@@ -188,7 +189,7 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 		// Lookup mode (createNodes = false): the counting pass (FillBloomFilterGoal) already created every
 		// artificial node this fill needs, so no id generator is required - the fill only looks them up.
 		MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
-				taxNodesGoal.get(), isIncludeRefSeqFna() ? accessionMapGoal.get() : null, store,
+				taxNodesGoal.get().getSelected(), isIncludeRefSeqFna() ? accessionMapGoal.get() : null, store,
 				intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
 				(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
 				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),

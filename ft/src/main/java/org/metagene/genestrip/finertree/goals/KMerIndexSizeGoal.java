@@ -38,6 +38,7 @@ import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.util.KMerSampling;
 import org.metagene.genestrip.finertree.probfilter.DistinctPairSketch;
+import org.metagene.genestrip.tax.TaxNodeSelection;
 
 
 import java.io.File;
@@ -106,7 +107,7 @@ public class KMerIndexSizeGoal<P extends FTProject> extends AbstractKMerIndexGoa
      */
     @SafeVarargs
     public KMerIndexSizeGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
-                             ObjectGoal<Set<TaxTree.TaxIdNode>, P> taxNodesGoal,
+                             ObjectGoal<TaxNodeSelection, P> taxNodesGoal,
                              ObjectGoal<TaxTree, P> taxTreeGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
                              ObjectGoal<Map<File, TaxTree.TaxIdNode>, P> additionalGoal,
                              ObjectGoal<AccessionMap, P> accessionMapGoal, ObjectGoal<Database, P> storeGoal,

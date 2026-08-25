@@ -49,6 +49,7 @@ import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.tax.TaxNodeSelection;
 
 /**
  * Goal that builds a per-species statistic of the taxonomic rank at which each of a species' k-mers
@@ -118,7 +119,7 @@ public class KMerRankStatsGoal<P extends GSProject> extends FastaReaderGoal<Map<
 	@SafeVarargs
 	public KMerRankStatsGoal(P project, GoalKey key, ExecutionContext bundle,
 							 ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
-							 ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
+							 ObjectGoal<TaxNodeSelection, P> taxNodesGoal, RefSeqFnaFilesDownloadGoal fnaFilesGoal,
 							 ObjectGoal<Map<File, TaxIdNode>, P> additionalGoal,
 							 ObjectGoal<AccessionMap, P> accessionMapGoal, ObjectGoal<Database, P> dbGoal,
 							 ObjectGoal<TaxTree, P> taxTreeGoal, Goal<P>... deps) {
@@ -173,7 +174,7 @@ public class KMerRankStatsGoal<P extends GSProject> extends FastaReaderGoal<Map<
 
 	@Override
 	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
-		return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxNodesGoal.get(),
+		return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxNodesGoal.get().getSelected(),
 				isIncludeRefSeqFna() ? accessionMapGoal.get() : null, intConfigValue(GSConfigKey.KMER_SIZE),
 				intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
 				(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),

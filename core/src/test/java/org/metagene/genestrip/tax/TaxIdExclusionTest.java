@@ -90,8 +90,14 @@ public class TaxIdExclusionTest {
         write(file, lines);
         Set<TaxIdNode> excludes = new HashSet<>();
         Set<TaxIdNode> included = collector.readFromFile(file, excludes);
+        // The three steps TaxNodesGoal.doMakeThis() takes, in its order: complete the exclusions in
+        // full, complete the inclusions to the requested depth, subtract. Written out rather than
+        // called through the goal, which would want a project and a directory layout to exist; what
+        // is guarded here is the collector the goal is built from.
+        Set<TaxIdNode> remaining = collector.withDescendants(included, null);
+        remaining.removeAll(collector.withDescendants(excludes, null));
         Set<String> res = new TreeSet<>();
-        for (TaxIdNode node : collector.completeAndExclude(included, excludes, null)) {
+        for (TaxIdNode node : remaining) {
             res.add(node.getTaxId());
         }
         return res;

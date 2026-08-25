@@ -50,6 +50,7 @@ import org.metagene.genestrip.store.RadixKMerStore;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.tax.TaxNodeSelection;
 
 /**
  * Goal ({@code UPDATE_DB}) that updates an already-filled database by re-reading the RefSeq (and
@@ -64,8 +65,10 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 	private final ObjectGoal<TaxTree, P> taxTreeGoal;
 	private final ObjectGoal<Database, P> filledStoreGoal;
 	private final GSConfigKey.UpdateScope updateScope;
-	/** The tax ids `taxids.txt' excluded; only ALL_BUT_EXCLUDED consults them. */
-	private final ObjectGoal<Set<TaxIdNode>, P> excludedTaxNodesGoal;
+	/** The tax ids selected for the database, with their descendants; held for the pass. */
+	private Set<TaxIdNode> selectedTaxNodes;
+	/** The tax ids `taxids.txt' struck out, with their descendants; held for the pass. */
+	private Set<TaxIdNode> excludedTaxNodes;
 
 	private KMerStore<String> store;
 
@@ -76,8 +79,6 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 	 * @param bundle the execution context providing worker threads
 	 * @param categoriesGoal the goal supplying the RefSeq categories to include
 	 * @param taxNodesGoal the goal supplying the set of taxonomy nodes
-	 * @param excludedTaxNodesGoal the goal supplying the tax ids {@code taxids.txt} struck out, which
-	 *                             only {@link GSConfigKey.UpdateScope#ALL_BUT_EXCLUDED} consults
 	 * @param taxTreeGoal the goal supplying the taxonomy tree
 	 * @param fnaFilesGoal the goal supplying the downloaded RefSeq FASTA files
 	 * @param additionalGoal the goal supplying additional FASTA files mapped to taxonomy nodes
@@ -87,8 +88,7 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 	 */
 	@SafeVarargs
 	public DBGoal(P project, ExecutionContext bundle, ObjectGoal<Set<RefSeqCategory>, P> categoriesGoal,
-				  ObjectGoal<Set<TaxIdNode>, P> taxNodesGoal,
-				  ObjectGoal<Set<TaxIdNode>, P> excludedTaxNodesGoal,
+				  ObjectGoal<TaxNodeSelection, P> taxNodesGoal,
 				  ObjectGoal<TaxTree, P> taxTreeGoal, RefSeqFnaFilesDownloadGoal<P> fnaFilesGoal,
 				  ObjectGoal<Map<File, TaxIdNode>, P> additionalGoal,
 			ObjectGoal<AccessionMap, P> accessionMapGoal, ObjectGoal<Database, P> filledStoreGoal,
@@ -99,9 +99,8 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 		// precisely the ones of other taxa - which live in the RefSeq release. Skipping it here would
 		// leave every k-mer that a relative also carries claimed for the requested taxon, and reads of
 		// that relative would be reported as the requested one.
-		super(project, GSGoalKey.UPDATE_DB, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, true, Goal.append(deps, taxTreeGoal, excludedTaxNodesGoal, accessionMapGoal, filledStoreGoal));
+		super(project, GSGoalKey.UPDATE_DB, bundle, categoriesGoal, taxNodesGoal, fnaFilesGoal, additionalGoal, true, Goal.append(deps, taxTreeGoal, accessionMapGoal, filledStoreGoal));
 		this.taxTreeGoal = taxTreeGoal;
-		this.excludedTaxNodesGoal = excludedTaxNodesGoal;
 		this.accessionMapGoal = accessionMapGoal;
 		this.filledStoreGoal = filledStoreGoal;
 		updateScope = (GSConfigKey.UpdateScope) project.configValue(GSConfigKey.UPDATE_SCOPE);
@@ -127,32 +126,28 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 	 * {@link GSConfigKey.UpdateScope#OTHER_TAXA_ONLY} says about it and why
 	 * {@link GSConfigKey.UpdateScope#OWN_TAXA_ONLY} leaves it out.
 	 *
-	 * @param scope the configured update scope
-	 * @param taxNodes the tax nodes selected for the database, including their descendants
-	 * @param excludedNodes the tax nodes {@code taxids.txt} struck out, including their descendants
 	 * @param node the node the region resolved to, or {@code null} if its taxon is unknown
 	 * @param fromRefSeqRelease whether the region stems from the RefSeq release rather than from a
 	 *                          fasta the project supplies itself
 	 * @return whether the region's k-mers are to be merged into the store
 	 */
-	static boolean isRegionInScope(GSConfigKey.UpdateScope scope, Set<TaxIdNode> taxNodes,
-			Set<TaxIdNode> excludedNodes, TaxIdNode node, boolean fromRefSeqRelease) {
+	boolean isRegionInScope(TaxIdNode node, boolean fromRefSeqRelease) {
 		if (!fromRefSeqRelease) {
 			return true;
 		}
-		switch (scope) {
+		switch (updateScope) {
 		case OWN_TAXA_ONLY:
 			// An empty selection means no restriction, so every known region qualifies as "ours".
-			return node != null && (taxNodes.isEmpty() || taxNodes.contains(node));
+			return node != null && (selectedTaxNodes.isEmpty() || selectedTaxNodes.contains(node));
 		case OTHER_TAXA_ONLY:
 			// No special case for an empty selection is needed here: nothing is then "ours", so
 			// nothing is skipped, which is the same no-restriction reading as above.
-			return !taxNodes.contains(node);
+			return !selectedTaxNodes.contains(node);
 		case ALL_BUT_EXCLUDED:
 			// Like ALL, except for the branches `taxids.txt' struck out. A region whose taxon is
 			// unknown is not one of them and takes part, as it does under ALL: it cannot raise
 			// anything anyway, the lowest common ancestor with no node being the stored value.
-			return !excludedNodes.contains(node);
+			return !excludedTaxNodes.contains(node);
 		default:
 			return true;
 		}
@@ -163,6 +158,11 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 		try {
 			Database wrapper = filledStoreGoal.get();
 			store = wrapper.getKmerStore();
+			// Once for the whole pass. isRegionInScope() is asked for every region of the release, and
+			// a goal is not a lookup table to be consulted a few hundred thousand times.
+			TaxNodeSelection selection = taxNodesGoal.get();
+			selectedTaxNodes = selection.getSelected();
+			excludedTaxNodes = selection.getExcluded();
 			readFastas();
 			// readFastas() reassigned k-mer values via the bulk update paths, which do not touch the
 			// per-taxid count cache; drop it so it is recomputed on the next read (and baked into the
@@ -183,6 +183,8 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 			throw new RuntimeException(e);
 		} finally {
 			store = null;
+			selectedTaxNodes = null;
+			excludedTaxNodes = null;
 		}
 	}
 
@@ -194,7 +196,7 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 		// only two places that read them, so they would have no effect. Capping the update would be
 		// wrong in any case - a k-mer is raised to the common ancestor of every genome carrying it,
 		// and a genome left out of the fill still carries it.
-		return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxTreeGoal.get(), taxNodesGoal.get(),
+		return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxTreeGoal.get(), taxNodesGoal.get().getSelected(),
 				accessionMapGoal.get(), store,
 				intConfigValue(GSConfigKey.MAX_DUST),
 				intConfigValue(GSConfigKey.KMER_SAMPLING),
@@ -295,7 +297,7 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 				updateNodeFromInfoLine();
 			}
 
-			if (isRegionInScope(updateScope, taxNodes, excludedTaxNodesGoal.get(), node, isRefSeqReleaseRegion())) {
+			if (isRegionInScope(node, isRefSeqReleaseRegion())) {
 				includeRegion = true;
 				if (node != null) {
 					node = reworkNode();
