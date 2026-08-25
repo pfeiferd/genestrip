@@ -90,6 +90,9 @@ public enum GSConfigKey implements ConfigKey {
 	/** Whether to continue downloading when a file is missing on the server. */
 	@MDDescription("If `true`, then a download of files from NCBI will not stop in case a file is missing on the server.")
 	IGNORE_MISSING_FASTAS("ignoreMissingFastas", new BooleanConfigParamInfo(false), GSGoalKey.DB),
+	/** Whether a configuration value the key cannot take ends the run instead of being warned about. */
+	@MDDescription("Whether a configuration value that its key cannot take ends the run. If `false` (the default), such a value is reported as a warning and the key keeps its default, which lets a run proceed with a configuration that says something else than it does: a value a *newer* Genestrip understands and the running one does not is silently ignored this way. Set it to `true` for runs long enough that one wants to hear about that at the start rather than at the end. Unknown keys and keys belonging to another goal stay warnings either way, since one configuration file serves every goal of a project.")
+	STRICT_CONFIG_CHECK("strictConfigCheck", new BooleanConfigParamInfo(false)),
 	/** Number of download attempts per file before giving up. */
 	@MDDescription("The number of download attempts for a file before giving up.")
 	MAX_DOWNLOAD_TRIES("maxDownloadTries", new IntConfigParamInfo(1, 1024, 5), GSGoalKey.DB),

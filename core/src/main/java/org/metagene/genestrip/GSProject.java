@@ -267,6 +267,17 @@ public class GSProject extends Project {
     }
 
     /**
+     * Whether a configuration value the key cannot take ends the run, as
+     * {@link GSConfigKey#STRICT_CONFIG_CHECK} says.
+     *
+     * @return the value of {@code strictConfigCheck}, {@code false} unless the project sets it
+     */
+    @Override
+    protected boolean isStrictConfigCheck() {
+        return booleanConfigValue(GSConfigKey.STRICT_CONFIG_CHECK);
+    }
+
+    /**
      * Loads {@code config.properties} from the given directory, returning empty properties if the
      * file is missing or unreadable.
      *

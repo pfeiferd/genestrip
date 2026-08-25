@@ -291,11 +291,34 @@ public abstract class Project {
 	}
 
 	/**
-	 * Logs warnings for entries of the given properties that reference an unknown key, a key that is
-	 * not valid for the given goal, or an invalid or out-of-range value.
+	 * Whether a configuration value the key cannot take ends the run instead of being reported and
+	 * dropped. {@code false} here; a subclass that has a setting for it says so by overriding.
+	 *
+	 * @return whether an invalid or out-of-range value is an error rather than a warning
+	 */
+	protected boolean isStrictConfigCheck() {
+		return false;
+	}
+
+	/**
+	 * Reports entries of the given properties that reference an unknown key, a key that is not valid
+	 * for the given goal, or an invalid or out-of-range value.
+	 * <p>
+	 * Reports and carries on, the key keeping its default -- unless {@link #isStrictConfigCheck()}
+	 * says otherwise, in which case an invalid or out-of-range value ends the run. Carrying on is not
+	 * free: a database was once built for two and a half hours with
+	 * {@code refseq.updateScope=allButExcluded} in its configuration and {@code ALL} in effect,
+	 * because the running version did not yet know that value. The result looked plausible and
+	 * answered a different question than the one asked. Strict checking is for runs long enough that
+	 * one wants to hear about that at the start rather than at the end.
+	 * <p>
+	 * An unknown key and a key that belongs to another goal stay warnings either way. The second has
+	 * to: one configuration file serves every goal of a project, and each goal checks the whole file,
+	 * so a key meant for another goal is the normal case rather than an error.
 	 *
 	 * @param properties the properties to check
 	 * @param forGoal the goal the properties are checked against
+	 * @throws IllegalArgumentException if a value is invalid or out of range and strict checking is on
 	 */
 	protected void checkConfigProperties(Properties properties, GoalKey forGoal) {
 		for (Object key : properties.keySet()) {
@@ -307,12 +330,30 @@ public abstract class Project {
 			} else {
 				String value = properties.getProperty((String) key);
 				if (!param.getInfo().isValid(value)) {
-					getLogger().warn("Invalid value '" + value + "' for key " + key + ".");
+					complain("Invalid value '" + value + "' for key " + key + ". Allowed: "
+							+ param.getInfo().getMDRangeDescriptor()
+							+ ". (A newer version of Genestrip may know this value - check that the one"
+							+ " you are running is the one you built.)");
 				} else if (!param.getInfo().isInRange(value)) {
-					getLogger().warn("Value '" + value + "' out of range for key " + key + ".");
+					complain("Value '" + value + "' out of range for key " + key + ". Allowed: "
+							+ param.getInfo().getMDRangeDescriptor() + ".");
 				}
 			}
 		}
+	}
+
+	/**
+	 * Reports a bad configuration value, as a warning or as an error according to
+	 * {@link #isStrictConfigCheck()}.
+	 *
+	 * @param message what is wrong with it
+	 * @throws IllegalArgumentException if strict checking is on
+	 */
+	private void complain(String message) {
+		if (isStrictConfigCheck()) {
+			throw new IllegalArgumentException(message);
+		}
+		getLogger().warn(message);
 	}
 	
 	/**
