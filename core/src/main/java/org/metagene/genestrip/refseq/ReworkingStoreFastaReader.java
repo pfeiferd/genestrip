@@ -60,14 +60,10 @@ public abstract class ReworkingStoreFastaReader extends AbstractStoreFastaReader
 	 * @param taxNodes the requested tax nodes
 	 * @param accessionMap the accession-to-taxid map
 	 * @param k the k-mer length
-	 * @param maxGenomesPerTaxId the maximum number of genomes per tax id
-	 * @param maxPerTaxidRank the rank at which the per-tax-id contig limit applies
-	 * @param maxKmersPerTaxId the maximum number of k-mers per tax id
 	 * @param maxDust the maximum allowed low-complexity (dust) run length
 	 * @param kMerSampling the k-mer sampling step size
 	 * @param assemblyAccessionsOnly whether only genomic accessions are considered, dropping `NG_`, `NT_` and `NW_`
 	 * @param contigsPerTaxid the per-taxid contig trie
-	 * @param admittedGenomes the shared set of genome keys admitted so far
 	 * @param enableLowerCaseBases whether lower-case bases are included
 	 * @param taxTree the taxonomy tree holding the artificial nodes
 	 * @param dataNodes whether to rework into an artificial {@code DATA} node
@@ -82,12 +78,12 @@ public abstract class ReworkingStoreFastaReader extends AbstractStoreFastaReader
 	 * @throws IllegalArgumentException if {@code foldTaxaBelow} is set without {@code fileNodes}
 	 */
 	public ReworkingStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-			int maxGenomesPerTaxId, Rank maxPerTaxidRank, long maxKmersPerTaxId, int maxDust, int kMerSampling,
-			boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes, boolean enableLowerCaseBases,
+			int maxDust, int kMerSampling,
+			boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases,
 			TaxTree taxTree, boolean dataNodes, boolean fileNodes, boolean idNodes, boolean createNodes,
 			IDStringGenerator idStringGenerator, Rank foldTaxaBelow) {
-		super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxPerTaxidRank, maxKmersPerTaxId,
-				maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, admittedGenomes, enableLowerCaseBases);
+		super(bufferSize, taxNodes, accessionMap, k,
+				maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases);
 		checkFoldConfig(foldTaxaBelow, fileNodes);
 		this.taxTree = taxTree;
 		this.dataNodes = dataNodes;

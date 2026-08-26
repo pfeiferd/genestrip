@@ -55,6 +55,18 @@ public interface AccessionMap {
 	 */
 	public void optimize();
 	/**
+	 * Returns the genomes a database built from this map is to hold, or {@code null} where
+	 * {@code maxGenomesPerTaxid} is not set and it is to hold all of them.
+	 * <p>
+	 * The selection belongs here because this is where it can be made once and made the same way every
+	 * time: the catalog is read in one pass, in one thread, in a fixed order, and every pass of a build
+	 * asks this map anyway. Deciding while reading the genomes instead would decide differently in each
+	 * pass, since which genomes a limit lets in would follow the order the reader threads reach them.
+	 *
+	 * @return the admitted genomes, or {@code null} if no genome limit is in force
+	 */
+	public GenomeKeyTrie getAdmittedGenomes();
+	/**
 	 * Returns the number of accession entries mapped to the given node.
 	 *
 	 * @param node the tax id node to count entries for.

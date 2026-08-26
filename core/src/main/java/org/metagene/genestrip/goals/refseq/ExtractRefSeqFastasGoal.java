@@ -100,16 +100,12 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
     }
 
     @Override
-    protected AbstractRefSeqFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes) {
+    protected AbstractRefSeqFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
         return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
                 taxNodesGoal.get().getSelected(), isIncludeRefSeqFna() ? accessionMapGoal.get() : null, intConfigValue(GSConfigKey.KMER_SIZE),
-                intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
-                (Rank) configValue(GSConfigKey.MAX_PER_TAXID_RANK),
-                longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
                 intConfigValue(GSConfigKey.KMER_SAMPLING),
                 booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY),
                 contigsPerTaxid,
-                admittedGenomes,
                 booleanConfigValue(GSConfigKey.EXTRACT_REFSEQ_GZIP));
     }
 
@@ -128,18 +124,14 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
          * @param taxNodes the taxonomic nodes to keep contigs for
          * @param accessionMap the accession-to-tax-id map, or {@code null} if not used
          * @param k the k-mer size
-         * @param maxGenomesPerTaxId the maximum number of genomes per tax id
-         * @param maxPerTaxidRank the rank at which the contig limit is applied
-         * @param maxKmersPerTaxId the maximum number of k-mers kept per tax id
          * @param kMerSampling the k-mer sampling step size
          * @param assemblyAccessionsOnly whether only genomic accessions are considered, dropping `NG_`, `NT_` and `NW_`
          * @param contigsPerTaxid the per-tax-id contig counter
-         * @param admittedGenomes the shared set of genome keys admitted so far
          * @param gzip whether the output FASTA files are GZIP-compressed
          */
         public MyFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-                             int maxGenomesPerTaxId, Rank maxPerTaxidRank, long maxKmersPerTaxId, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes, boolean gzip) {
-            super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxPerTaxidRank, maxKmersPerTaxId, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, admittedGenomes);
+                             int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean gzip) {
+            super(bufferSize, taxNodes, accessionMap, k, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid);
             this.gzip = gzip;
         }
 

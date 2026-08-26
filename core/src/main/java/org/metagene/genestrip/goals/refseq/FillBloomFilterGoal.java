@@ -83,7 +83,6 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
          * during the fill itself and cannot be pre-collected).
          */
         private final Set<String> values;
-
         /**
          * Creates a DB size holder.
          *
@@ -310,6 +309,10 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
         for (int i = 0; i < correctedBucketSizes.length; i++) {
             correctedBucketSizes[i] = (int) (bucketSizes[i] * factor) + 1;
         }
+        // The genome selection travels with the value set: this pass created the artificial nodes those
+        // values name, so the fill has to admit exactly the genomes admitted here. It is the sizing
+        // pass's selection, already frozen there and handed on unchanged - this pass followed it rather
+        // than making one of its own, and the fill will do the same.
         DBSize dbSize = new DBSize(correctedBucketSizes, collectedValues);
         if (getLogger().isInfoEnabled()) {
             getLogger().info("Bloom filter size in kmers: " + dbSize.getSize());
@@ -385,7 +388,7 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
     }
 
     @Override
-    protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes) {
+    protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
         // Per-reader artificial-tax-id generator (its buffer is mutated), mirroring FillDBGoal. The
         // shared artificial counter lives on the tree, so ids are unique across reader threads.
         byte[] idBuffer = new byte[128];
@@ -400,14 +403,10 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
                 isIncludeRefSeqFna() ? accessionMapGoal.get() : null,
                 intConfigValue(GSConfigKey.KMER_SIZE),
                 filter,
-                intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
-                (Rank) configValue(GSConfigKey.MAX_PER_TAXID_RANK),
-                longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
                 intConfigValue(GSConfigKey.MAX_DUST),
                 intConfigValue(GSConfigKey.KMER_SAMPLING),
                 booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY),
                 contigsPerTaxid,
-                admittedGenomes,
                 booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES),
                 taxTreeGoal.get(),
                 booleanConfigValue(GSConfigKey.DATA_NODES),
@@ -442,14 +441,10 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
          * @param accessionMap the accession-to-tax-id map, or {@code null} if not used
          * @param k the k-mer size
          * @param filter the temporary Bloom filter to fill
-         * @param maxGenomesPerTaxId the maximum number of genomes per tax id
-         * @param maxPerTaxidRank the rank at which the contig limit is applied
-         * @param maxKmersPerTaxId the maximum number of k-mers kept per tax id
          * @param maxDust the maximum allowed low-complexity (dust) run length
          * @param kMerSampling the k-mer sampling step size
          * @param assemblyAccessionsOnly whether only genomic accessions are considered, dropping `NG_`, `NT_` and `NW_`
          * @param contigsPerTaxid the per-tax-id contig counter
-         * @param admittedGenomes the shared set of genome keys admitted so far
          * @param enableLowerCaseBases whether lower-case bases are processed
          * @param taxTree the taxonomy tree into which artificial nodes are created
          * @param dataNodes whether to rework into an artificial {@code DATA} node
@@ -458,10 +453,10 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
          * @param idStringGenerator generator for artificial tax ids
          */
         public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-                             ProbFilter filter, int maxGenomesPerTaxId, Rank maxPerTaxidRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes, boolean enableLowerCaseBases,
+                             ProbFilter filter, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases,
                              TaxTree taxTree, boolean dataNodes, boolean fileNodes, boolean idNodes, IDStringGenerator idStringGenerator,
                              Rank foldTaxaBelow) {
-            super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxPerTaxidRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, admittedGenomes, enableLowerCaseBases,
+            super(bufferSize, taxNodes, accessionMap, k, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases,
                     taxTree, dataNodes, fileNodes, idNodes, true, idStringGenerator, foldTaxaBelow);
             this.filter = filter;
         }

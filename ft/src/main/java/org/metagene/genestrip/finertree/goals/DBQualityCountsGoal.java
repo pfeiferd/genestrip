@@ -222,8 +222,8 @@ public class DBQualityCountsGoal<P extends FTProject> extends AbstractDBQualityG
     }
 
     @Override
-    protected MyFastaReader newReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes) {
-        return new CountingReader(contigsPerTaxid, admittedGenomes);
+    protected MyFastaReader newReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
+        return new CountingReader(contigsPerTaxid);
     }
 
     /**
@@ -240,10 +240,9 @@ public class DBQualityCountsGoal<P extends FTProject> extends AbstractDBQualityG
          * Creates the reader and its tallies.
          *
          * @param contigsPerTaxid the trie counting contigs per tax id
-         * @param admittedGenomes the shared set of genome keys admitted so far
          */
-        CountingReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes) {
-            super(contigsPerTaxid, admittedGenomes);
+        CountingReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
+            super(contigsPerTaxid);
             tp = new long[nodeCount];
             tpPlusFn = new long[nodeCount];
             tpForNode = new long[nodeCount];

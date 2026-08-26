@@ -133,8 +133,8 @@ public enum GSConfigKey implements ConfigKey {
 			+ "genomes for *S. pneumoniae* where `assembly_summary_refseq.txt` lists 9,263, and 88 to 92 per cent for its neighbours. "
 			+ "A genome enters whole: once its first contig is admitted the rest follow, since half an assembly is not what anybody asks for - "
 			+ "the contigs of one assembly are scattered through the release files rather than gathered, and the genomes admitted are held "
-			+ "as a set for that reason. Where `maxKMersPerTaxid` is set as well it may still cut into an "
-			+ "assembly, and a genome it empties has taken its place all the same, so the limit is an upper bound on genomes rather than a target. "
+			+ "as a set for that reason, once, by the pass that sizes the database - every pass after it follows that selection rather than "
+			+ "making one of its own, which two passes over the same release would not make alike. "
 			+ "It applies to the RefSeq release, which is what needs taming; a fasta a project supplies itself has no accession to group "
 			+ "by and is there because somebody chose it. The limit is approximate: several reader threads admit against a "
 			+ "count each sees for itself, and *which* genomes get in depends on the order the threads read them, the more so as the "
@@ -143,15 +143,8 @@ public enum GSConfigKey implements ConfigKey {
 			+ "computed and the genome count stays at zero.")
 	MAX_GENOMES_PER_TAXID("maxGenomesPerTaxid", new IntConfigParamInfo(1, Integer.MAX_VALUE, Integer.MAX_VALUE),
 			GSGoalKey.DB),
-	/** Maximum number of k-mers stored per tax id. */
-	@MDDescription("The limit for the number of *k*-mers per tax id at which adding more *k*-mers for this tax id to the database stops. "
-			+ "Note, that this is an important parameter to control database size, because in some cases, there are millions of *k*-mers per tax id. "
-			+ "As with `maxGenomesPerTaxid` the limit is approximate, and always in the direction of admitting a few too many: it is checked once per "
-			+ "fasta line rather than per *k*-mer, and against a count taken when the contig began. A value of `0` is within the range and stops "
-			+ "everything, which yields an empty database; there is no value meaning \"no limit\", which is what the default stands for.")
-	MAX_KMERS_PER_TAXID("maxKMersPerTaxid", new LongConfigParamInfo(0, Long.MAX_VALUE, Long.MAX_VALUE)),
-	/** Rank at which the per-tax-id genome and k-mer limits apply. */
-	@MDDescription("The rank for which to consider the parameters `maxGenomesPerTaxid` and `maxKMersPerTaxid`. If `null`, then both limits are counted at the direct tax id under which a contig is stored. "
+	/** Rank at which the per-tax-id genome limit applies. */
+	@MDDescription("The rank for which to consider the parameter `maxGenomesPerTaxid`. If `null`, then the limit is counted at the direct tax id under which a contig is stored. "
 			+ "A lineage that has no ancestor of the given rank - and the taxonomy is full of them - is counted at the tax id under which the contig is stored, so that setting a rank never leaves part of the tree without a limit.")
 	MAX_PER_TAXID_RANK("maxPerTaxidRank", new RankConfigParamInfo(null)),
 
@@ -183,8 +176,12 @@ public enum GSConfigKey implements ConfigKey {
 	ASSEMBLY_ACCESSIONS_ONLY("refseq.assemblyAccessionsOnly", new BooleanConfigParamInfo(false), GSGoalKey.FILL_DB),
 	/** Threshold below which Genbank is consulted for additional genomes. */
 	@MDDescription("Determines whether Genestrip should try to lookup genomic fasta files from Genbank, "
-			+ "if the number of corresponding reference genomes from the RefSeq is below the given limit for a requested tax id including its descendants. "
-			+ "E.g. `refSeq.limitForGenbankAccess=1` would imply that Genbank is consulted if not a single reference genome is found in the RefSeq for a requested tax id. "
+			+ "if the number of RefSeq **contigs** for a requested tax id, its descendants included, is below the given limit. "
+			+ "Contigs, not genomes: what is counted is the accessions the RefSeq catalog lists for the taxon, and a draft assembly "
+			+ "contributes one per contig while a finished one contributes one per replicon, so a single draft genome can already "
+			+ "carry a taxon past a limit of a hundred. Where the intent is *genomes*, set the limit high and let "
+			+ "`genbank.maxPerTaxid` bound what comes back. "
+			+ "E.g. `refSeq.limitForGenbankAccess=1` would imply that Genbank is consulted if the RefSeq lists no contig at all for a requested tax id. "
 			+ "The default `refSeq.limitForGenbankAccess=0` essentially inactivates this feature. "
 			+ "In addition, Genbank access is also influenced by the keys `genbank.fastaQualities`, `genbank.maxPerTaxid` and `genbank.referenceOnly` (see below). "
 			+ "Note that `refSeq.limitForGenbankAccess` is disregarded if `refseq.filldb=false`.")

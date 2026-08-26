@@ -180,7 +180,7 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 	}
 
 	@Override
-	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes) {
+	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
 		TaxTree taxTree = taxTreeGoal.get();
 		boolean idNodes = booleanConfigValue(GSConfigKey.ID_NODES);
 		boolean fileNodes = booleanConfigValue(GSConfigKey.FILE_NODES);
@@ -190,14 +190,10 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 		// artificial node this fill needs, so no id generator is required - the fill only looks them up.
 		MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
 				taxNodesGoal.get().getSelected(), isIncludeRefSeqFna() ? accessionMapGoal.get() : null, store,
-				intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
-				(Rank) configValue(GSConfigKey.MAX_PER_TAXID_RANK),
-				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
 				intConfigValue(GSConfigKey.MAX_DUST),
 				intConfigValue(GSConfigKey.KMER_SAMPLING),
 				booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY),
 				contigsPerTaxid,
-				admittedGenomes,
 				booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES),
 				taxTree, dataNodes, fileNodes, idNodes, null, (Rank) configValue(GSConfigKey.FOLD_TAXA_BELOW));
 		readers.add(fastaReader);
@@ -219,14 +215,10 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 		 * @param taxNodes the requested tax nodes
 		 * @param accessionMap the accession-to-taxid map
 		 * @param store the k-mer store to fill
-		 * @param maxGenomesPerTaxId the maximum number of genomes per tax id
-		 * @param maxPerTaxidRank the rank at which the per-tax-id contig limit applies
-		 * @param maxKmersPerTaxId the maximum number of k-mers per tax id
 		 * @param maxDust the maximum allowed low-complexity (dust) run length
 		 * @param kMerSampling the k-mer sampling step size
 		 * @param assemblyAccessionsOnly whether only genomic accessions are considered, dropping `NG_`, `NT_` and `NW_`
 		 * @param contigsPerTaxid the per-taxid contig trie
-		 * @param admittedGenomes the shared set of genome keys admitted so far
 		 * @param enableLowerCaseBases whether lower-case bases are included
 		 * @param taxTree the taxonomy tree into which artificial nodes are created
 		 * @param dataNodes whether to rework into an artificial {@code DATA} node
@@ -235,10 +227,10 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 		 * @param idStringGenerator generator for artificial tax ids
 		 */
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
-							 KMerStore<String> store, int maxGenomesPerTaxId, Rank maxPerTaxidRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes, boolean enableLowerCaseBases,
+							 KMerStore<String> store, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases,
 							 TaxTree taxTree, boolean dataNodes, boolean fileNodes, boolean idNodes, TaxTree.IDStringGenerator idStringGenerator,
 							 Rank foldTaxaBelow) {
-			super(bufferSize, taxNodes, accessionMap, store.getK(), maxGenomesPerTaxId, maxPerTaxidRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, admittedGenomes, enableLowerCaseBases,
+			super(bufferSize, taxNodes, accessionMap, store.getK(), maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases,
 					taxTree, dataNodes, fileNodes, idNodes, false, idStringGenerator, foldTaxaBelow);
 			this.store = store;
 		}

@@ -265,7 +265,7 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
                 refSeqCatalogGoal, checkSumMapGoal, checkRefSeqRNumGoal);
         registerGoal(refSeqFnaFilesGoal);
 
-        ObjectGoal<AccessionMap, P> accessionMapGoal = new AccessionMapGoal(project, categoriesGoal, taxTreeGoal,
+        ObjectGoal<AccessionMap, P> accessionMapGoal = new AccessionMapGoal(project, categoriesGoal, taxTreeGoal, taxNodesGoal,
                 refSeqCatalogGoal);
         registerGoal(accessionMapGoal);
 

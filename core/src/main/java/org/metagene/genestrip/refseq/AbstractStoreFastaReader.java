@@ -59,20 +59,15 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 	 * @param taxNodes the requested tax nodes
 	 * @param accessionMap the accession-to-taxid map
 	 * @param k the k-mer length
-	 * @param maxGenomesPerTaxId the maximum number of genomes per tax id
-	 * @param maxPerTaxidRank the rank at which the per-tax-id contig limit applies
-	 * @param maxKmersPerTaxId the maximum number of k-mers per tax id
 	 * @param maxDust the maximum allowed low-complexity (dust) run length
 	 * @param kMerSampling the k-mer sampling step size
 	 * @param assemblyAccessionsOnly whether only genomic accessions are considered, dropping `NG_`, `NT_` and `NW_`
 	 * @param contigsPerTaxid the per-taxid contig trie
-	 * @param admittedGenomes the shared set of genome keys admitted so far
 	 * @param enableLowerCaseBases whether lower-case bases are included
 	 */
-	public AbstractStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxPerTaxidRank,
-									long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes,
+	public AbstractStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, 									int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid,
 									boolean enableLowerCaseBases) {
-		super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxPerTaxidRank, maxKmersPerTaxId, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, admittedGenomes);
+		super(bufferSize, taxNodes, accessionMap, k, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid);
 		byteRingBuffer = new CGATLongBuffer(k, maxDust);
 		dustCounter = 0;
 		this.enableLowerCaseBases = enableLowerCaseBases;
@@ -95,31 +90,29 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 	@Override
 	protected void dataLine() {
 		if (includeContig) {
-			if (isAllowMoreKmers()) {
-				// Strip the trailing line terminator(s) the reader includes in 'size': a single '\n',
-				// or '\r\n' for CRLF files. A final line without a trailing newline keeps all bytes
-				// (so its last base is not dropped, and a stray '\r' does not reset the ring buffer).
-				int end = size;
-				while (end > 0 && (target[end - 1] == '\n' || target[end - 1] == '\r')) {
-					end--;
-				}
-				for (int i = 0; i < end; i++) {
-					byteRingBuffer.put(enableLowerCaseBases ? CGAT.cgatToUpperCase(target[i]) : target[i]);
-					bpsInContig++;
-					if (byteRingBuffer.isFilled()) {
-						// Which k-mers are kept follows from the k-mer, not from where in the contig it sits,
-						// so a k-mer is kept in every genome it occurs in or in none - see KMerSampling for
-						// why the database would otherwise misplace the ones it does keep. The canonical
-						// encoding travels on to handleStore(), which would only have to compute it again.
-						long kmer = byteRingBuffer.getStandardKMer();
-						if (KMerSampling.isSampled(kmer, samplingThreshold)) {
-							if (byteRingBuffer.isDust()) {
-								dustCounter++;
-							} else if (handleStore(kmer)) {
-								kmersInContig++;
-							}
-							totalKmers++;
+			// Strip the trailing line terminator(s) the reader includes in 'size': a single '\n',
+			// or '\r\n' for CRLF files. A final line without a trailing newline keeps all bytes
+			// (so its last base is not dropped, and a stray '\r' does not reset the ring buffer).
+			int end = size;
+			while (end > 0 && (target[end - 1] == '\n' || target[end - 1] == '\r')) {
+				end--;
+			}
+			for (int i = 0; i < end; i++) {
+				byteRingBuffer.put(enableLowerCaseBases ? CGAT.cgatToUpperCase(target[i]) : target[i]);
+				bpsInContig++;
+				if (byteRingBuffer.isFilled()) {
+					// Which k-mers are kept follows from the k-mer, not from where in the contig it sits,
+					// so a k-mer is kept in every genome it occurs in or in none - see KMerSampling for
+					// why the database would otherwise misplace the ones it does keep. The canonical
+					// encoding travels on to handleStore(), which would only have to compute it again.
+					long kmer = byteRingBuffer.getStandardKMer();
+					if (KMerSampling.isSampled(kmer, samplingThreshold)) {
+						if (byteRingBuffer.isDust()) {
+							dustCounter++;
+						} else if (handleStore(kmer)) {
+							kmersInContig++;
 						}
+						totalKmers++;
 					}
 				}
 			}

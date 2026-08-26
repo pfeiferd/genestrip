@@ -73,6 +73,7 @@ refseqfna -> refseqcat;
 refseqfna -> checksummap [style=dotted];
 refseqfna -> checkrefseqrnum [style=dotted];
 accmap -> taxtree [style=dotted];
+accmap -> taxnodes [style=dotted];
 accmap -> categories [style=dotted];
 accmap -> refseqcat;
 taxfromgenbank -> categories [style=dotted];

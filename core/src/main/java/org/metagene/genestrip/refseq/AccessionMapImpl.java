@@ -116,7 +116,24 @@ public class AccessionMapImpl implements AccessionMap {
 	/**
 	 * Creates a map that takes as many entries as are put into it.
 	 */
+	/** The genomes a database built from this map is to hold, or null if no genome limit is in force. */
+	private final GenomeKeyTrie admittedGenomes;
+
+	/**
+	 * Creates an empty map holding no genome selection, for a database that is to hold every genome.
+	 */
 	public AccessionMapImpl() {
+		this(null);
+	}
+
+	/**
+	 * Creates an empty map carrying the given genome selection.
+	 *
+	 * @param admittedGenomes the genomes a database built from this map is to hold, or {@code null}
+	 *                        where {@code maxGenomesPerTaxid} is not set
+	 */
+	public AccessionMapImpl(GenomeKeyTrie admittedGenomes) {
+		this.admittedGenomes = admittedGenomes;
 		entries = 0;
 		arena = new byte[INITIAL_CHUNKS][];
 		valueChunks = new TaxIdNode[INITIAL_CHUNKS][];
@@ -400,5 +417,10 @@ public class AccessionMapImpl implements AccessionMap {
 			}
 		}
 		return 0;
+	}
+
+	@Override
+	public GenomeKeyTrie getAdmittedGenomes() {
+		return admittedGenomes;
 	}
 }

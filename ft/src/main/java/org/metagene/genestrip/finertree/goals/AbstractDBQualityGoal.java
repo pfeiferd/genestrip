@@ -177,12 +177,11 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
      * that its last, partial batch can be flushed once the pass is done.
      *
      * @param contigsPerTaxid the trie counting contigs per tax id
-     * @param admittedGenomes the shared set of genome keys admitted so far
      * @return the fasta reader to use for reading the genomic fasta files
      */
     @Override
-    protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes) {
-        MyFastaReader reader = newReader(contigsPerTaxid, admittedGenomes);
+    protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
+        MyFastaReader reader = newReader(contigsPerTaxid);
         readers.add(reader);
         return reader;
     }
@@ -191,10 +190,9 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
      * Creates the reader of this pass, which is the one thing the two goals do not share.
      *
      * @param contigsPerTaxid the trie counting contigs per tax id
-     * @param admittedGenomes the shared set of genome keys admitted so far
      * @return the reader, configured from the project
      */
-    protected abstract MyFastaReader newReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes);
+    protected abstract MyFastaReader newReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid);
 
     /**
      * Fasta reader that, for each *k*-mer read from a genome, resolves the leaf tax node of the record
@@ -220,19 +218,15 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
          * Creates the reader, reading everything but the contigs from the goal's configuration.
          *
          * @param contigsPerTaxid the trie counting contigs per tax id
-         * @param admittedGenomes the shared set of genome keys admitted so far
          */
-        protected MyFastaReader(StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes) {
+        protected MyFastaReader(StringLong2DigitTrie contigsPerTaxid) {
             super(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxNodesGoal.get().getSelected(),
                     isIncludeRefSeqFna() ? accessionMapGoal.get() : null,
                     intConfigValue(GSConfigKey.KMER_SIZE),
-                    intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
-                    (Rank) configValue(GSConfigKey.MAX_PER_TAXID_RANK),
-                    longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
                     intConfigValue(GSConfigKey.MAX_DUST),
                     intConfigValue(GSConfigKey.KMER_SAMPLING),
                     booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY),
-                    contigsPerTaxid, admittedGenomes,
+                    contigsPerTaxid,
                     booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES),
                     booleanConfigValue(GSConfigKey.ID_NODES),
                     booleanConfigValue(GSConfigKey.FILE_NODES),
@@ -240,11 +234,10 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
             // Batched only while no per-taxon limit binds. A batched k-mer is counted after
             // handleStore() has already returned, so the return value can no longer say whether it
             // was, and that value feeds kmersInContig - which endContig() adds to the per-taxon
-            // counters that maxGenomesPerTaxid and maxKMersPerTaxid are enforced from. At the defaults
-            // neither binds and nothing reads those counters back; with either set, the one-at-a-time
-            // path keeps the accounting exact.
-            boolean unlimited = intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID) == Integer.MAX_VALUE
-                    && longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID) == Long.MAX_VALUE;
+            // counters that maxGenomesPerTaxid is enforced from. At the default it does not bind and
+            // nothing reads those counters back; with it set, the one-at-a-time path keeps the
+            // accounting exact.
+            boolean unlimited = intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID) == Integer.MAX_VALUE;
             batch = (kMerSortedArray instanceof RadixKMerStore && unlimited)
                     ? new RadixKMerStore.BatchBuffers(BATCH_SIZE) : null;
         }

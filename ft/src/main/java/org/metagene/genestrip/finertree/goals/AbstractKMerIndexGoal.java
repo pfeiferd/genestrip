@@ -270,23 +270,18 @@ public abstract class AbstractKMerIndexGoal<T, P extends FTProject> extends Fast
      * settings.
      *
      * @param contigsPerTaxid trie of the fasta contigs to read per taxon
-     * @param admittedGenomes the shared set of genome keys admitted so far
      * @return the fasta reader to use for this pass
      */
     @Override
-    protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes) {
+    protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
         MyFastaReader reader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
                 relevantNodes,
                 isIncludeRefSeqFna() ? accessionMapGoal.get() : null,
                 intConfigValue(GSConfigKey.KMER_SIZE),
-                intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
-                (Rank) configValue(GSConfigKey.MAX_PER_TAXID_RANK),
-                longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
                 intConfigValue(GSConfigKey.MAX_DUST),
                 intConfigValue(GSConfigKey.KMER_SAMPLING),
                 booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY),
                 contigsPerTaxid,
-                admittedGenomes,
                 booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES));
         readers.add(reader);
         return reader;
@@ -315,19 +310,15 @@ public abstract class AbstractKMerIndexGoal<T, P extends FTProject> extends Fast
          * @param taxNodes               the tax nodes to be considered
          * @param accessionMap           accession-to-tax-node mapping, or {@code null} if unused
          * @param k                      the k-mer size
-         * @param maxGenomesPerTaxId     the maximum number of genomes per tax id
-         * @param maxPerTaxidRank rank at which the per-taxon contig limit applies
-         * @param maxKmersPerTaxId       maximum number of k-mers to read per taxon
          * @param maxDust                maximum allowed low-complexity (dust) content
          * @param kMerSampling               k-mer sampling step size
          * @param assemblyAccessionsOnly    whether only genomic accessions are considered, dropping `NG_`, `NT_` and `NW_`
          * @param contigsPerTaxid        trie of the fasta contigs to read per taxon
-         * @param admittedGenomes        the shared set of genome keys admitted so far
          * @param enableLowerCaseBases   whether lower-case bases are treated as valid
          */
         public MyFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap,
-                             int k, int maxGenomesPerTaxId, Rank maxPerTaxidRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes, boolean enableLowerCaseBases) {
-            super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxPerTaxidRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, admittedGenomes, enableLowerCaseBases, booleanConfigValue(GSConfigKey.ID_NODES), booleanConfigValue(GSConfigKey.FILE_NODES), booleanConfigValue(GSConfigKey.DATA_NODES));
+                             int k, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases) {
+            super(bufferSize, taxNodes, accessionMap, k, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases, booleanConfigValue(GSConfigKey.ID_NODES), booleanConfigValue(GSConfigKey.FILE_NODES), booleanConfigValue(GSConfigKey.DATA_NODES));
             batch = kmerStore instanceof RadixKMerStore ? new RadixKMerStore.BatchBuffers(BATCH_SIZE) : null;
         }
 
@@ -371,17 +362,6 @@ public abstract class AbstractKMerIndexGoal<T, P extends FTProject> extends Fast
         }
 
         /**
-         * Always allows further k-mers to be read, disabling the usual per-taxon cap so that the
-         * clustering phase has the maximum amount of data available.
-         *
-         * @return always {@code true}
-         */
-        @Override
-        public boolean isAllowMoreKmers() {
-            return true;
-        }
-
-        /**
          * Registers the current k-mer in the filter. If the k-mer is stored in the database below a
          * taxon selected for refinement, the pair is recorded under the direct child of that taxon
          * the contig's leaf lies under, or under {@link #OTHER_VALUE} when there is none - see
@@ -404,8 +384,8 @@ public abstract class AbstractKMerIndexGoal<T, P extends FTProject> extends Fast
                     flushBatch();
                 }
                 // Whether the k-mer ends up in the filter is not known yet. The return value only feeds
-                // kmersInContig, which this reader does not use: it caps nothing (isAllowMoreKmers() is
-                // always true) and endContig(), its only other consumer, is overridden to do nothing.
+                // kmersInContig, which this reader does not use: endContig(), its only consumer, is
+                // overridden to do nothing.
                 return false;
             }
             SmallTaxTree.SmallTaxIdNode storedNode = kmerStore.getLong(kmer, null);
