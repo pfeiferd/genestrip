@@ -173,15 +173,14 @@ public class KMerRankStatsGoal<P extends GSProject> extends FastaReaderGoal<Map<
 	}
 
 	@Override
-	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
+	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes) {
 		return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxNodesGoal.get().getSelected(),
 				isIncludeRefSeqFna() ? accessionMapGoal.get() : null, intConfigValue(GSConfigKey.KMER_SIZE),
-				intConfigValue(GSConfigKey.MAX_CONTIGS_PER_TAXID),
 				intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
-				(Rank) configValue(GSConfigKey.MAX_CONTIGS_PER_TAXID_RANK),
+				(Rank) configValue(GSConfigKey.MAX_PER_TAXID_RANK),
 				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID), intConfigValue(GSConfigKey.MAX_DUST),
 				intConfigValue(GSConfigKey.KMER_SAMPLING), booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY),
-				contigsPerTaxid, booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES));
+				contigsPerTaxid, admittedGenomes, booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES));
 	}
 
 	/**
@@ -247,22 +246,22 @@ public class KMerRankStatsGoal<P extends GSProject> extends FastaReaderGoal<Map<
 		 * @param taxNodes               the requested tax nodes
 		 * @param accessionMap           the accession-to-taxid map
 		 * @param k                      the k-mer length
-		 * @param maxContigsPerTaxId     the maximum number of contigs per tax id
 		 * @param maxGenomesPerTaxId     the maximum number of genomes per tax id
-		 * @param maxContigsPerTaxIdRank the rank at which the per-tax-id contig limit applies
+		 * @param maxPerTaxidRank the rank at which the per-tax-id contig limit applies
 		 * @param maxKmersPerTaxId       the maximum number of k-mers per tax id
 		 * @param maxDust                the maximum allowed low-complexity (dust) run length
 		 * @param kMerSampling               the k-mer sampling step size
 		 * @param assemblyAccessionsOnly    whether only genomic accessions are considered, dropping `NG_`, `NT_` and `NW_`
 		 * @param contigsPerTaxid        the per-taxid contig trie
+		 * @param admittedGenomes        the shared set of genome keys admitted so far
 		 * @param enableLowerCaseBases   whether lower-case bases are included
 		 */
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-							 int maxContigsPerTaxId, int maxGenomesPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int maxDust,
-							 int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid,
+							 int maxGenomesPerTaxId, Rank maxPerTaxidRank, long maxKmersPerTaxId, int maxDust,
+							 int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes,
 							 boolean enableLowerCaseBases) {
-			super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxGenomesPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId,
-					maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases);
+			super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxPerTaxidRank, maxKmersPerTaxId,
+					maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, admittedGenomes, enableLowerCaseBases);
 		}
 
 		@Override

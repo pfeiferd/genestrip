@@ -188,10 +188,10 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 		}
 	}
 
-	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
+	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes) {
 		// Lookup mode (createNodes = false): the artificial data/file/id nodes were created during the
 		// fill; the update only looks them up (using the same key computation as their creation).
-		// The per-taxon limits maxContigsPerTaxid, maxPerTaxidRank and maxKMersPerTaxid are
+		// The per-taxon limits maxGenomesPerTaxid, maxPerTaxidRank and maxKMersPerTaxid are
 		// deliberately not passed on: this reader overrides infoLine() and isAllowMoreKmers(), the
 		// only two places that read them, so they would have no effect. Capping the update would be
 		// wrong in any case - a k-mer is raised to the common ancestor of every genome carrying it,
@@ -201,6 +201,7 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 				intConfigValue(GSConfigKey.MAX_DUST),
 				intConfigValue(GSConfigKey.KMER_SAMPLING),
 				booleanConfigValue(GSConfigKey.UPDATE_WITH_ASSEMBLY_ACCESSIONS_ONLY),
+				null,
 				null,
 				booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES),
 				booleanConfigValue(GSConfigKey.DATA_NODES),
@@ -239,6 +240,7 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 		 * @param kMerSampling the k-mer sampling step size
 		 * @param assemblyAccessionsOnly whether only genomic accessions are considered, dropping `NG_`, `NT_` and `NW_`
 		 * @param contigsPerTaxid the trie of contigs per taxid
+		 * @param admittedGenomes the shared set of genome keys admitted so far
 		 * @param enableLowerCaseBases whether lowercase bases are treated as valid
 		 * @param dataNodes whether artificial {@code DATA} nodes are used
 		 * @param fileNodes whether artificial {@code FILE} nodes are used
@@ -246,14 +248,14 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 		 */
 		@SuppressWarnings("unchecked")
 		public MyFastaReader(int bufferSize, TaxTree taxTree, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, KMerStore<String> store,
-							 int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases,
+							 int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes, boolean enableLowerCaseBases,
 							 boolean dataNodes, boolean fileNodes, boolean idNodes, Rank foldTaxaBelow) {
 			// Lookup mode: the fill already created every artificial node, so no id generator is needed.
-			// The per-taxon contig, genome and k-mer limits are handed to the superclass as their no-limit
+			// The per-taxon genome and k-mer limits are handed to the superclass as their no-limit
 			// values: this reader overrides infoLine() and isAllowMoreKmers(), which are the only
 			// readers of them, so no limit can take effect here and pretending otherwise would only
 			// mislead. See the comment at the call site in createFastaReader().
-			super(bufferSize, taxNodes, accessionMap, store.getK(), Integer.MAX_VALUE, Integer.MAX_VALUE, null, Long.MAX_VALUE, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases,
+			super(bufferSize, taxNodes, accessionMap, store.getK(), Integer.MAX_VALUE, null, Long.MAX_VALUE, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, admittedGenomes, enableLowerCaseBases,
 					taxTree, dataNodes, fileNodes, idNodes, false, null, foldTaxaBelow);
 			this.store = store;
 			if (store instanceof RadixKMerStore) {

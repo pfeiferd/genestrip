@@ -59,20 +59,20 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 	 * @param taxNodes the requested tax nodes
 	 * @param accessionMap the accession-to-taxid map
 	 * @param k the k-mer length
-	 * @param maxContigsPerTaxId the maximum number of contigs per tax id
 	 * @param maxGenomesPerTaxId the maximum number of genomes per tax id
-	 * @param maxContigsPerTaxIdRank the rank at which the per-tax-id contig limit applies
+	 * @param maxPerTaxidRank the rank at which the per-tax-id contig limit applies
 	 * @param maxKmersPerTaxId the maximum number of k-mers per tax id
 	 * @param maxDust the maximum allowed low-complexity (dust) run length
 	 * @param kMerSampling the k-mer sampling step size
 	 * @param assemblyAccessionsOnly whether only genomic accessions are considered, dropping `NG_`, `NT_` and `NW_`
 	 * @param contigsPerTaxid the per-taxid contig trie
+	 * @param admittedGenomes the shared set of genome keys admitted so far
 	 * @param enableLowerCaseBases whether lower-case bases are included
 	 */
-	public AbstractStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxContigsPerTaxId, int maxGenomesPerTaxId, Rank maxContigsPerTaxIdRank,
-									long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid,
+	public AbstractStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxPerTaxidRank,
+									long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes,
 									boolean enableLowerCaseBases) {
-		super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxGenomesPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid);
+		super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxPerTaxidRank, maxKmersPerTaxId, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, admittedGenomes);
 		byteRingBuffer = new CGATLongBuffer(k, maxDust);
 		dustCounter = 0;
 		this.enableLowerCaseBases = enableLowerCaseBases;

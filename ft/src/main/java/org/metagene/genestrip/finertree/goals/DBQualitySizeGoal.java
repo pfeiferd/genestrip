@@ -137,8 +137,8 @@ public class DBQualitySizeGoal<P extends FTProject> extends AbstractDBQualityGoa
     }
 
     @Override
-    protected MyFastaReader newReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
-        return new SketchingReader(contigsPerTaxid);
+    protected MyFastaReader newReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes) {
+        return new SketchingReader(contigsPerTaxid, admittedGenomes);
     }
 
     /** Reader of this pass: it sketches every pair and keeps no tallies, there being none to keep. */
@@ -147,9 +147,10 @@ public class DBQualitySizeGoal<P extends FTProject> extends AbstractDBQualityGoa
          * Creates the reader.
          *
          * @param contigsPerTaxid the trie counting contigs per tax id
+         * @param admittedGenomes the shared set of genome keys admitted so far
          */
-        SketchingReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
-            super(contigsPerTaxid);
+        SketchingReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes) {
+            super(contigsPerTaxid, admittedGenomes);
         }
 
         /**

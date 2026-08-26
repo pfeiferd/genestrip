@@ -24,6 +24,7 @@
  */
 package org.metagene.genestrip.finertree.refseq;
 
+import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
 import org.metagene.genestrip.refseq.AbstractStoreFastaReader;
 import org.metagene.genestrip.refseq.AccessionMap;
 import org.metagene.genestrip.tax.Rank;
@@ -58,21 +59,21 @@ public abstract class AbstractUpdateFastaReader extends AbstractStoreFastaReader
      * @param taxNodes               the tax nodes the database is built for
      * @param accessionMap           the map resolving accessions to tax ids
      * @param k                      the *k*-mer length
-     * @param maxContigsPerTaxId     the maximum number of contigs considered per tax id
      * @param maxGenomesPerTaxId     the maximum number of genomes per tax id
-     * @param maxContigsPerTaxIdRank the rank up to which {@code maxContigsPerTaxId} is applied
+     * @param maxPerTaxidRank the rank at which the per-tax-id genome and k-mer limits are applied
      * @param maxKmersPerTaxId       the maximum number of *k*-mers stored per tax id
      * @param maxDust                the maximum dust (low-complexity) threshold for *k*-mers
      * @param kMerSampling               the step size between consecutive *k*-mers
      * @param assemblyAccessionsOnly    whether only genomic accessions are considered, dropping `NG_`, `NT_` and `NW_`
      * @param contigsPerTaxid        the trie tracking the covered contigs per tax id
+     * @param admittedGenomes        the shared set of genome keys admitted so far
      * @param enableLowerCaseBases   whether lower-case bases are treated as valid bases
      * @param idNodes                whether refinement into id nodes (by accession) is enabled
      * @param fileNodes              whether refinement into file nodes (by file name) is enabled
      * @param dataNodes              whether refinement into the data child node is enabled
      */
-    public AbstractUpdateFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxContigsPerTaxId, int maxGenomesPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases, boolean idNodes, boolean fileNodes, boolean dataNodes) {
-        super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxGenomesPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases);
+    public AbstractUpdateFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxPerTaxidRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes, boolean enableLowerCaseBases, boolean idNodes, boolean fileNodes, boolean dataNodes) {
+        super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxPerTaxidRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, admittedGenomes, enableLowerCaseBases);
         this.idNodes = idNodes;
         this.fileNodes = fileNodes;
         this.dataNodes = dataNodes;

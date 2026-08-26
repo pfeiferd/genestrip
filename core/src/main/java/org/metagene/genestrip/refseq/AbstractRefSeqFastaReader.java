@@ -32,6 +32,7 @@ import org.metagene.genestrip.fasta.AbstractFastaReader;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
+import org.metagene.genestrip.util.DigitTrie;
 import org.metagene.genestrip.util.StringLongDigitTrie;
 
 /**
@@ -45,7 +46,17 @@ import org.metagene.genestrip.util.StringLongDigitTrie;
  * Genomes are counted as well, and for them the accession itself is the evidence. A WGS accession is
  * a letter prefix naming the sequencing project, a two-digit assembly version and a contig number -
  * {@code NZ_CABEIU010000001} - so every contig of one draft assembly carries the same letter prefix,
- * and {@link #genomeKeyLength(byte[], int, int)} cuts the accession there. A finished replicon has no
+ * and {@link #genomeKeyLength(byte[], int, int)} cuts the accession there. The contigs of one
+ * assembly do <em>not</em> arrive together: in {@code bacteria.1.1.genomic.fna.gz} 204 assemblies
+ * come in 4,832 runs, so remembering only the assembly in hand would count each of them two dozen
+ * times. The keys admitted are therefore held in a trie shared by all readers of the pass, keyed on
+ * the range of the info line the accession already occupies, so that a lookup allocates nothing.
+ * <p>
+ * None of that runs unless {@code maxGenomesPerTaxid} is set: without it no key is cut, no trie node
+ * is made and the genome count stays zero, which is what keeps a database that does not ask for the
+ * limit from paying for it. Reads of the trie are unsynchronized, as the counters are, so two readers
+ * arriving at one new genome together may both count it - the same approximation the contig and
+ * k-mer limits make. A finished replicon has no
  * such prefix and stands for itself, which counts a plasmid as a genome of its own: an error of one
  * to three per assembly, against the seventy-odd a contig count is out by. Measured against RefSeq
  * release 233, the prefixes recover 8,919 genomes for <em>S. pneumoniae</em> where
@@ -56,13 +67,6 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected final Set<TaxIdNode> taxNodes;
 	/** Maps sequence accessions to their tax id nodes. */
 	protected final AccessionMap accessionMap;
-	/**
-	 * Maximum number of contigs - fasta entries, not assemblies - to include per tax id. There is no value standing for "no
-	 * limit": the limit is switched off by setting it high, which is what its configured default of
-	 * {@code Integer.MAX_VALUE} does. A value of zero or less admits nothing at all, since the count
-	 * of an existing entry is never below it.
-	 */
-	protected final int maxContigsPerTaxId;
 	/**
 	 * Maximum number of k-mers to include per tax id. As with the contig limit there is no value
 	 * standing for "no limit"; it is switched off by setting it high. Note that zero is within the
@@ -79,9 +83,16 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	 */
 	protected final int maxGenomesPerTaxId;
 	/** Taxonomic rank at which the per-tax-id contig and genome limits are applied. */
-	protected final Rank maxContigsPerTaxIdRank;
+	protected final Rank maxPerTaxidRank;
 	/** Per-tax-id trie counting how many contigs have already been included. */
 	protected final StringLong2DigitTrie contigsPerTaxid;
+	/**
+	 * The genome keys admitted so far, handed in like {@link #contigsPerTaxid} and shared with every
+	 * other reader of the pass - one reader is created per thread, so an instance of its own would
+	 * count each genome once per thread. It must not be static either: a later pass would find every
+	 * genome of the earlier one admitted and let them all through.
+	 */
+	protected final GenomeKeyTrie admittedGenomes;
 	/** The k-mer length. */
 	protected final int k;
 	/** One k-mer in this many is kept, selected by the k-mer itself; see {@code KMerSampling}. */
@@ -111,18 +122,12 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	/** Total number of k-mers included so far. */
 	protected long includedKmers;
 
-	/** The genome key of the last contig seen, or empty while no key is held. */
-	private byte[] lastGenomeKey = new byte[32];
-	/** Length of the key in {@link #lastGenomeKey}, or -1 while no key is held. */
-	private int lastGenomeKeyLength = -1;
-	/** The node the genome of {@link #lastGenomeKey} was counted at. */
-	private TaxIdNode lastGenomeNode;
-	/** Whether the genome of {@link #lastGenomeKey} was admitted. */
-	private boolean lastGenomeAdmitted;
-	/** Whether the genome of {@link #lastGenomeKey} has already been counted at its node. */
-	private boolean lastGenomeCounted;
-	/** Whether the current contig is the first of a newly admitted genome, so that it counts as one. */
-	protected boolean firstContigOfGenome;
+	/**
+	 * Whether the genome limit is in force. Nothing of the genome machinery runs while it is not: no
+	 * key is cut from an accession, no trie node is touched and no genome is counted, so a database
+	 * that does not ask for the limit pays nothing for it.
+	 */
+	private final boolean limitGenomes;
 	/** Start of the accession within {@link #target}, or -1 if the info line carried none. */
 	private int accessionStart = -1;
 	/** End of the accession within {@link #target} (exclusive). */
@@ -136,17 +141,18 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	 * @param taxNodes               the set of tax id nodes of interest
 	 * @param accessionMap           maps sequence accessions to their tax id nodes
 	 * @param k                      the k-mer length
-	 * @param maxContigsPerTaxId     the maximum number of contigs per tax id
 	 * @param maxGenomesPerTaxId     the maximum number of genomes per tax id
-	 * @param maxContigsPerTaxIdRank the rank at which the contig and genome limits are applied
+	 * @param maxPerTaxidRank the rank at which the contig and genome limits are applied
 	 * @param maxKmersPerTaxId       the maximum number of k-mers per tax id
 	 * @param kMerSampling               the step size between successive k-mers
 	 * @param assemblyAccessionsOnly    whether only genomic accessions are considered, dropping `NG_`, `NT_` and `NW_`
 	 * @param contigsPerTaxid        the trie counting included contigs per tax id
+	 * @param admittedGenomes        the shared set of genome keys admitted so far
 	 */
-	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxContigsPerTaxId,
-									 int maxGenomesPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId,
-									 int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid) {
+	public AbstractRefSeqFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
+									 int maxGenomesPerTaxId, Rank maxPerTaxidRank, long maxKmersPerTaxId,
+									 int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid,
+									 GenomeKeyTrie admittedGenomes) {
 		super(bufferSize);
 		this.taxNodes = taxNodes;
 		this.accessionMap = accessionMap;
@@ -156,9 +162,10 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		ignoreMap = false;
 		includedKmers = 0;
 		this.contigsPerTaxid = contigsPerTaxid;
-		this.maxContigsPerTaxId = maxContigsPerTaxId;
+		this.admittedGenomes = admittedGenomes;
 		this.maxGenomesPerTaxId = maxGenomesPerTaxId;
-		this.maxContigsPerTaxIdRank = maxContigsPerTaxIdRank;
+		this.limitGenomes = maxGenomesPerTaxId != Integer.MAX_VALUE;
+		this.maxPerTaxidRank = maxPerTaxidRank;
 		this.maxKmersPerTaxId = maxKmersPerTaxId;
 		this.assemblyAccessionsOnly = assemblyAccessionsOnly;
 	}
@@ -168,7 +175,6 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	 */
 	public void readFasta(File file) throws IOException {
 		this.file = file;
-		lastGenomeKeyLength = -1;
 		super.readFasta(file);
 	}
 
@@ -230,12 +236,8 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		if (includeContig) {
 			includedKmers += kmersInContig;
 			if (node != null) {
-				int genomes = firstContigOfGenome ? 1 : 0;
 				for (TaxIdNode n = node; n != null; n = n.getParent()) {
-					contigsPerTaxid.incAndAdd(n.getTaxId(), kmersInContig, genomes);
-				}
-				if (firstContigOfGenome) {
-					lastGenomeCounted = true;
+					contigsPerTaxid.incAndAdd(n.getTaxId(), kmersInContig);
 				}
 			}
 		}
@@ -245,7 +247,7 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	 * Processes a contig header: resolves the contig's tax id node and decides whether the contig is
 	 * included, based on the configured per-tax-id contig and k-mer limits.
 	 * <p>
-	 * With a {@code maxContigsPerTaxIdRank} configured, the limits are counted at the first ancestor of
+	 * With a {@code maxPerTaxidRank} configured, the limits are counted at the first ancestor of
 	 * that rank. A lineage that has no such ancestor - and the taxonomy is full of them - is capped at
 	 * its own node instead. Leaving it uncapped, as this once did by falling out of the search loop
 	 * without checking anything, means that configuring a rank silently exempts part of the tree from a
@@ -267,9 +269,9 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 			includeContig = true;
 			kMersForNode = 0;
 			TaxIdNode limitNode = node;
-			if (maxContigsPerTaxIdRank != null) {
+			if (maxPerTaxidRank != null) {
 				for (TaxIdNode n = node; n != null; n = n.getParent()) {
-					if (maxContigsPerTaxIdRank.equals(n.getRank())) {
+					if (maxPerTaxidRank.equals(n.getRank())) {
 						limitNode = n;
 						break;
 					}
@@ -277,66 +279,56 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 			}
 			StringLong2DigitTrie.StringLong2 sl =
 					(StringLong2DigitTrie.StringLong2) contigsPerTaxid.get(limitNode.getTaxId());
-			if (!holdsGenomeOf(limitNode)) {
-				// A genome new to this node: decide once, here, and let the rest of its contigs follow
-				// the decision. Read without holding the entry's monitor; see the trie entry's comment.
-				lastGenomeAdmitted = sl == null || sl.getGenomeValue() < maxGenomesPerTaxId;
-				lastGenomeCounted = false;
-				lastGenomeNode = limitNode;
-			}
-			firstContigOfGenome = lastGenomeAdmitted && !lastGenomeCounted;
-			if (!lastGenomeAdmitted) {
+			if (limitGenomes && !admitGenome(sl)) {
 				includeContig = false;
 			}
 			if (sl != null) {
 				// Read without holding the entry's monitor, so these may be behind what other reader
 				// threads have already added; see the class comment of the trie entry.
 				kMersForNode = sl.longValue2;
-				if (kMersForNode >= maxKmersPerTaxId || sl.getLongValue() >= maxContigsPerTaxId) {
+				if (kMersForNode >= maxKmersPerTaxId) {
 					includeContig = false;
 				}
 			}
 		}
 		else {
 			includeContig = false;
-			firstContigOfGenome = false;
 		}
 	}
 
 	/**
-	 * Returns whether the contig in hand belongs to the genome whose decision is currently held, and
-	 * takes hold of its genome instead if it does not.
+	 * Decides whether the genome of the contig in hand is in, counting it at the contig's node and
+	 * every ancestor if it is the first contig of it that any reader has seen.
 	 * <p>
-	 * The node is part of the question: the same sequencing project appearing under two tax ids is two
-	 * genomes as far as a per-tax-id limit is concerned. A contig from a fasta the project supplies
-	 * itself carries no accession, and there the file is the genome - {@link #readFasta(File)} drops
-	 * the held key, so the first contig of each such file starts one.
+	 * A genome already admitted stays admitted whatever the counts now say: it entered whole or not at
+	 * all, and its remaining contigs are not to be turned away because other genomes filled the limit
+	 * meanwhile. That is why the admitted genomes are held rather than the genome in hand - the contigs
+	 * of one assembly are scattered through the release files, 204 assemblies arriving in 4,832 runs in
+	 * {@code bacteria.1.1.genomic.fna.gz}.
+	 * <p>
+	 * The limit applies to the RefSeq release only. A fasta the project supplies itself carries no
+	 * accession to group by, and it is there because somebody chose it; the release is what needs
+	 * taming. Two readers reaching two different genomes at once may both find room for the last place
+	 * and take it, which is the same approximation the contig limit makes.
 	 *
-	 * @param limitNode the node the limits are counted at for this contig
-	 * @return whether the held genome is the one this contig belongs to
+	 * @param entry the counting entry of the limit node, or null while it has none yet
+	 * @return whether the contig's genome is admitted
 	 */
-	private boolean holdsGenomeOf(TaxIdNode limitNode) {
-		int length = accessionEnd < 0 ? 0 : genomeKeyLength(target, accessionStart, accessionEnd);
-		if (lastGenomeKeyLength == length && lastGenomeNode == limitNode) {
-			boolean same = true;
-			for (int i = 0; i < length; i++) {
-				if (lastGenomeKey[i] != target[accessionStart + i]) {
-					same = false;
-					break;
-				}
-			}
-			if (same) {
-				return true;
-			}
+	private boolean admitGenome(StringLong2DigitTrie.StringLong2 entry) {
+		if (!isRefSeqReleaseContig() || accessionEnd <= accessionStart) {
+			return true;
 		}
-		if (lastGenomeKey.length < length) {
-			lastGenomeKey = new byte[length];
+		int end = accessionStart + genomeKeyLength(target, accessionStart, accessionEnd);
+		if (admittedGenomes.get(target, accessionStart, end) != null) {
+			return true;
 		}
-		for (int i = 0; i < length; i++) {
-			lastGenomeKey[i] = target[accessionStart + i];
+		// Read without holding the entry's monitor; see the class comment of the trie entry.
+		if (entry != null && entry.getGenomeValue() >= maxGenomesPerTaxId) {
+			return false;
 		}
-		lastGenomeKeyLength = length;
-		return false;
+		// Creating the entry is what counts the genome, once, whoever gets there first.
+		admittedGenomes.get(target, accessionStart, end, node);
+		return true;
 	}
 
 	/**
@@ -425,6 +417,68 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	}
 
 	/**
+	 * The set of admitted genome keys, as a trie over the alphabet accessions are written in.
+	 * <p>
+	 * A trie because the key is a range of the info line already in hand: looking one up costs a few
+	 * array reads and allocates nothing, where a hash set would want a {@code String} per contig.
+	 * Creation is what counts the genome, so it happens once per key however many readers arrive at it
+	 * together - {@code DigitTrie} creates a value under the node's own monitor.
+	 * <p>
+	 * {@code get(seq, start, end)} answers whether a genome is already in, and
+	 * {@code get(seq, start, end, node)} admits it and counts it along that node's lineage.
+	 */
+	public static final class GenomeKeyTrie extends DigitTrie<Boolean> {
+		private static final long serialVersionUID = 1L;
+
+		/** The per-tax-id counters a newly admitted genome is added to. */
+		private final StringLong2DigitTrie contigsPerTaxid;
+
+		/**
+		 * Creates an empty set of admitted genomes counting into the given per-tax-id counters.
+		 *
+		 * @param contigsPerTaxid the counters a newly admitted genome is added to
+		 */
+		public GenomeKeyTrie(StringLong2DigitTrie contigsPerTaxid) {
+			this.contigsPerTaxid = contigsPerTaxid;
+		}
+
+		/** Digits, then the upper-case letters, then the underscore, then anything else. */
+		@Override
+		protected int mapToIndex(byte bite, int pos) {
+			if (bite >= '0' && bite <= '9') {
+				return bite - '0';
+			}
+			if (bite >= 'A' && bite <= 'Z') {
+				return bite - 'A' + 10;
+			}
+			return bite == '_' ? 36 : 37;
+		}
+
+		@Override
+		protected int range(int pos) {
+			return 38;
+		}
+
+		/**
+		 * Counts the genome along the lineage of the node passed as the create context. Called once per
+		 * key, by whichever reader got there first.
+		 *
+		 * @param seq           the byte array holding the genome key
+		 * @param start         the start index of the key (inclusive)
+		 * @param end           the end index of the key (exclusive)
+		 * @param createContext the node the contig is filed at
+		 * @return {@code TRUE}, the value marking a genome as admitted
+		 */
+		@Override
+		protected Boolean createInGet(byte[] seq, int start, int end, Object createContext) {
+			for (TaxIdNode n = (TaxIdNode) createContext; n != null; n = n.getParent()) {
+				contigsPerTaxid.incGenomes(n.getTaxId());
+			}
+			return Boolean.TRUE;
+		}
+	}
+
+	/**
 	 * A {@link StringLongDigitTrie} whose entries additionally track a second long value (the
 	 * accumulated k-mer count) alongside the contig count.
 	 */
@@ -436,15 +490,23 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		}
 
 		/**
-		 * Increments the contig count, adds {@code add} to the k-mer count and {@code genomes} to the
-		 * genome count for the given key, creating the entry if necessary.
+		 * Increments the contig count and adds {@code add} to the k-mer count for the given key,
+		 * creating the entry if necessary.
 		 *
-		 * @param key     the tax id key of the entry
-		 * @param add     the number of k-mers to add to the entry's k-mer count
-		 * @param genomes one if this contig is the first of a genome not yet counted here, else zero
+		 * @param key the tax id key of the entry
+		 * @param add the number of k-mers to add to the entry's k-mer count
 		 */
-		public void incAndAdd(String key, long add, int genomes) {
-			((StringLong2) get(key, this)).incAndAdd(add, genomes);
+		public void incAndAdd(String key, long add) {
+			((StringLong2) get(key, this)).incAndAdd(add);
+		}
+
+		/**
+		 * Increments the genome count for the given key, creating the entry if necessary.
+		 *
+		 * @param key the tax id key of the entry
+		 */
+		public void incGenomes(String key) {
+			((StringLong2) get(key, this)).incGenomes();
 		}
 
 		/**
@@ -500,16 +562,20 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 			}
 
 			/**
-			 * Increments the contig count, adds {@code add} to the k-mer count and {@code genomes} to
-			 * the genome count.
+			 * Increments the contig count and adds {@code add} to the k-mer count.
 			 *
-			 * @param add     the number of k-mers to add to the k-mer count
-			 * @param genomes one if this contig is the first of a genome not yet counted here, else zero
+			 * @param add the number of k-mers to add to the k-mer count
 			 */
-			public synchronized void incAndAdd(long add, int genomes) {
+			public synchronized void incAndAdd(long add) {
 				longValue++;
 				longValue2 += add;
-				longValue3 += genomes;
+			}
+
+			/**
+			 * Increments the genome count.
+			 */
+			public synchronized void incGenomes() {
+				longValue3++;
 			}
 
 			/**

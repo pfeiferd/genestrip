@@ -146,6 +146,10 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
         readyForAnotherPass();
         BlockingQueue<FileAndNode> blockingQueue = null;
         AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid = new AbstractRefSeqFastaReader.StringLong2DigitTrie();
+        // The two go together and are made here for the same reason: one reader is created per thread
+        // below, and both have to be the instance all of them share.
+        AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes =
+                new AbstractRefSeqFastaReader.GenomeKeyTrie(contigsPerTaxid);
         // Reading order does not affect what a k-mer ends up mapped to, whatever `updateScope' is: the
         // update only touches k-mers already present in the DB, and each is merged into the lowest
         // common ancestor of its stored node and the nodes of the contigs it occurs in. That merge is
@@ -155,7 +159,7 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
         // Which contigs those are is a different matter, and is not order-independent once a per-taxon
         // limit binds: a contig is admitted while its taxon's counters are still below the limit, and
         // which thread reaches a taxon first decides which of its genomes get in. A database built
-        // with maxContigsPerTaxid or maxKMersPerTaxid set is therefore not reproducible across runs or
+        // with maxGenomesPerTaxid or maxKMersPerTaxid set is therefore not reproducible across runs or
         // thread counts, and the passes sharing those limits - fillsize, tempindex and filldb - may
         // pick somewhat different subsets, which is why the size they agree on is an estimate and the
         // filter built from it is checked against what actually arrived. At the defaults, where
@@ -163,10 +167,10 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
         if (bundle.getThreads() > 0) {
             blockingQueue = createBlockingQueue(intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE));
             for (int i = 0; i < bundle.getThreads(); i++) {
-                bundle.execute(createFastaReaderRunnable(i, blockingQueue, contigsPerTaxid));
+                bundle.execute(createFastaReaderRunnable(i, blockingQueue, contigsPerTaxid, admittedGenomes));
             }
         }
-        AbstractRefSeqFastaReader fastaReader = createFastaReader(contigsPerTaxid);
+        AbstractRefSeqFastaReader fastaReader = createFastaReader(contigsPerTaxid, admittedGenomes);
 
         int sumFiles = 0;
         List<File> refSeqFiles = isIncludeRefSeqFna() ? fnaFilesGoal.getFiles() : Collections.emptyList();
@@ -329,12 +333,13 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
      * @param i               the index of the consumer thread
      * @param blockingQueue   the queue supplying files to read
      * @param contigsPerTaxid the shared trie tracking how many contigs were seen per taxid
+     * @param admittedGenomes the shared set of genome keys admitted so far
      * @return the consumer runnable
      */
     protected Runnable createFastaReaderRunnable(int i,
                                                  BlockingQueue<FileAndNode> blockingQueue,
-                                                 AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
-        AbstractRefSeqFastaReader fastaReader = createFastaReader(contigsPerTaxid);
+                                                 AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes) {
+        AbstractRefSeqFastaReader fastaReader = createFastaReader(contigsPerTaxid, admittedGenomes);
         return new Runnable() {
             @Override
             public void run() {
@@ -376,9 +381,10 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
      * {@code contigsPerTaxid} trie tracks how many contigs have been seen per taxid.
      *
      * @param contigsPerTaxid the shared trie tracking how many contigs were seen per taxid
+     * @param admittedGenomes the shared set of genome keys admitted so far
      * @return the FASTA reader that processes each contig
      */
-    protected abstract AbstractRefSeqFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid);
+    protected abstract AbstractRefSeqFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes);
 
     /**
      * In addition to discarding the result, aborts a pass that may still be reading.

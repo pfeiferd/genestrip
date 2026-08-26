@@ -73,9 +73,9 @@ public class FastaReaderGoalSecondPassTest {
         private final AtomicInteger contigs;
 
         CountingReader(Set<TaxTree.TaxIdNode> taxNodes, AtomicInteger contigs,
-                       StringLong2DigitTrie contigsPerTaxid) {
-            super(4096, taxNodes, null, 31, Integer.MAX_VALUE, Integer.MAX_VALUE, null, Long.MAX_VALUE, 1, false,
-                    contigsPerTaxid);
+                       StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes) {
+            super(4096, taxNodes, null, 31, Integer.MAX_VALUE, null, Long.MAX_VALUE, 1, false,
+                    contigsPerTaxid, admittedGenomes);
             this.contigs = contigs;
         }
 
@@ -106,8 +106,8 @@ public class FastaReaderGoalSecondPassTest {
 
         @Override
         protected AbstractRefSeqFastaReader createFastaReader(
-                AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
-            return new CountingReader(Collections.singleton(NODE), contigs, contigsPerTaxid);
+                AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes) {
+            return new CountingReader(Collections.singleton(NODE), contigs, contigsPerTaxid, new AbstractRefSeqFastaReader.GenomeKeyTrie(contigsPerTaxid));
         }
 
         @Override

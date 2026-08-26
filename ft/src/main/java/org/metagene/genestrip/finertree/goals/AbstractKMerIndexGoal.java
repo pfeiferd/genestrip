@@ -270,22 +270,23 @@ public abstract class AbstractKMerIndexGoal<T, P extends FTProject> extends Fast
      * settings.
      *
      * @param contigsPerTaxid trie of the fasta contigs to read per taxon
+     * @param admittedGenomes the shared set of genome keys admitted so far
      * @return the fasta reader to use for this pass
      */
     @Override
-    protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
+    protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes) {
         MyFastaReader reader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
                 relevantNodes,
                 isIncludeRefSeqFna() ? accessionMapGoal.get() : null,
                 intConfigValue(GSConfigKey.KMER_SIZE),
-                intConfigValue(GSConfigKey.MAX_CONTIGS_PER_TAXID),
                 intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
-                (Rank) configValue(GSConfigKey.MAX_CONTIGS_PER_TAXID_RANK),
+                (Rank) configValue(GSConfigKey.MAX_PER_TAXID_RANK),
                 longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
                 intConfigValue(GSConfigKey.MAX_DUST),
                 intConfigValue(GSConfigKey.KMER_SAMPLING),
                 booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY),
                 contigsPerTaxid,
+                admittedGenomes,
                 booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES));
         readers.add(reader);
         return reader;
@@ -314,19 +315,19 @@ public abstract class AbstractKMerIndexGoal<T, P extends FTProject> extends Fast
          * @param taxNodes               the tax nodes to be considered
          * @param accessionMap           accession-to-tax-node mapping, or {@code null} if unused
          * @param k                      the k-mer size
-         * @param maxContigsPerTaxId     maximum number of contigs to read per taxon
          * @param maxGenomesPerTaxId     the maximum number of genomes per tax id
-         * @param maxContigsPerTaxIdRank rank at which the per-taxon contig limit applies
+         * @param maxPerTaxidRank rank at which the per-taxon contig limit applies
          * @param maxKmersPerTaxId       maximum number of k-mers to read per taxon
          * @param maxDust                maximum allowed low-complexity (dust) content
          * @param kMerSampling               k-mer sampling step size
          * @param assemblyAccessionsOnly    whether only genomic accessions are considered, dropping `NG_`, `NT_` and `NW_`
          * @param contigsPerTaxid        trie of the fasta contigs to read per taxon
+         * @param admittedGenomes        the shared set of genome keys admitted so far
          * @param enableLowerCaseBases   whether lower-case bases are treated as valid
          */
         public MyFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap,
-                             int k, int maxContigsPerTaxId, int maxGenomesPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases) {
-            super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxGenomesPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases, booleanConfigValue(GSConfigKey.ID_NODES), booleanConfigValue(GSConfigKey.FILE_NODES), booleanConfigValue(GSConfigKey.DATA_NODES));
+                             int k, int maxGenomesPerTaxId, Rank maxPerTaxidRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, AbstractRefSeqFastaReader.GenomeKeyTrie admittedGenomes, boolean enableLowerCaseBases) {
+            super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxPerTaxidRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, admittedGenomes, enableLowerCaseBases, booleanConfigValue(GSConfigKey.ID_NODES), booleanConfigValue(GSConfigKey.FILE_NODES), booleanConfigValue(GSConfigKey.DATA_NODES));
             batch = kmerStore instanceof RadixKMerStore ? new RadixKMerStore.BatchBuffers(BATCH_SIZE) : null;
         }
 
