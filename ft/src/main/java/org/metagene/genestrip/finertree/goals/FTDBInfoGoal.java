@@ -24,6 +24,7 @@
  */
 package org.metagene.genestrip.finertree.goals;
 
+import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.finertree.FTGoalKey;
 import org.metagene.genestrip.finertree.FTProject;
@@ -82,7 +83,8 @@ public class FTDBInfoGoal<P extends FTProject> extends FileListGoal<P> {
 		try {
 			Database wrapper = storeGoal.get();
 			try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
-				new ResultReporter().printStoreInfo(wrapper, out);
+				new ResultReporter().printStoreInfo(wrapper, out,
+						booleanConfigValue(GSConfigKey.DB_INFO_WITH_DISTANCE));
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);

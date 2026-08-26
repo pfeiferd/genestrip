@@ -57,17 +57,22 @@ public class ResultReporter {
 
     /**
      * Prints one CSV row per taxonomy node describing the database: level, name, rank,
-     * tax id, stored k-mer count, requested flag and evolutionary distances.
+     * tax id, stored k-mer count, requested flag and, if asked for, the evolutionary distances.
+     * <p>
+     * The distance columns are off unless {@code dbInfoWithDistance} says otherwise, the estimate
+     * behind them not being settled yet; with them off nothing computes them either.
      *
-     * @param database the database whose store information is reported
-     * @param out      the stream to write the CSV rows to
+     * @param database     the database whose store information is reported
+     * @param out          the stream to write the CSV rows to
+     * @param withDistance whether to compute and write the distance columns
      */
-    public void printStoreInfo(Database database, PrintStream out) {
+    public void printStoreInfo(Database database, PrintStream out, boolean withDistance) {
         Object2LongMap<String> stats = database.getStats();
-        final double invK = 1d / database.getKmerStore().getK();
-        Map<SmallTaxIdNode, EvoDistanceEstimator.DistanceInfo> distanceInfoMap = new EvoDistanceEstimator().computeDistances(database);
+        Map<SmallTaxIdNode, EvoDistanceEstimator.DistanceInfo> distanceInfoMap =
+                withDistance ? new EvoDistanceEstimator().computeDistances(database) : null;
 
-        out.println("pos;level;name;rank;taxid;stored kmers;requested;distance;distance portion;");
+        out.print("pos;level;name;rank;taxid;stored kmers;requested;");
+        out.println(withDistance ? "distance;distance portion;" : "");
 
         out.print("0;0;TOTAL;");
         out.print(Rank.NO_RANK);
@@ -78,7 +83,7 @@ public class ResultReporter {
         }
         out.print(';');
         out.print(stats.getLong(null));
-        out.println(";false;0;0;");
+        out.println(withDistance ? ";false;0;0;" : ";false;");
 
         int i = 1;
         Iterator<SmallTaxIdNode> it = database.getTaxTree().iterator();
@@ -98,11 +103,14 @@ public class ResultReporter {
             out.print(';');
             out.print(taxNode.isRequested());
             out.print(';');
-            EvoDistanceEstimator.DistanceInfo distanceInfo = distanceInfoMap.get(taxNode);
-            out.print(DF.format(distanceInfo.getDistance()));
-            out.print(';');
-            out.print(DF.format(distanceInfo.getDistancePortion()));
-            out.println(';');
+            if (withDistance) {
+                EvoDistanceEstimator.DistanceInfo distanceInfo = distanceInfoMap.get(taxNode);
+                out.print(DF.format(distanceInfo.getDistance()));
+                out.print(';');
+                out.print(DF.format(distanceInfo.getDistancePortion()));
+                out.print(';');
+            }
+            out.println();
         }
     }
 

@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 
+import org.metagene.genestrip.GSConfigKey;
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
 import org.metagene.genestrip.io.StreamProvider;
@@ -77,7 +78,8 @@ public class DBInfoGoal<P extends GSProject> extends FileListGoal<P> {
     protected void makeFile(File file) throws IOException {
         Database wrapper = storeGoal.get();
         try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file), false, StandardCharsets.UTF_8)) {
-            new ResultReporter().printStoreInfo(wrapper, out);
+            new ResultReporter().printStoreInfo(wrapper, out,
+                    booleanConfigValue(GSConfigKey.DB_INFO_WITH_DISTANCE));
         }
     }
 }

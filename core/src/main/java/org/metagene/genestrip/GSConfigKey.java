@@ -154,6 +154,14 @@ public enum GSConfigKey implements ConfigKey {
 	@MDDescription("The rank for which to consider the parameters `maxGenomesPerTaxid` and `maxKMersPerTaxid`. If `null`, then both limits are counted at the direct tax id under which a contig is stored. "
 			+ "A lineage that has no ancestor of the given rank - and the taxonomy is full of them - is counted at the tax id under which the contig is stored, so that setting a rank never leaves part of the tree without a limit.")
 	MAX_PER_TAXID_RANK("maxPerTaxidRank", new RankConfigParamInfo(null)),
+
+	// DB info report
+	/** Whether the DB info CSV carries the evolutionary distance columns. */
+	@MDDescription("Whether the `dbinfo` and `ftdbinfo` CSV files carry the two columns `distance` and `distance portion`, "
+			+ "the per-node evolutionary distance `EvoDistanceEstimator` derives from the distribution of stored *k*-mers. "
+			+ "It is off by default because the estimate is not settled: it is reported here to be looked at, not to be relied on, "
+			+ "and a column in a result file invites the second. Turning it off also spares the pass that computes it.")
+	DB_INFO_WITH_DISTANCE("dbInfoWithDistance", new BooleanConfigParamInfo(false)),
 	/** Whether downloaded fastq/fasta files are always assumed to be gzipped. */
 	@MDDescription("If `true`, a fastq or fasta file which is downloaded via a URL is always assumed to be g-zipped. Otherwise, it will be considered g-zipped only if the" +
 			" file part of the URL ends with `.gz` or `.gzip`.")
