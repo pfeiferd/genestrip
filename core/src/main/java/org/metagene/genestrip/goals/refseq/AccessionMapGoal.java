@@ -102,9 +102,12 @@ public class AccessionMapGoal<P extends GSProject> extends ObjectGoal<AccessionM
 			// How many genomes each limit node has taken, kept only while the selection is being made.
 			// Keyed by the node rather than by its tax id: the node is in hand, its identity hash is one
 			// read, and a digit trie over tax id strings would buy nothing here - the key is not a byte
-			// range in a buffer, which is the one thing such a trie is for.
-			private final Object2IntOpenHashMap<TaxIdNode> genomesPerNode = new Object2IntOpenHashMap<>();
-			private final Set<TaxIdNode> requested = taxNodesGoal.get().getSelected();
+			// range in a buffer, which is the one thing such a trie is for. Both of these exist only
+			// where a selection is being made; without a limit nothing of it is built or asked for.
+			private final Object2IntOpenHashMap<TaxIdNode> genomesPerNode =
+					admittedGenomes == null ? null : new Object2IntOpenHashMap<>();
+			private final Set<TaxIdNode> requested =
+					admittedGenomes == null ? null : taxNodesGoal.get().getSelected();
 
 			@Override
 			public void processCatalog(StreamingResource catalogFile) {
@@ -124,22 +127,25 @@ public class AccessionMapGoal<P extends GSProject> extends ObjectGoal<AccessionM
 				if (node != null) {
 					map.put(target, accessionStart, accessionEnd, node);
 					node.incRefSeqContigs();
-					admit(target, accessionStart, accessionEnd, node);
+					if (admittedGenomes != null) {
+						admit(target, accessionStart, accessionEnd, node);
+					}
 				}
 			}
 
 			/**
-			 * Takes the genome of this accession into the selection if its taxon still has room, and
-			 * does nothing at all while no limit is set.
+			 * Takes the genome of this accession into the selection if its taxon still has room.
 			 * <p>
 			 * A genome counts once however many accessions it arrives in, which is what the set is for -
 			 * the contigs of one assembly need not be contiguous in the catalog for that to hold. Only
 			 * the requested taxa are counted: a taxon whose contigs the fill never stores must not take
 			 * places from one whose contigs it does. And the limit node is the ancestor at
 			 * {@code maxPerTaxidRank}, or the node itself where the lineage has none.
+			 * <p>
+			 * Called only where a selection is being made; the caller checks.
 			 */
 			private void admit(byte[] target, int accessionStart, int accessionEnd, TaxIdNode node) {
-				if (admittedGenomes == null || !countsAsGenome(target, accessionStart)
+				if (!countsAsGenome(target, accessionStart)
 						|| !(requested.isEmpty() || requested.contains(node))
 						|| admittedGenomes.isAdmitted(target, accessionStart, accessionEnd)) {
 					return;
