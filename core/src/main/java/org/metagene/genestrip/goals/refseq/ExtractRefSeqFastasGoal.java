@@ -104,6 +104,7 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
         return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
                 taxNodesGoal.get().getSelected(), isIncludeRefSeqFna() ? accessionMapGoal.get() : null, intConfigValue(GSConfigKey.KMER_SIZE),
                 intConfigValue(GSConfigKey.MAX_CONTIGS_PER_TAXID),
+                intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
                 (Rank) configValue(GSConfigKey.MAX_CONTIGS_PER_TAXID_RANK),
                 longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
                 intConfigValue(GSConfigKey.KMER_SAMPLING),
@@ -128,6 +129,7 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
          * @param accessionMap the accession-to-tax-id map, or {@code null} if not used
          * @param k the k-mer size
          * @param maxContigsPerTaxId the maximum number of contigs kept per tax id
+         * @param maxGenomesPerTaxId the maximum number of genomes per tax id
          * @param maxContigsPerTaxIdRank the rank at which the contig limit is applied
          * @param maxKmersPerTaxId the maximum number of k-mers kept per tax id
          * @param kMerSampling the k-mer sampling step size
@@ -136,8 +138,8 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
          * @param gzip whether the output FASTA files are GZIP-compressed
          */
         public MyFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-                             int maxContigsPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean gzip) {
-            super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid);
+                             int maxContigsPerTaxId, int maxGenomesPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean gzip) {
+            super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxGenomesPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid);
             this.gzip = gzip;
         }
 

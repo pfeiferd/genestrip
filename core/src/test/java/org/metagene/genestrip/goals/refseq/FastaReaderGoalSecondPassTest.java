@@ -74,7 +74,7 @@ public class FastaReaderGoalSecondPassTest {
 
         CountingReader(Set<TaxTree.TaxIdNode> taxNodes, AtomicInteger contigs,
                        StringLong2DigitTrie contigsPerTaxid) {
-            super(4096, taxNodes, null, 31, Integer.MAX_VALUE, null, Long.MAX_VALUE, 1, false,
+            super(4096, taxNodes, null, 31, Integer.MAX_VALUE, Integer.MAX_VALUE, null, Long.MAX_VALUE, 1, false,
                     contigsPerTaxid);
             this.contigs = contigs;
         }

@@ -60,6 +60,7 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 	 * @param accessionMap the accession-to-taxid map
 	 * @param k the k-mer length
 	 * @param maxContigsPerTaxId the maximum number of contigs per tax id
+	 * @param maxGenomesPerTaxId the maximum number of genomes per tax id
 	 * @param maxContigsPerTaxIdRank the rank at which the per-tax-id contig limit applies
 	 * @param maxKmersPerTaxId the maximum number of k-mers per tax id
 	 * @param maxDust the maximum allowed low-complexity (dust) run length
@@ -68,10 +69,10 @@ public abstract class AbstractStoreFastaReader extends AbstractRefSeqFastaReader
 	 * @param contigsPerTaxid the per-taxid contig trie
 	 * @param enableLowerCaseBases whether lower-case bases are included
 	 */
-	public AbstractStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxContigsPerTaxId, Rank maxContigsPerTaxIdRank,
+	public AbstractStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxContigsPerTaxId, int maxGenomesPerTaxId, Rank maxContigsPerTaxIdRank,
 									long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid,
 									boolean enableLowerCaseBases) {
-		super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid);
+		super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxGenomesPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid);
 		byteRingBuffer = new CGATLongBuffer(k, maxDust);
 		dustCounter = 0;
 		this.enableLowerCaseBases = enableLowerCaseBases;

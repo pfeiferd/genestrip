@@ -177,6 +177,7 @@ public class KMerRankStatsGoal<P extends GSProject> extends FastaReaderGoal<Map<
 		return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxNodesGoal.get().getSelected(),
 				isIncludeRefSeqFna() ? accessionMapGoal.get() : null, intConfigValue(GSConfigKey.KMER_SIZE),
 				intConfigValue(GSConfigKey.MAX_CONTIGS_PER_TAXID),
+				intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
 				(Rank) configValue(GSConfigKey.MAX_CONTIGS_PER_TAXID_RANK),
 				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID), intConfigValue(GSConfigKey.MAX_DUST),
 				intConfigValue(GSConfigKey.KMER_SAMPLING), booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY),
@@ -247,6 +248,7 @@ public class KMerRankStatsGoal<P extends GSProject> extends FastaReaderGoal<Map<
 		 * @param accessionMap           the accession-to-taxid map
 		 * @param k                      the k-mer length
 		 * @param maxContigsPerTaxId     the maximum number of contigs per tax id
+		 * @param maxGenomesPerTaxId     the maximum number of genomes per tax id
 		 * @param maxContigsPerTaxIdRank the rank at which the per-tax-id contig limit applies
 		 * @param maxKmersPerTaxId       the maximum number of k-mers per tax id
 		 * @param maxDust                the maximum allowed low-complexity (dust) run length
@@ -256,10 +258,10 @@ public class KMerRankStatsGoal<P extends GSProject> extends FastaReaderGoal<Map<
 		 * @param enableLowerCaseBases   whether lower-case bases are included
 		 */
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-							 int maxContigsPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int maxDust,
+							 int maxContigsPerTaxId, int maxGenomesPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int maxDust,
 							 int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid,
 							 boolean enableLowerCaseBases) {
-			super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId,
+			super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxGenomesPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId,
 					maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases);
 		}
 

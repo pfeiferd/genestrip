@@ -279,6 +279,7 @@ public abstract class AbstractKMerIndexGoal<T, P extends FTProject> extends Fast
                 isIncludeRefSeqFna() ? accessionMapGoal.get() : null,
                 intConfigValue(GSConfigKey.KMER_SIZE),
                 intConfigValue(GSConfigKey.MAX_CONTIGS_PER_TAXID),
+                intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
                 (Rank) configValue(GSConfigKey.MAX_CONTIGS_PER_TAXID_RANK),
                 longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
                 intConfigValue(GSConfigKey.MAX_DUST),
@@ -314,6 +315,7 @@ public abstract class AbstractKMerIndexGoal<T, P extends FTProject> extends Fast
          * @param accessionMap           accession-to-tax-node mapping, or {@code null} if unused
          * @param k                      the k-mer size
          * @param maxContigsPerTaxId     maximum number of contigs to read per taxon
+         * @param maxGenomesPerTaxId     the maximum number of genomes per tax id
          * @param maxContigsPerTaxIdRank rank at which the per-taxon contig limit applies
          * @param maxKmersPerTaxId       maximum number of k-mers to read per taxon
          * @param maxDust                maximum allowed low-complexity (dust) content
@@ -323,8 +325,8 @@ public abstract class AbstractKMerIndexGoal<T, P extends FTProject> extends Fast
          * @param enableLowerCaseBases   whether lower-case bases are treated as valid
          */
         public MyFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap,
-                             int k, int maxContigsPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases) {
-            super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases, booleanConfigValue(GSConfigKey.ID_NODES), booleanConfigValue(GSConfigKey.FILE_NODES), booleanConfigValue(GSConfigKey.DATA_NODES));
+                             int k, int maxContigsPerTaxId, int maxGenomesPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases) {
+            super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxGenomesPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases, booleanConfigValue(GSConfigKey.ID_NODES), booleanConfigValue(GSConfigKey.FILE_NODES), booleanConfigValue(GSConfigKey.DATA_NODES));
             batch = kmerStore instanceof RadixKMerStore ? new RadixKMerStore.BatchBuffers(BATCH_SIZE) : null;
         }
 

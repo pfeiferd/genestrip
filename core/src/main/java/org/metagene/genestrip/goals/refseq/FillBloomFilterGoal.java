@@ -401,6 +401,7 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
                 intConfigValue(GSConfigKey.KMER_SIZE),
                 filter,
                 intConfigValue(GSConfigKey.MAX_CONTIGS_PER_TAXID),
+                intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
                 (Rank) configValue(GSConfigKey.MAX_CONTIGS_PER_TAXID_RANK),
                 longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
                 intConfigValue(GSConfigKey.MAX_DUST),
@@ -442,6 +443,7 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
          * @param k the k-mer size
          * @param filter the temporary Bloom filter to fill
          * @param maxContigsPerTaxId the maximum number of contigs kept per tax id
+         * @param maxGenomesPerTaxId the maximum number of genomes per tax id
          * @param maxContigsPerTaxIdRank the rank at which the contig limit is applied
          * @param maxKmersPerTaxId the maximum number of k-mers kept per tax id
          * @param maxDust the maximum allowed low-complexity (dust) run length
@@ -456,10 +458,10 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
          * @param idStringGenerator generator for artificial tax ids
          */
         public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-                             ProbFilter filter, int maxContigsPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases,
+                             ProbFilter filter, int maxContigsPerTaxId, int maxGenomesPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases,
                              TaxTree taxTree, boolean dataNodes, boolean fileNodes, boolean idNodes, IDStringGenerator idStringGenerator,
                              Rank foldTaxaBelow) {
-            super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases,
+            super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxGenomesPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases,
                     taxTree, dataNodes, fileNodes, idNodes, true, idStringGenerator, foldTaxaBelow);
             this.filter = filter;
         }

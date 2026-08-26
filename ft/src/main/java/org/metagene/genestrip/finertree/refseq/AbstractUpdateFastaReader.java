@@ -59,6 +59,7 @@ public abstract class AbstractUpdateFastaReader extends AbstractStoreFastaReader
      * @param accessionMap           the map resolving accessions to tax ids
      * @param k                      the *k*-mer length
      * @param maxContigsPerTaxId     the maximum number of contigs considered per tax id
+     * @param maxGenomesPerTaxId     the maximum number of genomes per tax id
      * @param maxContigsPerTaxIdRank the rank up to which {@code maxContigsPerTaxId} is applied
      * @param maxKmersPerTaxId       the maximum number of *k*-mers stored per tax id
      * @param maxDust                the maximum dust (low-complexity) threshold for *k*-mers
@@ -70,8 +71,8 @@ public abstract class AbstractUpdateFastaReader extends AbstractStoreFastaReader
      * @param fileNodes              whether refinement into file nodes (by file name) is enabled
      * @param dataNodes              whether refinement into the data child node is enabled
      */
-    public AbstractUpdateFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxContigsPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases, boolean idNodes, boolean fileNodes, boolean dataNodes) {
-        super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases);
+    public AbstractUpdateFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxContigsPerTaxId, int maxGenomesPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases, boolean idNodes, boolean fileNodes, boolean dataNodes) {
+        super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxGenomesPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases);
         this.idNodes = idNodes;
         this.fileNodes = fileNodes;
         this.dataNodes = dataNodes;

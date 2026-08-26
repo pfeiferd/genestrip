@@ -224,6 +224,7 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
                     isIncludeRefSeqFna() ? accessionMapGoal.get() : null,
                     intConfigValue(GSConfigKey.KMER_SIZE),
                     intConfigValue(GSConfigKey.MAX_CONTIGS_PER_TAXID),
+                    intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
                     (Rank) configValue(GSConfigKey.MAX_CONTIGS_PER_TAXID_RANK),
                     longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
                     intConfigValue(GSConfigKey.MAX_DUST),
@@ -237,10 +238,11 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
             // Batched only while no per-taxon limit binds. A batched k-mer is counted after
             // handleStore() has already returned, so the return value can no longer say whether it
             // was, and that value feeds kmersInContig - which endContig() adds to the per-taxon
-            // counters that maxContigsPerTaxid and maxKMersPerTaxid are enforced from. At the
-            // defaults neither binds and nothing reads those counters back; with either set, the
-            // one-at-a-time path keeps the accounting exact.
+            // counters that maxContigsPerTaxid, maxGenomesPerTaxid and maxKMersPerTaxid are enforced
+            // from. At the defaults none binds and nothing reads those counters back; with any of them
+            // set, the one-at-a-time path keeps the accounting exact.
             boolean unlimited = intConfigValue(GSConfigKey.MAX_CONTIGS_PER_TAXID) == Integer.MAX_VALUE
+                    && intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID) == Integer.MAX_VALUE
                     && longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID) == Long.MAX_VALUE;
             batch = (kMerSortedArray instanceof RadixKMerStore && unlimited)
                     ? new RadixKMerStore.BatchBuffers(BATCH_SIZE) : null;

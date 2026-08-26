@@ -134,6 +134,22 @@ public enum GSConfigKey implements ConfigKey {
 			+ "or thread counts. There is no value meaning \"no limit\"; the limit is switched off by leaving it at its default.")
 	MAX_CONTIGS_PER_TAXID("maxContigsPerTaxid", new IntConfigParamInfo(1, Integer.MAX_VALUE, Integer.MAX_VALUE),
 			GSGoalKey.DB),
+	/** Maximum number of genomes per tax id included in the database. */
+	@MDDescription("The maximum number of genomes per tax id to be included in the database. This is the limit to reach for where "
+			+ "`maxContigsPerTaxid` looks like the obvious one: it counts assemblies rather than fasta entries, so a species held as "
+			+ "draft assemblies of three hundred contigs each is treated like one held as single chromosomes. "
+			+ "A genome is recognised from the accession alone. A WGS accession is a letter prefix naming the sequencing project, a "
+			+ "two-digit assembly version and a contig number - `NZ_CABEIU010000001` - so all contigs of one draft assembly share the "
+			+ "letters and are counted as one genome, across assembly versions too. Anything else, a finished replicon such as "
+			+ "`NZ_CP012345`, stands for itself, which counts the chromosome and each plasmid of a finished genome separately: an error "
+			+ "of one to three per assembly, where a contig count is out by seventy. Against RefSeq release 233 this recovers 8,919 "
+			+ "genomes for *S. pneumoniae* where `assembly_summary_refseq.txt` lists 9,263, and 88 to 92 per cent for its neighbours. "
+			+ "A genome enters whole: once its first contig is admitted the rest follow, since half an assembly is not what anybody asks for. "
+			+ "As with `maxContigsPerTaxid` the limit is approximate, and for the same reason - several reader threads admit against a "
+			+ "count each sees for itself - and *which* genomes get in depends on the order the threads read them. There is no value "
+			+ "meaning \"no limit\"; the limit is switched off by leaving it at its default.")
+	MAX_GENOMES_PER_TAXID("maxGenomesPerTaxid", new IntConfigParamInfo(1, Integer.MAX_VALUE, Integer.MAX_VALUE),
+			GSGoalKey.DB),
 	/** Maximum number of k-mers stored per tax id. */
 	@MDDescription("The limit for the number of *k*-mers per tax id at which adding more *k*-mers for this tax id to the database stops. "
 			+ "Note, that this is an important parameter to control database size, because in some cases, there are millions of *k*-mers per tax id. "
@@ -142,7 +158,7 @@ public enum GSConfigKey implements ConfigKey {
 			+ "everything, which yields an empty database; there is no value meaning \"no limit\", which is what the default stands for.")
 	MAX_KMERS_PER_TAXID("maxKMersPerTaxid", new LongConfigParamInfo(0, Long.MAX_VALUE, Long.MAX_VALUE)),
 	/** Rank at which the per-tax-id contig and k-mer limits apply. */
-	@MDDescription("The rank for which to consider the parameters `maxContigsPerTaxid` and `maxKMersPerTaxid`. If `null`, then both limits are counted at the direct tax id under which a contig is stored. "
+	@MDDescription("The rank for which to consider the parameters `maxContigsPerTaxid`, `maxGenomesPerTaxid` and `maxKMersPerTaxid`. If `null`, then both limits are counted at the direct tax id under which a contig is stored. "
 			+ "A lineage that has no ancestor of the given rank - and the taxonomy is full of them - is counted at the tax id under which the contig is stored, so that setting a rank never leaves part of the tree without a limit.")
 	MAX_CONTIGS_PER_TAXID_RANK("maxPerTaxidRank", new RankConfigParamInfo(null)),
 	/** Whether downloaded fastq/fasta files are always assumed to be gzipped. */

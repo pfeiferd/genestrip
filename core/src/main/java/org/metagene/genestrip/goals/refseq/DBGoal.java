@@ -249,11 +249,11 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 							 int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases,
 							 boolean dataNodes, boolean fileNodes, boolean idNodes, Rank foldTaxaBelow) {
 			// Lookup mode: the fill already created every artificial node, so no id generator is needed.
-			// The per-taxon contig and k-mer limits are handed to the superclass as their no-limit
+			// The per-taxon contig, genome and k-mer limits are handed to the superclass as their no-limit
 			// values: this reader overrides infoLine() and isAllowMoreKmers(), which are the only
 			// readers of them, so no limit can take effect here and pretending otherwise would only
 			// mislead. See the comment at the call site in createFastaReader().
-			super(bufferSize, taxNodes, accessionMap, store.getK(), Integer.MAX_VALUE, null, Long.MAX_VALUE, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases,
+			super(bufferSize, taxNodes, accessionMap, store.getK(), Integer.MAX_VALUE, Integer.MAX_VALUE, null, Long.MAX_VALUE, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases,
 					taxTree, dataNodes, fileNodes, idNodes, false, null, foldTaxaBelow);
 			this.store = store;
 			if (store instanceof RadixKMerStore) {

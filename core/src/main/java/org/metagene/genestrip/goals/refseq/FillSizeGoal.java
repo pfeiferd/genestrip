@@ -208,6 +208,7 @@ public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<FillSizeG
 		MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
 				taxNodesGoal.get().getSelected(), isIncludeRefSeqFna() ? accessionMapGoal.get() : null, intConfigValue(GSConfigKey.KMER_SIZE),
 				intConfigValue(GSConfigKey.MAX_CONTIGS_PER_TAXID),
+				intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
 				(Rank) configValue(GSConfigKey.MAX_CONTIGS_PER_TAXID_RANK),
 				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
 				intConfigValue(GSConfigKey.MAX_DUST),
@@ -235,6 +236,7 @@ public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<FillSizeG
 		 * @param accessionMap the accession-to-tax-id map, or {@code null} if RefSeq FASTA is excluded
 		 * @param k the k-mer length
 		 * @param maxContigsPerTaxId the maximum number of contigs per tax id
+		 * @param maxGenomesPerTaxId the maximum number of genomes per tax id
 		 * @param maxContigsPerTaxIdRank the rank at which the contig limit applies
 		 * @param maxKmersPerTaxId the maximum number of k-mers per tax id
 		 * @param maxDust the maximum dust value, or a negative value to disable dust filtering
@@ -244,8 +246,8 @@ public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<FillSizeG
 		 * @param enableLowerCaseBases whether lowercase bases are accepted
 		 */
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-				int maxContigsPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases) {
-			super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId,
+				int maxContigsPerTaxId, int maxGenomesPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases) {
+			super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxGenomesPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId,
 					maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases);
 		}
 

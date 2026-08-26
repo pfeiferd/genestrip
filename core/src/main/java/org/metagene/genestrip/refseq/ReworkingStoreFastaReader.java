@@ -61,6 +61,7 @@ public abstract class ReworkingStoreFastaReader extends AbstractStoreFastaReader
 	 * @param accessionMap the accession-to-taxid map
 	 * @param k the k-mer length
 	 * @param maxContigsPerTaxId the maximum number of contigs per tax id
+	 * @param maxGenomesPerTaxId the maximum number of genomes per tax id
 	 * @param maxContigsPerTaxIdRank the rank at which the per-tax-id contig limit applies
 	 * @param maxKmersPerTaxId the maximum number of k-mers per tax id
 	 * @param maxDust the maximum allowed low-complexity (dust) run length
@@ -81,11 +82,11 @@ public abstract class ReworkingStoreFastaReader extends AbstractStoreFastaReader
 	 * @throws IllegalArgumentException if {@code foldTaxaBelow} is set without {@code fileNodes}
 	 */
 	public ReworkingStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-			int maxContigsPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling,
+			int maxContigsPerTaxId, int maxGenomesPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling,
 			boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases,
 			TaxTree taxTree, boolean dataNodes, boolean fileNodes, boolean idNodes, boolean createNodes,
 			IDStringGenerator idStringGenerator, Rank foldTaxaBelow) {
-		super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId,
+		super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxGenomesPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId,
 				maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases);
 		checkFoldConfig(foldTaxaBelow, fileNodes);
 		this.taxTree = taxTree;
