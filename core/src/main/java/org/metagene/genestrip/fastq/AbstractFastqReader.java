@@ -409,6 +409,13 @@ public abstract class AbstractFastqReader {
                 try {
                     blockingQueue.put(readStruct);
                 } catch (InterruptedException e) {
+                    // A consumer that dies records its throwable and calls interruptAll(), which
+                    // interrupts this thread too - so an interrupt here is usually the symptom and
+                    // never the cause. Reporting the cause first keeps the real stack trace from
+                    // being replaced by a FastqReaderInterruptedException, which reads as "the reader
+                    // was asked to stop" and would file a genuine failure as an orderly abort. With
+                    // no consumer problem the interrupt stands on its own and is exactly that.
+                    checkAndLogConsumerThreadProblem();
                     throw new FastqReaderInterruptedException(e);
                 }
             }
@@ -477,6 +484,13 @@ public abstract class AbstractFastqReader {
                 try {
                     blockingQueue.put(readStruct);
                 } catch (InterruptedException e) {
+                    // A consumer that dies records its throwable and calls interruptAll(), which
+                    // interrupts this thread too - so an interrupt here is usually the symptom and
+                    // never the cause. Reporting the cause first keeps the real stack trace from
+                    // being replaced by a FastqReaderInterruptedException, which reads as "the reader
+                    // was asked to stop" and would file a genuine failure as an orderly abort. With
+                    // no consumer problem the interrupt stands on its own and is exactly that.
+                    checkAndLogConsumerThreadProblem();
                     throw new FastqReaderInterruptedException(e);
                 }
             }

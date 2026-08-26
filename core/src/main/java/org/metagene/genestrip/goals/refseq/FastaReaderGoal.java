@@ -195,6 +195,12 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
                             doneCounter.incrementAndGet();
                             blockingQueue.put(new FileAndNode(fnaFile, null));
                         } catch (InterruptedException e) {
+                            // A consumer that dies records its throwable and calls interruptAll(),
+                            // which interrupts this thread too - so an interrupt here is usually the
+                            // symptom and never the cause. Reporting the cause first keeps the real
+                            // stack trace from being replaced by an InterruptedException nobody can
+                            // act on. If no consumer failed, the interrupt stands on its own.
+                            checkAndLogConsumerThreadProblem();
                             throw new RuntimeException(e);
                         }
                     }
@@ -211,6 +217,12 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
                             doneCounter.incrementAndGet();
                             blockingQueue.put(new FileAndNode(additionalFasta, additionalMap.get(additionalFasta)));
                         } catch (InterruptedException e) {
+                            // A consumer that dies records its throwable and calls interruptAll(),
+                            // which interrupts this thread too - so an interrupt here is usually the
+                            // symptom and never the cause. Reporting the cause first keeps the real
+                            // stack trace from being replaced by an InterruptedException nobody can
+                            // act on. If no consumer failed, the interrupt stands on its own.
+                            checkAndLogConsumerThreadProblem();
                             throw new RuntimeException(e);
                         }
                     }
@@ -316,13 +328,18 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
      */
     protected void checkAndLogConsumerThreadProblem() {
         if (!bundle.getThrowableList().isEmpty()) {
-            for (Throwable t : bundle.getThrowableList()) {
+            // Copied before iterating: a consumer still dying adds to the list while we walk it.
+            List<Throwable> throwables = new ArrayList<>(bundle.getThrowableList());
+            for (Throwable t : throwables) {
                 if (getLogger().isErrorEnabled()) {
                     getLogger().error("Error in consumer thread: ", t);
                 }
             }
             bundle.clearThrowableList();
-            throw new RuntimeException("Error(s) in consumer thread(s).");
+            // The first one as the cause, as AbstractFastqReader does it: a caller that catches this
+            // and prints only the message would otherwise be left with nothing to act on.
+            throw throwables.isEmpty() ? new RuntimeException("Error(s) in consumer thread(s).")
+                    : new RuntimeException("Error(s) in consumer thread(s).", throwables.get(0));
         }
     }
 
