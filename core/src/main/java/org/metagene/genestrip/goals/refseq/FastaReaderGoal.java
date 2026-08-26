@@ -46,8 +46,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Abstract base for goals that read the downloaded RefSeq {@code .fna} files (and any additional
- * FASTA files) region by region, optionally in parallel via a pool of consumer threads, dispatching
- * each region to a subclass-provided {@link AbstractRefSeqFastaReader}.
+ * FASTA files) contig by contig, optionally in parallel via a pool of consumer threads, dispatching
+ * each contig to a subclass-provided {@link AbstractRefSeqFastaReader}.
  *
  * @param <T> the type of result produced by this goal
  * @param <P> the project type
@@ -145,28 +145,28 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
         // everything the next time and read none of it while reporting success.
         readyForAnotherPass();
         BlockingQueue<FileAndNode> blockingQueue = null;
-        AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid = new AbstractRefSeqFastaReader.StringLong2DigitTrie();
+        AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid = new AbstractRefSeqFastaReader.StringLong2DigitTrie();
         // Reading order does not affect what a k-mer ends up mapped to, whatever `updateScope' is: the
         // update only touches k-mers already present in the DB, and each is merged into the lowest
-        // common ancestor of its stored node and the nodes of the regions it occurs in. That merge is
-        // commutative and associative, so the outcome depends only on the set of included regions and
+        // common ancestor of its stored node and the nodes of the contigs it occurs in. That merge is
+        // commutative and associative, so the outcome depends only on the set of included contigs and
         // not on the order in which the fna files are read.
         //
-        // Which regions those are is a different matter, and is not order-independent once a per-taxon
-        // limit binds: a region is admitted while its taxon's counters are still below the limit, and
+        // Which contigs those are is a different matter, and is not order-independent once a per-taxon
+        // limit binds: a contig is admitted while its taxon's counters are still below the limit, and
         // which thread reaches a taxon first decides which of its genomes get in. A database built
-        // with maxGenomesPerTaxid or maxKMersPerTaxid set is therefore not reproducible across runs or
+        // with maxContigsPerTaxid or maxKMersPerTaxid set is therefore not reproducible across runs or
         // thread counts, and the passes sharing those limits - fillsize, tempindex and filldb - may
         // pick somewhat different subsets, which is why the size they agree on is an estimate and the
         // filter built from it is checked against what actually arrived. At the defaults, where
-        // neither limit binds, the set of included regions is fixed and everything here is exact.
+        // neither limit binds, the set of included contigs is fixed and everything here is exact.
         if (bundle.getThreads() > 0) {
             blockingQueue = createBlockingQueue(intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE));
             for (int i = 0; i < bundle.getThreads(); i++) {
-                bundle.execute(createFastaReaderRunnable(i, blockingQueue, regionsPerTaxid));
+                bundle.execute(createFastaReaderRunnable(i, blockingQueue, contigsPerTaxid));
             }
         }
-        AbstractRefSeqFastaReader fastaReader = createFastaReader(regionsPerTaxid);
+        AbstractRefSeqFastaReader fastaReader = createFastaReader(contigsPerTaxid);
 
         int sumFiles = 0;
         List<File> refSeqFiles = isIncludeRefSeqFna() ? fnaFilesGoal.getFiles() : Collections.emptyList();
@@ -181,7 +181,7 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
                     if (blockingQueue == null) {
                         // Stated rather than left to the reader's initial state: a release file is
                         // the one case where no node comes with the file, and a pass that tells the
-                        // two apart - see AbstractRefSeqFastaReader#isRefSeqReleaseRegion() - must
+                        // two apart - see AbstractRefSeqFastaReader#isRefSeqReleaseContig() - must
                         // not depend on the release happening to be read before the project's own
                         // fastas. The queued path below passes the same null through FileAndNode.
                         fastaReader.ignoreAccessionMap(null);
@@ -225,7 +225,7 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
             endOfPass(blockingQueue);
         }
         bundle.clearThrowableList();
-        afterReadFastas(regionsPerTaxid);
+        afterReadFastas(contigsPerTaxid);
     }
 
     /**
@@ -289,9 +289,9 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
     /**
      * Hook invoked once all FASTA files have been read; the default implementation does nothing.
      *
-     * @param regionsPerTaxid the trie tracking how many regions were seen per taxid
+     * @param contigsPerTaxid the trie tracking how many contigs were seen per taxid
      */
-    protected void afterReadFastas(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
+    protected void afterReadFastas(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
     }
 
     /**
@@ -328,13 +328,13 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
      *
      * @param i               the index of the consumer thread
      * @param blockingQueue   the queue supplying files to read
-     * @param regionsPerTaxid the shared trie tracking how many regions were seen per taxid
+     * @param contigsPerTaxid the shared trie tracking how many contigs were seen per taxid
      * @return the consumer runnable
      */
     protected Runnable createFastaReaderRunnable(int i,
                                                  BlockingQueue<FileAndNode> blockingQueue,
-                                                 AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
-        AbstractRefSeqFastaReader fastaReader = createFastaReader(regionsPerTaxid);
+                                                 AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
+        AbstractRefSeqFastaReader fastaReader = createFastaReader(contigsPerTaxid);
         return new Runnable() {
             @Override
             public void run() {
@@ -372,13 +372,13 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
     }
 
     /**
-     * Creates the FASTA reader that processes each region; called once per reader thread. The shared
-     * {@code regionsPerTaxid} trie tracks how many regions have been seen per taxid.
+     * Creates the FASTA reader that processes each contig; called once per reader thread. The shared
+     * {@code contigsPerTaxid} trie tracks how many contigs have been seen per taxid.
      *
-     * @param regionsPerTaxid the shared trie tracking how many regions were seen per taxid
-     * @return the FASTA reader that processes each region
+     * @param contigsPerTaxid the shared trie tracking how many contigs were seen per taxid
+     * @return the FASTA reader that processes each contig
      */
-    protected abstract AbstractRefSeqFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid);
+    protected abstract AbstractRefSeqFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid);
 
     /**
      * In addition to discarding the result, aborts a pass that may still be reading.

@@ -109,10 +109,10 @@ public abstract class AbstractFastaReader {
 			}
 			if (target[0] == '>') {
 				if (!first) {
-					endRegion();
+					endContig();
 				}
 				first = false;
-				startRegion();
+				startContig();
 				infoLine();
 			}
 			else {
@@ -121,7 +121,7 @@ public abstract class AbstractFastaReader {
 			}
 		}
 		if (!first) {
-			endRegion();
+			endContig();
 		}
 		done();
 		if (logger.isDebugEnabled()) {
@@ -130,15 +130,15 @@ public abstract class AbstractFastaReader {
 	}
 
 	/**
-	 * Called when a new region begins (i.e. a '&gt;' header line is encountered).
+	 * Called when a new contig begins (i.e. a '&gt;' header line is encountered).
 	 */
-	protected void startRegion() {
+	protected void startContig() {
 	}
 
 	/**
-	 * Called when the current region ends (before the next region or at end of input).
+	 * Called when the current contig ends (before the next contig or at end of input).
 	 */
-	protected void endRegion() {
+	protected void endContig() {
 	}
 	
 	/**

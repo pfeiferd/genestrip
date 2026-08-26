@@ -115,7 +115,7 @@ public class KMerIndexOtherSlotTest {
 		assertEquals(AbstractKMerIndexGoal.OTHER_VALUE, AbstractKMerIndexGoal.childIndexUnder(species, data));
 	}
 
-	/** A region that resolved to no leaf at all is recorded under OTHER. */
+	/** A contig that resolved to no leaf at all is recorded under OTHER. */
 	@Test
 	public void testNoLeafGoesToTheOtherSlot() {
 		assertEquals(AbstractKMerIndexGoal.OTHER_VALUE, AbstractKMerIndexGoal.childIndexUnder(null, species));

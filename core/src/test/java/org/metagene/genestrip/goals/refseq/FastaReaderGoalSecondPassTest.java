@@ -68,21 +68,21 @@ import org.metagene.genestrip.tax.TaxTree;
 public class FastaReaderGoalSecondPassTest {
     private static final TaxTree.TaxIdNode NODE = new TaxTree.TaxIdNode("9606");
 
-    /** A reader that only counts the regions it is handed, so a pass is cheap. */
+    /** A reader that only counts the contigs it is handed, so a pass is cheap. */
     private static final class CountingReader extends AbstractRefSeqFastaReader {
-        private final AtomicInteger regions;
+        private final AtomicInteger contigs;
 
-        CountingReader(Set<TaxTree.TaxIdNode> taxNodes, AtomicInteger regions,
-                       StringLong2DigitTrie regionsPerTaxid) {
+        CountingReader(Set<TaxTree.TaxIdNode> taxNodes, AtomicInteger contigs,
+                       StringLong2DigitTrie contigsPerTaxid) {
             super(4096, taxNodes, null, 31, Integer.MAX_VALUE, null, Long.MAX_VALUE, 1, false,
-                    regionsPerTaxid);
-            this.regions = regions;
+                    contigsPerTaxid);
+            this.contigs = contigs;
         }
 
         @Override
         protected void infoLine() {
             super.infoLine();
-            regions.incrementAndGet();
+            contigs.incrementAndGet();
         }
 
         @Override
@@ -92,7 +92,7 @@ public class FastaReaderGoalSecondPassTest {
 
     /** A goal that reads the FASTAs it is given and ends its pass the way the real ones do. */
     private static final class CountingGoal extends FastaReaderGoal<Integer, GSProject> {
-        private final AtomicInteger regions = new AtomicInteger();
+        private final AtomicInteger contigs = new AtomicInteger();
 
         @SuppressWarnings("unchecked")
         CountingGoal(GSProject project, ExecutionContext bundle,
@@ -106,8 +106,8 @@ public class FastaReaderGoalSecondPassTest {
 
         @Override
         protected AbstractRefSeqFastaReader createFastaReader(
-                AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
-            return new CountingReader(Collections.singleton(NODE), regions, regionsPerTaxid);
+                AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
+            return new CountingReader(Collections.singleton(NODE), contigs, contigsPerTaxid);
         }
 
         @Override
@@ -119,13 +119,13 @@ public class FastaReaderGoalSecondPassTest {
             }
             // Nothing else to do: the pass has ended its own consumers. Subclasses used to call
             // cleanUpThreads() here, which is what left the goal unusable afterwards.
-            set(regions.get());
+            set(contigs.get());
         }
 
         int readAgain() {
-            regions.set(0);
+            contigs.set(0);
             doMakeThis();
-            return regions.get();
+            return contigs.get();
         }
     }
 

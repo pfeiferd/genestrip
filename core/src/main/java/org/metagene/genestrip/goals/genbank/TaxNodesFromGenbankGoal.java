@@ -41,7 +41,7 @@ import org.metagene.genestrip.tax.TaxNodeSelection;
 
 /**
  * Produces the set of tax ids whose sequence data should additionally be fetched from GenBank: either all
- * requested nodes (non-RefSeq database) or those with too few RefSeq regions under the configured limit.
+ * requested nodes (non-RefSeq database) or those with too few RefSeq contigs under the configured limit.
  *
  * @param <P> the project type
  */
@@ -86,7 +86,7 @@ public class TaxNodesFromGenbankGoal<P extends GSProject> extends ObjectGoal<Set
 						Rank checkRank = (Rank) configValue(GSConfigKey.REQ_SEQ_LIMIT_FOR_GENBANK_RANK);
 						for (TaxIdNode node : taxNodesGoal.get().getSelected()) {
 							if (checkRank == null || checkRank.equals(node.getRank())) {
-								if (node.getRefSeqRegions() < limit) {
+								if (node.getRefSeqContigs() < limit) {
 									missingTaxIds.add(node);
 								}
 							}

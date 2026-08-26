@@ -38,7 +38,7 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
  * subtracted from it already. The excluded set matters to one reader only, the least common ancestor
  * update under
  * {@link org.metagene.genestrip.GSConfigKey.UpdateScope#ALL_BUT_EXCLUDED}, which skips the release's
- * regions of exactly these taxa. Leaving a branch out of a database and leaving it out of the
+ * contigs of exactly these taxa. Leaving a branch out of a database and leaving it out of the
  * reckoning are two different things, and this pair is what lets a goal say both at once instead of
  * offering the second through a side door.
  * <p>

@@ -222,8 +222,8 @@ public class DBQualityCountsGoal<P extends FTProject> extends AbstractDBQualityG
     }
 
     @Override
-    protected MyFastaReader newReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
-        return new CountingReader(regionsPerTaxid);
+    protected MyFastaReader newReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
+        return new CountingReader(contigsPerTaxid);
     }
 
     /**
@@ -239,10 +239,10 @@ public class DBQualityCountsGoal<P extends FTProject> extends AbstractDBQualityG
         /**
          * Creates the reader and its tallies.
          *
-         * @param regionsPerTaxid the trie counting regions per tax id
+         * @param contigsPerTaxid the trie counting contigs per tax id
          */
-        CountingReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
-            super(regionsPerTaxid);
+        CountingReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
+            super(contigsPerTaxid);
             tp = new long[nodeCount];
             tpPlusFn = new long[nodeCount];
             tpForNode = new long[nodeCount];

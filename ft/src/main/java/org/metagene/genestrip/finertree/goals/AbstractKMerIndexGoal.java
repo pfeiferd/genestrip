@@ -202,13 +202,13 @@ public abstract class AbstractKMerIndexGoal<T, P extends FTProject> extends Fast
      * its own resolves to the taxon itself - and the pair then belongs in the OTHER slot, or it is
      * recorded where nobody looks and the k-mer would appear not to be carried by that genome at
      * all. The leaf may also lie outside the node's subtree altogether, which cannot happen while
-     * the stored node is the lowest common ancestor of every region carrying the k-mer, but did
+     * the stored node is the lowest common ancestor of every contig carrying the k-mer, but did
      * happen when {@code refseq.updateScope=otherTaxaOnly} withheld the project's own genomes from
      * that update. OTHER is the right answer there too - the k-mer is carried by something that is
      * not one of these children - and it keeps such a database's index bounded rather than letting
      * it grow by a factor of however many genomes went unseen.
      *
-     * @param leaf       the leaf resolved for the current region, or {@code null} if there is none
+     * @param leaf       the leaf resolved for the current contig, or {@code null} if there is none
      * @param storedNode the node the k-mer is stored at, i.e. the one being refined
      * @return the index the pair is to be recorded under
      */
@@ -269,22 +269,22 @@ public abstract class AbstractKMerIndexGoal<T, P extends FTProject> extends Fast
      * indices, configured from the current project's k-mer and genome-selection
      * settings.
      *
-     * @param regionsPerTaxid trie of the fasta regions to read per taxon
+     * @param contigsPerTaxid trie of the fasta contigs to read per taxon
      * @return the fasta reader to use for this pass
      */
     @Override
-    protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
+    protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
         MyFastaReader reader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
                 relevantNodes,
                 isIncludeRefSeqFna() ? accessionMapGoal.get() : null,
                 intConfigValue(GSConfigKey.KMER_SIZE),
-                intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
-                (Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
+                intConfigValue(GSConfigKey.MAX_CONTIGS_PER_TAXID),
+                (Rank) configValue(GSConfigKey.MAX_CONTIGS_PER_TAXID_RANK),
                 longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
                 intConfigValue(GSConfigKey.MAX_DUST),
                 intConfigValue(GSConfigKey.KMER_SAMPLING),
                 booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY),
-                regionsPerTaxid,
+                contigsPerTaxid,
                 booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES));
         readers.add(reader);
         return reader;
@@ -313,18 +313,18 @@ public abstract class AbstractKMerIndexGoal<T, P extends FTProject> extends Fast
          * @param taxNodes               the tax nodes to be considered
          * @param accessionMap           accession-to-tax-node mapping, or {@code null} if unused
          * @param k                      the k-mer size
-         * @param maxGenomesPerTaxId     maximum number of genomes to read per taxon
-         * @param maxGenomesPerTaxIdRank rank at which the per-taxon genome limit applies
+         * @param maxContigsPerTaxId     maximum number of contigs to read per taxon
+         * @param maxContigsPerTaxIdRank rank at which the per-taxon contig limit applies
          * @param maxKmersPerTaxId       maximum number of k-mers to read per taxon
          * @param maxDust                maximum allowed low-complexity (dust) content
          * @param kMerSampling               k-mer sampling step size
-         * @param assemblyAccessionsOnly    whether only complete genomes are considered
-         * @param regionsPerTaxid        trie of the fasta regions to read per taxon
+         * @param assemblyAccessionsOnly    whether only genomic accessions are considered, dropping `NG_`, `NT_` and `NW_`
+         * @param contigsPerTaxid        trie of the fasta contigs to read per taxon
          * @param enableLowerCaseBases   whether lower-case bases are treated as valid
          */
         public MyFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap,
-                             int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
-            super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, regionsPerTaxid, enableLowerCaseBases, booleanConfigValue(GSConfigKey.ID_NODES), booleanConfigValue(GSConfigKey.FILE_NODES), booleanConfigValue(GSConfigKey.DATA_NODES));
+                             int k, int maxContigsPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases) {
+            super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases, booleanConfigValue(GSConfigKey.ID_NODES), booleanConfigValue(GSConfigKey.FILE_NODES), booleanConfigValue(GSConfigKey.DATA_NODES));
             batch = kmerStore instanceof RadixKMerStore ? new RadixKMerStore.BatchBuffers(BATCH_SIZE) : null;
         }
 
@@ -341,7 +341,7 @@ public abstract class AbstractKMerIndexGoal<T, P extends FTProject> extends Fast
         // The following 3 override ensure that all k-mers for considers tax nodes are used
         // so that the clustering phase can work with the maximum amount of data.
         /**
-         * Processes a fasta header line, resolving the current tax node and marking its region for
+         * Processes a fasta header line, resolving the current tax node and marking its contig for
          * inclusion whenever the node is among the relevant nodes, so that all of its k-mers are
          * considered. Also refreshes the current leaf node.
          */
@@ -353,17 +353,17 @@ public abstract class AbstractKMerIndexGoal<T, P extends FTProject> extends Fast
                 updateNodeFromInfoLine();
             }
             if (node != null && taxNodes.contains(node)) {
-                includeRegion = true;
+                includeContig = true;
             }
             updateLeafNode();
         }
 
         /**
-         * Does nothing; region ends are intentionally ignored so that no k-mers are dropped when a
-         * region completes.
+         * Does nothing; contig ends are intentionally ignored so that no k-mers are dropped when a
+         * contig completes.
          */
         @Override
-        protected void endRegion() {
+        protected void endContig() {
             // Intentionally empty.
         }
 
@@ -381,7 +381,7 @@ public abstract class AbstractKMerIndexGoal<T, P extends FTProject> extends Fast
         /**
          * Registers the current k-mer in the filter. If the k-mer is stored in the database below a
          * taxon selected for refinement, the pair is recorded under the direct child of that taxon
-         * the region's leaf lies under, or under {@link #OTHER_VALUE} when there is none - see
+         * the contig's leaf lies under, or under {@link #OTHER_VALUE} when there is none - see
          * {@link #childIndexUnder}.
          *
          * @return {@code true} if a new (k-mer, index) entry was added, {@code false} otherwise
@@ -401,8 +401,8 @@ public abstract class AbstractKMerIndexGoal<T, P extends FTProject> extends Fast
                     flushBatch();
                 }
                 // Whether the k-mer ends up in the filter is not known yet. The return value only feeds
-                // kmersInRegion, which this reader does not use: it caps nothing (isAllowMoreKmers() is
-                // always true) and endRegion(), its only other consumer, is overridden to do nothing.
+                // kmersInContig, which this reader does not use: it caps nothing (isAllowMoreKmers() is
+                // always true) and endContig(), its only other consumer, is overridden to do nothing.
                 return false;
             }
             SmallTaxTree.SmallTaxIdNode storedNode = kmerStore.getLong(kmer, null);
@@ -448,7 +448,7 @@ public abstract class AbstractKMerIndexGoal<T, P extends FTProject> extends Fast
          * Returns the leaf node a buffered k-mer was read under, from the store index that travelled
          * with it in the batch.
          * <p>
-         * The batch outlives the region it was filled in - {@link #endRegion()} is a no-op here, so a
+         * The batch outlives the contig it was filled in - {@link #endContig()} is a no-op here, so a
          * partly filled buffer carries into the next one - which is why the leaf cannot simply be read
          * off {@link #leafNode} at this point and has to be recovered from what was buffered. The
          * store's index map is a plain array, so this is one indexed read.
@@ -458,7 +458,7 @@ public abstract class AbstractKMerIndexGoal<T, P extends FTProject> extends Fast
          * had come apart - but the index map is a bare array, and reading it at -1 would end the
          * pass with an out-of-bounds throw rather than with the OTHER slot such a pair belongs in.
          *
-         * @param index the store index buffered with the k-mer, or {@link #OTHER_VALUE} if its region
+         * @param index the store index buffered with the k-mer, or {@link #OTHER_VALUE} if its contig
          *              resolved to no leaf at all
          * @return the leaf node, or {@code null} if there was none
          */

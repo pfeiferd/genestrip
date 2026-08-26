@@ -176,12 +176,12 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
      * Creates the fasta reader that compares genome *k*-mers against the database and registers it, so
      * that its last, partial batch can be flushed once the pass is done.
      *
-     * @param regionsPerTaxid the trie counting regions per tax id
+     * @param contigsPerTaxid the trie counting contigs per tax id
      * @return the fasta reader to use for reading the genomic fasta files
      */
     @Override
-    protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
-        MyFastaReader reader = newReader(regionsPerTaxid);
+    protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
+        MyFastaReader reader = newReader(contigsPerTaxid);
         readers.add(reader);
         return reader;
     }
@@ -189,10 +189,10 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
     /**
      * Creates the reader of this pass, which is the one thing the two goals do not share.
      *
-     * @param regionsPerTaxid the trie counting regions per tax id
+     * @param contigsPerTaxid the trie counting contigs per tax id
      * @return the reader, configured from the project
      */
-    protected abstract MyFastaReader newReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid);
+    protected abstract MyFastaReader newReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid);
 
     /**
      * Fasta reader that, for each *k*-mer read from a genome, resolves the leaf tax node of the record
@@ -210,37 +210,37 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
          * {@link RadixKMerStore#getBatch}.
          */
         private final RadixKMerStore.BatchBuffers batch;
-        /** The current region's leaf and its position, resolved once per region rather than per k-mer. */
+        /** The current contig's leaf and its position, resolved once per contig rather than per k-mer. */
         private SmallTaxTree.SmallTaxIdNode cachedLeaf;
         private int cachedLeafPos = -1;
 
         /**
-         * Creates the reader, reading everything but the regions from the goal's configuration.
+         * Creates the reader, reading everything but the contigs from the goal's configuration.
          *
-         * @param regionsPerTaxid the trie counting regions per tax id
+         * @param contigsPerTaxid the trie counting contigs per tax id
          */
-        protected MyFastaReader(StringLong2DigitTrie regionsPerTaxid) {
+        protected MyFastaReader(StringLong2DigitTrie contigsPerTaxid) {
             super(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxNodesGoal.get().getSelected(),
                     isIncludeRefSeqFna() ? accessionMapGoal.get() : null,
                     intConfigValue(GSConfigKey.KMER_SIZE),
-                    intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
-                    (Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
+                    intConfigValue(GSConfigKey.MAX_CONTIGS_PER_TAXID),
+                    (Rank) configValue(GSConfigKey.MAX_CONTIGS_PER_TAXID_RANK),
                     longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
                     intConfigValue(GSConfigKey.MAX_DUST),
                     intConfigValue(GSConfigKey.KMER_SAMPLING),
                     booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY),
-                    regionsPerTaxid,
+                    contigsPerTaxid,
                     booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES),
                     booleanConfigValue(GSConfigKey.ID_NODES),
                     booleanConfigValue(GSConfigKey.FILE_NODES),
                     booleanConfigValue(GSConfigKey.DATA_NODES));
             // Batched only while no per-taxon limit binds. A batched k-mer is counted after
             // handleStore() has already returned, so the return value can no longer say whether it
-            // was, and that value feeds kmersInRegion - which endRegion() adds to the per-taxon
-            // counters that maxGenomesPerTaxid and maxKMersPerTaxid are enforced from. At the
+            // was, and that value feeds kmersInContig - which endContig() adds to the per-taxon
+            // counters that maxContigsPerTaxid and maxKMersPerTaxid are enforced from. At the
             // defaults neither binds and nothing reads those counters back; with either set, the
             // one-at-a-time path keeps the accounting exact.
-            boolean unlimited = intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID) == Integer.MAX_VALUE
+            boolean unlimited = intConfigValue(GSConfigKey.MAX_CONTIGS_PER_TAXID) == Integer.MAX_VALUE
                     && longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID) == Long.MAX_VALUE;
             batch = (kMerSortedArray instanceof RadixKMerStore && unlimited)
                     ? new RadixKMerStore.BatchBuffers(BATCH_SIZE) : null;
@@ -258,9 +258,9 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
         }
 
         /**
-         * Resolves the region's leaf as usual and caches its position, so that the reading path costs
-         * a field read per k-mer instead of a lookup. The leaf changes per region; the k-mers of a
-         * region are legion.
+         * Resolves the contig's leaf as usual and caches its position, so that the reading path costs
+         * a field read per k-mer instead of a lookup. The leaf changes per contig; the k-mers of a
+         * contig are legion.
          */
         @Override
         protected void updateLeafNode() {
@@ -272,7 +272,7 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
                     if (leafNode.storeIndex < 0) {
                         // A leaf the store knows no value for. Database.initStoreIndex() gives every
                         // node of the tree one, so this says the tree and the store have come apart -
-                        // worth a word, and once per region rather than once per k-mer.
+                        // worth a word, and once per contig rather than once per k-mer.
                         if (getLogger().isWarnEnabled()) {
                             getLogger().warn("No kmer-index for taxid " + leafNode.getTaxId() + " found.");
                         }
@@ -295,7 +295,7 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
 
         /**
          * Looks the current *k*-mer up in the database and, if it holds it, forms the pair with the
-         * leaf of the region being read and hands it to {@link #count}. A *k*-mer read in a region
+         * leaf of the contig being read and hands it to {@link #count}. A *k*-mer read in a contig
          * that resolved to no leaf, or one the database does not hold, forms no pair.
          *
          * @param kmer the *k*-mer just read

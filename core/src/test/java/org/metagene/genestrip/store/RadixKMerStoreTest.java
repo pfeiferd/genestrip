@@ -99,7 +99,7 @@ public class RadixKMerStoreTest extends AbstractKMerStoreTest {
 	public void testUpdateBatchEqualsUpdate() {
 		// Two identical stores: one updated k-mer by k-mer, the other via updateBatch with a small
 		// capacity so the batch is flushed several times, ending on a partial flush - exactly the
-		// pattern the update reader uses (flush when full and at each region boundary). Both must end
+		// pattern the update reader uses (flush when full and at each contig boundary). Both must end
 		// up with identical contents. A repeated k-mer checks that duplicates within a batch compose.
 		Map<Long, Integer> kmerMap = new LinkedHashMap<Long, Integer>();
 		generate(SMALL_SIZE, null, kmerMap);

@@ -396,8 +396,8 @@ public class TaxTree {
 		private int depth;
 		/** Whether this node is required and must be retained in a {@link SmallTaxTree}. */
 		private boolean required;
-		/** The number of RefSeq regions associated with this node and its descendants. */
-		private int refSeqRegions;
+		/** The number of RefSeq contigs associated with this node and its descendants. */
+		private int refSeqContigs;
 
 		/**
 		 * Creates a node with the given tax id and no rank.
@@ -512,21 +512,21 @@ public class TaxTree {
 		}
 
 		/**
-		 * Increments the RefSeq region count of this node and all of its ancestors.
+		 * Increments the RefSeq contig count of this node and all of its ancestors.
 		 */
-		public void incRefSeqRegions() {
+		public void incRefSeqContigs() {
 			for (TaxIdNode node = this; node != null; node = node.parent) {
-				node.refSeqRegions++;
+				node.refSeqContigs++;
 			}
 		}
 
 		/**
-		 * Returns the number of RefSeq regions associated with this node.
+		 * Returns the number of RefSeq contigs associated with this node.
 		 *
-		 * @return the RefSeq region count
+		 * @return the RefSeq contig count
 		 */
-		public int getRefSeqRegions() {
-			return refSeqRegions;
+		public int getRefSeqContigs() {
+			return refSeqContigs;
 		}
 
 		/**

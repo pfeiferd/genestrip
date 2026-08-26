@@ -47,13 +47,13 @@ import java.io.PrintStream;
 import java.util.*;
 
 /**
- * Goal that extracts the selected regions into individual FASTA files (with kraken2-style
+ * Goal that extracts the selected contigs into individual FASTA files (with kraken2-style
  * {@code |kraken:taxid|} headers) under the project's FASTA directory, and produces a map from each
  * sequence description to its taxid.
  * <p>
  * The selection matches the one of {@link FillDBGoal}: the same RefSeq categories, the same
  * additional FASTA files -- those downloaded from Genbank and those named in the project's
- * {@code additional.txt} -- and the same per-tax-id limits on genomes and $k$-mers. The extracted
+ * {@code additional.txt} -- and the same per-tax-id limits on contigs and $k$-mers. The extracted
  * files therefore represent exactly the genomes a database is filled from, which is what makes them
  * a valid basis for simulating reads against that database.
  *
@@ -100,20 +100,20 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
     }
 
     @Override
-    protected AbstractRefSeqFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
+    protected AbstractRefSeqFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
         return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
                 taxNodesGoal.get().getSelected(), isIncludeRefSeqFna() ? accessionMapGoal.get() : null, intConfigValue(GSConfigKey.KMER_SIZE),
-                intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
-                (Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
+                intConfigValue(GSConfigKey.MAX_CONTIGS_PER_TAXID),
+                (Rank) configValue(GSConfigKey.MAX_CONTIGS_PER_TAXID_RANK),
                 longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
                 intConfigValue(GSConfigKey.KMER_SAMPLING),
                 booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY),
-                regionsPerTaxid,
+                contigsPerTaxid,
                 booleanConfigValue(GSConfigKey.EXTRACT_REFSEQ_GZIP));
     }
 
     /**
-     * FASTA reader that writes each included region to its own FASTA file and records the mapping
+     * FASTA reader that writes each included contig to its own FASTA file and records the mapping
      * from sequence description to taxid.
      */
     protected class MyFastaReader extends AbstractRefSeqFastaReader {
@@ -121,32 +121,32 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
         private final boolean gzip;
 
         /**
-         * Creates the reader that writes each included region to its own FASTA file.
+         * Creates the reader that writes each included contig to its own FASTA file.
          *
          * @param bufferSize the FASTA line read-buffer size in bytes
-         * @param taxNodes the taxonomic nodes to keep regions for
+         * @param taxNodes the taxonomic nodes to keep contigs for
          * @param accessionMap the accession-to-tax-id map, or {@code null} if not used
          * @param k the k-mer size
-         * @param maxGenomesPerTaxId the maximum number of genomes kept per tax id
-         * @param maxGenomesPerTaxIdRank the rank at which the genome limit is applied
+         * @param maxContigsPerTaxId the maximum number of contigs kept per tax id
+         * @param maxContigsPerTaxIdRank the rank at which the contig limit is applied
          * @param maxKmersPerTaxId the maximum number of k-mers kept per tax id
          * @param kMerSampling the k-mer sampling step size
-         * @param assemblyAccessionsOnly whether only complete genomes are considered
-         * @param regionsPerTaxid the per-tax-id region counter
+         * @param assemblyAccessionsOnly whether only genomic accessions are considered, dropping `NG_`, `NT_` and `NW_`
+         * @param contigsPerTaxid the per-tax-id contig counter
          * @param gzip whether the output FASTA files are GZIP-compressed
          */
         public MyFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-                             int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie regionsPerTaxid, boolean gzip) {
-            super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, kMerSampling, assemblyAccessionsOnly, regionsPerTaxid);
+                             int maxContigsPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean gzip) {
+            super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid);
             this.gzip = gzip;
         }
 
         @Override
         protected void infoLine() {
             super.infoLine();
-            if (includeRegion) {
+            if (includeContig) {
                 // The name is the accession, i.e. everything up to the description. A header without
-                // a description has none of the latter, so the region reaches to the end of the line.
+                // a description has none of the latter, so the contig reaches to the end of the line.
                 int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
                 if (pos < 0) {
                     pos = size;
@@ -174,7 +174,7 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
 
         @Override
         protected void dataLine() {
-            if (includeRegion) {
+            if (includeContig) {
                 try {
                     os.write(target, 0, size);
                 } catch (IOException e) {
@@ -183,8 +183,8 @@ public class ExtractRefSeqFastasGoal<P extends GSProject> extends FastaReaderGoa
             }
         }
 
-        protected void endRegion() {
-            if (includeRegion) {
+        protected void endContig() {
+            if (includeContig) {
                 try {
                     os.close();
                     os = null;

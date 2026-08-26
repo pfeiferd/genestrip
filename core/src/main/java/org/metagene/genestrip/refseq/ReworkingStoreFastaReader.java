@@ -33,7 +33,7 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 import org.metagene.genestrip.util.ByteArrayUtil;
 
 /**
- * A store FASTA reader that reworks each region's tax node into an artificial {@code DATA}/{@code
+ * A store FASTA reader that reworks each contig's tax node into an artificial {@code DATA}/{@code
  * FILE}/{@code ID} child node when the corresponding option is enabled. Shared by the up-front
  * k-mer-counting pass ({@code FillBloomFilterGoal}) and the DB fill ({@code FillDBGoal}) with the same
  * key computation, so both derive identical store values. The counting pass runs in <em>create</em>
@@ -60,13 +60,13 @@ public abstract class ReworkingStoreFastaReader extends AbstractStoreFastaReader
 	 * @param taxNodes the requested tax nodes
 	 * @param accessionMap the accession-to-taxid map
 	 * @param k the k-mer length
-	 * @param maxGenomesPerTaxId the maximum number of genomes per tax id
-	 * @param maxGenomesPerTaxIdRank the rank at which the per-tax-id genome limit applies
+	 * @param maxContigsPerTaxId the maximum number of contigs per tax id
+	 * @param maxContigsPerTaxIdRank the rank at which the per-tax-id contig limit applies
 	 * @param maxKmersPerTaxId the maximum number of k-mers per tax id
 	 * @param maxDust the maximum allowed low-complexity (dust) run length
 	 * @param kMerSampling the k-mer sampling step size
-	 * @param assemblyAccessionsOnly whether to include only complete genomes
-	 * @param regionsPerTaxid the per-taxid region trie
+	 * @param assemblyAccessionsOnly whether only genomic accessions are considered, dropping `NG_`, `NT_` and `NW_`
+	 * @param contigsPerTaxid the per-taxid contig trie
 	 * @param enableLowerCaseBases whether lower-case bases are included
 	 * @param taxTree the taxonomy tree holding the artificial nodes
 	 * @param dataNodes whether to rework into an artificial {@code DATA} node
@@ -81,12 +81,12 @@ public abstract class ReworkingStoreFastaReader extends AbstractStoreFastaReader
 	 * @throws IllegalArgumentException if {@code foldTaxaBelow} is set without {@code fileNodes}
 	 */
 	public ReworkingStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-			int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling,
-			boolean assemblyAccessionsOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases,
+			int maxContigsPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling,
+			boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases,
 			TaxTree taxTree, boolean dataNodes, boolean fileNodes, boolean idNodes, boolean createNodes,
 			IDStringGenerator idStringGenerator, Rank foldTaxaBelow) {
-		super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId,
-				maxDust, kMerSampling, assemblyAccessionsOnly, regionsPerTaxid, enableLowerCaseBases);
+		super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId,
+				maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases);
 		checkFoldConfig(foldTaxaBelow, fileNodes);
 		this.taxTree = taxTree;
 		this.dataNodes = dataNodes;
@@ -137,7 +137,7 @@ public abstract class ReworkingStoreFastaReader extends AbstractStoreFastaReader
 	 * instead: asked to file genomes at the species, filing one at its genus would be a coarser
 	 * answer than the taxonomy already gave, and one the caller never asked for.
 	 * <p>
-	 * Nor is a genome ever lifted out of {@code taxNodes}. A region is only read at all when its
+	 * Nor is a genome ever lifted out of {@code taxNodes}. A contig is only read at all when its
 	 * node is one of those (see {@code AbstractRefSeqFastaReader}), so without this check a
 	 * {@code taxids.txt} naming a strain, together with a fold at the species, would file that
 	 * strain's genomes at a species nobody requested and put a node in the database that is outside

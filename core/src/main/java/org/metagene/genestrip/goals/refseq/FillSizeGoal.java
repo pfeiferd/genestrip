@@ -204,16 +204,16 @@ public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<FillSizeG
 	}
 
 	@Override
-	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
+	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
 		MyFastaReader fastaReader = new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES),
 				taxNodesGoal.get().getSelected(), isIncludeRefSeqFna() ? accessionMapGoal.get() : null, intConfigValue(GSConfigKey.KMER_SIZE),
-				intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
-				(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
+				intConfigValue(GSConfigKey.MAX_CONTIGS_PER_TAXID),
+				(Rank) configValue(GSConfigKey.MAX_CONTIGS_PER_TAXID_RANK),
 				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
 				intConfigValue(GSConfigKey.MAX_DUST),
 				intConfigValue(GSConfigKey.KMER_SAMPLING),
 				booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY),
-				regionsPerTaxid,
+				contigsPerTaxid,
 				booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES));
 		readers.add(fastaReader);
 		return fastaReader;
@@ -234,19 +234,19 @@ public class FillSizeGoal<P extends GSProject> extends FastaReaderGoal<FillSizeG
 		 * @param taxNodes the tax id nodes to include
 		 * @param accessionMap the accession-to-tax-id map, or {@code null} if RefSeq FASTA is excluded
 		 * @param k the k-mer length
-		 * @param maxGenomesPerTaxId the maximum number of genomes per tax id
-		 * @param maxGenomesPerTaxIdRank the rank at which the genome limit applies
+		 * @param maxContigsPerTaxId the maximum number of contigs per tax id
+		 * @param maxContigsPerTaxIdRank the rank at which the contig limit applies
 		 * @param maxKmersPerTaxId the maximum number of k-mers per tax id
 		 * @param maxDust the maximum dust value, or a negative value to disable dust filtering
 		 * @param kMerSampling the k-mer step size
-		 * @param assemblyAccessionsOnly whether only complete-genome accessions are considered
-		 * @param regionsPerTaxid the per-tax-id genome region trie
+		 * @param assemblyAccessionsOnly whether only genomic accessions are considered, dropping `NG_`, `NT_` and `NW_`
+		 * @param contigsPerTaxid the per-tax-id contig trie
 		 * @param enableLowerCaseBases whether lowercase bases are accepted
 		 */
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-				int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases) {
-			super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId,
-					maxDust, kMerSampling, assemblyAccessionsOnly, regionsPerTaxid, enableLowerCaseBases);
+				int maxContigsPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases) {
+			super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId,
+					maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases);
 		}
 
 		/**

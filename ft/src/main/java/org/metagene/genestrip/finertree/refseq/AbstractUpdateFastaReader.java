@@ -45,8 +45,8 @@ public abstract class AbstractUpdateFastaReader extends AbstractStoreFastaReader
     private final boolean dataNodes;
 
     /**
-     * The refined leaf node the current fasta region's k-mers are attributed to, as resolved by
-     * {@link #updateLeafNode()}, or {@code null} if the region is not covered by the refined tree.
+     * The refined leaf node the current fasta contig's k-mers are attributed to, as resolved by
+     * {@link #updateLeafNode()}, or {@code null} if the contig is not covered by the refined tree.
      */
     protected SmallTaxTree.SmallTaxIdNode leafNode;
 
@@ -58,20 +58,20 @@ public abstract class AbstractUpdateFastaReader extends AbstractStoreFastaReader
      * @param taxNodes               the tax nodes the database is built for
      * @param accessionMap           the map resolving accessions to tax ids
      * @param k                      the *k*-mer length
-     * @param maxGenomesPerTaxId     the maximum number of genomes considered per tax id
-     * @param maxGenomesPerTaxIdRank the rank up to which {@code maxGenomesPerTaxId} is applied
+     * @param maxContigsPerTaxId     the maximum number of contigs considered per tax id
+     * @param maxContigsPerTaxIdRank the rank up to which {@code maxContigsPerTaxId} is applied
      * @param maxKmersPerTaxId       the maximum number of *k*-mers stored per tax id
      * @param maxDust                the maximum dust (low-complexity) threshold for *k*-mers
      * @param kMerSampling               the step size between consecutive *k*-mers
-     * @param assemblyAccessionsOnly    whether only complete genomes are considered
-     * @param regionsPerTaxid        the trie tracking the covered regions per tax id
+     * @param assemblyAccessionsOnly    whether only genomic accessions are considered, dropping `NG_`, `NT_` and `NW_`
+     * @param contigsPerTaxid        the trie tracking the covered contigs per tax id
      * @param enableLowerCaseBases   whether lower-case bases are treated as valid bases
      * @param idNodes                whether refinement into id nodes (by accession) is enabled
      * @param fileNodes              whether refinement into file nodes (by file name) is enabled
      * @param dataNodes              whether refinement into the data child node is enabled
      */
-    public AbstractUpdateFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases, boolean idNodes, boolean fileNodes, boolean dataNodes) {
-        super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, regionsPerTaxid, enableLowerCaseBases);
+    public AbstractUpdateFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxContigsPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases, boolean idNodes, boolean fileNodes, boolean dataNodes) {
+        super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases);
         this.idNodes = idNodes;
         this.fileNodes = fileNodes;
         this.dataNodes = dataNodes;
@@ -98,10 +98,10 @@ public abstract class AbstractUpdateFastaReader extends AbstractStoreFastaReader
      * the plain tax node and descending, in order, into an id node (matched by the accession in the
      * info line), a file node (matched by the source file name) and finally the data child node, as
      * far as the corresponding refinement flags are enabled and matching nodes exist. If the current
-     * region is not included, the leaf node is left unchanged.
+     * contig is not included, the leaf node is left unchanged.
      */
     protected void updateLeafNode() {
-        if (includeRegion) {
+        if (includeContig) {
             leafNode = getTree().getNodeByTaxId(node.getTaxId());
             if (leafNode != null) {
                 // Try to find id node first:

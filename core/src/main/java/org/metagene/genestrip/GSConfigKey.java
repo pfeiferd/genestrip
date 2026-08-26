@@ -121,26 +121,30 @@ public enum GSConfigKey implements ConfigKey {
 	CHECK_SUM_CACHE_FILE(FileDownloadGoal.CHECK_SUM_CACHE_FILE.getName(), FileDownloadGoal.CHECK_SUM_CACHE_FILE.getInfo(), GSGoalKey.DB),
 
 	// Limit database size
-	/** Maximum number of genomes per tax id included in the database. */
-	@MDDescription("The maximum number of genomes per tax id to be included in the database. "
-			+ "Note, that this is an important parameter to control database size, because in some cases, there are thousands of genomic entries per tax id. "
-			+ "The limit is approximate and bounds the database roughly rather than to the genome: the genomes are read by several threads at once, "
-			+ "and each admits a genome while the count it sees is still below the limit, so a few more may get in and *which* of a tax id's genomes "
-			+ "get in depends on the order the threads happen to read them. A database built with this limit set is therefore not reproducible "
-			+ "genome for genome across runs or thread counts. There is no value meaning \"no limit\"; the limit is switched off by leaving it at its default.")
-	MAX_GENOMES_PER_TAXID("maxGenomesPerTaxid", new IntConfigParamInfo(1, Integer.MAX_VALUE, Integer.MAX_VALUE),
+	/** Maximum number of contigs per tax id included in the database. */
+	@MDDescription("The maximum number of contigs per tax id to be included in the database, where a contig is one fasta entry of the "
+			+ "RefSeq release. This is a limit on entries, not on genomes, and the two are far apart: a finished genome contributes one "
+			+ "entry per replicon, while a draft assembly contributes one per contig - often dozens to hundreds. For a species whose "
+			+ "RefSeq entries are mostly drafts, a limit of 50 is therefore reached inside a single assembly, and the more genomes RefSeq "
+			+ "holds of a species the more of them are drafts, so the limit bites hardest exactly where it was meant to bite least. "
+			+ "Use `maxKMersPerTaxid` instead where a size bound is wanted that does not depend on how fragmented a species' assemblies are. "
+			+ "The limit is also approximate: the contigs are read by several threads at once, and each admits a contig while the count it "
+			+ "sees is still below the limit, so a few more may get in and *which* of a tax id's contigs get in depends on the order the "
+			+ "threads happen to read them. A database built with this limit set is therefore not reproducible contig for contig across runs "
+			+ "or thread counts. There is no value meaning \"no limit\"; the limit is switched off by leaving it at its default.")
+	MAX_CONTIGS_PER_TAXID("maxContigsPerTaxid", new IntConfigParamInfo(1, Integer.MAX_VALUE, Integer.MAX_VALUE),
 			GSGoalKey.DB),
 	/** Maximum number of k-mers stored per tax id. */
 	@MDDescription("The limit for the number of *k*-mers per tax id at which adding more *k*-mers for this tax id to the database stops. "
 			+ "Note, that this is an important parameter to control database size, because in some cases, there are millions of *k*-mers per tax id. "
-			+ "As with `maxGenomesPerTaxid` the limit is approximate, and always in the direction of admitting a few too many: it is checked once per "
-			+ "fasta line rather than per *k*-mer, and against a count taken when the region began. A value of `0` is within the range and stops "
+			+ "As with `maxContigsPerTaxid` the limit is approximate, and always in the direction of admitting a few too many: it is checked once per "
+			+ "fasta line rather than per *k*-mer, and against a count taken when the contig began. A value of `0` is within the range and stops "
 			+ "everything, which yields an empty database; there is no value meaning \"no limit\", which is what the default stands for.")
 	MAX_KMERS_PER_TAXID("maxKMersPerTaxid", new LongConfigParamInfo(0, Long.MAX_VALUE, Long.MAX_VALUE)),
-	/** Rank at which the per-tax-id genome and k-mer limits apply. */
-	@MDDescription("The rank for which to consider the parameters `maxGenomesPerTaxid` and `maxKMersPerTaxid`. If `null`, then maximum number of genomes is considered with respect to the direct tax id under which a genome is stored. "
-			+ "A lineage that has no ancestor of the given rank - and the taxonomy is full of them - is counted at the tax id under which the genome is stored, so that setting a rank never leaves part of the tree without a limit.")
-	MAX_GENOMES_PER_TAXID_RANK("maxPerTaxidRank", new RankConfigParamInfo(null)),
+	/** Rank at which the per-tax-id contig and k-mer limits apply. */
+	@MDDescription("The rank for which to consider the parameters `maxContigsPerTaxid` and `maxKMersPerTaxid`. If `null`, then both limits are counted at the direct tax id under which a contig is stored. "
+			+ "A lineage that has no ancestor of the given rank - and the taxonomy is full of them - is counted at the tax id under which the contig is stored, so that setting a rank never leaves part of the tree without a limit.")
+	MAX_CONTIGS_PER_TAXID_RANK("maxPerTaxidRank", new RankConfigParamInfo(null)),
 	/** Whether downloaded fastq/fasta files are always assumed to be gzipped. */
 	@MDDescription("If `true`, a fastq or fasta file which is downloaded via a URL is always assumed to be g-zipped. Otherwise, it will be considered g-zipped only if the" +
 			" file part of the URL ends with `.gz` or `.gzip`.")
@@ -252,26 +256,26 @@ public enum GSConfigKey implements ConfigKey {
 	XOR_BLOOM_HASH("xorBloomHash", new BooleanConfigParamInfo(true)),
 	/** Line length in bytes for generated fasta files. */
 	FASTA_LINE_SIZE_BYTES("fastaLineSizeBytes", new IntConfigParamInfo(4096, 65536, 4096), true, GSGoalKey.DB),
-	/** Which regions of the RefSeq release the least-common-ancestor update of {@code updatedb} takes into account. */
-	@MDDescription("Which regions **of the RefSeq release** the least common ancestor update takes into account. "
+	/** Which contigs of the RefSeq release the least-common-ancestor update of {@code updatedb} takes into account. */
+	@MDDescription("Which contigs **of the RefSeq release** the least common ancestor update takes into account. "
 			+ "It restricts the release and nothing else: the fasta files a project supplies itself - the entries of "
 			+ "its `additional.txt` and the genomes downloaded from Genbank - always take part in the update, "
 			+ "whatever this is set to. "
-			+ "`all` uses every region of the release, which is what the update exists for: a *k*-mer that a genome "
+			+ "`all` uses every contig of the release, which is what the update exists for: a *k*-mer that a genome "
 			+ "of some other taxon also carries is raised to the common ancestor of both and thus stops being "
-			+ "claimed for the requested taxon. `ownTaxaOnly` uses only the release's regions of the tax ids "
+			+ "claimed for the requested taxon. `ownTaxaOnly` uses only the release's contigs of the tax ids "
 			+ "selected for the database - that is more than what the database holds but far less than the entire "
 			+ "release, and it leaves *k*-mers of other taxa claimed. `otherTaxaOnly` is the complement: every "
-			+ "region of the release *except* those of the selected tax ids. "
+			+ "contig of the release *except* those of the selected tax ids. "
 			+ "It exists for databases that already hold the genomes of the requested taxon under their own "
 			+ "identity, e.g. one fasta file per assembly. There the release presents the very same genome a second "
 			+ "time under a different identity, and the update would raise a genome's *k*-mers with its own copy - "
-			+ "`LCA(FILE(A), DATA(t)) = DATA(t)` - which leaves nothing below the data node. Skipping those regions "
+			+ "`LCA(FILE(A), DATA(t)) = DATA(t)` - which leaves nothing below the data node. Skipping those contigs "
 			+ "keeps what the update is for and drops what it would destroy, while the project's own fastas still "
 			+ "settle a *k*-mer that several of them share on the common ancestor of those. It is only correct if "
 			+ "the database holds the genomes of the selected tax ids *completely*: a *k*-mer of a genome that is in "
 			+ "the release but not in the database keeps a specificity it has not got."
-			+ " `allButExcluded` is `all` minus the regions of the tax ids that `taxids.txt` excluded with a leading `-`: "
+			+ " `allButExcluded` is `all` minus the contigs of the tax ids that `taxids.txt` excluded with a leading `-`: "
 			+ "those genomes then neither enter the database nor raise anything in it. It has the same caveat as `ownTaxaOnly`, in the small: "
 			+ "a *k*-mer that only an excluded genome carries besides the requested taxon stays claimed for that taxon.")
 	UPDATE_SCOPE("refseq.updateScope", new UpdateScopeConfigParamInfo(UpdateScope.ALL), false, GSGoalKey.UPDATE_DB),
@@ -290,7 +294,7 @@ public enum GSConfigKey implements ConfigKey {
 			+ "genome is considered for entry into the database. Which ones those are follows from the *k*-mer "
 			+ "itself and not from its position in the genome, so a *k*-mer is kept in every genome it occurs in "
 			+ "or in none of them. That is what keeps the tax id of a stored *k*-mer right: it is the lowest "
-			+ "common ancestor of the taxa of every region the *k*-mer was met in, and a *k*-mer kept in one "
+			+ "common ancestor of the taxa of every contig the *k*-mer was met in, and a *k*-mer kept in one "
 			+ "genome but passed over in another would come out looking more specific than it is, so that reads "
 			+ "of the taxon whose occurrence was missed would be attributed to the other one.")
 	KMER_SAMPLING("kMerSampling", new IntConfigParamInfo(1, Integer.MAX_VALUE, 1), GSGoalKey.DB),
@@ -865,39 +869,39 @@ public enum GSConfigKey implements ConfigKey {
 	}
 
 	/**
-	 * Which regions <em>of the RefSeq release</em> the least-common-ancestor update of
+	 * Which contigs <em>of the RefSeq release</em> the least-common-ancestor update of
 	 * {@code updatedb} takes into account. The update merges each stored k-mer's tax id with the node
-	 * of every region that carries it; which regions it is shown therefore decides what the database
+	 * of every contig that carries it; which contigs it is shown therefore decides what the database
 	 * ends up claiming.
 	 * <p>
 	 * None of these values touches the fasta files a project supplies itself - the entries of its
 	 * {@code additional.txt} and the genomes downloaded from Genbank. Those always take part; see
-	 * {@code DBGoal#isRegionInScope} for why only the release is worth restricting.
+	 * {@code DBGoal#isContigInScope} for why only the release is worth restricting.
 	 */
 	public enum UpdateScope {
 		/**
-		 * Every region of the release. This is what the update exists for: a k-mer carried by a genome
+		 * Every contig of the release. This is what the update exists for: a k-mer carried by a genome
 		 * of another taxon is raised to the common ancestor of both and so stops being claimed for the
 		 * requested taxon.
 		 */
 		ALL("all"),
 		/**
-		 * Only the release's regions of the tax ids selected for the database. That is more than the
+		 * Only the release's contigs of the tax ids selected for the database. That is more than the
 		 * database holds but far less than the entire release, and k-mers that genomes of other taxa
 		 * carry stay claimed for the requested taxon.
 		 */
 		OWN_TAXA_ONLY("ownTaxaOnly"),
 		/**
-		 * Every region of the release except those of the selected tax ids - the complement of
+		 * Every contig of the release except those of the selected tax ids - the complement of
 		 * {@link #OWN_TAXA_ONLY}. For a database that holds the genomes of the requested taxon under
 		 * their own identity (one fasta file per assembly, say), the release presents those very
 		 * genomes a second time under a different one, and the update would raise a genome's k-mers
-		 * with its own copy. Skipping their regions keeps what the update is for and drops what it
+		 * with its own copy. Skipping their contigs keeps what the update is for and drops what it
 		 * would destroy; it is correct only if the database holds those genomes completely.
 		 */
 		OTHER_TAXA_ONLY("otherTaxaOnly"),
 		/**
-		 * Every region of the release except those of the tax ids {@code taxids.txt} excluded with a
+		 * Every contig of the release except those of the tax ids {@code taxids.txt} excluded with a
 		 * leading {@code -}. {@link #ALL} with a hole in it, and the hole is the one the file already
 		 * describes.
 		 * <p>

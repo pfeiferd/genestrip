@@ -33,8 +33,8 @@ package org.metagene.genestrip.util;
  * users of this class rest on:
  * <ul>
  * <li>The database keeps one k-mer in {@code kMerSampling}. A k-mer's tax id is the lowest common
- * ancestor of the taxa of all regions it was met in, which the update pass computes by reading every
- * region of every taxon. Selecting by position instead - every n-th base of a region, as this was
+ * ancestor of the taxa of all contigs it was met in, which the update pass computes by reading every
+ * contig of every taxon. Selecting by position instead - every n-th base of a contig, as this was
  * done before - would meet a stored k-mer again only when it happened to fall on a selected offset
  * in the other genome, which for one in n fails with probability 1-1/n per occurrence. The stored
  * k-mers would come out looking more specific than they are, and reads of a taxon whose occurrence

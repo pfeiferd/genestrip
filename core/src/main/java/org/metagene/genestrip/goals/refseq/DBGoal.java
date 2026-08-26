@@ -107,8 +107,8 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 	}
 
 	/**
-	 * Decides whether a region takes part in the update, given the configured scope, the node the
-	 * region resolved to, and whether it comes from the RefSeq release.
+	 * Decides whether a contig takes part in the update, given the configured scope, the node the
+	 * contig resolved to, and whether it comes from the RefSeq release.
 	 * <p>
 	 * The scope restricts the <em>release</em> and nothing else, which is what its name
 	 * {@code refseq.updateScope} says: a genome the project supplies itself - an entry of
@@ -120,31 +120,31 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 	 * claimed for whichever of them happened to be read first. Only the release presents the same
 	 * genome a second time under another identity, so only the release is worth restricting.
 	 * <p>
-	 * A {@code null} node means the region's accession is not in the accession map, so its taxon is
-	 * unknown. Such a region cannot raise anything - the lowest common ancestor with no node is the
+	 * A {@code null} node means the contig's accession is not in the accession map, so its taxon is
+	 * unknown. Such a contig cannot raise anything - the lowest common ancestor with no node is the
 	 * stored value - and it is treated as belonging to no selected taxon, which is what
 	 * {@link GSConfigKey.UpdateScope#OTHER_TAXA_ONLY} says about it and why
 	 * {@link GSConfigKey.UpdateScope#OWN_TAXA_ONLY} leaves it out.
 	 *
-	 * @param node the node the region resolved to, or {@code null} if its taxon is unknown
-	 * @param fromRefSeqRelease whether the region stems from the RefSeq release rather than from a
+	 * @param node the node the contig resolved to, or {@code null} if its taxon is unknown
+	 * @param fromRefSeqRelease whether the contig stems from the RefSeq release rather than from a
 	 *                          fasta the project supplies itself
-	 * @return whether the region's k-mers are to be merged into the store
+	 * @return whether the contig's k-mers are to be merged into the store
 	 */
-	boolean isRegionInScope(TaxIdNode node, boolean fromRefSeqRelease) {
+	boolean isContigInScope(TaxIdNode node, boolean fromRefSeqRelease) {
 		if (!fromRefSeqRelease) {
 			return true;
 		}
 		switch (updateScope) {
 		case OWN_TAXA_ONLY:
-			// An empty selection means no restriction, so every known region qualifies as "ours".
+			// An empty selection means no restriction, so every known contig qualifies as "ours".
 			return node != null && (selectedTaxNodes.isEmpty() || selectedTaxNodes.contains(node));
 		case OTHER_TAXA_ONLY:
 			// No special case for an empty selection is needed here: nothing is then "ours", so
 			// nothing is skipped, which is the same no-restriction reading as above.
 			return !selectedTaxNodes.contains(node);
 		case ALL_BUT_EXCLUDED:
-			// Like ALL, except for the branches `taxids.txt' struck out. A region whose taxon is
+			// Like ALL, except for the branches `taxids.txt' struck out. A contig whose taxon is
 			// unknown is not one of them and takes part, as it does under ALL: it cannot raise
 			// anything anyway, the lowest common ancestor with no node being the stored value.
 			return !excludedTaxNodes.contains(node);
@@ -158,7 +158,7 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 		try {
 			Database wrapper = filledStoreGoal.get();
 			store = wrapper.getKmerStore();
-			// Once for the whole pass. isRegionInScope() is asked for every region of the release, and
+			// Once for the whole pass. isContigInScope() is asked for every contig of the release, and
 			// a goal is not a lookup table to be consulted a few hundred thousand times.
 			TaxNodeSelection selection = taxNodesGoal.get();
 			selectedTaxNodes = selection.getSelected();
@@ -188,10 +188,10 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 		}
 	}
 
-	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
+	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
 		// Lookup mode (createNodes = false): the artificial data/file/id nodes were created during the
 		// fill; the update only looks them up (using the same key computation as their creation).
-		// The per-taxon limits maxGenomesPerTaxid, maxPerTaxidRank and maxKMersPerTaxid are
+		// The per-taxon limits maxContigsPerTaxid, maxPerTaxidRank and maxKMersPerTaxid are
 		// deliberately not passed on: this reader overrides infoLine() and isAllowMoreKmers(), the
 		// only two places that read them, so they would have no effect. Capping the update would be
 		// wrong in any case - a k-mer is raised to the common ancestor of every genome carrying it,
@@ -237,8 +237,8 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 		 * @param store the k-mer store to update
 		 * @param maxDust the maximum dust (low-complexity) threshold
 		 * @param kMerSampling the k-mer sampling step size
-		 * @param assemblyAccessionsOnly whether to restrict to complete genomes only
-		 * @param regionsPerTaxid the trie of regions per taxid
+		 * @param assemblyAccessionsOnly whether only genomic accessions are considered, dropping `NG_`, `NT_` and `NW_`
+		 * @param contigsPerTaxid the trie of contigs per taxid
 		 * @param enableLowerCaseBases whether lowercase bases are treated as valid
 		 * @param dataNodes whether artificial {@code DATA} nodes are used
 		 * @param fileNodes whether artificial {@code FILE} nodes are used
@@ -246,14 +246,14 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 		 */
 		@SuppressWarnings("unchecked")
 		public MyFastaReader(int bufferSize, TaxTree taxTree, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, KMerStore<String> store,
-							 int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases,
+							 int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases,
 							 boolean dataNodes, boolean fileNodes, boolean idNodes, Rank foldTaxaBelow) {
 			// Lookup mode: the fill already created every artificial node, so no id generator is needed.
-			// The per-taxon genome and k-mer limits are handed to the superclass as their no-limit
+			// The per-taxon contig and k-mer limits are handed to the superclass as their no-limit
 			// values: this reader overrides infoLine() and isAllowMoreKmers(), which are the only
 			// readers of them, so no limit can take effect here and pretending otherwise would only
 			// mislead. See the comment at the call site in createFastaReader().
-			super(bufferSize, taxNodes, accessionMap, store.getK(), Integer.MAX_VALUE, null, Long.MAX_VALUE, maxDust, kMerSampling, assemblyAccessionsOnly, regionsPerTaxid, enableLowerCaseBases,
+			super(bufferSize, taxNodes, accessionMap, store.getK(), Integer.MAX_VALUE, null, Long.MAX_VALUE, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases,
 					taxTree, dataNodes, fileNodes, idNodes, false, null, foldTaxaBelow);
 			this.store = store;
 			if (store instanceof RadixKMerStore) {
@@ -297,8 +297,8 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 				updateNodeFromInfoLine();
 			}
 
-			if (isRegionInScope(node, isRefSeqReleaseRegion())) {
-				includeRegion = true;
+			if (isContigInScope(node, isRefSeqReleaseContig())) {
+				includeContig = true;
 				if (node != null) {
 					node = reworkNode();
 				}
@@ -306,11 +306,11 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 		}
 
 		@Override
-		protected void endRegion() {
-			// Flush the current region's pending k-mers before infoLine() moves 'node' to the next
-			// region: every batch must consist of k-mers that share the region's node, since the
-			// provider merges against that node. A region is the coarsest safe flush boundary; the
-			// buffer is also flushed mid-region once it fills up (see handleStore()).
+		protected void endContig() {
+			// Flush the current contig's pending k-mers before infoLine() moves 'node' to the next
+			// contig: every batch must consist of k-mers that share the contig's node, since the
+			// provider merges against that node. A contig is the coarsest safe flush boundary; the
+			// buffer is also flushed mid-contig once it fills up (see handleStore()).
 			if (batch != null && !batch.isEmpty()) {
 				radixStore.updateBatch(batch, provider);
 			}
@@ -327,7 +327,7 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 				if (batch.add(kmer)) {
 					radixStore.updateBatch(batch, provider);
 				}
-				// The counted-k-mer return value is unused by this reader (endRegion does no region
+				// The counted-k-mer return value is unused by this reader (endContig does no contig
 				// bookkeeping and isAllowMoreKmers() is always true), so the deferred move result of a
 				// batched k-mer need not be reported here.
 				return false;

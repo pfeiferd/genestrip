@@ -137,8 +137,8 @@ public class DBQualitySizeGoal<P extends FTProject> extends AbstractDBQualityGoa
     }
 
     @Override
-    protected MyFastaReader newReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
-        return new SketchingReader(regionsPerTaxid);
+    protected MyFastaReader newReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
+        return new SketchingReader(contigsPerTaxid);
     }
 
     /** Reader of this pass: it sketches every pair and keeps no tallies, there being none to keep. */
@@ -146,10 +146,10 @@ public class DBQualitySizeGoal<P extends FTProject> extends AbstractDBQualityGoa
         /**
          * Creates the reader.
          *
-         * @param regionsPerTaxid the trie counting regions per tax id
+         * @param contigsPerTaxid the trie counting contigs per tax id
          */
-        SketchingReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
-            super(regionsPerTaxid);
+        SketchingReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
+            super(contigsPerTaxid);
         }
 
         /**

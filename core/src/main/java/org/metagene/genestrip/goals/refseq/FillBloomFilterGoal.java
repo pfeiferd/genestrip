@@ -375,17 +375,17 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
     }
 
     @Override
-    protected void afterReadFastas(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
+    protected void afterReadFastas(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
         if (getLogger().isDebugEnabled()) {
             List<StringLongDigitTrie.StringLong> list = new ArrayList<>();
-            regionsPerTaxid.collect(list);
-            getLogger().debug("Regions ber taxid:");
+            contigsPerTaxid.collect(list);
+            getLogger().debug("Contigs ber taxid:");
             getLogger().debug(list);
         }
     }
 
     @Override
-    protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
+    protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
         // Per-reader artificial-tax-id generator (its buffer is mutated), mirroring FillDBGoal. The
         // shared artificial counter lives on the tree, so ids are unique across reader threads.
         byte[] idBuffer = new byte[128];
@@ -400,13 +400,13 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
                 isIncludeRefSeqFna() ? accessionMapGoal.get() : null,
                 intConfigValue(GSConfigKey.KMER_SIZE),
                 filter,
-                intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
-                (Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
+                intConfigValue(GSConfigKey.MAX_CONTIGS_PER_TAXID),
+                (Rank) configValue(GSConfigKey.MAX_CONTIGS_PER_TAXID_RANK),
                 longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID),
                 intConfigValue(GSConfigKey.MAX_DUST),
                 intConfigValue(GSConfigKey.KMER_SAMPLING),
                 booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY),
-                regionsPerTaxid,
+                contigsPerTaxid,
                 booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES),
                 taxTreeGoal.get(),
                 booleanConfigValue(GSConfigKey.DATA_NODES),
@@ -428,8 +428,8 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
         // single thread, so no synchronization is needed; doMakeThis() merges all readers afterwards.
         private final int[] bucketSizes = new int[1 << radixBits];
         private final Set<String> values = new HashSet<>();
-        // Last node whose taxid was collected, so the (rare) region-boundary collection skips the
-        // repeated per-k-mer adds within a region.
+        // Last node whose taxid was collected, so the (rare) contig-boundary collection skips the
+        // repeated per-k-mer adds within a contig.
         private TaxIdNode lastCollectedNode;
 
         /**
@@ -441,13 +441,13 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
          * @param accessionMap the accession-to-tax-id map, or {@code null} if not used
          * @param k the k-mer size
          * @param filter the temporary Bloom filter to fill
-         * @param maxGenomesPerTaxId the maximum number of genomes kept per tax id
-         * @param maxGenomesPerTaxIdRank the rank at which the genome limit is applied
+         * @param maxContigsPerTaxId the maximum number of contigs kept per tax id
+         * @param maxContigsPerTaxIdRank the rank at which the contig limit is applied
          * @param maxKmersPerTaxId the maximum number of k-mers kept per tax id
          * @param maxDust the maximum allowed low-complexity (dust) run length
          * @param kMerSampling the k-mer sampling step size
-         * @param assemblyAccessionsOnly whether only complete genomes are considered
-         * @param regionsPerTaxid the per-tax-id region counter
+         * @param assemblyAccessionsOnly whether only genomic accessions are considered, dropping `NG_`, `NT_` and `NW_`
+         * @param contigsPerTaxid the per-tax-id contig counter
          * @param enableLowerCaseBases whether lower-case bases are processed
          * @param taxTree the taxonomy tree into which artificial nodes are created
          * @param dataNodes whether to rework into an artificial {@code DATA} node
@@ -456,18 +456,18 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
          * @param idStringGenerator generator for artificial tax ids
          */
         public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-                             ProbFilter filter, int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie regionsPerTaxid, boolean enableLowerCaseBases,
+                             ProbFilter filter, int maxContigsPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases,
                              TaxTree taxTree, boolean dataNodes, boolean fileNodes, boolean idNodes, IDStringGenerator idStringGenerator,
                              Rank foldTaxaBelow) {
-            super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, regionsPerTaxid, enableLowerCaseBases,
+            super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases,
                     taxTree, dataNodes, fileNodes, idNodes, true, idStringGenerator, foldTaxaBelow);
             this.filter = filter;
         }
 
         @Override
         protected boolean handleStore(long kmer) {
-            // Collect the region's store value (matching what the DB fill would putLong: node.getTaxId()
-            // when non-null). Guarded on a node change so it runs per region, not per k-mer.
+            // Collect the contig's store value (matching what the DB fill would putLong: node.getTaxId()
+            // when non-null). Guarded on a node change so it runs per contig, not per k-mer.
             if (node != lastCollectedNode) {
                 lastCollectedNode = node;
                 if (node != null && node.getTaxId() != null) {

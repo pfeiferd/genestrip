@@ -44,7 +44,7 @@ import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
 
 /**
  * Goal that builds the {@link AccessionMap}: it scans the RefSeq release catalog and maps every
- * accession range to its taxonomy node, incrementing that node's RefSeq region count. Depends on
+ * accession range to its taxonomy node, incrementing that node's RefSeq contig count. Depends on
  * the tax tree, the selected categories and the downloaded catalog.
  *
  * @param <P> the project type
@@ -94,7 +94,7 @@ public class AccessionMapGoal<P extends GSProject> extends ObjectGoal<AccessionM
 				TaxIdNode node = taxTree.getNodeByTaxId(target, 0, taxIdEnd);
 				if (node != null) {
 					map.put(target, accessionStart, accessionEnd, node);
-					node.incRefSeqRegions();
+					node.incRefSeqContigs();
 				}
 			}
 

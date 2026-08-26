@@ -62,9 +62,9 @@ import org.metagene.genestrip.tax.TaxNodeSelection;
  * of the species' k-mers that landed on a node of that rank in the database. The array has
  * {@link Rank#values()}{@code .length} entries so that every rank has a fixed slot.
  * <p>
- * The species of a k-mer is determined by walking up from the region's tax node to its nearest
+ * The species of a k-mer is determined by walking up from the contig's tax node to its nearest
  * ancestor of rank {@link Rank#SPECIES}. Only actual species-rank taxa of the database are represented:
- * a k-mer whose region has no species-rank ancestor is not attributed to any species and is not counted,
+ * a k-mer whose contig has no species-rank ancestor is not attributed to any species and is not counted,
  * and higher-rank taxa do not appear as pseudo-species keys. K-mers not present in the database are
  * ignored, as they did not land anywhere. Each qualifying k-mer occurrence is counted (there is no
  * de-duplication of k-mers that recur within a species' genomes).
@@ -111,7 +111,7 @@ public class KMerRankStatsGoal<P extends GSProject> extends FastaReaderGoal<Map<
 	 * @param dbGoal           the goal supplying the loaded database to look k-mers up in
 	 * @param taxTreeGoal      the goal supplying the taxonomy tree; kept as a direct dependency so that
 	 *                         the (aggressively cleaned) tree is not freed and rebuilt as a second
-	 *                         instance while this goal runs - which would make the region nodes resolved
+	 *                         instance while this goal runs - which would make the contig nodes resolved
 	 *                         via the accession map and the requested nodes from {@code taxNodesGoal}
 	 *                         come from different tree instances, breaking their identity comparison
 	 * @param deps             any further goals this goal depends on
@@ -173,14 +173,14 @@ public class KMerRankStatsGoal<P extends GSProject> extends FastaReaderGoal<Map<
 	}
 
 	@Override
-	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie regionsPerTaxid) {
+	protected AbstractStoreFastaReader createFastaReader(AbstractRefSeqFastaReader.StringLong2DigitTrie contigsPerTaxid) {
 		return new MyFastaReader(intConfigValue(GSConfigKey.FASTA_LINE_SIZE_BYTES), taxNodesGoal.get().getSelected(),
 				isIncludeRefSeqFna() ? accessionMapGoal.get() : null, intConfigValue(GSConfigKey.KMER_SIZE),
-				intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID),
-				(Rank) configValue(GSConfigKey.MAX_GENOMES_PER_TAXID_RANK),
+				intConfigValue(GSConfigKey.MAX_CONTIGS_PER_TAXID),
+				(Rank) configValue(GSConfigKey.MAX_CONTIGS_PER_TAXID_RANK),
 				longConfigValue(GSConfigKey.MAX_KMERS_PER_TAXID), intConfigValue(GSConfigKey.MAX_DUST),
 				intConfigValue(GSConfigKey.KMER_SAMPLING), booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY),
-				regionsPerTaxid, booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES));
+				contigsPerTaxid, booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES));
 	}
 
 	/**
@@ -235,8 +235,8 @@ public class KMerRankStatsGoal<P extends GSProject> extends FastaReaderGoal<Map<
 	}
 
 	/**
-	 * FASTA reader that, for each k-mer of a region, looks the k-mer up in the database and tallies the
-	 * rank of the stored tax id against the region's species in the shared result map.
+	 * FASTA reader that, for each k-mer of a contig, looks the k-mer up in the database and tallies the
+	 * rank of the stored tax id against the contig's species in the shared result map.
 	 */
 	protected class MyFastaReader extends AbstractStoreFastaReader {
 		/**
@@ -246,21 +246,21 @@ public class KMerRankStatsGoal<P extends GSProject> extends FastaReaderGoal<Map<
 		 * @param taxNodes               the requested tax nodes
 		 * @param accessionMap           the accession-to-taxid map
 		 * @param k                      the k-mer length
-		 * @param maxGenomesPerTaxId     the maximum number of genomes per tax id
-		 * @param maxGenomesPerTaxIdRank the rank at which the per-tax-id genome limit applies
+		 * @param maxContigsPerTaxId     the maximum number of contigs per tax id
+		 * @param maxContigsPerTaxIdRank the rank at which the per-tax-id contig limit applies
 		 * @param maxKmersPerTaxId       the maximum number of k-mers per tax id
 		 * @param maxDust                the maximum allowed low-complexity (dust) run length
 		 * @param kMerSampling               the k-mer sampling step size
-		 * @param assemblyAccessionsOnly    whether to include only complete genomes
-		 * @param regionsPerTaxid        the per-taxid region trie
+		 * @param assemblyAccessionsOnly    whether only genomic accessions are considered, dropping `NG_`, `NT_` and `NW_`
+		 * @param contigsPerTaxid        the per-taxid contig trie
 		 * @param enableLowerCaseBases   whether lower-case bases are included
 		 */
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
-							 int maxGenomesPerTaxId, Rank maxGenomesPerTaxIdRank, long maxKmersPerTaxId, int maxDust,
-							 int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie regionsPerTaxid,
+							 int maxContigsPerTaxId, Rank maxContigsPerTaxIdRank, long maxKmersPerTaxId, int maxDust,
+							 int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid,
 							 boolean enableLowerCaseBases) {
-			super(bufferSize, taxNodes, accessionMap, k, maxGenomesPerTaxId, maxGenomesPerTaxIdRank, maxKmersPerTaxId,
-					maxDust, kMerSampling, assemblyAccessionsOnly, regionsPerTaxid, enableLowerCaseBases);
+			super(bufferSize, taxNodes, accessionMap, k, maxContigsPerTaxId, maxContigsPerTaxIdRank, maxKmersPerTaxId,
+					maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases);
 		}
 
 		@Override
@@ -298,7 +298,7 @@ public class KMerRankStatsGoal<P extends GSProject> extends FastaReaderGoal<Map<
 			// pre-created in doMakeThis(), so the map is only read - never structurally modified - here.
 			TaxIdNode speciesNode = toSpeciesNode(node);
 			if (!Rank.SPECIES.equals(speciesNode.getRank())) {
-				// The region has no species-rank ancestor, so its k-mers belong to no species of the
+				// The contig has no species-rank ancestor, so its k-mers belong to no species of the
 				// statistic and are not counted (matching the species-only map seeded in doMakeThis()).
 				return false;
 			}

@@ -137,7 +137,7 @@ public class Fasta2FastqGoal<P extends GSProject> extends FileListGoal<P> {
         }
 
         @Override
-        protected void startRegion() {
+        protected void startContig() {
             dataSize = 0;
         }
 
@@ -154,7 +154,7 @@ public class Fasta2FastqGoal<P extends GSProject> extends FileListGoal<P> {
         }
 
         @Override
-        protected void endRegion() {
+        protected void endContig() {
             out.println();
             out.println("+");
             for (int i = 0; i < dataSize; i++) {
