@@ -411,6 +411,7 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
                 taxTreeGoal.get(),
                 booleanConfigValue(GSConfigKey.DATA_NODES),
                 booleanConfigValue(GSConfigKey.FILE_NODES),
+                booleanConfigValue(GSConfigKey.GENOME_NODES),
                 booleanConfigValue(GSConfigKey.ID_NODES),
                 idStringGenerator,
                 (Rank) configValue(GSConfigKey.FOLD_TAXA_BELOW));
@@ -449,15 +450,17 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
          * @param taxTree the taxonomy tree into which artificial nodes are created
          * @param dataNodes whether to rework into an artificial {@code DATA} node
          * @param fileNodes whether to rework into an artificial {@code FILE} node
+         * @param genomeNodes whether to rework into an artificial {@code GENOME} node
          * @param idNodes whether to rework into an artificial {@code ID} node
          * @param idStringGenerator generator for artificial tax ids
          */
         public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
                              ProbFilter filter, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases,
-                             TaxTree taxTree, boolean dataNodes, boolean fileNodes, boolean idNodes, IDStringGenerator idStringGenerator,
+                             TaxTree taxTree, boolean dataNodes, boolean fileNodes, boolean genomeNodes,
+                             boolean idNodes, IDStringGenerator idStringGenerator,
                              Rank foldTaxaBelow) {
             super(bufferSize, taxNodes, accessionMap, k, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases,
-                    taxTree, dataNodes, fileNodes, idNodes, true, idStringGenerator, foldTaxaBelow);
+                    taxTree, dataNodes, fileNodes, genomeNodes, idNodes, true, idStringGenerator, foldTaxaBelow);
             this.filter = filter;
         }
 

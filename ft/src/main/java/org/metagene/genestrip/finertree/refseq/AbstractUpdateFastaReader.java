@@ -27,6 +27,7 @@ package org.metagene.genestrip.finertree.refseq;
 import org.metagene.genestrip.refseq.AbstractRefSeqFastaReader;
 import org.metagene.genestrip.refseq.AbstractStoreFastaReader;
 import org.metagene.genestrip.refseq.AccessionMap;
+import org.metagene.genestrip.refseq.GenomeKeyTrie;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.TaxTree;
@@ -42,6 +43,7 @@ import java.util.Set;
  */
 public abstract class AbstractUpdateFastaReader extends AbstractStoreFastaReader {
     private final boolean idNodes;
+    private final boolean genomeNodes;
     private final boolean fileNodes;
     private final boolean dataNodes;
 
@@ -65,12 +67,15 @@ public abstract class AbstractUpdateFastaReader extends AbstractStoreFastaReader
      * @param contigsPerTaxid        the trie tracking the covered contigs per tax id
      * @param enableLowerCaseBases   whether lower-case bases are treated as valid bases
      * @param idNodes                whether refinement into id nodes (by accession) is enabled
+     * @param genomeNodes            whether refinement into genome nodes (by the genome key of the
+     *                               accession) is enabled
      * @param fileNodes              whether refinement into file nodes (by file name) is enabled
      * @param dataNodes              whether refinement into the data child node is enabled
      */
-    public AbstractUpdateFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases, boolean idNodes, boolean fileNodes, boolean dataNodes) {
+    public AbstractUpdateFastaReader(int bufferSize, Set<TaxTree.TaxIdNode> taxNodes, AccessionMap accessionMap, int k, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases, boolean idNodes, boolean genomeNodes, boolean fileNodes, boolean dataNodes) {
         super(bufferSize, taxNodes, accessionMap, k, maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases);
         this.idNodes = idNodes;
+        this.genomeNodes = genomeNodes;
         this.fileNodes = fileNodes;
         this.dataNodes = dataNodes;
     }
@@ -111,6 +116,20 @@ public abstract class AbstractUpdateFastaReader extends AbstractStoreFastaReader
                             pos = size;
                         }
                         SmallTaxTree.SmallTaxIdNode h = leafNode.getDescendantWithName(target, 1, pos);
+                        if (h != null) {
+                            leafNode = h;
+                            return;
+                        }
+                    }
+                }
+                if (genomeNodes) {
+                    if (Rank.GENOME.ordinal() != leafNode.getRankOrdinal()) {
+                        int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
+                        if (pos < 0) {
+                            pos = size;
+                        }
+                        int keyEnd = 1 + GenomeKeyTrie.genomeKeyLength(target, 1, pos);
+                        SmallTaxTree.SmallTaxIdNode h = leafNode.getDescendantWithName(target, 1, keyEnd);
                         if (h != null) {
                             leafNode = h;
                             return;

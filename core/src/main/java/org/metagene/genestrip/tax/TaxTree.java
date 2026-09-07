@@ -39,6 +39,7 @@ import org.metagene.genestrip.io.BufferedLineReader;
 import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.io.StreamingFileResource;
 import org.metagene.genestrip.io.StreamingResource;
+import org.metagene.genestrip.refseq.GenomeKeyTrie;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.DigitTrie;
 import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
@@ -324,6 +325,42 @@ public class TaxTree {
 					substitute = taxIdNodeTrie.get(idStringGenerator.generateID(nextArtCounter.getAndIncrement()), true);
 					substitute.rank = (short) Rank.ID.ordinal();
 					substitute.name = new String(array, start, end - start, StandardCharsets.UTF_8);
+					node.addSubNode(substitute);
+				}
+			}
+		}
+		return substitute;
+	}
+
+	/**
+	 * Returns the artificial {@code GENOME}-rank child of the given node standing for the genome
+	 * of the accession {@code array[start, end)}, creating it (with a freshly generated artificial
+	 * tax id) if it does not yet exist. Thread-safe.
+	 * <p>
+	 * The genome is recognised from the accession alone, by
+	 * {@link GenomeKeyTrie#genomeKeyLength(byte[], int, int)} -- the same rule
+	 * {@code maxGenomesPerTaxid} counts genomes with, so a node is created per genome exactly where
+	 * a genome is counted. Every contig of one draft assembly therefore resolves to the same child,
+	 * whether or not the contigs arrived in the same fasta file, which is what distinguishes this
+	 * from {@link #fileNode(TaxIdNode, String, IDStringGenerator)}.
+	 *
+	 * @param node              the parent node
+	 * @param array             the byte array holding the accession
+	 * @param start             the start index of the accession within the array (inclusive)
+	 * @param end               the end index of the accession within the array (exclusive)
+	 * @param idStringGenerator generator for the artificial tax id
+	 * @return the genome child node
+	 */
+	public TaxIdNode genomeNode(TaxIdNode node, byte[] array, int start, int end, IDStringGenerator idStringGenerator) {
+		int keyEnd = start + GenomeKeyTrie.genomeKeyLength(array, start, end);
+		TaxIdNode substitute = node.getChildWithName(array, start, keyEnd);
+		if (substitute == null) {
+			synchronized (node) {
+				substitute = node.getChildWithName(array, start, keyEnd);
+				if (substitute == null) {
+					substitute = taxIdNodeTrie.get(idStringGenerator.generateID(nextArtCounter.getAndIncrement()), true);
+					substitute.rank = (short) Rank.GENOME.ordinal();
+					substitute.name = new String(array, start, keyEnd - start, StandardCharsets.UTF_8);
 					node.addSubNode(substitute);
 				}
 			}

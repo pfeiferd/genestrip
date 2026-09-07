@@ -119,7 +119,16 @@ public enum Rank {
 	/** Artificial rank marking the file of k-mer origin, near the bottom of the taxonomy. */
 	FILE("FILE"),
 	/** Artificial rank marking the id of k-mer origin, at the bottom of the taxonomy. */
-	ID("ID");
+	ID("ID"),
+	/**
+	 * Artificial rank marking the genome of k-mer origin, between {@link #FILE} and {@link #ID}
+	 * in the taxonomy: a file may hold many genomes and a genome many contigs.
+	 * <p>
+	 * Appended last on purpose. The rank of a node is stored as its enum ordinal, so a rank added
+	 * anywhere but at the end would renumber the ones after it and misread every database already
+	 * written. The {@code level} below places it where it belongs regardless of that ordinal.
+	 */
+	GENOME("GENOME", FILE.level + 5);
 
 	/** Level value indicating that a rank has no well-defined level in the taxonomy. */
 	public static final int INDETERMINATE_LEVEL = -1;

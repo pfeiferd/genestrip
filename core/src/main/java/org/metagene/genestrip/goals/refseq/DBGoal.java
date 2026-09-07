@@ -204,6 +204,7 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 				booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES),
 				booleanConfigValue(GSConfigKey.DATA_NODES),
 				booleanConfigValue(GSConfigKey.FILE_NODES),
+				booleanConfigValue(GSConfigKey.GENOME_NODES),
 				booleanConfigValue(GSConfigKey.ID_NODES),
 				(Rank) configValue(GSConfigKey.FOLD_TAXA_BELOW));
 	}
@@ -241,18 +242,20 @@ public class DBGoal<P extends GSProject> extends FastaReaderGoal<Database, P> {
 		 * @param enableLowerCaseBases whether lowercase bases are treated as valid
 		 * @param dataNodes whether artificial {@code DATA} nodes are used
 		 * @param fileNodes whether artificial {@code FILE} nodes are used
+		 * @param genomeNodes whether artificial {@code GENOME} nodes are used
 		 * @param idNodes whether artificial {@code ID} nodes are used
 		 */
 		@SuppressWarnings("unchecked")
 		public MyFastaReader(int bufferSize, TaxTree taxTree, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, KMerStore<String> store,
 							 int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases,
-							 boolean dataNodes, boolean fileNodes, boolean idNodes, Rank foldTaxaBelow) {
+							 boolean dataNodes, boolean fileNodes, boolean genomeNodes, boolean idNodes,
+							 Rank foldTaxaBelow) {
 			// Lookup mode: the fill already created every artificial node, so no id generator is needed.
 			// The per-taxon genome limit is handed to the superclass as its no-limit value: this reader
 			// overrides infoLine(), the only place that reads it, so no limit can take effect here and
 			// pretending otherwise would only mislead. See the comment at createFastaReader().
 			super(bufferSize, taxNodes, accessionMap, store.getK(), maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases,
-					taxTree, dataNodes, fileNodes, idNodes, false, null, foldTaxaBelow);
+					taxTree, dataNodes, fileNodes, genomeNodes, idNodes, false, null, foldTaxaBelow);
 			this.store = store;
 			if (store instanceof RadixKMerStore) {
 				radixStore = (RadixKMerStore<String>) store;

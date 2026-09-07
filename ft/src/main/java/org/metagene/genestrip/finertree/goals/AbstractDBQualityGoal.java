@@ -129,21 +129,29 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
      */
     protected void prepare() {
         GSProject project = getProject();
-        // Data nodes, and not merely one of the three kinds of artificial node. What a leaf is has to
-        // agree between the fill and this measure, and `dataNodes' is what makes that agreement
-        // simple: with it on, ReworkingStoreFastaReader.reworkNode() files every genome at a DATA
-        // node or deeper, so no taxonomy node ever holds a genome's k-mers and a node without
-        // children is exactly a node the fill filed a genome at. isLeafNode() is then one test and
-        // needs to know nothing about ranks.
+        // What a leaf is has to agree between the fill and this measure, and what secures that
+        // agreement is an artificial node the fill gives to *every* taxon it files a genome at.
+        // Then no taxonomy node holds a genome's k-mers, a node without children is exactly a node
+        // the fill filed a genome at, and isLeafNode() is one test that needs to know nothing about
+        // ranks.
         //
-        // Requiring it is not what used to shut this goal out of a database refined below the
-        // species -- that was the second half of the old guard, which REJECTED `fileNodes' while
+        // `dataNodes' and `genomeNodes' both do that, and either will serve. ReworkingStoreFastaReader
+        // .reworkNode() fires the DATA branch for any node not already of DATA rank, and the GENOME
+        // branch for any node not already of GENOME rank, so with either on a taxon receiving a
+        // contig always ends up with a child. `fileNodes' and `idNodes' do not qualify on their own:
+        // a file node is created only where a file is in hand, and both are optional refinements
+        // *below* whichever of the two above is in force.
+        //
+        // Requiring one of them is not what used to shut this goal out of a database refined below
+        // the species -- that was the second half of the old guard, which REJECTED `fileNodes' while
         // only a DATA node could be recognised as a leaf. Both halves went at once; only the first
-        // is coming back. `fileNodes' and `idNodes' stay free, and the `cdiff' project of
-        // ft-db-exp2, which needs file nodes because the taxonomy supplies no children below the
+        // is coming back, now widened. `fileNodes' and `idNodes' stay free, and the `cdiff' project
+        // of ft-db-exp2, which needs file nodes because the taxonomy supplies no children below the
         // species, has data nodes on as every project here does.
-        if (!project.booleanConfigValue(GSConfigKey.DATA_NODES)) {
-            throw new IllegalStateException("This goal requires data nodes (dataNodes=true)");
+        if (!project.booleanConfigValue(GSConfigKey.DATA_NODES)
+                && !project.booleanConfigValue(GSConfigKey.GENOME_NODES)) {
+            throw new IllegalStateException(
+                    "This goal requires data nodes (dataNodes=true) or genome nodes (genomeNodes=true)");
         }
 
         tree = storeGoal.get().getTaxTree();
@@ -229,6 +237,7 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
                     contigsPerTaxid,
                     booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES),
                     booleanConfigValue(GSConfigKey.ID_NODES),
+                    booleanConfigValue(GSConfigKey.GENOME_NODES),
                     booleanConfigValue(GSConfigKey.FILE_NODES),
                     booleanConfigValue(GSConfigKey.DATA_NODES));
             // Batched only while no per-taxon limit binds. A batched k-mer is counted after
@@ -349,16 +358,17 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
      * the measures of these two goals are taken over.
      * <p>
      * The database fill nests the artificial nodes: {@link org.metagene.genestrip.refseq.ReworkingStoreFastaReader#reworkNode()}
-     * descends a tax id into its {@link Rank#DATA} child, that into a {@link Rank#FILE} child, and
-     * that into a {@link Rank#ID} child, as far as {@code dataNodes}, {@code fileNodes} and
-     * {@code idNodes} are enabled, and stores the k-mers at whichever it ends on. Reading the fastas
-     * back, {@link AbstractUpdateFastaReader#updateLeafNode()} walks the same chain from the other
-     * end -- ID, then FILE, then DATA, returning at the first that exists. Both therefore land on the
-     * <em>deepest</em> of the three, which is what this method identifies: an origin-rank node with
+     * descends a tax id into its {@link Rank#DATA} child, that into a {@link Rank#FILE} child, that
+     * into a {@link Rank#GENOME} child and that into a {@link Rank#ID} child, as far as
+     * {@code dataNodes}, {@code fileNodes}, {@code genomeNodes} and {@code idNodes} are enabled, and
+     * stores the k-mers at whichever it ends on. Reading the fastas back,
+     * {@link AbstractUpdateFastaReader#updateLeafNode()} walks the same chain from the other end --
+     * ID, then GENOME, then FILE, then DATA, returning at the first that exists. Both therefore land
+     * on the <em>deepest</em> of them, which is what this method identifies: an origin-rank node with
      * no origin-rank child.
      * <p>
      * Testing for {@link Rank#DATA} alone, as this did before, is only equivalent while
-     * {@code fileNodes} and {@code idNodes} are both off. With either on, the data node becomes an
+     * {@code fileNodes}, {@code genomeNodes} and {@code idNodes} are all off. With either on, the data node becomes an
      * empty intermediate holding no k-mers of its own while the reader resolves records to the file
      * or id node below it, and the two halves of this goal disagree about what a leaf is -- which
      * {@code DBQualityCountsGoal.CountingReader.count} catches and turns into an
@@ -373,8 +383,8 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
      * @return whether the node is the deepest artificial node on its branch
      */
     protected static boolean isLeafNode(SmallTaxTree.SmallTaxIdNode node) {
-        // A node the fill filed a genome at, which with data nodes on (see doMakeThis) is exactly a
-        // node without children: every genome gets a DATA node or something below it, and whatever
+        // A node the fill filed a genome at, which with data or genome nodes on (see prepare()) is
+        // exactly a node without children: every genome gets such a node or something below it, and whatever
         // the refinement inserts between a node and its original children gives that node children
         // and so keeps it internal. Asking about the children's ranks instead is what got this
         // wrong: after a refinement a data node's file nodes are no longer its children, the data

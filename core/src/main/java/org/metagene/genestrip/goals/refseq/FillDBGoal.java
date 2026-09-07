@@ -185,6 +185,7 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 		boolean idNodes = booleanConfigValue(GSConfigKey.ID_NODES);
 		boolean fileNodes = booleanConfigValue(GSConfigKey.FILE_NODES);
 		boolean dataNodes = booleanConfigValue(GSConfigKey.DATA_NODES);
+		boolean genomeNodes = booleanConfigValue(GSConfigKey.GENOME_NODES);
 
 		// Lookup mode (createNodes = false): the counting pass (FillBloomFilterGoal) already created every
 		// artificial node this fill needs, so no id generator is required - the fill only looks them up.
@@ -195,7 +196,8 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 				booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY),
 				contigsPerTaxid,
 				booleanConfigValue(GSConfigKey.ENABLE_LOWERCASE_BASES),
-				taxTree, dataNodes, fileNodes, idNodes, null, (Rank) configValue(GSConfigKey.FOLD_TAXA_BELOW));
+				taxTree, dataNodes, fileNodes, genomeNodes, idNodes, null,
+				(Rank) configValue(GSConfigKey.FOLD_TAXA_BELOW));
 		readers.add(fastaReader);
 		return fastaReader;
 	}
@@ -223,15 +225,17 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 		 * @param taxTree the taxonomy tree into which artificial nodes are created
 		 * @param dataNodes whether to rework into an artificial {@code DATA} node
 		 * @param fileNodes whether to rework into an artificial {@code FILE} node
+		 * @param genomeNodes whether to rework into an artificial {@code GENOME} node
 		 * @param idNodes whether to rework into an artificial {@code ID} node
 		 * @param idStringGenerator generator for artificial tax ids
 		 */
 		public MyFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap,
 							 KMerStore<String> store, int maxDust, int kMerSampling, boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases,
-							 TaxTree taxTree, boolean dataNodes, boolean fileNodes, boolean idNodes, TaxTree.IDStringGenerator idStringGenerator,
+							 TaxTree taxTree, boolean dataNodes, boolean fileNodes, boolean genomeNodes, boolean idNodes,
+							 TaxTree.IDStringGenerator idStringGenerator,
 							 Rank foldTaxaBelow) {
 			super(bufferSize, taxNodes, accessionMap, store.getK(), maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases,
-					taxTree, dataNodes, fileNodes, idNodes, false, idStringGenerator, foldTaxaBelow);
+					taxTree, dataNodes, fileNodes, genomeNodes, idNodes, false, idStringGenerator, foldTaxaBelow);
 			this.store = store;
 		}
 

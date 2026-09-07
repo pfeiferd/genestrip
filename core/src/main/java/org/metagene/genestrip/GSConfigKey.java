@@ -323,6 +323,19 @@ public enum GSConfigKey implements ConfigKey {
 	/** Whether to add artificial tax nodes representing fasta files. */
 	@MDDescription("Whether to add artificial nodes in the tax tree to represent fasta files for *k*-mers.")
 	FILE_NODES("fileNodes", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
+	/** Whether to add artificial tax nodes representing single genomes. */
+	@MDDescription("Whether to add artificial nodes of rank `GENOME` in the taxonomy tree, one per genome, "
+			+ "so that the *k*-mers of a genome are attributed to a node of its own. The genome a contig "
+			+ "belongs to is read from its accession by the same rule `maxGenomesPerTaxid` counts genomes "
+			+ "with: a WGS accession carries a letter prefix naming its sequencing project, so every contig "
+			+ "of one draft assembly shares it, while a finished replicon stands for itself. "
+			+ "WHY: `fileNodes` gives one node per fasta *file*, which is one node per genome only where the "
+			+ "genomes arrive one to a file -- assemblies fetched from Genbank, or fastas supplied with the "
+			+ "project. Against the RefSeq release archives, each holding many genomes of many taxa, it puts "
+			+ "every genome of a taxon that shares an archive on one node. This key does not depend on how "
+			+ "the fastas were obtained. BEWARE: This may cause a database build to fail as only up to 32767 "
+			+ "tax ids are allowed.")
+	GENOME_NODES("genomeNodes", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
 	/** Whether lowercase bases are accepted for k-mers. */
 	@MDDescription("Whether to accept lowercase bases for *k*-mers.")
 	ENABLE_LOWERCASE_BASES("lowerCaseBases", new BooleanConfigParamInfo(true), false, GSGoalKey.DB),

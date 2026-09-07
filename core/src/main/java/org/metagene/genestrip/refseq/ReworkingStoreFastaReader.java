@@ -46,6 +46,7 @@ public abstract class ReworkingStoreFastaReader extends AbstractStoreFastaReader
 	private final TaxTree taxTree;
 	private final boolean dataNodes;
 	private final boolean fileNodes;
+	private final boolean genomeNodes;
 	private final boolean idNodes;
 	private final boolean createNodes;
 	private final IDStringGenerator idStringGenerator;
@@ -68,6 +69,7 @@ public abstract class ReworkingStoreFastaReader extends AbstractStoreFastaReader
 	 * @param taxTree the taxonomy tree holding the artificial nodes
 	 * @param dataNodes whether to rework into an artificial {@code DATA} node
 	 * @param fileNodes whether to rework into an artificial {@code FILE} node
+	 * @param genomeNodes whether to rework into an artificial {@code GENOME} node
 	 * @param idNodes whether to rework into an artificial {@code ID} node
 	 * @param createNodes {@code true} to create missing artificial nodes (counting pass), {@code false}
 	 *                    to only look up already-created ones (fill)
@@ -76,18 +78,21 @@ public abstract class ReworkingStoreFastaReader extends AbstractStoreFastaReader
 	 * @param foldTaxaBelow the rank a genome is filed at, taxa below it being folded into it, or
 	 *                      {@code null} to file it where the taxonomy puts it
 	 * @throws IllegalArgumentException if {@code foldTaxaBelow} is set without {@code fileNodes}
+	 *                                  or {@code genomeNodes}
 	 */
 	public ReworkingStoreFastaReader(int bufferSize, Set<TaxIdNode> taxNodes, AccessionMap accessionMap, int k,
 			int maxDust, int kMerSampling,
 			boolean assemblyAccessionsOnly, StringLong2DigitTrie contigsPerTaxid, boolean enableLowerCaseBases,
-			TaxTree taxTree, boolean dataNodes, boolean fileNodes, boolean idNodes, boolean createNodes,
+			TaxTree taxTree, boolean dataNodes, boolean fileNodes, boolean genomeNodes, boolean idNodes,
+			boolean createNodes,
 			IDStringGenerator idStringGenerator, Rank foldTaxaBelow) {
 		super(bufferSize, taxNodes, accessionMap, k,
 				maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases);
-		checkFoldConfig(foldTaxaBelow, fileNodes);
+		checkFoldConfig(foldTaxaBelow, fileNodes, genomeNodes);
 		this.taxTree = taxTree;
 		this.dataNodes = dataNodes;
 		this.fileNodes = fileNodes;
+		this.genomeNodes = genomeNodes;
 		this.idNodes = idNodes;
 		this.createNodes = createNodes;
 		this.idStringGenerator = idStringGenerator;
@@ -105,15 +110,18 @@ public abstract class ReworkingStoreFastaReader extends AbstractStoreFastaReader
 	 * mean {@code merge them all}, which is worth a refusal rather than a warning.
 	 *
 	 * @param foldTaxaBelow the rank to file genomes at, or {@code null} for no fold
-	 * @param fileNodes whether a file node is created per genome
-	 * @throws IllegalArgumentException if a fold is asked for without file nodes
+	 * @param fileNodes whether a file node is created per fasta file
+	 * @param genomeNodes whether a genome node is created per genome
+	 * @throws IllegalArgumentException if a fold is asked for without file or genome nodes
 	 */
-	static void checkFoldConfig(Rank foldTaxaBelow, boolean fileNodes) {
-		if (foldTaxaBelow != null && !fileNodes) {
+	static void checkFoldConfig(Rank foldTaxaBelow, boolean fileNodes, boolean genomeNodes) {
+		if (foldTaxaBelow != null && !fileNodes && !genomeNodes) {
 			throw new IllegalArgumentException("'foldTaxaBelow=" + foldTaxaBelow.getName()
-					+ "' requires 'fileNodes=true': folding files every genome of a taxon at the same"
-					+ " node, so without a file node of its own each genome becomes indistinguishable"
-					+ " from its neighbours and there is nothing left below the taxon to refine.");
+					+ "' requires 'fileNodes=true' or 'genomeNodes=true': folding files every genome of"
+					+ " a taxon at the same node, so without a node of its own each genome becomes"
+					+ " indistinguishable from its neighbours and there is nothing left below the taxon"
+					+ " to refine. Either key gives a genome such a node; 'genomeNodes' does so however"
+					+ " the genomes were distributed over fasta files.");
 		}
 	}
 
@@ -166,6 +174,23 @@ public abstract class ReworkingStoreFastaReader extends AbstractStoreFastaReader
 		return node;
 	}
 
+	/**
+	 * Returns the end index of the accession in the current info line: the first blank, or the end
+	 * of the line with any trailing newline characters cut off.
+	 *
+	 * @return the exclusive end index of the accession within {@code target}
+	 */
+	private int accessionEnd() {
+		int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
+		if (pos < 0) {
+			pos = size;
+			while (pos > 0 && (target[pos - 1] == '\n' || target[pos - 1] == '\r')) {
+				pos--;
+			}
+		}
+		return pos;
+	}
+
 	@Override
 	protected TaxIdNode reworkNode() {
 		// The fold happens before anything else and before the node is marked: a taxon nothing is
@@ -187,14 +212,17 @@ public abstract class ReworkingStoreFastaReader extends AbstractStoreFastaReader
 				res = child;
 			}
 		}
-		if (idNodes && Rank.ID.ordinal() != res.getRankOrdinal()) {
-			int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
-			if (pos < 0) {
-				pos = size;
-				while (pos > 0 && (target[pos - 1] == '\n' || target[pos - 1] == '\r')) {
-					pos--;
-				}
+		if (genomeNodes && Rank.GENOME.ordinal() != res.getRankOrdinal()) {
+			int pos = accessionEnd();
+			int keyEnd = 1 + GenomeKeyTrie.genomeKeyLength(target, 1, pos);
+			TaxIdNode child = createNodes ? taxTree.genomeNode(res, target, 1, pos, idStringGenerator)
+					: res.getChildWithName(target, 1, keyEnd);
+			if (child != null) {
+				res = child;
 			}
+		}
+		if (idNodes && Rank.ID.ordinal() != res.getRankOrdinal()) {
+			int pos = accessionEnd();
 			TaxIdNode child = createNodes ? taxTree.idNode(res, target, 1, pos, idStringGenerator)
 					: res.getChildWithName(target, 1, pos);
 			if (child != null) {
