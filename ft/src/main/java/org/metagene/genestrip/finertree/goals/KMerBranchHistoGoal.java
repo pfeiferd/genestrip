@@ -89,7 +89,7 @@ public class KMerBranchHistoGoal<P extends FTProject> extends KMerStoreWorkGoal<
     @Override
     protected void inKMerStoreWork(SmallTaxIdNode parent, long pos, boolean[] bits, int spread,
                                    int[] setSlots) {
-        int childCount = parent.getSubNodes().length;
+        int childCount = parent.getSubNodesWithoutOther().length;
         // The branching degree counts the parent's direct child subtrees plus the trailing "OTHER"
         // bucket (k-mers attributed to no child genome), which is treated like an additional child.
         // The base class' spread already includes the OTHER slot, so it is the branching degree

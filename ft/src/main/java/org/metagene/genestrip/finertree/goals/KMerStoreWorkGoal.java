@@ -235,7 +235,9 @@ public abstract class KMerStoreWorkGoal<T, P extends FTProject> extends ObjectGo
         // million times on a bacterial database. AbstractKMerIndexGoal precomputes the same thing for
         // the same reason.
         if (refinementByPos[parent.getPosition()]) {
-            return parent.getSubNodes();
+            // Concrete children only: the OTHER child is the placeholder for what they do not
+            // cover, so it gets the trailing slot and never one among them.
+            return parent.getSubNodesWithoutOther();
         } else {
             return null;
         }

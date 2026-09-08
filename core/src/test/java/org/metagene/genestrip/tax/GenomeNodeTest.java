@@ -132,7 +132,7 @@ public class GenomeNodeTest {
 
 	/**
 	 * A taxon that filed a genome has a child, which is the property the ft quality goals rest on:
-	 * {@code AbstractDBQualityGoal.isLeafNode} calls a childless node a leaf, so no taxonomy node
+	 * {@code SmallTaxIdNode.isLeaf()} calls a childless node a leaf, so no taxonomy node
 	 * may be left holding a genome's k-mers with nothing beneath it.
 	 */
 	@Test

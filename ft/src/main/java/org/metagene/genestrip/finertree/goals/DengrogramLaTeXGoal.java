@@ -35,6 +35,7 @@ import org.metagene.genestrip.make.FileListGoal;
 import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.store.Database;
+import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.SmallTaxTree;
 
 import java.io.File;
@@ -227,7 +228,7 @@ public class DengrogramLaTeXGoal<P extends FTProject> extends FileListGoal<P> {
         if (dendrogram == null) {
             return;
         }
-        SmallTaxTree.SmallTaxIdNode[] children = parent.getSubNodes();
+        SmallTaxTree.SmallTaxIdNode[] children = parent.getSubNodesWithoutOther();
         int[] leafCounter = new int[1];
         int[] preCounter = new int[1];
         dendrogram.visit(new DendrogramNode.Visitor() {
@@ -264,7 +265,7 @@ public class DengrogramLaTeXGoal<P extends FTProject> extends FileListGoal<P> {
                         out.println(")");
                     }
                     else {
-                        out.print("OTHER");
+                        out.print(Rank.OTHER.getName());
                     }
                     out.println("};");
                     leafCounter[0]++;

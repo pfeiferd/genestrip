@@ -34,6 +34,7 @@ import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.SmallTaxTree;
+import org.metagene.genestrip.tax.TaxTree;
 
 import java.util.*;
 
@@ -197,6 +198,7 @@ public class UpdateStoreGoal<P extends FTProject> extends KMerStoreWorkGoal<Data
     private class BitSetsForNodes {
         private final SmallTaxTree.SmallTaxIdNode[] orgSubnodes;
 
+        private final SmallTaxTree.SmallTaxIdNode parent;
         private final boolean[][] bitSets;
         private final SmallTaxTree.SmallTaxIdNode[] nodes;
         private int bitsetPosCounter;
@@ -213,7 +215,11 @@ public class UpdateStoreGoal<P extends FTProject> extends KMerStoreWorkGoal<Data
          * @param root   the root dendrogram node describing the refinement of the parent
          */
         public BitSetsForNodes(SmallTaxTree.SmallTaxIdNode parent, DendrogramNode root) {
-            this.orgSubnodes = parent.getSubNodes();
+            // Concrete children only. Where the build already made an OTHER node, it is the
+            // bucket and not one of the children it stands apart from; counting it here would
+            // shift every slot and give it a second slot of its own.
+            this.parent = parent;
+            this.orgSubnodes = parent.getSubNodesWithoutOther();
             this.bitSets = new boolean[root.size() - 1 - orgSubnodes.length][];
             this.nodes = new SmallTaxTree.SmallTaxIdNode[bitSets.length];
 
@@ -299,6 +305,17 @@ public class UpdateStoreGoal<P extends FTProject> extends KMerStoreWorkGoal<Data
          */
         protected SmallTaxTree.SmallTaxIdNode createNode(DendrogramNode node) {
             int valueIndex = node.getValueIndex();
+            if (valueIndex == orgSubnodes.length) {
+                // The OTHER bucket. Where the build already made an OTHER node under this parent,
+                // that node is this bucket: making another would leave two of them under one
+                // unrefined parent, meaning the same thing. It still needs a store value index, which
+                // it does not carry from the build - nothing was filed there.
+                SmallTaxTree.SmallTaxIdNode existing = parent.getOtherChild();
+                if (existing != null) {
+                    existing.setStoreIndex(orgkMerSortedArray.getAddValueIndex(existing.getTaxId()));
+                    return existing;
+                }
+            }
             if (valueIndex == -1 || valueIndex == orgSubnodes.length) {
                 String taxId = "000" + idCounter++;
                 int index = orgkMerSortedArray.getAddValueIndex(taxId);
@@ -363,7 +380,9 @@ public class UpdateStoreGoal<P extends FTProject> extends KMerStoreWorkGoal<Data
                     name.append(orgSubnodes[index].getTaxId());
                 }
                 else {
-                    name.append("OTHER");
+                    // The same word core builds an OTHER node's name from, taken from the one
+                    // place it is written down (see TaxTree.otherNodeName).
+                    name.append(Rank.OTHER.getName());
                 }
                 return 0;
             }

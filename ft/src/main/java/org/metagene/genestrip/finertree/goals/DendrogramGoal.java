@@ -84,9 +84,9 @@ public class DendrogramGoal<P extends FTProject> extends ObjectGoal<Map<SmallTax
             DendrogramNode node = clustering.cluster(new Similarity() {
                 @Override
                 public int values() {
-                    int otherPos = parent.getSubNodes().length;
+                    int otherPos = parent.getSubNodesWithoutOther().length;
                     long count = intersections.getIntersectionCount(parent, otherPos, otherPos, withDescendantCounts);
-                    return  parent.getSubNodes().length + (count == 0 ? 0 : 1); // "+ 1" for "OTHER_VALUE"
+                    return  parent.getSubNodesWithoutOther().length + (count == 0 ? 0 : 1); // "+ 1" for "OTHER_VALUE"
                 }
 
                 @Override

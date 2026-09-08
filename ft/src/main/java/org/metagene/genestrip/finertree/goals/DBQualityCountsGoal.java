@@ -278,7 +278,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends AbstractDBQualityG
             }
             entries++;
             if (!leafByPos[leafPos]) {
-                // The reader resolved a record to a node that isLeafNode() did not accept. Naming it
+                // The reader resolved a record to a node that isLeaf() did not accept. Naming it
                 // matters: the two halves disagree only when the chain of artificial nodes is not what
                 // the flags imply, and the node's rank says which end is wrong.
                 SmallTaxTree.SmallTaxIdNode leaf = nodeByPos[leafPos];
@@ -360,7 +360,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends AbstractDBQualityG
 
         /**
          * Whether this tally belongs to a leaf, i.e. to the deepest artificial node on its branch --
-         * see {@link DBQualityCountsGoal#isLeafNode}. Only leaf tallies are filled from the genomic
+         * see {@link SmallTaxTree.SmallTaxIdNode#isLeaf}. Only leaf tallies are filled from the genomic
          * files; the others are aggregated from their leaves.
          */
         private final boolean forLeaf;
@@ -440,7 +440,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends AbstractDBQualityG
          * Creates an empty tally with all counts set to zero.
          *
          * @param forLeaf        whether the tally belongs to a leaf node, i.e. the deepest artificial
-         *                       node on its branch (see {@link DBQualityCountsGoal#isLeafNode})
+         *                       node on its branch (see {@link SmallTaxTree.SmallTaxIdNode#isLeaf})
          * @param kmerSumForNode the number of k-mers the database stores under exactly this tax id
          */
         public Counts(boolean forLeaf, long kmerSumForNode) {
@@ -452,7 +452,7 @@ public class DBQualityCountsGoal<P extends FTProject> extends AbstractDBQualityG
          * Returns whether this tally belongs to a leaf node.
          *
          * @return whether this tally belongs to a leaf node, i.e. the deepest artificial node on its
-         * branch (see {@link DBQualityCountsGoal#isLeafNode})
+         * branch (see {@link SmallTaxTree.SmallTaxIdNode#isLeaf})
          */
         public boolean isForLeaf() {
             return forLeaf;

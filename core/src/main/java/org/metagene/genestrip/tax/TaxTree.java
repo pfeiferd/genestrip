@@ -123,6 +123,103 @@ public class TaxTree {
 	}
 	
 	/**
+	 * Returns the name an {@code OTHER} node hanging under the given taxon carries: the taxon's own
+	 * tax id followed by the name of the {@link Rank#OTHER} rank.
+	 * <p>
+	 * It follows the convention the refinement uses for its own {@code OTHER} slot, where a concrete
+	 * child contributes its tax id to a node's name and the leftover bucket contributes the word
+	 * (see {@code UpdateStoreGoal.buildFirstLastName}). Both take the word from
+	 * {@link Rank#getName()}, so there is one place it is written down.
+	 *
+	 * @param taxId the tax id of the taxon the node hangs under
+	 * @return the name for its {@code OTHER} node
+	 */
+	public static String otherNodeName(String taxId) {
+		return taxId + Rank.OTHER.getName();
+	}
+
+	/**
+	 * Hangs an {@code OTHER} node under every required inner taxon that does not already have one,
+	 * and returns how many were added.
+	 * <p>
+	 * Called once, just before {@link #toSmallTaxTree()}, so the nodes are carried into the small
+	 * tree by the machinery already there rather than grafted on afterwards. An {@code OTHER} node
+	 * holds nothing the entry phase produces, so there is no reason for the readers to make them as
+	 * they go.
+	 * <p>
+	 * Only inner taxa get one: what an {@code OTHER} node stands for is the genomes below its taxon
+	 * that nothing in the database names, and below a leaf there is nothing to name. Inner-ness is
+	 * read off the <em>required</em> children, which are the ones the small tree will carry - a
+	 * taxon whose children were all pruned is a leaf of the tree that gets written, whatever the
+	 * full taxonomy says. Artificial children do not count: a species with a {@code DATA} node under
+	 * it is still a leaf of the taxonomy.
+	 * <p>
+	 * The caller has to call {@link #reinitPositions()} afterwards when this returns more than zero.
+	 *
+	 * @return the number of {@code OTHER} nodes added
+	 */
+	public int addOtherNodes() {
+		if (root == null) {
+			return 0;
+		}
+		// The counter lives on the tree, so these ids are unique against everything already made.
+		byte[] idBuffer = new byte[128];
+		idBuffer[0] = '0';
+		idBuffer[1] = '0';
+		IDStringGenerator idStringGenerator = counter -> {
+			int len = ByteArrayUtil.intToByteArray(counter, idBuffer, 2);
+			return new String(idBuffer, 0, len);
+		};
+		// Collected before anything is added: otherNode() gives a node a new child, and the added
+		// nodes are not themselves candidates.
+		List<TaxIdNode> inner = new ArrayList<TaxIdNode>();
+		collectInnerNodes(root, inner);
+		for (int i = 0; i < inner.size(); i++) {
+			otherNode(inner.get(i), idStringGenerator);
+		}
+		for (int i = 0; i < inner.size(); i++) {
+			TaxIdNode other = inner.get(i).getOtherChild();
+			if (other != null) {
+				other.markRequired();
+			}
+		}
+		return inner.size();
+	}
+
+	private static void collectInnerNodes(TaxIdNode node, List<TaxIdNode> res) {
+		if (!node.isRequired()) {
+			return;
+		}
+		if (node.getOtherChild() == null && hasRequiredTaxonomyChild(node)) {
+			res.add(node);
+		}
+		List<TaxIdNode> subNodes = node.getSubNodes();
+		if (subNodes != null) {
+			for (int i = 0; i < subNodes.size(); i++) {
+				collectInnerNodes(subNodes.get(i), res);
+			}
+		}
+	}
+
+	private static boolean hasRequiredTaxonomyChild(TaxIdNode node) {
+		List<TaxIdNode> subNodes = node.getSubNodes();
+		if (subNodes == null) {
+			return false;
+		}
+		for (int i = 0; i < subNodes.size(); i++) {
+			TaxIdNode child = subNodes.get(i);
+			if (!child.isRequired()) {
+				continue;
+			}
+			Rank rank = child.getRank();
+			if (rank == null || !rank.isArtificial()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Creates a compact, serializable {@link SmallTaxTree} from this tree.
 	 *
 	 * @return the newly created compact tax tree
@@ -262,6 +359,37 @@ public class TaxTree {
 	 * @param idStringGenerator generator for the artificial tax id, or {@code null} to skip creation
 	 * @return the data child node, or {@code null} if none exists and no generator was given
 	 */
+	/**
+	 * Returns the artificial {@code OTHER}-rank child of the given node, creating it (with a
+	 * freshly generated artificial tax id) if it does not yet exist. Thread-safe.
+	 * <p>
+	 * The node stands for the genomes below {@code node} that nothing in the database names. It is
+	 * created empty and never receives a k-mer during the entry phase, which is what distinguishes
+	 * it from the other artificial nodes.
+	 *
+	 * @param node              the parent node
+	 * @param idStringGenerator generator for the artificial tax id, or {@code null} to skip creation
+	 * @return the other child node, or {@code null} if none exists and no generator was given
+	 */
+	public TaxIdNode otherNode(TaxIdNode node, IDStringGenerator idStringGenerator) {
+		TaxIdNode substitute = node.getOtherChild();
+		if (substitute == null) {
+			synchronized (node) {
+				substitute = node.getOtherChild();
+				if (substitute == null && idStringGenerator != null) {
+					substitute = taxIdNodeTrie.get(idStringGenerator.generateID(nextArtCounter.getAndIncrement()), true);
+					substitute.rank = (short) Rank.OTHER.ordinal();
+					// The tax id itself still comes from the counter: these are kept in a DigitTrie,
+					// which takes digits and nothing else, so it cannot carry the parent's id and a
+					// word.
+					substitute.name = otherNodeName(node.getTaxId());
+					node.addSubNode(substitute);
+				}
+			}
+		}
+		return substitute;
+	}
+
 	public TaxIdNode dataNode(TaxIdNode node, IDStringGenerator idStringGenerator) {
 		TaxIdNode substitute = node.getDataChild();
 		if (substitute == null) {
@@ -462,6 +590,25 @@ public class TaxTree {
 		 *
 		 * @return the data child, or {@code null}
 		 */
+		/**
+		 * Returns the direct {@code OTHER}-rank child of this node, or {@code null} if none.
+		 *
+		 * @return the other child, or {@code null}
+		 */
+
+		public TaxIdNode getOtherChild() {
+			if (subNodes == null) {
+				return null;
+			}
+			for (int i = 0; i < subNodes.size(); i++) {
+				TaxIdNode child = subNodes.get(i);
+				if (Rank.OTHER.ordinal() == child.getRankOrdinal()) {
+					return child;
+				}
+			}
+			return null;
+		}
+
 		public TaxIdNode getDataChild() {
 			if (subNodes == null) {
 				return null;

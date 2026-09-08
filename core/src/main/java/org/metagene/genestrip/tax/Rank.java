@@ -128,7 +128,23 @@ public enum Rank {
 	 * anywhere but at the end would renumber the ones after it and misread every database already
 	 * written. The {@code level} below places it where it belongs regardless of that ordinal.
 	 */
-	GENOME("GENOME", FILE.level + 5);
+	GENOME("GENOME", FILE.level + 5),
+	/**
+	 * Artificial rank marking a node that stands for the genomes below a taxon which nothing in
+	 * the database names. Such a node is a leaf child of the real taxon and a sibling of that
+	 * taxon's {@link #DATA} node. It is therefore not a step in the {@code DATA} - {@code FILE} -
+	 * {@code GENOME} - {@code ID} chain, and its level sits between {@link #REFINED} and
+	 * {@link #DATA}: at the depth of a taxon's own children, which is where {@code DATA} is, and no
+	 * two ranks may share a level.
+	 * <p>
+	 * Unlike the other artificial ranks, no k-mer is filed here during the entry phase: the node is
+	 * created empty so that later phases have somewhere to attribute material of genomes the entry
+	 * phase never saw.
+	 * <p>
+	 * Appended last for the reason given at {@link #GENOME}: the rank of a node is stored as its
+	 * enum ordinal, so appending is what keeps already written databases readable.
+	 */
+	OTHER("OTHER", REFINED.level + 5);
 
 	/** Level value indicating that a rank has no well-defined level in the taxonomy. */
 	public static final int INDETERMINATE_LEVEL = -1;
@@ -139,6 +155,18 @@ public enum Rank {
 	// The level allows for adding new ranks without messing up then rank encoding via ordinals
 	// for already stored databases.
 	private final int level;
+
+	/**
+	 * Whether this is one of the artificial ranks Genestrip adds to track where k-mers come from,
+	 * rather than a rank of the NCBI taxonomy.
+	 *
+	 * @return {@code true} for {@link #REFINED}, {@link #DATA}, {@link #FILE}, {@link #GENOME},
+	 *         {@link #ID} and {@link #OTHER}
+	 */
+	public boolean isArtificial() {
+		return this == REFINED || this == DATA || this == FILE || this == GENOME || this == ID
+				|| this == OTHER;
+	}
 
 	/**
 	 * Whether this rank has no well-defined level (such as {@code CLADE} or

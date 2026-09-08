@@ -139,6 +139,17 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 				getLogger().info("Unused kmers spots: " + unused +
 						" (corresponds to " + ((100d * unused) / store.getSize()) + " %)");
 			}
+			if (booleanConfigValue(GSConfigKey.OTHER_NODES)) {
+				int added = taxTree.addOtherNodes();
+				if (added > 0) {
+					// The tree gained nodes, so pre-order positions must be re-established before it is
+					// made small: toSmallTaxTree() carries them over as they stand.
+					taxTree.reinitPositions();
+					if (getLogger().isInfoEnabled()) {
+						getLogger().info("Added " + added + " OTHER nodes.");
+					}
+				}
+			}
 			SmallTaxTree smallTaxTree = taxTree.toSmallTaxTree();
 			for (TaxIdNode node : taxNodesGoal.get().getSelected()) {
 				SmallTaxIdNode smallNode = smallTaxTree.getNodeByTaxId(node.getTaxId());

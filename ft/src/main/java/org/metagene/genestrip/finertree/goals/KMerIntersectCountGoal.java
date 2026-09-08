@@ -256,7 +256,7 @@ public class KMerIntersectCountGoal<P extends FTProject> extends KMerStoreWorkGo
         public long getIntersectionCount(SmallTaxTree.SmallTaxIdNode parent, int i, int j, boolean withDescendantCounts) {
             long count = rawIntersectionCount(parent, i, j);
             if (withDescendantCounts && i == j) {
-                SmallTaxTree.SmallTaxIdNode[] children = parent.getSubNodes();
+                SmallTaxTree.SmallTaxIdNode[] children = parent.getSubNodesWithoutOther();
                 if (i < children.length) {
                     count += getSubnodesKMerCount(children[i]);
                 }
@@ -302,7 +302,7 @@ public class KMerIntersectCountGoal<P extends FTProject> extends KMerStoreWorkGo
             long[] counts = parentToCounts.get(parent);
             if (counts == null) {
                 // "+ 1" for "OTHER_VALUE", spread and number of k-mers
-                int c = parent.getSubNodes().length + 1;
+                int c = parent.getSubNodesWithoutOther().length + 1;
                 parentToCounts.put(parent, counts = new long[(c * c + c) / 2 + 2]);
             }
             return counts;
@@ -375,7 +375,7 @@ public class KMerIntersectCountGoal<P extends FTProject> extends KMerStoreWorkGo
          */
         @Override
         public double getOverspreadRatio(SmallTaxTree.SmallTaxIdNode parent) {
-            return (getAvgKMerSpread(parent) - 2) / ((parent.getSubNodes().length + 1) - 2);
+            return (getAvgKMerSpread(parent) - 2) / ((parent.getSubNodesWithoutOther().length + 1) - 2);
         }
 
         /**

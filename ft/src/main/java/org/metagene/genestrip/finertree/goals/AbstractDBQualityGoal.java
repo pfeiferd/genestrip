@@ -91,7 +91,7 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
      * array does the same job with an indexed read.
      */
     protected SmallTaxTree.SmallTaxIdNode[] nodeByPos;
-    /** Whether the node at that position is a leaf in the sense of {@link #isLeafNode}. */
+    /** Whether the node at that position is a leaf in the sense of {@link SmallTaxTree.SmallTaxIdNode#isLeaf}. */
     protected boolean[] leafByPos;
     /** The number of node positions, i.e. the length of {@link #nodeByPos} and {@link #leafByPos}. */
     protected int nodeCount;
@@ -132,7 +132,7 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
         // What a leaf is has to agree between the fill and this measure, and what secures that
         // agreement is an artificial node the fill gives to *every* taxon it files a genome at.
         // Then no taxonomy node holds a genome's k-mers, a node without children is exactly a node
-        // the fill filed a genome at, and isLeafNode() is one test that needs to know nothing about
+        // the fill filed a genome at, and isLeaf() is one test that needs to know nothing about
         // ranks.
         //
         // `dataNodes' and `genomeNodes' both do that, and either will serve. ReworkingStoreFastaReader
@@ -161,7 +161,7 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
         for (SmallTaxTree.SmallTaxIdNode node : tree) {
             int pos = node.getPosition();
             nodeByPos[pos] = node;
-            leafByPos[pos] = isLeafNode(node);
+            leafByPos[pos] = node.isLeaf();
         }
         kMerSortedArray = storeGoal.get().convertKMerStore();
         readers = new ArrayList<>();
@@ -353,67 +353,6 @@ public abstract class AbstractDBQualityGoal<T, P extends FTProject> extends Fast
         protected abstract boolean count(long kmer, int leafPos, SmallTaxTree.SmallTaxIdNode storedNode);
     }
 
-    /**
-     * Whether the given node is where a genomic file's k-mers come to rest, and therefore the unit
-     * the measures of these two goals are taken over.
-     * <p>
-     * The database fill nests the artificial nodes: {@link org.metagene.genestrip.refseq.ReworkingStoreFastaReader#reworkNode()}
-     * descends a tax id into its {@link Rank#DATA} child, that into a {@link Rank#FILE} child, that
-     * into a {@link Rank#GENOME} child and that into a {@link Rank#ID} child, as far as
-     * {@code dataNodes}, {@code fileNodes}, {@code genomeNodes} and {@code idNodes} are enabled, and
-     * stores the k-mers at whichever it ends on. Reading the fastas back,
-     * {@link AbstractUpdateFastaReader#updateLeafNode()} walks the same chain from the other end --
-     * ID, then GENOME, then FILE, then DATA, returning at the first that exists. Both therefore land
-     * on the <em>deepest</em> of them, which is what this method identifies: an origin-rank node with
-     * no origin-rank child.
-     * <p>
-     * Testing for {@link Rank#DATA} alone, as this did before, is only equivalent while
-     * {@code fileNodes}, {@code genomeNodes} and {@code idNodes} are all off. With either on, the data node becomes an
-     * empty intermediate holding no k-mers of its own while the reader resolves records to the file
-     * or id node below it, and the two halves of this goal disagree about what a leaf is -- which
-     * {@code DBQualityCountsGoal.CountingReader.count} catches and turns into an
-     * {@link IllegalStateException}.
-     * <p>
-     * {@link Rank#REFINED} is deliberately not an origin rank. A refined node is inserted by the
-     * refinement <em>above</em> the origin nodes and holds the k-mers it moved down there, so it is
-     * internal in exactly the way a taxonomy node is, and the measures restricted to what sits above
-     * the data (see {@code DBQualityCountsGoal.Counts.aggregateSubtree}) have to keep counting it.
-     *
-     * @param node the node to test
-     * @return whether the node is the deepest artificial node on its branch
-     */
-    protected static boolean isLeafNode(SmallTaxTree.SmallTaxIdNode node) {
-        // A node the fill filed a genome at, which with data or genome nodes on (see prepare()) is
-        // exactly a node without children: every genome gets such a node or something below it, and whatever
-        // the refinement inserts between a node and its original children gives that node children
-        // and so keeps it internal. Asking about the children's ranks instead is what got this
-        // wrong: after a refinement a data node's file nodes are no longer its children, the data
-        // node passed for a leaf, and its k-mers -- the ones a refinement has the most to gain on --
-        // dropped out of every average restricted to what sits above the data taxa. On cdiff that
-        // alone lifted the reported sp* from 0.236 to 0.338 with no k-mer moving.
-        SmallTaxTree.SmallTaxIdNode[] subNodes = node.getSubNodes();
-        if (subNodes != null && subNodes.length != 0) {
-            return false;
-        }
-        // ... with one exception: the "OTHER" placeholder the refinement inserts is childless but is
-        // not a data taxon. Section "Data taxa and path correctness" defines one as a taxon with a
-        // complete genome directly associated whose k-mers are stored in the database, whereas OTHER
-        // stands for exactly the taxa that are *not* in the database and merely caused a k-mer to be
-        // pushed above the species during the LCA update. It therefore never receives a k-mer -- in
-        // the six databases of the paper all 1,876 of them are empty -- and counting it as a leaf
-        // added one to |D_n| for every node the refinement touched, dividing p(a) = c(a)/|D_nu(a)|
-        // accordingly without a single k-mer having moved. Where a genus held a single species that
-        // was a halving: vineyard's Coniella, Pseudopezicula and Trichothecium each reported a
-        // restricted subtree precision of exactly 0.5 against 1.0 before the refinement.
-        //
-        // The test is structural rather than by name. UpdateStoreGoal.createNode gives the REFINED
-        // rank to two kinds of node: internal dendrogram nodes, which always have two children, and
-        // the OTHER bucket, which is a leaf. A childless REFINED node is therefore the placeholder
-        // and nothing else -- checked against all six databases, where the two sets coincide exactly.
-        // getRankOrdinal() rather than getRank(), which is null for a rank the Rank enum does not
-        // know; REFINED always has one, but the null-safe accessor keeps the guard honest.
-        return node.getRankOrdinal() != Rank.REFINED.ordinal();
-    }
 
     /**
      * Sums the per-tax-id stored k-mer counts along the path from a node up to the root.

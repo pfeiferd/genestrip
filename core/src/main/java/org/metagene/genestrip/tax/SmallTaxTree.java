@@ -574,6 +574,85 @@ public class SmallTaxTree implements Serializable, Iterable<SmallTaxTree.SmallTa
 		 *
 		 * @return the {@code DATA}-rank descendant, or {@code null} if there is none
 		 */
+		/**
+		 * Whether this node is a leaf: the deepest artificial node on its branch, i.e. a node a
+		 * genome was filed at.
+		 * <p>
+		 * The test is on the children and not on the rank. Asking about the children's ranks instead
+		 * is what got this wrong before: after a refinement a data node's file nodes are no longer
+		 * its children, the data node passed for a leaf, and its k-mers -- the ones a refinement has
+		 * the most to gain on -- dropped out of every average restricted to what sits above the data
+		 * taxa. On cdiff that alone lifted the reported sp* from 0.236 to 0.338 with no k-mer moving.
+		 * <p>
+		 * Two placeholders are childless without being leaves, and both are excluded. The refinement
+		 * gives the {@code REFINED} rank to internal dendrogram nodes, which always have two
+		 * children, and to its {@code OTHER} bucket, which has none, so a childless {@code REFINED}
+		 * node is that bucket and nothing else. An {@code OTHER}-rank node is the placeholder the
+		 * build hangs under a taxon for the genomes nothing names; it holds no genome either.
+		 * <p>
+		 * {@code getRankOrdinal()} rather than {@code getRank()}, which is null for a rank the
+		 * {@link Rank} enum does not know; both of these always have one, but the null-safe accessor
+		 * keeps the guard honest.
+		 *
+		 * @return whether this node is the deepest artificial node on its branch
+		 */
+		public boolean isLeaf() {
+			SmallTaxIdNode[] concrete = getSubNodesWithoutOther();
+			if (concrete != null && concrete.length != 0) {
+				return false;
+			}
+			return getRankOrdinal() != Rank.OTHER.ordinal()
+					&& getRankOrdinal() != Rank.REFINED.ordinal();
+		}
+
+		/**
+		 * Returns the direct {@code OTHER}-rank child of this node, or {@code null} if there is none.
+		 * <p>
+		 * Such a child is present when the database was built with {@code otherNodes} on. It stands
+		 * for the genomes below this node that nothing in the database names, and it is not one of
+		 * the node's concrete children: see {@link #getSubNodesWithoutOther()}.
+		 *
+		 * @return the {@code OTHER} child, or {@code null}
+		 */
+		public SmallTaxIdNode getOtherChild() {
+			if (subNodes == null) {
+				return null;
+			}
+			for (int i = 0; i < subNodes.length; i++) {
+				if (subNodes[i].getRankOrdinal() == Rank.OTHER.ordinal()) {
+					return subNodes[i];
+				}
+			}
+			return null;
+		}
+
+		/**
+		 * Returns this node's concrete children, which is {@link #getSubNodes()} without the
+		 * {@code OTHER} child if it has one.
+		 * <p>
+		 * Anything indexing a node's children by position has to use this rather than
+		 * {@link #getSubNodes()}: the {@code OTHER} child is a placeholder for what the children do
+		 * not cover, so counting it among them would both shift every position and give it a slot of
+		 * its own beside the one it already is.
+		 *
+		 * @return the concrete children, the same array as {@link #getSubNodes()} when there is no
+		 *         {@code OTHER} child, or {@code null} if there are no children at all
+		 */
+		public SmallTaxIdNode[] getSubNodesWithoutOther() {
+			SmallTaxIdNode other = getOtherChild();
+			if (other == null) {
+				return subNodes;
+			}
+			SmallTaxIdNode[] res = new SmallTaxIdNode[subNodes.length - 1];
+			int j = 0;
+			for (int i = 0; i < subNodes.length; i++) {
+				if (subNodes[i] != other) {
+					res[j++] = subNodes[i];
+				}
+			}
+			return res;
+		}
+
 		public SmallTaxIdNode getDataChild() {
 			if (subNodes == null) {
 				return null;

@@ -336,6 +336,9 @@ public enum GSConfigKey implements ConfigKey {
 			+ "the fastas were obtained. BEWARE: This may cause a database build to fail as only up to 32767 "
 			+ "tax ids are allowed.")
 	GENOME_NODES("genomeNodes", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
+	/** Whether to add artificial tax nodes standing for the unnamed genomes below a taxon. */
+	@MDDescription("Whether to add an artificial `OTHER` node under each taxon of the tax tree, standing for the genomes below that taxon which nothing in the database names. No *k*-mer is filed there during the database build: the node is created empty so that later phases have somewhere to attribute material the entry phase never saw. Genestrip-FT turns this on for itself.")
+	OTHER_NODES("otherNodes", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
 	/** Whether lowercase bases are accepted for k-mers. */
 	@MDDescription("Whether to accept lowercase bases for *k*-mers.")
 	ENABLE_LOWERCASE_BASES("lowerCaseBases", new BooleanConfigParamInfo(true), false, GSGoalKey.DB),

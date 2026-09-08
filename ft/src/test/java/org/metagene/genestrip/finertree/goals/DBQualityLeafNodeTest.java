@@ -40,7 +40,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Tests {@link DBQualityCountsGoal#isLeafNode}, which decides what the intrinsic quality measures are
+ * Tests {@link SmallTaxTree.SmallTaxIdNode#isLeaf}, which decides what the intrinsic quality measures are
  * taken over.
  * <p>
  * The rule has to agree with both halves of the goal at once. The database fill nests the artificial
@@ -78,7 +78,7 @@ public class DBQualityLeafNodeTest {
     private boolean isLeaf(SmallTaxTree tree, String taxId) {
         SmallTaxTree.SmallTaxIdNode node = tree.getNodeByTaxId(taxId);
         assertTrue("node " + taxId + " is missing from the tree", node != null);
-        return DBQualityCountsGoal.isLeafNode(node);
+        return node.isLeaf();
     }
 
     /**
