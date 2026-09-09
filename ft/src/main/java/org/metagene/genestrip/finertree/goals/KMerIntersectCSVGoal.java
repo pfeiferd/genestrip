@@ -130,7 +130,7 @@ public class KMerIntersectCSVGoal<P extends FTProject> extends FileListGoal<P> {
 
         try (PrintStream out = new PrintStream(StreamProvider.getOutputStreamForFile(file))) {
             out.println("children; kmer sum; kmer spread sum; avg kmer spread; overspread ratio;");
-            int nChildren = parent.getSubNodesWithoutOther().length;
+            int nChildren = parent.getSubNodes().length;
             out.print(nChildren);
             out.print(';');
             out.print(intersections.getKMerSum(parent));
@@ -143,7 +143,7 @@ public class KMerIntersectCSVGoal<P extends FTProject> extends FileListGoal<P> {
             out.print(';');
             out.println();
 
-            SmallTaxTree.SmallTaxIdNode[] children = parent.getSubNodesWithoutOther();
+            SmallTaxTree.SmallTaxIdNode[] children = parent.getSubNodes();
             for (int i = 0; i < children.length; i++) {
                 out.print(children[i].getTaxId());
                 out.print(';');
@@ -184,7 +184,7 @@ public class KMerIntersectCSVGoal<P extends FTProject> extends FileListGoal<P> {
         while (it.hasNext()) {
             SmallTaxTree.SmallTaxIdNode node = it.next();
             if (FTConfigKey.RefinementPosition.getMatchingNodeFor(node, refinementIntervals) != null) {
-                if (node.getSubNodesWithoutOther() != null && node.getSubNodesWithoutOther().length > 0) {
+                if (node.getSubNodes() != null && node.getSubNodes().length > 0) {
                     if (stats.getOrDefault(node.getTaxId(), 0) > 0) {
                         res.add(node);
                     }

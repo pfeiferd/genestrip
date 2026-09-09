@@ -126,16 +126,6 @@ public abstract class TaxIdInfo implements Serializable, Comparable<TaxIdInfo> {
 	}
 
 	/**
-	 * Whether this is an artificial node, i.e. one whose tax id starts with the
-	 * {@code "00"} prefix rather than being a real NCBI tax id.
-	 *
-	 * @return {@code true} if this is an artificial node
-	 */
-	public boolean isArtificialTaxIdInfo() {
-		return taxId.charAt(0) == '0' && taxId.charAt(1) == '0';
-	}
-
-	/**
 	 * Returns the parent node of this node.
 	 *
 	 * @return the parent node, or {@code null} if this is the root

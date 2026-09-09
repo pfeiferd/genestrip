@@ -228,7 +228,7 @@ public class DengrogramLaTeXGoal<P extends FTProject> extends FileListGoal<P> {
         if (dendrogram == null) {
             return;
         }
-        SmallTaxTree.SmallTaxIdNode[] children = parent.getSubNodesWithoutOther();
+        SmallTaxTree.SmallTaxIdNode[] children = parent.getSubNodes();
         int[] leafCounter = new int[1];
         int[] preCounter = new int[1];
         dendrogram.visit(new DendrogramNode.Visitor() {
