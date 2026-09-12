@@ -306,15 +306,24 @@ public abstract class Goal<P extends Project> {
 			}
 			long total = Runtime.getRuntime().totalMemory();
 			long free = Runtime.getRuntime().freeMemory();
+			// The ceiling, i.e. -Xmx. Logged beside the other two because without it they cannot be
+			// read: totalMemory() is what the heap happens to be committed to at that moment and the
+			// virtual machine both grows and shrinks it, so a run that dies of "OutOfMemoryError: Java
+			// heap space" leaves no record of the limit it died against and the log cannot say whether
+			// the setting was too small or something unexpected was holding the difference.
+			long max = Runtime.getRuntime().maxMemory();
 			String suffix = phase == null ? "" : " " + phase;
 			String totalMessage = "Total heap size" + suffix + ": " + (total / 1024 / 1024) + " MB";
 			String usedMessage = "Used heap size" + suffix + ": " + ((total - free) / 1024 / 1024) + " MB";
+			String maxMessage = "Max heap size" + suffix + ": " + (max / 1024 / 1024) + " MB";
 			if (info) {
 				getLogger().info(totalMessage);
 				getLogger().info(usedMessage);
+				getLogger().info(maxMessage);
 			} else {
 				getLogger().debug(totalMessage);
 				getLogger().debug(usedMessage);
+				getLogger().debug(maxMessage);
 			}
 		}
 	}
