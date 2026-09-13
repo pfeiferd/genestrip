@@ -33,7 +33,7 @@
 |`categories`||X|Load the RefSeq category names as requested for the project's database.|
 |`refseqfna`|||Download the genomic files from RefSeq for the requested categories.|
 |`accmap`||X|Load the required RefSeq accession entries into memory.|
-|`assemblymeta`||X||
+|`assemblymeta`||X|Match the RefSeq accession catalog's sequences against NCBI's assembly summary, so that each sequence is tied to the assembly it belongs to and to that assembly's recorded level. Serves two purposes that are otherwise hard to tell apart. It filters, where `refseq.genomesOnly` asks for finished genomes only, and it makes `maxGenomesPerTaxid` count assemblies rather than the replicons they consist of. And it annotates: the goal's value answers, for a given accession, which assembly it belongs to and whether that assembly is complete, which a build that filters nothing may still want to know. See the API section of the README for how to ask it. Made only when something asks for it, since it reads the assembly summary and makes one pass over the accession catalog.|
 |`taxfromgenbank`||X|Determine for tax ids for which additional fasta files from Genbank should be downloaded.|
 |`assemblydownload`|||Download Genbank's assembly catalog file.|
 |`fastasgenbank`||X|Determine the fasta files to be downloaded from Genbank.|

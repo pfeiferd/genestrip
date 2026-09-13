@@ -145,6 +145,15 @@ public enum GSGoalKey implements GoalKey {
 	/** Loads the required RefSeq accession entries into memory. */
 	@MDDescription("Load the required RefSeq accession entries into memory.")
 	ACCMAP("accmap"),
+	/** Matches the accession catalog's sequences against NCBI's assembly summary. */
+	@MDDescription("Match the RefSeq accession catalog's sequences against NCBI's assembly summary, so that each "
+			+ "sequence is tied to the assembly it belongs to and to that assembly's recorded level. Serves two "
+			+ "purposes that are otherwise hard to tell apart. It filters, where `refseq.genomesOnly` asks for finished "
+			+ "genomes only, and it makes `maxGenomesPerTaxid` count assemblies rather than the replicons they consist "
+			+ "of. And it annotates: the goal's value answers, for a given accession, which assembly it belongs to and "
+			+ "whether that assembly is complete, which a build that filters nothing may still want to know. "
+			+ "See the API section of the README for how to ask it. Made only when something asks for it, since it "
+			+ "reads the assembly summary and makes one pass over the accession catalog.")
 	ASSEMBLYMETA("assemblymeta"),
 	/** Determines the tax ids for which additional fasta files should be downloaded from Genbank. */
 	@MDDescription("Determine for tax ids for which additional fasta files from Genbank should be downloaded.")

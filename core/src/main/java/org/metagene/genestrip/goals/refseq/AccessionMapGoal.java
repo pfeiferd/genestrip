@@ -41,6 +41,7 @@ import org.metagene.genestrip.refseq.AccessionMapTrieImpl;
 import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.refseq.GenomeKeyTrie;
 import org.metagene.genestrip.refseq.AccessionTrie;
+import org.metagene.genestrip.refseq.AssemblyInfo;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 
 import org.metagene.genestrip.tax.Rank;
@@ -108,7 +109,7 @@ public class AccessionMapGoal<P extends GSProject> extends ObjectGoal<AccessionM
 			// Asked for only where the filter is on, which is what keeps the metadata goal from being
 			// made - and so the assembly summary from being read and the catalog from being walked a
 			// second time - in a build that does not want it.
-			private final AccessionTrie<byte[]> completeGenomes = completeOnly ? assemblyMetaGoal.get() : null;
+			private final AccessionTrie<AssemblyInfo> completeGenomes = completeOnly ? assemblyMetaGoal.get() : null;
 			private final GenomeKeyTrie admittedGenomes =
 					maxGenomes == Integer.MAX_VALUE ? null : new GenomeKeyTrie();
 			private final AccessionMap map = new AccessionMapTrieImpl(admittedGenomes);
@@ -144,7 +145,7 @@ public class AccessionMapGoal<P extends GSProject> extends ObjectGoal<AccessionM
 				// refseq.assemblyAccessionsOnly: the filter is about assemblies and must not be able to
 				// empty a database of transcripts.
 				if (completeOnly && isGenomicAccession(target, accessionStart)
-						&& assemblyKeyOf(target, accessionStart, accessionEnd) == null) {
+						&& assemblyOf(target, accessionStart, accessionEnd) == null) {
 					return;
 				}
 				TaxIdNode node = taxTree.getNodeByTaxId(target, 0, taxIdEnd);
@@ -180,7 +181,8 @@ public class AccessionMapGoal<P extends GSProject> extends ObjectGoal<AccessionM
 					// shotgun project but leaves the chromosome and each plasmid of a finished genome
 					// standing for themselves, so a limit counted on it would admit a quarter of what it
 					// was asked for wherever finished genomes carry plasmids.
-					byte[] key = completeOnly ? assemblyKeyOf(target, accessionStart, accessionEnd) : null;
+					AssemblyInfo info = completeOnly ? assemblyOf(target, accessionStart, accessionEnd) : null;
+					byte[] key = info == null ? null : info.getKey();
 					if (key != null) {
 						admittedGenomes.admitKey(key, 0, key.length);
 					} else {
@@ -197,7 +199,8 @@ public class AccessionMapGoal<P extends GSProject> extends ObjectGoal<AccessionM
 			 */
 			/** Whether this accession's genome - its assembly where one is known - is already in. */
 			private boolean isAlreadyAdmitted(byte[] target, int accessionStart, int accessionEnd) {
-				byte[] key = completeOnly ? assemblyKeyOf(target, accessionStart, accessionEnd) : null;
+				AssemblyInfo info = completeOnly ? assemblyOf(target, accessionStart, accessionEnd) : null;
+				byte[] key = info == null ? null : info.getKey();
 				return key != null ? admittedGenomes.isAdmittedKey(key, 0, key.length)
 						: admittedGenomes.isAdmitted(target, accessionStart, accessionEnd);
 			}
@@ -207,7 +210,7 @@ public class AccessionMapGoal<P extends GSProject> extends ObjectGoal<AccessionM
 			 * the summary calls complete. Null is also the answer while the filter is off, which no caller
 			 * asks for.
 			 */
-			private byte[] assemblyKeyOf(byte[] target, int accessionStart, int accessionEnd) {
+			private AssemblyInfo assemblyOf(byte[] target, int accessionStart, int accessionEnd) {
 				int keyEnd = accessionStart
 						+ GenomeKeyTrie.genomeKeyLength(target, accessionStart, accessionEnd);
 				return completeGenomes.get(target, accessionStart, keyEnd);

@@ -429,3 +429,47 @@ from a project's `additional.txt` file.
 ### API-based usage
 
 An API-based invocation of the goals `match` and `filter` is straight-forward: Please check out the test class [`org.metagene.genestrip.APITest`](core/src/test/java/org/metagene/genestrip/APITest.java) in the folder `src/test/java` as a code example.
+
+#### Asking which assemblies are complete
+
+Some work needs to know how finished the assembly behind a genome is -- selecting the genomes that may
+carry a phylogenetic topology, for instance, or marking the rest in a drawing. The `assemblymeta` goal
+answers that per accession:
+
+```java
+import org.metagene.genestrip.goals.refseq.AssemblyMetadataGoal;
+import org.metagene.genestrip.refseq.AssemblyInfo;
+
+GSProject project = new GSProject(new GSCommon(baseDir), "my_project");
+GSMaker<GSProject> maker = new GSMaker<>(project);
+
+@SuppressWarnings("unchecked")
+AssemblyMetadataGoal<GSProject> meta =
+        (AssemblyMetadataGoal<GSProject>) maker.getGoal(GSGoalKey.ASSEMBLYMETA);
+
+AssemblyInfo info = meta.getAssemblyInfo("NC_001911.1");
+if (info != null && info.isComplete()) {
+    // every replicon closed end to end: the genome holds the whole of its organism
+}
+```
+
+`getAssemblyInfo` makes the goal if it has not been made already, so `get()` need not be called first.
+There is a byte-array form, `getAssemblyInfo(byte[] target, int start, int end)`, for code walking a
+whole database; the `String` form makes an array per call and is meant for asking about one accession.
+
+An `AssemblyInfo` carries two things. `getKey()` is the key every sequence of that assembly is filed
+under, so a chromosome and its plasmids answer with the same key and can be counted as one genome
+rather than three. `getLevel()` is the level NCBI records, with `isComplete()` and `isChromosome()` for
+the two questions usually asked of it.
+
+**A `null` answer does not mean the genome is incomplete.** It means no admitted assembly was matched,
+which happens in three quite different cases: the genome is a draft; its sequences summed to a length
+that met no assembly within `refseq.assemblyMetadataGap`, which is a few per cent of genomes; or the
+accession is not genomic at all. Code selecting genomes should read `null` as *not established as
+complete* rather than as *established as not complete* -- the first merely passes over a few genomes,
+while the second would take drafts for finished genomes.
+
+Which levels the goal can report depends on `refseq.genomesOnly`. Complete assemblies are always
+indexed, since that is the question asked even when nothing is being filtered; chromosome-level ones
+are reported only where that setting admits them, because indexing a level the build will not keep
+would let it win a lookup from the level the build does keep.

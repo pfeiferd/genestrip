@@ -22,6 +22,8 @@ import org.metagene.genestrip.refseq.AccessionFileProcessor;
 import org.metagene.genestrip.refseq.AssemblySizeIndex;
 import org.metagene.genestrip.refseq.GenomeKeyTrie;
 import org.metagene.genestrip.refseq.AccessionTrie;
+import org.metagene.genestrip.genbank.AssemblySummaryReader.AssemblyQuality;
+import org.metagene.genestrip.refseq.AssemblyInfo;
 import org.metagene.genestrip.GSConfigKey.SeqType;
 import org.metagene.genestrip.io.StreamingFileResource;
 import org.metagene.genestrip.io.StreamingResource;
@@ -53,7 +55,7 @@ import org.metagene.genestrip.refseq.RefSeqCategory;
  *
  * @param <P> the type of the project this goal belongs to.
  */
-public class AssemblyMetadataGoal<P extends GSProject> extends ObjectGoal<AccessionTrie<byte[]>, P> {
+public class AssemblyMetadataGoal<P extends GSProject> extends ObjectGoal<AccessionTrie<AssemblyInfo>, P> {
 
 	/** The longest run of consecutive accessions taken to be one assembly. */
 	private static final int MAX_RUN = 8;
@@ -112,6 +114,51 @@ public class AssemblyMetadataGoal<P extends GSProject> extends ObjectGoal<Access
 		return intConfigValue(GSConfigKey.ASSEMBLY_METADATA_GAP);
 	}
 
+	/**
+	 * Returns what is known about the assembly the given accession belongs to, or {@code null} where
+	 * none was matched. The goal is made if it has not been already, so this may be called without
+	 * calling {@link #get()} first.
+	 * <p>
+	 * The accession is given as it appears in the catalog or in a FASTA header, version suffix and
+	 * all -- {@code NC_001911.1}. Deriving the key the assemblies are filed under is this method's
+	 * job, and it is not a trivial one: the version is cut, and a whole-genome shotgun accession is
+	 * cut back to its project prefix so that the contigs of one draft share a key.
+	 * <p>
+	 * A {@code null} answer says that no admitted assembly was matched, which is <em>not</em> the same
+	 * as saying the genome is incomplete. It happens for a draft, for a genome whose sum of sequence
+	 * lengths did not meet an assembly within {@code refseq.assemblyMetadataGap}, and for an accession
+	 * that is not genomic at all. A caller selecting the genomes that may carry a topology should
+	 * treat {@code null} as "not established as complete" and not as "established as not complete".
+	 *
+	 * @param target the buffer holding the accession
+	 * @param start the start offset of the accession
+	 * @param end the end offset of the accession
+	 * @return what is known about the assembly, or {@code null}
+	 */
+	public AssemblyInfo getAssemblyInfo(byte[] target, int start, int end) {
+		int keyEnd = start + GenomeKeyTrie.genomeKeyLength(target, start, end);
+		return get().get(target, start, keyEnd);
+	}
+
+	/**
+	 * Returns what is known about the assembly the given accession belongs to, or {@code null} where
+	 * none was matched. See {@link #getAssemblyInfo(byte[], int, int)} for what {@code null} means.
+	 * <p>
+	 * This makes a byte array per call and is meant for asking about one accession. Code walking a
+	 * whole database should use the byte-array form against a buffer it already has, as the goals in
+	 * this package do.
+	 *
+	 * @param accession the accession, e.g. {@code NC_001911.1}
+	 * @return what is known about the assembly, or {@code null}
+	 */
+	public AssemblyInfo getAssemblyInfo(String accession) {
+		byte[] target = new byte[accession.length()];
+		for (int i = 0; i < target.length; i++) {
+			target[i] = (byte) accession.charAt(i);
+		}
+		return getAssemblyInfo(target, 0, target.length);
+	}
+
 	@Override
 	protected void doMakeThis() {
 		File dir = getProject().getCommon().getRefSeqDir();
@@ -126,16 +173,20 @@ public class AssemblyMetadataGoal<P extends GSProject> extends ObjectGoal<Access
 			// it is something to keep and a search needs no screening afterwards. Screening after
 			// the search would lose a run whose admitted assembly lay within the gap but which an
 			// unadmitted one happened to lie nearer to.
+			// Complete assemblies are always indexed, because whether a genome is complete is what a
+			// consumer of this goal asks even when nothing is being filtered. Chromosome-level ones
+			// are added only where the filter admits them, since indexing a level the build will not
+			// keep would let it win a search from the level the build does keep.
 			index = new AssemblySizeIndex(summary,
-					configValue(GSConfigKey.GENOMES_ONLY) == GSConfigKey.GenomesOnly.COMPLETE
-							? AssemblySizeIndex.COMPLETE_ONLY
-							: AssemblySizeIndex.COMPLETE_OR_CHROMOSOME);
+					configValue(GSConfigKey.GENOMES_ONLY) == GSConfigKey.GenomesOnly.CHROMOSOME
+							? AssemblySizeIndex.COMPLETE_OR_CHROMOSOME
+							: AssemblySizeIndex.COMPLETE_ONLY);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 		// An accession-keyed trie, not a plain DigitTrie: the keys are accessions, and a DigitTrie
 		// maps every letter outside its range, so a write would find no node and fail.
-		final AccessionTrie<byte[]> complete = new AccessionTrie<byte[]>();
+		final AccessionTrie<AssemblyInfo> complete = new AccessionTrie<AssemblyInfo>();
 		final int gap = getGap();
 
 		AccessionFileProcessor processor = new AccessionFileProcessor(categoriesGoal.get(),
@@ -266,6 +317,7 @@ public class AssemblyMetadataGoal<P extends GSProject> extends ObjectGoal<Access
 					int bestLen = 0;
 					long bestDist = Long.MAX_VALUE;
 					int bestId = -1;
+					AssemblyQuality bestLevel = null;
 					long sum = 0;
 					for (int len = 1; len <= n - i; len++) {
 						Entry e = run[i + len - 1];
@@ -285,6 +337,7 @@ public class AssemblyMetadataGoal<P extends GSProject> extends ObjectGoal<Access
 						if (m != null && m.getDistance() < bestDist && !seenAssemblies.get(m.getAssemblyId())) {
 							bestDist = m.getDistance();
 							bestId = m.getAssemblyId();
+							bestLevel = m.getLevel();
 							bestLen = len;
 						}
 					}
@@ -299,14 +352,14 @@ public class AssemblyMetadataGoal<P extends GSProject> extends ObjectGoal<Access
 					// replicons: a finished genome arrives as several accessions, each of which the
 					// genome key leaves standing for itself.
 					Entry leader = run[i];
-					byte[] assemblyKey = Arrays.copyOf(leader.accession,
-							GenomeKeyTrie.genomeKeyLength(leader.accession, 0, leader.length0));
+					AssemblyInfo info = new AssemblyInfo(Arrays.copyOf(leader.accession,
+							GenomeKeyTrie.genomeKeyLength(leader.accession, 0, leader.length0)), bestLevel);
 					assemblies++;
 					sequences += bestLen;
 					for (int j = i; j < i + bestLen; j++) {
 						Entry e = run[j];
 						int keyEnd = GenomeKeyTrie.genomeKeyLength(e.accession, 0, e.length0);
-						complete.set(e.accession, 0, keyEnd, assemblyKey);
+						complete.set(e.accession, 0, keyEnd, info);
 					}
 					i += bestLen;
 				}

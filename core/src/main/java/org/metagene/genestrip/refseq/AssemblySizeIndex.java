@@ -90,11 +90,12 @@ public class AssemblySizeIndex {
 	 * <p>
 	 * A complete assembly is gapless by definition - of the summary's seventy-three thousand of
 	 * them, not one has a {@code genome_size} differing from its {@code genome_size_ungapped}. A
-	 * chromosome-level assembly usually is not: nine in ten carry gaps, averaging about one per cent
-	 * of the genome. That one per cent is what completeness costs here, and it is not a guess - the
-	 * two size columns give it exactly - whereas a scaffold or a contig assembly simply does not
-	 * represent what it is missing, which is why those are left out and why a contig assembly's gap
-	 * fraction reads as zero.
+	 * chromosome-level assembly falls about one per cent short of the complete genomes of its own
+	 * species, which is little enough to admit it. That one per cent is not what the two size columns
+	 * say: their ratio counts only the gaps the assembler declared, a median of 0.02 per cent against
+	 * the 1.18 per cent the same-species comparison implies, so the columns are not a completeness and
+	 * are not used as one here. A scaffold or contig assembly does not represent what it is missing at
+	 * all, which is why those are left out and why a contig assembly's gap fraction reads as zero.
 	 */
 	public static final Set<AssemblyQuality> COMPLETE_OR_CHROMOSOME = Collections.unmodifiableSet(EnumSet.of(
 			AssemblyQuality.COMPLETE_LATEST, AssemblyQuality.COMPLETE, AssemblyQuality.CHROMOSOME_LATEST,

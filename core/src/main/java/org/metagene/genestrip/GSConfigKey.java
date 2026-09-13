@@ -195,9 +195,13 @@ public enum GSConfigKey implements ConfigKey {
 			+ "differing from its `genome_size_ungapped`, so such an assembly's sequence is the organism's genome entire. "
 			+ "At `chromosome` chromosome-level assemblies are admitted as well, which are the levels "
 			+ "`genbank.fastaQualities` admits by default. 8,433 of those are in the release and nine in ten of them carry "
-			+ "gaps, averaging about 1 per cent of the genome; that 1 per cent is small and, unlike a draft's, exactly known "
-			+ "from the two size columns. It buys the 3,330 taxa that have a chromosome-level assembly and no complete one, "
-			+ "10.2 per cent on top of the 32,545 that have one. "
+			+ "declared gaps. How short they really are is about 1 per cent, measured by comparing them against the complete "
+			+ "genomes of their own species, and that is small enough to admit them: they buy the 3,330 taxa that have a "
+			+ "chromosome-level assembly and no complete one, 10.2 per cent on top of the 32,545 that have one. "
+			+ "The two size columns do not state that 1 per cent and should not be read as if they did. Their ratio counts "
+			+ "only the gaps the assembler declared, whose median is 0.02 per cent against the 1.18 per cent implied by the "
+			+ "same-species comparison, and for a third of these assemblies it overstates completeness by more than two "
+			+ "points. The level is a dependable category; it is not a measurement of completeness. "
 			+ "Scaffold and contig assemblies are admitted by neither setting: what they are missing is not represented at "
 			+ "all, so nothing in the summary says how much of the organism they hold. "
 			+ "RNA and mRNA accessions pass unchanged, so that setting this cannot empty a database of transcripts. "
@@ -972,10 +976,12 @@ public enum GSConfigKey implements ConfigKey {
 		COMPLETE("complete"),
 		/**
 		 * Complete and chromosome-level assemblies, the levels {@code genbank.fastaQualities} admits by
-		 * default. Nine in ten chromosome-level assemblies carry gaps, averaging about one per cent of
-		 * the genome; that per cent is exactly known from the two size columns, unlike a draft's, whose
-		 * missing sequence is not represented at all. It buys the 3,330 taxa that have a
-		 * chromosome-level assembly and no complete one, ten per cent on top of the 32,545 that do.
+		 * default. A chromosome-level assembly falls about one per cent short of the complete genomes of
+		 * its own species, which is small enough to admit it, and it buys the 3,330 taxa that have a
+		 * chromosome-level assembly and no complete one, ten per cent on top of the 32,545 that do. The
+		 * two size columns do not state that shortfall: their ratio counts only the gaps the assembler
+		 * declared, which is a median of 0.02 per cent against the 1.18 per cent the comparison implies.
+		 * The level is a category to be trusted, not a completeness to be read off.
 		 */
 		CHROMOSOME("chromosome");
 
