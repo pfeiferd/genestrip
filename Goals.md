@@ -33,6 +33,7 @@
 |`categories`||X|Load the RefSeq category names as requested for the project's database.|
 |`refseqfna`|||Download the genomic files from RefSeq for the requested categories.|
 |`accmap`||X|Load the required RefSeq accession entries into memory.|
+|`assemblymeta`||X||
 |`taxfromgenbank`||X|Determine for tax ids for which additional fasta files from Genbank should be downloaded.|
 |`assemblydownload`|||Download Genbank's assembly catalog file.|
 |`fastasgenbank`||X|Determine the fasta files to be downloaded from Genbank.|

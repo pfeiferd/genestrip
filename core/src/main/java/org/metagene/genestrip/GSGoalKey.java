@@ -145,6 +145,7 @@ public enum GSGoalKey implements GoalKey {
 	/** Loads the required RefSeq accession entries into memory. */
 	@MDDescription("Load the required RefSeq accession entries into memory.")
 	ACCMAP("accmap"),
+	ASSEMBLYMETA("assemblymeta"),
 	/** Determines the tax ids for which additional fasta files should be downloaded from Genbank. */
 	@MDDescription("Determine for tax ids for which additional fasta files from Genbank should be downloaded.")
 	TAXFROMGENBANK("taxfromgenbank"),

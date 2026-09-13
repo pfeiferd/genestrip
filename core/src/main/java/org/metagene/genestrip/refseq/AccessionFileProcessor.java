@@ -117,11 +117,19 @@ public abstract class AccessionFileProcessor {
                         int pos3 = ByteArrayUtil.indexOf(target, pos2 + 1, size, '\t');
                         int pos4 = ByteArrayUtil.indexOf(target, pos3 + 1, size, '\t');
                         int pos5 = ByteArrayUtil.indexOf(target, pos4 + 1, size, '\t');
+                        // The line terminator is written into the buffer and counted in size, so the
+                        // last column would otherwise be handed on with the newline still attached
+                        // and would not parse as a number. Every other column ends at a tab and is
+                        // unaffected; this one ends at the end of the line.
+                        int lineEnd = size;
+                        while (lineEnd > 0 && (target[lineEnd - 1] == '\n' || target[lineEnd - 1] == '\r')) {
+                            lineEnd--;
+                        }
                         if ((dna && isGenomicAccession(target, pos2 + 1)) || (rna && isRNAAccession(target, pos2 + 1))
                                 || (mrna && isMRNAAccession(target, pos2 + 1))) {
                             if (containsCategory(target, pos3 + 1, pos4, categories)) {
                                 if (containsStatus(target, pos4 + 1, pos5, statuses)) {
-                                    handleEntry(target, pos1, pos2 + 1, pos3);
+                                    handleEntry(target, pos1, pos2 + 1, pos3, pos5 + 1, lineEnd);
                                 }
                             }
                         }
@@ -162,6 +170,50 @@ public abstract class AccessionFileProcessor {
      * @param accessionEnd the exclusive end offset of the accession
      */
     protected abstract void handleEntry(byte[] target, int taxIdEnd, int accessionStart, int accessionEnd);
+
+    /**
+     * Handles one entry, with the length column too.
+     * <p>
+     * The catalog's last column is the length of the sequence, which the parse loop has already walked
+     * past to find the accession, so offering it costs nothing. It is given as offsets rather than a
+     * parsed number because most callers do not want it: the default implementation drops it and calls
+     * {@link #handleEntry(byte[], int, int, int)}, so a subclass that does not care is unaffected.
+     *
+     * @param target the buffer holding the line
+     * @param taxIdEnd the end offset of the tax id
+     * @param accessionStart the start offset of the accession
+     * @param accessionEnd the end offset of the accession
+     * @param lengthStart the start offset of the length column
+     * @param lengthEnd the end offset of the length column, i.e. the end of the line, with any line
+     *            terminator already excluded
+     */
+    protected void handleEntry(byte[] target, int taxIdEnd, int accessionStart, int accessionEnd,
+                               int lengthStart, int lengthEnd) {
+        handleEntry(target, taxIdEnd, accessionStart, accessionEnd);
+    }
+
+    /**
+     * Parses the non-negative number in {@code seq[start, end)}, or -1 where it is not one.
+     *
+     * @param seq the buffer holding the number
+     * @param start the start offset
+     * @param end the end offset
+     * @return the number, or -1
+     */
+    public static long parseLength(byte[] seq, int start, int end) {
+        if (start >= end) {
+            return -1;
+        }
+        long v = 0;
+        for (int i = start; i < end; i++) {
+            byte c = seq[i];
+            if (c < '0' || c > '9') {
+                return -1;
+            }
+            v = v * 10 + (c - '0');
+        }
+        return v;
+    }
 
     /**
      * Returns whether the given byte range contains the directory name of any of the given

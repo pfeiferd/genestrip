@@ -35,7 +35,7 @@ import org.metagene.genestrip.util.DigitTrie;
  * {@link #genomeKeyLength(byte[], int, int)} cuts the accession there. A finished replicon has no such
  * prefix and stands for itself, which counts a plasmid, and each segment of a segmented virus, as a
  * genome of its own: an error of one to three per assembly, against the seventy-odd a contig count is
- * out by. Measured against RefSeq release 233 the prefixes recover 8,919 genomes for
+ * out by. Measured against one RefSeq release the prefixes recover 8,919 genomes for
  * <em>S. pneumoniae</em> where {@code assembly_summary_refseq.txt} lists 9,263, and 88 to 92 per cent
  * for its neighbours.
  * <p>
@@ -50,7 +50,7 @@ import org.metagene.genestrip.util.DigitTrie;
  * stored against a key either - the entry's mere presence is the answer, so its value is the cached
  * {@code Boolean.TRUE} and admitting a genome allocates trie nodes and nothing else.
  */
-public class GenomeKeyTrie extends DigitTrie<Boolean> {
+public class GenomeKeyTrie extends AccessionTrie<Boolean> {
 	private static final long serialVersionUID = 1L;
 
 	/** Passed as the create context of {@link #admit(byte[], int, int)}; the context itself is unused. */
@@ -87,12 +87,41 @@ public class GenomeKeyTrie extends DigitTrie<Boolean> {
 	 * @return whether this call added the genome rather than finding it
 	 */
 	public boolean admit(byte[] seq, int start, int end) {
-		int keyEnd = start + genomeKeyLength(seq, start, end);
-		if (get(seq, start, keyEnd) != null) {
+		return admitKey(seq, start, start + genomeKeyLength(seq, start, end));
+	}
+
+	/**
+	 * Adds a key that has already been derived, and says whether it was not in the set already.
+	 * <p>
+	 * {@link #admit(byte[], int, int)} derives the key from the accession, which groups the contigs of
+	 * a shotgun project but leaves the chromosome and each plasmid of a finished genome standing for
+	 * themselves. Where a caller knows better - because it has matched the sequences against NCBI's
+	 * assembly summary and so knows which of them are one assembly - it passes that assembly's key
+	 * here instead, and the set then counts assemblies rather than replicons.
+	 *
+	 * @param key the buffer holding the key
+	 * @param start the start index of the key (inclusive)
+	 * @param end the end index of the key (exclusive)
+	 * @return whether this call added the key rather than finding it
+	 */
+	public boolean admitKey(byte[] key, int start, int end) {
+		if (get(key, start, end) != null) {
 			return false;
 		}
-		get(seq, start, keyEnd, ADMIT);
+		get(key, start, end, ADMIT);
 		return true;
+	}
+
+	/**
+	 * Returns whether an already derived key is in the set.
+	 *
+	 * @param key the buffer holding the key
+	 * @param start the start index of the key (inclusive)
+	 * @param end the end index of the key (exclusive)
+	 * @return whether the key is in the set
+	 */
+	public boolean isAdmittedKey(byte[] key, int start, int end) {
+		return get(key, start, end) != null;
 	}
 
 	/**
@@ -115,23 +144,6 @@ public class GenomeKeyTrie extends DigitTrie<Boolean> {
 	 */
 	public boolean isFrozen() {
 		return frozen;
-	}
-
-	/** Digits, then the upper-case letters, then the underscore, then anything else. */
-	@Override
-	protected int mapToIndex(byte bite, int pos) {
-		if (bite >= '0' && bite <= '9') {
-			return bite - '0';
-		}
-		if (bite >= 'A' && bite <= 'Z') {
-			return bite - 'A' + 10;
-		}
-		return bite == '_' ? 36 : 37;
-	}
-
-	@Override
-	protected int range(int pos) {
-		return 38;
 	}
 
 	/**
@@ -163,7 +175,7 @@ public class GenomeKeyTrie extends DigitTrie<Boolean> {
 	 * <p>
 	 * The assembly version is deliberately left out of the key: {@code CABEIU01} and {@code CABEIU02}
 	 * are two versions of one assembly, and counting them apart doubles the tally - against RefSeq
-	 * release 233 it turns 8,919 genomes of <em>S. pneumoniae</em> into 16,771. Anything that is not a
+	 * one release it turns 8,919 genomes of <em>S. pneumoniae</em> into 16,771. Anything that is not a
 	 * WGS accession names itself, minus its version.
 	 *
 	 * @param seq   the byte array holding the accession

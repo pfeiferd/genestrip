@@ -129,7 +129,11 @@ public enum GSConfigKey implements ConfigKey {
 			+ "letters and are counted as one genome, across assembly versions too. Anything else, a finished replicon such as "
 			+ "`NZ_CP012345`, stands for itself, which counts the chromosome and each plasmid of a finished genome separately - and "
 			+ "likewise every segment of a segmented virus, so a limit below the segment count takes such a virus apart. That is an error "
-			+ "of one to three per assembly, where a contig count is out by seventy. Against RefSeq release 233 this recovers 8,919 "
+			+ "of one to three per assembly, where a contig count is out by seventy. It is corrected where "
+			+ "`refseq.genomesOnly` is not `off`: there the sequences of an assembly have been matched against NCBI's assembly "
+			+ "summary and are known, so they are counted as the one genome they are. Without that switch the error stands, and it is "
+			+ "small because the genomes a release is mostly made of are draft assemblies, whose contigs the accession does group. "
+			+ "Measured against one RefSeq release this recovers 8,919 "
 			+ "genomes for *S. pneumoniae* where `assembly_summary_refseq.txt` lists 9,263, and 88 to 92 per cent for its neighbours. "
 			+ "A genome enters whole: once its first contig is admitted the rest follow, since half an assembly is not what anybody asks for - "
 			+ "the contigs of one assembly are scattered through the release files rather than gathered, and the genomes admitted are held "
@@ -174,6 +178,53 @@ public enum GSConfigKey implements ConfigKey {
 			+ "database of those, and it has no effect while `refseq.filldb=false`. "
 			+ "See [RefSeq accession numbers and molecule types](https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/) for details.")
 	ASSEMBLY_ACCESSIONS_ONLY("refseq.assemblyAccessionsOnly", new BooleanConfigParamInfo(false), GSGoalKey.FILL_DB),
+	/** How finished an assembly must be for its sequences to enter the database. */
+	@MDDescription("How finished an assembly must be for its sequences to enter the database. At `off` there is no "
+			+ "restriction and every genomic accession of the release enters, drafts included. Otherwise a genomic "
+			+ "accession is kept only where it belongs to an assembly of the required level, and everything belonging to a "
+			+ "draft is dropped; either such setting implies `refseq.assemblyAccessionsOnly` and is strictly stronger than "
+			+ "it, so the two need not be combined. "
+			+ "The accession catalog names sequences and carries no assembly accession, so an assembly is recognised by its "
+			+ "length instead: the catalog is ordered by taxon and, within a taxon, by accession, so a run of consecutive "
+			+ "accessions is summed and the sum looked up in NCBI's assembly summary by taxon and number of bases, within "
+			+ "`refseq.assemblyMetadataGap`. Every sequence of a matched assembly is then filed under one key, so that a "
+			+ "chromosome and its plasmids count as one genome against `maxGenomesPerTaxid` rather than as three. This costs "
+			+ "the assembly summary being read and one pass over the catalog; a build that leaves this `off` pays neither. "
+			+ "At `complete` only complete assemblies are admitted. A complete assembly is gapless by definition, and the "
+			+ "summary bears that out: in the release measured, not one of its 73,778 complete assemblies had a `genome_size` "
+			+ "differing from its `genome_size_ungapped`, so such an assembly's sequence is the organism's genome entire. "
+			+ "At `chromosome` chromosome-level assemblies are admitted as well, which are the levels "
+			+ "`genbank.fastaQualities` admits by default. 8,433 of those are in the release and nine in ten of them carry "
+			+ "gaps, averaging about 1 per cent of the genome; that 1 per cent is small and, unlike a draft's, exactly known "
+			+ "from the two size columns. It buys the 3,330 taxa that have a chromosome-level assembly and no complete one, "
+			+ "10.2 per cent on top of the 32,545 that have one. "
+			+ "Scaffold and contig assemblies are admitted by neither setting: what they are missing is not represented at "
+			+ "all, so nothing in the summary says how much of the organism they hold. "
+			+ "RNA and mRNA accessions pass unchanged, so that setting this cannot empty a database of transcripts. "
+			+ "Use it where a clean reference set matters more than breadth, and leave it `off` for read classification, "
+			+ "where a draft's contigs carry usable k-mers like any others. It has no effect while `refseq.filldb=false`.")
+	GENOMES_ONLY("refseq.genomesOnly", new GenomesOnlyConfigParamInfo(GenomesOnly.OFF), GSGoalKey.FILL_DB),
+	/** How far a sum of sequence lengths may be from an assembly's recorded length and still match it. */
+	@MDDescription("How many bases a sum of sequence lengths taken from the accession catalog may differ from an "
+			+ "assembly's recorded length in NCBI's assembly summary and still be taken for that assembly. The catalog "
+			+ "names sequences and carries no assembly accession, so the two files are joined on the taxon and the number "
+			+ "of bases instead; a submitted total and the sum of the released sequences differ by a few bases often "
+			+ "enough that an exact match loses assemblies. Measured over *E. coli*, "
+			+ "*K. pneumoniae*, *V. cholerae* and *P. aeruginosa*, an exact join locates 74.8 per cent of the complete "
+			+ "assemblies, a gap of 10 locates 82.1 per cent and a gap of 100 locates 92.0 per cent. A pass over a whole "
+			+ "release puts the same figure at 92.5 per cent. "
+			+ "These are shares of the assemblies *reachable*, i.e. of those whose taxon appears in the RefSeq categories "
+			+ "the database reads: a project asking for a bacterial genus never sees the viral, fungal and plant assemblies "
+			+ "the summary also lists, and counting those in the denominator understates the figure badly - for a "
+			+ "*Streptococcus* database only 64,594 of the summary's 82,211 complete and chromosome-level assemblies are "
+			+ "reachable at all. "
+			+ "Where several assemblies fall within the gap the nearest is taken, and an assembly already accounted for is "
+			+ "not taken a second time, so a wider gap finds more assemblies rather than the same ones repeatedly: between "
+			+ "a gap of 10 and one of 100 the count moves by under 3 per cent. What the remaining few per cent are is "
+			+ "structural rather than a matter of tolerance - about 2 per cent are assemblies of more replicons than a run "
+			+ "may hold, and the rest are assemblies whose accessions are not consecutive in the catalog or which the "
+			+ "downloaded release does not contain.")
+	ASSEMBLY_METADATA_GAP("refseq.assemblyMetadataGap", new IntConfigParamInfo(0, Integer.MAX_VALUE, 100), GSGoalKey.ASSEMBLYMETA),
 	/** Threshold below which Genbank is consulted for additional genomes. */
 	@MDDescription("Determines whether Genestrip should try to lookup genomic fasta files from Genbank, "
 			+ "if the number of RefSeq **contigs** for a requested tax id, its descendants included, is below the given limit. "
@@ -905,6 +956,101 @@ public enum GSConfigKey implements ConfigKey {
 	 * {@code additional.txt} and the genomes downloaded from Genbank. Those always take part; see
 	 * {@code DBGoal#isContigInScope} for why only the release is worth restricting.
 	 */
+	/**
+	 * How finished an assembly must be for its sequences to enter the database, for
+	 * {@link GSConfigKey#GENOMES_ONLY}.
+	 */
+	public enum GenomesOnly {
+		/** No restriction: every genomic accession of the release enters, drafts included. */
+		OFF("off"),
+		/**
+		 * Complete assemblies only. A complete assembly is gapless by definition, and the summary bears
+		 * that out - in the release measured, not one of its 73,778 complete assemblies had a
+		 * {@code genome_size} differing from its {@code genome_size_ungapped} - so such an assembly's
+		 * sequence is the organism's genome entire.
+		 */
+		COMPLETE("complete"),
+		/**
+		 * Complete and chromosome-level assemblies, the levels {@code genbank.fastaQualities} admits by
+		 * default. Nine in ten chromosome-level assemblies carry gaps, averaging about one per cent of
+		 * the genome; that per cent is exactly known from the two size columns, unlike a draft's, whose
+		 * missing sequence is not represented at all. It buys the 3,330 taxa that have a
+		 * chromosome-level assembly and no complete one, ten per cent on top of the 32,545 that do.
+		 */
+		CHROMOSOME("chromosome");
+
+		private final String name;
+
+		GenomesOnly(String name) {
+			this.name = name;
+		}
+
+		/**
+		 * Returns the name this value carries in a configuration file.
+		 *
+		 * @return the configuration name of this value
+		 */
+		public String getName() {
+			return name;
+		}
+
+		/**
+		 * Returns the value of the given configuration name, or {@code null} if there is none.
+		 *
+		 * @param name the configuration name to look up
+		 * @return the matching value, or {@code null}
+		 */
+		public static GenomesOnly byName(String name) {
+			for (GenomesOnly each : values()) {
+				if (each.name.equalsIgnoreCase(name)) {
+					return each;
+				}
+			}
+			return null;
+		}
+	}
+
+	/** Parameter info for {@link GenomesOnly}. */
+	public static class GenomesOnlyConfigParamInfo extends ConfigParamInfo<GenomesOnly> {
+		/**
+		 * Creates parameter info for how finished an assembly must be.
+		 *
+		 * @param defaultValue the default value
+		 */
+		public GenomesOnlyConfigParamInfo(GenomesOnly defaultValue) {
+			super(defaultValue);
+		}
+
+		@Override
+		public boolean isValueInRange(Object o) {
+			return o instanceof GenomesOnly;
+		}
+
+		@Override
+		protected GenomesOnly fromString(String s) {
+			return GenomesOnly.byName(s);
+		}
+
+		@Override
+		public String getMDDefaultValue() {
+			GenomesOnly value = defaultValue();
+			return value == null ? "" : value.getName();
+		}
+
+		@Override
+		public String getMDRangeDescriptor() {
+			StringBuilder builder = new StringBuilder();
+			GenomesOnly[] values = GenomesOnly.values();
+			for (int i = 0; i < values.length; i++) {
+				if (i > 0) {
+					builder.append(", ");
+				}
+				builder.append('`').append(values[i].getName()).append('`');
+			}
+			return builder.toString();
+		}
+	}
+
 	public enum UpdateScope {
 		/**
 		 * Every contig of the release. This is what the update exists for: a k-mer carried by a genome

@@ -265,8 +265,15 @@ public class GSMaker<P extends GSProject> extends Maker<P> {
                 refSeqCatalogGoal, checkSumMapGoal, checkRefSeqRNumGoal);
         registerGoal(refSeqFnaFilesGoal);
 
-        ObjectGoal<AccessionMap, P> accessionMapGoal = new AccessionMapGoal(project, categoriesGoal, taxTreeGoal, taxNodesGoal,
+        // Made only when something asks for it, which is when refseq.genomesOnly is not off: it
+        // reads the assembly summary and walks the catalog, and a build that does not need it pays
+        // neither.
+        AssemblyMetadataGoal<P> assemblyMetaGoal = new AssemblyMetadataGoal<P>(project, categoriesGoal,
                 refSeqCatalogGoal);
+        registerGoal(assemblyMetaGoal);
+
+        ObjectGoal<AccessionMap, P> accessionMapGoal = new AccessionMapGoal(project, categoriesGoal, taxTreeGoal, taxNodesGoal,
+                refSeqCatalogGoal, assemblyMetaGoal);
         registerGoal(accessionMapGoal);
 
         // Genbank related additional fastas:
