@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.metagene.genestrip.io.BufferedLineReader;
@@ -60,6 +61,9 @@ public class AssemblySizeIndex {
 
 	/** The total length of each entry's assembly, in the same order. */
 	private final long[] sizes;
+
+	/** Whether the summary marks each entry's assembly as its species' reference genome. */
+	private final boolean[] references;
 
 	/**
 	 * Which assembly each entry belongs to, in the same order.
@@ -140,6 +144,25 @@ public class AssemblySizeIndex {
 	 * @throws IOException if the file cannot be read
 	 */
 	public AssemblySizeIndex(File summaryFile, Collection<AssemblyQuality> admitted) throws IOException {
+		this(summaryFile, admitted, false);
+	}
+
+	/**
+	 * Reads the summary file and builds the index over the given levels, optionally keeping only the
+	 * assembly NCBI marks as a species' reference where it has marked one.
+	 *
+	 * @param summaryFile the {@code assembly_summary_*.txt} file to read
+	 * @param admitted the levels to index
+	 * @param preferReference whether a species that has an admitted assembly marked
+	 *            {@code reference genome} should be represented by that assembly alone. A species
+	 *            with no such mark keeps all of its admitted assemblies. This chooses among
+	 *            assemblies and does not find them: most reference genomes are not complete, so the
+	 *            mark is useless as a level filter and is only good for breaking a tie the level
+	 *            filter has already left open.
+	 * @throws IOException if the file cannot be read
+	 */
+	public AssemblySizeIndex(File summaryFile, Collection<AssemblyQuality> admitted, boolean preferReference)
+			throws IOException {
 		// Tested per row, so the set is flattened to a lookup by ordinal.
 		boolean[] admit = new boolean[QUALITIES.length];
 		for (AssemblyQuality q : admitted) {
@@ -149,6 +172,10 @@ public class AssemblySizeIndex {
 		long[] z = new long[1 << 16];
 		int[] ids = new int[1 << 16];
 		int assembly = 0;
+		// Per admitted assembly, what the reference preference needs: the species it belongs to and
+		// whether the summary marks it. Grown alongside the entry arrays but indexed by assembly.
+		int[] aSpecies = new int[1 << 12];
+		boolean[] aRef = new boolean[1 << 12];
 		byte[] q = new byte[1 << 16];
 		int n = 0;
 		// Parsed off the bytes rather than through split(): the file has half a million rows of
@@ -164,6 +191,7 @@ public class AssemblySizeIndex {
 				// The five fields wanted, by column: the taxon, the species, the level, and the two
 				// size columns. Walking the tabs once is cheaper than indexing to each separately.
 				int col = 0;
+				int catStart = -1, catEnd = -1;
 				int taxStart = -1, taxEnd = -1, spStart = -1, spEnd = -1;
 				int lvlStart = -1, lvlEnd = -1, verStart = -1, verEnd = -1;
 				int gsStart = -1, gsEnd = -1, guStart = -1, guEnd = -1;
@@ -171,6 +199,7 @@ public class AssemblySizeIndex {
 				for (int i = 0; i <= size; i++) {
 					if (i == size || line[i] == '\t') {
 						switch (col) {
+						case 4: catStart = from; catEnd = i; break;
 						case 5: taxStart = from; taxEnd = i; break;
 						case 6: spStart = from; spEnd = i; break;
 						case 10: verStart = from; verEnd = i; break;
@@ -195,6 +224,12 @@ public class AssemblySizeIndex {
 				}
 				// One id per admitted row, shared by the up-to-four entries the row is indexed under.
 				int id = assembly++;
+				if (id == aSpecies.length) {
+					aSpecies = Arrays.copyOf(aSpecies, aSpecies.length * 2);
+					aRef = Arrays.copyOf(aRef, aRef.length * 2);
+				}
+				aSpecies[id] = (int) parseLong(line, spStart, spEnd);
+				aRef[id] = equals(line, catStart, catEnd, "reference genome");
 				// Both the taxon and the species are indexed: the catalog files a sequence under
 				// whichever of the two the submitter used, and it is not always the one the summary
 				// names first.
@@ -223,7 +258,45 @@ public class AssemblySizeIndex {
 				}
 			}
 		}
-		// Sorting three parallel arrays: Arrays.sort cannot carry them along, so an order is sorted
+		// Where a reference is preferred, a species that has one marked is represented by that
+		// assembly alone and its other assemblies are dropped here, before anything is laid out. The
+		// mark is on the assembly and the preference is over the species, so the species that have
+		// one have to be collected before any assembly can be judged.
+		if (preferReference) {
+			Set<Integer> speciesWithReference = new HashSet<Integer>();
+			for (int i = 0; i < assembly; i++) {
+				if (aRef[i]) {
+					speciesWithReference.add(aSpecies[i]);
+				}
+			}
+			int[] remap = new int[assembly];
+			int kept = 0;
+			for (int i = 0; i < assembly; i++) {
+				remap[i] = aRef[i] || !speciesWithReference.contains(aSpecies[i]) ? kept++ : -1;
+			}
+			int m = 0;
+			for (int i = 0; i < n; i++) {
+				int to = remap[ids[i]];
+				if (to >= 0) {
+					t[m] = t[i];
+					z[m] = z[i];
+					ids[m] = to;
+					q[m] = q[i];
+					m++;
+				}
+			}
+			boolean[] rr = new boolean[kept];
+			for (int i = 0; i < assembly; i++) {
+				if (remap[i] >= 0) {
+					rr[remap[i]] = aRef[i];
+				}
+			}
+			aRef = rr;
+			n = m;
+			assembly = kept;
+		}
+
+		// Sorting the parallel arrays: Arrays.sort cannot carry them along, so an order is sorted
 		// instead and the arrays are laid out afterwards.
 		Integer[] order = new Integer[n];
 		for (int i = 0; i < n; i++) {
@@ -236,11 +309,13 @@ public class AssemblySizeIndex {
 		sizes = new long[n];
 		assemblyIds = new int[n];
 		levels = new byte[n];
+		references = new boolean[n];
 		for (int i = 0; i < n; i++) {
 			taxids[i] = t[order[i]];
 			sizes[i] = z[order[i]];
 			assemblyIds[i] = ids[order[i]];
 			levels[i] = q[order[i]];
+			references[i] = aRef[assemblyIds[i]];
 		}
 		assemblyCount = assembly;
 	}
@@ -316,11 +391,24 @@ public class AssemblySizeIndex {
 		private final AssemblyQuality level;
 		private final long distance;
 		private final int assemblyId;
+		private final boolean reference;
 
-		Match(AssemblyQuality level, long distance, int assemblyId) {
+		Match(AssemblyQuality level, long distance, int assemblyId, boolean reference) {
 			this.level = level;
 			this.distance = distance;
 			this.assemblyId = assemblyId;
+			this.reference = reference;
+		}
+
+		/**
+		 * Returns whether the summary marks this assembly as its species' reference genome, i.e. as
+		 * NCBI's own choice of the assembly to use for the species. It says nothing about how
+		 * finished the assembly is: most reference genomes are not complete.
+		 *
+		 * @return whether the assembly is marked as a reference genome
+		 */
+		public boolean isReference() {
+			return reference;
 		}
 
 		/**
@@ -398,10 +486,12 @@ public class AssemblySizeIndex {
 		int best = -1;
 		long bestDist = Long.MAX_VALUE;
 		int bestId = -1;
+		boolean bestRef = false;
 		if (i < taxids.length && taxids[i] == taxid && sizes[i] - size <= gap) {
 			bestDist = sizes[i] - size;
 			best = levels[i];
 			bestId = assemblyIds[i];
+			bestRef = references[i];
 		}
 		if (i > 0 && taxids[i - 1] == taxid) {
 			long d = size - sizes[i - 1];
@@ -412,9 +502,10 @@ public class AssemblySizeIndex {
 				bestDist = d;
 				best = levels[i - 1];
 				bestId = assemblyIds[i - 1];
+				bestRef = references[i - 1];
 			}
 		}
-		return best < 0 ? null : new Match(QUALITIES[best], bestDist, bestId);
+		return best < 0 ? null : new Match(QUALITIES[best], bestDist, bestId, bestRef);
 	}
 
 	/**

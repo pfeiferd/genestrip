@@ -37,12 +37,21 @@ import org.junit.Test;
  * A refined node may take a k-mer only if it covers <em>every</em> slot the k-mer was found in. Two
  * things make that easy to get subtly wrong, and both are pinned down here.
  * <p>
- * The first is the OTHER slot. It sits one past the children, says the k-mer was read from a genome
- * below none of them, and no refined node covers it - so such a k-mer has to stay where it is. The
- * bit sets are only as long as the child list, so a comparison bounded by the <em>container</em>
- * never looks at that slot and pushes the k-mer down anyway. That was the behaviour until
- * 2026-08-14, and it made the refinement claim a specificity the genome in the OTHER slot
- * contradicts. {@link #testTheOtherSlotBlocksEveryRefinedNode()} is the regression.
+ * The first is the OTHER slot. It sits one past the children and says the k-mer was read from a
+ * genome below none of them. It is a slot like any other and both its cases matter. A refined node
+ * whose cluster leaves OTHER out does not cover it, and such a k-mer must stay where it is rather
+ * than claim a specificity the unnamed genome contradicts -
+ * {@link #testANodeWithoutOtherDoesNotTakeAnOtherKMer()}. A refined node whose cluster contains
+ * OTHER does cover it, and the k-mer belongs there -
+ * {@link #testANodeCoveringOtherTakesAnOtherKMer()}.
+ * <p>
+ * Both readings have been wrong here before. Until 2026-08-14 the comparison was bounded by the
+ * <em>container</em>, which never looked at the slot and pushed every such k-mer down. The fix made
+ * OTHER block every refined node instead, which stranded at the parent every k-mer an unnamed genome
+ * touches - on the Orthopoxvirus database of the companion paper, ninety-seven thousand of the
+ * genus's two hundred and thirty-nine thousand, so that the genus fell to $233{,}212$ where the
+ * published figure is $134{,}449$. The bit sets now carry the slot and it is compared like the
+ * rest.
  * <p>
  * The second is that {@code bits} is the visitor's buffer, sized to a power of two and reused for
  * every parent, so its tail holds whatever a previous, possibly larger, parent left there. The
@@ -52,6 +61,11 @@ import org.junit.Test;
 public class UpdateStoreCoversAllTest {
     /** Slots of a parent with four children: four children plus OTHER. */
     private static final int LEN = 5;
+
+    /**
+     * Bit sets carry the OTHER slot too, so a container is as long as the vector it is compared
+     * against. {@code BitSetsForNodes} sizes them {@code children + 1} for exactly this reason.
+     */
 
     private static boolean[] bits(String pattern) {
         boolean[] b = new boolean[pattern.length()];
@@ -64,30 +78,48 @@ public class UpdateStoreCoversAllTest {
     /** The ordinary case: a node covering the children the k-mer was found in takes it. */
     @Test
     public void testANodeCoveringTheChildrenTakesTheKMer() {
-        assertTrue(UpdateStoreGoal.coversAll(bits("1100"), bits("10000"), LEN));
-        assertTrue(UpdateStoreGoal.coversAll(bits("1100"), bits("11000"), LEN));
+        assertTrue(UpdateStoreGoal.coversAll(bits("11000"), bits("10000"), LEN));
+        assertTrue(UpdateStoreGoal.coversAll(bits("11000"), bits("11000"), LEN));
         assertTrue("covering more than needed is still covering",
-                UpdateStoreGoal.coversAll(bits("1111"), bits("01000"), LEN));
+                UpdateStoreGoal.coversAll(bits("11110"), bits("01000"), LEN));
     }
 
     /** A node missing one of them does not. */
     @Test
     public void testANodeMissingAChildDoesNot() {
-        assertFalse(UpdateStoreGoal.coversAll(bits("1100"), bits("10100"), LEN));
-        assertFalse(UpdateStoreGoal.coversAll(bits("0011"), bits("11000"), LEN));
+        assertFalse(UpdateStoreGoal.coversAll(bits("11000"), bits("10100"), LEN));
+        assertFalse(UpdateStoreGoal.coversAll(bits("00110"), bits("11000"), LEN));
     }
 
     /**
-     * The regression. With the OTHER slot set, no refined node may take the k-mer - not even one that
-     * covers every child, and not even the one covering all of them.
+     * A refined node whose cluster leaves OTHER out must not take a k-mer an unnamed genome touches,
+     * however many children it covers. This is the case the parent keeps.
      */
     @Test
-    public void testTheOtherSlotBlocksEveryRefinedNode() {
-        assertFalse("a node covering all four children still must not take it",
-                UpdateStoreGoal.coversAll(bits("1111"), bits("11111"), LEN));
-        assertFalse(UpdateStoreGoal.coversAll(bits("1100"), bits("10001"), LEN));
-        assertFalse("OTHER alone is enough to block it",
-                UpdateStoreGoal.coversAll(bits("1111"), bits("00001"), LEN));
+    public void testANodeWithoutOtherDoesNotTakeAnOtherKMer() {
+        assertFalse("covering all four children is not enough when OTHER is set",
+                UpdateStoreGoal.coversAll(bits("11110"), bits("11111"), LEN));
+        assertFalse(UpdateStoreGoal.coversAll(bits("11000"), bits("10001"), LEN));
+        assertFalse("OTHER alone is enough to block a node that does not cover it",
+                UpdateStoreGoal.coversAll(bits("11110"), bits("00001"), LEN));
+    }
+
+    /**
+     * And the case the blanket refusal destroyed: where the clustering put OTHER inside a refined
+     * node, that node covers it and the k-mer belongs there. The node means \"this child or an
+     * unnamed relative of it\", which is more specific than the parent and is the whole purpose of
+     * computing the slot.
+     */
+    @Test
+    public void testANodeCoveringOtherTakesAnOtherKMer() {
+        assertTrue("a child clustered with OTHER takes a k-mer of both",
+                UpdateStoreGoal.coversAll(bits("10001"), bits("10001"), LEN));
+        assertTrue("and one carried by OTHER alone",
+                UpdateStoreGoal.coversAll(bits("10001"), bits("00001"), LEN));
+        assertTrue("a larger cluster containing OTHER covers it too",
+                UpdateStoreGoal.coversAll(bits("11001"), bits("10001"), LEN));
+        assertFalse("but it still needs every child the k-mer was found in",
+                UpdateStoreGoal.coversAll(bits("10001"), bits("11001"), LEN));
     }
 
     /**
@@ -97,16 +129,16 @@ public class UpdateStoreCoversAllTest {
     @Test
     public void testStaleSlotsBeyondThisParentAreNotRead() {
         boolean[] reused = bits("10000" + "1111111");   // 5 live slots, 7 slots of another parent's
-        assertTrue(UpdateStoreGoal.coversAll(bits("1100"), reused, LEN));
+        assertTrue(UpdateStoreGoal.coversAll(bits("11000"), reused, LEN));
         boolean[] staleOther = bits("00000" + "1");
         assertTrue("a stale bit must not be mistaken for OTHER",
-                UpdateStoreGoal.coversAll(bits("1000"), staleOther, LEN));
+                UpdateStoreGoal.coversAll(bits("10000"), staleOther, LEN));
     }
 
     /** A k-mer found in nothing at all is covered by anything; the caller never asks, but it is total. */
     @Test
     public void testNothingSetIsCoveredByAnything() {
-        assertTrue(UpdateStoreGoal.coversAll(bits("0000"), bits("00000"), LEN));
+        assertTrue(UpdateStoreGoal.coversAll(bits("00000"), bits("00000"), LEN));
     }
 
     /**
@@ -117,12 +149,13 @@ public class UpdateStoreCoversAllTest {
     @Test
     public void testTheFirstCoveringSetIsTheMostSpecificOne() {
         // Sorted by cardinality, as BitSetsForNodes.sort() leaves them.
-        boolean[][] sets = { bits("1100"), bits("0011"), bits("1110"), bits("1111") };
+        boolean[][] sets = { bits("11000"), bits("00110"), bits("11100"), bits("11110") };
         assertEquals("the pair, not the triple or the root", 0, firstCovering(sets, bits("10000")));
         assertEquals(0, firstCovering(sets, bits("11000")));
         assertEquals("needs a child of each pair, so the triple", 2, firstCovering(sets, bits("10100")));
         assertEquals("spans both pairs, so the root", 3, firstCovering(sets, bits("10010")));
-        assertEquals("OTHER set: nothing takes it", -1, firstCovering(sets, bits("10001")));
+        assertEquals("OTHER set and no set covers it: nothing takes it", -1,
+                firstCovering(sets, bits("10001")));
     }
 
     private static int firstCovering(boolean[][] sets, boolean[] kmerBits) {

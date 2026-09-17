@@ -198,6 +198,12 @@ public enum GSConfigKey implements ConfigKey {
 			+ "declared gaps. How short they really are is about 1 per cent, measured by comparing them against the complete "
 			+ "genomes of their own species, and that is small enough to admit them: they buy the 3,330 taxa that have a "
 			+ "chromosome-level assembly and no complete one, 10.2 per cent on top of the 32,545 that have one. "
+			+ "That 1 per cent was measured on bacteria and does not carry to an organism with a karyotype. `Chromosome' "
+			+ "means some chromosomes were assembled, not necessarily all, so two such assemblies of related organisms may "
+			+ "be missing different chromosomes and share far less than their sizes suggest -- and there is no expected "
+			+ "count to check them against, protozoan karyotypes running from 2 to 36 and invertebrate ones from 1 to 100. "
+			+ "Use this setting for bacteria and archaea, where a genome is one chromosome and its plasmids; prefer "
+			+ "`complete` wherever the distances between the admitted genomes have to be right. "
 			+ "The two size columns do not state that 1 per cent and should not be read as if they did. Their ratio counts "
 			+ "only the gaps the assembler declared, whose median is 0.02 per cent against the 1.18 per cent implied by the "
 			+ "same-species comparison, and for a third of these assemblies it overstates completeness by more than two "
@@ -983,7 +989,27 @@ public enum GSConfigKey implements ConfigKey {
 		 * declared, which is a median of 0.02 per cent against the 1.18 per cent the comparison implies.
 		 * The level is a category to be trusted, not a completeness to be read off.
 		 */
-		CHROMOSOME("chromosome");
+		CHROMOSOME("chromosome"),
+		/**
+		 * Complete assemblies, with NCBI's own choice taken where it has made one. A species often has
+		 * several complete assemblies - four on average, for bacteria - which repeat each other closely,
+		 * and where one of them is marked {@code reference genome} in the summary that one alone
+		 * represents the species here. The mark is NCBI's statement of which assembly to use for the
+		 * species, and it is unique where it exists: for 6,268 of the 6,269 bacterial species that have
+		 * a complete reference assembly there is exactly one. A species with no such mark keeps all of
+		 * its complete assemblies and nothing chooses among them.
+		 * <p>
+		 * This is a preference and not a way of finding complete assemblies, which it would be bad at:
+		 * under three in ten reference genomes are complete at all, and 7,634 bacterial species have a
+		 * complete assembly that is not the one marked.
+		 * <p>
+		 * It is meant to be combined with {@code maxGenomesPerTaxid=1} and
+		 * {@code maxPerTaxidRank=species}, which is what actually limits the count; what this setting
+		 * adds is that the one genome kept for a species is chosen rather than whichever the reading
+		 * threads reached first. For bacteria the pair gives 13,903 genomes and about 60 Gbp where all
+		 * complete assemblies would give 57,845 and 251 Gbp.
+		 */
+		PREF_REF("prefRef");
 
 		private final String name;
 

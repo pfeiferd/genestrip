@@ -177,10 +177,12 @@ public class AssemblyMetadataGoal<P extends GSProject> extends ObjectGoal<Access
 			// consumer of this goal asks even when nothing is being filtered. Chromosome-level ones
 			// are added only where the filter admits them, since indexing a level the build will not
 			// keep would let it win a search from the level the build does keep.
+			GSConfigKey.GenomesOnly genomesOnly = (GSConfigKey.GenomesOnly) configValue(GSConfigKey.GENOMES_ONLY);
 			index = new AssemblySizeIndex(summary,
-					configValue(GSConfigKey.GENOMES_ONLY) == GSConfigKey.GenomesOnly.CHROMOSOME
+					genomesOnly == GSConfigKey.GenomesOnly.CHROMOSOME
 							? AssemblySizeIndex.COMPLETE_OR_CHROMOSOME
-							: AssemblySizeIndex.COMPLETE_ONLY);
+							: AssemblySizeIndex.COMPLETE_ONLY,
+					genomesOnly == GSConfigKey.GenomesOnly.PREF_REF);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -318,6 +320,7 @@ public class AssemblyMetadataGoal<P extends GSProject> extends ObjectGoal<Access
 					long bestDist = Long.MAX_VALUE;
 					int bestId = -1;
 					AssemblyQuality bestLevel = null;
+					boolean bestRef = false;
 					long sum = 0;
 					for (int len = 1; len <= n - i; len++) {
 						Entry e = run[i + len - 1];
@@ -338,6 +341,7 @@ public class AssemblyMetadataGoal<P extends GSProject> extends ObjectGoal<Access
 							bestDist = m.getDistance();
 							bestId = m.getAssemblyId();
 							bestLevel = m.getLevel();
+							bestRef = m.isReference();
 							bestLen = len;
 						}
 					}
@@ -353,7 +357,7 @@ public class AssemblyMetadataGoal<P extends GSProject> extends ObjectGoal<Access
 					// genome key leaves standing for itself.
 					Entry leader = run[i];
 					AssemblyInfo info = new AssemblyInfo(Arrays.copyOf(leader.accession,
-							GenomeKeyTrie.genomeKeyLength(leader.accession, 0, leader.length0)), bestLevel);
+							GenomeKeyTrie.genomeKeyLength(leader.accession, 0, leader.length0)), bestLevel, bestRef);
 					assemblies++;
 					sequences += bestLen;
 					for (int j = i; j < i + bestLen; j++) {

@@ -169,13 +169,15 @@ public class UpdateStoreGoal<P extends FTProject> extends KMerStoreWorkGoal<Data
      * Whether every slot set in {@code contained} is also set in {@code container}, over the first
      * {@code containedLength} slots.
      * <p>
-     * A refined node may take a k-mer only if it covers <em>every</em> child the k-mer was found in.
+     * A refined node may take a k-mer only if it covers <em>every</em> slot the k-mer was found in.
      * The last of those slots is the OTHER one, which says the k-mer was read from a genome that is
-     * not below any child at all - the node being refined itself, or something outside it. No refined
-     * node covers that, so a k-mer carrying it belongs where it is and must not be pushed down: doing
-     * so would claim a specificity the genome in the OTHER slot contradicts, which is the very thing
-     * that slot is computed for. Since the bit sets are only as long as the child list, the OTHER slot
-     * lies past their end, and a comparison bounded by the container's length silently ignores it.
+     * below none of the children - something under the node being refined that the database does not
+     * name. That slot is compared like any other, and the two cases it produces are both wanted. A
+     * refined node whose cluster does not contain OTHER does not cover it, so a k-mer carrying it
+     * stays where it is rather than claiming a specificity the unnamed genome contradicts. A refined
+     * node whose cluster does contain OTHER does cover it, and such a k-mer belongs there: that node
+     * is exactly the hypothesis \"this child or an unnamed relative of it\", which is more specific
+     * than the parent and is what the OTHER slot is computed for in the first place.
      * <p>
      * The bound is passed in rather than taken from {@code contained.length}: that array is the
      * visitor's buffer, sized to a power of two and reused for every parent, so its tail holds
@@ -186,6 +188,61 @@ public class UpdateStoreGoal<P extends FTProject> extends KMerStoreWorkGoal<Data
      * @param containedLength how many slots of {@code contained} belong to this parent
      * @return whether the refined node covers all of them
      */
+    /**
+     * Builds the bit set of every internal dendrogram node below the root, each recording which slots
+     * of the parent that node covers.
+     * <p>
+     * A set is {@code childCount + 1} long: one slot per child of the node being refined and a
+     * trailing one for OTHER. OTHER is a leaf of the dendrogram like any other and the clustering may
+     * put it inside a refined node, in which case that node covers it and
+     * {@link #coversAll(boolean[], boolean[], int)} must be able to see so. Sizing the sets to the
+     * child list alone left the slot off the end, made every node containing OTHER uncoverable, and
+     * stranded at the parent every k-mer an unnamed genome touches.
+     * <p>
+     * Static and visible to the test for that reason: the comparison can be exercised on hand-built
+     * vectors and look right while the vectors the refinement actually builds are the wrong shape,
+     * which is how that defect survived a passing unit test.
+     *
+     * @param childCount how many children the node being refined has
+     * @param root       the root of its dendrogram
+     * @return one bit set per internal dendrogram node below the root, in pre-order
+     */
+    static boolean[][] buildBitSets(int childCount, DendrogramNode root) {
+        boolean[][] bitSets = new boolean[root.size() - 1 - childCount][];
+        for (int i = 0; i < bitSets.length; i++) {
+            bitSets[i] = new boolean[childCount + 1];
+        }
+        int[] counter = { 0 };
+        fillBitSets(root.getChild1(), bitSets, counter);
+        fillBitSets(root.getChild2(), bitSets, counter);
+        return bitSets;
+    }
+
+    /**
+     * Recursively fills the bit set of each internal dendrogram node with the union of the slots its
+     * two children cover. Leaves are encoded as the negative-offset return value
+     * {@code -valueIndex - 1} rather than as a bit set index, so that the OTHER leaf - whose value
+     * index is {@code childCount} - sets the trailing slot like a child sets its own.
+     *
+     * @param node    the dendrogram node to fill for
+     * @param bitSets the sets being built
+     * @param counter the pre-order position counter, shared with the node construction pass
+     * @return the bit set index of an internal node, or the encoded leaf offset for a leaf
+     */
+    private static int fillBitSets(DendrogramNode node, boolean[][] bitSets, int[] counter) {
+        if (node.getValueIndex() == -1) {
+            int res = counter[0]++;
+            int a = fillBitSets(node.getChild1(), bitSets, counter);
+            int b = fillBitSets(node.getChild2(), bitSets, counter);
+            boolean[] target = bitSets[res];
+            for (int i = 0; i < target.length; i++) {
+                target[i] = ((a < 0) ? (i == -a - 1) : bitSets[a][i]) || ((b < 0) ? (i == -b - 1) : bitSets[b][i]);
+            }
+            return res;
+        }
+        return -node.getValueIndex() - 1;
+    }
+
     static boolean coversAll(boolean[] container, boolean[] contained, int containedLength) {
         for (int i = 0; i < containedLength; i++) {
             if (contained[i] && (i >= container.length || !container[i])) {
@@ -215,18 +272,11 @@ public class UpdateStoreGoal<P extends FTProject> extends KMerStoreWorkGoal<Data
          */
         public BitSetsForNodes(SmallTaxTree.SmallTaxIdNode parent, DendrogramNode root) {
             this.orgSubnodes = parent.getSubNodes();
-            this.bitSets = new boolean[root.size() - 1 - orgSubnodes.length][];
+            this.bitSets = buildBitSets(orgSubnodes.length, root);
             this.nodes = new SmallTaxTree.SmallTaxIdNode[bitSets.length];
-
-            for (int i = 0; i < bitSets.length; i++) {
-                bitSets[i] = new boolean[orgSubnodes.length];
-            }
             bitsetPosCounter = 0;
             child1 = createNode(root.getChild1());
             child2 = createNode(root.getChild2());
-            bitsetPosCounter = 0;
-            initBitSets(root.getChild1());
-            initBitSets(root.getChild2());
             sort();
         }
 
@@ -375,28 +425,5 @@ public class UpdateStoreGoal<P extends FTProject> extends KMerStoreWorkGoal<Data
             }
         }
 
-        /**
-         * Recursively fills the bit set of each internal dendrogram node with the union of the
-         * original subnodes covered by its two children. Leaf dendrogram nodes are encoded as the
-         * negative-offset return value {@code -valueIndex - 1} rather than a bit set index.
-         *
-         * @param node the dendrogram node to initialize bit sets for
-         * @return the bit set index of an internal node, or the encoded leaf offset for a leaf node
-         */
-        protected int initBitSets(DendrogramNode node) {
-            int valueIndex = node.getValueIndex();
-            if (node.getValueIndex() == -1) {
-                int res = bitsetPosCounter++;
-                int a = initBitSets(node.getChild1());
-                int b = initBitSets(node.getChild2());
-                boolean[] target = bitSets[res];
-                for (int i = 0; i < target.length; i++) {
-                    target[i] = ((a < 0) ? (i == -a - 1) : bitSets[a][i]) || ((b < 0) ? (i == -b - 1) : bitSets[b][i]);
-                }
-                return res;
-            } else {
-                return -valueIndex - 1;
-            }
-        }
     }
 }

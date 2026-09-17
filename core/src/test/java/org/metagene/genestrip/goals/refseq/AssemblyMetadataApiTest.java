@@ -68,7 +68,7 @@ public class AssemblyMetadataApiTest {
 	public void testSequencesOfOneAssemblyShareARecord() {
 		AccessionTrie<AssemblyInfo> trie = new AccessionTrie<AssemblyInfo>();
 		AssemblyInfo info = new AssemblyInfo(key("NC_000913"),
-				org.metagene.genestrip.genbank.AssemblySummaryReader.AssemblyQuality.COMPLETE_LATEST);
+				org.metagene.genestrip.genbank.AssemblySummaryReader.AssemblyQuality.COMPLETE_LATEST, false);
 		for (String acc : new String[] { "NC_000913", "NC_000914" }) {
 			byte[] b = key(acc);
 			trie.set(b, 0, b.length, info);

@@ -25,15 +25,19 @@ public class AssemblyInfo {
 
 	private final AssemblyQuality level;
 
+	private final boolean reference;
+
 	/**
 	 * Creates the record.
 	 *
 	 * @param key the genome key every sequence of the assembly is filed under
 	 * @param level the assembly level the summary records
+	 * @param reference whether the summary marks the assembly as its species' reference genome
 	 */
-	public AssemblyInfo(byte[] key, AssemblyQuality level) {
+	public AssemblyInfo(byte[] key, AssemblyQuality level, boolean reference) {
 		this.key = key;
 		this.level = level;
+		this.reference = reference;
 	}
 
 	/**
@@ -78,5 +82,20 @@ public class AssemblyInfo {
 	 */
 	public boolean isChromosome() {
 		return AssemblySizeIndex.CHROMOSOME_LEVEL.contains(level);
+	}
+
+	/**
+	 * Returns whether the summary marks this assembly as its species' reference genome -- NCBI's own
+	 * choice of the assembly to use for the species.
+	 * <p>
+	 * It is a curatorial mark and not a quality one, and the two should not be confused: fewer than
+	 * three reference genomes in ten are complete, and a species may well have a complete assembly
+	 * that is not the one marked. What it is good for is choosing among assemblies that have already
+	 * passed a level test -- which is what {@code refseq.genomesOnly=prefRef} does with it.
+	 *
+	 * @return whether the assembly is marked as a reference genome
+	 */
+	public boolean isReference() {
+		return reference;
 	}
 }

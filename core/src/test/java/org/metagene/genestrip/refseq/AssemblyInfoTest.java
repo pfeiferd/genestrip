@@ -21,14 +21,14 @@ import org.metagene.genestrip.genbank.AssemblySummaryReader.AssemblyQuality;
 public class AssemblyInfoTest {
 
 	private static AssemblyInfo of(AssemblyQuality level) {
-		return new AssemblyInfo(new byte[] { 'N', 'C', '_', '0', '0', '1' }, level);
+		return new AssemblyInfo(new byte[] { 'N', 'C', '_', '0', '0', '1' }, level, false);
 	}
 
 	/** The key is handed back as given: it is what every sequence of the assembly is filed under. */
 	@Test
 	public void testKeyIsKept() {
 		byte[] key = new byte[] { 'N', 'C', '_', '9' };
-		assertArrayEquals(key, new AssemblyInfo(key, AssemblyQuality.COMPLETE_LATEST).getKey());
+		assertArrayEquals(key, new AssemblyInfo(key, AssemblyQuality.COMPLETE_LATEST, false).getKey());
 	}
 
 	/** Complete is complete whether or not it is the latest version of the assembly. */
@@ -59,6 +59,20 @@ public class AssemblyInfoTest {
 			assertFalse(q + " must not count as complete", of(q).isComplete());
 			assertFalse(q + " must not count as chromosome level", of(q).isChromosome());
 		}
+	}
+
+	/** The reference mark is carried independently of the level, the two saying different things. */
+	@Test
+	public void testReferenceIsIndependentOfLevel() {
+		byte[] k = new byte[] { 'N', 'C', '_', '1' };
+		AssemblyInfo refDraft = new AssemblyInfo(k, AssemblyQuality.CONTIG_LATEST, true);
+		assertTrue("a draft may be a reference genome -- most reference genomes are drafts",
+				refDraft.isReference());
+		assertFalse(refDraft.isComplete());
+		AssemblyInfo plainComplete = new AssemblyInfo(k, AssemblyQuality.COMPLETE_LATEST, false);
+		assertTrue(plainComplete.isComplete());
+		assertFalse("a complete assembly need not be the species' reference",
+				plainComplete.isReference());
 	}
 
 	/** The level itself is available, for a consumer that wants more than the two questions. */
