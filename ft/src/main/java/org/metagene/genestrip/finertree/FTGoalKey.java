@@ -105,7 +105,7 @@ public enum FTGoalKey implements GoalKey {
     @MDDescription("Same as `svgtaxtree` but for an FT database.")
     FT_SVG_TAX_TREE("ftsvgtaxtree", true),
     /** Estimates how many distinct (k-mer, leaf) pairs {@link #DB_QUALITY_COUNTS} will have to hold. */
-    @MDDescription("Estimate how many distinct (*k*-mer, leaf) pairs `dbqualcounts` will produce, by reading the sequences once and sketching them with HyperLogLog. Only made when `dbQualityFilterSizing` asks for that estimate; it sizes the filter `dbqualcounts` deduplicates through, which the conservative bound cannot do for a database whose *k*-mers sit at one high node.")
+    @MDDescription("Estimate how many distinct (*k*-mer, leaf) pairs `dbqualcounts` will produce, by reading the sequences once and sketching them with HyperLogLog. Only made when `ft.dbQualityFilterSizing` asks for that estimate; it sizes the filter `dbqualcounts` deduplicates through, which the conservative bound cannot do for a database whose *k*-mers sit at one high node.")
     DB_QUALITY_SIZE("dbqualsize", false),
     /** Same as {@link #DB_QUALITY_SIZE} but for an FT database. */
     @MDDescription("Same as `dbqualsize` but for an FT database.")

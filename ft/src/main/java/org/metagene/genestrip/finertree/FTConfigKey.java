@@ -81,7 +81,7 @@ public enum FTConfigKey implements ConfigKey {
     FT_BLOOM_FILTER_SIZING("ftBloomFilterSizing", new GSConfigKey.BloomFilterSizingConfigParamInfo(GSConfigKey.BloomFilterSizing.AUTO), FTGoalKey.KMER_INDEX_BLOOM),
     /** How the deduplication filter of {@code dbqualcounts} is sized. */
     @MDDescription("How the filter is sized through which `dbqualcounts` deduplicates its (*k*-mer, leaf) pairs. "
-            + "The values mean what they mean for `ftBloomFilterSizing`, and for the same reason: `upperBound` sums, "
+            + "The values mean what they mean for `ft.ftBloomFilterSizing`, and for the same reason: `upperBound` sums, "
             + "for every leaf, the *k*-mers stored along its path to the root, which assumes every one of them to occur "
             + "in every leaf below its node. Where a genus holds hundreds of millions of *k*-mers over hundreds of "
             + "leaves that bound exceeds the truth by orders of magnitude, and the filter is then too large to allocate "
@@ -163,17 +163,56 @@ public enum FTConfigKey implements ConfigKey {
         }
     }, FTGoalKey.KMER_INDEX_BLOOM, FTGoalKey.DENDRO_LATEX, FTGoalKey.INTERSECT_COUNT, FTGoalKey.INTERSECT_CSV);
 
+    /**
+     * Namespace of every configuration parameter this extension adds. It keeps the finer-tree
+     * parameters apart from Genestrip's own, which carry no prefix: a property file then shows at a
+     * glance which half of the system a setting belongs to, and a name added here can never collide
+     * with one added to {@link GSConfigKey}. Every constant above is named within it without saying
+     * so, because the constructors below put it there.
+     */
+    public static final String FT = "ft";
+
     private final String name;
     private final ConfigParamInfo<?> param;
     private final boolean internal;
     private final FTGoalKey[] forGoals;
 
     FTConfigKey(String name, ConfigParamInfo<?> param, FTGoalKey... forGoals) {
-        this(name, param, false, forGoals);
+        this(FT, name, param, false, forGoals);
     }
 
     FTConfigKey(String name, ConfigParamInfo<?> param, boolean internal, FTGoalKey... forGoals) {
-        this.name = name;
+        this(FT, name, param, internal, forGoals);
+    }
+
+    /**
+     * Creates a key in a namespace other than {@link #FT}, whose name becomes
+     * {@code prefix + "." + name}, or a key that carries no namespace at all.
+     *
+     * @param prefix   the namespace the name is qualified with, or {@code null} for a name that is
+     *                 taken as it stands
+     * @param name     the name within that namespace
+     * @param param    the parameter descriptor
+     * @param forGoals the goals the key applies to
+     */
+    FTConfigKey(String prefix, String name, ConfigParamInfo<?> param, FTGoalKey... forGoals) {
+        this(prefix, name, param, false, forGoals);
+    }
+
+    /**
+     * Creates a key in a namespace other than {@link #FT} which may be internal, or, with a
+     * {@code null} prefix, a key that carries no namespace at all.
+     *
+     * @param prefix   the namespace the name is qualified with, or {@code null} for a name that is
+     *                 taken as it stands
+     * @param name     the name within that namespace
+     * @param param    the parameter descriptor
+     * @param internal whether the key is hidden from user documentation
+     * @param forGoals the goals the key applies to
+     */
+    FTConfigKey(String prefix, String name, ConfigParamInfo<?> param, boolean internal,
+                FTGoalKey... forGoals) {
+        this.name = prefix == null ? name : prefix + "." + name;
         this.param = param;
         this.internal = internal;
         this.forGoals = forGoals;

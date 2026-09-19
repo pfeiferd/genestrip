@@ -66,7 +66,7 @@ public class DBQualitySizeGoal<P extends FTProject> extends AbstractDBQualityGoa
     /**
      * What the count of the sample has to be multiplied by to stand for the whole -- one, because this
      * pass looks at every k-mer the database holds and nothing has to be scaled back up.
-     * {@code kmerindexsize} samples one k-mer in {@code ftKMerIndexSizeSampling} and scales by that;
+     * {@code kmerindexsize} samples one k-mer in {@code ft.ftKMerIndexSizeSampling} and scales by that;
      * the constant is named here so that the two goals read alike and the difference between them is
      * visible rather than implied.
      */

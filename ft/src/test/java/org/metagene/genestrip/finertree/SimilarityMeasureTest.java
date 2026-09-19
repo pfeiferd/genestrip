@@ -118,7 +118,7 @@ public class SimilarityMeasureTest {
     @Test
     public void testTheConfigKeyDefaultsToJaccard() {
         ConfigParamInfo<?> info = FTConfigKey.JACCARD_SIM.getInfo();
-        assertEquals("jaccardSim", FTConfigKey.JACCARD_SIM.getName());
+        assertEquals("ft.jaccardSim", FTConfigKey.JACCARD_SIM.getName());
         assertEquals(Boolean.TRUE, info.defaultValue());
         assertTrue(info.isValid("true"));
         assertTrue(info.isValid("false"));

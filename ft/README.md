@@ -47,7 +47,7 @@ to refine the actual taxonomy tree as stored along with the database. In additio
 the genus are pushed down to their according, newly included nodes in the refined taxonomy tree.
 5) Based on the goal `ftdb`: Finally, the reworked Genestrip database gets stored and can then be used for improved metagenomic analysis.
 
-By default, the taxonomy tree is refined at *every* rank (the configuration parameter `refinementPositions` defaults to `*`).
+By default, the taxonomy tree is refined at *every* rank (the configuration parameter `ft.refinementPositions` defaults to `*`).
 It can be restricted to selected ranks - e.g. `genus`, `subgenus` and `species group` - or to specific tax ids via that
 [configuration parameter](ConfigParams.md).
 
@@ -120,7 +120,7 @@ E.g., the following dendrogram was produced via a corresponding file `human_viru
 
 If there are many dendrograms, the goal `allinonelatex` merges the extracts of a project into complete LaTeX documents
 under `<base dir>/projects/<project_name>/tex` following the pattern `<project_name>_allinonelatex_<n>.tex`
-(with at most `allInOneChunkSize` dendrograms per document).
+(with at most `ft.allInOneChunkSize` dendrograms per document).
 
 The following dendrogram results from applying the goal `dendrolatex` to the Genestrip project `borrelia` from [Genestrip-DB](https://github.com/pfeiferd/genestrip-db/).
 As it is based on the *k*-mers shared between any two species under the genus Borreliella, it forms a phylogenetic tree.
@@ -172,14 +172,14 @@ Please keep in mind that the entire graph is a union of the graph from below and
 [in addition to the ones from Genestrip](../ConfigParams.md).
 
 These are the ones that affect a refinement most:
-* `refinementPositions` selects the ranks and tax ids where the taxonomy tree is refined (default `*`, i.e. everywhere).
-* `clusterMethod` is the cluster distance of the agglomerative clustering (default `SINGLE_LINKAGE`).
-* `jaccardSim` decides whether two children are compared via their Jaccard index (default) or via containment.
+* `ft.refinementPositions` selects the ranks and tax ids where the taxonomy tree is refined (default `*`, i.e. everywhere).
+* `ft.clusterMethod` is the cluster distance of the agglomerative clustering (default `SINGLE_LINKAGE`).
+* `ft.jaccardSim` decides whether two children are compared via their Jaccard index (default) or via containment.
   Use containment (`false`) when the children are individual genomes of differing assembly quality.
-* `ftIndexBloomFilterFpp` is the false positive probability of the *k*-mer index filter of `kmerindexbloom`.
+* `ft.ftIndexBloomFilterFpp` is the false positive probability of the *k*-mer index filter of `kmerindexbloom`.
   It matters because a false positive pushes a *k*-mer up the refined tree, and the filter is queried once per child:
   for a node with many children, the default of `0.01` leaves few *k*-mers placeable, so lower it accordingly.
-* `ftBloomFilterSizing` decides how that filter is sized - via the estimate of `kmerindexsize` (`distinct`),
+* `ft.ftBloomFilterSizing` decides how that filter is sized - via the estimate of `kmerindexsize` (`distinct`),
   via a conservative upper bound (`upperBound`) or via the estimate with a fallback to the bound (`auto`, the default).
 
 In addition, Genestrip's own parameter [`foldTaxaBelow`](../ConfigParams.md) is worth considering when building the
