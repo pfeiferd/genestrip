@@ -88,7 +88,6 @@ public abstract class ReworkingStoreFastaReader extends AbstractStoreFastaReader
 			IDStringGenerator idStringGenerator, Rank foldTaxaBelow) {
 		super(bufferSize, taxNodes, accessionMap, k,
 				maxDust, kMerSampling, assemblyAccessionsOnly, contigsPerTaxid, enableLowerCaseBases);
-		checkFoldConfig(foldTaxaBelow, fileNodes, genomeNodes);
 		this.taxTree = taxTree;
 		this.dataNodes = dataNodes;
 		this.fileNodes = fileNodes;
@@ -97,32 +96,6 @@ public abstract class ReworkingStoreFastaReader extends AbstractStoreFastaReader
 		this.createNodes = createNodes;
 		this.idStringGenerator = idStringGenerator;
 		this.foldTaxaBelow = foldTaxaBelow;
-	}
-
-	/**
-	 * Refuses a fold that is asked for without a file node per genome.
-	 * <p>
-	 * Checked here and not in the goals, because all three of them build one of these reader and the
-	 * combination silently does the opposite of what it is asked for rather than failing: folding
-	 * files every genome of a taxon at that taxon, so without a file node of its own each genome
-	 * becomes indistinguishable from its neighbours and the taxon is left with nothing below it to
-	 * refine. A configuration that reads as {@code file the genomes one rank higher} would then quietly
-	 * mean {@code merge them all}, which is worth a refusal rather than a warning.
-	 *
-	 * @param foldTaxaBelow the rank to file genomes at, or {@code null} for no fold
-	 * @param fileNodes whether a file node is created per fasta file
-	 * @param genomeNodes whether a genome node is created per genome
-	 * @throws IllegalArgumentException if a fold is asked for without file or genome nodes
-	 */
-	static void checkFoldConfig(Rank foldTaxaBelow, boolean fileNodes, boolean genomeNodes) {
-		if (foldTaxaBelow != null && !fileNodes && !genomeNodes) {
-			throw new IllegalArgumentException("'foldTaxaBelow=" + foldTaxaBelow.getName()
-					+ "' requires 'fileNodes=true' or 'genomeNodes=true': folding files every genome of"
-					+ " a taxon at the same node, so without a node of its own each genome becomes"
-					+ " indistinguishable from its neighbours and there is nothing left below the taxon"
-					+ " to refine. Either key gives a genome such a node; 'genomeNodes' does so however"
-					+ " the genomes were distributed over fasta files.");
-		}
 	}
 
 	/**

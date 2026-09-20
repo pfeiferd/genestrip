@@ -112,7 +112,12 @@ public enum GSConfigKey implements ConfigKey {
 			+ "Those strain nodes become children of the species beside the node holding everything else, which costs twice. "
 			+ "A *k*-mer shared between a reference strain and the bulk then has its lowest common ancestor at the species and is stranded there, and the genomes under a strain node are invisible to a refinement of the species' children, so no clustering can ever place them beside their relatives. "
 			+ "Folding them into the species removes both effects at once. "
-			+ "REQUIRES `fileNodes=true`: without a file node per genome, folding would put every genome of the species on one node and leave the refinement with nothing to cluster, which is the opposite of the intent. "
+			+ "TWO USES, told apart by `fileNodes` / `genomeNodes`. WITH either of them each genome keeps a node of its own and stays "
+			+ "the data taxon: the fold only lifts the genomes onto one level, so that a refinement below the fold rank sees all of "
+			+ "them and can cluster strains. WITHOUT them every genome of a taxon is filed at the fold rank, which then is the data "
+			+ "taxon itself -- nothing below it is left to refine, and the quality measures count that rank rather than the genomes "
+			+ "under it. With `species` that is what makes *prec(a)* speak of species: a *k*-mer naming one species and nothing else "
+			+ "then scores 1 rather than one over however many strain nodes the taxonomy happens to carry. "
 			+ "A rank that no ancestor of a genome carries leaves that genome where it is.")
 	FOLD_TAXA_BELOW("foldTaxaBelow", new RankConfigParamInfo(null), GSGoalKey.DB, GSGoalKey.FILL_DB, GSGoalKey.TEMPINDEX),
 	/** Whether md5 checksums may be skipped via a cached {@code .md5ok} marker file. */
