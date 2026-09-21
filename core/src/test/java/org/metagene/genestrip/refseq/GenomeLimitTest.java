@@ -21,6 +21,7 @@ import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -174,6 +175,41 @@ public class GenomeLimitTest {
 	}
 
 	/**
+	 * A genome outside the selection must not leave its taxon behind. The reader marks a contig's
+	 * taxon as required and gives it its artificial data node, and {@code markRequired()} is the only
+	 * thing that keeps a node in the {@link org.metagene.genestrip.tax.SmallTaxTree}. Asking about the
+	 * selection afterwards - as this once did - left a node nothing is ever filed at standing in the
+	 * database tree, where every measure that divides by the data taxa under a node counts it as a
+	 * candidate that can never carry a k-mer.
+	 */
+	@Test
+	public void aRejectedGenomeLeavesNoNodeBehind() throws IOException {
+		readCreatingNodes(selectionOf("NZ_AAAA01000001.1"));
+
+		TaxIdNode strain = tree.getNodeByTaxId("170187");
+		assertFalse(strain.isRequired());
+		assertNull(strain.getDataChild());
+		assertNull(tree.toSmallTaxTree().getNodeByTaxId("170187"));
+
+		// The admitted genome's own taxon is there with its data node, so the test cannot pass by
+		// creating nothing at all.
+		TaxIdNode species = tree.getNodeByTaxId("1313");
+		assertTrue(species.isRequired());
+		assertNotNull(species.getDataChild());
+	}
+
+	/** And a genome inside it gets its taxon and its data node, wherever the taxonomy files it. */
+	@Test
+	public void anAdmittedGenomeGetsItsNodes() throws IOException {
+		readCreatingNodes(selectionOf("NZ_AAAA01000001.1", "NZ_BBBB01000001.1"));
+
+		TaxIdNode strain = tree.getNodeByTaxId("170187");
+		assertTrue(strain.isRequired());
+		assertNotNull(strain.getDataChild());
+		assertNotNull(tree.toSmallTaxTree().getNodeByTaxId("170187"));
+	}
+
+	/**
 	 * And a map built for a database that is to hold every genome carries no selection at all - there
 	 * is no empty set standing in for "no limit", so nothing of the machinery exists to be reached.
 	 */
@@ -226,11 +262,45 @@ public class GenomeLimitTest {
 		return reader;
 	}
 
+	/**
+	 * Reads the same fasta as {@link #read(GenomeKeyTrie)}, but with a reader that creates the
+	 * artificial nodes - which is what the sizing pass does, and the only pass that does.
+	 */
+	private void readCreatingNodes(GenomeKeyTrie selection) throws IOException {
+		File fasta = folder.newFile();
+		write(fasta,
+				">NZ_AAAA01000001.1 first project, first contig", "ACGTACGTACGT",
+				">NZ_BBBB01000001.1 second project, filed at the strain", "ACGTACGTACGT");
+		new NodeCreatingReader(tree, selection).readFasta(fasta);
+	}
+
 	private static void write(File file, String... lines) throws IOException {
 		try (PrintWriter pw = new PrintWriter(file, StandardCharsets.UTF_8.name())) {
 			for (String line : lines) {
 				pw.println(line);
 			}
+		}
+	}
+
+	/** Creates the artificial data nodes for the contigs it lets in, as the sizing pass does. */
+	private static final class NodeCreatingReader extends ReworkingStoreFastaReader {
+		private NodeCreatingReader(TaxTree tree, GenomeKeyTrie selection) {
+			super(4096, allNodes(tree), new LetterAccessionMap(tree, selection), 31, -1, 1, false,
+					new StringLong2DigitTrie(), true, tree, true, false, false, false, true,
+					counter -> "99" + counter, null);
+		}
+
+		private static Set<TaxIdNode> allNodes(TaxTree tree) {
+			Set<TaxIdNode> nodes = new HashSet<>();
+			for (String taxId : new String[] { "1313", "170187", "1309" }) {
+				nodes.add(tree.getNodeByTaxId(taxId));
+			}
+			return nodes;
+		}
+
+		@Override
+		protected boolean handleStore(long kmer) {
+			return false;
 		}
 	}
 

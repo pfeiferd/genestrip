@@ -232,12 +232,18 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 		else {
 			updateNodeFromInfoLine();
 		}
-		if (node != null && (taxNodes.isEmpty() || taxNodes.contains(node))) {
+		if (node != null && (taxNodes.isEmpty() || taxNodes.contains(node))
+				&& (admittedGenomes == null || isAdmittedGenome())) {
+			// The admission check comes before reworkNode() on purpose. reworkNode() calls
+			// markRequired() on the contig's taxon and, in the creating pass, gives it its artificial
+			// data/file/genome/id child - and markRequired() is the only thing that keeps a node in the
+			// SmallTaxTree. Asking afterwards, as this once did, left every taxon whose genomes the
+			// selection turned away standing in the tree with an empty data node beneath it: a node
+			// nothing is ever filed at, yet counted as a data taxon by every measure that divides by
+			// the data taxa under a node. On `strepto' of the paper, with maxGenomesPerTaxid=50, that
+			// was 1,077 of 1,316 data taxa, and under S. pneumoniae 152 of 153.
 			node = reworkNode();
 			includeContig = true;
-			if (admittedGenomes != null && !isAdmittedGenome()) {
-				includeContig = false;
-			}
 		}
 		else {
 			includeContig = false;
