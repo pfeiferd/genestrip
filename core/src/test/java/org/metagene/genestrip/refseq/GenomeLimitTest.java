@@ -141,6 +141,32 @@ public class GenomeLimitTest {
 		}
 	}
 
+	/**
+	 * What a limit over genomes counts. Only the accession kinds an assembly is made of do, and that
+	 * is independent of {@code refseq.assemblyAccessionsOnly}: a region record is a few kilobases out
+	 * of a genome and never an assembly of one, so it must take no genome's place whether or not its
+	 * sequence enters the database. Counting it did cost the pneumococcus of the paper's `strepto'
+	 * twelve of its fifty places, against 9,263 assemblies on offer -- and the genome key cannot
+	 * catch that, since a region record stands for itself exactly as a chromosome does.
+	 */
+	@Test
+	public void onlyAssemblyAccessionsCountAsGenomes() {
+		for (String assembly : new String[] { "NC_003028.3", "NZ_CABEIU010000001.1", "NZ_AP017971.1",
+				"AC_000091.1" }) {
+			assertTrue(assembly + " is what an assembly is made of", isAssembly(assembly));
+		}
+		for (String region : new String[] { "NG_048006.1", "NT_187512.1", "NW_025791637.1" }) {
+			assertFalse(region + " is a region of a genome, not one", isAssembly(region));
+		}
+	}
+
+	/** And the key does not help here: both kinds stand for themselves, so both get their own. */
+	@Test
+	public void aRegionRecordIsNotToldFromAChromosomeByItsKey() {
+		assertEquals("NG_048006", key("NG_048006.1"));
+		assertEquals("NC_003028", key("NC_003028.3"));
+	}
+
 	// ---- which genome a taxon is represented by ---------------------------------------------------
 
 	/**
@@ -282,6 +308,21 @@ public class GenomeLimitTest {
 	}
 
 	/**
+	 * A limit over genomes gates genomes. A region record and a transcript are not ones, are in no
+	 * selection, and pass whatever the selection holds -- whether they enter at all is what
+	 * {@code refseq.assemblyAccessionsOnly} and the sequence type decide. Letting the selection
+	 * answer for them made a limit empty a database of its transcripts.
+	 */
+	@Test
+	public void whatTheLimitDoesNotCountItDoesNotGate() throws IOException {
+		List<String> included = readWithRegionAndRna(selectionOf("NZ_AAAA01000001.1")).included;
+		assertTrue("the region record passes", included.contains("NG_048006.1"));
+		assertTrue("and so does the transcript", included.contains("NR_000001.1"));
+		assertFalse("while an assembly outside the selection stays out",
+				included.contains("NZ_CP000001.1"));
+	}
+
+	/**
 	 * Without a selection the reader is handed none - that is what the accession map returns where
 	 * {@code maxGenomesPerTaxid} is not set - and reads everything.
 	 */
@@ -338,6 +379,11 @@ public class GenomeLimitTest {
 	}
 
 	// ---- harness --------------------------------------------------------------------------------
+
+	private static boolean isAssembly(String accession) {
+		byte[] bytes = accession.getBytes(StandardCharsets.US_ASCII);
+		return AccessionFileProcessor.isAssemblyAccession(bytes, 0);
+	}
 
 	private static String key(String accession) {
 		byte[] bytes = accession.getBytes(StandardCharsets.US_ASCII);
@@ -415,6 +461,22 @@ public class GenomeLimitTest {
 	private static boolean admitted(ReferenceGenomes refs, String accession) {
 		byte[] bytes = accession.getBytes(StandardCharsets.US_ASCII);
 		return refs.isReferenceDraft(bytes, 0, bytes.length);
+	}
+
+	/**
+	 * Reads a fasta of an admitted genome, a region record and a transcript against the given
+	 * selection, which is what a limit has to leave alone.
+	 */
+	private Reader readWithRegionAndRna(GenomeKeyTrie selection) throws IOException {
+		File fasta = folder.newFile();
+		write(fasta,
+				">NZ_AAAA01000001.1 first project, first contig", "ACGTACGTACGT",
+				">NZ_CP000001.1 a finished replicon of another species", "ACGTACGTACGT",
+				">NG_048006.1 a region of a genome, not an assembly of one", "ACGTACGTACGT",
+				">NR_000001.1 a transcript", "ACGTACGTACGT");
+		Reader reader = new Reader(tree, selection);
+		reader.readFasta(fasta);
+		return reader;
 	}
 
 	private static void write(File file, String... lines) throws IOException {

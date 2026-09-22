@@ -271,7 +271,15 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	private boolean isAdmittedGenome() {
 		// Only the release is capped: a fasta the project supplies itself carries no accession to group
 		// by, and it is there because somebody chose it.
+		//
+		// And only what the limit counts is gated by it. A limit over genomes admits assembly
+		// accessions, so anything else -- the NG_/NT_/NW_ region records and the RNA the release
+		// carries -- is not in the selection and must not be turned away for it: whether those enter
+		// is what `refseq.assemblyAccessionsOnly' and the sequence type decide. Asking the selection
+		// for them, as this once did, let `maxGenomesPerTaxid' quietly do a second setting's work and
+		// empty a database of its transcripts.
 		return !isRefSeqReleaseContig() || accessionEnd <= accessionStart
+				|| !AccessionFileProcessor.isAssemblyAccession(target, accessionStart)
 				|| admittedGenomes.isAdmitted(target, accessionStart, accessionEnd);
 	}
 

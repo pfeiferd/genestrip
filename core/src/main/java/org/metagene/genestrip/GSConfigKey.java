@@ -130,6 +130,10 @@ public enum GSConfigKey implements ConfigKey {
 	/** Maximum number of genomes per tax id included in the database. */
 	@MDDescription("The maximum number of genomes per tax id to be included in the database. It counts assemblies rather than fasta entries, so a species "
 			+ "held as draft assemblies of three hundred contigs each is treated like one held as single chromosomes. "
+			+ "Only the accession kinds an assembly is made of are counted -- `AC_`, `NC_` and `NZ_`. A region record "
+			+ "(`NG_`, `NT_`, `NW_`) is a few kilobases out of a genome and never an assembly of one, so it takes no "
+			+ "genome's place however many of them a taxon has; whether such records enter the database at all is what "
+			+ "`refseq.assemblyAccessionsOnly` decides, and the two questions are separate. "
 			+ "A genome is recognised from the accession alone. A WGS accession is a letter prefix naming the sequencing project, a "
 			+ "two-digit assembly version and a contig number - `NZ_CABEIU010000001` - so all contigs of one draft assembly share the "
 			+ "letters and are counted as one genome, across assembly versions too. Anything else, a finished replicon such as "

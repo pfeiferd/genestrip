@@ -293,9 +293,22 @@ public class AccessionMapGoal<P extends GSProject> extends ObjectGoal<AccessionM
 				return completeGenomes.get(target, accessionStart, keyEnd);
 			}
 
+			/**
+			 * Whether this accession is one a genome assembly is made of, which is what a limit over
+			 * genomes counts. Only the assembly kinds do -- {@code AC_}, {@code NC_} and {@code NZ_} --
+			 * and that does not depend on {@code refseq.assemblyAccessionsOnly}: that setting decides
+			 * whether a region record enters the database at all, not whether it may take a genome's
+			 * place. The two were tied together here, and an {@code NG_} region -- a capsule locus, a
+			 * resistance gene, a few kilobases of a genome and never an assembly of one -- then used a
+			 * place like a chromosome. It cost the pneumococcus of the paper's `strepto' twelve of its
+			 * fifty, against 9,263 assemblies on offer.
+			 * <p>
+			 * The genome key of {@link GenomeKeyTrie} cannot tell them apart and is not meant to: it
+			 * groups the contigs of one shotgun project, and a region record is no more a contig than
+			 * a chromosome is.
+			 */
 			private boolean countsAsGenome(byte[] target, int accessionStart) {
-				return assemblyOnly ? isAssemblyAccession(target, accessionStart)
-						: isGenomicAccession(target, accessionStart);
+				return isAssemblyAccession(target, accessionStart);
 			}
 
 			/** The node a limit is counted at: the ancestor at {@code maxPerTaxidRank}, or the node. */

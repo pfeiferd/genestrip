@@ -47,13 +47,16 @@ import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 public abstract class AccessionFileProcessor {
     private static final int MAX_LINE_SIZE = 2048;
 
-    /** Accession prefixes that mark any genomic (DNA) sequence. */
-    protected static final String[] ALL_GENOMIC_ACCESSION_PREFIXES = {"AC_", "NC_", "NG_", "NT_", "NW_", "NZ_"};
+    /** Accession prefixes that mark any genomic (DNA) sequence, as against RNA and protein ones. */
+    protected static final String[] GENOMIC_ACCESSION_PREFIXES = {"AC_", "NC_", "NG_", "NT_", "NW_", "NZ_"};
 
-    // What these select, against the NG_/NT_/NW_ of the full genomic set, are the accession kinds a
-    // genome assembly is made of - not finished genomes against drafts: NZ_ marks every non-curated
-    // genomic sequence of the release, whole-genome shotgun contigs included.
-    /** Accession prefixes considered when {@code refseq.assemblyAccessionsOnly} is set. */
+    // The subset of the above that a genome assembly is made of, which is a different question from
+    // finished against draft: NZ_ marks every non-curated genomic sequence of the release, whole-
+    // genome shotgun contigs included. What it leaves out are NG_, NT_ and NW_, the region records --
+    // a few kilobases out of a genome, never an assembly of one. Hence two uses: whether a record's
+    // sequence is wanted at all (`refseq.assemblyAccessionsOnly'), and whether it may take a place
+    // under `maxGenomesPerTaxid', which counts genomes and so counts these alone.
+    /** Accession prefixes of the kinds a genome assembly consists of. */
     protected static final String[] ASSEMBLY_ACCESSION_PREFIXES = {"AC_", "NC_", "NZ_"};
 
     /** Accession prefixes that mark a (non-messenger) RNA sequence. */
@@ -260,8 +263,8 @@ public abstract class AccessionFileProcessor {
      * @return whether the accession has a genomic prefix
      */
     protected boolean isGenomicAccession(byte[] outerArray, int start) {
-        for (int i = 0; i < ALL_GENOMIC_ACCESSION_PREFIXES.length; i++) {
-            if (ByteArrayUtil.startsWith(outerArray, start, ALL_GENOMIC_ACCESSION_PREFIXES[i])) {
+        for (int i = 0; i < GENOMIC_ACCESSION_PREFIXES.length; i++) {
+            if (ByteArrayUtil.startsWith(outerArray, start, GENOMIC_ACCESSION_PREFIXES[i])) {
                 return true;
             }
         }
