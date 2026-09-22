@@ -141,6 +141,124 @@ public class GenomeLimitTest {
 		}
 	}
 
+	// ---- which genome a taxon is represented by ---------------------------------------------------
+
+	/**
+	 * The summary states a marked assembly under its own taxon and under its species, and both are
+	 * worth a place: which of the two a limit is counted at depends on {@code maxPerTaxidRank}.
+	 */
+	@Test
+	public void aMarkedAssemblyIsKnownByTaxonAndBySpecies() throws IOException {
+		ReferenceGenomes refs = referenceGenomes(
+				summaryRow("GCF_000000001.1", "na", "reference genome", "170187", "1313"),
+				summaryRow("GCF_000000002.1", "na", "na", "1309", "1309"));
+		assertTrue(refs.hasReference("170187"));
+		assertTrue(refs.hasReference("1313"));
+		assertFalse(refs.hasReference("1309"));
+		assertEquals(2, refs.taxonCount());
+	}
+
+	/**
+	 * A marked draft is recognised by the prefix its contigs carry. The summary states the WGS master
+	 * in its GenBank form and the catalog carries the RefSeq one, so the key is cut from {@code NZ_}
+	 * plus that form -- checked against one release, this finds 88 of the 89 Streptococcus species
+	 * whose reference is a draft.
+	 */
+	@Test
+	public void aMarkedDraftIsRecognisedByItsContigs() throws IOException {
+		ReferenceGenomes refs = referenceGenomes(
+				summaryRow("GCF_000000003.1", "AEVD00000000.1", "reference genome", "889204", "68892"));
+		assertEquals(1, refs.draftCount());
+		assertTrue(admitted(refs, "NZ_AEVD01000001.1"));
+		assertTrue(admitted(refs, "NZ_AEVD01000273.1"));
+		assertFalse(admitted(refs, "NZ_AEVF01000001.1"));
+	}
+
+	/** A finished assembly has no WGS master and is left to the length index, not to the prefix. */
+	@Test
+	public void aFinishedReferenceIsNotRecognisedByAPrefix() throws IOException {
+		ReferenceGenomes refs = referenceGenomes(
+				summaryRow("GCF_000000004.1", "na", "reference genome", "1313", "1313"));
+		assertEquals(0, refs.draftCount());
+		assertTrue(refs.hasReference("1313"));
+	}
+
+	/**
+	 * The place kept for a marked assembly. It is held back only while one is expected and has not
+	 * arrived, so a taxon without a marked assembly fills to the limit as it always did.
+	 */
+	@Test
+	public void aPlaceIsKeptForTheMarkedAssembly() {
+		// A taxon that has one, before it arrives: the last place is not given away.
+		assertEquals(49, ReferenceGenomes.roomFor(50, false, false, true));
+		// The marked assembly itself may take it.
+		assertEquals(50, ReferenceGenomes.roomFor(50, true, false, true));
+		// Once it is in, nothing is held back any more.
+		assertEquals(50, ReferenceGenomes.roomFor(50, false, true, true));
+		// And a taxon the summary marks nothing for is unaffected.
+		assertEquals(50, ReferenceGenomes.roomFor(50, false, false, false));
+		// Without a limit there is nothing to keep a place in.
+		assertEquals(Integer.MAX_VALUE,
+				ReferenceGenomes.roomFor(Integer.MAX_VALUE, false, false, true));
+	}
+
+	/**
+	 * The rule over a sequence of genomes, as the catalog states them: the marked assembly gets in
+	 * however late it arrives, and the limit is never exceeded. This is the loop
+	 * {@code AccessionMapGoal.admit()} runs, with the two lookups of a real build -- which genome is
+	 * marked, and how many the taxon has taken -- standing in for its trie and its counter.
+	 */
+	private static int[] admitInOrder(int maxGenomes, int genomes, int markedAt, boolean hasReference) {
+		int taken = 0;
+		boolean referenceAdmitted = false;
+		int markedPosition = -1;
+		for (int i = 0; i < genomes; i++) {
+			boolean marked = hasReference && i == markedAt;
+			if (taken < ReferenceGenomes.roomFor(maxGenomes, marked, referenceAdmitted, hasReference)) {
+				taken++;
+				if (marked) {
+					referenceAdmitted = true;
+					markedPosition = i;
+				}
+			}
+		}
+		return new int[] { taken, markedPosition };
+	}
+
+	/** The marked assembly is taken in even where the catalog states it after the limit is reached. */
+	@Test
+	public void theMarkedAssemblyGetsInHoweverLateItArrives() {
+		int[] r = admitInOrder(50, 500, 499, true);
+		assertEquals("the marked assembly must be in", 499, r[1]);
+		assertEquals("and the limit must hold", 50, r[0]);
+	}
+
+	/** Holding a place back does not raise the limit: fifty stay fifty, one of them the marked one. */
+	@Test
+	public void keepingAPlaceDoesNotRaiseTheLimit() {
+		assertEquals(50, admitInOrder(50, 500, 0, true)[0]);
+		assertEquals(50, admitInOrder(50, 500, 49, true)[0]);
+		assertEquals(50, admitInOrder(50, 500, 250, true)[0]);
+	}
+
+	/** A taxon the summary marks nothing for fills to the limit as it always did. */
+	@Test
+	public void ataxonWithoutAMarkedAssemblyIsUnaffected() {
+		int[] r = admitInOrder(50, 500, -1, false);
+		assertEquals(50, r[0]);
+		assertEquals(-1, r[1]);
+	}
+
+	/**
+	 * A taxon whose marked assembly the release does not carry ends one genome short. That is the
+	 * price of holding the limit exactly instead of exceeding it by one, and it is worth pinning:
+	 * silently handing the place to another genome would make the count depend on the catalog again.
+	 */
+	@Test
+	public void aMarkedAssemblyTheReleaseLacksCostsOnePlace() {
+		assertEquals(49, admitInOrder(50, 500, -1, true)[0]);
+	}
+
 	// ---- what a reader does with it -------------------------------------------------------------
 
 	/** A genome in the selection comes in whole, whatever order its contigs arrive in. */
@@ -272,6 +390,31 @@ public class GenomeLimitTest {
 				">NZ_AAAA01000001.1 first project, first contig", "ACGTACGTACGT",
 				">NZ_BBBB01000001.1 second project, filed at the strain", "ACGTACGTACGT");
 		new NodeCreatingReader(tree, selection).readFasta(fasta);
+	}
+
+	/** One row of an assembly summary, with the five columns {@link ReferenceGenomes} reads. */
+	private static String summaryRow(String accession, String wgsMaster, String category, String taxId,
+			String speciesTaxId) {
+		StringBuilder row = new StringBuilder();
+		row.append(accession).append('\t').append("PRJNA1").append('\t').append("SAMN1").append('\t')
+				.append(wgsMaster).append('\t').append(category).append('\t').append(taxId).append('\t')
+				.append(speciesTaxId).append('\t').append("an organism").append('\t').append("na");
+		return row.toString();
+	}
+
+	private ReferenceGenomes referenceGenomes(String... rows) throws IOException {
+		File summary = folder.newFile();
+		String[] lines = new String[rows.length + 1];
+		lines[0] = "#assembly_accession\tbioproject\tbiosample\twgs_master\trefseq_category\ttaxid"
+				+ "\tspecies_taxid\torganism_name\tinfraspecific_name";
+		System.arraycopy(rows, 0, lines, 1, rows.length);
+		write(summary, lines);
+		return new ReferenceGenomes(summary);
+	}
+
+	private static boolean admitted(ReferenceGenomes refs, String accession) {
+		byte[] bytes = accession.getBytes(StandardCharsets.US_ASCII);
+		return refs.isReferenceDraft(bytes, 0, bytes.length);
 	}
 
 	private static void write(File file, String... lines) throws IOException {

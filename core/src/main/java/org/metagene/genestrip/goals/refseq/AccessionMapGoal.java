@@ -24,6 +24,11 @@
  */
 package org.metagene.genestrip.goals.refseq;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.HashSet;
+import org.metagene.genestrip.genbank.AssemblySummaryReader;
+import org.metagene.genestrip.refseq.ReferenceGenomes;
 import java.util.List;
 import java.util.Set;
 
@@ -102,14 +107,28 @@ public class AccessionMapGoal<P extends GSProject> extends ObjectGoal<AccessionM
 			private final int maxGenomes = intConfigValue(GSConfigKey.MAX_GENOMES_PER_TAXID);
 			private final Rank limitRank = (Rank) configValue(GSConfigKey.MAX_PER_TAXID_RANK);
 			private final boolean assemblyOnly = booleanConfigValue(GSConfigKey.ASSEMBLY_ACCESSIONS_ONLY);
-			// Any setting but off restricts to whole assemblies; which levels count as whole is
-			// decided where the index is built, so that whatever it holds is something to keep.
-			private final boolean completeOnly = configValue(
-					GSConfigKey.GENOMES_ONLY) != GSConfigKey.GenomesOnly.OFF;
+			private final GSConfigKey.GenomesOnly genomesOnly =
+					(GSConfigKey.GenomesOnly) configValue(GSConfigKey.GENOMES_ONLY);
+			// `preferRefFirst' restricts nothing -- drafts enter as they do while the filter is off --
+			// and only decides which genomes a limit lets in. Every other setting but off restricts to
+			// whole assemblies; which levels count as whole is decided where the index is built, so
+			// that whatever it holds is something to keep.
+			private final boolean preferReference = genomesOnly == GSConfigKey.GenomesOnly.PREFER_REF_FIRST;
+			private final boolean completeOnly =
+					genomesOnly != GSConfigKey.GenomesOnly.OFF && !preferReference;
+			// The assembly metadata answers two different questions and is read for both: which
+			// sequences belong to a whole assembly, and which assembly a species is represented by.
+			private final boolean withAssemblyInfo = completeOnly || preferReference;
 			// Asked for only where the filter is on, which is what keeps the metadata goal from being
 			// made - and so the assembly summary from being read and the catalog from being walked a
 			// second time - in a build that does not want it.
-			private final AccessionTrie<AssemblyInfo> completeGenomes = completeOnly ? assemblyMetaGoal.get() : null;
+			private final AccessionTrie<AssemblyInfo> completeGenomes = withAssemblyInfo ? assemblyMetaGoal.get() : null;
+			// The marked reference assemblies, read once here: which taxa have one, so that a place can
+			// be kept, and the genome keys of the marked drafts, which the length index cannot name.
+			private final ReferenceGenomes references = preferReference ? readReferences() : null;
+			// The limit nodes whose marked assembly has arrived. Until it has, one of their places is
+			// held back; afterwards they fill like any other.
+			private final Set<TaxIdNode> referenceAdmitted = preferReference ? new HashSet<>() : null;
 			private final GenomeKeyTrie admittedGenomes =
 					maxGenomes == Integer.MAX_VALUE ? null : new GenomeKeyTrie();
 			private final AccessionMap map = new AccessionMapTrieImpl(admittedGenomes);
@@ -122,6 +141,29 @@ public class AccessionMapGoal<P extends GSProject> extends ObjectGoal<AccessionM
 					admittedGenomes == null ? null : new Object2IntOpenHashMap<>();
 			private final Set<TaxIdNode> requested =
 					admittedGenomes == null ? null : taxNodesGoal.get().getSelected();
+
+			/**
+			 * Reads the marked reference assemblies off the assembly summary, which is where the
+			 * metadata goal takes its own index from. Read here rather than carried by that goal: it
+			 * is one scan of a file already on disk, and the goal's result is an accession trie whose
+			 * shape has nothing to say about which assembly a species is represented by.
+			 */
+			private ReferenceGenomes readReferences() {
+				File summary = new File(getProject().getCommon().getRefSeqDir(),
+						AssemblySummaryReader.ASSEMLY_SUM_REFSEQ);
+				try {
+					ReferenceGenomes result = new ReferenceGenomes(summary);
+					if (getLogger().isInfoEnabled()) {
+						getLogger().info("Reference genomes: " + result.taxonCount() + " taxa marked, "
+								+ result.draftCount() + " of them by a draft assembly.");
+					}
+					return result;
+				} catch (IOException e) {
+					throw new RuntimeException("Cannot read " + summary + ", which "
+							+ GSConfigKey.GENOMES_ONLY.getName() + "="
+							+ GSConfigKey.GenomesOnly.PREFER_REF_FIRST.getName() + " needs.", e);
+				}
+			}
 
 			@Override
 			public void processCatalog(StreamingResource catalogFile) {
@@ -176,12 +218,13 @@ public class AccessionMapGoal<P extends GSProject> extends ObjectGoal<AccessionM
 					return;
 				}
 				TaxIdNode limitNode = limitNodeOf(node);
-				if (genomesPerNode.getInt(limitNode) < maxGenomes) {
-					// Counted by assembly where one is known. The genome key groups the contigs of a
-					// shotgun project but leaves the chromosome and each plasmid of a finished genome
-					// standing for themselves, so a limit counted on it would admit a quarter of what it
-					// was asked for wherever finished genomes carry plasmids.
-					AssemblyInfo info = completeOnly ? assemblyOf(target, accessionStart, accessionEnd) : null;
+				// Counted by assembly where one is known. The genome key groups the contigs of a
+				// shotgun project but leaves the chromosome and each plasmid of a finished genome
+				// standing for themselves, so a limit counted on it would admit a quarter of what it
+				// was asked for wherever finished genomes carry plasmids.
+				AssemblyInfo info = withAssemblyInfo ? assemblyOf(target, accessionStart, accessionEnd) : null;
+				boolean marked = preferReference && isReference(target, accessionStart, accessionEnd, info);
+				if (genomesPerNode.getInt(limitNode) < roomFor(limitNode, marked)) {
 					byte[] key = info == null ? null : info.getKey();
 					if (key != null) {
 						admittedGenomes.admitKey(key, 0, key.length);
@@ -189,7 +232,37 @@ public class AccessionMapGoal<P extends GSProject> extends ObjectGoal<AccessionM
 						admittedGenomes.admit(target, accessionStart, accessionEnd);
 					}
 					genomesPerNode.addTo(limitNode, 1);
+					if (marked) {
+						referenceAdmitted.add(limitNode);
+					}
 				}
+			}
+
+			/**
+			 * How many genomes this limit node may hold before the genome in hand is turned away. It is
+			 * the limit itself, except that a taxon whose reference assembly is still to come keeps one
+			 * place back for it: without that the limit would be full by the time the marked assembly
+			 * arrives, and which genomes got in would again be a matter of the order the catalog states
+			 * them in. The place is held for the marked assembly alone, so a taxon whose marked
+			 * assembly the release does not carry ends one genome short -- the price of holding the
+			 * limit exactly rather than exceeding it by one.
+			 */
+			private int roomFor(TaxIdNode limitNode, boolean marked) {
+				if (!preferReference) {
+					return maxGenomes;
+				}
+				return ReferenceGenomes.roomFor(maxGenomes, marked, referenceAdmitted.contains(limitNode),
+						references.hasReference(limitNode.getTaxId()));
+			}
+
+			/**
+			 * Whether this accession's genome is the assembly its taxon is represented by. A finished
+			 * one is known from the length index, which has matched it to its sequences; a draft is not
+			 * in that index and is recognised by the WGS prefix its contigs carry.
+			 */
+			private boolean isReference(byte[] target, int accessionStart, int accessionEnd, AssemblyInfo info) {
+				return (info != null && info.isReference())
+						|| references.isReferenceDraft(target, accessionStart, accessionEnd);
 			}
 
 			/**
@@ -197,9 +270,13 @@ public class AccessionMapGoal<P extends GSProject> extends ObjectGoal<AccessionM
 			 * lookups apply - a limit counted over accessions the fill never resolves would be counted
 			 * against the wrong denominator.
 			 */
-			/** Whether this accession's genome - its assembly where one is known - is already in. */
+			/**
+			 * Whether this accession's genome - its assembly where one is known - is already in. Asked
+			 * with the same key the admission uses, or a genome counted by assembly there and by
+			 * accession here would be taken in once per replicon.
+			 */
 			private boolean isAlreadyAdmitted(byte[] target, int accessionStart, int accessionEnd) {
-				AssemblyInfo info = completeOnly ? assemblyOf(target, accessionStart, accessionEnd) : null;
+				AssemblyInfo info = withAssemblyInfo ? assemblyOf(target, accessionStart, accessionEnd) : null;
 				byte[] key = info == null ? null : info.getKey();
 				return key != null ? admittedGenomes.isAdmittedKey(key, 0, key.length)
 						: admittedGenomes.isAdmitted(target, accessionStart, accessionEnd);

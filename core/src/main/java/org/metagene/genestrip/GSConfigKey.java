@@ -38,6 +38,7 @@ import org.metagene.genestrip.make.ConfigParamInfo.IntConfigParamInfo;
 import org.metagene.genestrip.make.ConfigParamInfo.ListConfigParamInfo;
 import org.metagene.genestrip.make.ConfigParamInfo.LongConfigParamInfo;
 import org.metagene.genestrip.make.ConfigParamInfo.StringConfigParamInfo;
+import org.metagene.genestrip.refseq.ReferenceGenomes;
 import org.metagene.genestrip.tax.Rank;
 
 /**
@@ -216,6 +217,9 @@ public enum GSConfigKey implements ConfigKey {
 			+ "Scaffold and contig assemblies are admitted by neither setting: what they are missing is not represented at "
 			+ "all, so nothing in the summary says how much of the organism they hold. "
 			+ "RNA and mRNA accessions pass unchanged, so that setting this cannot empty a database of transcripts. "
+			+ "`preferRefFirst` restricts nothing and only orders the selection: it keeps a place among the genomes "
+			+ "`maxGenomesPerTaxid` admits for the assembly NCBI marks as the taxon's reference genome, so that which "
+			+ "genomes a limit lets in stops depending on the order the readers reach them. "
 			+ "Use it where a clean reference set matters more than breadth, and leave it `off` for read classification, "
 			+ "where a draft's contigs carry usable k-mers like any others. It has no effect while `refseq.filldb=false`.")
 	GENOMES_ONLY("refseq.genomesOnly", new GenomesOnlyConfigParamInfo(GenomesOnly.OFF), GSGoalKey.FILL_DB),
@@ -1014,7 +1018,26 @@ public enum GSConfigKey implements ConfigKey {
 		 * threads reached first. For bacteria the pair gives 13,903 genomes and about 60 Gbp where all
 		 * complete assemblies would give 57,845 and 251 Gbp.
 		 */
-		PREF_REF("prefRef");
+		PREF_REF("prefRef"),
+		/**
+		 * No restriction on how finished an assembly is -- drafts enter as under {@link #OFF} -- but
+		 * the assembly NCBI marks as a species' reference genome is kept a place among the genomes
+		 * {@code maxGenomesPerTaxid} admits. Where a taxon has a marked assembly, one of its places
+		 * is held back until that assembly arrives, so the limit stays what it was and only the
+		 * choice of which genomes fill it changes.
+		 * <p>
+		 * It answers a different question from {@link #PREF_REF}, which selects: that one keeps
+		 * complete assemblies and lets a marked one stand for its species alone, so a species with a
+		 * reference ends up with a single genome. This one only orders, and the count stays at the
+		 * limit.
+		 * <p>
+		 * A marked assembly is usually a draft -- 27.1 per cent of them are complete in the release
+		 * measured -- so recognising it takes both routes of {@link ReferenceGenomes}: the length
+		 * index for a finished one and the WGS master's accession prefix for a draft. A taxon whose
+		 * marked assembly the release does not carry keeps one place empty, which is the price of
+		 * holding the limit exactly.
+		 */
+		PREFER_REF_FIRST("preferRefFirst");
 
 		private final String name;
 
