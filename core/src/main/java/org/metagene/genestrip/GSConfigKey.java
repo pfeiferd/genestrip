@@ -340,6 +340,13 @@ public enum GSConfigKey implements ConfigKey {
 			+ "It also raises the store's value capacity (`MAX_VALUES`, the number of distinct values it can hold): each *k*-mer entry reserves `62 - radixStoreBits` low bits for the remaining *k*-mer bits (sized for the worst-case `k=31`), one high bit marks a *k*-mer as matched while a sample is classified, and the bits in between (capped at 30) hold the value index, so a wider radix leaves more bits for values. "
 			+ "Because the value capacity grows with `radixStoreBits`, so does the memory of the store's value-index array; this scales with the larger databases that warrant a wider radix.")
 	RADIX_STORE_BITS("radixStoreBits", new IntConfigParamInfo(RadixKMerStore.MIN_RADIX_BITS, 24, RadixKMerStore.DEFAULT_RADIX_BITS), false, GSGoalKey.TEMPINDEX, GSGoalKey.FILL_DB),
+	/** Whether to fill the database into the binary-search {@code KMerSortedArray} instead of the {@code RadixKMerStore}. */
+	@MDDescription("Whether `dbinfo` and every goal built on it store the database in `KMerSortedArray` instead of the default `RadixKMerStore`. "
+			+ "`KMerSortedArray` keeps its *k*-mers in one sorted array and looks them up by binary search, which is what Genestrip used before the radix store; "
+			+ "it exists so that the two lookup paths can be measured against each other on the same database. "
+			+ "It also holds fewer distinct values (65,535 against the radix store's `2^radixStoreBits`) and marks visited *k*-mers in a bit vector of its own, "
+			+ "so a database of more taxa than that cannot be filled with it. A database carries the store it was filled with, so this affects generation, not classification.")
+	SORTED_ARRAY_STORE("sortedArrayStore", new BooleanConfigParamInfo(false), false, GSGoalKey.FILL_DB),
 	/** Whether to XOR-combine the Bloom filter hash functions. */
 	XOR_BLOOM_HASH("xorBloomHash", new BooleanConfigParamInfo(true)),
 	/** Line length in bytes for generated fasta files. */

@@ -27,6 +27,7 @@ package org.metagene.genestrip.make;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TreeMap;
 
 import org.apache.commons.logging.Log;
 import org.metagene.genestrip.util.GSLogFactory;
@@ -357,11 +358,19 @@ public abstract class Project {
 	}
 	
 	/**
-	 * Logs the effective configuration parameter map at info level.
+	 * Logs the effective configuration parameter map at info level, ordered by parameter name.
+	 * <p>
+	 * The map itself is a {@link HashMap}, so its own iteration order is the hash order of the config
+	 * keys: neither their declaration order nor anything a reader can search in. Sorting by name makes
+	 * two runs comparable line by line.
 	 */
 	public void logParamMap() {
 		if (getLogger().isInfoEnabled()) {
-			getLogger().info("Effective param map: " + paramMap);
+			Map<String, Object> byName = new TreeMap<String, Object>();
+			for (Map.Entry<ConfigKey, Object> entry : paramMap.entrySet()) {
+				byName.put(entry.getKey().getName(), entry.getValue());
+			}
+			getLogger().info("Effective param map: " + byName);
 		}
 	}
 }

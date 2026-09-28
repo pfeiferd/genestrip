@@ -41,6 +41,7 @@ import org.metagene.genestrip.refseq.RefSeqCategory;
 import org.metagene.genestrip.refseq.ReworkingStoreFastaReader;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.KMerStore;
+import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.RadixKMerStore;
 import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.SmallTaxTree;
@@ -115,7 +116,23 @@ public class FillDBGoal<P extends GSProject> extends FastaReaderGoal<Database, P
 		// The radix width must match the one FillBloomFilterGoal used to count the per-bucket sizes.
 		int radixBits = intConfigValue(GSConfigKey.RADIX_STORE_BITS);
 		int[] bucketSizes = scaleBucketSizes(dbSize.getBucketSizes(), resizeFactor);
-		store = new RadixKMerStore<>(k, radixBits, bucketSizes, fillFpp, optFpp, initialValues, xor);
+		if (booleanConfigValue(GSConfigKey.SORTED_ARRAY_STORE)) {
+			// The binary-search store, for comparing the two lookup paths on one and the same database.
+			// It is sized by a total k-mer count rather than per bucket, so the scaled bucket sizes are
+			// summed; that keeps the resizing factor meaning what it means for the radix store.
+			long size = 0;
+			for (int bucketSize : bucketSizes) {
+				size += bucketSize;
+			}
+			if (initialValues != null && initialValues.size() > KMerSortedArray.MAX_VALUES) {
+				throw new IllegalStateException("This database needs " + initialValues.size()
+						+ " distinct values, but " + GSConfigKey.SORTED_ARRAY_STORE.getName() + " caps them at "
+						+ KMerSortedArray.MAX_VALUES + ". Fill it into the default store instead.");
+			}
+			store = new KMerSortedArray<>(k, fillFpp, optFpp, initialValues, false, xor, size);
+		} else {
+			store = new RadixKMerStore<>(k, radixBits, bucketSizes, fillFpp, optFpp, initialValues, xor);
+		}
 		if (getLogger().isInfoEnabled()) {
 			getLogger().info("Store size in kmers: " + store.getSize());
 			getLogger().info("DB Size in MB (without Bloom filter): " + (store.getSize() * 10) / (1024 * 1024));
