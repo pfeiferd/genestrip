@@ -562,8 +562,8 @@ public class MatchThroughputBenchmarkTest {
         System.out.println("Store '" + kind + "': " + store.getClass().getSimpleName() + ", "
                 + store.getEntries() + " entries, capacity " + capacity + ", filter "
                 + (store.isUseFilter() ? "on" : "off"));
-        System.out.println("    " + perEntry + " bytes per entry: " + toMB(arrays) + " MB of arrays, "
-                + toMB(filter) + " MB of filter, " + toMB(arrays + filter) + " MB together");
+        System.out.println("    " + perEntry + " bytes per entry: " + toMB(arrays) + " MB of store, "
+                + toMB(filter) + " MB of Bloom filter, " + toMB(arrays + filter) + " MB together");
         if (heapCost >= 0) {
             System.out.println("    heap it took: " + toMB(heapCost) + " MB");
         }
