@@ -635,18 +635,12 @@ public class MatchThroughputBenchmarkTest {
         System.out.println("Copying " + entries + " entries into a sorted array ...");
         long start = System.currentTimeMillis();
         KMerStore<SmallTaxIdNode> target = KMerSortedArray.copyOf(source,
-                project.doubleConfigValue(GSConfigKey.FILL_BLOOM_FILTER_FPP),
-                project.doubleConfigValue(GSConfigKey.OPT_BLOOM_FILTER_FPP),
-                project.booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH));
-        long dropped = entries - target.getEntries();
+                project.doubleConfigValue(GSConfigKey.OPT_BLOOM_FILTER_FPP));
         System.out.println("Copied in " + ((System.currentTimeMillis() - start) / 1000) + " s, "
-                + target.getEntries() + " entries, " + dropped + " dropped.");
-        // The copy's fill-time filter drops a k-mer every now and then, as the production fill path
-        // does, but a copy that lost a noticeable share of its entries would no longer be timing the
-        // same work as the source.
-        assertTrue("The sorted array copy holds " + target.getEntries() + " of the source's " + entries
-                + " entries, which is more than the fill filter can account for.",
-                dropped >= 0 && dropped <= Math.max(1000, entries / 100));
+                + target.getEntries() + " entries.");
+        // A copy that lost or gained an entry would not be timing the same work as the source.
+        assertEquals("The sorted array copy holds a different number of entries.", entries,
+                target.getEntries());
         return target;
     }
 

@@ -116,21 +116,20 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 	 * and in nothing else. This is what a comparison of the two needs: one database, two layouts, in
 	 * one JVM.
 	 * <p>
-	 * The copy's fill-time filter answers a k-mer it has not seen as present every now and then, and
-	 * {@link #putLong} then drops it, exactly as it does while a database is being filled. The caller
-	 * should therefore compare {@link #getEntries()} with the source's and decide whether the
-	 * difference matters; it is bounded by {@code entryFpp}.
+	 * The entries are written straight into the arrays, without the fill-time filter that
+	 * {@link #putLong} consults. That filter exists to recognize a k-mer that is already stored, and a
+	 * store being copied holds each of its k-mers once, so there is nothing to recognize. Leaving it
+	 * out keeps every entry - {@code putLong} drops one whenever the filter answers a false positive -
+	 * and saves its memory, which at the fill-time default of {@code 1e-11} is some 53 bits per k-mer,
+	 * i.e. more than half of what the copied arrays themselves take.
 	 *
 	 * @param <V> the value type of both stores
 	 * @param source the store to copy, which is left untouched and must be optimized
-	 * @param entryFpp the target false-positive probability of the copy's fill-time filter
 	 * @param optimizedFpp the target false-positive probability of the copy after optimization
-	 * @param xor whether the copy uses an {@link XORBloomFilter} (else a {@link BloomFilter})
 	 * @return the copy, optimized and ready for lookups
 	 * @throws IllegalArgumentException if the source holds more values than {@link #MAX_VALUES}
 	 */
-	public static <V extends Serializable> KMerSortedArray<V> copyOf(KMerStore<V> source, double entryFpp,
-			double optimizedFpp, boolean xor) {
+	public static <V extends Serializable> KMerSortedArray<V> copyOf(KMerStore<V> source, double optimizedFpp) {
 		List<V> values = new ArrayList<V>();
 		for (Iterator<V> i = source.getValues(); i.hasNext();) {
 			values.add(i.next());
@@ -139,17 +138,49 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 			throw new IllegalArgumentException("The source store holds " + values.size()
 					+ " values, but this store caps them at " + MAX_VALUES + ".");
 		}
-		final KMerSortedArray<V> target = new KMerSortedArray<V>(source.getK(), entryFpp, optimizedFpp, values,
-				false, xor, source.getEntries());
+		final KMerSortedArray<V> target = new KMerSortedArray<V>(source.getK(), values, false, null, optimizedFpp,
+				source.getEntries());
+		// The value indices of the two stores need not agree, so they are mapped on first use. The
+		// map is as long as the source's index space, which is a megabyte at most.
+		final int[] valueIndexMap = new int[source.getMaxValues()];
+		Arrays.fill(valueIndexMap, -1);
 		source.visit(new KMerStore.IndexedKMerStoreVisitor<V>() {
 			@Override
 			public void nextValue(KMerStore<V> store, long kmer, int index, long pos) {
-				target.putLong(kmer, store.getValueForIndex(index));
+				int mapped = valueIndexMap[index];
+				if (mapped < 0) {
+					mapped = target.getAddValueIndex(store.getValueForIndex(index));
+					valueIndexMap[index] = mapped;
+				}
+				target.append(kmer, mapped);
 			}
 		});
 		target.optimize();
-		target.setUseFilter(source.isUseFilter());
+		target.setUseFilter(source.isUseFilter() && target.getFilter() != null);
 		return target;
+	}
+
+	/**
+	 * Appends one entry, for a bulk copy from another store: the caller has already established that
+	 * the k-mer is not stored yet, so no filter is consulted and no lock is taken. Single-threaded by
+	 * contract, as {@link KMerStore#visit(IndexedKMerStoreVisitor)} is.
+	 *
+	 * @param kmer the k-mer to store
+	 * @param valueIndex the index of its value in this store
+	 */
+	private void append(long kmer, int valueIndex) {
+		if (entries == size) {
+			throw new IllegalStateException("The copy was sized for " + size + " entries.");
+		}
+		long pos = entries++;
+		if (largeKmers != null) {
+			BigArrays.set(largeKmers, pos, kmer);
+			BigArrays.set(largeValueIndexes, pos, (short) (valueIndex + Short.MIN_VALUE));
+		} else {
+			kmers[(int) pos] = kmer;
+			valueIndexes[(int) pos] = (short) (valueIndex + Short.MIN_VALUE);
+		}
+		sorted = false;
 	}
 
 	public KMerSortedArray(int k, double entryFpp, double optimizedFpp, List<V> initialValues, boolean enforceLarge, boolean xor, long size) {
