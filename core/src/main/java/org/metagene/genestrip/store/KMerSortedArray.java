@@ -27,7 +27,9 @@ package org.metagene.genestrip.store;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -107,6 +109,49 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 	 * @param xor whether to use an {@link XORBloomFilter} (else a {@link MurmurBloomFilter})
 	 * @param size the number of expected k-mer entries to reserve storage for (must be {@code >= 0})
 	 */
+	/**
+	 * Copies every entry of the given store into a new store of this class, i.e. from whatever layout
+	 * the source uses into one sorted array searched by bisection. The copy is sized to the source's
+	 * entry count and holds the same values, so the two differ in the data structure a lookup walks
+	 * and in nothing else. This is what a comparison of the two needs: one database, two layouts, in
+	 * one JVM.
+	 * <p>
+	 * The copy's fill-time filter answers a k-mer it has not seen as present every now and then, and
+	 * {@link #putLong} then drops it, exactly as it does while a database is being filled. The caller
+	 * should therefore compare {@link #getEntries()} with the source's and decide whether the
+	 * difference matters; it is bounded by {@code entryFpp}.
+	 *
+	 * @param <V> the value type of both stores
+	 * @param source the store to copy, which is left untouched and must be optimized
+	 * @param entryFpp the target false-positive probability of the copy's fill-time filter
+	 * @param optimizedFpp the target false-positive probability of the copy after optimization
+	 * @param xor whether the copy uses an {@link XORBloomFilter} (else a {@link BloomFilter})
+	 * @return the copy, optimized and ready for lookups
+	 * @throws IllegalArgumentException if the source holds more values than {@link #MAX_VALUES}
+	 */
+	public static <V extends Serializable> KMerSortedArray<V> copyOf(KMerStore<V> source, double entryFpp,
+			double optimizedFpp, boolean xor) {
+		List<V> values = new ArrayList<V>();
+		for (Iterator<V> i = source.getValues(); i.hasNext();) {
+			values.add(i.next());
+		}
+		if (values.size() > MAX_VALUES) {
+			throw new IllegalArgumentException("The source store holds " + values.size()
+					+ " values, but this store caps them at " + MAX_VALUES + ".");
+		}
+		final KMerSortedArray<V> target = new KMerSortedArray<V>(source.getK(), entryFpp, optimizedFpp, values,
+				false, xor, source.getEntries());
+		source.visit(new KMerStore.IndexedKMerStoreVisitor<V>() {
+			@Override
+			public void nextValue(KMerStore<V> store, long kmer, int index, long pos) {
+				target.putLong(kmer, store.getValueForIndex(index));
+			}
+		});
+		target.optimize();
+		target.setUseFilter(source.isUseFilter());
+		return target;
+	}
+
 	public KMerSortedArray(int k, double entryFpp, double optimizedFpp, List<V> initialValues, boolean enforceLarge, boolean xor, long size) {
 		this(k, initialValues, enforceLarge,
 				xor ? new XORBloomFilter(entryFpp, size) : new BloomFilter(entryFpp, size), optimizedFpp, size);

@@ -33,7 +33,6 @@ import java.io.OutputStream;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.logging.impl.SimpleLog;
@@ -624,46 +623,27 @@ public class MatchThroughputBenchmarkTest {
     }
 
     /**
-     * Copies every entry of the given store into a {@link KMerSortedArray}, i.e. into the binary
-     * search layout the first study on Genestrip used. The copy is sized to the source's entry count
-     * and gets its filters from the project's configuration, so the only difference to the source is
-     * the data structure the lookup walks.
+     * Copies the given store into a {@link KMerSortedArray}, i.e. into the binary search layout the
+     * first study on Genestrip used, and reports what the copy cost.
      *
      * @param source the store to copy, which is left untouched
      * @param project the project supplying the filter parameters
      * @return the copy, optimized and ready for lookups
      */
     private KMerStore<SmallTaxIdNode> toSortedArray(KMerStore<SmallTaxIdNode> source, GSProject project) {
-        List<SmallTaxIdNode> values = new ArrayList<>();
-        for (Iterator<SmallTaxIdNode> i = source.getValues(); i.hasNext();) {
-            values.add(i.next());
-        }
-        // The sorted array keeps its value index in a short, so a database with more values than that
-        // cannot be copied at all. Saying so beats a store that silently drops entries.
-        assertTrue("This database has " + values.size() + " values, but " + KMerSortedArray.class.getSimpleName()
-                + " caps them at " + KMerSortedArray.MAX_VALUES + ".", values.size() <= KMerSortedArray.MAX_VALUES);
         long entries = source.getEntries();
         System.out.println("Copying " + entries + " entries into a sorted array ...");
         long start = System.currentTimeMillis();
-        final KMerSortedArray<SmallTaxIdNode> target = new KMerSortedArray<>(source.getK(),
+        KMerStore<SmallTaxIdNode> target = KMerSortedArray.copyOf(source,
                 project.doubleConfigValue(GSConfigKey.FILL_BLOOM_FILTER_FPP),
-                project.doubleConfigValue(GSConfigKey.OPT_BLOOM_FILTER_FPP), values, false,
-                project.booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH), entries);
-        source.visit(new KMerStore.IndexedKMerStoreVisitor<SmallTaxIdNode>() {
-            @Override
-            public void nextValue(KMerStore<SmallTaxIdNode> store, long kmer, int index, long pos) {
-                target.putLong(kmer, store.getValueForIndex(index));
-            }
-        });
-        target.optimize();
-        target.setUseFilter(source.isUseFilter());
+                project.doubleConfigValue(GSConfigKey.OPT_BLOOM_FILTER_FPP),
+                project.booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH));
         long dropped = entries - target.getEntries();
         System.out.println("Copied in " + ((System.currentTimeMillis() - start) / 1000) + " s, "
                 + target.getEntries() + " entries, " + dropped + " dropped.");
-        // The fill-time filter of the copy answers a k-mer it has not seen as present every now and
-        // then, and putLong then drops it. The production fill path does the same, so the copy is
-        // built as the database would be, but a copy that lost a noticeable share of its entries
-        // would no longer be timing the same work as the source.
+        // The copy's fill-time filter drops a k-mer every now and then, as the production fill path
+        // does, but a copy that lost a noticeable share of its entries would no longer be timing the
+        // same work as the source.
         assertTrue("The sorted array copy holds " + target.getEntries() + " of the source's " + entries
                 + " entries, which is more than the fill filter can account for.",
                 dropped >= 0 && dropped <= Math.max(1000, entries / 100));
