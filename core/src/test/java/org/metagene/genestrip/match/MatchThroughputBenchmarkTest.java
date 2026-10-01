@@ -33,6 +33,7 @@ import java.io.OutputStream;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.logging.impl.SimpleLog;
@@ -50,6 +51,7 @@ import org.metagene.genestrip.io.StreamingFileResource;
 import org.metagene.genestrip.io.StreamingResourceListStream;
 import org.metagene.genestrip.io.StreamingResourceStream;
 import org.metagene.genestrip.store.Database;
+import org.metagene.genestrip.store.KMerSortedArray;
 import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.tax.SmallTaxTree;
 import org.metagene.genestrip.tax.SmallTaxTree.SmallTaxIdNode;
@@ -99,6 +101,8 @@ import static org.junit.Assert.assertTrue;
  * -Dgenestrip.bench.repeats=n                    repeat the input exactly n times (overrides targetBytes)
  * -Dgenestrip.bench.dir=/path/to/dir             where the repeated input is written; default: build dir
  * -Dgenestrip.bench.stages=raw,gunzip,parse,parsemt,match   subset of stages to run
+ * -Dgenestrip.bench.stores=db,sortedarray      run the match stage against the store the database
+ *                                              brings and/or against a sorted array copied from it
  * </pre>
  *
  * A thread sweep answers directly where matching stops scaling; it loads the database once and runs
@@ -137,6 +141,13 @@ public class MatchThroughputBenchmarkTest {
     private static final String DIR_PROP = PROP_PREFIX + "dir";
     // Comma separated thread counts at which to repeat the match stage, e.g. "1,2,4,8,19".
     private static final String THREAD_SWEEP_PROP = PROP_PREFIX + "threadSweep";
+    // Comma separated k-mer stores to run the match stage against, e.g. "db,sortedarray".
+    private static final String STORES_PROP = PROP_PREFIX + "stores";
+
+    /** The store the database file brings, i.e. whatever it was filled into. */
+    private static final String STORE_DB = "db";
+    /** A {@link KMerSortedArray} holding the same entries, built from the loaded store. */
+    private static final String STORE_SORTED_ARRAY = "sortedarray";
 
     private static final String DEFAULT_PROJECT = "viral";
     private static final long DEFAULT_TARGET_BYTES = 250L * 1000 * 1000;
@@ -222,9 +233,36 @@ public class MatchThroughputBenchmarkTest {
                 Assume.assumeTrue("No database at " + dbFile, dbFile != null && dbFile.exists());
                 // The tax tree is read-only while matching (each matcher keeps its own per-consumer
                 // vote counters), so one loaded database serves every point of the sweep.
+                long heapBeforeLoad = usedHeapAfterGc();
                 Database database = loadDatabase(dbFile, project);
-                for (int n : matchThreads) {
-                    results.add(runMatch(fastq, project, database, n));
+                boolean useFilter = project.booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH);
+                // Converted once: the conversion walks every entry, and the match stage does not
+                // change the stored k-mers, so one converted store serves every point of the sweep.
+                KMerStore<SmallTaxIdNode> loaded = database.convertKMerStore();
+                loaded.setUseFilter(useFilter);
+                // The loaded store shares its arrays with the database, so what the load added to the
+                // heap is the store, its filter and the taxonomy tree together.
+                long heapAfterLoad = usedHeapAfterGc();
+                List<String> stores = getStoreKinds();
+                for (String kind : stores) {
+                    KMerStore<SmallTaxIdNode> store;
+                    long heapCost;
+                    if (STORE_SORTED_ARRAY.equals(kind)) {
+                        long before = usedHeapAfterGc();
+                        store = toSortedArray(loaded, project);
+                        // The copy is built from the loaded store and shares nothing with it, so this
+                        // delta is the copy alone: its two arrays plus its filter.
+                        heapCost = usedHeapAfterGc() - before;
+                    } else {
+                        store = loaded;
+                        heapCost = heapAfterLoad - heapBeforeLoad;
+                    }
+                    printFootprint(kind, store, heapCost);
+                    // One store leaves the stage named as before, so an existing report stays comparable.
+                    String label = stores.size() > 1 ? "match/" + kind : "match";
+                    for (int n : matchThreads) {
+                        results.add(runMatch(fastq, project, database, store, label, n));
+                    }
                 }
             }
         } finally {
@@ -322,11 +360,9 @@ public class MatchThroughputBenchmarkTest {
      * configure it, but without writing any output file, so that only the classification work itself
      * is added on top of the previous stage.
      */
-    private Result runMatch(File fastq, GSProject project, Database database, int threads) throws IOException {
-        boolean useFilter = project.booleanConfigValue(GSConfigKey.USE_BLOOM_FILTER_FOR_MATCH);
+    private Result runMatch(File fastq, GSProject project, Database database, KMerStore<SmallTaxIdNode> store,
+            String label, int threads) throws IOException {
         SmallTaxTree taxTree = database.getTaxTree();
-        KMerStore<SmallTaxIdNode> store = database.convertKMerStore();
-        store.setUseFilter(useFilter);
 
         ExecutionContext bundle = newExecutionContext(project, threads);
         FastqKMerMatcher matcher = newMatcher(store, taxTree, project, bundle, database);
@@ -334,7 +370,7 @@ public class MatchThroughputBenchmarkTest {
             Watch watch = Watch.start();
             MatchingResult result = matcher.runMatcher(streamOf(fastq), null, null);
             CountsPerTaxid stats = result.getGlobalStats();
-            return watch.stop("match", threads, fastq.length(), stats.getReadsBPs(), stats.getReads(),
+            return watch.stop(label, threads, fastq.length(), stats.getReadsBPs(), stats.getReads(),
                     stats.getKMers());
         } finally {
             matcher.dump();
@@ -508,6 +544,132 @@ public class MatchThroughputBenchmarkTest {
         return result;
     }
 
+    /**
+     * Prints what the given store costs in memory, both as the arrays it holds by construction and as
+     * the heap the JVM reports for it.
+     *
+     * @param kind the store's name in the report
+     * @param store the store to describe
+     * @param heapCost the heap the store took when it was created, or a negative value if unknown
+     */
+    private void printFootprint(String kind, KMerStore<SmallTaxIdNode> store, long heapCost) {
+        // A radix bucket holds one 64-bit word per k-mer. The sorted array needs a second array for
+        // the value index, a short per k-mer, hence ten bytes instead of eight.
+        boolean sortedArray = store instanceof KMerSortedArray;
+        long perEntry = sortedArray ? 10 : 8;
+        long capacity = store.getSize();
+        long arrays = capacity * perEntry;
+        long filter = store.getFilter() == null ? 0 : store.getFilter().getBitSize() / 8;
+        System.out.println("Store '" + kind + "': " + store.getClass().getSimpleName() + ", "
+                + store.getEntries() + " entries, capacity " + capacity + ", filter "
+                + (store.isUseFilter() ? "on" : "off"));
+        System.out.println("    " + perEntry + " bytes per entry: " + toMB(arrays) + " MB of arrays, "
+                + toMB(filter) + " MB of filter, " + toMB(arrays + filter) + " MB together");
+        if (heapCost >= 0) {
+            System.out.println("    heap it took: " + toMB(heapCost) + " MB");
+        }
+        if (!sortedArray) {
+            // The radix index and the two per-bucket arrays are the store's own overhead; at the
+            // default radix width they are a few megabytes and so are named rather than estimated.
+            System.out.println("    plus the radix index and the per-bucket arrays, a few MB at the"
+                    + " default radix width");
+        }
+    }
+
+    /**
+     * Returns the used heap after asking the collector to run, which is as close to the live set as a
+     * JVM lets one get without a heap dump. Repeated because one collection need not finish the job.
+     *
+     * @return the used heap in bytes
+     */
+    private static long usedHeapAfterGc() {
+        for (int i = 0; i < 3; i++) {
+            System.gc();
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        Runtime runtime = Runtime.getRuntime();
+        return runtime.totalMemory() - runtime.freeMemory();
+    }
+
+    // The k-mer stores the match stage is run against. "db" is the store the database file brings,
+    // "sortedarray" a KMerSortedArray filled from it, so that the two lookup paths are timed on the
+    // very same entries, in one JVM, against the same input - which no pair of separate runs can.
+    private List<String> getStoreKinds() {
+        List<String> result = new ArrayList<>();
+        String stores = System.getProperty(STORES_PROP);
+        if (stores == null) {
+            result.add(STORE_DB);
+            return result;
+        }
+        for (String name : stores.split(",")) {
+            String kind = name.trim();
+            if (kind.isEmpty()) {
+                continue;
+            }
+            if (!STORE_DB.equals(kind) && !STORE_SORTED_ARRAY.equals(kind)) {
+                throw new IllegalArgumentException("Unknown store '" + kind + "' in -D" + STORES_PROP
+                        + "; expected '" + STORE_DB + "' or '" + STORE_SORTED_ARRAY + "'.");
+            }
+            if (!result.contains(kind)) {
+                result.add(kind);
+            }
+        }
+        assertTrue("-D" + STORES_PROP + " named no store.", !result.isEmpty());
+        return result;
+    }
+
+    /**
+     * Copies every entry of the given store into a {@link KMerSortedArray}, i.e. into the binary
+     * search layout the first study on Genestrip used. The copy is sized to the source's entry count
+     * and gets its filters from the project's configuration, so the only difference to the source is
+     * the data structure the lookup walks.
+     *
+     * @param source the store to copy, which is left untouched
+     * @param project the project supplying the filter parameters
+     * @return the copy, optimized and ready for lookups
+     */
+    private KMerStore<SmallTaxIdNode> toSortedArray(KMerStore<SmallTaxIdNode> source, GSProject project) {
+        List<SmallTaxIdNode> values = new ArrayList<>();
+        for (Iterator<SmallTaxIdNode> i = source.getValues(); i.hasNext();) {
+            values.add(i.next());
+        }
+        // The sorted array keeps its value index in a short, so a database with more values than that
+        // cannot be copied at all. Saying so beats a store that silently drops entries.
+        assertTrue("This database has " + values.size() + " values, but " + KMerSortedArray.class.getSimpleName()
+                + " caps them at " + KMerSortedArray.MAX_VALUES + ".", values.size() <= KMerSortedArray.MAX_VALUES);
+        long entries = source.getEntries();
+        System.out.println("Copying " + entries + " entries into a sorted array ...");
+        long start = System.currentTimeMillis();
+        final KMerSortedArray<SmallTaxIdNode> target = new KMerSortedArray<>(source.getK(),
+                project.doubleConfigValue(GSConfigKey.FILL_BLOOM_FILTER_FPP),
+                project.doubleConfigValue(GSConfigKey.OPT_BLOOM_FILTER_FPP), values, false,
+                project.booleanConfigValue(GSConfigKey.XOR_BLOOM_HASH), entries);
+        source.visit(new KMerStore.IndexedKMerStoreVisitor<SmallTaxIdNode>() {
+            @Override
+            public void nextValue(KMerStore<SmallTaxIdNode> store, long kmer, int index, long pos) {
+                target.putLong(kmer, store.getValueForIndex(index));
+            }
+        });
+        target.optimize();
+        target.setUseFilter(source.isUseFilter());
+        long dropped = entries - target.getEntries();
+        System.out.println("Copied in " + ((System.currentTimeMillis() - start) / 1000) + " s, "
+                + target.getEntries() + " entries, " + dropped + " dropped.");
+        // The fill-time filter of the copy answers a k-mer it has not seen as present every now and
+        // then, and putLong then drops it. The production fill path does the same, so the copy is
+        // built as the database would be, but a copy that lost a noticeable share of its entries
+        // would no longer be timing the same work as the source.
+        assertTrue("The sorted array copy holds " + target.getEntries() + " of the source's " + entries
+                + " entries, which is more than the fill filter can account for.",
+                dropped >= 0 && dropped <= Math.max(1000, entries / 100));
+        return target;
+    }
+
     private boolean isStageEnabled(Stage stage) {
         String stages = System.getProperty(STAGES_PROP);
         if (stages == null) {
@@ -614,13 +776,24 @@ public class MatchThroughputBenchmarkTest {
             return;
         }
         System.out.println();
-        System.out.println(String.format("%-22s %10s %12s %12s %12s %12s", "stage", "seconds", "in MB/s", "out MB/s",
-                "reads/s", "busy cores"));
-        System.out.println(String.format("%-22s %10s %12s %12s %12s %12s", "----------------------", "----------",
-                "------------", "------------", "------------", "------------"));
+        // The stage names carry the store and the thread count, so the column is sized to what is
+        // actually there rather than to a fixed width that a longer name would then break out of.
+        int width = 22;
         for (Result result : results) {
-            System.out.println(String.format("%-22s %10.2f %12.1f %12.1f %12.0f %12.2f", result.name, result.seconds(),
-                    result.inMBPerSecond(), result.outMBPerSecond(), result.readsPerSecond(), result.busyCores()));
+            width = Math.max(width, result.name.length());
+        }
+        String head = "%-" + width + "s %10s %12s %12s %12s %12s";
+        String row = "%-" + width + "s %10.2f %12.1f %12.1f %12.0f %12.2f";
+        StringBuilder dashes = new StringBuilder();
+        for (int i = 0; i < width; i++) {
+            dashes.append('-');
+        }
+        System.out.println(String.format(head, "stage", "seconds", "in MB/s", "out MB/s", "reads/s", "busy cores"));
+        System.out.println(String.format(head, dashes, "----------", "------------", "------------", "------------",
+                "------------"));
+        for (Result result : results) {
+            System.out.println(String.format(row, result.name, result.seconds(), result.inMBPerSecond(),
+                    result.outMBPerSecond(), result.readsPerSecond(), result.busyCores()));
         }
         System.out.println();
         printInterpretation(results);
