@@ -127,7 +127,7 @@ public abstract class ReworkingStoreFastaReader extends AbstractStoreFastaReader
 	 * @param taxNodes the requested tax nodes, empty for no restriction
 	 * @return the node to file the genome at
 	 */
-	static TaxIdNode foldUp(TaxIdNode node, Rank below, Set<TaxIdNode> taxNodes) {
+	public static TaxIdNode foldUp(TaxIdNode node, Rank below, Set<TaxIdNode> taxNodes) {
 		if (below == null || node == null) {
 			return node;
 		}
