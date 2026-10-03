@@ -70,9 +70,10 @@ import it.unimi.dsi.fastutil.longs.LongComparator;
  * so no such array is needed — each radix bucket holds at most {@code entries / 2^radixBits} k-mers and
  * therefore fits in a plain {@code int}-indexed {@code long[]} even for very large databases.
  * <p>
- * A lookup first indexes the radix table: a {@code null} bucket means there is no k-mer with that
- * {@code radixBits}-bit suffix, so {@link #getLong} returns {@code null} immediately — even before
- * the (optional) probabilistic pre-filter is queried. Otherwise it binary-searches the bucket
+ * A lookup consults the (optional) probabilistic pre-filter first, since most k-mers of a sample are
+ * in no database and the filter answers them without reading anything of the store. It then indexes
+ * the radix table: a {@code null} bucket means there is no k-mer with that {@code radixBits}-bit
+ * suffix, so {@link #getLong} returns {@code null}. Otherwise it binary-searches the bucket
  * (which {@link #optimize()} has sorted by the remaining bits). The hope is that confining the
  * binary search to a single small bucket — rather than searching one global array — keeps the
  * probed positions in cache and reduces the number of probes.
@@ -570,13 +571,17 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	// Made final for potential (automated) inlining by JVM
 	@Override
 	public final V getLong(final long kmer, final long[] posStore) {
+		// The filter comes first. Most k-mers a classification asks about are in no database, the
+		// filter answers them, and reading the radix index before it would be work for nothing. A
+		// null bucket says the same for a k-mer whose trailing bases no stored k-mer has, which a
+		// filled database hardly ever sees: at a few thousand entries per bucket none of the databases
+		// measured for the refinement paper has an empty one.
+		if (filter != null && useFilter && !filter.containsLong(kmer)) {
+			return null;
+		}
 		final int radix = (int) (kmer & radixMask);
 		final long[] bucket = radixIndex[radix];
 		if (bucket == null) {
-			// No k-mer with this radix prefix - return early, even before the filter.
-			return null;
-		}
-		if (filter != null && useFilter && !filter.containsLong(kmer)) {
 			return null;
 		}
 		final long remaining = remainingOf(kmer);
@@ -624,12 +629,12 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		if (!sorted) {
 			throw new IllegalStateException("Update only works when optimized.");
 		}
+		if (filter != null && useFilter && !filter.containsLong(kmer)) {
+			return false;
+		}
 		int radix = (int) (kmer & radixMask);
 		long[] bucket = radixIndex[radix];
 		if (bucket == null) {
-			return false;
-		}
-		if (filter != null && useFilter && !filter.containsLong(kmer)) {
 			return false;
 		}
 		long remaining = remainingOf(kmer);
@@ -916,9 +921,14 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		int active = 0;
 		for (int i = 0; i < n; i++) {
 			final long kmer = kmers[i];
+			if (filter != null && useFilter && !filter.containsLong(kmer)) {
+				pos[i] = -1;
+				buckets[i] = null;
+				continue;
+			}
 			final int radix = (int) (kmer & radixMask);
 			final long[] bucket = radixIndex[radix];
-			if (bucket == null || (filter != null && useFilter && !filter.containsLong(kmer))) {
+			if (bucket == null) {
 				pos[i] = -1;
 				buckets[i] = null;
 				continue;
