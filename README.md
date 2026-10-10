@@ -70,12 +70,17 @@ These are the dependencies:
 <dependency>
 	<groupId>org.genestrip</groupId>
 	<artifactId>base</artifactId>
-	<version>3.0</version>
+	<version>4.0</version>
 </dependency>
 <dependency>
 	<groupId>org.genestrip</groupId>
 	<artifactId>core</artifactId>
-	<version>3.0</version>
+	<version>4.0</version>
+</dependency>
+<dependency>
+	<groupId>org.genestrip</groupId>
+	<artifactId>ft</artifactId>
+	<version>4.0</version>
 </dependency>
 ```
 You may check for higher versions and update the dependency accordingly...
