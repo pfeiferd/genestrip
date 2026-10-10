@@ -8,6 +8,11 @@
   </servers>
   <profiles>
     <profile>
+        <id>prerelease</id>
+        <activation><activeByDefault>true</activeByDefault></activation>
+        <properties><nvdApiKey>YOUR-KEY</nvdApiKey></properties>
+    </profile>
+    <profile>
       <id>release</id>
       <activation>
         <activeByDefault>true</activeByDefault>
