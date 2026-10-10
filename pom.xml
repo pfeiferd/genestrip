@@ -214,6 +214,10 @@
                 <artifactId>flatten-maven-plugin</artifactId>
                 <version>1.8.0</version>
                 <configuration>
+                    <!-- Keeps the elements Maven Central requires in the deployed pom: description,
+                         url, licenses, developers, scm and issueManagement. The default mode drops
+                         description, developers and scm, which makes the publish fail validation. -->
+                    <flattenMode>ossrh</flattenMode>
                 </configuration>
                 <executions>
                     <execution>
