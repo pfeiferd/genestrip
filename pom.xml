@@ -379,7 +379,10 @@
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
                         <artifactId>central-publishing-maven-plugin</artifactId>
-                        <version>0.4.0</version>
+                        <!-- 0.4.0 could not parse the publisher API's answer any more: its
+                             DeploymentApiResponse knows six properties and is not lenient, and the
+                             API has since added a "warnings" field. -->
+                        <version>0.11.0</version>
                         <extensions>true</extensions>
                         <configuration>
                             <publishingServerId>central</publishingServerId>

@@ -292,10 +292,12 @@ public abstract class Project {
 	}
 
 	/**
-	 * Whether a configuration value the key cannot take ends the run instead of being reported and
-	 * dropped. {@code false} here; a subclass that has a setting for it says so by overriding.
+	 * Whether an unknown configuration key, or a value its key cannot take, ends the run instead of
+	 * being reported and dropped. {@code false} here; a subclass that has a setting for it says so by
+	 * overriding.
 	 *
-	 * @return whether an invalid or out-of-range value is an error rather than a warning
+	 * @return whether an unknown key or an invalid or out-of-range value is an error rather than a
+	 *         warning
 	 */
 	protected boolean isStrictConfigCheck() {
 		return false;
@@ -306,26 +308,31 @@ public abstract class Project {
 	 * for the given goal, or an invalid or out-of-range value.
 	 * <p>
 	 * Reports and carries on, the key keeping its default -- unless {@link #isStrictConfigCheck()}
-	 * says otherwise, in which case an invalid or out-of-range value ends the run. Carrying on is not
-	 * free: a database was once built for two and a half hours with
+	 * says otherwise, in which case an unknown key, an invalid value and a value out of range each
+	 * end the run. Carrying on is not free: a database was once built for two and a half hours with
 	 * {@code refseq.updateScope=allButExcluded} in its configuration and {@code ALL} in effect,
 	 * because the running version did not yet know that value. The result looked plausible and
-	 * answered a different question than the one asked. Strict checking is for runs long enough that
-	 * one wants to hear about that at the start rather than at the end.
+	 * answered a different question than the one asked. An unknown key -- a typo, or a key a later
+	 * version dropped -- is the same kind of mistake: it has no effect, and the effect it was meant to
+	 * have is missing from the result. Strict checking is for runs long enough that one wants to hear
+	 * about that at the start rather than at the end.
 	 * <p>
-	 * An unknown key and a key that belongs to another goal stay warnings either way. The second has
-	 * to: one configuration file serves every goal of a project, and each goal checks the whole file,
-	 * so a key meant for another goal is the normal case rather than an error.
+	 * A key that belongs to another goal stays a warning either way, and it has to: one configuration
+	 * file serves every goal of a project, and each goal checks the whole file, so a key meant for
+	 * another goal is the normal case rather than an error. What counts as known is
+	 * {@link #getConfigKeys()}, so a module adds its keys to the check by overriding that, as
+	 * {@code FTProject} does with the {@code ft.} keys.
 	 *
 	 * @param properties the properties to check
 	 * @param forGoal the goal the properties are checked against
-	 * @throws IllegalArgumentException if a value is invalid or out of range and strict checking is on
+	 * @throws IllegalArgumentException if a key is unknown or a value is invalid or out of range, and
+	 *         strict checking is on
 	 */
 	protected void checkConfigProperties(Properties properties, GoalKey forGoal) {
 		for (Object key : properties.keySet()) {
 			ConfigKey param = configKeyFromName((String) key);
 			if (param == null) {
-				getLogger().warn("Unknown key " + key + ".");
+				complain("Unknown key " + key + ".");
 			} else if (!param.isForGoal(forGoal)) {
 				getLogger().warn("Bad key " + key + " for goal " + forGoal + ".");
 			} else {

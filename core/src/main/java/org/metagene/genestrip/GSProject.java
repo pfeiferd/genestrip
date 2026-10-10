@@ -267,7 +267,7 @@ public class GSProject extends Project {
     }
 
     /**
-     * Whether a configuration value the key cannot take ends the run, as
+     * Whether an unknown configuration key, or a value its key cannot take, ends the run, as
      * {@link GSConfigKey#STRICT_CONFIG_CHECK} says.
      *
      * @return the value of {@code strictConfigCheck}, {@code false} unless the project sets it
