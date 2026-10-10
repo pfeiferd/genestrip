@@ -76,7 +76,8 @@ public class GenomesOnlyConfigTest {
 		assertEquals("complete", GenomesOnly.COMPLETE.getName());
 		assertEquals("chromosome", GenomesOnly.CHROMOSOME.getName());
 		assertEquals("prefRef", GenomesOnly.PREF_REF.getName());
-		assertEquals("exactly four values", 4, GenomesOnly.values().length);
+		assertEquals("preferRefFirst", GenomesOnly.PREFER_REF_FIRST.getName());
+		assertEquals("exactly five values", 5, GenomesOnly.values().length);
 	}
 
 	/** A value is looked up by its configuration name, case insensitively, and an unknown one is null. */
