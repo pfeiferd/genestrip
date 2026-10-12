@@ -168,7 +168,9 @@ public class DengrogramLaTeXGoal<P extends FTProject> extends FileListGoal<P> {
         dendrogram.visit(new DendrogramNode.Visitor() {
             @Override
             public void preNode(DendrogramNode node) {
-                if (node.getSimilarity() < minSim[0]) {
+                // Only positive similarities. A merge of two children that share no k-mer scores 0,
+                // and log 0 as the reference of the rescaling would map every other merge to 1.
+                if (node.getSimilarity() > 0 && node.getSimilarity() < minSim[0]) {
                     minSim[0] = node.getSimilarity();
                 }
             }
@@ -350,11 +352,16 @@ public class DengrogramLaTeXGoal<P extends FTProject> extends FileListGoal<P> {
      * smallest similarity in the dendrogram; otherwise the similarity is returned unchanged.
      *
      * @param similarity the similarity value to rescale
-     * @param minLogSim  the natural logarithm of the smallest similarity, used as the log-scale
-     *                   reference
+     * @param minLogSim  the natural logarithm of the smallest positive similarity, used as the
+     *                   log-scale reference
      * @return the (possibly log-rescaled) axis position for the similarity
      */
     protected double rescaleSim(double similarity, double minLogSim) {
+        if (similarity <= 0) {
+            // A merge of two children that share no k-mer. It sits at the far end of the axis in
+            // either mode, and log 0 has no place on the rescaled one.
+            return 0;
+        }
         return rescale ? (1 - Math.log(similarity) / minLogSim) : similarity;
     }
 

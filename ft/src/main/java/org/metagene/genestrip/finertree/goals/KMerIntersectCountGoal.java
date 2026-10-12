@@ -83,7 +83,7 @@ public class KMerIntersectCountGoal<P extends FTProject> extends KMerStoreWorkGo
 
         /**
          * Returns the sum of the spread values (number of subtrees each *k*-mer occurs in) over all
-         * *k*-mers of the parent, without Laplace correction.
+         * *k*-mers of the parent.
          *
          * @param parent the parent node
          * @return the total *k*-mer spread, or {@code 0} if the parent is unknown
@@ -91,7 +91,7 @@ public class KMerIntersectCountGoal<P extends FTProject> extends KMerStoreWorkGo
         public long getKMerSpreadSum(SmallTaxTree.SmallTaxIdNode parent);
 
         /**
-         * Returns the number of *k*-mers counted for the parent, without Laplace correction.
+         * Returns the number of *k*-mers counted for the parent.
          *
          * @param parent the parent node
          * @return the *k*-mer count, or {@code 0} if the parent is unknown
@@ -99,14 +99,14 @@ public class KMerIntersectCountGoal<P extends FTProject> extends KMerStoreWorkGo
         public long getKMerSum(SmallTaxTree.SmallTaxIdNode parent);
 
         /**
-         * Returns the Laplace-smoothed Jaccard index between the two given child subtrees of the parent,
-         * optionally enlarging the two set sizes by the descendant *k*-mer counts of the two children.
+         * Returns the Jaccard index between the two given child subtrees of the parent, optionally
+         * enlarging the two set sizes by the descendant *k*-mer counts of the two children.
          *
          * @param parent               the parent node
          * @param i                    the index of the first child subtree (or "OTHER" slot)
          * @param j                    the index of the second child subtree (or "OTHER" slot)
          * @param withDescendantCounts whether to add the children's descendant *k*-mer counts to the union
-         * @return the Jaccard index in {@code [0, 1]}; {@code 1} when both sets are empty
+         * @return the Jaccard index in {@code [0, 1]}; {@code 0} where the denominator would be zero
          */
         public double getJaccardIndex(SmallTaxTree.SmallTaxIdNode parent, int i, int j, boolean withDescendantCounts);
 
@@ -316,9 +316,8 @@ public class KMerIntersectCountGoal<P extends FTProject> extends KMerStoreWorkGo
 
         /**
          * Returns the accumulated *k*-mer spread sum stored in the second-to-last entry of the parent's
-         * count array, or {@code 0} when the parent is unknown. No Laplace correction is applied.
+         * count array, or {@code 0} when the parent is unknown.
          */
-        // No Laplace correction
         @Override
         public long getKMerSpreadSum(SmallTaxTree.SmallTaxIdNode parent) {
             long[] counts = parentToCounts.get(parent);
@@ -327,9 +326,8 @@ public class KMerIntersectCountGoal<P extends FTProject> extends KMerStoreWorkGo
 
         /**
          * Returns the accumulated *k*-mer count stored in the last entry of the parent's count array,
-         * or {@code 0} when the parent is unknown. No Laplace correction is applied.
+         * or {@code 0} when the parent is unknown.
          */
-        // No Laplace correction
         @Override
         public long getKMerSum(SmallTaxTree.SmallTaxIdNode parent) {
             long[] counts = parentToCounts.get(parent);
@@ -337,28 +335,41 @@ public class KMerIntersectCountGoal<P extends FTProject> extends KMerStoreWorkGo
         }
 
         /**
-         * Computes the Jaccard index of slots {@code i} and {@code j} as {@code |A ∩ B| / |A ∪ B|} using
-         * the stored intersection counts, adding one to intersection and to each self-count for Laplace
-         * smoothing. When {@code withDescendantCounts} is set, the recursively accumulated descendant
-         * *k*-mer counts extend the two set sizes via the diagonal
+         * Computes the Jaccard index of slots {@code i} and {@code j} as {@code |A \u2229 B| / |A \u222A B|}
+         * from the stored intersection counts, or the containment {@code |A \u2229 B| / min(|A|, |B|)} where
+         * {@link FTConfigKey#JACCARD_SIM} is off. When {@code withDescendantCounts} is set, the
+         * recursively accumulated descendant *k*-mer counts extend the two set sizes via the diagonal
          * {@link #getIntersectionCount(SmallTaxTree.SmallTaxIdNode, int, int, boolean) intersection counts}.
-         * Returns {@code 1} when both sets are empty.
+         * <p>
+         * The counts enter unsmoothed. Until 2026-10-12 a Laplace correction added one to the
+         * intersection and to each self-count, to keep the denominator away from zero. It bought that
+         * at the price of a size-dependent bias, because adding one to numerator and denominator moves
+         * a fraction towards one the more, the smaller the counts are. In its worst case it scored two
+         * children of 1,000 *k*-mers with nothing in common at {@code 5.0E-4} and two children of a
+         * million *k*-mers sharing one at {@code 1.0E-6}, so the clustering merged the pair with
+         * nothing in common first. Such a merge takes no *k*-mer of the parent, since a *k*-mer there
+         * occurs in at least two of its children, but it makes the cluster that the sharing pair ends
+         * up in larger than it needs to be, and every *k*-mer assigned to that cluster less specific.
+         * <p>
+         * Returns {@code 0} where the denominator would be zero, which is the only case left: an empty
+         * intersection over non-empty sets divides zero by a positive number and so comes to zero on
+         * its own.
          */
-        // With Laplace correction
         @Override
         public double getJaccardIndex(SmallTaxTree.SmallTaxIdNode parent, int i, int j, boolean withDescendantCounts) {
-            long intersect = getIntersectionCount(parent, i, j, withDescendantCounts) + 1; // "+ 1" is Laplace smoothing
-            long sizeI = getIntersectionCount(parent, i, i, withDescendantCounts) + 1; // "+ 1" is Laplace smoothing
-            long sizeJ = getIntersectionCount(parent, j, j, withDescendantCounts) + 1; // "+ 1" is Laplace smoothing
-            // Both denominators are >= 1 after Laplace smoothing, so no zero-division guard is needed.
+            long shared = getIntersectionCount(parent, i, j, withDescendantCounts);
+            long sizeI = getIntersectionCount(parent, i, i, withDescendantCounts);
+            long sizeJ = getIntersectionCount(parent, j, j, withDescendantCounts);
             if (!jaccardSim) {
                 // How much of the smaller of the two sets the two share. A child whose k-mer set is
                 // small because its assembly is fragmented - sequence missing rather than differing -
                 // is then not pushed away from everything it belongs with, which dividing by the union
                 // does: its union with any well-assembled genome is nearly that genome's whole set.
-                return ((double) intersect) / Math.min(sizeI, sizeJ);
+                long smaller = Math.min(sizeI, sizeJ);
+                return smaller == 0 ? 0 : ((double) shared) / smaller;
             }
-            return ((double) intersect) / (sizeI + sizeJ - intersect);
+            long union = sizeI + sizeJ - shared;
+            return union == 0 ? 0 : ((double) shared) / union;
         }
 
         /**

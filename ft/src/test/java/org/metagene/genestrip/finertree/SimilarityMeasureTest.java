@@ -34,8 +34,8 @@ import org.metagene.genestrip.make.ConfigParamInfo;
  * Pins down what the two similarity measures of {@link FTConfigKey#JACCARD_SIM} do to a pair
  * of children, and therefore why one of them is the default and the other a per-database choice.
  * <p>
- * Both are computed from the same three numbers the intersection counts provide - the shared k-mers
- * and each child's own - with Laplace smoothing applied as {@code getJaccardIndex} applies it. The
+ * Both are computed from the same three numbers the intersection counts provide, the shared k-mers
+ * and each child's own, and the counts enter unsmoothed as {@code getJaccardIndex} takes them. The
  * formulas are repeated here rather than driven through the goal, which needs a database.
  */
 public class SimilarityMeasureTest {
@@ -45,11 +45,12 @@ public class SimilarityMeasureTest {
     private static final boolean CONTAINMENT = false;
 
     private static double similarity(boolean jaccard, long shared, long ownI, long ownJ) {
-        long intersect = shared + 1;
-        long sizeI = ownI + 1;
-        long sizeJ = ownJ + 1;
-        return jaccard ? ((double) intersect) / (sizeI + sizeJ - intersect)
-                : ((double) intersect) / Math.min(sizeI, sizeJ);
+        if (jaccard) {
+            long union = ownI + ownJ - shared;
+            return union == 0 ? 0 : ((double) shared) / union;
+        }
+        long smaller = Math.min(ownI, ownJ);
+        return smaller == 0 ? 0 : ((double) shared) / smaller;
     }
 
     private static String name(boolean jaccard) {
@@ -92,15 +93,50 @@ public class SimilarityMeasureTest {
                 similarity(JACCARD, tiny, huge, tiny) < 1e-5);
     }
 
-    /** Sharing nothing is the least similar either measure can report, and neither divides by zero. */
+    /** Sharing nothing scores zero under either measure, and neither divides by zero. */
     @Test
-    public void testDisjointChildrenAndEmptyChildrenAreSafe() {
+    public void testDisjointChildrenAndEmptyChildrenScoreZero() {
         for (boolean jaccard : new boolean[] { JACCARD, CONTAINMENT }) {
-            double disjoint = similarity(jaccard, 0, 1000, 1000);
-            assertTrue(name(jaccard) + " disjoint", disjoint > 0 && disjoint < 0.01);
-            double empty = similarity(jaccard, 0, 0, 0);
-            assertEquals(name(jaccard) + " both empty", 1.0, empty, EPS);
+            assertEquals(name(jaccard) + " disjoint", 0.0, similarity(jaccard, 0, 1000, 1000), EPS);
+            assertEquals(name(jaccard) + " both empty", 0.0, similarity(jaccard, 0, 0, 0), EPS);
+            assertEquals(name(jaccard) + " one empty", 0.0, similarity(jaccard, 0, 0, 1000), EPS);
         }
+    }
+
+    /**
+     * A pair that shares nothing never outranks a pair that shares something, whatever the set sizes.
+     * <p>
+     * This is what dropping the Laplace smoothing is for. It added one to the intersection and to each
+     * self-count, which moves a fraction towards one the more, the smaller the counts are. Two
+     * children of 1,000 k-mers with nothing in common came to 5.0E-4 and two children of a million
+     * k-mers sharing one to 1.0E-6, so the clustering merged the pair with nothing in common some 500
+     * times earlier. That merge takes no k-mer of the parent, since a k-mer there occurs in at least
+     * two of its children, but it makes the cluster the sharing pair ends up in larger than it needs
+     * to be, and every k-mer assigned to that cluster less specific.
+     */
+    @Test
+    public void testAnEmptyIntersectionNeverOutranksASharedKMer() {
+        for (boolean jaccard : new boolean[] { JACCARD, CONTAINMENT }) {
+            double empty = similarity(jaccard, 0, 1_000, 1_000);
+            double shared = similarity(jaccard, 1, 1_000_000, 1_000_000);
+            assertTrue(name(jaccard) + " one shared k-mer counts", shared > 0);
+            assertTrue(name(jaccard) + " empty ranks last", empty < shared);
+        }
+    }
+
+    /**
+     * The unsmoothed index is the textbook one, so the two measures reach their extremes exactly.
+     * <p>
+     * With the smoothing neither did: two identical children of 1,000 k-mers scored 1001/1001 = 1 by
+     * luck of the formula, while two of 1,000 and 10 sharing all ten came to 11/1001 under Jaccard
+     * rather than 10/1000.
+     */
+    @Test
+    public void testTheMeasuresAreExactAtTheirExtremes() {
+        assertEquals("jaccard identity", 1.0, similarity(JACCARD, 1_000, 1_000, 1_000), EPS);
+        assertEquals("containment identity", 1.0, similarity(CONTAINMENT, 1_000, 1_000, 1_000), EPS);
+        assertEquals("jaccard subset", 10.0 / 1_000, similarity(JACCARD, 10, 1_000, 10), EPS);
+        assertEquals("containment subset", 1.0, similarity(CONTAINMENT, 10, 1_000, 10), EPS);
     }
 
     /** Containment is never below Jaccard, since the smaller set is never larger than the union. */
