@@ -1,0 +1,62 @@
+name: Pages
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; do not cancel a running one half-way.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      # One navigable set of docs across base, core and ft, in target/site/apidocs.
+      - name: Javadoc
+        run: mvn -B -ntp -DskipTests javadoc:aggregate
+
+      - uses: actions/configure-pages@v5
+
+      # Renders README.md, Goals.md, ConfigParams.md, CSVColumns.md and ft/*.md
+      # the same way GitHub Pages does today; _config.yml keeps the sources out.
+      - name: Render the markdown documentation
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: .
+          destination: ./_site
+
+      - name: Add the javadoc under /javadoc
+        run: |
+          mkdir -p _site/javadoc
+          cp -r target/site/apidocs/. _site/javadoc/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./_site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
