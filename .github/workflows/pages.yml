@@ -42,10 +42,13 @@ jobs:
           source: .
           destination: ./_site
 
+      # jekyll-build-pages is a container action and leaves _site owned by root,
+      # so this step needs sudo and hands the tree back to the runner afterwards.
       - name: Add the javadoc under /javadoc
         run: |
-          mkdir -p _site/javadoc
-          cp -r target/site/apidocs/. _site/javadoc/
+          sudo mkdir -p _site/javadoc
+          sudo cp -r target/site/apidocs/. _site/javadoc/
+          sudo chown -R "$(id -u):$(id -g)" _site
 
       - uses: actions/upload-pages-artifact@v3
         with:
