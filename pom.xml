@@ -200,6 +200,13 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.6.3</version>
+                <configuration>
+                    <!-- Applies to the per-module javadoc jars and to `javadoc:aggregate',
+                         which builds the API documentation published to GitHub Pages. -->
+                    <doctitle>Genestrip ${project.version} API</doctitle>
+                    <windowtitle>Genestrip ${project.version} API</windowtitle>
+                    <quiet>true</quiet>
+                </configuration>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>

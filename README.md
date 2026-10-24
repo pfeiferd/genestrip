@@ -435,6 +435,8 @@ from a project's `additional.txt` file.
 
 An API-based invocation of the goals `match` and `filter` is straight-forward: Please check out the test class [`org.metagene.genestrip.APITest`](core/src/test/java/org/metagene/genestrip/APITest.java) in the folder `src/test/java` as a code example.
 
+The [API documentation](https://pfeiferd.github.io/genestrip/javadoc/) covers the modules `base`, `core` and `ft`. It is generated from the sources of the `master` branch on every push.
+
 #### Asking which assemblies are complete
 
 Some work needs to know how finished the assembly behind a genome is -- selecting the genomes that may
