@@ -317,9 +317,10 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
                         + " accession in the RefSeq categories " + ignored + ": their genomes are chromosomes and"
                         + " scaffolds whose accessions do not tell which assembly they belong to. All sequences of"
                         + " one taxon there are taken for one genome, which holds as RefSeq carries one assembly"
-                        + " per eukaryotic taxon; its genome node is named by the tax id. In "
-                        + RefSeqCategory.COMPLETE.getDirectory() + " this applies to the eukaryotic taxa only,"
-                        + " which the accession catalog names.");
+                        + " per eukaryotic taxon; its genome node is named by the tax id."
+                        + (ignored.contains(RefSeqCategory.COMPLETE.getDirectory())
+                        ? " In " + RefSeqCategory.COMPLETE.getDirectory() + " this applies to the eukaryotic"
+                        + " taxa only, which the accession catalog names." : ""));
             }
         }
     }

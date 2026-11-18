@@ -1,0 +1,19 @@
+title: Genestrip
+description: Exact and efficient read classification for selected groups of organisms
+
+# Only the documentation belongs on the site. The sources stay out; the javadoc is
+# added by .github/workflows/pages.yml under /javadoc and must not be processed here.
+exclude:
+  - base/pom.xml
+  - base/src
+  - core
+  - ft/pom.xml
+  - ft/src
+  - bin
+  - data
+  - lib
+  - target
+  - pom.xml
+  - "*.versionsBackup"
+  - "*.iml"
+  - javadoc
