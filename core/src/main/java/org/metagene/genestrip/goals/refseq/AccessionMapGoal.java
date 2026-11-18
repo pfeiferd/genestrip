@@ -53,6 +53,7 @@ import org.metagene.genestrip.tax.Rank;
 import org.metagene.genestrip.tax.TaxNodeSelection;
 import org.metagene.genestrip.tax.TaxTree;
 import org.metagene.genestrip.tax.TaxTree.TaxIdNode;
+import org.metagene.genestrip.util.ByteArrayUtil;
 
 /**
  * Goal that builds the {@link AccessionMap}: it scans the RefSeq release catalog and maps every
@@ -132,6 +133,7 @@ public class AccessionMapGoal<P extends GSProject> extends ObjectGoal<AccessionM
 			private final GenomeKeyTrie admittedGenomes =
 					maxGenomes == Integer.MAX_VALUE ? null : new GenomeKeyTrie();
 			private final AccessionMap map = new AccessionMapTrieImpl(admittedGenomes);
+			private final boolean withComplete = categoriesGoal.get().contains(RefSeqCategory.COMPLETE);
 			// How many genomes each limit node has taken, kept only while the selection is being made.
 			// Keyed by the node rather than by its tax id: the node is in hand, its identity hash is one
 			// read, and a digit trie over tax id strings would buy nothing here - the key is not a byte
@@ -194,6 +196,16 @@ public class AccessionMapGoal<P extends GSProject> extends ObjectGoal<AccessionM
 				if (node != null) {
 					map.put(target, accessionStart, accessionEnd, node);
 					node.incRefSeqContigs();
+					// The release files of `complete' mix all categories, so whether a contig there has
+					// one genome per taxon is read off the catalog: the directories column follows the
+					// accession and names the category proper.
+					if (withComplete && !node.isOneGenomePerTaxon()) {
+						int dirsEnd = ByteArrayUtil.indexOf(target, accessionEnd + 1, target.length, '\t');
+						if (RefSeqCategory.isOneGenomePerTaxonRow(target, accessionEnd + 1,
+								dirsEnd < 0 ? target.length : dirsEnd)) {
+							node.markOneGenomePerTaxon();
+						}
+					}
 					if (admittedGenomes != null) {
 						admit(target, accessionStart, accessionEnd, node);
 					}

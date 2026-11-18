@@ -84,6 +84,10 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	protected TaxIdNode node;
 	/** The FASTA file currently being read. */
 	protected File file;
+	/** Whether {@link #file} is a release file of a category with one genome per taxon. */
+	private boolean oneGenomePerTaxon;
+	/** Whether {@link #file} is a release file of {@link RefSeqCategory#COMPLETE}. */
+	private boolean completeFile;
 
 	/** Whether accession-map lookups are currently bypassed in favor of {@link #mappedNode}. */
 	protected boolean ignoreMap;
@@ -143,7 +147,24 @@ public abstract class AbstractRefSeqFastaReader extends AbstractFastaReader {
 	 */
 	public void readFasta(File file) throws IOException {
 		this.file = file;
+		RefSeqCategory cat = RefSeqCategory.fromFileName(file.getName());
+		oneGenomePerTaxon = isRefSeqReleaseContig() && cat != null && cat.isOneGenomePerTaxon();
+		completeFile = isRefSeqReleaseContig() && cat == RefSeqCategory.COMPLETE;
 		super.readFasta(file);
+	}
+
+	/**
+	 * Returns whether {@code genomeNodes} takes the current contig's genome to be its taxon, rather
+	 * than reading it from the accession. So it does for the release files of the categories that are
+	 * {@link RefSeqCategory#isOneGenomePerTaxon()}, and in the release files of
+	 * {@link RefSeqCategory#COMPLETE} for the taxa the catalog marked so - see
+	 * {@link TaxIdNode#isOneGenomePerTaxon()}. A project's own fasta is never one of those, whatever it
+	 * is called. The genome node's name is then the tax id of {@link #node}.
+	 *
+	 * @return whether the current contig's genome is its taxon
+	 */
+	protected final boolean isOneGenomePerTaxon() {
+		return oneGenomePerTaxon || (completeFile && node.isOneGenomePerTaxon());
 	}
 
 	/**

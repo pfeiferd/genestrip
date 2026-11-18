@@ -124,12 +124,18 @@ public abstract class AbstractUpdateFastaReader extends AbstractStoreFastaReader
                 }
                 if (genomeNodes) {
                     if (Rank.GENOME.ordinal() != leafNode.getRankOrdinal()) {
-                        int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
-                        if (pos < 0) {
-                            pos = size;
+                        SmallTaxTree.SmallTaxIdNode h;
+                        if (isOneGenomePerTaxon()) {
+                            // Named by its taxon, as ReworkingStoreFastaReader created it.
+                            h = leafNode.getDescendantWithName(node.getTaxId());
+                        } else {
+                            int pos = ByteArrayUtil.indexOf(target, 0, size, ' ');
+                            if (pos < 0) {
+                                pos = size;
+                            }
+                            int keyEnd = 1 + GenomeKeyTrie.genomeKeyLength(target, 1, pos);
+                            h = leafNode.getDescendantWithName(target, 1, keyEnd);
                         }
-                        int keyEnd = 1 + GenomeKeyTrie.genomeKeyLength(target, 1, pos);
-                        SmallTaxTree.SmallTaxIdNode h = leafNode.getDescendantWithName(target, 1, keyEnd);
                         if (h != null) {
                             leafNode = h;
                             return;

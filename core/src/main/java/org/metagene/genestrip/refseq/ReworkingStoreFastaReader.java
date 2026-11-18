@@ -186,10 +186,18 @@ public abstract class ReworkingStoreFastaReader extends AbstractStoreFastaReader
 			}
 		}
 		if (genomeNodes && Rank.GENOME.ordinal() != res.getRankOrdinal()) {
-			int pos = accessionEnd();
-			int keyEnd = 1 + GenomeKeyTrie.genomeKeyLength(target, 1, pos);
-			TaxIdNode child = createNodes ? taxTree.genomeNode(res, target, 1, pos, idStringGenerator)
-					: res.getChildWithName(target, 1, keyEnd);
+			TaxIdNode child;
+			if (isOneGenomePerTaxon()) {
+				// The accession does not tell the genome here, the taxon does - the one the contig
+				// resolved to, before any fold.
+				String key = node.getTaxId();
+				child = createNodes ? taxTree.genomeNode(res, key, idStringGenerator) : res.getChildWithName(key);
+			} else {
+				int pos = accessionEnd();
+				int keyEnd = 1 + GenomeKeyTrie.genomeKeyLength(target, 1, pos);
+				child = createNodes ? taxTree.genomeNode(res, target, 1, pos, idStringGenerator)
+						: res.getChildWithName(target, 1, keyEnd);
+			}
 			if (child != null) {
 				res = child;
 			}

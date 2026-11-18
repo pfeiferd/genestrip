@@ -416,6 +416,34 @@ public class TaxTree {
 	}
 
 	/**
+	 * Returns the artificial {@code GENOME}-rank child of the given node with the given name, creating
+	 * it (with a freshly generated artificial tax id) if it does not yet exist. Thread-safe.
+	 * <p>
+	 * For a genome the accession does not identify, which is then named by its taxon instead; see
+	 * {@code RefSeqCategory#isOneGenomePerTaxon()}.
+	 *
+	 * @param node              the parent node
+	 * @param name              the name of the genome
+	 * @param idStringGenerator generator for the artificial tax id
+	 * @return the genome child node
+	 */
+	public TaxIdNode genomeNode(TaxIdNode node, String name, IDStringGenerator idStringGenerator) {
+		TaxIdNode substitute = node.getChildWithName(name);
+		if (substitute == null) {
+			synchronized (node) {
+				substitute = node.getChildWithName(name);
+				if (substitute == null) {
+					substitute = taxIdNodeTrie.get(idStringGenerator.generateID(nextArtCounter.getAndIncrement()), true);
+					substitute.rank = (short) Rank.GENOME.ordinal();
+					substitute.name = name;
+					node.addSubNode(substitute);
+				}
+			}
+		}
+		return substitute;
+	}
+
+	/**
 	 * Recomputes the {@code position} of every node by a fresh depth-first traversal.
 	 */
 	public void reinitPositions() {
@@ -482,6 +510,8 @@ public class TaxTree {
 		private boolean required;
 		/** The number of RefSeq contigs associated with this node and its descendants. */
 		private int refSeqContigs;
+		/** Whether the catalog files this taxon's sequences under a category with one genome per taxon. */
+		private boolean oneGenomePerTaxon;
 
 		/**
 		 * Creates a node with the given tax id and no rank.
@@ -621,6 +651,23 @@ public class TaxTree {
 			for (TaxIdNode node = this; node != null; node = node.parent) {
 				node.refSeqContigs++;
 			}
+		}
+
+		/**
+		 * Marks this taxon as one whose sequences the catalog files under a category with one genome
+		 * per taxon; see {@code RefSeqCategory#isOneGenomePerTaxonRow(byte[], int, int)}.
+		 */
+		public void markOneGenomePerTaxon() {
+			oneGenomePerTaxon = true;
+		}
+
+		/**
+		 * Returns whether this taxon is marked by {@link #markOneGenomePerTaxon()}.
+		 *
+		 * @return whether this taxon has one genome per taxon
+		 */
+		public boolean isOneGenomePerTaxon() {
+			return oneGenomePerTaxon;
 		}
 
 		/**

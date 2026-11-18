@@ -299,6 +299,32 @@ public abstract class FastaReaderGoal<T, P extends GSProject> extends ObjectGoal
     }
 
     /**
+     * Warns if {@code genomeNodes=true} is set while the RefSeq release is read for a category whose
+     * accessions do not identify genomes. The readers take all sequences of a taxon there for one
+     * genome; see {@link RefSeqCategory#isOneGenomePerTaxon()}.
+     */
+    protected void warnGenomeNodes() {
+        if (isIncludeRefSeqFna() && booleanConfigValue(GSConfigKey.GENOME_NODES) && getLogger().isWarnEnabled()) {
+            List<String> ignored = new ArrayList<>();
+            for (RefSeqCategory cat : categoriesGoal.get()) {
+                if (cat.isOneGenomePerTaxon() || cat == RefSeqCategory.COMPLETE) {
+                    ignored.add(cat.getDirectory());
+                }
+            }
+            if (!ignored.isEmpty()) {
+                Collections.sort(ignored);
+                getLogger().warn(GSConfigKey.GENOME_NODES.getName() + "=true cannot tell genomes apart by"
+                        + " accession in the RefSeq categories " + ignored + ": their genomes are chromosomes and"
+                        + " scaffolds whose accessions do not tell which assembly they belong to. All sequences of"
+                        + " one taxon there are taken for one genome, which holds as RefSeq carries one assembly"
+                        + " per eukaryotic taxon; its genome node is named by the tax id. In "
+                        + RefSeqCategory.COMPLETE.getDirectory() + " this applies to the eukaryotic taxa only,"
+                        + " which the accession catalog names.");
+            }
+        }
+    }
+
+    /**
      * Hook invoked once all FASTA files have been read; the default implementation does nothing.
      *
      * @param contigsPerTaxid the trie tracking how many contigs were seen per taxid

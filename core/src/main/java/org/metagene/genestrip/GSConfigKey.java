@@ -414,7 +414,12 @@ public enum GSConfigKey implements ConfigKey {
 			+ "genomes arrive one to a file -- assemblies fetched from Genbank, or fastas supplied with the "
 			+ "project. Against the RefSeq release archives, each holding many genomes of many taxa, it puts "
 			+ "every genome of a taxon that shares an archive on one node. This key does not depend on how "
-			+ "the fastas were obtained. BEWARE: This may cause a database build to fail as only up to 32767 "
+			+ "the fastas were obtained. Eukaryotic chromosomes and scaffolds share no prefix, so in the release "
+			+ "files of `fungi`, `invertebrate`, `plant`, `protozoa` and `vertebrate_*` all sequences of one "
+			+ "taxon are taken for one genome, named by its tax id, and the build says so in a warning: RefSeq "
+			+ "carries one assembly per eukaryotic taxon. In those of `complete` the same holds for the "
+			+ "eukaryotic taxa, which the accession catalog names. "
+			+ "BEWARE: This may cause a database build to fail as only up to 32767 "
 			+ "tax ids are allowed.")
 	GENOME_NODES("genomeNodes", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
 	/** Whether lowercase bases are accepted for k-mers. */

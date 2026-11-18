@@ -187,6 +187,13 @@ public class FillBloomFilterGoal<P extends GSProject> extends FastaReaderGoal<Fi
     }
 
     @Override
+    protected void startMake() {
+        // This goal creates the genome nodes, so it says here, before its dependencies run, where
+        // it will not.
+        warnGenomeNodes();
+    }
+
+    @Override
     protected void doMakeThis() {
         FillSizeGoal.KMerCounts counts = sizeGoal.get();
         GSConfigKey.BloomFilterSizing sizing = (GSConfigKey.BloomFilterSizing) configValue(GSConfigKey.BLOOM_FILTER_SIZING);
