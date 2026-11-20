@@ -26,7 +26,6 @@ package org.metagene.genestrip.tax;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,26 +33,18 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import me.tongfei.progressbar.ProgressBar;
-import org.metagene.genestrip.io.BufferedLineReader;
-import org.metagene.genestrip.io.StreamProvider;
-import org.metagene.genestrip.io.StreamingFileResource;
-import org.metagene.genestrip.io.StreamingResource;
 import org.metagene.genestrip.refseq.GenomeKeyTrie;
 import org.metagene.genestrip.util.ByteArrayUtil;
 import org.metagene.genestrip.util.DigitTrie;
-import org.metagene.genestrip.util.progressbar.GSProgressBarCreator;
 
 /**
- * The NCBI taxonomy tree, built from the {@code nodes.dmp} and {@code names.dmp} dump
- * files. Nodes are looked up by tax id via an internal trie. The tree supports
+ * The taxonomy tree, read from files in a {@link TaxTreeFormat}, by default the NCBI taxonomy dump
+ * ({@link NCBITaxTreeFormat}). Nodes are looked up by tax id via an internal trie. The tree supports
  * ancestor and lowest-common-ancestor queries and can create artificial child nodes
  * (data, file and id nodes) used to track where k-mers originate from. It can be
  * converted into a compact {@link SmallTaxTree} for use during matching.
  */
 public class TaxTree {
-	private static final int MAX_LINE_SIZE = 4096;
-
 	// Atomic so concurrent reader threads (each synchronizing on a different parent node when
 	// creating data/file/id nodes) cannot lose updates and generate duplicate artificial ids.
 	private final AtomicInteger nextArtCounter = new AtomicInteger(1);
@@ -75,45 +66,38 @@ public class TaxTree {
 		}
 	};
 
-	/** File name of the NCBI taxonomy nodes dump. */
-	public static final String NODES_DMP = "nodes.dmp";
-	/** File name of the NCBI taxonomy names dump. */
-	public static final String NAMES_DMP = "names.dmp";
+	/** File name of the NCBI taxonomy nodes dump; see {@link NCBITaxTreeFormat#NODES_DMP}. */
+	public static final String NODES_DMP = NCBITaxTreeFormat.NODES_DMP;
+	/** File name of the NCBI taxonomy names dump; see {@link NCBITaxTreeFormat#NAMES_DMP}. */
+	public static final String NAMES_DMP = NCBITaxTreeFormat.NAMES_DMP;
 
 	private final TaxIdNode root;
 	private final TaxIdNodeTrie taxIdNodeTrie;
 
 	/**
-	 * Loads the taxonomy tree from the {@code nodes.dmp} and {@code names.dmp} files
+	 * Loads the taxonomy tree from the NCBI taxonomy dump ({@code nodes.dmp} and {@code names.dmp})
 	 * located in the given directory.
 	 *
 	 * @param path        directory containing the NCBI taxonomy dump files
 	 * @param progressBar whether to show a progress bar while reading the files
 	 */
 	public TaxTree(File path, boolean progressBar) {
+		this(path, progressBar, new NCBITaxTreeFormat());
+	}
+
+	/**
+	 * Loads the taxonomy tree from the files in the given directory, read in the given format.
+	 *
+	 * @param path        directory containing the taxonomy files
+	 * @param progressBar whether to show a progress bar while reading the files
+	 * @param format      the format of the taxonomy files
+	 */
+	public TaxTree(File path, boolean progressBar, TaxTreeFormat format) {
 		try {
 			taxIdNodeTrie = new TaxIdNodeTrie();
-			File nodesFile = new File(path, NODES_DMP);
-			File namesFile = new File(path, NAMES_DMP);
-			if (progressBar) {
-				try (StreamingResource.StreamAccess sa = new StreamingFileResource(nodesFile, true).openStream()) {
-					try (ProgressBar pb = GSProgressBarCreator.newGSProgressBar("taxnodes", sa, null, true)) {
-						root = readNodesFromStream(sa.getInputStream());
-					}
-				}
-				try (StreamingResource.StreamAccess sa = new StreamingFileResource(namesFile, true).openStream()) {
-					try (ProgressBar pb = GSProgressBarCreator.newGSProgressBar("taxnames", sa, null, true)) {
-						readNamesFromStream(sa.getInputStream());
-					}
-				}
-			}
-			else {
-				try (InputStream is = StreamProvider.getInputStreamForFile(nodesFile)) {
-					root = readNodesFromStream(is);
-				}
-				try (InputStream is = StreamProvider.getInputStreamForFile(namesFile)) {
-					readNamesFromStream(is);
-				}
+			root = format.read(path, new Builder(), progressBar);
+			if (root == null) {
+				throw new IllegalStateException("No root node in the taxonomy files of " + path);
 			}
 
 			root.initPositions(0, 0);
@@ -201,73 +185,6 @@ public class TaxTree {
 		}
 		// a == b now: their common ancestor, or null if the two nodes live in different trees.
 		return a;
-	}
-
-	/**
-	 * Reads a {@code names.dmp} stream and assigns names to the already loaded nodes,
-	 * preferring scientific names.
-	 *
-	 * @param stream the {@code names.dmp} input stream to read
-	 * @throws IOException if reading the stream fails
-	 */
-	protected void readNamesFromStream(InputStream stream) throws IOException {
-		try (BufferedLineReader br = new BufferedLineReader(stream)) {
-			int size;
-			byte[] target = new byte[MAX_LINE_SIZE];
-
-			while ((size = br.nextLine(target)) > 0) {
-				boolean scientific = ByteArrayUtil.indexOf(target, 0, size, "scientific name") != -1;
-				int a = ByteArrayUtil.indexOf(target, 0, size, '|');
-				int b = ByteArrayUtil.indexOf(target, a + 1, size, '|');
-				if (a != -1 && b != -1) {
-					TaxIdNode node = taxIdNodeTrie.get(target, 0, a - 1);
-					if (node != null) {
-						String name = new String(target, a + 2, b - a - 3, StandardCharsets.UTF_8);
-						if (node.name == null || scientific) {
-							node.name = name;
-						}
-					}
-				}
-			}
-		}
-	}
-
-	/**
-	 * Reads a {@code nodes.dmp} stream, creating nodes, linking them to their parents
-	 * and setting their ranks.
-	 *
-	 * @param stream the {@code nodes.dmp} input stream to read
-	 * @return the root node (tax id "1")
-	 * @throws IOException if reading the stream fails
-	 */
-	protected TaxIdNode readNodesFromStream(InputStream stream) throws IOException {
-		TaxIdNode res = null;
-		int size;
-		byte[] target = new byte[MAX_LINE_SIZE];
-
-		try (BufferedLineReader br = new BufferedLineReader(stream)) {
-			while ((size = br.nextLine(target)) > 0) {
-				int a = ByteArrayUtil.indexOf(target, 0, size, '|');
-				int b = ByteArrayUtil.indexOf(target, a + 1, size, '|');
-				int c = ByteArrayUtil.indexOf(target, b + 1, size, '|');
-				if (a != -1 && b != -1) {
-					TaxIdNode nodeA = taxIdNodeTrie.get(target, 0, a - 1, true);
-					TaxIdNode nodeB = taxIdNodeTrie.get(target, a + 2, b - 1, true);
-
-					if (nodeA != nodeB) {
-						nodeB.addSubNode(nodeA);
-					}
-					Rank r = Rank.getRankFromBytes(target, b + 2, c - 1);
-					nodeA.rank = (short) (r == null ? -1 : r.ordinal());
-
-					if (nodeA == nodeB && "1".equals(nodeA.taxId)) {
-						res = nodeA;
-					}
-				}
-			}
-		}
-
-		return res;
 	}
 
 	/**
@@ -747,6 +664,70 @@ public class TaxTree {
 		@Override
 		protected TaxIdNode createInGet(String digits, Object createContext) {
 			return new TaxIdNode(digits, null);
+		}
+	}
+
+	/**
+	 * Builds the nodes of a tree while a {@link TaxTreeFormat} reads its files, so that a format
+	 * needs no access to the internals of {@link TaxIdNode}. Only the tree hands out instances.
+	 */
+	public final class Builder {
+		private Builder() {
+		}
+
+		/**
+		 * Returns the node with the tax id given by the byte sub-array range, optionally creating it.
+		 *
+		 * @param seq    the byte array holding the tax id
+		 * @param start  the start index (inclusive)
+		 * @param end    the end index (exclusive)
+		 * @param create whether to create the node if it does not exist yet
+		 * @return the node, or {@code null} if it does not exist and {@code create} is {@code false}
+		 */
+		public TaxIdNode getNode(byte[] seq, int start, int end, boolean create) {
+			// Any non-null context makes the trie create the node, Boolean.FALSE included.
+			return taxIdNodeTrie.get(seq, start, end, create ? Boolean.TRUE : null);
+		}
+
+		/**
+		 * Returns the node with the given tax id, optionally creating it.
+		 *
+		 * @param taxId  the tax id
+		 * @param create whether to create the node if it does not exist yet
+		 * @return the node, or {@code null} if it does not exist and {@code create} is {@code false}
+		 */
+		public TaxIdNode getNode(String taxId, boolean create) {
+			return taxIdNodeTrie.get(taxId, create ? Boolean.TRUE : null);
+		}
+
+		/**
+		 * Makes {@code child} a child of {@code parent}.
+		 *
+		 * @param parent the parent node
+		 * @param child  the child node
+		 */
+		public void addSubNode(TaxIdNode parent, TaxIdNode child) {
+			parent.addSubNode(child);
+		}
+
+		/**
+		 * Sets the rank of the node.
+		 *
+		 * @param node the node
+		 * @param rank the rank, or {@code null} if unknown
+		 */
+		public void setRank(TaxIdNode node, Rank rank) {
+			node.rank = (short) (rank == null ? -1 : rank.ordinal());
+		}
+
+		/**
+		 * Sets the name of the node.
+		 *
+		 * @param node the node
+		 * @param name the name
+		 */
+		public void setName(TaxIdNode node, String name) {
+			node.name = name;
 		}
 	}
 

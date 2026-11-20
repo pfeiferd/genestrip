@@ -133,7 +133,7 @@ The Genestrip installation holds additional folders that include the sample proj
 in order to generate the `human_virus` database and create a CSV file with basic information about the database content.
 
 Genestrip follows a goal-oriented approach in order to create any result files (in similarity to [make](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/make.html)). So, when generating the `human_virus` database, Genestrip will
-1. download the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip) and unzip it to `./data/common`,
+1. download the [taxonomy](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip) to `./data/common` (it is read from the zip file as it is),
 1. download the [RefSeq release catalog](https://ftp.ncbi.nlm.nih.gov/refseq/release/release-catalog/) to `./data/common/refseq`,
 1. download [all virus related RefSeq fna files](https://ftp.ncbi.nlm.nih.gov/refseq/release/viral/) to `./data/commmon/refseq` (which is currently just a single file),
 1. perform several follow-up goals, until the database file `human_virus_db.zip` is finally made under `./data/projects/human_virus/db`, 

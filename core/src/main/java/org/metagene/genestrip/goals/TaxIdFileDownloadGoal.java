@@ -25,36 +25,30 @@
 package org.metagene.genestrip.goals;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import org.metagene.genestrip.GSGoalKey;
 import org.metagene.genestrip.GSProject;
-import org.metagene.genestrip.io.StreamProvider;
 import org.metagene.genestrip.make.Goal;
-import org.metagene.genestrip.tax.TaxTree;
+import org.metagene.genestrip.tax.NCBITaxTreeFormat;
 
 /**
- * Downloads the NCBI taxonomy dump ({@code taxdmp.zip}) and extracts {@code nodes.dmp} and {@code names.dmp}
- * into the common directory.
+ * Downloads the NCBI taxonomy dump ({@code taxdmp.zip}) into the common directory. The tree is read
+ * straight from the archive (see {@link NCBITaxTreeFormat}), so nothing is extracted.
  *
  * @param <P> the project type
  */
 public class TaxIdFileDownloadGoal<P extends GSProject> extends GSFileDownloadGoal<P> {
 	/** File name of the NCBI taxonomy dump archive. */
-	public static final String TAX_DMP_ZIP = "taxdmp.zip";
+	public static final String TAX_DMP_ZIP = NCBITaxTreeFormat.TAX_DMP_ZIP;
 	/** FTP directory on the NCBI server holding the taxonomy dump. */
 	public static final String FTP_DIR = "/pub/taxonomy";
 
 	private final List<File> files;
 
 	/**
-	 * Creates the goal that downloads and extracts the NCBI taxonomy dump files.
+	 * Creates the goal that downloads the NCBI taxonomy dump.
 	 *
 	 * @param project the project
 	 * @param deps    the goals this goal depends on
@@ -62,9 +56,7 @@ public class TaxIdFileDownloadGoal<P extends GSProject> extends GSFileDownloadGo
 	@SafeVarargs
 	public TaxIdFileDownloadGoal(P project, Goal<P>... deps) {
 		super(project, GSGoalKey.TAXDOWNLOAD, deps);
-		files = new ArrayList<File>();
-		files.add(new File(getProject().getCommon().getCommonDir(), TaxTree.NODES_DMP));
-		files.add(new File(getProject().getCommon().getCommonDir(), TaxTree.NAMES_DMP));
+		files = Collections.singletonList(new File(getProject().getCommon().getCommonDir(), TAX_DMP_ZIP));
 	}
 
 	@Override
@@ -75,56 +67,5 @@ public class TaxIdFileDownloadGoal<P extends GSProject> extends GSFileDownloadGo
 	@Override
 	protected String getFTPDir(File file) {
 		return FTP_DIR;
-	}
-
-	@Override
-	protected void doCleanThis() {
-		super.doCleanThis();
-		File zipFile = new File(getProject().getCommon().getCommonDir(), TAX_DMP_ZIP);
-		if (zipFile.exists()) {
-			zipFile.delete();
-		}
-	}
-
-	@Override
-	protected void makeFile(File file) throws IOException {
-		File zipFile = new File(getProject().getCommon().getCommonDir(), TAX_DMP_ZIP);
-
-		if (zipFile.exists() && zipFile.length() == 0) {
-			if (getLogger().isInfoEnabled()) {
-				getLogger().info("Deleting file " + zipFile.toString());
-			}
-			zipFile.delete();
-		}
-		if (!zipFile.exists()) {
-			if (isUseHttp()) {
-				httpDownload(zipFile);
-			} else {
-				ftpDownload(getFtpClient(), zipFile);
-			}
-		}
-
-		if (getLogger().isDebugEnabled()) {
-			getLogger().debug("Extracting file " + zipFile.toString());
-		}
-		try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile))) {
-			byte[] buffer = new byte[1024];
-			for (ZipEntry zipEntry = zis.getNextEntry(); zipEntry != null; zipEntry = zis.getNextEntry()) {
-				String entryName = zipEntry.getName();
-				if (entryName.equals(file.getName())) {
-					if (getLogger().isDebugEnabled()) {
-						getLogger().debug("Saving file " + file.toString());
-					}
-					try (OutputStream out = StreamProvider.getOutputStreamForFile(file)) {
-						int len;
-						while ((len = zis.read(buffer)) > 0) {
-							out.write(buffer, 0, len);
-						}
-					}
-				}
-			}
-
-			zis.closeEntry();
-		}
 	}
 }
