@@ -396,10 +396,10 @@ public enum GSConfigKey implements ConfigKey {
 	/** Whether to add artificial DATA-rank nodes as intermediate children of tax ids. */
 	@MDDescription("Whether to add artificial nodes of rank `DATA` in the taxonomy tree as intermediate children of tax id nodes when filling the database. "
 			+ "K-mers are then assigned to these intermediate DATA nodes rather than directly to the tax id, enabling finer-grained attribution within a taxon. "
-			+ "Analogous to `idNodes` and `fileNodes`. BEWARE: This may cause a database build to fail as only up to 32767 tax ids are allowed.")
+			+ "Analogous to `idNodes` and `fileNodes`. BEWARE: Every node that receives *k*-mers takes one of the *k*-mer store's values, and their number is capped: at `2^(radixStoreBits + 1)` in the default `RadixKMerStore` (262,144 at the default `radixStoreBits=17`) and at 65,535 with `sortedArrayStore`. A database build that needs more values fails.")
 	DATA_NODES("dataNodes", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
 	/** Whether to add artificial tax nodes for ids from fasta info lines. */
-	@MDDescription("Whether to add artificial nodes in the tax tree to represent ids after '>' from fasta info lines for *k*-mers. BEWARE: This may cause a database build to fail as only up to 32767 tax ids are allowed.")
+	@MDDescription("Whether to add artificial nodes in the tax tree to represent ids after '>' from fasta info lines for *k*-mers. BEWARE: Every node that receives *k*-mers takes one of the *k*-mer store's values, and their number is capped: at `2^(radixStoreBits + 1)` in the default `RadixKMerStore` (262,144 at the default `radixStoreBits=17`) and at 65,535 with `sortedArrayStore`. A database build that needs more values fails.")
 	ID_NODES("idNodes", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
 	/** Whether to add artificial tax nodes representing fasta files. */
 	@MDDescription("Whether to add artificial nodes in the tax tree to represent fasta files for *k*-mers.")
@@ -419,8 +419,7 @@ public enum GSConfigKey implements ConfigKey {
 			+ "taxon are taken for one genome, named by its tax id, and the build says so in a warning: RefSeq "
 			+ "carries one assembly per eukaryotic taxon. In those of `complete` the same holds for the "
 			+ "eukaryotic taxa, which the accession catalog names. "
-			+ "BEWARE: This may cause a database build to fail as only up to 32767 "
-			+ "tax ids are allowed.")
+			+ "BEWARE: Every node that receives *k*-mers takes one of the *k*-mer store's values, and their number is capped: at `2^(radixStoreBits + 1)` in the default `RadixKMerStore` (262,144 at the default `radixStoreBits=17`) and at 65,535 with `sortedArrayStore`. A database build that needs more values fails.")
 	GENOME_NODES("genomeNodes", new BooleanConfigParamInfo(false), false, GSGoalKey.DB),
 	/** Whether lowercase bases are accepted for k-mers. */
 	@MDDescription("Whether to accept lowercase bases for *k*-mers.")
