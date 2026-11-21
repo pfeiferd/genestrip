@@ -34,7 +34,9 @@ import org.metagene.genestrip.make.Goal;
 import org.metagene.genestrip.make.GoalKey;
 import org.metagene.genestrip.make.ObjectGoal;
 import org.metagene.genestrip.match.FastqKMerMatcher;
+import org.metagene.genestrip.match.HitCountingFastqKMerMatcher;
 import org.metagene.genestrip.match.MatchingResult;
+import org.metagene.genestrip.match.SharedFractionEstimator;
 import org.metagene.genestrip.store.Database;
 import org.metagene.genestrip.store.KMerStore;
 import org.metagene.genestrip.tax.SmallTaxTree;
@@ -130,6 +132,8 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 				}
 				MatchingResult res = matcher.runMatcher(fastqs, filteredFile, krakenOutStyleFile);
 				res.completeResults(database);
+				res.estimateSharedFractions(database, new SharedFractionEstimator(res.getK(),
+						doubleConfigValue(GSConfigKey.SHARED_FRACTION_CONFIDENCE)));
 				matchResults.put(key, res);
 				if (afterMatchCallback != null) {
 					afterMatchCallback.afterKey(key, res);
@@ -158,14 +162,35 @@ public class MatchResultGoal<P extends GSProject> extends ObjectGoal<Map<String,
 	 */
 	protected FastqKMerMatcher createMatcher(KMerStore<SmallTaxIdNode> store, SmallTaxTree taxTree,
 			ExecutionContext bundle, boolean withProbs, String dbMD5) {
-		return new FastqKMerMatcher(store, intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES),
-				intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE), bundle, withProbs,
-				taxTree, intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS),
-				doubleConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT),
-				doubleConfigValue(GSConfigKey.MAX_READ_CLASS_ERROR_COUNT),
-				booleanConfigValue(GSConfigKey.WRITE_ALL),
-				intConfigValue(GSConfigKey.MIN_KMERS_FOR_CLASS),
-				dbMD5) {
+		int initialReadSize = intConfigValue(GSConfigKey.INITIAL_READ_SIZE_BYTES);
+		int maxQueueSize = intConfigValue(GSConfigKey.THREAD_QUEUE_SIZE);
+		int maxPaths = intConfigValue(GSConfigKey.MAX_CLASSIFICATION_PATHS);
+		double maxReadTaxErrorCount = doubleConfigValue(GSConfigKey.MAX_READ_TAX_ERROR_COUNT);
+		double maxReadClassErrorCount = doubleConfigValue(GSConfigKey.MAX_READ_CLASS_ERROR_COUNT);
+		boolean writeAll = booleanConfigValue(GSConfigKey.WRITE_ALL);
+		int threshold = intConfigValue(GSConfigKey.MIN_KMERS_FOR_CLASS);
+		// The overrides below are the same for both matchers; anonymous classes cannot share them.
+		if (intConfigValue(GSConfigKey.KMER_HIT_COUNTER_BITS) == 2) {
+			return new HitCountingFastqKMerMatcher(store, initialReadSize, maxQueueSize, bundle, withProbs, taxTree,
+					maxPaths, maxReadTaxErrorCount, maxReadClassErrorCount, writeAll, threshold, dbMD5) {
+				@Override
+				protected boolean isOwnUniqueKMerBits() {
+					return booleanConfigValue(GSConfigKey.PARALLEL_DB_MATCHING);
+				}
+
+				@Override
+				protected boolean isProgressBar() {
+					return booleanConfigValue(GSConfigKey.PROGRESS_BAR);
+				}
+
+				@Override
+				protected String getProgressBarTaskName() {
+					return getKey().getName();
+				}
+			};
+		}
+		return new FastqKMerMatcher(store, initialReadSize, maxQueueSize, bundle, withProbs, taxTree, maxPaths,
+				maxReadTaxErrorCount, maxReadClassErrorCount, writeAll, threshold, dbMD5) {
 			@Override
 			protected boolean isOwnUniqueKMerBits() {
 				return booleanConfigValue(GSConfigKey.PARALLEL_DB_MATCHING);

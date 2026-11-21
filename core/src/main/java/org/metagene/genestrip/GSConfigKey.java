@@ -493,6 +493,19 @@ public enum GSConfigKey implements ConfigKey {
 			+ "That leaves the database untouched, so several matching runs can work on one loaded database at the same time - which is the point of the setting. "
 			+ "It costs one bit per stored *k*-mer per run (a database of 400 million *k*-mers needs about 48 MB) and one extra memory access per matched *k*-mer, so leave it off unless runs really do share a database.")
 	PARALLEL_DB_MATCHING("parallelDbMatching", new BooleanConfigParamInfo(false), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
+	/** The number of bits per stored k-mer a matching run counts its hits with. */
+	@MDDescription("The number of bits per stored *k*-mer that a matching run counts its hits with, `1` or `2`. "
+			+ "With `1`, a *k*-mer is only marked as hit, as before, and `shared fraction` is estimated from `kmers` and `unique kmers`. "
+			+ "With `2`, a counter per *k*-mer stops at three. It yields the columns `kmers hit once` and `kmers hit twice` and Chao's estimate of `shared fraction`, "
+			+ "which is not thrown off by *k*-mers hit very often, such as those of multi-copy plasmids. "
+			+ "The second bit is taken from the database entry where the database holds at most half the values its layout allows (131,072 at `radixStoreBits=17`). "
+			+ "A database with more values, and a run with `parallelDbMatching=true`, count in a vector of their own at two bits per stored *k*-mer. "
+			+ "See [SharedFraction.md](SharedFraction.md).")
+	KMER_HIT_COUNTER_BITS("kmerHitCounterBits", new IntConfigParamInfo(1, 2, 1), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
+	/** The confidence level of the shared-fraction and evolutionary-distance intervals. */
+	@MDDescription("The confidence level of the intervals from `shared fraction low` to `shared fraction high` and from `evo distance low` to `evo distance high`. "
+			+ "See [SharedFraction.md](SharedFraction.md).")
+	SHARED_FRACTION_CONFIDENCE("sharedFractionConfidence", new DoubleConfigParamInfo(0, 1, 0.95, true), GSGoalKey.MATCH, GSGoalKey.MATCHLR),
 	/** Whether Kraken-style {@code .out} output files are written. */
 	@MDDescription("If `true`, Genestrip will write output files with suffix `.out` in the [Kraken output format](https://ccb.jhu.edu/software/kraken/MANUAL.html#output-format) "
 			+ "under `<base dir>/projects/<project_name>/krakenout` covering all reads with at least one matching *k*-mer.")

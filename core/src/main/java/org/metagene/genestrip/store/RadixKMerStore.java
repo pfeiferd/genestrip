@@ -138,12 +138,27 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	 */
 	private static final long MARK_BIT = 1L << (Long.SIZE - 1);
 
+	/**
+	 * The bit below {@link #MARK_BIT}. While hits are counted (see {@link #setCountHits(boolean)}), the
+	 * two bits form a counter that stops at three: its value is {@code entry >>> COUNTER_SHIFT}. The bit
+	 * is only free while no value index reaches it, see {@link #countFreeValues()}.
+	 */
+	private static final long COUNT_BIT = 1L << (Long.SIZE - 2);
+
+	/** The two entry bits that form the hit counter. */
+	private static final long COUNTER_BITS = MARK_BIT | COUNT_BIT;
+
+	/** The shift that moves the hit counter to the lowest two bits. */
+	private static final int COUNTER_SHIFT = Long.SIZE - 2;
+
 	// Transient: derived from the (serialized) layout fields, so old databases - which predate these
 	// fields - get them recomputed on load rather than deserializing zeros. See readObject().
 	/** Mask selecting the value index once an entry has been shifted down by {@code remainingBits}. */
 	private transient long valueIndexMask;
 	/** Whether lookups through <em>this</em> instance mark the entries they hit; the hot-path flag. */
 	private transient boolean markVisited;
+	/** Whether lookups through <em>this</em> instance count rather than mark, see {@link #setCountHits(boolean)}. */
+	private transient boolean countHits;
 	/**
 	 * Whether any user of this database is marking, shared by every converted copy of the store just
 	 * as the buckets are. The marks live in those shared buckets, so two matchers marking at once
@@ -373,9 +388,50 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		// marks until cleared, buckets are shared with every converted copy of the store, and a copy
 		// that decoded with a wider mask would read a mark as part of the value index.
 		long safeValues = 1L << valueBitsForRadix(radixBits);
-		valueIndexMask = (maxValues <= safeValues || (getNValues() > 0 && getNValues() <= safeValues))
+		long mask = (maxValues <= safeValues || (getNValues() > 0 && getNValues() <= safeValues))
 				? safeValues - 1
 				: ((long) maxValues) - 1;
+		valueIndexMask = narrowForCountBit(mask);
+	}
+
+	/**
+	 * Number of distinct values a store can hold without any value index reaching {@link #COUNT_BIT}.
+	 * The value index starts at bit {@code remainingBits}, so the count bit is its bit
+	 * {@code COUNTER_SHIFT - remainingBits}.
+	 *
+	 * @return the number of values that leave the count bit free
+	 */
+	private long countFreeValues() {
+		return 1L << (COUNTER_SHIFT - remainingBits);
+	}
+
+	/**
+	 * Narrows a value-index mask so that it excludes {@link #COUNT_BIT} whenever the registered values
+	 * provably stay below it. This has to hold from construction on and in every converted copy, not
+	 * just while hits are counted: the copies share the buckets, and a copy decoding with the wider mask
+	 * would read a set count bit as part of the value index.
+	 *
+	 * @param mask the mask before narrowing
+	 * @return the mask to decode value indices with
+	 */
+	private long narrowForCountBit(long mask) {
+		return getNValues() <= countFreeValues() ? Math.min(mask, countFreeValues() - 1) : mask;
+	}
+
+	/**
+	 * Registers a value like the superclass, and settles the value-index mask again afterwards: a value
+	 * registered beyond {@link #countFreeValues()} needs the count bit for its index. Registration is
+	 * single-threaded and done before any concurrent phase.
+	 */
+	@Override
+	public int getAddValueIndex(V value) {
+		int index = super.getAddValueIndex(value);
+		// During the superclass constructor the layout fields are not set yet; the constructor calls
+		// initLayout() itself once they are.
+		if (radixIndex != null) {
+			initLayout();
+		}
+		return index;
 	}
 
 	/**
@@ -441,12 +497,69 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 				return false;
 			}
 			// Values may have been registered since the layout was set up, so settle the mask again.
-			valueIndexMask = safeValues - 1;
-		} else if (this.markVisited) {
-			markClaim.set(false);
+			valueIndexMask = narrowForCountBit(safeValues - 1);
+		} else {
+			if (this.markVisited) {
+				markClaim.set(false);
+			}
+			countHits = false;
 		}
 		this.markVisited = markVisited;
 		return true;
+	}
+
+	/**
+	 * Turns marking into counting: a lookup increments a two-bit counter in the entry, formed by
+	 * {@link #MARK_BIT} and {@link #COUNT_BIT}, that stops at three. Unlike setting a bit, an increment
+	 * must not be lost when two threads hit the same entry at once, so it runs under the lock of the
+	 * entry's radix bucket, which the store also takes when it is filled or updated; an entry never
+	 * leaves its bucket. The lock is only taken while an unlocked read shows the counter below three, so
+	 * each entry is locked at most three times, however often it is hit. A stale unlocked read can only
+	 * show too small a value, since counters never decrease while counting runs.
+	 * <p>
+	 * Counting needs the count bit, which is free only while the store holds at most
+	 * {@link #countFreeValues()} values, and it only takes effect while this instance marks.
+	 *
+	 * @param countHits whether lookups should count rather than mark
+	 * @return whether the requested mode is in effect; {@code false} if counting was requested but this
+	 *         instance does not mark or the store has too many values
+	 */
+	@Override
+	public boolean setCountHits(boolean countHits) {
+		if (countHits && (!markVisited || getNValues() > countFreeValues())) {
+			return false;
+		}
+		this.countHits = countHits;
+		return true;
+	}
+
+	@Override
+	public boolean isCountHits() {
+		return countHits;
+	}
+
+	/**
+	 * Marks or counts a hit on the entry at {@code bucket[pos]}, depending on the mode; only called
+	 * while this instance marks.
+	 *
+	 * @param bucket the entry's bucket
+	 * @param pos    the entry's position in the bucket
+	 * @param entry  the entry as the lookup has just read it
+	 */
+	private void markEntry(final long[] bucket, final int pos, final long entry) {
+		if (countHits) {
+			if ((entry & COUNTER_BITS) != COUNTER_BITS) {
+				synchronized (bucket) {
+					final long current = bucket[pos];
+					final long counter = current >>> COUNTER_SHIFT;
+					if (counter < 3) {
+						bucket[pos] = (current & ~COUNTER_BITS) | ((counter + 1) << COUNTER_SHIFT);
+					}
+				}
+			}
+		} else {
+			bucket[pos] = entry | MARK_BIT;
+		}
 	}
 
 	/**
@@ -461,6 +574,8 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 
 	@Override
 	public void clearVisitedMarks() {
+		// The count bit is cleared too where it is free; otherwise it belongs to the value index.
+		final long clearMask = getNValues() <= countFreeValues() ? ~COUNTER_BITS : ~MARK_BIT;
 		for (int r = 0; r < radixIndex.length; r++) {
 			final long[] bucket = radixIndex[r];
 			if (bucket == null) {
@@ -468,7 +583,42 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 			}
 			final int fill = bucketFill[r];
 			for (int i = 0; i < fill; i++) {
-				bucket[i] &= ~MARK_BIT;
+				bucket[i] &= clearMask;
+			}
+		}
+	}
+
+	/**
+	 * Adds up, per value index, how many of its entries were hit at least once, exactly once and exactly
+	 * twice while counting was on.
+	 *
+	 * @param hit   the per-value-index counters of entries hit at least once; at least {@link #getMaxValues()} long
+	 * @param once  the per-value-index counters of entries hit exactly once; same length
+	 * @param twice the per-value-index counters of entries hit exactly twice; same length
+	 */
+	@Override
+	public void countHitsPerValueIndex(long[] hit, long[] once, long[] twice) {
+		if (getNValues() > countFreeValues()) {
+			throw new IllegalStateException("This store holds too many values to count hits.");
+		}
+		for (int r = 0; r < radixIndex.length; r++) {
+			final long[] bucket = radixIndex[r];
+			if (bucket == null) {
+				continue;
+			}
+			final int fill = bucketFill[r];
+			for (int i = 0; i < fill; i++) {
+				final long entry = bucket[i];
+				final long counter = entry >>> COUNTER_SHIFT;
+				if (counter != 0) {
+					final int index = (int) ((entry >>> remainingBits) & valueIndexMask);
+					hit[index]++;
+					if (counter == 1) {
+						once[index]++;
+					} else if (counter == 2) {
+						twice[index]++;
+					}
+				}
 			}
 		}
 	}
@@ -481,6 +631,9 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 	 */
 	@Override
 	public void countVisitedPerValueIndex(long[] counts) {
+		// A k-mer hit once while counting has only the count bit set. Where that bit is free, it is part
+		// of the mark; otherwise it belongs to the value index and counting never ran.
+		final long visitedBits = getNValues() <= countFreeValues() ? COUNTER_BITS : MARK_BIT;
 		for (int r = 0; r < radixIndex.length; r++) {
 			final long[] bucket = radixIndex[r];
 			if (bucket == null) {
@@ -489,7 +642,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 			final int fill = bucketFill[r];
 			for (int i = 0; i < fill; i++) {
 				final long entry = bucket[i];
-				if ((entry & MARK_BIT) != 0) {
+				if ((entry & visitedBits) != 0) {
 					counts[(int) ((entry >>> remainingBits) & valueIndexMask)]++;
 				}
 			}
@@ -619,7 +772,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 		final long entry = bucket[pos];
 		if (markVisited) {
 			// Reuses the cache line the search just loaded; see setMarkVisited(boolean).
-			bucket[pos] = entry | MARK_BIT;
+			markEntry(bucket, pos, entry);
 		}
 		return indexMap[(int) ((entry >>> remainingBits) & valueIndexMask)];
 	}
@@ -835,7 +988,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 			}
 			final long entry = buckets[i][p];
 			if (markVisited) {
-				buckets[i][p] = entry | MARK_BIT;
+				markEntry(buckets[i], p, entry);
 			}
 			consumer.accept(kmers[i], payload[i], indexMap[(int) ((entry >>> remainingBits) & valueIndexMask)]);
 		}
@@ -874,7 +1027,7 @@ public class RadixKMerStore<V extends Serializable> extends AbstractKMerStore<V>
 			final long position = bucketOffset[(int) (kmers[i] & radixMask)] + p;
 			final long entry = buckets[i][p];
 			if (markVisited) {
-				buckets[i][p] = entry | MARK_BIT;
+				markEntry(buckets[i], p, entry);
 			}
 			consumer.accept(kmers[i], payload[i], indexMap[(int) ((entry >>> remainingBits) & valueIndexMask)], position);
 		}

@@ -58,11 +58,14 @@ public class LargeBitVector implements Serializable {
     private static final int MAX_MIN_BUCKET_BITS = 30;
 
     /**
-     * Maximum base-2 logarithm of the bucket width, i.e. the largest bucket holds {@code 1 << 27}
-     * words. Bounds each bucket's length to a comfortably int-addressable size and caps the outer
-     * array's growth; it also matches the historic bucket width.
+     * Maximum base-2 logarithm of the bucket width, i.e. the largest bucket holds {@code 1 << 17}
+     * words (1 MB). G1 allocates any array of at least half a heap region as a "humongous" object
+     * in whole regions, so a power-of-two bucket of one or two regions plus its 16-byte header wastes
+     * a third to half of its space: 32 MB buckets on 16 MB regions turned a 17.7 GB filter into
+     * 26.5 GB. A 1 MB bucket stays below half a region from 4 MB regions (heaps of 8 GB) upwards.
+     * Vectors deserialized from older files keep the bucket width they were written with.
      */
-    private static final int MAX_BUCKET_SHIFT = 27;
+    private static final int MAX_BUCKET_SHIFT = 17;
 
     /** The capacity in 64-bit words, fixed at construction. */
     private final long size;
@@ -132,9 +135,9 @@ public class LargeBitVector implements Serializable {
      *
      * @param words         the capacity in words (must be positive)
      * @param minBucketBits base-2 logarithm of the desired minimum bucket count
-     * @return the bucket-width exponent to use
+     * @return the bucket-width exponent to use (package-private for tests)
      */
-    private static int computeBucketShift(long words, int minBucketBits) {
+    static int computeBucketShift(long words, int minBucketBits) {
         int wordsLog2 = 63 - Long.numberOfLeadingZeros(words); // floor(log2(words)), words > 0
         int shift = wordsLog2 - minBucketBits;
         if (shift < 0) {
@@ -232,5 +235,51 @@ public class LargeBitVector implements Serializable {
         final long arrayIndex = index >>> 6;
         final long word = largeBits[(int) (arrayIndex >>> bucketShift)][(int) (arrayIndex & bucketMask)];
         return ((word >> (index & 0b111111)) & 1L) == 1;
+    }
+
+    /**
+     * Returns the two-bit counter with the given index, which occupies bits {@code 2 * counterIndex}
+     * (low) and {@code 2 * counterIndex + 1} (high). A vector used this way needs twice as many bits as
+     * it has counters. Both bits lie in the same word, since {@code 2 * counterIndex} is even.
+     *
+     * @param counterIndex the index of the counter
+     * @return the counter's value, in {@code [0, 3]}
+     */
+    public final int getCounter(final long counterIndex) {
+        final long index = counterIndex << 1;
+        final long arrayIndex = index >>> 6;
+        final long word = largeBits[(int) (arrayIndex >>> bucketShift)][(int) (arrayIndex & bucketMask)];
+        return (int) ((word >>> (index & 0b111111)) & 0b11L);
+    }
+
+    /**
+     * Increments the two-bit counter with the given index (see {@link #getCounter(long)}) unless it
+     * holds three already, where it stays. Safe for concurrent use by multiple threads like
+     * {@link #set(long)}: the increment runs under the lock of the bucket that owns the word. A
+     * counter that already holds three is detected by an unlocked read first, so each counter is
+     * locked at most three times however often it is incremented. That read may be stale, but only
+     * ever too small, since counters never decrease while counting runs; a stale read merely costs an
+     * unnecessary lock, under which the counter is read again.
+     *
+     * @param counterIndex the index of the counter
+     * @return the counter's value before this call, in {@code [0, 3]}
+     */
+    public final int incrementCounter(final long counterIndex) {
+        final long index = counterIndex << 1;
+        final int shift = (int) (index & 0b111111);
+        final long arrayIndex = index >>> 6;
+        final long[] bucket = largeBits[(int) (arrayIndex >>> bucketShift)];
+        final int displacement = (int) (arrayIndex & bucketMask);
+        if (((bucket[displacement] >>> shift) & 0b11L) == 0b11L) {
+            return 3;
+        }
+        synchronized (bucket) {
+            final long old = bucket[displacement];
+            final int value = (int) ((old >>> shift) & 0b11L);
+            if (value < 3) {
+                bucket[displacement] = (old & ~(0b11L << shift)) | (((long) value + 1) << shift);
+            }
+            return value;
+        }
     }
 }

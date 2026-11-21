@@ -145,6 +145,22 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
     protected long contigLenSquaredSum;
     /** The maximum contig length in k-mers. */
     protected int maxContigLen;
+    /** The number of the tax id's stored k-mers hit exactly once, or -1 where hits were not counted. */
+    protected long kmersHitOnce = -1;
+    /** The number of the tax id's stored k-mers hit exactly twice, or -1 where hits were not counted. */
+    protected long kmersHitTwice = -1;
+    /** The estimated share of the tax id's stored k-mers that the sample contains, or NaN if not estimated. */
+    protected double sharedFraction = Double.NaN;
+    /** The lower bound of the confidence interval of {@link #sharedFraction}, or NaN. */
+    protected double sharedFractionLow = Double.NaN;
+    /** The upper bound of the confidence interval of {@link #sharedFraction}, or NaN. */
+    protected double sharedFractionHigh = Double.NaN;
+    /** The evolutionary distance derived from {@link #sharedFraction}, or NaN. */
+    protected double evoDistance = Double.NaN;
+    /** The lower bound of the confidence interval of {@link #evoDistance}, or NaN. */
+    protected double evoDistanceLow = Double.NaN;
+    /** The upper bound of the confidence interval of {@link #evoDistance}, or NaN. */
+    protected double evoDistanceHigh = Double.NaN;
     /** The read descriptor of the longest contig. */
     protected final byte[] maxContigDescriptor;
     /** The sum of per-read k-mer error ratios. */
@@ -470,6 +486,101 @@ public class CountsPerTaxid implements Serializable, Comparable<CountsPerTaxid> 
     @MDCDescription(pos = 26, name = "contig len std. dev.", desc = "The standard deviation of the `contig length`.")
     public double getContigLenStdDev() {
         return Math.sqrt((contigLenSquaredSum  - ((double) kmers * kmers) / contigs) / (contigs - 1));
+    }
+
+    /**
+     * Returns the estimated share of the tax id's stored k-mers that the sample contains.
+     *
+     * @return the estimated shared fraction, or NaN if it was not estimated
+     */
+    @MDCDescription(pos = 1005, name = "shared fraction", desc = "The estimated share of the tax id's `db kmers` that the sample contains, corrected for *k*-mers not hit yet for lack of sequencing depth. "
+            + "With `kmerHitCounterBits=1` it is estimated from `kmers` and `unique kmers`, with `kmerHitCounterBits=2` by Chao's estimator from `kmers hit once` and `kmers hit twice`. "
+            + "Only given for tax ids of rank species or below. See [SharedFraction.md](SharedFraction.md).")
+    public double getSharedFraction() {
+        return sharedFraction;
+    }
+
+    /**
+     * Returns the lower bound of the confidence interval of the shared fraction.
+     *
+     * @return the lower bound, or NaN if the shared fraction was not estimated
+     */
+    @MDCDescription(pos = 1006, name = "shared fraction low", desc = "The lower bound of the confidence interval of `shared fraction`, at the level `sharedFractionConfidence`. "
+            + "It covers the scatter of the reads, not the bias of uneven coverage. See [SharedFraction.md](SharedFraction.md).")
+    public double getSharedFractionLow() {
+        return sharedFractionLow;
+    }
+
+    /**
+     * Returns the upper bound of the confidence interval of the shared fraction.
+     *
+     * @return the upper bound, or NaN if the shared fraction was not estimated
+     */
+    @MDCDescription(pos = 1007, name = "shared fraction high", desc = "The upper bound of the confidence interval of `shared fraction`, at the level `sharedFractionConfidence`.")
+    public double getSharedFractionHigh() {
+        return sharedFractionHigh;
+    }
+
+    /**
+     * Returns the estimated number of the tax id's stored k-mers the sample lacks.
+     *
+     * @return the estimated number of missing k-mers, or {@code null} if the shared fraction was not estimated
+     */
+    @MDCDescription(pos = 1008, name = "missing kmers", desc = "The estimated number of the tax id's `db kmers` that the sample lacks, (1 - `shared fraction`) * `db kmers`. "
+            + "A lower bound for the *k*-mers in which the sample's genome and the tax id's genomes differ: *k*-mers the sample has gained are not counted. See [SharedFraction.md](SharedFraction.md).")
+    public Long getMissingKMers() {
+        return Double.isNaN(sharedFraction) ? null : Math.round((1 - sharedFraction) * dbKMers);
+    }
+
+    /**
+     * Returns the evolutionary distance derived from the shared fraction.
+     *
+     * @return the evolutionary distance, or NaN if the shared fraction was not estimated
+     */
+    @MDCDescription(pos = 1009, name = "evo distance", desc = "The evolutionary distance 1 - `shared fraction`^(1/*k*): the share of positions at which the sample differs from the tax id's genomes, "
+            + "if the missing *k*-mers were lost to point mutations alone. It refers to the tax id's own *k*-mers, the part of its genomes not shared with other tax ids. See [SharedFraction.md](SharedFraction.md).")
+    public double getEvoDistance() {
+        return evoDistance;
+    }
+
+    /**
+     * Returns the lower bound of the confidence interval of the evolutionary distance.
+     *
+     * @return the lower bound, or NaN if the shared fraction was not estimated
+     */
+    @MDCDescription(pos = 1010, name = "evo distance low", desc = "The lower bound of the confidence interval of `evo distance`, derived from `shared fraction high`.")
+    public double getEvoDistanceLow() {
+        return evoDistanceLow;
+    }
+
+    /**
+     * Returns the upper bound of the confidence interval of the evolutionary distance.
+     *
+     * @return the upper bound, or NaN if the shared fraction was not estimated
+     */
+    @MDCDescription(pos = 1011, name = "evo distance high", desc = "The upper bound of the confidence interval of `evo distance`, derived from `shared fraction low`.")
+    public double getEvoDistanceHigh() {
+        return evoDistanceHigh;
+    }
+
+    /**
+     * Returns the number of the tax id's stored k-mers hit exactly once.
+     *
+     * @return the number of k-mers hit exactly once, or {@code null} where hits were not counted
+     */
+    @MDCDescription(pos = 1012, name = "kmers hit once", desc = "The number of the tax id's `db kmers` hit exactly once. Only counted with `kmerHitCounterBits=2`.")
+    public Long getKMersHitOnce() {
+        return kmersHitOnce < 0 ? null : kmersHitOnce;
+    }
+
+    /**
+     * Returns the number of the tax id's stored k-mers hit exactly twice.
+     *
+     * @return the number of k-mers hit exactly twice, or {@code null} where hits were not counted
+     */
+    @MDCDescription(pos = 1013, name = "kmers hit twice", desc = "The number of the tax id's `db kmers` hit exactly twice. Only counted with `kmerHitCounterBits=2`.")
+    public Long getKMersHitTwice() {
+        return kmersHitTwice < 0 ? null : kmersHitTwice;
     }
 
     /**

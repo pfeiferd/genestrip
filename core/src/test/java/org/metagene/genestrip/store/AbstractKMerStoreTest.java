@@ -140,6 +140,69 @@ public abstract class AbstractKMerStoreTest extends TestCase {
 		return dir;
 	}
 
+	// Hit counting (setCountHits): every k-mer is hit 0 to 4 times, by several threads at once and in
+	// random order, and the counters must come out exact - an increment lost to a race would show up
+	// as a k-mer counted once instead of twice. The values must still decode correctly afterwards,
+	// since the radix store keeps its counter in the entry bits above the value index.
+	@Test
+	public void testHitCounting() throws InterruptedException {
+		Map<Long, Integer> kmerMap = new LinkedHashMap<Long, Integer>();
+		KMerStore<Integer> store = buildStore(20000, null, kmerMap);
+		assertTrue(store.setMarkVisited(true));
+		assertTrue(store.setCountHits(true));
+		assertTrue(store.isCountHits());
+		store.clearVisitedMarks();
+
+		long[] kmers = kmerArray(kmerMap);
+		List<Long> hits = new ArrayList<Long>();
+		for (int i = 0; i < kmers.length; i++) {
+			for (int h = 0; h < i % 5; h++) {
+				hits.add(kmers[i]);
+			}
+		}
+		java.util.Collections.shuffle(hits, random);
+		final int threads = 8;
+		Thread[] workers = new Thread[threads];
+		for (int t = 0; t < threads; t++) {
+			final int offset = t;
+			workers[t] = new Thread(() -> {
+				for (int i = offset; i < hits.size(); i += threads) {
+					store.getLong(hits.get(i), null);
+				}
+			});
+			workers[t].start();
+		}
+		for (Thread worker : workers) {
+			worker.join();
+		}
+
+		int max = store.getMaxValues();
+		long[] hit = new long[max];
+		long[] once = new long[max];
+		long[] twice = new long[max];
+		store.countHitsPerValueIndex(hit, once, twice);
+		long[] visited = new long[max];
+		store.countVisitedPerValueIndex(visited);
+		for (int i = 0; i < kmers.length; i++) {
+			int index = store.getIndexForValue(kmerMap.get(kmers[i]));
+			int h = i % 5;
+			assertEquals("hit at least once, k-mer " + i, h > 0 ? 1 : 0, hit[index]);
+			assertEquals("hit exactly once, k-mer " + i, h == 1 ? 1 : 0, once[index]);
+			assertEquals("hit exactly twice, k-mer " + i, h == 2 ? 1 : 0, twice[index]);
+			assertEquals("visited, k-mer " + i, hit[index], visited[index]);
+			assertEquals(kmerMap.get(kmers[i]), store.getLong(kmers[i], null));
+		}
+
+		store.clearVisitedMarks();
+		java.util.Arrays.fill(hit, 0);
+		store.countHitsPerValueIndex(hit, once, twice);
+		for (long count : hit) {
+			assertEquals(0, count);
+		}
+		assertTrue(store.setMarkVisited(false));
+		assertFalse(store.isCountHits());
+	}
+
 	@Test
 	public void testPutGet() {
 		Map<List<Byte>, Integer> controlMap = new HashMap<List<Byte>, Integer>();

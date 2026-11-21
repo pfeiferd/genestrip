@@ -250,5 +250,22 @@ public class RadixKMerStoreTest extends AbstractKMerStoreTest {
 		for (Map.Entry<Long, Integer> e : kmerMap.entrySet()) {
 			assertEquals(e.getValue(), store.getLong(e.getKey(), null));
 		}
+
+		// So many values reach into the count bit below the mark: hit counting must be refused, while
+		// marking still works and leaves every value intact.
+		assertTrue(n > maxValues / 2);
+		assertTrue(store.setMarkVisited(true));
+		assertFalse(store.setCountHits(true));
+		assertFalse(store.isCountHits());
+		for (Map.Entry<Long, Integer> e : kmerMap.entrySet()) {
+			assertEquals(e.getValue(), store.getLong(e.getKey(), null));
+		}
+		long[] visited = new long[store.getMaxValues()];
+		store.countVisitedPerValueIndex(visited);
+		for (Integer value : kmerMap.values()) {
+			assertEquals(1, visited[store.getIndexForValue(value)]);
+		}
+		assertTrue(store.setMarkVisited(false));
+		store.clearVisitedMarks();
 	}
 }

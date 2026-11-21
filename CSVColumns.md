@@ -32,3 +32,12 @@
 |`acc. error std. dev.`|The standard deviation of the `acc. mean error`.|
 |`acc. mean class error`|The accumulated `mean class error`.|
 |`acc. class error std. dev.`|The standard deviation of the `acc. mean class error`.|
+|`shared fraction`|The estimated share of the tax id's `db kmers` that the sample contains, corrected for *k*-mers not hit yet for lack of sequencing depth. With `kmerHitCounterBits=1` it is estimated from `kmers` and `unique kmers`, with `kmerHitCounterBits=2` by Chao's estimator from `kmers hit once` and `kmers hit twice`. Only given for tax ids of rank species or below. See [SharedFraction.md](SharedFraction.md).|
+|`shared fraction low`|The lower bound of the confidence interval of `shared fraction`, at the level `sharedFractionConfidence`. It covers the scatter of the reads, not the bias of uneven coverage. See [SharedFraction.md](SharedFraction.md).|
+|`shared fraction high`|The upper bound of the confidence interval of `shared fraction`, at the level `sharedFractionConfidence`.|
+|`missing kmers`|The estimated number of the tax id's `db kmers` that the sample lacks, (1 - `shared fraction`) * `db kmers`. A lower bound for the *k*-mers in which the sample's genome and the tax id's genomes differ: *k*-mers the sample has gained are not counted. See [SharedFraction.md](SharedFraction.md).|
+|`evo distance`|The evolutionary distance 1 - `shared fraction`^(1/*k*): the share of positions at which the sample differs from the tax id's genomes, if the missing *k*-mers were lost to point mutations alone. It refers to the tax id's own *k*-mers, the part of its genomes not shared with other tax ids. See [SharedFraction.md](SharedFraction.md).|
+|`evo distance low`|The lower bound of the confidence interval of `evo distance`, derived from `shared fraction high`.|
+|`evo distance high`|The upper bound of the confidence interval of `evo distance`, derived from `shared fraction low`.|
+|`kmers hit once`|The number of the tax id's `db kmers` hit exactly once. Only counted with `kmerHitCounterBits=2`.|
+|`kmers hit twice`|The number of the tax id's `db kmers` hit exactly twice. Only counted with `kmerHitCounterBits=2`.|

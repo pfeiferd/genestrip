@@ -116,6 +116,37 @@ public class MatchingResult implements Serializable {
 	}
 
 	/**
+	 * Estimates, for every tax id of rank species or below, the share of its stored k-mers that the
+	 * sample contains, with a confidence interval and the evolutionary distance derived from it (see
+	 * {@link SharedFractionEstimator}). A tax id without a determinate rank of its own, such as a strain
+	 * of rank "no rank", counts as below species if its nearest ancestor with a determinate rank is
+	 * species or below. Must run after {@link #completeResults(Database)}, which supplies the stored
+	 * k-mer counts.
+	 *
+	 * @param database  the database the result was matched against
+	 * @param estimator the estimator to use
+	 */
+	public void estimateSharedFractions(Database database, SharedFractionEstimator estimator) {
+		SmallTaxTree tree = database.getTaxTree();
+		for (CountsPerTaxid stats : taxid2Stats.values()) {
+			SmallTaxIdNode node = tree.getNodeByTaxId(stats.getTaxid());
+			if (isSpeciesOrBelow(node)) {
+				estimator.estimate(stats);
+			}
+		}
+	}
+
+	private static boolean isSpeciesOrBelow(SmallTaxIdNode node) {
+		for (; node != null; node = node.getParent()) {
+			Rank rank = node.getRank();
+			if (rank != null && !rank.isIndeterminate()) {
+				return rank == Rank.SPECIES || rank.isBelow(Rank.SPECIES);
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Returns the k-mer length used for matching.
 	 *
 	 * @return the k-mer length

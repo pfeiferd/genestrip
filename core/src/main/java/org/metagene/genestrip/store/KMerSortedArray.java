@@ -90,6 +90,13 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 	/** Whether lookups through <em>this</em> instance mark the positions they hit; the hot-path flag. */
 	private transient boolean markVisited;
 	/**
+	 * The hit counters, two bits per storage position (see {@link LargeBitVector#incrementCounter(long)}),
+	 * or {@code null} while counting was never on. Shared by a converted copy like {@link #visited}.
+	 */
+	private transient LargeBitVector counters;
+	/** Whether lookups through <em>this</em> instance count rather than mark, see {@link #setCountHits(boolean)}. */
+	private transient boolean countHits;
+	/**
 	 * Whether any user of this store is marking. The marks live in the {@link #visited} vector, which
 	 * a converted copy shares just as it shares the k-mer array, so two matchers marking at the same
 	 * time would count each other's hits.
@@ -234,6 +241,7 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 		largeKmers = org.largeKmers;
 		largeValueIndexes = org.largeValueIndexes;
 		visited = org.visited;
+		counters = org.counters;
 		enforceLarge = org.enforceLarge;
 		initSyncs();
 	}
@@ -467,7 +475,11 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 			posStore[0] = pos;
 		}
 		if (markVisited) {
-			visited.set(pos);
+			if (countHits) {
+				counters.incrementCounter(pos);
+			} else {
+				visited.set(pos);
+			}
 		}
 		return indexMap[index - Short.MIN_VALUE];
 	}
@@ -506,11 +518,44 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 					visited = new LargeBitVector(entries);
 				}
 			}
-		} else if (this.markVisited) {
-			markClaim.set(false);
+		} else {
+			if (this.markVisited) {
+				markClaim.set(false);
+			}
+			countHits = false;
 		}
 		this.markVisited = markVisited;
 		return true;
+	}
+
+	/**
+	 * Turns marking into counting: a lookup increments a two-bit counter of its storage position that
+	 * stops at three, held in a vector of twice the size of {@link #visited}. Only takes effect while
+	 * this instance marks.
+	 *
+	 * @param countHits whether lookups should count rather than mark
+	 * @return whether the requested mode is in effect; {@code false} if counting was requested but this
+	 *         instance does not mark
+	 */
+	@Override
+	public boolean setCountHits(boolean countHits) {
+		if (countHits) {
+			if (!markVisited) {
+				return false;
+			}
+			synchronized (this) {
+				if (counters == null) {
+					counters = new LargeBitVector(2 * entries);
+				}
+			}
+		}
+		this.countHits = countHits;
+		return true;
+	}
+
+	@Override
+	public boolean isCountHits() {
+		return countHits;
 	}
 
 	@Override
@@ -523,16 +568,38 @@ public class KMerSortedArray<V extends Serializable> extends AbstractKMerStore<V
 		if (visited != null) {
 			visited.clear();
 		}
+		if (counters != null) {
+			counters.clear();
+		}
 	}
 
 	@Override
 	public void countVisitedPerValueIndex(long[] counts) {
-		if (visited == null) {
+		if (visited == null && counters == null) {
 			return;
 		}
 		for (long i = 0; i < entries; i++) {
-			if (visited.get(i)) {
+			if ((visited != null && visited.get(i)) || (counters != null && counters.getCounter(i) != 0)) {
 				counts[indexAtPosition(i)]++;
+			}
+		}
+	}
+
+	@Override
+	public void countHitsPerValueIndex(long[] hit, long[] once, long[] twice) {
+		if (counters == null) {
+			return;
+		}
+		for (long i = 0; i < entries; i++) {
+			final int counter = counters.getCounter(i);
+			if (counter != 0) {
+				final int index = indexAtPosition(i);
+				hit[index]++;
+				if (counter == 1) {
+					once[index]++;
+				} else if (counter == 2) {
+					twice[index]++;
+				}
 			}
 		}
 	}

@@ -273,14 +273,14 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         Arrays.fill(lnodes, 0, max, null);
 
         final RadixKMerStore.BatchBuffers buffers = consumer.buffers;
-        final LargeBitVector bits = uniqueKmerBits;
+        final boolean ownMarks = uniqueKmerBits != null;
         final RadixKMerStore.BatchPositionConsumer<SmallTaxIdNode> resultSink = (kmer, payload, value, position) -> {
             lnodes[payload] = value;
             positions[payload] = position;
-            if (bits != null) {
+            if (ownMarks) {
                 // Set here rather than while classifying: this loop runs right after the batch was
                 // resolved, so these writes overlap with each other instead of being spread out.
-                bits.set(position);
+                markOwn(position);
             }
         };
 
@@ -453,7 +453,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
      * matched k-mers per store value index (which {@link #statsIndex} is indexed by too).
      * Package-private so tests can drive it directly.
      */
-    void computeUniqueKmerCounts() {
+    protected void computeUniqueKmerCounts() {
         long[] uniquePerIndex = new long[statsIndex.length];
         if (uniqueKmerBits != null) {
             final LargeBitVector bits = uniqueKmerBits;
@@ -492,7 +492,22 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
         Arrays.fill(statsIndex, null);
     }
 
-    void initUniqueCounter() {
+    /**
+     * Records a hit on the stored k-mer at the given storage position in this matcher's own
+     * {@link #uniqueKmerBits}; only called while those exist (see {@link #isOwnUniqueKMerBits()}).
+     * Subclasses that keep more than a bit per k-mer override it.
+     *
+     * @param pos the storage position of the k-mer hit
+     */
+    protected void markOwn(long pos) {
+        uniqueKmerBits.set(pos);
+    }
+
+    /**
+     * Prepares the counting of distinct matched k-mers for a run: either this matcher's own
+     * {@link #uniqueKmerBits} or the marks in the database, see {@link #isOwnUniqueKMerBits()}.
+     */
+    protected void initUniqueCounter() {
         if (isOwnUniqueKMerBits()) {
             // The database is left alone so that other matchers may read it at the same time. The
             // vector is indexed by store position, which is dense and ordered by radix bucket, so it
@@ -664,7 +679,7 @@ public class FastqKMerMatcher extends AbstractLoggingFastqStreamer {
             } else {
                 taxIdNode = kmerStore.getLong(CGAT.standardKMer(kmer, reverseKmer), entry.indexPos);
                 if (taxIdNode != null && uniqueKmerBits != null) {
-                    uniqueKmerBits.set(entry.indexPos[0]);
+                    markOwn(entry.indexPos[0]);
                 }
             }
             // Whether this k-mer starts a new contig (its tax node differs from the previous k-mer's).

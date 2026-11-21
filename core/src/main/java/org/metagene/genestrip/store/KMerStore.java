@@ -123,6 +123,44 @@ public interface KMerStore<V extends Serializable> extends Serializable {
 	public void countVisitedPerValueIndex(long[] counts);
 
 	/**
+	 * Turns visited marking into counting, or back. While it is on, a lookup does not merely mark the
+	 * k-mer it finds but increments a two-bit counter that stops at three, so that the k-mers hit
+	 * exactly once and exactly twice can be told apart afterwards with
+	 * {@link #countHitsPerValueIndex(long[], long[], long[])}. It only takes effect while this instance
+	 * marks (see {@link #setMarkVisited(boolean)}).
+	 * <p>
+	 * The default refuses, for stores that have no room for a counter.
+	 *
+	 * @param countHits whether lookups should count rather than mark the k-mers they find
+	 * @return whether the requested mode is in effect; {@code false} means the store has no room for
+	 *         a counter and the caller must count by other means
+	 */
+	public default boolean setCountHits(boolean countHits) {
+		return !countHits;
+	}
+
+	/**
+	 * Returns whether lookups count rather than mark the k-mers they find.
+	 *
+	 * @return whether hit counting is on
+	 */
+	public default boolean isCountHits() {
+		return false;
+	}
+
+	/**
+	 * Adds up, per value index, how many of that value's k-mers were hit at least once, exactly once and
+	 * exactly twice while counting was on (see {@link #setCountHits(boolean)}).
+	 *
+	 * @param hit   the per-value-index counters of k-mers hit at least once, to add to
+	 * @param once  the per-value-index counters of k-mers hit exactly once, to add to
+	 * @param twice the per-value-index counters of k-mers hit exactly twice, to add to
+	 */
+	public default void countHitsPerValueIndex(long[] hit, long[] once, long[] twice) {
+		throw new UnsupportedOperationException("This store does not count hits.");
+	}
+
+	/**
 	 * Returns the number of distinct values currently registered.
 	 *
 	 * @return the number of distinct values currently registered in this store.
