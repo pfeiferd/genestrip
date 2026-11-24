@@ -1,0 +1,5 @@
+isolate;stored kmers;shared kmers;shared fraction;one-bit estimate at x = 1;u/N at x = 1
+A;600797;597444;0.9944;1.0000;0.6334
+B;600797;539534;0.8980;0.9028;0.6013
+C;600797;446345;0.7429;0.7490;0.5493
+B with plasmid (5 % at 20 copies);600797;539534;0.8980;;
