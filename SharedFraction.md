@@ -44,6 +44,15 @@ This is the model of sylph [1]; for $`\pi = 1`$ it is Genestrip's column `exp. u
 sequencing errors only remove hits, since a *k*-mer with an error rarely matches a stored one. As
 $`c`$ counts hits and not reads, the model needs no error term.
 
+![Unique coverage of three simulated isolates](sharedfraction/coverage.svg)
+
+**Figure 1.** Unique coverage $`u/N`$ of three simulated isolates against one database node with
+$`N = 600{,}797`$ stored *k*-mers ($`k = 31`$, reads of 150 bases). The isolates share $`\pi = 0.994`$,
+$`0.898`$ and $`0.743`$ of the node's *k*-mers. Solid: the observed curve. Dashed: the model with $`\hat\pi`$ of the
+one-bit estimator (below) at $`x = 1`$, the end of the shaded part; dotted: its asymptote
+$`\hat\pi = 1`$, $`0.903`$ and $`0.749`$. At that point the curves have reached only $`u/N = 0.63`$,
+$`0.60`$ and $`0.55`$.
+
 ## Two estimators
 
 The configuration value `kmerHitCounterBits` decides how hits are recorded and so which estimator is
@@ -125,6 +134,17 @@ below $`u/N`$ nor above one. Columns `shared fraction low` and `shared fraction 
 In simulations with uniform coverage, both intervals contained the true $`\pi`$ in 90 to 95 % of the
 runs at the 95 % level. Taking the hits for independent draws ($`b = 1`$) gave intervals that contained
 it in only 15 to 30 %.
+
+![Estimates with their 95 % intervals over the depth](sharedfraction/intervals.svg)
+
+**Figure 2.** The estimates for the isolates of Figure 1 over the depth, with their 95 % intervals
+(shaded). (a) Chao's estimator; dotted: the true $`\pi`$. (b) Isolate B with 5 % of its shared
+*k*-mers on a plasmid of 20 copies, both estimators. The interval of the one-bit estimator is narrow
+and misses $`\pi`$: it covers the scatter of the reads, not the bias the plasmid causes.
+
+The data of both figures (CSV) and the figures themselves are written to [sharedfraction](sharedfraction)
+by the test class `SharedFractionFigures`; `SharedFractionSimulationTest` checks the claims of this page
+on the same simulation.
 
 **The interval covers the scatter of the reads, not the bias of uneven coverage.** Where that bias
 exceeds the standard error, the interval misses $`\pi`$ however well it is computed.
